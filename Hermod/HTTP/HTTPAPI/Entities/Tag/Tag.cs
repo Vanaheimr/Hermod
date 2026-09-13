@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -137,10 +138,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Tag">The parsed tag.</param>
         /// <param name="ErrorResponse">An error message.</param>
         /// <param name="TagIdURL">An optional tag identification, e.g. from the HTTP URL.</param>
-        public static Boolean TryParseJSON(JObject      JSONObject,
-                                           out Tag?     Tag,
-                                           out String?  ErrorResponse,
-                                           Tag_Id?      TagIdURL = null)
+        public static Boolean TryParseJSON(JObject                            JSONObject,
+                                           [NotNullWhen(true)]  out Tag?      Tag,
+                                           [NotNullWhen(false)] out String?   ErrorResponse,
+                                           Tag_Id?                            TagIdURL = null)
         {
 
             try
@@ -170,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                if (!TagIdURL.HasValue && !TagIdBody.HasValue)
+                if ((TagIdBody ?? TagIdURL) is not { } parsedId)
                 {
                     ErrorResponse = "The tag identification is missing!";
                     return false;
@@ -219,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                Tag = new Tag(TagIdBody ?? TagIdURL.Value,
+                Tag = new Tag(parsedId,
                               Description);
 
                 ErrorResponse = null;
@@ -421,7 +422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public static implicit operator Tag(Builder Builder)
 
-                => Builder?.ToImmutable;
+                => Builder.ToImmutable;
 
 
             /// <summary>

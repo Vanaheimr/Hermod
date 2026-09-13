@@ -618,8 +618,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Create a new IPv6 address from the given System.Net.IPAddress.
         /// </summary>
         public static IPv6Address From(System.Net.IPAddress IPAddress)
+        {
 
-            => new (IPAddress.GetAddressBytes());
+            var bytes = IPAddress.GetAddressBytes();
+
+            if (bytes.Length != length)
+                throw new FormatException("The given IP address is not an IPv6 address!");
+
+            return new IPv6Address(
+                       bytes,
+                       IPAddress.ScopeId > 0
+                           ? IPAddress.ScopeId.ToString(CultureInfo.InvariantCulture)
+                           : null
+                   );
+
+        }
 
         #endregion
 
@@ -656,7 +669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv6Address">The IPv6 address.</param>
         public static implicit operator System.Net.IPAddress(IPv6Address IPv6Address)
 
-            => new (IPv6Address.GetBytes());
+            => IPAddress.ToDotNet(IPv6Address);
 
         #endregion
 

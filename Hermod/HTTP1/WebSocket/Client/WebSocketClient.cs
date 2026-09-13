@@ -303,6 +303,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public WebSocketBackpressureBehaviour       BackpressureBehaviour                { get; set; } = WebSocketBackpressureBehaviour.CloseConnection;
 
+        /// <summary>
+        /// The maximum size of an incoming text message. A larger message fails the connection
+        /// with 1009 (message too big). Null (the default) means no limit beyond the maximum
+        /// payload size of a frame. Applied to every connection this client establishes.
+        /// </summary>
+        public UInt64?                              MaxTextMessageSizeIn                 { get; set; }
+
+        /// <summary>
+        /// The maximum size of an outgoing text message. Null (the default) means no limit.
+        /// Applied to every connection this client establishes.
+        /// </summary>
+        public UInt64?                              MaxTextMessageSizeOut                { get; set; }
+
 
         public TimeSpan?                            SlowNetworkSimulationDelay           { get; set; }
 
@@ -1068,7 +1081,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             RequestTimeout ??= this.RequestTimeout;
 
-            HTTPResponse? waitingForHTTPResponse = null;
+            HTTPResponse? waitingForHTTPResponse  = null;
+            HTTPResponse? lastFailureResponse     = null;
 
             if (networkingTask is not null)
                 return new Tuple<WebSocketClientConnection, HTTPResponse>(
@@ -1271,8 +1285,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             SlowNetworkSimulationDelay:  null
                                                         );
 
-                            webSocketClientConnection.MaxBackpressure       = MaxBackpressure;
-                            webSocketClientConnection.BackpressureBehaviour  = BackpressureBehaviour;
+                            webSocketClientConnection.MaxBackpressure         = MaxBackpressure;
+                            webSocketClientConnection.BackpressureBehaviour   = BackpressureBehaviour;
+                            webSocketClientConnection.MaxTextMessageSizeIn    = MaxTextMessageSizeIn;
+                            webSocketClientConnection.MaxTextMessageSizeOut   = MaxTextMessageSizeOut;
 
                             // permessage-deflate (RFC 7692): attach the negotiated extension, if the server accepted it.
                             if (EnablePerMessageDeflate)
@@ -1937,6 +1953,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         #endregion
 
+                        lastFailureResponse = httpResponse;
+
                         await base.Close().ConfigureAwait(false);
                         HTTPStream = null;
 
@@ -1959,6 +1977,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         };
 
                         #endregion
+
+                        lastFailureResponse = httpResponse;
 
                         await base.Close().ConfigureAwait(false);
                         HTTPStream = null;
@@ -2048,11 +2068,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             }, CancellationToken);
 
-            var ts = Timestamp.Now;
+            var connectionAttempts  = networkingTask;
+            var ts                  = Timestamp.Now;
 
-            while (waitingForHTTPResponse is null && ts + RequestTimeout > Timestamp.Now) {
+            // Wait for the response to the upgrade request, but not beyond the end of the
+            // networking task: when the connection attempt failed and no reconnect policy
+            // keeps trying, nothing will arrive any more, and the caller gets the failure of
+            // that attempt instead of waiting for the whole request timeout.
+            while (waitingForHTTPResponse is null && !connectionAttempts.IsCompleted && ts + RequestTimeout > Timestamp.Now) {
                 await Task.Delay(10, CancellationToken);
             }
+
+            waitingForHTTPResponse ??= lastFailureResponse;
 
             waitingForHTTPResponse ??= new HTTPResponse.Builder(
 

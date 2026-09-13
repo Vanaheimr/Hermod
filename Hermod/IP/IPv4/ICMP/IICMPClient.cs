@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
                                UInt16                  SequenceStartValue   = 0,
                                String?                 TestData             = null,
                                Byte                    TTL                  = 64,
-                               DNSClient?              DNSClient            = null);
+                               IDNSClient?              DNSClient            = null);
 
 
         /// <summary>

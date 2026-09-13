@@ -107,6 +107,49 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit 0
 
+      # Both the library's packages and the test project's, in one go: `dotnet
+      # list package` reads the graph the build just restored, and
+      # HermodTests.csproj is the wider of the two — it carries everything
+      # Hermod.csproj ships plus Grpc.Net.Client and Microsoft.AspNetCore.TestHost,
+      # which appear in no other repository of this stack and which nothing else
+      # would therefore ever look at. Asking Hermod.csproj would be the smaller
+      # question for the same minute.
+      #
+      # It also answers for Styx, which is checked out beside this repository and
+      # built from source: its two packages are BouncyCastle and Newtonsoft.Json
+      # at the versions Hermod declares itself, so they are inside this graph
+      # either way and Styx needs no scan of its own for them.
+      #
+      # One leg, because this is a property of the dependency graph and not of
+      # the operating system. Printing it on both would only make a night look
+      # like it had found two of everything.
+      #
+      # Informational, and that is the part worth insisting on: an advisory
+      # published overnight is news about the world, not a regression in this
+      # repository — the same commit that was green yesterday is affected today
+      # without a line having changed. That is also why it lives here and not in
+      # ci.yml: a gate that can go red for something no push caused stops being
+      # read as a gate.
+      - name: Known vulnerabilities (informational)
+        if: ${{ matrix.leg == 'debian-13-container' && !cancelled() }}
+        continue-on-error: true
+        working-directory: Hermod
+        shell: bash
+        run: |
+          set +e
+          {
+            echo '## Known vulnerabilities (informational)'
+            echo
+            echo 'The NuGet packages of Hermod and HermodTests, transitives included.'
+            echo 'Informational: an advisory published overnight is news, not a'
+            echo 'regression, so this step cannot turn the night red.'
+            echo
+            echo '```'
+            dotnet list HermodTests/HermodTests.csproj package --vulnerable --include-transitive 2>&1 | tail -40
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
       # Two .trx files per leg: the gated set and the live probes. The step summary
       # above reduces the probes to five counters, which is the right amount to read
       # every morning but the wrong amount when a night looks odd — it cannot say

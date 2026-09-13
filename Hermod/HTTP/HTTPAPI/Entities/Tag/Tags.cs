@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public JToken ToJSON(InfoStatus ExpandTags = InfoStatus.ShowIdOnly)
+        public JToken? ToJSON(InfoStatus ExpandTags = InfoStatus.ShowIdOnly)
 
             => ExpandTags.Switch(this,
 
@@ -235,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
 
-        public JToken ToJSON(InfoStatus ExpandTags = InfoStatus.ShowIdOnly)
+        public JToken? ToJSON(InfoStatus ExpandTags = InfoStatus.ShowIdOnly)
 
             => ExpandTags.Switch(this,
 
@@ -264,7 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
 
-        public JToken ToJSON(InfoStatus ExpandTags = InfoStatus.ShowIdOnly)
+        public JToken? ToJSON(InfoStatus ExpandTags = InfoStatus.ShowIdOnly)
 
             => ExpandTags.Switch(this,
 
@@ -386,25 +386,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            if (item is JArray array && array.Children().Count() == 2)
+                            if (item is JArray array && array.Count == 2)
                             {
 
-                                var TagId     = item[0].Value<String>();
-                                var TagObject = item[0] as JObject;
+                                var weight = new TagEdge(TagEdgeLabel.IsSameAs, array[1].Value<Single>());
 
-                                if (TagObject is not null && Tag.TryParseJSON(item[0] as JObject,
-                                                                          out Tag? Tag2,
-                                                                          out ErrorResponse))
-                                {
-                                    _tags.Add(Tag2,
-                                              new TagEdge(TagEdgeLabel.IsSameAs, item[1].Value<Single>()));
-                                }
+                                if (array[0] is JObject tagObject && Tag.TryParseJSON(tagObject, out var tag2, out ErrorResponse))
+                                    _tags.Add(tag2, weight);
 
-                                else
-                                {
-                                    _tags.Add(new Tag(Tag_Id.Parse(TagId)),
-                                              new TagEdge(TagEdgeLabel.IsSameAs, item[1].Value<Single>()));
-                                }
+                                else if (array[0].Value<String>() is { } tagId)
+                                    _tags.Add(new Tag(Tag_Id.Parse(tagId)), weight);
 
                             }
 
@@ -522,7 +513,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public static implicit operator Tags(Builder Builder)
 
-                => Builder?.ToImmutable;
+                => Builder.ToImmutable;
 
 
             /// <summary>

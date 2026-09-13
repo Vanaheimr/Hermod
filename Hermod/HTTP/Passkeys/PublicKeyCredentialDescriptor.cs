@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -17,46 +17,51 @@
 
 #region Usings
 
+using System.Buffers.Text;
+
 using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    // https://w3c.github.io/webauthn/#dictionary-credential-descriptor
-
     /// <summary>
-    /// Beschreibung bereits vorhandener Credentials (um Duplikate zu verhindern)
+    /// A reference to an existing credential, used within excludeCredentials
+    /// and allowCredentials.
+    /// https://w3c.github.io/webauthn/#dictionary-credential-descriptor
     /// </summary>
     public class PublicKeyCredentialDescriptor(Byte[]                                Id,
                                                PublicKeyCredentialType               Type,
                                                IEnumerable<AuthenticatorTransport>?  Transports   = null)
     {
 
-        /// <summary>
-        /// The unique credential identification.
-        /// </summary>
+        #region Properties
+
         public Byte[]                               Id            { get; } = Id;
-
-        /// <summary>
-        /// The type of the credential (default: "public-key").
-        /// </summary>
         public PublicKeyCredentialType              Type          { get; } = Type;
-
-        /// <summary>
-        /// Optional transports for the credential, e.g. "ble", "hybrid", "internal", "nfc", "usb", ...
-        /// </summary>
         public IEnumerable<AuthenticatorTransport>  Transports    { get; } = Transports?.Distinct() ?? [];
 
+        #endregion
+
+        #region ToJSON()
 
         public JObject ToJSON()
 
-            => new (
-                   new JProperty("id",           Convert.ToBase64String(Id)),
-                   new JProperty("type",         Type.ToString()),
-                   new JProperty("transports",   new JArray(Transports.Select(transport => transport.ToString())))
+            => JSONObject.Create(
+
+                         new JProperty("id",          Base64Url.EncodeToString(Id)),
+                         new JProperty("type",        Type.ToString()),
+
+                   Transports.Any()
+                       ? new JProperty("transports",  new JArray(Transports.Select(transport => transport.ToString())))
+                       : null
+
                );
+
+        #endregion
 
     }
 

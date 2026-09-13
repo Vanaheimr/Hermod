@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -19,41 +19,37 @@
 
 using Newtonsoft.Json.Linq;
 
-using org.GraphDefined.Vanaheimr.Illias;
-
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    // https://w3c.github.io/webauthn/#webauthn-extensions
-
     /// <summary>
-    /// An Authentication Extension
+    /// One client extension input: the extension identifier and its value,
+    /// e.g. credProps = true.
+    /// https://w3c.github.io/webauthn/#webauthn-extensions
     /// </summary>
-    public class AuthenticationExtension(String                      Name,
-                                         Dictionary<String, Object>  Map)
+    public class AuthenticationExtension(String  Name,
+                                         JToken  Value)
     {
 
-        /// <summary>
-        /// An "entry key" identifying the extension.
-        /// </summary>
-        public String                      Name    { get; } = Name;
+        #region Properties
+
+        public String  Name     { get; } = Name;
+        public JToken  Value    { get; } = Value;
+
+        #endregion
+
+        #region Static defaults
 
         /// <summary>
-        /// Parameters of the extension.
+        /// The credProps extension: the client reports within
+        /// clientExtensionResults.credProps.rk whether the created credential
+        /// is discoverable.
         /// </summary>
-        public Dictionary<String, Object>  Map     { get; } = Map;
+        public static AuthenticationExtension  CredProps    { get; } = new ("credProps", true);
 
-
-        public JObject ToJSON()
-
-            => JSONObject.Create(
-                   Map.Select(extEntry => new JProperty(
-                                              extEntry.Key,
-                                              extEntry.Value
-                                          ))
-               );
+        #endregion
 
     }
 

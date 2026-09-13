@@ -37,33 +37,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        public static HTTPRequestHandlersX FromURLNode(URL_NodeX URLNode)
-
-            => new (URLNode.HTTPAPI,
-                    URLNode.RequestHandler,
-                    URLNode.HTTPRequestLogger,
-                    URLNode.HTTPResponseLogger,
-                    URLNode.DefaultErrorHandler,
-                    URLNode.ErrorHandlers);
-
-        public static HTTPRequestHandlersX FromMethodNode(HTTPMethodNodeX MethodNode)
-
-            => new (MethodNode.HTTPAPI,
-                    MethodNode.RequestHandler,
-                    MethodNode.HTTPRequestLogger,
-                    MethodNode.HTTPResponseLogger,
-                    MethodNode.DefaultErrorHandler,
-                    MethodNode.ErrorHandlers);
-
-        public static HTTPRequestHandlersX FromContentTypeNode(ContentTypeNodeX ContentTypeNode)
-
-            => new (ContentTypeNode.HTTPAPI,
-                    ContentTypeNode.RequestHandler,
-                    ContentTypeNode.HTTPRequestLogger,
-                    ContentTypeNode.HTTPResponseLogger,
-                    ContentTypeNode.DefaultErrorHandler,
-                    ContentTypeNode.ErrorHandlers);
-
     }
 
 }

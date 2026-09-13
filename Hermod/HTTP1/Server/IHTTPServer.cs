@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         UInt32                                                     NumberOfConnectedClients      { get; }
 
-        DNSClient                                                  DNSClient                     { get; }
+        IDNSClient                                                 DNSClient                     { get; }
 
 
 

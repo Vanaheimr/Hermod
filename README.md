@@ -20,6 +20,9 @@ Hermod is a .NET library for simplified advanced networking tasks...
 
 - [DNS (UDP/TCP/TLS/HTTPS) Clients / Servers](Hermod/DNS/README.md)
 - [HTTP/1.0 and HTTP/1.1 Client / Server](Hermod/HTTP1/README.md)
+- [Static content and single-page applications](Hermod/HTTP/StaticContent/README.md)
+  over the HTTP/1.1 server: embedded or on-disk bundles with entity tags,
+  conditional requests, Brotli/gzip, caching policy and security headers
 - [HTTP/1.1 WebSocket Client / Server](Hermod/HTTP1/WebSocket/README.md)
 - [HTTP/2.0 Client / Server](Hermod/HTTP2/README.md)
 - [HTTP/3 Client / Server (RFC 9114) + QPACK (RFC 9204)](Hermod/HTTP3/README.md)
@@ -33,6 +36,12 @@ Hermod is a .NET library for simplified advanced networking tasks...
 
 - ModbusTCP/TLS client / server
 - HTTP SOAP client / server
+- HTTP user and organization management (`HTTPExtAPI`): accounts with
+  PBKDF2 passwords, sign-in sessions, passkeys and a hash-chained event log
+  as database, JSON account routes below `auth/` for single-page
+  applications (sign-in and sign-out with the session cookies, the signed-in
+  account, its password and passkeys) and self sign-up as an opt-in through
+  `SelfSignUpAPI`
 - HTTP Passkeys
 - HTTP TOTP Authentication
 - Argus

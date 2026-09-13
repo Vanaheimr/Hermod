@@ -47,12 +47,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region API
 
-        private Object _API;
+        private Object? _API;
 
         /// <summary>
         /// The API of this News.
         /// </summary>
-        internal Object API
+        internal Object? API
         {
 
             get
@@ -242,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                 }
 
-                if (!NotificationMessageIdURL.HasValue && !NotificationMessageIdBody.HasValue)
+                if ((NotificationMessageIdBody ?? NotificationMessageIdURL) is not { } parsedId)
                 {
                     ErrorResponse = "The NotificationMessage identification is missing!";
                     return false;
@@ -328,9 +328,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                 foreach (var ownerJSON in OwnersJSON)
                 {
 
-                    if (!Organization_Id.TryParse(ownerJSON.Value<String>(), out Organization_Id OwnerId))
+                    var ownerText = ownerJSON.Value<String>();
+
+                    if (ownerText is null || !Organization_Id.TryParse(ownerText, out Organization_Id OwnerId))
                     {
-                        ErrorResponse = "Invalid owner identification '" + OwnerId + "'!";
+                        ErrorResponse = "Invalid owner identification '" + ownerText + "'!";
                         return false;
                     }
 
@@ -368,7 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                 #endregion
 
 
-                NotificationMessage = new NotificationMessage(NotificationMessageIdBody ?? NotificationMessageIdURL.Value,
+                NotificationMessage = new NotificationMessage(parsedId,
                                                               Timestamp,
                                                               Type,
                                                               Data,
@@ -820,7 +822,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             /// <param name="Builder">A News builder.</param>
             public static implicit operator NotificationMessage(Builder Builder)
 
-                => Builder?.ToImmutable;
+                => Builder.ToImmutable;
 
 
             /// <summary>

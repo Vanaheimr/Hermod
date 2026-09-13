@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public new DNSClient                                                  DNSClient                     { get; }
+        public new IDNSClient                                                 DNSClient                     { get; }
 
 
         #region Available
@@ -386,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                UInt16?                                                        MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                                Boolean                                                        UseRequestPipelining         = false,
                                ModbusTCPClientLogger?                                         Logger                       = null,
-                               DNSClient?                                                     DNSClient                    = null)
+                               IDNSClient?                                                     DNSClient                    = null)
 
             : base(BuildModbusURL(RemoteHostname, RemoteTCPPort, TLSProtocol),
                    Description.ToI18NString(),
@@ -439,7 +439,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
             this.UseRequestPipelining        = UseRequestPipelining;
             this.Logger                      = Logger;
-            this.DNSClient                   = DNSClient              ?? base.DNSClient as DNSClient ?? new DNSClient();
+            this.DNSClient                   = DNSClient              ?? base.DNSClient ?? new DNSClient();
             this.internalInvocationId        = Random.Shared.Next(1000);
 
         }
@@ -483,7 +483,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                UInt16?                                                        MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                                Boolean                                                        UseRequestPipelining         = false,
                                ModbusTCPClientLogger?                                         Logger                       = null,
-                               DNSClient?                                                     DNSClient                    = null)
+                               IDNSClient?                                                     DNSClient                    = null)
 
             : base(RemoteIPAddress,
                    ResolveRemoteTCPPort(RemoteTCPPort, TLSProtocol),
@@ -535,7 +535,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
             this.UseRequestPipelining        = UseRequestPipelining;
             this.Logger                      = Logger;
-            this.DNSClient                   = DNSClient              ?? base.DNSClient as DNSClient ?? new DNSClient();
+            this.DNSClient                   = DNSClient              ?? base.DNSClient ?? new DNSClient();
             this.internalInvocationId        = Random.Shared.Next(1000);
 
         }
@@ -577,7 +577,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                UInt16?                                                        MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                                Boolean                                                        UseRequestPipelining         = false,
                                ModbusTCPClientLogger?                                         Logger                       = null,
-                               DNSClient?                                                     DNSClient                    = null)
+                               IDNSClient?                                                     DNSClient                    = null)
 
             : base(RemoteURL,
                    Description.ToI18NString(),
@@ -630,7 +630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
             this.UseRequestPipelining        = UseRequestPipelining;
             this.Logger                      = Logger;
-            this.DNSClient                   = DNSClient              ?? base.DNSClient as DNSClient ?? new DNSClient();
+            this.DNSClient                   = DNSClient              ?? base.DNSClient ?? new DNSClient();
             this.internalInvocationId        = Random.Shared.Next(1000);
 
         }

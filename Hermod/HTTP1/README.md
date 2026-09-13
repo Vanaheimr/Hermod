@@ -156,6 +156,13 @@ The HTTP API routes by host, path, and method. It supports server-wide
 `OPTIONS`, resource-level `OPTIONS`, `405 Method Not Allowed`, and generation of
 the corresponding `Allow` field.
 
+Handlers are registered at an `HTTPAPI` (`AddHandler`) with URL templates
+relative to the root path of that API; a trailing `{name..}` parameter catches
+the rest of the path. `HTTPServer.AddMethodCallback` and the `Register...`
+helpers take server-wide templates instead and hand the handler to the HTTP API
+owning the path, creating a default API at `/` for the hostname when none
+exists yet.
+
 Built-in method values include:
 
 - Core HTTP methods: `GET`, `HEAD`, `POST`, `PUT`, `DELETE`, `OPTIONS`, `TRACE`,

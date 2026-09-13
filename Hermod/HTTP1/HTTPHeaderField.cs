@@ -461,21 +461,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Content-Encoding
 
         /// <summary>
-        /// The Content-Encoding entity-header field is used as a modifier
-        /// to the media-type. When present, its value indicates what
-        /// additional content codings have been applied to the entity-body,
-        /// and thus what decoding mechanisms must be applied in order to
-        /// obtain the media-type referenced by the Content-Type header
-        /// field.
-        /// If the content-encoding of an entity in a request message is not
+        /// The Content-Encoding header field indicates what content codings
+        /// have been applied to the representation, beyond those inherent in
+        /// the media type, and thus what decoding mechanisms have to be applied
+        /// in order to obtain data in the media type referenced by the
+        /// Content-Type header field. The codings are listed in the order in
+        /// which they were applied, e.g. "gzip", "br" or "deflate". This is a
+        /// content coding, not a character encoding.
+        /// If the content coding of a representation in a request is not
         /// acceptable to the origin server, the server SHOULD respond with
         /// a status code of 415 (Unsupported Media Type).
         /// </summary>
         /// <example>Content-Encoding: gzip</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField<Encoding> ContentEncoding = new ("Content-Encoding",
-                                                                                HeaderFieldType.General,
-                                                                                RequestPathSemantic.EndToEnd);
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110#section-8.4"/>
+        public static readonly HTTPHeaderField<IEnumerable<String>> ContentEncoding = new ("Content-Encoding",
+                                                                                           HeaderFieldType.General,
+                                                                                           RequestPathSemantic.EndToEnd,
+                                                                                           MultipleValuesAsList:  true,
+                                                                                           StringParser:          StringParsers.NullableListOfStrings);
 
         #endregion
 

@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="HTTP\HTTPRoot\helloWorld.txt" />
+    <EmbeddedResource Include="HTTP\HTTPRoot\SPA\**" />
   </ItemGroup>
 
   <!-- The canonical TOTP conformance vectors, vendored from

@@ -166,6 +166,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #endregion
 
 
+        #region (private) GetOrAddSOAPDispatcher(HTTPAPI, URLTemplate)
+
+        /// <summary>
+        /// The SOAP dispatcher at the given URL template of the given HTTP API.
+        /// On its first use the dispatcher is registered for HTTP POST, together
+        /// with an information text for people using HTTP GET.
+        /// </summary>
+        /// <param name="HTTPAPI">The HTTP API.</param>
+        /// <param name="URLTemplate">The URL template.</param>
+        private SOAPDispatcher GetOrAddSOAPDispatcher(HTTPAPI   HTTPAPI,
+                                                      HTTPPath  URLTemplate)
+        {
+
+            if (soapDispatchers.TryGetValue(URLTemplate, out var soapDispatcher))
+                return soapDispatcher;
+
+            // Another handler at the URL template is not a SOAP endpoint!
+            var requestHandle = HTTPAPI.GetRequestHandle(
+                                    URLTemplate,
+                                    HTTPMethod.POST,
+                                    SOAPContentType
+                                );
+
+            if (requestHandle.RouteNode is not null)
+                throw new ArgumentException($"'{URLTemplate}' is already registered, but not as a SOAP endpoint!",
+                                            nameof(URLTemplate));
+
+            soapDispatcher = new SOAPDispatcher(URLTemplate, SOAPContentType);
+            soapDispatchers.Add(URLTemplate, soapDispatcher);
+
+            // Register the new SOAP dispatcher...
+            HTTPAPI.AddHandler(
+                HTTPMethod.POST,
+                URLTemplate,
+                soapDispatcher.Invoke,
+                SOAPContentType
+            );
+
+            // ...and some information text for people using HTTP GET.
+            HTTPAPI.AddHandler(
+                HTTPMethod.GET,
+                URLTemplate,
+                soapDispatcher.EndpointTextInfo,
+                SOAPContentType
+            );
+
+            return soapDispatcher;
+
+        }
+
+        #endregion
+
         #region RegisterSOAPDelegate(Hostname, URLTemplate, Description, SOAPMatch, SOAPBodyDelegate)
 
         /// <summary>
@@ -184,44 +236,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                          SOAPBodyDelegate  SOAPBodyDelegate)
         {
 
-            SOAPDispatcher? soapDispatcher = null;
-
-            var requestHandle = HTTPAPI.GetRequestHandle(
-                                    URLTemplate,
-                                    HTTPMethod.POST,
-                                    SOAPContentType
-                                );
-
-            if (requestHandle.RouteNode is null)
-            {
-
-                soapDispatcher = new SOAPDispatcher(URLTemplate, SOAPContentType);
-                soapDispatchers.Add(URLTemplate, soapDispatcher);
-
-                // Register a new SOAP dispatcher
-                HTTPAPI.AddHandler(
-                    HTTPMethod.POST,
-                    URLTemplate,
-                    soapDispatcher.Invoke,
-                    SOAPContentType
-                );
-
-                // Register some information text for people using HTTP GET
-                HTTPAPI.AddHandler(
-                    HTTPMethod.GET,
-                    URLTemplate,
-                    soapDispatcher.EndpointTextInfo,
-                    SOAPContentType
-                );
-
-            }
-
-            if (soapDispatchers.TryGetValue(URLTemplate, out var existingSOAPDispatcher))
-                existingSOAPDispatcher.RegisterSOAPDelegate(
-                    Description,
-                    SOAPMatch,
-                    SOAPBodyDelegate
-                );
+            GetOrAddSOAPDispatcher(HTTPAPI, URLTemplate).RegisterSOAPDelegate(
+                Description,
+                SOAPMatch,
+                SOAPBodyDelegate
+            );
 
         }
 
@@ -245,52 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                          SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)
         {
 
-            SOAPDispatcher? soapDispatcher = null;
-
-            // Check if there are other SOAP dispatchers at the given URI template.
-            var requestHandle = HTTPServer.GetRequestHandle(
-                                    HTTPHostname.Any,
-                                    //out var errorResponse,
-                                    HTTPMethod.POST,
-                                    URLTemplate,
-                                    hTTPContentTypes => SOAPContentType
-                                );
-
-            if (requestHandle is null)
-            {
-
-                soapDispatcher = new SOAPDispatcher(URLTemplate, SOAPContentType);
-                soapDispatchers.Add(URLTemplate, soapDispatcher);
-
-                // Register a new SOAP dispatcher
-                HTTPServer.AddHandler(
-                    HTTPAPI,
-                    soapDispatcher.Invoke,
-                    Hostname,
-                    URLTemplate,
-                    HTTPMethod.POST,
-                    SOAPContentType
-                );
-
-                // Register some information text for people using HTTP GET
-                HTTPServer.AddHandler(
-                    HTTPAPI,
-                    soapDispatcher.EndpointTextInfo,
-                    Hostname,
-                    URLTemplate,
-                    HTTPMethod.GET,
-                    SOAPContentType
-                );
-
-            }
-
-            else
-                soapDispatcher = requestHandle?.RequestHandlers?.RequestHandler?.Target as SOAPDispatcher;
-
-            if (soapDispatcher is null)
-                throw new Exception("'" + URLTemplate.ToString() + "' does not seem to be a valid SOAP endpoint!");
-
-            soapDispatcher.RegisterSOAPDelegate(
+            GetOrAddSOAPDispatcher(HTTPAPI, URLTemplate).RegisterSOAPDelegate(
                 Description,
                 SOAPMatch,
                 SOAPHeaderAndBodyDelegate

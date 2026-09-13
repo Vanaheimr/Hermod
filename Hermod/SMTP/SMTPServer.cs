@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private readonly SMTPServerConfig            serverConfig;
         private readonly RateLimitConfig             _rateLimitConfig;
         private readonly IMailStorage                _storage;
-        private readonly DNSClient                   dnsClient;
+        private readonly IDNSClient                   dnsClient;
         private readonly DNSVerifier                 _dnsVerifier;
         private readonly IUserStore                  _userStore;
         private readonly IMailQueue?                 _mailQueue;
@@ -49,7 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private readonly CancellationTokenSource     _cts = new();
 
         public SMTPServer(SMTPServerConfig  ServerConfig,
-                          DNSClient         DNSClient,
+                          IDNSClient         DNSClient,
                           ILogger?          logger            = null,
                           IUserStore?       userStore         = null,
                           IMailQueue?       mailQueue         = null,

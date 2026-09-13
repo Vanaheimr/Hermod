@@ -61,16 +61,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public TimeSpan?          Runtime                { get; set; }
 
             /// <summary>
-            /// The entire HTTP header.
+            /// The entire HTTP header: the status line, the header fields and the empty line,
+            /// every line ended with CRLF as RFC 9112 requires (not Environment.NewLine: a
+            /// bare line feed on Linux is rejected by strict peers).
             /// </summary>
             public String             HTTPHeader
 
                 => String.Concat(
                       $"{ProtocolName}/{ProtocolVersion} {(HTTPStatusCode ?? HTTPStatusCode.BadRequest).Code} {(HTTPStatusCode ?? HTTPStatusCode.BadRequest).Name}",
-                       Environment.NewLine,
+                       "\r\n",
                        ConstructedHTTPHeader,
-                       Environment.NewLine,
-                       Environment.NewLine
+                       "\r\n"
                    );
 
 
@@ -744,15 +745,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region SetContentEncoding(ContentEncoding)
+            #region SetContentEncoding(ContentCodings)
 
             /// <summary>
             /// Set the HTTP Content-Encoding.
             /// </summary>
-            /// <param name="ContentEncoding">The encoding of the HTTP content/body.</param>
-            public Builder SetContentEncoding(Encoding ContentEncoding)
+            /// <param name="ContentCodings">The content codings applied to the HTTP body, in the order of their application, e.g. "gzip".</param>
+            public Builder SetContentEncoding(params String[] ContentCodings)
             {
-                this.ContentEncoding = ContentEncoding;
+                this.ContentEncoding = ContentCodings;
                 return this;
             }
 

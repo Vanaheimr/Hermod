@@ -149,8 +149,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
-            if (!HTTPCookieName.TryParse(Text[..Text.IndexOf('=')],
-                                         out var cookieName))
+            // "HttpOnly" on its own is an attribute without a cookie, and
+            // Text[..-1] would throw rather than say so.
+            var equals = Text.IndexOf('=');
+
+            if (equals < 1 ||
+                !HTTPCookieName.TryParse(Text[..equals], out var cookieName))
             {
                 HTTPCookie = null;
                 return false;

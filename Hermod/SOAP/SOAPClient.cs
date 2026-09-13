@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           String                               UserAgent                    = DefaultUserAgent,
                           TimeSpan?                            RequestTimeout               = null,
-                          DNSClient                            DNSClient                    = null)
+                          IDNSClient?                          DNSClient                    = null)
 
             : base(Hostname,
                    HTTPSPort      ?? IPPort.HTTPS,
@@ -374,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           String                               UserAgent                    = DefaultUserAgent,
                           Boolean                              UseFakeURLPrefix             = true,
                           TimeSpan?                            RequestTimeout               = null,
-                          DNSClient                            DNSClient                    = null)
+                          IDNSClient?                          DNSClient                    = null)
 
             : base(Hostname,
                    HTTPPort       ?? IPPort.HTTP,

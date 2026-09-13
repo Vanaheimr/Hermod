@@ -39,11 +39,11 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 {
 
-    public class HTTPSMonitor(String               Name,
-                              URL                  URL,
-                              MeasurementStore     MeasurementStore,
-                              IReadOnlyDictionary<String, String>? RequestHeaders = null,
-                              MeasurementHandler?  OnMeasurement   = null)
+    public class HTTPSMonitor(String                                Name,
+                              URL                                   URL,
+                              MeasurementStore                      MeasurementStore,
+                              IReadOnlyDictionary<String, String>?  RequestHeaders   = null,
+                              MeasurementHandler?                   OnMeasurement    = null)
 
         : IMonitor
 

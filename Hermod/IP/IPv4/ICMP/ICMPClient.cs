@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// <summary>
         /// The DNS client to use.
         /// </summary>
-        public DNSClient  DNSClient    {get; }
+        public IDNSClient  DNSClient    {get; }
 
         #endregion
 
@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         /// <param name="ResultHandler">A delegate called for each ping result.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
         public ICMPClient(TestRunResultDelegate?  ResultHandler   = null,
-                          DNSClient?              DNSClient       = null)
+                          IDNSClient?              DNSClient       = null)
         {
 
             this.ResultHandler  = ResultHandler;
@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
                                             UInt16                  SequenceStartValue   = 0,
                                             String?                 TestData             = null,
                                             Byte                    TTL                  = 64,
-                                            DNSClient?              DNSClient            = null)
+                                            IDNSClient?              DNSClient            = null)
         {
 
             var dnsClient       = DNSClient ?? this.DNSClient;

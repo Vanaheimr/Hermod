@@ -264,7 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPSocket FromIPEndPoint(IPEndPoint IPEndPoint)
 
             => new (
-                   Hermod.IPAddress.Build(IPEndPoint.Address.GetAddressBytes()),
+                   Hermod.IPAddress.FromDotNet(IPEndPoint.Address),
                    IPPort.          Parse(IPEndPoint.Port)
                );
 

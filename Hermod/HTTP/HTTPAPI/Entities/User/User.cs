@@ -36,7 +36,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate Boolean UserProviderDelegate(User_Id UserId, out IUser? User);
+    public delegate Boolean UserProviderDelegate(User_Id UserId, [NotNullWhen(true)] out IUser? User);
 
     public delegate JObject CustomUserSerializerDelegate(IUser    User,
                                                          Boolean  Embedded   = false);
@@ -233,6 +233,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         [Mandatory]
         public DateTimeOffset?            AcceptedEULA         { get; }
+
+        /// <summary>
+        /// Timestamp when the user was created.
+        /// </summary>
+        [Mandatory]
+        public DateTimeOffset             CreatedAt            { get; }
+
+        /// <summary>
+        /// Timestamp of the user's last sign-in, if any.
+        /// </summary>
+        public DateTimeOffset?            LastLoginAt          { get; }
 
         /// <summary>
         /// The user will not be shown in user listings, as its
@@ -760,6 +771,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="JSONLDContext">The JSON-LD context of this user.</param>
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="LastChange">The timestamp of the last changes within this user. Can e.g. be used as a HTTP ETag.</param>
+        /// <param name="CreatedAt">Timestamp when the user was created; now by default.</param>
+        /// <param name="LastLoginAt">Timestamp of the user's last sign-in, if any.</param>
         public User(User_Id                              Id,
                     I18NString                           Name,
                     SimpleEMailAddress                   EMail,
@@ -789,7 +802,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     IEnumerable<AttachedFile>?           AttachedFiles            = default,
                     JSONLDContext?                       JSONLDContext            = default,
                     String?                              DataSource               = default,
-                    DateTimeOffset?                      LastChange               = default)
+                    DateTimeOffset?                      LastChange               = default,
+                    DateTimeOffset?                      CreatedAt                = null,
+                    DateTimeOffset?                      LastLoginAt              = null)
 
             : base(Id,
                    JSONLDContext ?? DefaultJSONLDContext,
@@ -827,6 +842,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.GeoLocation               = GeoLocation;
             this.Address                   = Address;
             this.AcceptedEULA              = AcceptedEULA;
+            this.CreatedAt                 = CreatedAt ?? Timestamp.Now;
+            this.LastLoginAt               = LastLoginAt;
             this.IsAuthenticated           = IsAuthenticated;
             this.IsDisabled                = IsDisabled;
             this.AttachedFiles             = AttachedFiles ?? Array.Empty<AttachedFile>();
@@ -1032,7 +1049,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                if (!UserIdURL.HasValue && !UserIdBody.HasValue)
+                if ((UserIdBody ?? UserIdURL) is not { } userId)
                 {
                     ErrorResponse = "The user identification is missing!";
                     return false;
@@ -1043,8 +1060,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     ErrorResponse = "The optional user identification given within the JSON body does not match the one given in the URI!";
                     return false;
                 }
-
-                var userId = UserIdBody ?? UserIdURL.Value;
 
                 if (userId.Length < MinUserIdLength)
                 {
@@ -1283,6 +1298,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
+                #region Parse CreatedAt        [optional]
+
+                if (JSONObject.ParseOptional("createdAt",
+                                             "creation timestamp",
+                                             out DateTimeOffset? CreatedAt,
+                                             out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                #endregion
+
+                #region Parse LastLoginAt      [optional]
+
+                if (JSONObject.ParseOptional("lastLoginAt",
+                                             "last sign-in timestamp",
+                                             out DateTimeOffset? LastLoginAt,
+                                             out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                #endregion
+
                 var IsAuthenticated  = JSONObject["isAuthenticated"]?.Value<Boolean>();
 
                 var IsDisabled       = JSONObject["isDisabled"]?.     Value<Boolean>();
@@ -1328,8 +1369,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            null, //AttachedFiles,
                            null, //JSONLDContext,
                            DataSource,
-                           null
-                       ); //LastChange
+                           null, //LastChange
+                           CreatedAt:    CreatedAt,
+                           LastLoginAt:  LastLoginAt
+                       );
 
                 ErrorResponse = null;
                 return true;
@@ -1425,6 +1468,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            ? new JProperty("acceptedEULA",     AcceptedEULA.Value.        ToISO8601())
                                            : null,
 
+                                       new JProperty("createdAt",              CreatedAt.                 ToISO8601()),
+
+                                       LastLoginAt.HasValue
+                                           ? new JProperty("lastLoginAt",      LastLoginAt.Value.         ToISO8601())
+                                           : null,
+
                                        new JProperty("isAuthenticated",        IsAuthenticated),
                                        new JProperty("isDisabled",             IsDisabled)
 
@@ -1480,7 +1529,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     AttachedFiles,
                     JSONLDContext,
                     DataSource,
-                    LastChangeDate);
+                    LastChangeDate,
+                    CreatedAt:    CreatedAt,
+                    LastLoginAt:  LastLoginAt);
 
         #endregion
 
@@ -1488,7 +1539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CopyAllLinkedDataFrom(OldUser)
 
         public void CopyAllLinkedDataFrom(IUser OldUser)
-            => CopyAllLinkedDataFromBase(OldUser as User);
+            => CopyAllLinkedDataFromBase(OldUser as User ?? throw new ArgumentException($"The given user must be a {nameof(User)}!", nameof(OldUser)));
 
         public override void CopyAllLinkedDataFromBase(User OldUser)
         {
@@ -1795,7 +1846,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     AttachedFiles,
                     JSONLDContext,
                     DataSource,
-                    LastChangeDate);
+                    LastChangeDate,
+                    CreatedAt:    CreatedAt,
+                    LastLoginAt:  LastLoginAt);
 
         #endregion
 
@@ -1878,6 +1931,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             [Mandatory]
             public DateTimeOffset?        AcceptedEULA         { get; set; }
+
+            /// <summary>
+            /// Timestamp when the user was created.
+            /// </summary>
+            [Mandatory]
+            public DateTimeOffset         CreatedAt            { get; set; }
+
+            /// <summary>
+            /// Timestamp of the user's last sign-in, if any.
+            /// </summary>
+            public DateTimeOffset?        LastLoginAt          { get; set; }
 
             /// <summary>
             /// The user is disabled.
@@ -2334,7 +2398,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            JSONLDContext?                       JSONLDContext            = null,
                            String?                              DataSource               = null,
                            DateTimeOffset?                      Created                  = null,
-                           DateTimeOffset?                      LastChange               = null)
+                           DateTimeOffset?                      LastChange               = null,
+                           DateTimeOffset?                      CreatedAt                = null,
+                           DateTimeOffset?                      LastLoginAt              = null)
 
                 : base(Id,
                        JSONLDContext ?? DefaultJSONLDContext,
@@ -2350,7 +2416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.EMail                        = Name is not null && Name.IsNotNullOrEmpty()
                                                         ? new EMailAddress(Name.FirstText(), EMail, null, null)
                                                         : new EMailAddress(                  EMail, null, null);
-                this.Name                         = Name;
+                this.Name                         = Name ?? I18NString.Empty;
                 this.Description                  = Description ?? new I18NString();
                 this.PublicKeyRing                = PublicKeyRing;
                 this.SecretKeyRing                = SecretKeyRing;
@@ -2363,6 +2429,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.GeoLocation                  = GeoLocation;
                 this.Address                      = Address;
                 this.AcceptedEULA                 = AcceptedEULA;
+                this.CreatedAt                    = CreatedAt ?? Timestamp.Now;
+                this.LastLoginAt                  = LastLoginAt;
                 this.IsDisabled                   = IsDisabled;
                 this.IsAuthenticated              = IsAuthenticated;
                 this.AttachedFiles                = AttachedFiles is not null && AttachedFiles.Any()
@@ -2545,7 +2613,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region CopyAllLinkedDataFrom(OldUser)
 
             public void CopyAllLinkedDataFrom(IUser OldUser)
-                => CopyAllLinkedDataFromBase(OldUser as User);
+                => CopyAllLinkedDataFromBase(OldUser as User ?? throw new ArgumentException($"The given user must be a {nameof(User)}!", nameof(OldUser)));
 
             public override void CopyAllLinkedDataFromBase(User OldUser)
             {
@@ -2596,7 +2664,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="Builder">A user builder.</param>
             public static implicit operator User(Builder Builder)
 
-                => Builder?.ToImmutable;
+                => Builder.ToImmutable;
 
 
             /// <summary>
@@ -2638,7 +2706,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     AttachedFiles,
                                     JSONLDContext,
                                     DataSource,
-                                    LastChangeDate);
+                                    LastChangeDate,
+                                    CreatedAt:    CreatedAt,
+                                    LastLoginAt:  LastLoginAt);
                 }
             }
 
@@ -2795,7 +2865,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Compares two users.
             /// </summary>
             /// <param name="Builder">An user to compare with.</param>
-            public Int32 CompareTo(Builder Builder)
+            public Int32 CompareTo(Builder? Builder)
 
                 => Builder is not null
                        ? Id.CompareTo(Builder.Id)

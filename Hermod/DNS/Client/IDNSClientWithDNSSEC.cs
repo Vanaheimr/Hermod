@@ -15,25 +15,19 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System.Diagnostics.CodeAnalysis;
-
-using Newtonsoft.Json.Linq;
-
-using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-
-#endregion
-
-namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
+namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
-    // https://w3c.github.io/webauthn/#authenticatorresponse
-
-    public interface IAuthenticatorResponse
+    /// <summary>
+    /// A DNS client that can request DNSSEC records via the EDNS0 DNSSEC-OK bit.
+    /// </summary>
+    public interface IDNSClientWithDNSSEC : IDNSClient
     {
-        public Byte[]  ClientDataJSON    { get; }
+
+        /// <summary>
+        /// Whether outgoing queries request the DNSSEC records required for validation.
+        /// </summary>
+        Boolean  DnssecOK    { get; set; }
 
     }
 

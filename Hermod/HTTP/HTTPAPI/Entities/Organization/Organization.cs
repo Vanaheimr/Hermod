@@ -643,7 +643,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             PhoneNumber?                                 Telephone                           = null,
                             Address?                                     Address                             = null,
                             GeoCoordinate?                               GeoLocation                         = null,
-                            Func<Tags.Builder, Tags>?                    Tags                                = null,
+                            Func<Tags.Builder, Tags?>?                    Tags                                = null,
                             Boolean                                      IsDisabled                          = false,
 
                             IEnumerable<ANotification>?                  Notifications                       = null,
@@ -1000,7 +1000,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return false;
                 }
 
-                if (!OrganizationIdURL.HasValue && !OrganizationIdBody.HasValue)
+                if ((OrganizationIdBody ?? OrganizationIdURL) is not { } organizationId)
                 {
                     ErrorResponse = "The organization identification is missing!";
                     return false;
@@ -1172,7 +1172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Organization = new Organization(
 
-                                   OrganizationIdBody ?? OrganizationIdURL.Value,
+                                   organizationId,
 
                                    Name,
                                    Description,
@@ -1211,7 +1211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CopyAllLinkedDataFrom(OldOrganization)
 
         public void CopyAllLinkedDataFrom(IOrganization OldOrganization)
-            => CopyAllLinkedDataFromBase(OldOrganization as Organization);
+            => CopyAllLinkedDataFromBase(OldOrganization as Organization ?? throw new ArgumentException($"The given organization must be a {nameof(Organization)}!", nameof(OldOrganization)));
 
         public override void CopyAllLinkedDataFromBase(Organization OldOrganization)
         {
@@ -1810,7 +1810,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            PhoneNumber?                                 Telephone                           = null,
                            Address?                                     Address                             = null,
                            GeoCoordinate?                               GeoLocation                         = null,
-                           Func<Tags.Builder, Tags>?                    Tags                                = null,
+                           Func<Tags.Builder, Tags?>?                    Tags                                = null,
                            Boolean                                      IsDisabled                          = false,
 
                            IEnumerable<ANotification>?                  Notifications                       = null,
@@ -1970,8 +1970,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 => JSONObject.Create(new JProperty("user", JSONObject.Create(
 
-                                         new JProperty("name",               EMail.OwnerName),
-                                         new JProperty("email",              EMail.Address.ToString())
+                                         new JProperty("name",               EMail?.OwnerName),
+                                         new JProperty("email",              EMail?.Address.ToString())
 
                                          //MobilePhone.HasValue
                                          //    ? new JProperty("phoneNumber",  MobilePhone.Value.ToString())
@@ -2006,7 +2006,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="Builder">An organization builder.</param>
             public static implicit operator Organization(Builder Builder)
 
-                => Builder?.ToImmutable;
+                => Builder.ToImmutable;
 
 
             /// <summary>

@@ -1213,7 +1213,7 @@ Error:
             // -----------------------------------------
             AddHandler(
                 HTTPMethod.GET,
-                URLPathPrefix + "serviceCheck",
+                HTTPPath.Root + "serviceCheck",
                 HTTPDelegate: request => {
 
                     var serviceCheckJSON  = JSONObject.Create(
@@ -1268,7 +1268,7 @@ Error:
             // -----------------------------------------------------------------------------------------------------------------
             AddHandler(
                 HTTPMethod.POST,
-                URLPathPrefix + "serviceCheck",
+                HTTPPath.Root + "serviceCheck",
                 HTTPContentType.Application.JSON_UTF8,
                 HTTPDelegate: request => {
 

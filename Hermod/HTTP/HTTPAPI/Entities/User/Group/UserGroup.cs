@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -28,7 +29,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate Boolean UserGroupProviderDelegate(UserGroup_Id UserGroupId, out IUserGroup? UserGroup);
+    public delegate Boolean UserGroupProviderDelegate(UserGroup_Id UserGroupId, [NotNullWhen(true)] out IUserGroup? UserGroup);
 
     public delegate JObject UserGroupToJSONDelegate(IUserGroup  UserGroup,
                                                     Boolean     Embedded                        = false,
@@ -526,8 +527,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this._User2UserGroup_Edges          = User2GroupInEdges is not null ? new List<User2UserGroupEdge>     (User2GroupInEdges)           : new List<User2UserGroupEdge>();
-            this._UserGroup2UserGroup_InEdges   = User2GroupInEdges is not null ? new List<UserGroup2UserGroupEdge>(UserGroup2UserGroupInEdges)  : new List<UserGroup2UserGroupEdge>();
-            this._UserGroup2UserGroup_OutEdges  = User2GroupInEdges is not null ? new List<UserGroup2UserGroupEdge>(UserGroup2UserGroupOutEdges) : new List<UserGroup2UserGroupEdge>();
+            this._UserGroup2UserGroup_InEdges   = UserGroup2UserGroupInEdges is not null ? new List<UserGroup2UserGroupEdge>(UserGroup2UserGroupInEdges)  : new List<UserGroup2UserGroupEdge>();
+            this._UserGroup2UserGroup_OutEdges  = UserGroup2UserGroupOutEdges is not null ? new List<UserGroup2UserGroupEdge>(UserGroup2UserGroupOutEdges) : new List<UserGroup2UserGroupEdge>();
 
         }
 
@@ -656,7 +657,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                if (!UserGroupIdURL.HasValue && !UserGroupIdBody.HasValue)
+                if ((UserGroupIdBody ?? UserGroupIdURL) is not { } parsedId)
                 {
                     ErrorResponse = "The UserGroup identification is missing!";
                     return false;
@@ -818,7 +819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 UserGroup = new UserGroup(
 
-                                    UserGroupIdBody ?? UserGroupIdURL.Value,
+                                    parsedId,
 
                                     Name,
                                     Description,
@@ -1184,7 +1185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 : base(Id ?? UserGroup_Id.Random(),
                        JSONLDContext ?? DefaultJSONLDContext,
-                       Name,
+                       Name ?? I18NString.Empty,
                        Description,
                        Users,
                        ParentGroup,
@@ -1231,7 +1232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public static implicit operator UserGroup(Builder Builder)
 
-                => Builder?.ToImmutable;
+                => Builder.ToImmutable;
 
 
             /// <summary>

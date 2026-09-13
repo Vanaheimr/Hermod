@@ -76,39 +76,127 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Parse   (Texts)
 
         /// <summary>
-        /// Parse the given enumeration of texts.
+        /// Parse the given texts as one HTTP cookie each: the values of
+        /// "Set-Cookie" headers, or the cookies of a "Cookie" header already
+        /// taken apart. A cookie keeps its attributes ("Path=/", "HttpOnly").
         /// </summary>
-        /// <param name="Texts">An enumeration of text representations of HTTP cookies.</param>
+        /// <param name="Texts">One text per cookie.</param>
         public static HTTPCookies Parse(IEnumerable<String> Texts)
         {
 
             if (TryParse(Texts, out var httpCookies))
                 return httpCookies;
 
-            throw new ArgumentException("The given JSON representation of HTTP cookies is invalid!",
+            throw new ArgumentException("The given text representation of HTTP cookies is invalid!",
                                         nameof(Texts));
 
         }
 
         /// <summary>
-        /// Parse the given enumeration of texts.
+        /// Parse the given texts as one HTTP cookie each: the values of
+        /// "Set-Cookie" headers, or the cookies of a "Cookie" header already
+        /// taken apart. A cookie keeps its attributes ("Path=/", "HttpOnly").
         /// </summary>
-        /// <param name="Texts">An enumeration of text representations of HTTP cookies.</param>
+        /// <remarks>
+        /// A single text is a single cookie as well. This used to hand one
+        /// text to the parser of the "Cookie" header, which splits at the
+        /// semicolon because that is what separates cookies there - and so
+        /// "session=abc; Path=/; HttpOnly" became three cookies named
+        /// "session", "Path" and "HttpOnly", each written as a Set-Cookie
+        /// line of its own. Whoever holds the value of a "Cookie" header
+        /// says so: <see cref="ParseCookieHeader"/>.
+        /// </remarks>
+        /// <param name="Texts">One text per cookie.</param>
         public static HTTPCookies Parse(params String[] Texts)
+
+            => Parse((IEnumerable<String>) Texts);
+
+        #endregion
+
+        #region ParseSetCookie / TryParseSetCookie(Text, out HTTPCookies)
+
+        /// <summary>
+        /// Parse the value of one "Set-Cookie" response header: a single
+        /// cookie with its attributes, e.g. "session=abc; Path=/; HttpOnly".
+        /// </summary>
+        /// <param name="Text">The value of a "Set-Cookie" header.</param>
+        public static HTTPCookies ParseSetCookie(String Text)
         {
 
-            // Might be multiple cookies in one string!
-            if (Texts.Length == 1 &&
-                TryParse(Texts[0], out var httpCookies))
-            {
+            if (TryParseSetCookie(Text, out var httpCookies))
                 return httpCookies;
+
+            throw new ArgumentException("The given text representation of a Set-Cookie header is invalid!",
+                                        nameof(Text));
+
+        }
+
+        /// <summary>
+        /// Try to parse the value of one "Set-Cookie" response header: a single
+        /// cookie with its attributes, e.g. "session=abc; Path=/; HttpOnly".
+        /// </summary>
+        /// <param name="Text">The value of a "Set-Cookie" header.</param>
+        /// <param name="HTTPCookies">The parsed cookie, as a collection of one.</param>
+        public static Boolean TryParseSetCookie(String                                Text,
+                                                [NotNullWhen(true)] out HTTPCookies?  HTTPCookies)
+        {
+
+            if (HTTPCookie.TryParse(Text, out var httpCookie))
+            {
+                HTTPCookies = new HTTPCookies(httpCookie);
+                return true;
             }
 
-            if (TryParse(Texts, out httpCookies))
+            HTTPCookies = null;
+            return false;
+
+        }
+
+        #endregion
+
+        #region ParseCookieHeader / TryParseCookieHeader(Text, out HTTPCookies)
+
+        /// <summary>
+        /// Parse the value of a "Cookie" request header: any number of
+        /// cookies separated by semicolons, e.g. "session=abc; theme=dark".
+        /// </summary>
+        /// <param name="Text">The value of a "Cookie" header.</param>
+        public static HTTPCookies ParseCookieHeader(String Text)
+        {
+
+            if (TryParseCookieHeader(Text, out var httpCookies))
                 return httpCookies;
 
-            throw new ArgumentException("The given JSON representation of HTTP cookies is invalid!",
-                                        nameof(Texts));
+            throw new ArgumentException("The given text representation of a Cookie header is invalid!",
+                                        nameof(Text));
+
+        }
+
+        /// <summary>
+        /// Try to parse the value of a "Cookie" request header: any number of
+        /// cookies separated by semicolons, e.g. "session=abc; theme=dark".
+        /// </summary>
+        /// <param name="Text">The value of a "Cookie" header.</param>
+        /// <param name="HTTPCookies">The parsed cookies.</param>
+        public static Boolean TryParseCookieHeader(String                                Text,
+                                                   [NotNullWhen(true)] out HTTPCookies?  HTTPCookies)
+        {
+
+            Text = Text?.Trim() ?? "";
+
+            if (Text.IsNullOrEmpty())
+            {
+                HTTPCookies = null;
+                return false;
+            }
+
+            return TryParse(
+                       Text.Split(
+                           multipleCookiesSplitter,
+                           StringSplitOptions.RemoveEmptyEntries
+                       ).Select(cookieText => cookieText.Trim()),
+                       out HTTPCookies
+                   );
 
         }
 
@@ -117,36 +205,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryParse(Text,  out HTTPCookies)
 
         /// <summary>
-        /// Parse the given string as one or multiple HTTP cookies.
+        /// Try to parse the value of a "Cookie" request header - the same as
+        /// <see cref="TryParseCookieHeader"/>, kept under its old name.
+        /// For the value of a "Set-Cookie" header take
+        /// <see cref="TryParseSetCookie"/>: there the semicolon separates the
+        /// cookie from its attributes, not one cookie from the next.
         /// </summary>
-        /// <param name="Text">A text representation of one or multiple HTTP cookies.</param>
-        /// <param name="HTTPCookies">The parsed enumeration of HTTP cookies.</param>
+        /// <param name="Text">The value of a "Cookie" header.</param>
+        /// <param name="HTTPCookies">The parsed cookies.</param>
         public static Boolean TryParse(String                                Text,
                                        [NotNullWhen(true)] out HTTPCookies?  HTTPCookies)
-        {
 
-            Text = Text.Trim();
-
-            if (Text.IsNullOrEmpty())
-            {
-                HTTPCookies = null;
-                return false;
-            }
-
-            if (TryParse(
-                    Text.Split(
-                        multipleCookiesSplitter,
-                        StringSplitOptions.RemoveEmptyEntries
-                    ).Select(cookieText => cookieText.Trim()),
-                    out HTTPCookies
-                ))
-            {
-                return true;
-            }
-
-            return false;
-
-        }
+            => TryParseCookieHeader(Text, out HTTPCookies);
 
         #endregion
 

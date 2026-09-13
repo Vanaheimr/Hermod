@@ -71,6 +71,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public DateTimeOffset?            AcceptedEULA         { get; }
 
         /// <summary>
+        /// Timestamp when the user was created.
+        /// </summary>
+        [Mandatory]
+        public DateTimeOffset             CreatedAt            { get; }
+
+        /// <summary>
+        /// Timestamp of the user's last sign-in, if any.
+        /// </summary>
+        public DateTimeOffset?            LastLoginAt          { get; }
+
+        /// <summary>
         /// The user will not be shown in user listings, as its
         /// primary e-mail address is not yet authenticated.
         /// </summary>

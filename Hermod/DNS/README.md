@@ -379,6 +379,38 @@ DNSClient (Orchestrator)
   disposed by `DNSClient.Dispose()`
 
 
+## Multicast DNS and DNS-SD (RFC 6762 / RFC 6763)
+
+`DNS/Multicast/` adds link-local name resolution and service discovery:
+
+- `MulticastDNSMessage` — a tolerant parser/serializer for mDNS packets: the unicast-response (QU) bit of
+  questions, the cache-flush bit of records and TTL overrides (goodbye packets, legacy unicast) are carried
+  beside the standard `DNSQuestion`/`IDNSResourceRecord` types; a record the library cannot represent is
+  skipped and reported in `Warnings` instead of failing the packet.
+- `IMulticastDNSTransport` — `UDPMulticastDNSTransport` (one socket per address family on port 5353 with
+  address reuse, group membership on every multicast-capable interface, multicast loopback, IP TTL 255,
+  per-interface sends) and `InMemoryMulticastDNSNetwork`/`InMemoryMulticastDNSTransport` for deterministic
+  tests without sockets. Responder and client of a process share one transport.
+- `MulticastDNSResponder` — publishes record sets (`PublishAsync`): probing of unique names (§8.1, with
+  simultaneous-probe tie-breaking §8.2), announcing with the cache-flush bit (§8.3), answering queries
+  (multicast, unicast for QU questions, legacy unicast with copied id and TTL ≤ 10 s §6.7), known-answer
+  suppression (§7.1), additional records for PTR/SRV/A/AAAA answers (RFC 6763 §12), the one-multicast-per-
+  record-and-second limit (§6), NSEC negative answers (§6.1), goodbye packets on withdrawal (§10.1) and
+  conflict detection (§9) reported through `OnNameConflict`/state `Conflict` (choosing a new name is left to
+  the publisher).
+- `MulticastDNSClient : IDNSClient` — one-shot queries (§5.1) with cache, retransmission, QU bit and NSEC,
+  a cache honouring cache-flush (§10.2) and goodbye (§10.1) records, and `MulticastDNSBrowser` for continuous
+  DNS-SD browsing (§5.2 query back-off, resolution of SRV/TXT/A/AAAA, refresh at 80 % of the TTL, appeared/
+  updated/removed events).
+- `HybridDNSClient` — routes `.local` and the link-local reverse zones to the multicast client and everything
+  else to a unicast `IDNSClient`; hand it to HTTP, WebSocket and TCP clients that must reach `hostname.local`.
+- `TXT` records are multi-string now (`Strings`, `KeyValues`, `TryGetValue`, `FromKeyValues`, UTF-8 on the
+  wire; the concatenated `Text` view stays for SPF), and `PTR`/`TXT` accept `DNSServiceName` owners with
+  underscore labels.
+
+Tests: `HermodTests/DNS/Multicast/` (in-memory network; the `Multicast` category uses real sockets on a private port).
+
+
 ## License
 
 Apache License, Version 2.0 — see [LICENSE](../../LICENSE)

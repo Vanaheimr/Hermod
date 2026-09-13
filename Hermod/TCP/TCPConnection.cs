@@ -177,7 +177,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         /// <summary>
         /// An optional TLS server certificate.
         /// </summary>
-        public X509Certificate2?  ServerCertificate    { get; }
+        public X509Certificate2?        ServerCertificate       { get; }
+
+        /// <summary>
+        /// The certificate above together with the intermediates sent along
+        /// with it, when the server names a whole chain rather than a single
+        /// certificate.
+        /// </summary>
+        public ServerCertificateChain?  ServerCertificateChain  { get; }
 
         /// <summary>
         /// The optional HTTP client certificate.
@@ -372,7 +379,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             this.NetworkStream               = TCPClient.GetStream();
 
             this.SSLStream                   = SSLStream;
-            this.ServerCertificate           = ServerCertificateSelector?.Invoke(TCPServer, TCPClient);
+            // The chain selector says everything the plain one does and names
+            // the intermediates besides, so where it is set it is the only one
+            // asked - two answers could disagree about which certificate this
+            // connection uses.
+            this.ServerCertificateChain      = TCPServer.ServerCertificateChainSelector?.Invoke(TCPServer, TCPClient);
+
+            this.ServerCertificate           = this.ServerCertificateChain?.Certificate
+                                                   ?? ServerCertificateSelector?.Invoke(TCPServer, TCPClient);
 
 
             if (this.SSLStream         is null &&
@@ -436,22 +450,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         /// <summary>
         /// Liefert einen optimierten CertificateContext (offline + kein Netzwerkzugriff)
         /// </summary>
-        private static SslStreamCertificateContext GetOrCreateCertificateContext(X509Certificate2 Certificate)
+        /// <param name="Certificate">Das Serverzertifikat.</param>
+        /// <param name="Chain">
+        /// Das Zertifikat samt seinen Intermediates, falls der Server eine
+        /// ganze Kette benennt. Ohne die Intermediates baut .NET die Kette aus
+        /// den Zertifikatsspeichern dieser Maschine - und weil sie dort bei
+        /// einem ACME-Client wie certbot nicht landen, ginge dann nur das Leaf
+        /// hinaus. Zusammen mit offline: true, das AIA-Downloads unterbindet,
+        /// bliebe die Kette für strengere Clients unvollständig.
+        /// </param>
+        private static SslStreamCertificateContext GetOrCreateCertificateContext(X509Certificate2        Certificate,
+                                                                                 ServerCertificateChain?  Chain   = null)
         {
 
-            var thumbprint = Certificate.Thumbprint;
+            // Der Schlüssel umfasst die Intermediates: ein Kontext, der ohne
+            // sie gebaut wurde, darf nicht weiterverwendet werden, sobald sie
+            // bekannt sind.
+            var cacheKey = Chain?.CacheKey ?? Certificate.Thumbprint;
 
-            if (certificateContextCache.TryGetValue(thumbprint, out var cachedContext))
+            if (certificateContextCache.TryGetValue(cacheKey, out var cachedContext))
                 return cachedContext;
 
             var context = SslStreamCertificateContext.Create(
                               target:                   Certificate,
-                              additionalCertificates:   null,  // hier ggf. deine Intermediate-Certs als Collection rein
+                              additionalCertificates:   Chain is { HasIntermediates: true } chain
+                                                            ? chain.Intermediates
+                                                            : null,
                               trust:                    null,  // Standard-Trust reicht für Server-Zertifikate
                               offline:                  true   // ← verhindert jegliche Netzwerk-Aktivität (AIA, CRL, OCSP…)
                           );
 
-            certificateContextCache.TryAdd(thumbprint, context);
+            certificateContextCache.TryAdd(cacheKey, context);
 
             return context;
 
@@ -482,7 +511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             }
 
             // Create a cachable certificate context
-            var certificateContext              = GetOrCreateCertificateContext(ServerCertificate);
+            var certificateContext              = GetOrCreateCertificateContext(ServerCertificate, ServerCertificateChain);
 
             // Secure TLS server authentication options (no downloads, no revocation checks, ...)
             //     => No denial-of-service attacks possible!

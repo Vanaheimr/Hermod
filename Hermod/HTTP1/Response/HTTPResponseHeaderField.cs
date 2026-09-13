@@ -502,13 +502,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Set-Cookie
 
         /// <summary>
-        /// Set a HTTP cookie.
+        /// Set a HTTP cookie. One cookie per header line, with its attributes
+        /// after the semicolons; a second cookie is a second line.
         /// </summary>
-        /// <example>Set-Cookie: UserID=JohnDoe; Max-Age=3600; Version=1</example>
+        /// <example>Set-Cookie: UserID=JohnDoe; Max-Age=3600; Path=/; HttpOnly</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/HTTP_cookie"/>
         public static readonly HTTPResponseHeaderField<HTTPCookies?> SetCookie = new ("Set-Cookie",
                                                                                       RequestPathSemantic.EndToEnd,
-                                                                                      StringParser: HTTPCookies.TryParse);
+                                                                                      StringParser: HTTPCookies.TryParseSetCookie);
 
         #endregion
 

@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 public sealed class DaneResolver
 {
 
-    private readonly DNSClient        dnsClient;
+    private readonly IDNSClient       dnsClient;
     private readonly DNSSECValidator  dnssecValidator;
     private readonly ILogger          logger;
 
@@ -42,10 +42,15 @@ public sealed class DaneResolver
     /// <param name="DNSClient">A DNS client. Its DNSSEC-OK (DO) bit is enabled so RRSIG records are returned.</param>
     /// <param name="Logger">A logger.</param>
     /// <param name="DNSSECValidator">An optional DNSSEC validator; if omitted, one is created with the IANA root trust anchor.</param>
-    public DaneResolver(DNSClient        DNSClient,
+    public DaneResolver(IDNSClient       DNSClient,
                         ILogger          Logger,
                         DNSSECValidator? DNSSECValidator   = null)
     {
+
+        ArgumentNullException.ThrowIfNull(DNSClient);
+
+        if (DNSClient is not IDNSClientWithDNSSEC dnssecClient)
+            throw new ArgumentException("DANE requires a DNS client that supports DNSSEC query configuration!", nameof(DNSClient));
 
         this.dnsClient        = DNSClient;
         this.logger           = Logger;
@@ -53,7 +58,7 @@ public sealed class DaneResolver
 
         // DANE is meaningless without DNSSEC: make sure every query requests the
         // RRSIG/DNSKEY/DS records the validator needs (RFC 4035 §3.2.1).
-        this.dnsClient.DnssecOK = true;
+        dnssecClient.DnssecOK = true;
 
     }
 

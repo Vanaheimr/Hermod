@@ -32,6 +32,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
     /// <summary>
+    /// Selects the certificate this server authenticates with, together with
+    /// the intermediate certificates that lead from it towards a root.
+    /// </summary>
+    /// <remarks>
+    /// The wider form of <see cref="ServerCertificateSelectorDelegate"/>, which
+    /// can only name the certificate itself - and a server that sends nothing
+    /// but its own certificate leaves every client that does not already know
+    /// the intermediates unable to build a chain. Where both are set, this one
+    /// is used: it says everything the other one does and more.
+    ///
+    /// Asked once per accepted connection, like the narrower one, so a renewed
+    /// certificate and its chain take effect together and without a restart.
+    /// </remarks>
+    /// <param name="TCPServer">The TCP server.</param>
+    /// <param name="TCPClient">The client that was just accepted.</param>
+    public delegate ServerCertificateChain? ServerCertificateChainSelectorDelegate(ITCPServer TCPServer, TcpClient TCPClient);
+
+
+    /// <summary>
     /// Verifies the remote Transport Layer Security (TLS) certificate used for authentication.
     /// </summary>
     /// <param name="Sender">An object that contains state information for this validation.</param>

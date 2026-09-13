@@ -142,6 +142,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 
         #endregion
 
+        #region RoundTrip_ThroughIPEndPoint_PreservesIPv6ScopeId()
+
+        [Test]
+        public void RoundTrip_ThroughIPEndPoint_PreservesIPv6ScopeId()
+        {
+
+            var addressBytes  = System.Net.IPAddress.Parse("fe80::1234").GetAddressBytes();
+            var original      = new System.Net.IPEndPoint(new System.Net.IPAddress(addressBytes, 17), 5353);
+            var ipSocket      = IPSocket.FromIPEndPoint(original);
+            var roundtrip     = ipSocket.ToIPEndPoint();
+
+            Assert.Multiple(() => {
+                Assert.That(ipSocket.IPAddress,                              Is.TypeOf<IPv6Address>());
+                Assert.That(((IPv6Address) ipSocket.IPAddress).InterfaceId,  Is.EqualTo("17"));
+                Assert.That(roundtrip.Address.GetAddressBytes(),             Is.EqualTo(addressBytes));
+                Assert.That(roundtrip.Address.ScopeId,                       Is.EqualTo(17));
+                Assert.That(roundtrip.Port,                                  Is.EqualTo(5353));
+            });
+
+        }
+
+        #endregion
+
         #region RoundTrip_ThroughIPEndPoint([TestCaseSource])
 
         public static System.Collections.Generic.IEnumerable<IPSocket> RoundTripSockets()

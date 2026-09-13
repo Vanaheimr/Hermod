@@ -140,6 +140,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         public ServerCertificateSelectorDelegate?                        ServerCertificateSelector     { get; }
+
+        /// <summary>
+        /// Names the TLS certificate of this server together with the
+        /// intermediates that lead to it, and replaces
+        /// <see cref="ServerCertificateSelector"/> where it is set.
+        /// </summary>
+        /// <remarks>
+        /// Settable rather than a constructor parameter, and read afresh for
+        /// every accepted connection: a chain is not something a server is born
+        /// with but something that is renewed under it, and threading it
+        /// through the constructors of every server built on this one would buy
+        /// nothing for it.
+        /// </remarks>
+        public ServerCertificateChainSelectorDelegate?                   ServerCertificateChainSelector { get; set; }
+
         public RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator    { get; set; }
         public LocalCertificateSelectionHandler?                         LocalCertificateSelector      { get; }
         public SslProtocols?                                             AllowedTLSProtocols           { get; }

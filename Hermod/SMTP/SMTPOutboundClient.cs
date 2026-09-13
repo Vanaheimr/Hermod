@@ -39,12 +39,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private readonly MtaStsResolver        _mtaStsResolver;
         private readonly DaneResolver?         _daneResolver;
         private readonly Action<TlsRptEvent>?  _tlsRptRecorder;
-        private readonly DNSClient             _dnsClient;
+        private readonly IDNSClient            _dnsClient;
         private readonly ILogger               _logger;
 
         public SMTPOutboundClient(SmtpOutboundConfig    config,
                                   DkimSigner?           _dkimSigner,
-                                  DNSClient             dnsClient,
+                                  IDNSClient            dnsClient,
                                   ILogger               logger,
                                   Action<TlsRptEvent>?  tlsRptRecorder   = null)
         {

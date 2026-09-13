@@ -23,6 +23,10 @@
 !Hermod/Hermod/HTTP/HTTPAPI/HTTPRoot/js/
 !Hermod/Hermod/HTTP/HTTPAPI/HTTPRoot/js/**
 
+# The single-page app test bundle, embedded into HermodTests, has a JavaScript asset.
+!HermodTests/HTTP/HTTPRoot/SPA/assets/
+!HermodTests/HTTP/HTTPRoot/SPA/assets/**
+
 
 # QUIC/TLS debug output and secrets (Hermod/QUIC). None of these are confined to
 # bin/: --qlog=<dir>, SSLKEYLOGFILE and a caller-chosen secret path all write

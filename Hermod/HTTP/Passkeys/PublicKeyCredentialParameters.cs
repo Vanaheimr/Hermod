@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -19,36 +19,37 @@
 
 using Newtonsoft.Json.Linq;
 
-using org.GraphDefined.Vanaheimr.Illias;
-
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-
-    // Liste der unterstützten kryptografischen Algorithmen
+    /// <summary>
+    /// A credential type together with a signature algorithm the relying
+    /// party accepts, listed within pubKeyCredParams in order of preference.
+    /// https://w3c.github.io/webauthn/#dictdef-publickeycredentialparameters
+    /// </summary>
     public class PublicKeyCredentialParameters(PublicKeyCredentialType   Type,
                                                COSEAlgorithmIdentifiers  Alg)
     {
 
-        /// <summary>
-        /// Meist "public-key"
-        /// </summary>
-        public PublicKeyCredentialType   Type    { get; } = Type;
+        #region Properties
 
-        /// <summary>
-        /// COSE-Algorithmus-ID, z.B. -7 für ES256
-        /// </summary>
+        public PublicKeyCredentialType   Type    { get; } = Type;
         public COSEAlgorithmIdentifiers  Alg     { get; } = Alg;
 
+        #endregion
+
+        #region ToJSON()
 
         public JObject ToJSON()
 
             => new (
                    new JProperty("type",  Type.ToString()),
-                   new JProperty("alg",   Alg)
+                   new JProperty("alg",   (Int32) Alg)
                );
+
+        #endregion
 
     }
 

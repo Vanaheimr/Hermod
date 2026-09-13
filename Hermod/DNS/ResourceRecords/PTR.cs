@@ -136,6 +136,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region PTR(DNSServiceName, Class, TimeToLive, Target)
+
+        /// <summary>
+        /// Create a new DNS PTR resource record owned by a DNS service name, e.g. the
+        /// service type pointer of DNS-Based Service Discovery (RFC 6763 §4:
+        /// "_http._tcp.local. PTR MyPrinter._http._tcp.local.").
+        /// </summary>
+        /// <param name="DNSServiceName">The owner name of this PTR resource record (may contain underscore labels).</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        /// <param name="Target">The target of this DNS Pointer (PTR) resource record.</param>
+        public PTR(DNSServiceName   DNSServiceName,
+                   DNSQueryClasses  Class,
+                   TimeSpan         TimeToLive,
+                   DNSServiceName   Target)
+
+            : base(DNSServiceName,
+                   TypeId,
+                   Class,
+                   TimeToLive)
+
+        {
+            this.Target = Target;
+        }
+
+        #endregion
+
         #endregion
 
 

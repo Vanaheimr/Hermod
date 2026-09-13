@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTPExtAPI of this API key.
         /// </summary>
-        internal HTTPExtAPI API
+        internal HTTPExtAPI? API
         {
 
             get
@@ -85,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTPExtAPI of this API key.
         /// </summary>
-        internal HTTPExtAPI APIX
+        internal HTTPExtAPI? APIX
         {
 
             get
@@ -243,13 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return false;
                 }
 
-                if (APIKeyURI is null && APIKeyBody is null)
-                {
-                    ErrorResponse = "The API key is missing!";
-                    return false;
-                }
-
-                if (!APIKeyURI.HasValue && !APIKeyBody.HasValue)
+                if ((APIKeyBody ?? APIKeyURI) is not { } parsedId)
                 {
                     ErrorResponse = "The API key is missing!";
                     return false;
@@ -395,7 +389,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                APIKey = new APIKey((APIKeyBody ?? APIKeyURI).Value,
+                APIKey = new APIKey(parsedId,
                                     UserId,
                                     Description,
                                     AccessRights,
@@ -800,7 +794,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The hash value of this object.
             /// </summary>
-            public String               CurrentCryptoHash         { get; protected set; }
+            public String?              CurrentCryptoHash         { get; protected set; }
 
             #endregion
 
@@ -882,7 +876,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="Builder">A API key builder.</param>
             public static implicit operator APIKey(Builder Builder)
 
-                => Builder?.ToImmutable;
+                => Builder.ToImmutable;
 
 
             /// <summary>

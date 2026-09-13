@@ -206,17 +206,21 @@ public sealed class HTTP11AuditRegressionTests
 
             AddPrivateDictionaryEntry(api, "users", firstUser.Id, firstUser);
             AddPrivateDictionaryEntry(api, "users", verifiedUser.Id, verifiedUser);
+
+            // Injected directly, so attach them like AddUser would; the sign-in updates the account.
+            firstUser.API     = api;
+            verifiedUser.API  = api;
             AddPrivateDictionaryEntry(
                 api,
                 "loginPasswords",
                 firstUser.Id,
-                new LoginPassword(firstUser.Id, Password.Parse("FirstPassword-123!"))
+                new LoginPassword(firstUser.Id, SecurePassword.Create("FirstPassword-123!"))
             );
             AddPrivateDictionaryEntry(
                 api,
                 "loginPasswords",
                 verifiedUser.Id,
-                new LoginPassword(verifiedUser.Id, Password.Parse("VerifiedPassword-123!"))
+                new LoginPassword(verifiedUser.Id, SecurePassword.Create("VerifiedPassword-123!"))
             );
 
             var request = ParseFormRequest(
@@ -230,19 +234,14 @@ public sealed class HTTP11AuditRegressionTests
 
             Assert.That(response.HTTPStatusCode.Code, Is.EqualTo(201));
 
-            var cookiesField = typeof(HTTPExtAPI).GetField(
-                                   "httpCookies",
-                                   BindingFlags.Instance | BindingFlags.NonPublic
-                               );
-            Assert.That(cookiesField, Is.Not.Null);
+            // The form login records the sign-in like the JSON and passkey sign-ins do.
+            Assert.That(api.TryGetUser(verifiedUser.Id, out var signedIn) && signedIn!.LastLoginAt is not null,  Is.True);
+            Assert.That(api.TryGetUser(firstUser.Id,    out var other)    && other!.LastLoginAt    is null,      Is.True);
 
-            var cookieStore = cookiesField!.GetValue(api)!;
-            var tokens = ((IEnumerable) cookieStore.GetType().GetProperty("Values")!.GetValue(cookieStore)!).
-                             OfType<SecurityToken>().
-                             ToArray();
+            var sessions = api.Sessions.ToArray();
 
-            Assert.That(tokens, Has.Some.Matches<SecurityToken>(token => token.UserId == verifiedUser.Id));
-            Assert.That(tokens, Has.None.Matches<SecurityToken>(token => token.UserId == firstUser.Id));
+            Assert.That(sessions, Has.Some.Matches<Session>(session => session.UserId == verifiedUser.Id));
+            Assert.That(sessions, Has.None.Matches<Session>(session => session.UserId == firstUser.Id));
         }
         finally
         {
@@ -2037,7 +2036,7 @@ public sealed class HTTP11AuditRegressionTests
             api,
             "loginPasswords",
             user.Id,
-            new LoginPassword(user.Id, Password.Parse("RedirectPassword-123!"))
+            new LoginPassword(user.Id, SecurePassword.Create("RedirectPassword-123!"))
         );
 
         return api;
