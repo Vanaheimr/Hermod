@@ -517,6 +517,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region GetOrAddRouteNode(Siblings, Segment, Factory, URLTemplate)
+
+        private PathNode GetOrAddRouteNode(ConcurrentDictionary<String, PathNode>  Siblings,
+                                           String                                  Segment,
+                                           Func<String, PathNode>                  Factory,
+                                           HTTPPath                                URLTemplate)
+        {
+
+            lock (routeRegistrationLock)
+            {
+
+                if (Segment.StartsWith('{') && Segment.EndsWith('}') &&
+                    !Siblings.ContainsKey(Segment))
+                {
+
+                    var existingParameter = Siblings.FirstOrDefault(entry => entry.Value.ParameterName is not null);
+
+                    if (existingParameter.Value is not null)
+                    {
+
+                        var requestedCatchRest  = Segment.EndsWith("..}", StringComparison.Ordinal);
+                        var requestedName       = Segment[1..^1];
+
+                        if (requestedCatchRest)
+                            requestedName = requestedName[..^2];
+
+                        if (String.Equals(
+                                existingParameter.Value.ParameterName,
+                                requestedName,
+                                StringComparison.OrdinalIgnoreCase
+                            ) &&
+                            existingParameter.Value.CatchRestOfPath2 == requestedCatchRest)
+                        {
+                            return existingParameter.Value;
+                        }
+
+                        throw new InvalidOperationException(
+                                  $"Ambiguous parameter route template '{URLTemplate}': " +
+                                  $"the sibling parameter route '{existingParameter.Value.FullPath}' already matches the same path segment."
+                              );
+
+                    }
+                }
+
+                return Siblings.GetOrAdd(
+                           Segment,
+                           Factory
+                       );
+
+            }
+
+        }
+
+        #endregion
+
         #region AddHandler(HTTPMethod, URLTemplate, HTTPDelegate, ...
 
         public void AddHandler(HTTPMethod                                 HTTPMethod,
@@ -596,58 +651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddHandler(HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URLAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
-
-        private PathNode GetOrAddRouteNode(ConcurrentDictionary<String, PathNode>  Siblings,
-                                           String                                  Segment,
-                                           Func<String, PathNode>                  Factory,
-                                           HTTPPath                                URLTemplate)
-        {
-
-            lock (routeRegistrationLock)
-            {
-
-                if (Segment.StartsWith('{') && Segment.EndsWith('}') &&
-                    !Siblings.ContainsKey(Segment))
-                {
-
-                    var existingParameter = Siblings.FirstOrDefault(entry => entry.Value.ParameterName is not null);
-
-                    if (existingParameter.Value is not null)
-                    {
-
-                        var requestedCatchRest  = Segment.EndsWith("..}", StringComparison.Ordinal);
-                        var requestedName       = Segment[1..^1];
-
-                        if (requestedCatchRest)
-                            requestedName = requestedName[..^2];
-
-                        if (String.Equals(
-                                existingParameter.Value.ParameterName,
-                                requestedName,
-                                StringComparison.OrdinalIgnoreCase
-                            ) &&
-                            existingParameter.Value.CatchRestOfPath2 == requestedCatchRest)
-                        {
-                            return existingParameter.Value;
-                        }
-
-                        throw new InvalidOperationException(
-                                  $"Ambiguous parameter route template '{URLTemplate}': " +
-                                  $"the sibling parameter route '{existingParameter.Value.FullPath}' already matches the same path segment."
-                              );
-
-                    }
-                }
-
-                return Siblings.GetOrAdd(
-                           Segment,
-                           Factory
-                       );
-
-            }
-
-        }
+        #region AddHandler(URLTemplate, HTTPDelegate, HTTPMethod = null, ...)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -673,8 +677,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication?                        HTTPMethodAuthentication    = null,
                                HTTPAuthentication?                        ContentTypeAuthentication   = null,
 
-                               OnHTTPRequestLogDelegate2?                  HTTPRequestLogger           = null,
-                               OnHTTPResponseLogDelegate2?                 HTTPResponseLogger          = null,
+                               OnHTTPRequestLogDelegate2?                 HTTPRequestLogger           = null,
+                               OnHTTPResponseLogDelegate2?                HTTPResponseLogger          = null,
 
                                HTTPDelegate?                              DefaultErrorHandler         = null,
                                Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers               = null,
