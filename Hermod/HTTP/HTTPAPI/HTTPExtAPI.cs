@@ -58,6 +58,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPExtAPIExtensions
     {
 
+        #region URL template parameter names
+
+        /// <summary>
+        /// The URL template parameter carrying a user identification, as in "users/{UserId}".
+        /// </summary>
+        public const String UserIdParameter          = "UserId";
+
+        /// <summary>
+        /// The URL template parameter carrying a user group identification, as in "userGroups/{UserGroupId}".
+        /// </summary>
+        public const String UserGroupIdParameter     = "UserGroupId";
+
+        /// <summary>
+        /// The URL template parameter carrying an organization identification, as in "organizations/{OrganizationId}".
+        /// </summary>
+        public const String OrganizationIdParameter  = "OrganizationId";
+
+        /// <summary>
+        /// The URL template parameter carrying an API key identification, as in "users/{UserId}/APIKeys/{APIKeyId}".
+        /// </summary>
+        public const String APIKeyIdParameter        = "APIKeyId";
+
+        /// <summary>
+        /// The URL template parameter carrying a notification identification, as in "users/{UserId}/notifications/{NotificationId}".
+        /// </summary>
+        public const String NotificationIdParameter  = "NotificationId";
+
+        #endregion
+
         #region ParseUserId         (this HTTPRequest, HTTPExtAPI, out UserId,                           out HTTPResponse)
 
         /// <summary>
@@ -89,13 +118,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             UserId        = null;
             HTTPResponse  = null;
 
-            if (HTTPRequest.ParsedURLParameters.Length < 1)
+            if (!HTTPRequest.TryGetURLParameter(UserIdParameter, out var userIdText))
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
+                    Content         = @"{ ""description"": ""Missing UserId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -103,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            UserId = User_Id.TryParse(HTTPRequest.ParsedURLParameters[0]);
+            UserId = User_Id.TryParse(userIdText);
 
             if (!UserId.HasValue)
             {
@@ -142,13 +173,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            ref HTTPResponse.Builder  HTTPResponseBuilder)
         {
 
-            if (HTTPRequest.ParsedURLParameters.Length < 1) {
+            if (!HTTPRequest.TryGetURLParameter(UserIdParameter, out var userIdText)) {
                 HTTPResponseBuilder.Content = @"{ ""description"": ""Missing user identification!"" }".ToUTF8Bytes();
                 UserId = null;
                 return false;
             }
 
-            UserId = User_Id.TryParse(HTTPRequest.ParsedURLParameters[0]);
+            UserId = User_Id.TryParse(userIdText);
 
             if (!UserId.HasValue) {
                 HTTPResponseBuilder.Content = @"{ ""description"": ""Invalid user identification!"" }".ToUTF8Bytes();
@@ -196,12 +227,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             User          = null;
             HTTPResponse  = null;
 
-            if (HTTPRequest.ParsedURLParameters.Length < 1) {
+            if (!HTTPRequest.TryGetURLParameter(UserIdParameter, out var userIdText)) {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
+                    Content         = @"{ ""description"": ""Missing UserId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -209,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            UserId = User_Id.TryParse(HTTPRequest.ParsedURLParameters[0]);
+            UserId = User_Id.TryParse(userIdText);
 
             if (!UserId.HasValue) {
 
@@ -279,13 +312,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             UserGroupId   = null;
             HTTPResponse  = null;
 
-            if (HTTPRequest.ParsedURLParameters.Length < 1)
+            if (!HTTPRequest.TryGetURLParameter(UserGroupIdParameter, out var userGroupIdText))
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
+                    Content         = @"{ ""description"": ""Missing UserGroupId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -293,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            UserGroupId = UserGroup_Id.TryParse(HTTPRequest.ParsedURLParameters[0]);
+            UserGroupId = UserGroup_Id.TryParse(userGroupIdText);
 
             if (!UserGroupId.HasValue)
             {
@@ -351,12 +386,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             UserGroup     = null;
             HTTPResponse  = null;
 
-            if (HTTPRequest.ParsedURLParameters.Length < 1) {
+            if (!HTTPRequest.TryGetURLParameter(UserGroupIdParameter, out var userGroupIdText)) {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
+                    Content         = @"{ ""description"": ""Missing UserGroupId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -364,7 +401,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            UserGroupId = UserGroup_Id.TryParse(HTTPRequest.ParsedURLParameters[0]);
+            UserGroupId = UserGroup_Id.TryParse(userGroupIdText);
 
             if (!UserGroupId.HasValue) {
 
@@ -434,13 +471,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OrganizationId  = null;
             HTTPResponse    = null;
 
-            if (HTTPRequest.ParsedURLParameters.Length < 1)
+            if (!HTTPRequest.TryGetURLParameter(OrganizationIdParameter, out var organizationIdText))
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
+                    Content         = @"{ ""description"": ""Missing OrganizationId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -448,7 +487,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            OrganizationId = Organization_Id.TryParse(HTTPRequest.ParsedURLParameters[0]);
+            OrganizationId = Organization_Id.TryParse(organizationIdText);
 
             if (!OrganizationId.HasValue)
             {
@@ -506,12 +545,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Organization    = null;
             HTTPResponse    = null;
 
-            if (HTTPRequest.ParsedURLParameters.Length < 1) {
+            if (!HTTPRequest.TryGetURLParameter(OrganizationIdParameter, out var organizationIdText)) {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
+                    Content         = @"{ ""description"": ""Missing OrganizationId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.KeepAlive
                 };
 
@@ -519,7 +560,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            OrganizationId = Organization_Id.TryParse(HTTPRequest.ParsedURLParameters[0]);
+            OrganizationId = Organization_Id.TryParse(organizationIdText);
 
             if (!OrganizationId.HasValue) {
 
@@ -7929,14 +7970,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region GET         ~/users/{UserId}/notifications/{notificationId}
+            #region GET         ~/users/{UserId}/notifications/{NotificationId}
 
             // -------------------------------------------------------------------------------------------------------
-            // curl -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf/notifications/{notificationId}
+            // curl -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf/notifications/{NotificationId}
             // -------------------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.GET,
-                              HTTPPath.Root + "users/{UserId}/notifications/{notificationId}",
+                              HTTPPath.Root + "users/{UserId}/notifications/{NotificationId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
@@ -7954,9 +7995,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #endregion
 
-                                  #region Get notificationId URL parameter
+                                  #region Get NotificationId URL parameter
 
-                                  if (Request.ParsedURLParameters.Length < 2)
+                                  if (!Request.TryGetURLParameter(HTTPExtAPIExtensions.NotificationIdParameter, out var notificationIdText))
                                   {
 
                                       return Task.FromResult(
@@ -7969,10 +8010,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   }
 
-                                  var notificationIdText = Request.ParsedURLParameters[1];
-
-                                  if (notificationIdText is not null &&
-                                      UInt32.TryParse(notificationIdText, out var notificationId))
+                                  if (UInt32.TryParse(notificationIdText, out var notificationId))
                                   {
 
                                       return Task.FromResult(new HTTPResponse.Builder(Request) {
@@ -8262,7 +8300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get API key
 
-                                  if (Request.ParsedURLParameters.Length < 1)
+                                  if (!Request.TryGetURLParameter(HTTPExtAPIExtensions.APIKeyIdParameter, out var apiKeyIdText))
                                   {
 
                                       return new HTTPResponse.Builder(Request) {
@@ -8282,7 +8320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   }
 
-                                  var apiKeyId = APIKey_Id.TryParse(Request.ParsedURLParameters[0]);
+                                  var apiKeyId = APIKey_Id.TryParse(apiKeyIdText);
 
                                   if (!apiKeyId.HasValue || apiKeyId.Value.IsNullOrEmpty)
                                   {
@@ -9000,7 +9038,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region ADD         ~/organizations/{organizationId}
+            #region ADD         ~/organizations/{OrganizationId}
 
             // ---------------------------------------------------------------------------------------------
             // curl -v -X ADD \
@@ -9027,7 +9065,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.ADD,
-                              HTTPPath.Root + "organizations/{organizationId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:  AddOrganizationHTTPRequest,
                               HTTPResponseLogger: AddOrganizationHTTPResponse,
@@ -9246,7 +9284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region SET         ~/organizations/{organizationId}
+            #region SET         ~/organizations/{OrganizationId}
 
             // ---------------------------------------------------------------------------------------------
             // curl -v -X SET \
@@ -9271,7 +9309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.SET,
-                              HTTPPath.Root + "organizations/{organizationId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:  SetOrganizationHTTPRequest,
                               HTTPResponseLogger: SetOrganizationHTTPResponse,
@@ -9391,7 +9429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region DELETE      ~/organizations/{organizationId}
+            #region DELETE      ~/organizations/{OrganizationId}
 
             // ---------------------------------------------------------------------------------------------
             // curl -v -X DELETE \
@@ -9401,7 +9439,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------
             AddHandler(
                               HTTPMethod.DELETE,
-                              HTTPPath.Root + "organizations/{organizationId}",
+                              HTTPPath.Root + "organizations/{OrganizationId}",
                               HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:  DeleteOrganizationHTTPRequest,
                               HTTPResponseLogger: DeleteOrganizationHTTPResponse,
@@ -9533,7 +9571,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get UserId URL parameter
 
-                                  if (Request.ParsedURLParameters.Length < 2)
+                                  if (!Request.TryGetURLParameter(HTTPExtAPIExtensions.UserIdParameter, out var userIdText))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
@@ -9541,7 +9579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
-                                  var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
+                                  var userId = User_Id.TryParse(userIdText);
 
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
@@ -9634,7 +9672,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get UserId URL parameter
 
-                                  if (Request.ParsedURLParameters.Length < 2)
+                                  if (!Request.TryGetURLParameter(HTTPExtAPIExtensions.UserIdParameter, out var userIdText))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
@@ -9642,7 +9680,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
-                                  var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
+                                  var userId = User_Id.TryParse(userIdText);
 
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
@@ -9735,7 +9773,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get UserId URL parameter
 
-                                  if (Request.ParsedURLParameters.Length < 2)
+                                  if (!Request.TryGetURLParameter(HTTPExtAPIExtensions.UserIdParameter, out var userIdText))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
@@ -9743,7 +9781,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
-                                  var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
+                                  var userId = User_Id.TryParse(userIdText);
 
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
@@ -9836,7 +9874,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get UserId URL parameter
 
-                                  if (Request.ParsedURLParameters.Length < 2)
+                                  if (!Request.TryGetURLParameter(HTTPExtAPIExtensions.UserIdParameter, out var userIdText))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
@@ -9844,7 +9882,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
-                                  var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
+                                  var userId = User_Id.TryParse(userIdText);
 
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
@@ -9936,7 +9974,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get UserId URL parameter
 
-                                  if (Request.ParsedURLParameters.Length < 2)
+                                  if (!Request.TryGetURLParameter(HTTPExtAPIExtensions.UserIdParameter, out var userIdText))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
@@ -9944,7 +9982,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
-                                  var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
+                                  var userId = User_Id.TryParse(userIdText);
 
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
@@ -10037,7 +10075,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get UserId URL parameter
 
-                                  if (Request.ParsedURLParameters.Length < 2)
+                                  if (!Request.TryGetURLParameter(HTTPExtAPIExtensions.UserIdParameter, out var userIdText))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
@@ -10045,7 +10083,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
-                                  var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
+                                  var userId = User_Id.TryParse(userIdText);
 
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
@@ -10138,7 +10176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get UserId URL parameter
 
-                                  if (Request.ParsedURLParameters.Length < 2)
+                                  if (!Request.TryGetURLParameter(HTTPExtAPIExtensions.UserIdParameter, out var userIdText))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer?.HTTPServerName,
@@ -10146,7 +10184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = ConnectionType.KeepAlive
                                              }.AsImmutable;
 
-                                  var userId = User_Id.TryParse(Request.ParsedURLParameters[1]);
+                                  var userId = User_Id.TryParse(userIdText);
 
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {

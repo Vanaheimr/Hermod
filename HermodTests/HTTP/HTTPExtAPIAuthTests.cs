@@ -164,6 +164,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
+        private static IUser UserOf(HTTPExtAPI  API,
+                                    String      Username)
+
+            => API.TryGetUser(User_Id.Parse(Username), out var user) && user is not null
+                   ? user
+                   : throw new InvalidOperationException($"Unknown user '{Username}'!");
+
         private static Task<(HttpStatusCode Status, JObject? JSON)> SignUp(Browser  Browser,
                                                                           String   Username,
                                                                           String   Password     = "Correct-Horse-1",
@@ -543,6 +550,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That((await laptop.Call(HttpMethod.Get, "accounts/auth/me")).Status,  Is.EqualTo(HttpStatusCode.OK),            "the session that changed the password stays");
                 Assert.That((await phone. Call(HttpMethod.Get, "accounts/auth/me")).Status,  Is.EqualTo(HttpStatusCode.Unauthorized),  "every other session is gone");
                 Assert.That((await phone.Call(HttpMethod.Post, "accounts/auth/login", new { login = "hank", password = "Correct-Horse-2" })).Status,  Is.EqualTo(HttpStatusCode.OK));
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region API_Keys_Are_Deleted_By_The_Named_APIKeyId()
+
+        [Test]
+        public async Task API_Keys_Are_Deleted_By_The_Named_APIKeyId()
+        {
+
+            // The management routes read their URL parameters by the names of the
+            // template parameters: here the API key id, not the user id in front of it.
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                var browser = new Browser(client);
+
+                Assert.That((await SignUp(browser, "hank")).Status,  Is.EqualTo(HttpStatusCode.Created));
+
+                var acme = new Organization(Organization_Id.Parse("acme"), I18NString.Create("ACME"));
+
+                Assert.That((await api.AddOrganization(acme)).Result,                                                                    Is.EqualTo(CommandResult.Success));
+                Assert.That((await api.AddUserToOrganization(UserOf(api, "hank"), User2OrganizationEdgeLabel.IsMember, acme)).IsSuccess,  Is.True);
+
+                var keyId = APIKey_Id.Parse("hanks-first-key-0123456789abcdef");
+
+                Assert.That((await api.AddAPIKey(new APIKey(keyId, User_Id.Parse("hank")))).Result,  Is.EqualTo(CommandResult.Success));
+                Assert.That(api.TryGetAPIKey(keyId, out _),  Is.True);
+
+                Assert.That((await browser.Call(HttpMethod.Delete, "accounts/users/hank/APIKeys/no-such-key")).Status,      Is.EqualTo(HttpStatusCode.NotFound),  browser.LastBody);
+                Assert.That((await browser.Call(HttpMethod.Delete, "accounts/users/hank/APIKeys/hanks-first-key-0123456789abcdef")).Status,  Is.EqualTo(HttpStatusCode.OK),        browser.LastBody);
+                Assert.That(api.TryGetAPIKey(keyId, out _),  Is.False);
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region Organization_Members_Are_Added_By_The_Named_UserId()
+
+        [Test]
+        public async Task Organization_Members_Are_Added_By_The_Named_UserId()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                var hank   = new Browser(client);
+                var paula  = new Browser(client);
+
+                Assert.That((await SignUp(hank,  "hank")).Status,   Is.EqualTo(HttpStatusCode.Created));
+                Assert.That((await SignUp(paula, "paula")).Status,  Is.EqualTo(HttpStatusCode.Created));
+
+                // Only an organization admin may add members.
+                var acme = new Organization(Organization_Id.Parse("acme"), I18NString.Create("ACME"));
+
+                Assert.That((await api.AddOrganization(acme)).Result,                                                                   Is.EqualTo(CommandResult.Success));
+                Assert.That((await api.AddUserToOrganization(UserOf(api, "hank"), User2OrganizationEdgeLabel.IsAdmin, acme)).IsSuccess,  Is.True);
+
+                Assert.That((await hank.Call(new HttpMethod("ADD"), "accounts/organizations/acme/members/paula")).Status,   Is.EqualTo(HttpStatusCode.OK),        hank.LastBody);
+                Assert.That((await hank.Call(new HttpMethod("ADD"), "accounts/organizations/acme/members/nobody")).Status,  Is.EqualTo(HttpStatusCode.NotFound),  hank.LastBody);
+
+                Assert.That(api.TryGetOrganization(Organization_Id.Parse("acme"), out var organization),  Is.True);
+                Assert.That(organization?.Members.Select(member => member.Id.ToString()),                  Does.Contain("paula"));
 
             }
             finally
