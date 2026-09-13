@@ -60,6 +60,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         //public X509Certificate2                  ServerCertificate                      { get; }
 
         /// <summary>
+        /// An optional delegate naming the TLS certificate of this server
+        /// together with the intermediate certificates that lead to it.
+        /// </summary>
+        /// <remarks>
+        /// Where it is set it replaces the ServerCertificateSelector, which can
+        /// only name the certificate itself - see
+        /// <see cref="ServerCertificateChain"/> for why the difference matters.
+        ///
+        /// A default of null rather than a member every implementation has to
+        /// carry: a TCP server that has no use for a chain should not have to
+        /// say so.
+        /// </remarks>
+        public ServerCertificateChainSelectorDelegate?  ServerCertificateChainSelector  => null;
+
+        /// <summary>
         /// Whether TLS client certification is required.
         /// </summary>
         public Boolean                           ClientCertificateRequired              { get; }
