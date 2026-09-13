@@ -876,7 +876,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return ParsedRequest.Error(GetExceptionDescriptionForResponse(e));
             }
 
-            return ParsedRequest.Error($"error!");
+            // Every segment matched an API, but that API has no route for the rest
+            // of the path (e.g. the API root itself): not found, not a server error.
+            return ParsedRequest.Error(HTTPStatusCode.NotFound, "Unknown path!");
 
         }
 
@@ -984,7 +986,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return ParsedRequest.Error(GetExceptionDescriptionForResponse(e));
             }
 
-            return ParsedRequest.Error($"error!");
+            // Every segment matched an API, but that API has no route for the rest
+            // of the path (e.g. the API root itself): not found, not a server error.
+            return ParsedRequest.Error(HTTPStatusCode.NotFound, "Unknown path!");
 
         }
 
@@ -1278,6 +1282,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
 
                                  Request.ParsedURLParametersX  = parsedRequest.Parameters;
+                                 // The positional view in template order, for the handlers that index them.
+                                 Request.ParsedURLParameters   = [.. parsedRequest.Parameters.Values];
                                  Request.NetworkStream         = Stream;
 
                                  httpResponse                  = await httpDelegate(Request);
