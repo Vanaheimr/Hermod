@@ -648,7 +648,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 // Build the signed data: RRSIG RDATA (without signature) + canonical sorted RRSet
-                var signedData = BuildSignedData(RRSet, Signature);
+                var signedData = DNSSECCanonical.SignedData(RRSet, Signature);
 
                 // Verify the cryptographic signature
                 var verified = VerifySignature(
@@ -993,136 +993,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private) BuildSignedData(RRSet, Signature)
-
-        /// <summary>
-        /// Build the signed data for RRSIG verification (RFC 4034 Section 3.1.8.1):
-        /// RRSIG RDATA (without signature) + canonical sorted RRSet in wire format.
-        /// </summary>
-        private static Byte[] BuildSignedData(IEnumerable<IDNSResourceRecord>  RRSet,
-                                              RRSIG                            Signature)
-        {
-
-            using var stream = new MemoryStream();
-
-            // Write RRSIG RDATA fields (without the signature itself)
-            stream.WriteUInt16BE((UInt16) Signature.TypeCovered);
-            stream.WriteByte    (Signature.Algorithm);
-            stream.WriteByte    (Signature.Labels);
-            stream.WriteUInt32BE(Signature.OriginalTTL);
-            stream.WriteUInt32BE(Signature.SignatureExpiration);
-            stream.WriteUInt32BE(Signature.SignatureInception);
-            stream.WriteUInt16BE(Signature.KeyTag);
-
-            // Signer name in canonical (lowercased) wire format without compression
-            var signerNameWire = SerializeCanonicalName(Signature.SignerName.FullName);
-            stream.Write(signerNameWire, 0, signerNameWire.Length);
-
-            // Write the RRSet in canonical order
-            // Each RR: name | type | class | original TTL | RDLENGTH | RDATA
-            // Names must be lowercased (canonical form)
-            var canonicalRRs = new List<Byte[]>();
-
-            foreach (var rr in RRSet)
-            {
-                using var rrStream = new MemoryStream();
-
-                // Owner name in canonical wire format, reconstructed as the wildcard
-                // if the server expanded one (RFC 4035 §5.3.2).
-                var ownerWire = SerializeCanonicalName(
-                                    SignedOwnerName(rr.DomainName.FullName, Signature.Labels)
-                                );
-                rrStream.Write(ownerWire, 0, ownerWire.Length);
-
-                // Type (2 bytes)
-                rrStream.WriteUInt16BE((UInt16) Signature.TypeCovered);
-
-                // Class (2 bytes)
-                rrStream.WriteUInt16BE((UInt16) rr.Class);
-
-                // Original TTL from RRSIG (not the actual TTL)
-                rrStream.WriteUInt32BE(Signature.OriginalTTL);
-
-                // RDLENGTH + RDATA: serialize the full RR and extract RDATA
-                var rdataBytes = ExtractRData(rr);
-                rrStream.WriteUInt16BE((UInt16) rdataBytes.Length);
-                rrStream.Write(rdataBytes, 0, rdataBytes.Length);
-
-                canonicalRRs.Add(rrStream.ToArray());
-            }
-
-            // Sort the RRs in canonical order (byte-by-byte comparison)
-            canonicalRRs.Sort(CompareByteArrays);
-
-            // Write sorted RRs to the signed data stream
-            foreach (var rr in canonicalRRs)
-                stream.Write(rr, 0, rr.Length);
-
-            return stream.ToArray();
-
-        }
-
-        #endregion
-
-        #region (private static) ExtractRData(ResourceRecord)
-
-        /// <summary>
-        /// Extract the RDATA portion of a resource record by serializing it
-        /// and stripping the header (name + type + class + TTL + RDLENGTH).
-        /// </summary>
-        private static Byte[] ExtractRData(IDNSResourceRecord ResourceRecord)
-        {
-
-            using var fullStream = new MemoryStream();
-
-            // Serialize the full resource record without compression
-            ResourceRecord.Serialize(fullStream, UseCompression: false);
-
-            var fullBytes = fullStream.ToArray();
-
-            // Parse past the owner name to find where RDATA begins
-            var offset = 0;
-
-            // Skip the wire-format owner name
-            while (offset < fullBytes.Length)
-            {
-                var labelLen = fullBytes[offset];
-
-                if (labelLen == 0)
-                {
-                    offset++; // skip the null terminator
-                    break;
-                }
-
-                if ((labelLen & 0xC0) == 0xC0)
-                {
-                    offset += 2; // compression pointer
-                    break;
-                }
-
-                offset += 1 + labelLen;
-            }
-
-            // Skip Type (2) + Class (2) + TTL (4) = 8 bytes
-            offset += 8;
-
-            // Read RDLENGTH
-            if (offset + 2 > fullBytes.Length)
-                return [];
-
-            var rdLength = (UInt16) ((fullBytes[offset] << 8) | fullBytes[offset + 1]);
-            offset += 2;
-
-            // Extract RDATA
-            if (offset + rdLength > fullBytes.Length)
-                return fullBytes[offset..];
-
-            return fullBytes[offset..(offset + rdLength)];
-
-        }
-
-        #endregion
-
         #region (static) VerifySignature(Algorithm, PublicKey, Data, Signature)
 
         /// <summary>
@@ -1355,54 +1225,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-
-        #region (private static) SignedOwnerName(OwnerName, Labels)
-
-        /// <summary>
-        /// The owner name a signature was actually made over.
-        /// </summary>
-        /// <remarks>
-        /// RFC 4034 §3.1.3 defines the RRSIG Labels field as the number of labels in
-        /// the owner name, excluding the root label and any leading wildcard label.
-        /// RFC 4035 §5.3.2 turns that into a rule for validators: if Labels is less
-        /// than the number of labels the RRset's owner name actually has, the server
-        /// synthesized this RRset from a wildcard, and the name that was signed is
-        /// "*." followed by the rightmost Labels labels — not the expanded name.
-        ///
-        /// Building the signed data from the expanded name instead hashes something
-        /// no signer ever produced, which makes every correctly-signed wildcard
-        /// answer Bogus.
-        /// </remarks>
-        /// <param name="OwnerName">The owner name as it appears in the response.</param>
-        /// <param name="Labels">The RRSIG's Labels field.</param>
-        private static String SignedOwnerName(String  OwnerName,
-                                              Byte    Labels)
-        {
-
-            var labels = OwnerName.TrimEnd('.').Split('.');
-
-            // The root name splits into a single empty label; there is nothing to
-            // reconstruct, and treating it as one real label would be wrong.
-            if (labels.Length == 1 && labels[0].Length == 0)
-                return OwnerName;
-
-            // Not a wildcard expansion: the owner name is what was signed. Labels
-            // greater than the actual count means the RRSIG disagrees with the
-            // record it covers; leaving the name alone lets the signature check
-            // fail on its own rather than inventing a name here.
-            if (Labels >= labels.Length)
-                return OwnerName;
-
-            // A wildcard directly at the root would carry Labels = 0.
-            if (Labels == 0)
-                return "*.";
-
-            return String.Concat("*.", String.Join('.', labels[(labels.Length - Labels)..]), ".");
-
-        }
-
-        #endregion
-
         #region (private static) SerializeCanonicalName(Name)
 
         /// <summary>
@@ -1438,29 +1260,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return ".";
 
             return normalized[(dotIndex + 1)..] + ".";
-
-        }
-
-        #endregion
-
-        #region (private static) CompareByteArrays(A, B)
-
-        /// <summary>
-        /// Compare two byte arrays lexicographically for canonical RRSet ordering.
-        /// </summary>
-        private static Int32 CompareByteArrays(Byte[]  A,
-                                               Byte[]  B)
-        {
-
-            var minLength = Math.Min(A.Length, B.Length);
-
-            for (var i = 0; i < minLength; i++)
-            {
-                if (A[i] < B[i]) return -1;
-                if (A[i] > B[i]) return  1;
-            }
-
-            return A.Length.CompareTo(B.Length);
 
         }
 

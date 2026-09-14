@@ -543,13 +543,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private static) RDataOf(ResourceRecord)
+        #region (static) RDataOf(ResourceRecord)
 
         /// <summary>
         /// The RDATA octets of a resource record, taken from its own uncompressed
         /// wire form.
         /// </summary>
-        private static Byte[] RDataOf(IDNSResourceRecord ResourceRecord)
+        /// <remarks>
+        /// Public because three places want it and two of them had written their
+        /// own: the zone-file reader rebuilding a record in another class, and
+        /// DNSSEC canonicalisation, which needs exactly these octets to put under
+        /// a signature.
+        /// </remarks>
+        /// <param name="ResourceRecord">A resource record.</param>
+        public static Byte[] RDataOf(IDNSResourceRecord ResourceRecord)
         {
 
             using var wire = new MemoryStream();
@@ -1220,7 +1227,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// (RFC 4034 Section 4.1.2). Used by NSEC, NSEC3, and CSYNC parsers.
         /// </summary>
         /// <param name="Types">DNS resource record type names or TYPE#### tokens.</param>
-        protected static Byte[] EncodeTypeBitMaps(IEnumerable<String> Types)
+        /// <remarks>
+        /// Public because a signer building an NSEC chain needs it from outside
+        /// the record hierarchy, and a second implementation of a bitmap encoder
+        /// is the last thing this codebase needs.
+        /// </remarks>
+        public static Byte[] EncodeTypeBitMaps(IEnumerable<String> Types)
         {
 
             var typeIds = new SortedSet<UInt16>();
