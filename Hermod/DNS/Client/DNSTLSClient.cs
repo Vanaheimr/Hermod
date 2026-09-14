@@ -695,6 +695,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var response = DNSInfo.ReadResponse(
                                OriginOf(EffectiveTimeout),
                                DNSQuery.TransactionId,
+                               DNSQuery.Questions,
                                new MemoryStream(body),
                                EffectiveTimeout,
                                stopwatch.Elapsed

@@ -417,10 +417,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                           effectiveTimeout
                                       ),
                                       dnsQuery.TransactionId,
+                                      dnsQuery.Questions,
                                       new MemoryStream(body),
                                       effectiveTimeout,
                                       stopwatch.Elapsed
                                   );
+
+                    // RFC 5452 §4.2 again, and for the same reason as the
+                    // transaction id above: a datagram whose question is not the
+                    // one that was asked is ignored, and ignoring means keep
+                    // waiting. Returning the rejection would let a forged packet
+                    // end the query, which is the denial of service finding 5 was
+                    // about — the check and the reaction have to be decided
+                    // together.
+                    if (!response.IsValid)
+                    {
+
+                        logger.LogDebug(
+                            "Ignoring a DNS UDP datagram from {RemoteIPAddress}:{RemotePort} whose question is not the one that was asked",
+                            RemoteIPAddress,
+                            RemotePort
+                        );
+
+                        continue;
+
+                    }
 
                     // RFC 5966: If the UDP response is truncated, retry via TCP
                     if (response.IsTruncated)
@@ -687,6 +708,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                Timeout
                            ),
                            DNSQuery.TransactionId,
+                           DNSQuery.Questions,
                            new MemoryStream(body),
                            Timeout,
                            stopwatch.Elapsed

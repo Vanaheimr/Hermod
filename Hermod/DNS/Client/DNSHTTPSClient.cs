@@ -1038,6 +1038,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.ReadResponse(
                            serverConfig,
                            dnsQuery.TransactionId,
+                           dnsQuery.Questions,
                            new MemoryStream(body),
                            effectiveTimeout,
                            stopwatch.Elapsed

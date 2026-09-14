@@ -436,6 +436,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var response = DNSInfo.ReadResponse(
                                OriginOf(EffectiveTimeout),
                                DNSQuery.TransactionId,
+                               DNSQuery.Questions,
                                new MemoryStream(buffer, 0, totalRead),
                                EffectiveTimeout,
                                stopwatch.Elapsed

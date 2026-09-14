@@ -292,11 +292,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (internal static) ReadResponse(Origin, ExpectedTransactionId, DNSResponseStream)
 
-        internal static DNSInfo ReadResponse(DNSServerConfig  Origin,
-                                             Int32            ExpectedTransactionId,
-                                             Stream           DNSResponseStream,
-                                             TimeSpan         Timeout,
-                                             TimeSpan         Runtime)
+        /// <param name="ExpectedQuestions">
+        /// The question section of the outstanding query. RFC 5452 §9.1 makes
+        /// matching it a MUST, alongside the transaction id.
+        /// </param>
+        internal static DNSInfo ReadResponse(DNSServerConfig           Origin,
+                                             Int32                     ExpectedTransactionId,
+                                             IEnumerable<DNSQuestion>  ExpectedQuestions,
+                                             Stream                    DNSResponseStream,
+                                             TimeSpan                  Timeout,
+                                             TimeSpan                  Runtime)
         {
 
             #region DNS Header
@@ -334,15 +339,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #endregion
 
-            //ToDo: Does this make sense?
-            #region Process Questions
+            #region The question section, which RFC 5452 §9.1 says MUST match
 
+            // "A resolver implementation MUST match responses to all of the
+            // following attributes of the query: ... Query ID, Query name, Query
+            // class and type ... A mismatch and the response MUST be considered
+            // invalid."
+            //
+            // §3 puts it the other way round: data is accepted "if and only if"
+            // the question section of the reply is equivalent to that of a
+            // question waiting for an answer. A transaction id alone leaves
+            // sixteen bits doing the work of a check the RFC writes out in three
+            // lines — and this section used to read the questions and throw them
+            // away, under a comment asking whether that made sense.
             DNSResponseStream.Seek(12, SeekOrigin.Begin);
 
-            for (var i = 0; i < QuestionCount; ++i) {
+            var expected = ExpectedQuestions.ToArray();
+
+            if (QuestionCount != expected.Length)
+                return Invalid(Origin, requestId);
+
+            for (var i = 0; i < QuestionCount; ++i)
+            {
+
                 var questionName  = DNSTools.ExtractName(DNSResponseStream);
-                var typeId        = (UInt16)          ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8 | DNSResponseStream.ReadByte() & Byte.MaxValue);
-                var classId       = (DNSQueryClasses) ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8 | DNSResponseStream.ReadByte() & Byte.MaxValue);
+                var typeId        = (DNSResourceRecordTypes) ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8 | DNSResponseStream.ReadByte() & Byte.MaxValue);
+                var classId       = (DNSQueryClasses)        ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8 | DNSResponseStream.ReadByte() & Byte.MaxValue);
+
+                // Equivalence of names is RFC 4343's, which makes them
+                // case-insensitive: a resolver that folds the QNAME before
+                // answering has returned the same name, and most of them do.
+                // Comparing octets here would refuse the deployed world.
+                if (!expected.Any(question => question.QueryType  == typeId  &&
+                                              question.QueryClass == classId &&
+                                              String.Equals(question.DomainName.FullName.TrimEnd('.'),
+                                                            questionName.       TrimEnd('.'),
+                                                            StringComparison.OrdinalIgnoreCase)))
+                {
+                    return Invalid(Origin, requestId);
+                }
+
             }
 
             #endregion
