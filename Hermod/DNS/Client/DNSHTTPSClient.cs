@@ -1310,8 +1310,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var ad     = json["AD"]?.    Value<Boolean>() ?? false;
             var cd     = json["CD"]?.    Value<Boolean>() ?? false;
 
-            var answers     = new List<IDNSResourceRecord>();
-            var authorities = new List<IDNSResourceRecord>();
+            var answers           = new List<IDNSResourceRecord>();
+            var authorities       = new List<IDNSResourceRecord>();
+            var additionalRecords = new List<IDNSResourceRecord>();
 
             if (json["Answer"] is JArray answerArray)
                 foreach (var record in answerArray)
@@ -1327,6 +1328,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         authorities.Add(dnsResourceRecord);
                 }
 
+            // A DNS answer has four sections. This reader used to carry two and
+            // hand an empty list for the third, which is where glue lives.
+            if (json["Additional"] is JArray additionalArray)
+                foreach (var record in additionalArray)
+                {
+                    if (TryParseJSONResourceRecord(record, out var dnsResourceRecord))
+                        additionalRecords.Add(dnsResourceRecord);
+                }
+
             DNSInfo = new DNSInfo(
                           Origin:                 ServerConfig,
                           QueryId:                0,
@@ -1337,7 +1347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                           ResponseCode:           (DNSResponseCodes) status,
                           Answers:                answers,
                           Authorities:            authorities,
-                          AdditionalRecords:      [],
+                          AdditionalRecords:      additionalRecords,
                           IsValid:                true,
                           IsTimeout:              false,
                           Timeout:                Timeout,
@@ -1355,99 +1365,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region (private static) TryParseJSONResourceRecord(Record, out ResourceRecord)
 
         /// <summary>
-        /// Parse a single resource record from the DNS JSON response.
-        /// Delegates to the static TryParseFromJSON factory method on each
-        /// concrete resource record class, keeping parsing logic co-located
-        /// with the record type definition.
+        /// Parse a single resource record out of a DNS JSON answer.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The <c>data</c> field of this API is the presentation form of the
+        /// RDATA — the same text a zone file carries — so a JSON record is a
+        /// zone-file line with its fields handed over separately, and the
+        /// zone-file reader is what should read it.
+        /// </para>
+        /// <para>
+        /// It used to have a dispatch table of its own, forty entries long, and
+        /// everything outside it was dropped without a word: not refused, not
+        /// logged, simply absent from the answer. That cost every name with an
+        /// underscore or a wildcard in it, because the table was reached only
+        /// after a strict <c>DomainName</c> parse, and every type the table did
+        /// not list, including the RFC 3597 §5 generic form this API returns for
+        /// one. An answer short of a record is indistinguishable from NODATA.
+        /// </para>
+        /// </remarks>
         private static Boolean TryParseJSONResourceRecord(JToken                                       Record,
                                                           [NotNullWhen(true)] out IDNSResourceRecord?  ResourceRecord)
         {
 
-            ResourceRecord      = null;
+            ResourceRecord = null;
 
-            var name            = Record["name"]?.Value<String>() ?? "";
-            var type            = Record["type"]?.Value<UInt16>() ?? 0;
-            var ttl             = Record["TTL"]?. Value<UInt32>() ?? 0;
-            var data            = Record["data"]?.Value<String>() ?? "";
+            var name  = Record["name"]?.Value<String>() ?? "";
+            var type  = Record["type"]?.Value<UInt16>() ?? 0;
+            var ttl   = Record["TTL"]?. Value<UInt32>() ?? 0;
+            var data  = Record["data"]?.Value<String>() ?? "";
 
-            // Ensure the domain name ends with a dot (FQDN)
+            if (name.Length == 0 || data.Length == 0)
+                return false;
+
+            // Every name in this API is absolute, whether or not it says so with
+            // a dot — there is no origin in a JSON answer for a relative one to be
+            // relative to. Saying it explicitly keeps the zone-file reader, which
+            // does have an origin to consider, from having to guess.
             if (!name.EndsWith('.'))
-                name           += ".";
+                name += ".";
 
-            // DNSServiceName is more permissive than DomainName (allows underscores in labels,
-            // e.g. _ocpp._tcp.api.charging.cloud. for SRV records). Since ADNSResourceRecord
-            // stores the name as DNSServiceName internally, we use it as the common parser.
-            var dnsServiceName  = DNSServiceName.TryParse   (name);
-            var domainName      = DomainName.    TryParse   (name);
-            var timeToLive      = TimeSpan.      FromSeconds(ttl);
+            // RFC 3597 §5's TYPEnnn form for a type with no mnemonic, which is
+            // also how this API names one.
+            var mnemonic = ADNSResourceRecord.TypeName((DNSResourceRecordTypes) type);
 
-            if (domainName is not null)
-                ResourceRecord  = (DNSResourceRecordTypes) type switch {
-
-                    // Standard record types
-                    DNSResourceRecordTypes.A           => A.         TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.AAAA        => AAAA.      TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.CNAME       => CNAME.     TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.MX          => MX.        TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.TXT         => TXT.       TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.NS          => NS.        TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.SOA         => SOA.       TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.PTR         => PTR.       TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.DNAME       => DNAME.     TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.NAPTR       => NAPTR.     TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.SPF         => SPF.       TryParseFromJSON(domainName,  timeToLive, data),
-
-                    // Service binding record types (RFC 9460)
-                    DNSResourceRecordTypes.HTTPS       => HTTPS.     TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.SVCB        => SVCB.      TryParseFromJSON(domainName,  timeToLive, data),
-
-                    // DNSSEC record types (RFC 4033/4034/4035)
-                    DNSResourceRecordTypes.DS          => DS.        TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.RRSIG       => RRSIG.     TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.NSEC        => NSEC.      TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.DNSKEY      => DNSKEY.    TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.NSEC3       => NSEC3.     TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.NSEC3PARAM  => NSEC3PARAM.TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.CDS         => CDS.       TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.CDNSKEY     => CDNSKEY.   TryParseFromJSON(domainName,  timeToLive, data),
-
-                    // Security / certificate record types
-                    DNSResourceRecordTypes.TLSA        => TLSA.      TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.SMIMEA      => SMIMEA.    TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.CERT        => CERT.      TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.OPENPGPKEY  => OPENPGPKEY.TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.CAA         => CAA.       TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.SSHFP       => SSHFP.     TryParseFromJSON(domainName,  timeToLive, data),
-
-                    // Other standard record types
-                    DNSResourceRecordTypes.HINFO       => HINFO.     TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.RP          => RP.        TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.AFSDB       => AFSDB.     TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.LOC         => LOC.       TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.CSYNC       => CSYNC.     TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.ZONEMD      => ZONEMD.    TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.EUI48       => EUI48.     TryParseFromJSON(domainName,  timeToLive, data),
-                    DNSResourceRecordTypes.EUI64       => EUI64.     TryParseFromJSON(domainName,  timeToLive, data),
-
-                    _                                  => null
-
-                };
-
-            if (ResourceRecord is null && dnsServiceName is not null)
-                ResourceRecord  = (DNSResourceRecordTypes) type switch {
-
-                    // Standard record types
-                    DNSResourceRecordTypes.SRV         => SRV.       TryParseFromJSON(dnsServiceName, timeToLive, data),
-
-                    // Service binding record types (RFC 9460)
-                    DNSResourceRecordTypes.URI         => URI.       TryParseFromJSON(dnsServiceName, timeToLive, data),
-
-                    _                                  => null
-
-                };
-
-            return ResourceRecord is not null;
+            return ADNSResourceRecord.TryParseZoneFileString(
+                       $"{name} {ttl} IN {mnemonic} {data}",
+                       out ResourceRecord,
+                       out _
+                   );
 
         }
 
