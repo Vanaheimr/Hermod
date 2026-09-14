@@ -252,7 +252,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The TTL of this resource record.</param>
         /// <param name="Data">The "data" field value from the JSON response.</param>
         /// <returns>The parsed resource record, or null if parsing fails.</returns>
-        public static RRSIG? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        public static RRSIG? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data, DomainName? Origin = null)
         {
             try
             {
@@ -268,13 +268,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return null;
                 }
 
-                var signerName = parts[7].EndsWith('.') ? parts[7] : parts[7] + ".";
+                var signerName = parts[7];
                 return new RRSIG(Name, DNSQueryClasses.IN, TimeToLive,
                                  typeCovered,
                                  Byte.Parse(parts[1]), Byte.Parse(parts[2]),
                                  UInt32.Parse(parts[3]), signatureExpiration, signatureInception,
                                  UInt16.Parse(parts[6]),
-                                 DNS.DomainName.ParseLenient(signerName),
+                                 DNS.DomainName.ParseLenient(signerName, Origin),
                                  Convert.FromBase64String(parts[8]));
             }
             catch { return null; }

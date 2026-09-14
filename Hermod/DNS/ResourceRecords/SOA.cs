@@ -231,14 +231,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The TTL of this resource record.</param>
         /// <param name="Data">The "data" field value from the JSON response.</param>
         /// <returns>The parsed resource record, or null if parsing fails.</returns>
-        public static SOA? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        public static SOA? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data, DomainName? Origin = null)
         {
             try
             {
                 var parts = Data.Split(' ');
                 return new SOA(Name, DNSQueryClasses.IN, TimeToLive,
-                               DNS.DomainName.ParseLenient(parts[0].EndsWith('.') ? parts[0] : parts[0] + "."),
-                               SimpleEMailAddress.Parse(DNSTools.ReplaceFirstDotWithAt(parts[1].TrimEnd('.'))),
+                               DNS.DomainName.ParseLenient(parts[0], Origin),
+                               // The RNAME is a domain name like any other — RFC 1035 §3.3.13 — and
+                               // so it may be relative. It becomes a mailbox only after the
+                               // origin has had its say; the other order turns "hostmaster"
+                               // into a name with no dot to put the @ in.
+                               SimpleEMailAddress.Parse(
+                                   DNSTools.ReplaceFirstDotWithAt(
+                                       DNS.DomainName.ParseLenient(parts[1], Origin).FullName.TrimEnd('.')
+                                   )
+                               ),
                                UInt32.Parse(parts[2]),
                                TimeSpan.FromSeconds(UInt32.Parse(parts[3])),
                                TimeSpan.FromSeconds(UInt32.Parse(parts[4])),

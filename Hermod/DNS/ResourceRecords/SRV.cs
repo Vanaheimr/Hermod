@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The TTL of this resource record.</param>
         /// <param name="Data">The "data" field value from the JSON response.</param>
         /// <returns>The parsed resource record, or null if parsing fails.</returns>
-        public static SRV? TryParseFromJSON(DNSServiceName Name, TimeSpan TimeToLive, String Data)
+        public static SRV? TryParseFromJSON(DNSServiceName Name, TimeSpan TimeToLive, String Data, DomainName? Origin = null)
         {
             try
             {
@@ -226,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return new SRV(Name, DNSQueryClasses.IN, TimeToLive,
                                UInt16.Parse(parts[0]), UInt16.Parse(parts[1]),
                                IPPort.Parse(parts[2]),
-                               DNS.DomainName.ParseLenient(parts[3].EndsWith('.') ? parts[3] : parts[3] + "."));
+                               DNS.DomainName.ParseLenient(parts[3], Origin));
             }
             catch { return null; }
         }

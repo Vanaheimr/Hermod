@@ -264,7 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The TTL of this resource record.</param>
         /// <param name="Data">The "data" field value from the JSON response.</param>
         /// <returns>The parsed resource record, or null if parsing fails.</returns>
-        public static HTTPS? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        public static HTTPS? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data, DomainName? Origin = null)
         {
             try
             {
@@ -274,11 +274,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (parts.Length < 2) return null;
 
                 var priority   = UInt16.Parse(parts[0]);
-                var targetStr  = parts[1].TrimEnd('.');
-                if (targetStr.Length == 0 || targetStr == ".") targetStr = ".";
-                else if (!targetStr.EndsWith('.')) targetStr += ".";
+                var targetStr  = parts[1].TrimEnd('.').Length == 0 ? "." : parts[1];
 
-                var targetName = DNS.DomainName.ParseLenient(targetStr);
+                var targetName = DNS.DomainName.ParseLenient(targetStr, Origin);
                 var svcParams  = new List<SVCParameter>();
 
                 if (parts.Length > 2)

@@ -268,6 +268,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region ParseLenient(Text, Origin)
+
+        /// <summary>
+        /// Parse a name as it appears in a master file, resolving it against the
+        /// current origin when it is relative.
+        /// </summary>
+        /// <remarks>
+        /// RFC 1035 §5.1: "Domain names that end in a dot are called absolute, and
+        /// are taken as complete. Domain names which do not end in a dot are
+        /// called relative", and a relative name is completed by the current
+        /// origin. A free standing <c>@</c> denotes the origin itself.
+        /// <para>
+        /// Passing no origin keeps the older reading, in which a name is taken as
+        /// complete whether or not it ends in a dot. That is what a caller with a
+        /// single line and no file around it can do — and it is why a zone must be
+        /// read as a file rather than a line at a time: without an origin, "ns1"
+        /// silently becomes the top-level name "ns1." instead of failing.
+        /// </para>
+        /// </remarks>
+        /// <param name="Text">The text representation of a domain name.</param>
+        /// <param name="Origin">The current origin, or null to take every name as complete.</param>
+        public static DomainName ParseLenient(String Text, DomainName? Origin)
+        {
+
+            if (Origin is null)
+                return ParseLenient(Text);
+
+            var text = Text?.Trim() ?? "";
+
+            if (text == "@")
+                return Origin;
+
+            if (text.EndsWith('.'))
+                return ParseLenient(text);
+
+            var origin = Origin.FullName;
+
+            return ParseLenient(origin == "."
+                                    ? $"{text}."
+                                    : $"{text}.{origin}");
+
+        }
+
+        #endregion
+
         #region TryParseLenient(Text, out DomainName, out ErrorResponse)
 
         /// <summary>

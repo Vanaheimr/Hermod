@@ -167,14 +167,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The TTL of this resource record.</param>
         /// <param name="Data">The "data" field value from the JSON response.</param>
         /// <returns>The parsed resource record, or null if parsing fails.</returns>
-        public static NSEC? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        public static NSEC? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data, DomainName? Origin = null)
         {
             try
             {
                 var parts = Data.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 1) return null;
-                var nextName = parts[0].EndsWith('.') ? parts[0] : parts[0] + ".";
-                return new NSEC(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.ParseLenient(nextName), EncodeTypeBitMaps(parts.Skip(1)));
+                var nextName = parts[0];
+                return new NSEC(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.ParseLenient(nextName, Origin), EncodeTypeBitMaps(parts.Skip(1)));
             }
             catch { return null; }
         }

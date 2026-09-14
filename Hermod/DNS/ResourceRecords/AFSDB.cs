@@ -165,14 +165,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The TTL of this resource record.</param>
         /// <param name="Data">The "data" field value from the JSON response.</param>
         /// <returns>The parsed resource record, or null if parsing fails.</returns>
-        public static AFSDB? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        public static AFSDB? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data, DomainName? Origin = null)
         {
             try
             {
                 var parts = Data.Split(' ', 2);
                 if (parts.Length < 2) return null;
-                var hostname = parts[1].EndsWith('.') ? parts[1] : parts[1] + ".";
-                return new AFSDB(Name, DNSQueryClasses.IN, TimeToLive, UInt16.Parse(parts[0]), DNS.DomainName.ParseLenient(hostname));
+                var hostname = parts[1];
+                return new AFSDB(Name, DNSQueryClasses.IN, TimeToLive, UInt16.Parse(parts[0]), DNS.DomainName.ParseLenient(hostname, Origin));
             }
             catch { return null; }
         }

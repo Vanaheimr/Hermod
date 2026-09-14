@@ -167,15 +167,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The TTL of this resource record.</param>
         /// <param name="Data">The "data" field value from the JSON response.</param>
         /// <returns>The parsed resource record, or null if parsing fails.</returns>
-        public static RP? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        public static RP? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data, DomainName? Origin = null)
         {
             try
             {
                 var parts = Data.Split(' ', 2);
                 if (parts.Length < 2) return null;
-                var mailbox  = parts[0].EndsWith('.') ? parts[0] : parts[0] + ".";
-                var txtDname = parts[1].EndsWith('.') ? parts[1] : parts[1] + ".";
-                return new RP(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.ParseLenient(mailbox), DNS.DomainName.ParseLenient(txtDname));
+                var mailbox  = parts[0];
+                var txtDname = parts[1];
+                return new RP(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.ParseLenient(mailbox, Origin), DNS.DomainName.ParseLenient(txtDname, Origin));
             }
             catch { return null; }
         }

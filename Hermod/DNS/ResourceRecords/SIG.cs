@@ -252,7 +252,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Name">The owner name of this resource record.</param>
         /// <param name="TimeToLive">The TTL of this resource record.</param>
         /// <param name="Data">The "data" field value from the JSON response.</param>
-        public static SIG? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
+        public static SIG? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data, DomainName? Origin = null)
         {
             try
             {
@@ -268,7 +268,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return null;
                 }
 
-                var signerName = parts[7].EndsWith('.') ? parts[7] : parts[7] + ".";
+                var signerName = parts[7];
 
                 return new SIG(
                            Name,
@@ -281,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            UInt32.Parse(parts[4]),
                            UInt32.Parse(parts[5]),
                            UInt16.Parse(parts[6]),
-                           DNS.DomainName.ParseLenient(signerName),
+                           DNS.DomainName.ParseLenient(signerName, Origin),
                            Convert.FromBase64String(parts[8])
                        );
 

@@ -208,7 +208,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                      DNSQueryClasses                              Class,
                                                      TimeSpan                                     TimeToLive,
                                                      String                                       RData,
-                                                     [NotNullWhen(true)] out IDNSResourceRecord?  ResourceRecord)
+                                                     [NotNullWhen(true)] out IDNSResourceRecord?  ResourceRecord,
+                                                     DomainName?                                  Origin   = null)
         {
 
             // RFC 3597 §5: the generic RDATA encoding. It is tried first because
@@ -237,23 +238,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     DNSResourceRecordTypes.A           => A.         TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.AAAA        => AAAA.      TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.NS          => NS.        TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.CNAME       => CNAME.     TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.SOA         => SOA.       TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.PTR         => PTR.       TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.NS          => NS.        TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
+                    DNSResourceRecordTypes.CNAME       => CNAME.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
+                    DNSResourceRecordTypes.SOA         => SOA.       TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
+                    DNSResourceRecordTypes.PTR         => PTR.       TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.HINFO       => HINFO.     TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.MX          => MX.        TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.MX          => MX.        TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.TXT         => TXT.       TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.RP          => RP.        TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.AFSDB       => AFSDB.     TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.RP          => RP.        TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
+                    DNSResourceRecordTypes.AFSDB       => AFSDB.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.LOC         => LOC.       TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.NAPTR       => NAPTR.     TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.NAPTR       => NAPTR.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.CERT        => CERT.      TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.DNAME       => DNAME.     TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.DNAME       => DNAME.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.DS          => DS.        TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.SSHFP       => SSHFP.     TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.RRSIG       => RRSIG.     TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.NSEC        => NSEC.      TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.RRSIG       => RRSIG.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
+                    DNSResourceRecordTypes.NSEC        => NSEC.      TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.DNSKEY      => DNSKEY.    TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.NSEC3       => NSEC3.     TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.NSEC3PARAM  => NSEC3PARAM.TryParseFromJSON(DomainName, TimeToLive, RData),
@@ -264,8 +265,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     DNSResourceRecordTypes.OPENPGPKEY  => OPENPGPKEY.TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.CSYNC       => CSYNC.     TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.ZONEMD      => ZONEMD.    TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.SVCB        => SVCB.      TryParseFromJSON(DomainName, TimeToLive, RData),
-                    DNSResourceRecordTypes.HTTPS       => HTTPS.     TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.SVCB        => SVCB.      TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
+                    DNSResourceRecordTypes.HTTPS       => HTTPS.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.SPF         => SPF.       TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.EUI48       => EUI48.     TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.EUI64       => EUI64.     TryParseFromJSON(DomainName, TimeToLive, RData),
@@ -285,7 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             ResourceRecord = Type switch {
 
-                DNSResourceRecordTypes.SRV         => SRV.TryParseFromJSON(DNSServiceName, TimeToLive, RData),
+                DNSResourceRecordTypes.SRV         => SRV.TryParseFromJSON(DNSServiceName, TimeToLive, RData, Origin),
                 DNSResourceRecordTypes.URI         => URI.TryParseFromJSON(DNSServiceName, TimeToLive, RData),
 
                 _                                  => null
@@ -711,15 +712,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="ZoneFileString">A BIND-style zone-file resource record line.</param>
         /// <param name="DefaultTimeToLive">An optional TTL used when the zone-file line omits one.</param>
-        public static IDNSResourceRecord ParseZoneFileString(String     ZoneFileString,
-                                                             TimeSpan?  DefaultTimeToLive   = null)
+        /// <param name="Origin">An optional current origin, against which a relative name is completed (RFC 1035 §5.1).</param>
+        public static IDNSResourceRecord ParseZoneFileString(String       ZoneFileString,
+                                                             TimeSpan?    DefaultTimeToLive   = null,
+                                                             DomainName?  Origin              = null)
         {
 
             if (TryParseZoneFileString(
                     ZoneFileString,
                     out var resourceRecord,
                     out var errorResponse,
-                    DefaultTimeToLive
+                    DefaultTimeToLive,
+                    Origin
                 ))
             {
                 return resourceRecord;
@@ -740,10 +744,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="ResourceRecord">The parsed DNS resource record.</param>
         /// <param name="ErrorResponse">An optional error response in case the parsing fails.</param>
         /// <param name="DefaultTimeToLive">An optional TTL used when the zone-file line omits one.</param>
+        /// <param name="Origin">
+        /// An optional current origin. RFC 1035 §5.1 completes a name that does not
+        /// end in a dot against it, and resolves a free standing "@" to it. Without
+        /// one every name is taken as complete, which is all a caller holding a
+        /// single line can do — see <see cref="DNSZoneFile"/> for reading a whole one.
+        /// </param>
         public static Boolean TryParseZoneFileString(String                                        ZoneFileString,
                                                      [NotNullWhen(true)]  out IDNSResourceRecord?  ResourceRecord,
                                                      [NotNullWhen(false)] out String?              ErrorResponse,
-                                                     TimeSpan?                                     DefaultTimeToLive   = null)
+                                                     TimeSpan?                                     DefaultTimeToLive   = null,
+                                                     DomainName?                                   Origin              = null)
         {
 
             ResourceRecord  = null;
@@ -769,7 +780,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // either here did not report a bad name: it left domainName null,
             // which silently skipped the whole type dispatch below and surfaced
             // as "could not parse RDATA" for RDATA that was perfectly good.
-            DNS.DomainName.TryParseLenient(ownerNameText, out var domainName, out var ownerNameError);
+            DNS.DomainName.TryParseLenient(
+                ownerNameText,
+                out var domainName,
+                out var ownerNameError
+            );
+
+            // RFC 1035 §5.1: a name that does not end in a dot is relative to the
+            // current origin, and "@" is the origin itself. Only a caller that has
+            // the file around the line can supply one.
+            if (Origin is not null)
+            {
+
+                var absolute = DNS.DomainName.ParseLenient(ownerNameText, Origin).FullName;
+
+                if (domainName is not null || ownerNameText == "@")
+                    domainName = DNS.DomainName.ParseLenient(absolute);
+
+                // And the service name with it. SRV and URI are keyed on this one
+                // rather than on the DomainName, so qualifying only the latter
+                // would complete the owner of every type except the two whose
+                // owner names are relative most often.
+                if (DNSServiceName.TryParse(absolute, out var absoluteServiceName, out _))
+                    dnsServiceName = absoluteServiceName;
+
+            }
 
             var resourceRecordClass  = DNSQueryClasses.IN;
             var timeToLive           = DefaultTimeToLive ?? TimeSpan.Zero;
@@ -825,7 +860,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    resourceRecordClass,
                    timeToLive,
                    String.Join(" ", tokens.Skip(index)),
-                   out ResourceRecord
+                   out ResourceRecord,
+                   Origin
                ))
             {
                 // Which half of the line is at fault. A name that cannot become a

@@ -202,12 +202,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
 
-        public InMemoryDNSZone AddZoneFileString(String     ZoneFileString,
-                                                 TimeSpan?  DefaultTimeToLive = null)
+        /// <summary>
+        /// Add one resource record, written as a single zone-file line.
+        /// </summary>
+        /// <remarks>
+        /// A line on its own carries no origin, so every name in it is taken as
+        /// complete whether or not it ends in a dot. Use <see cref="AddZoneFile"/>
+        /// for an actual zone file: RFC 1035 §5.1 completes a relative name against
+        /// the current origin, and a line has no current origin to offer.
+        /// </remarks>
+        /// <param name="ZoneFileString">A BIND-style zone-file resource record line.</param>
+        /// <param name="DefaultTimeToLive">An optional TTL used when the line omits one.</param>
+        /// <param name="Origin">An optional origin, against which a relative name is completed.</param>
+        public InMemoryDNSZone AddZoneFileString(String       ZoneFileString,
+                                                 TimeSpan?    DefaultTimeToLive   = null,
+                                                 DomainName?  Origin              = null)
         {
 
             Add(ADNSResourceRecord.ParseZoneFileString(
                     ZoneFileString,
+                    DefaultTimeToLive,
+                    Origin
+                ));
+
+            return this;
+
+        }
+
+
+        /// <summary>
+        /// Add every resource record of a zone file (RFC 1035 §5.1).
+        /// </summary>
+        /// <remarks>
+        /// The origin matters more than it looks. Relative names are the ordinary
+        /// way to write a zone file — <c>ns1</c>, not <c>ns1.example.com.</c> — and
+        /// without an origin to complete them against they are taken as complete,
+        /// which quietly puts every record at the top level instead of in the zone.
+        /// Passing none here falls back to the zone's own origin, which is what a
+        /// file's <c>$ORIGIN</c> would have said anyway; a file that names its own
+        /// overrides both.
+        /// </remarks>
+        /// <param name="ZoneFile">The text of a zone file.</param>
+        /// <param name="Origin">The origin relative names are completed against; the zone's own by default.</param>
+        /// <param name="DefaultTimeToLive">A TTL for records that state none and are not covered by a $TTL.</param>
+        public InMemoryDNSZone AddZoneFile(String       ZoneFile,
+                                           DomainName?  Origin              = null,
+                                           TimeSpan?    DefaultTimeToLive   = null)
+        {
+
+            Add(DNSZoneFile.Parse(
+                    ZoneFile,
+                    Origin ?? this.Origin,
                     DefaultTimeToLive
                 ));
 
