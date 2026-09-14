@@ -101,6 +101,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private readonly         ILoggerFactory            loggerFactory;
 
         private                  UdpClient?                udpUnicastListener;
+
+        /// <summary>
+        /// Every UDP unicast listener, which is two when the bind address is the
+        /// wildcard and one otherwise. <see cref="udpUnicastListener"/> is the
+        /// first of them and stays for the callers that only ever wanted a port.
+        /// </summary>
+        private readonly         List<UdpClient>           udpUnicastListeners = [];
+
+        private readonly         List<TcpListener>         tcpUnicastListeners = [];
         private                  UdpClient?                udpMulticastListener;
         private                  TcpListener?              tcpUnicastListener;
         private                  TcpListener?              tlsUnicastListener;
@@ -187,29 +196,291 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        // ToDo: To well-known problems when listing on localhost IPv4+IPv6,
-        //       we might need separate listeners for IPv4 and IPv6!
+        #region (private static) BindEndpointsOf(Socket)
+
+        /// <summary>
+        /// The endpoints a configured unicast socket actually has to be bound to:
+        /// two when the address is the wildcard, one otherwise.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A socket bound to <c>[::]</c> does not answer on 127.0.0.1, and one
+        /// bound to <c>0.0.0.0</c> does not answer on ::1 — measured, on Windows,
+        /// as a full query timeout in each direction rather than a refusal. The
+        /// default bind address is the wildcard and resolves to <c>[::]</c>, so a
+        /// server started with default options was reachable over IPv6 only.
+        /// </para>
+        /// <para>
+        /// The other way to fix that is one socket with <c>DualMode</c> enabled,
+        /// and it is one line. It is not what this does, because a dual-mode
+        /// socket hands every IPv4 client to the application as
+        /// <c>::ffff:a.b.c.d</c> — and RFC 7873 §5.2.1 derives a server cookie
+        /// from the client's IP address. Changing what that address looks like
+        /// would silently invalidate every cookie an IPv4 client holds, and would
+        /// do it inside a mechanism whose whole job is to be hard to forge. Two
+        /// listeners keep each request in the family it arrived on.
+        /// </para>
+        /// <para>
+        /// IPv6 is bound first and IPv4 second, so that an ephemeral port chosen
+        /// by the first can be reused by the second: both families have to answer
+        /// on the same port or a client that fell back from UDP to TCP would find
+        /// nothing there.
+        /// </para>
+        /// </remarks>
+        private static List<System.Net.IPEndPoint> BindEndpointsOf(IPSocket Socket)
+        {
+
+            if (!Socket.IPAddress.IsAny)
+                return [ Socket.ToIPEndPoint() ];
+
+            return [
+                       new (System.Net.IPAddress.IPv6Any, Socket.Port.ToUInt16()),
+                       new (System.Net.IPAddress.Any,     Socket.Port.ToUInt16())
+                   ];
+
+        }
+
+        #endregion
+
+        #region (private) BindBothFamilies(LocalSocket, Bind, Release, EndPointOf, What)
+
+        /// <summary>
+        /// Bind every endpoint a configured socket means, on one port, retrying
+        /// with a different port when a system-chosen one turns out to be taken
+        /// in the other family.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The retry is the part that is easy to leave out and expensive to
+        /// leave out. An ephemeral port the operating system hands out for
+        /// <c>[::]</c> says nothing about whether the same number is free for
+        /// <c>0.0.0.0</c>: they are separate spaces, and an outgoing connection
+        /// from this machine may already hold it. Without the retry, a server
+        /// asking for "any free port" occasionally gets one it cannot bind in
+        /// both families, and the natural thing to write there — log a warning
+        /// and carry on — puts it back to serving a single family, which is the
+        /// defect this whole routine exists to remove.
+        /// </para>
+        /// <para>
+        /// Both listeners are released before each retry. Holding the one that
+        /// worked would stop the operating system from offering that number
+        /// again, so the next attempt would walk up the ephemeral range one
+        /// socket at a time. <c>ATCPServer</c> met all of this first; the
+        /// sixteen attempts are its number.
+        /// </para>
+        /// <para>
+        /// A family that is simply not on this host — <c>AddressFamilyNotSupported</c>,
+        /// <c>AddressNotAvailable</c> — is not an error: a machine with IPv6
+        /// switched off is an ordinary machine, and serving the other family is
+        /// the right answer. A port that is *taken* on a fixed port number is a
+        /// different thing, and throws, because quietly answering on half of
+        /// what was asked for is how this started.
+        /// </para>
+        /// </remarks>
+        private List<T> BindBothFamilies<T>(IPSocket                              LocalSocket,
+                                            Func<System.Net.IPEndPoint, T>        Bind,
+                                            Action<T>                             Release,
+                                            Func<T, System.Net.IPEndPoint?>       EndPointOf,
+                                            String                                What)
+        {
+
+            const Int32 attempts   = 16;
+
+            var endPoints          = BindEndpointsOf(LocalSocket);
+            var portChosenBySystem = LocalSocket.Port.ToUInt16() == 0;
+
+            for (var attempt = 1; ; attempt++)
+            {
+
+                var bound  = new List<T>();
+                var port   = LocalSocket.Port.ToUInt16();
+                var retry  = false;
+
+                foreach (var endPoint in endPoints)
+                {
+
+                    var target = new System.Net.IPEndPoint(endPoint.Address, port);
+
+                    try
+                    {
+
+                        var listener = Bind(target);
+                        bound.Add(listener);
+
+                        // Whatever the first one actually got is what the rest
+                        // have to use: two families on two ports would be two
+                        // servers, and a client falling back from UDP to TCP
+                        // (RFC 7766 §5) would find nothing at the second.
+                        if (port == 0)
+                            port = (UInt16) (EndPointOf(listener)?.Port ?? 0);
+
+                    }
+                    catch (SocketException e) when (e.SocketErrorCode == SocketError.AddressFamilyNotSupported ||
+                                                    e.SocketErrorCode == SocketError.AddressNotAvailable)
+                    {
+
+                        logger.LogDebug(
+                            "The {What} listener has no {Family} on this host ({Error}); serving the other family only",
+                            What,
+                            target.AddressFamily,
+                            e.SocketErrorCode
+                        );
+
+                    }
+                    catch (SocketException e) when (e.SocketErrorCode == SocketError.AddressAlreadyInUse &&
+                                                    portChosenBySystem &&
+                                                    attempt < attempts)
+                    {
+
+                        logger.LogDebug(
+                            "Port {Port} was free for one family and taken for {Family}; asking for another",
+                            port,
+                            target.AddressFamily
+                        );
+
+                        retry = true;
+                        break;
+
+                    }
+                    catch (SocketException e)
+                    {
+
+                        // A fixed port that is taken in one family, or a
+                        // system-chosen one still taken after every attempt.
+                        // Whatever was bound so far has to go: leaving it would
+                        // hold a port for a server that is not going to run, and
+                        // the caller would be told nothing — this method runs
+                        // inside a background listener task, where an escaping
+                        // exception is nobody's.
+                        foreach (var listener in bound)
+                        {
+                            try { Release(listener); } catch { }
+                        }
+
+                        throw new InvalidOperationException(
+                                  $"The {What} listener could not be bound to {target}: {e.SocketErrorCode}. " +
+                                   "Serving only the other address family would answer half the clients and " +
+                                   "look healthy doing it.",
+                                  e
+                              );
+
+                    }
+
+                }
+
+                if (!retry)
+                {
+
+                    if (bound.Count == 0)
+                        throw new InvalidOperationException(
+                                  $"The {What} listener could not be bound to any of {endPoints.Count} endpoint(s)!");
+
+                    if (bound.Count < endPoints.Count && !portChosenBySystem)
+                        logger.LogWarning(
+                            "The {What} listener was asked for {Wanted} endpoint(s) and got {Got}",
+                            What, endPoints.Count, bound.Count
+                        );
+
+                    return bound;
+
+                }
+
+                foreach (var listener in bound)
+                {
+                    try { Release(listener); } catch { }
+                }
+
+            }
+
+        }
+
+        #endregion
 
         #region (private) ListenUDPUnicastAsync   (CancellationToken token)
 
         private async Task ListenUDPUnicastAsync(CancellationToken CancellationToken)
         {
 
-            var localSocket     = Options.UDPUnicastSocket;
-            udpUnicastListener  = new UdpClient(localSocket.ToIPEndPoint());
-            ActiveUDPUnicastSocket = IPSocket.FromIPEndPoint(udpUnicastListener.Client.LocalEndPoint) ?? localSocket;
+            var localSocket  = Options.UDPUnicastSocket;
+            var loops        = new List<Task>();
 
-            await LogEvent(
-                      OnDNSUDPUnicastListenerStarted,
-                      async loggingDelegate => await loggingDelegate.Invoke(
-                          Timestamp.Now,
-                          this,
-                          ActiveUDPUnicastSocket ?? localSocket,
-                          CancellationToken
-                      ),
-                      nameof(OnDNSUDPUnicastListenerStarted)
-                  );
+            udpUnicastListeners.AddRange(
+                BindBothFamilies(
+                    localSocket,
+                    endPoint => {
 
+                        // Constructed for the family and then bound, rather than
+                        // built around a socket assigned afterwards: a UdpClient
+                        // tracks its own address family, and handing it a socket
+                        // of a family it does not believe it has makes
+                        // ReceiveAsync wait for a datagram that can never arrive.
+                        var listener = new UdpClient(endPoint.AddressFamily);
+
+                        // Belt beside braces, and honestly labelled as such:
+                        // with the IPv4 listener below actually bound, this flag
+                        // is never consulted — IPv4 datagrams go to the IPv4
+                        // socket, and a mutation turning it back on changes
+                        // nothing any test can see. It states the intent and
+                        // guards the degraded case where the second bind is ever
+                        // removed; it is not what keeps a client's address
+                        // unmapped. The second listener is.
+                        if (endPoint.AddressFamily == AddressFamily.InterNetworkV6)
+                            listener.Client.DualMode = false;
+
+                        listener.Client.Bind(endPoint);
+
+                        return listener;
+
+                    },
+                    listener => listener.Dispose(),
+                    listener => listener.Client.LocalEndPoint as System.Net.IPEndPoint,
+                    "UDP unicast"
+                )
+            );
+
+            udpUnicastListener      = udpUnicastListeners[0];
+            ActiveUDPUnicastSocket  = IPSocket.FromIPEndPoint(udpUnicastListener.Client.LocalEndPoint) ?? localSocket;
+
+            // Every bind happens above, before the first await. Start() does not
+            // wait for this method — it returns the moment this method yields —
+            // so anything bound after an await would not be there yet when the
+            // caller asks for a port and starts sending to it.
+            foreach (var listener in udpUnicastListeners)
+            {
+
+                await LogEvent(
+                          OnDNSUDPUnicastListenerStarted,
+                          async loggingDelegate => await loggingDelegate.Invoke(
+                              Timestamp.Now,
+                              this,
+                              IPSocket.FromIPEndPoint(listener.Client.LocalEndPoint) ?? localSocket,
+                              CancellationToken
+                          ),
+                          nameof(OnDNSUDPUnicastListenerStarted)
+                      );
+
+                loops.Add(ReceiveUDPUnicastAsync(listener, localSocket, CancellationToken));
+
+            }
+
+            await Task.WhenAll(loops);
+
+        }
+
+        #endregion
+
+        #region (private) ReceiveUDPUnicastAsync  (Listener, LocalSocket, CancellationToken)
+
+        /// <summary>
+        /// One receive loop, for one listener. Everything it needs is a parameter
+        /// rather than a field, because there is now more than one of them.
+        /// </summary>
+        private async Task ReceiveUDPUnicastAsync(UdpClient          udpUnicastListener,
+                                                  IPSocket           localSocket,
+                                                  CancellationToken  CancellationToken)
+        {
+
+            var boundSocket = IPSocket.FromIPEndPoint(udpUnicastListener.Client.LocalEndPoint) ?? localSocket;
 
             while (!CancellationToken.IsCancellationRequested)
             {
@@ -237,7 +508,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     try
                     {
                         dnsRequest = DNSPacket.Parse(
-                                         ActiveUDPUnicastSocket ?? localSocket,
+                                         boundSocket,
                                          IPSocket.FromIPEndPoint(dnsPacket.RemoteEndPoint),
                                          new MemoryStream(udpBody)
                                      );
@@ -425,79 +696,137 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private async Task ListenTCPUnicastAsync(CancellationToken CancellationToken)
         {
 
+            var localSocket  = Options.TCPUnicastSocket;
+            var loops        = new List<Task>();
+
+            // Every bind before the first await, for the same reason as UDP:
+            // Start() returns as soon as this method yields, and a caller that
+            // has a port is entitled to expect something listening on it.
             try
             {
 
-                var localSocket  = Options.TCPUnicastSocket;
-                var tcpListener  = new TcpListener(localSocket.ToIPEndPoint());
-                tcpUnicastListener = tcpListener;
+                tcpUnicastListeners.AddRange(
+                    BindBothFamilies(
+                        localSocket,
+                        endPoint => {
 
-                try
-                {
+                            var tcpListener = new TcpListener(endPoint);
 
-                    tcpListener.Start(Options.TCPBacklog);
-                    ActiveTCPUnicastSocket = IPSocket.FromIPEndPoint(tcpListener.LocalEndpoint) ?? localSocket;
+                            // As on the UDP side: unobservable while the IPv4
+                            // listener exists, kept for intent and for the
+                            // degraded case.
+                            if (endPoint.AddressFamily == AddressFamily.InterNetworkV6)
+                                tcpListener.Server.DualMode = false;
 
-                    await LogEvent(
-                          OnDNSTCPUnicastListenerStarted,
-                          async loggingDelegate => await loggingDelegate.Invoke(
-                              Timestamp.Now,
-                              this,
-                              ActiveTCPUnicastSocket ?? localSocket,
-                              CancellationToken
-                          ),
-                          nameof(OnDNSTCPUnicastListenerStarted)
-                      );
+                            tcpListener.Start(Options.TCPBacklog);
 
+                            return tcpListener;
 
-                    while (!CancellationToken.IsCancellationRequested)
-                    {
-                        try
-                        {
-
-                            var tcpClient = await tcpListener.AcceptTcpClientAsync(CancellationToken);
-
-                            logger.LogDebug(
-                                "New TCP connection from {RemoteEndPoint} accepted on {LocalSocket}",
-                                tcpClient.Client.RemoteEndPoint,
-                                localSocket
-                            );
-
-                            _ = Task.Run(
-                                    async () => await HandleTCPClientAsync(
-                                                       tcpClient,
-                                                       ActiveTCPUnicastSocket ?? localSocket,
-                                                       CancellationToken
-                                                   ).ConfigureAwait(false),
-                                    CancellationToken
-                                );
-
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogError(ex, "Error accepting TCP client");
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(e, "Error within TCP listener");
-                }
-                finally
-                {
-                    tcpListener.Stop();
-                    if (ReferenceEquals(tcpUnicastListener, tcpListener))
-                        tcpUnicastListener = null;
-                }
+                        },
+                        tcpListener => tcpListener.Stop(),
+                        tcpListener => tcpListener.LocalEndpoint as System.Net.IPEndPoint,
+                        "TCP unicast"
+                    )
+                );
 
             }
             catch (Exception e)
             {
                 logger.LogError(e, "Error starting TCP listener");
+                return;
+            }
+
+            tcpUnicastListener      = tcpUnicastListeners[0];
+            ActiveTCPUnicastSocket  = IPSocket.FromIPEndPoint(tcpUnicastListener.LocalEndpoint) ?? localSocket;
+
+            foreach (var tcpListener in tcpUnicastListeners)
+            {
+
+                await LogEvent(
+                      OnDNSTCPUnicastListenerStarted,
+                      async loggingDelegate => await loggingDelegate.Invoke(
+                          Timestamp.Now,
+                          this,
+                          IPSocket.FromIPEndPoint(tcpListener.LocalEndpoint) ?? localSocket,
+                          CancellationToken
+                      ),
+                      nameof(OnDNSTCPUnicastListenerStarted)
+                  );
+
+                loops.Add(AcceptTCPUnicastAsync(tcpListener, localSocket, CancellationToken));
+
+            }
+
+            await Task.WhenAll(loops);
+
+        }
+
+        /// <summary>
+        /// One accept loop, for one listener.
+        /// </summary>
+        /// <remarks>
+        /// The local socket handed to each connection is this listener's own
+        /// rather than whichever one happened to be bound first. A DNS cookie is
+        /// derived from the client's address (RFC 7873 §5.2.1), and a connection
+        /// reported against the wrong local endpoint is the same class of mistake
+        /// as reporting the wrong remote one.
+        /// </remarks>
+        private async Task AcceptTCPUnicastAsync(TcpListener        tcpListener,
+                                                 IPSocket           localSocket,
+                                                 CancellationToken  CancellationToken)
+        {
+
+            var boundSocket = IPSocket.FromIPEndPoint(tcpListener.LocalEndpoint) ?? localSocket;
+
+            try
+            {
+
+                while (!CancellationToken.IsCancellationRequested)
+                {
+                    try
+                    {
+
+                        var tcpClient = await tcpListener.AcceptTcpClientAsync(CancellationToken);
+
+                        logger.LogDebug(
+                            "New TCP connection from {RemoteEndPoint} accepted on {LocalSocket}",
+                            tcpClient.Client.RemoteEndPoint,
+                            boundSocket
+                        );
+
+                        _ = Task.Run(
+                                async () => await HandleTCPClientAsync(
+                                                   tcpClient,
+                                                   boundSocket,
+                                                   CancellationToken
+                                               ).ConfigureAwait(false),
+                                CancellationToken
+                            );
+
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Error accepting TCP client");
+                    }
+                }
+
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error within TCP listener");
+            }
+            finally
+            {
+
+                tcpListener.Stop();
+
+                if (ReferenceEquals(tcpUnicastListener, tcpListener))
+                    tcpUnicastListener = null;
+
             }
 
         }
@@ -1126,8 +1455,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             cancellationTokenSource?.Cancel();
 
+            foreach (var listener in udpUnicastListeners)
+                listener.Dispose();
+
             udpUnicastListener?.  Dispose();
             udpMulticastListener?.Dispose();
+
+            foreach (var listener in tcpUnicastListeners)
+                listener.Stop();
+
             tcpUnicastListener?.  Stop();
             tlsUnicastListener?.  Stop();
 
