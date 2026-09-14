@@ -134,11 +134,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (CheckPasswordRateLimit(Request, "auth/login", loginIPRateLimiter, login, loginAccountRateLimiter) is { } limited)
                 return limited.AsImmutable;
 
-            var candidates  = LoginCandidates(login);
-            var validUsers  = candidates.Where(user => VerifyPassword(user.Id, password)).ToList();
+            // The ceiling, and it has to be here rather than inside
+            // VerifyPassword: that one is synchronous and is called from
+            // synchronous places, where waiting would block a thread-pool thread
+            // instead of the CPU it is meant to protect.
+            if (await WaitForAPasswordVerifier(Request) is { } busy)
+                return busy.AsImmutable;
 
-            if (candidates.Count == 0)
-                unknownLoginPassword.Verify(password);
+            List<IUser> validUsers;
+
+            try
+            {
+
+                var candidates = LoginCandidates(login);
+
+                validUsers = candidates.Where(user => VerifyPassword(user.Id, password)).ToList();
+
+                if (candidates.Count == 0)
+                    unknownLoginPassword.Verify(password);
+
+            }
+            finally
+            {
+                ReleaseAPasswordVerifier();
+            }
 
             if (validUsers.Count == 0)
                 return AuthError(Request, HTTPStatusCode.Unauthorized, "Unknown login or wrong password.");

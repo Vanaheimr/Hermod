@@ -388,6 +388,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region BasicAuth_IsRationedLikeTheSignInRoute()
+
+        /// <summary>
+        /// An "Authorization: Basic" header is reached from TryGetSignedInUser,
+        /// which every guarded route calls - so it used to buy a full password
+        /// verification on ANY route, as often as anybody cared to ask, while
+        /// auth/login next door counted every attempt.
+        /// </summary>
+        /// <remarks>
+        /// 600 000 rounds of PBKDF2 per request and an oracle that says whether
+        /// a guess was right: the careful limiters were sidestepped by moving
+        /// the credentials out of the body and into a header.
+        ///
+        /// What this asserts is behaviour and not a stopwatch: once the ration
+        /// is spent, even the RIGHT credentials are refused. Before the fix that
+        /// last request succeeded, which is the whole finding in one line.
+        /// </remarks>
+        [Test]
+        public async Task BasicAuth_IsRationedLikeTheSignInRoute()
+        {
+
+            var (server, api, client, directory) = await StartAsync();
+
+            try
+            {
+
+                await api.CreateUserIfNotExists(
+                          User_Id.Parse("erin"),
+                          I18NString.Create("Erin"),
+                          SimpleEMailAddress.Parse("erin@example.test"),
+                          Password:                  "Correct-Horse-7",
+                          IsAuthenticated:           true,
+                          // Basic auth wants one; without it this user could not
+                          // sign in that way at all and the last assertion below
+                          // would pass while proving nothing. Found by removing
+                          // the ration and watching the test stay green.
+                          AcceptedEULA:              DateTimeOffset.UtcNow.AddDays(-1),
+                          SkipNewUserEMail:          true,
+                          SkipNewUserNotifications:  true,
+                          SkipDefaultNotifications:  true
+                      );
+
+                async Task<HttpStatusCode> WithBasicAuth(String Password)
+                {
+
+                    using var request = new HttpRequestMessage(HttpMethod.Get, "accounts/auth/me");
+
+                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                                                        "Basic",
+                                                        Convert.ToBase64String(Encoding.UTF8.GetBytes($"erin:{Password}"))
+                                                    );
+
+                    using var response = await client.SendAsync(request);
+
+                    return response.StatusCode;
+
+                }
+
+                // The ration is ten a minute, and it is the same bucket the
+                // sign-in route uses: guessing is guessing, whichever door.
+                for (var attempt = 1; attempt <= 10; attempt++)
+                    Assert.That(await WithBasicAuth("Wrong-Horse-" + attempt),
+                                Is.EqualTo(HttpStatusCode.Unauthorized),
+                                $"attempt {attempt}");
+
+                Assert.That(await WithBasicAuth("Correct-Horse-7"),
+                            Is.EqualTo(HttpStatusCode.Unauthorized),
+                            "and once the ration is spent the right password does not get through either - which is what proves no hash was computed");
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
         #region AUserCreatedInCode_IsEnabledAndCanSignIn()
 
         /// <summary>

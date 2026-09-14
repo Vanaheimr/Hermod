@@ -2575,6 +2575,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Password verification ceiling
+
+        /// <summary>
+        /// How many passwords are verified at the same time, over every route
+        /// together.
+        /// </summary>
+        /// <remarks>
+        /// The limiters above ration one source and one account. Ten thousand
+        /// sources are ten thousand buckets, each with a burst of its own, and
+        /// every one of those bursts is 600 000 rounds of PBKDF2 - which is a
+        /// number chosen to be expensive. What the buckets cannot do is say how
+        /// much of this machine all of them together may occupy; this can.
+        ///
+        /// Two is not a throughput limit worth worrying about: a verification
+        /// takes some tens of milliseconds, so two of them in parallel answer
+        /// far more sign-ins than any human population produces. It is a
+        /// ceiling, not a queue discipline.
+        /// </remarks>
+        public  const           Int32     DefaultPasswordVerifiers     = 2;
+
+        /// <summary>
+        /// How long a request waits for its turn before it is told the server is
+        /// busy.
+        /// </summary>
+        public static readonly  TimeSpan  DefaultPasswordVerifierWait  = TimeSpan.FromSeconds(5);
+
+        private readonly SemaphoreSlim passwordVerifiers = new (DefaultPasswordVerifiers);
+
+        /// <summary>
+        /// Wait for a turn at verifying a password. Null when the turn came, and
+        /// the 503 to answer with when it did not - and then nothing was taken
+        /// and nothing has to be given back.
+        /// </summary>
+        internal async Task<HTTPResponse.Builder?> WaitForAPasswordVerifier(HTTPRequest Request)
+        {
+
+            if (await passwordVerifiers.WaitAsync(DefaultPasswordVerifierWait, Request.CancellationToken))
+                return null;
+
+            var retryAfterSeconds = Math.Max(1, (Int32) Math.Ceiling(DefaultPasswordVerifierWait.TotalSeconds));
+
+            return new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode             = HTTPStatusCode.ServiceUnavailable,
+                       Server                     = HTTPServer?.HTTPServerName,
+                       Date                       = Timestamp.Now,
+                       ContentType                = HTTPContentType.Application.JSON_UTF8,
+                       Content                    = JSONObject.Create(
+                                                        new JProperty("description",  "Too busy to verify a password right now, please try again."),
+                                                        new JProperty("retryAfter",   retryAfterSeconds)
+                                                    ).ToUTF8Bytes(),
+                       RetryAfter                 = retryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                       AccessControlAllowOrigin   = "*",
+                       Connection                 = ConnectionType.KeepAlive
+                   };
+
+        }
+
+        /// <summary>
+        /// Give the turn back. In a finally, always.
+        /// </summary>
+        internal void ReleaseAPasswordVerifier()
+            => passwordVerifiers.Release();
+
+        #endregion
+
         #region Password endpoint rate limiting
 
         internal HTTPResponse.Builder? CheckPasswordRateLimit(HTTPRequest                         Request,
@@ -3583,6 +3648,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Request.Authorization is HTTPBasicAuthentication basicAuth)
             {
+
+                // Rationed like the sign-in route, and for the same reason it is
+                // rationed there. This path is reached from TryGetSignedInUser,
+                // which every guarded route calls, so an "Authorization: Basic"
+                // header on ANY route used to buy a full password verification -
+                // 600 000 rounds of PBKDF2 - as often as anybody cared to ask.
+                // The careful limiters on auth/login were sidestepped by moving
+                // the credentials from the body into a header.
+                //
+                // The same bucket as auth/login, not one of its own: guessing a
+                // password is guessing a password, whichever door it comes
+                // through, and two doors with ten attempts each is twenty.
+                //
+                // Refused means no user rather than a 429, because this returns
+                // a Boolean to a caller that will answer 401. That is the right
+                // answer anyway - the request is not authenticated - and it
+                // costs no hash to say it.
+                if (CheckPasswordRateLimit(Request, "auth/login", loginIPRateLimiter, basicAuth.Username, loginAccountRateLimiter) is not null)
+                {
+                    User = null;
+                    return false;
+                }
 
                 #region Find username or e-mail addresses...
 
