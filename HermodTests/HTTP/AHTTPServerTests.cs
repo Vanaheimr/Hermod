@@ -648,6 +648,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
+            #region GET     /events/live-keepalive
+
+            // The same worker, but announcing "Connection: keep-alive" - which is
+            // what MapEventSource announces. An SSE body has no framing of its
+            // own, so the close is the only thing that can end it, and a server
+            // that believed the header would leave the client waiting for events
+            // that are never coming.
+            httpAPI.AddHandler(HTTPPath.Root + "events" + "live-keepalive",
+                               HTTPMethod:   HTTPMethod.GET,
+                               HTTPDelegate: request => Task.FromResult(
+                                                           new HTTPResponse.Builder(request) {
+                                                               HTTPStatusCode  = HTTPStatusCode.OK,
+                                                               ContentType     = HTTPContentType.Text.EVENTSTREAM,
+                                                               CacheControl    = "no-cache",
+                                                               Connection      = ConnectionType.KeepAlive,
+                                                               HTTPSSEWorker   = async (response, writer) => {
+                                                                                     await writer.WriteAsync("event: status\nid: 1\ndata: {\"message\":\"from a keep-alive SSE worker\"}\n\n");
+                                                                                     await writer.FlushAsync(response.CancellationToken);
+                                                                                 }
+                                                           }.AsImmutable
+                                                       ));
+
+            #endregion
+
             #region GET     /corsMethods
 
             httpAPI.AddHandler(HTTPPath.Root + "corsMethods",

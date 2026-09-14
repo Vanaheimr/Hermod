@@ -647,6 +647,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region GET_LiveEventStreamWorker_EndsEvenWhenItSaidKeepAlive()
+
+        /// <summary>
+        /// A finished SSE worker has to end the connection, whatever the
+        /// Connection header said.
+        /// </summary>
+        /// <remarks>
+        /// An SSE response carries no Content-Length and, on purpose, no chunked
+        /// transfer encoding, so the close of the connection is the only thing
+        /// that can delimit its body - RFC 9112 6.3. Holding the connection open
+        /// because the header said keep-alive left the client waiting for events
+        /// that were never coming and this server waiting for a request that was
+        /// never coming, which is a stream that never ends and never says
+        /// anything again.
+        ///
+        /// MapEventSource announces keep-alive, so this is not a hypothetical
+        /// header: it is the one the real event sources send. Found from the
+        /// outside, in an application whose event stream is closed when a
+        /// session is signed out - the handler let go, and the browser never
+        /// learned.
+        ///
+        /// The read is given a deadline because the failure mode is a hang and
+        /// a hanging test says nothing until somebody kills it.
+        /// </remarks>
+        [Test]
+        public async Task GET_LiveEventStreamWorker_EndsEvenWhenItSaidKeepAlive()
+        {
+
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+
+            var httpResponse = await httpClient.GetAsync("/events/live-keepalive",
+                                                         HttpCompletionOption.ResponseHeadersRead,
+                                                         deadline.Token);
+
+            Assert.That(httpResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+            // Reading to the end is the assertion: it only ever returns because
+            // the server closed.
+            var responseBody = await httpResponse.Content.ReadAsStringAsync(deadline.Token);
+
+            Assert.That(responseBody, Does.Contain("from a keep-alive SSE worker"));
+
+        }
+
+        #endregion
+
         #region GET_LiveEventStreamWorker_Supports_Parallel_Clients()
 
         [Test]

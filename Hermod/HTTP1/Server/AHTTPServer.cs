@@ -877,7 +877,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         #endregion
 
-                        if (!httpResponse.IsKeepAlive)
+                        // An SSE body is delimited by the close of the connection
+                        // and by nothing else: there is no Content-Length, and
+                        // chunked transfer encoding is deliberately not used for
+                        // it (see the remark in MapEventSource). RFC 9112 6.3
+                        // calls that the last of the framing rules - the body
+                        // ends when the connection does - so the connection
+                        // cannot carry a second response however friendly the
+                        // Connection header was, and keeping it open once the
+                        // worker has finished leaves both ends waiting for the
+                        // other: the client for events that will not come, this
+                        // server for a request that will not come either.
+                        //
+                        // MapEventSource sends "Connection: keep-alive" and is
+                        // the reason this is not left to the handler to get
+                        // right. A browser finds out that its stream has ended -
+                        // and that it may have to sign in again - by the stream
+                        // ending.
+                        if (hasSSEWorker || !httpResponse.IsKeepAlive)
                             break;
 
                     }
