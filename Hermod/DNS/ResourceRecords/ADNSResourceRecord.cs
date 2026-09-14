@@ -256,6 +256,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     DNSResourceRecordTypes.RRSIG       => RRSIG.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.NSEC        => NSEC.      TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.DNSKEY      => DNSKEY.    TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.KEY         => KEY.       TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.SIG         => SIG.       TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.NSEC3       => NSEC3.     TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.NSEC3PARAM  => NSEC3PARAM.TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.TLSA        => TLSA.      TryParseFromJSON(DomainName, TimeToLive, RData),
@@ -648,6 +650,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             return false;
+
+        }
+
+        #endregion
+
+        #region (protected static) TryParseSignatureTime(Text, out UnixTime)
+
+        /// <summary>
+        /// Read the signature time of an RRSIG or a SIG.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4034 §3.2 publishes two presentation forms and a reader owes both:
+        /// "in the form YYYYMMDDHHmmSS in UTC", or as an unsigned decimal count of
+        /// seconds since the epoch. RFC 2535 §4.4 says the same of SIG.
+        /// <para>
+        /// Shared rather than copied, because it was copied once already and the
+        /// copy that RRSIG kept was the correct one while SIG, written from the
+        /// same template, accepted only the integer — and so could not read the
+        /// fourteen digits its own writer emits.
+        /// </para>
+        /// </remarks>
+        /// <param name="Text">The presentation form of a signature time.</param>
+        /// <param name="UnixTime">The number of seconds since the epoch.</param>
+        protected static Boolean TryParseSignatureTime(String      Text,
+                                                       out UInt32  UnixTime)
+        {
+
+            if (UInt32.TryParse(Text, out UnixTime))
+                return true;
+
+            UnixTime = 0;
+
+            if (!DateTimeOffset.TryParseExact(
+                    Text,
+                    "yyyyMMddHHmmss",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                    out var timestamp
+                ))
+            {
+                return false;
+            }
+
+            var unixTime = timestamp.ToUnixTimeSeconds();
+
+            if (unixTime < 0 || unixTime > UInt32.MaxValue)
+                return false;
+
+            UnixTime = (UInt32) unixTime;
+            return true;
 
         }
 

@@ -262,8 +262,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (!TryParseTypeCovered(parts[0], out var typeCovered))
                     return null;
 
-                if (!TryParseTime(parts[4], out var signatureExpiration) ||
-                    !TryParseTime(parts[5], out var signatureInception))
+                if (!TryParseSignatureTime(parts[4], out var signatureExpiration) ||
+                    !TryParseSignatureTime(parts[5], out var signatureInception))
                 {
                     return null;
                 }
@@ -308,39 +308,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             return false;
-
-        }
-
-        #endregion
-
-        #region (private static) TryParseTime(Text, out UnixTime)
-
-        private static Boolean TryParseTime(String      Text,
-                                            out UInt32  UnixTime)
-        {
-
-            if (UInt32.TryParse(Text, out UnixTime))
-                return true;
-
-            UnixTime = 0;
-
-            if (!DateTimeOffset.TryParseExact(
-                    Text,
-                    "yyyyMMddHHmmss",
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
-                    out var timestamp
-                ))
-            {
-                return false;
-            }
-
-            var unixTime = timestamp.ToUnixTimeSeconds();
-            if (unixTime < 0 || unixTime > UInt32.MaxValue)
-                return false;
-
-            UnixTime = (UInt32) unixTime;
-            return true;
 
         }
 

@@ -268,6 +268,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return null;
                 }
 
+                // RFC 2535 §4.4, and the reason a SIG could not be read back from
+                // the line it had just written: fourteen digits do not fit in a
+                // UInt32, so the older reading threw on its own output.
+                if (!TryParseSignatureTime(parts[4], out var signatureExpiration) ||
+                    !TryParseSignatureTime(parts[5], out var signatureInception))
+                {
+                    return null;
+                }
+
                 var signerName = parts[7];
 
                 return new SIG(
@@ -278,8 +287,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            Byte.  Parse(parts[1]),
                            Byte.  Parse(parts[2]),
                            UInt32.Parse(parts[3]),
-                           UInt32.Parse(parts[4]),
-                           UInt32.Parse(parts[5]),
+                           signatureExpiration,
+                           signatureInception,
                            UInt16.Parse(parts[6]),
                            DNS.DomainName.ParseLenient(signerName, Origin),
                            Convert.FromBase64String(parts[8])
