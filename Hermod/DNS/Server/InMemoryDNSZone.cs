@@ -41,8 +41,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// If the zone data also carries NSEC or NSEC3 and RRSIG records — the output
     /// of <c>dnssec-signzone</c> or an equivalent — then a querier that sets the
     /// DO bit gets the signatures with its answer and the denial records with its
-    /// "no". Nothing here signs anything: a zone is signed offline, and this
-    /// serves what the signer produced.
+    /// "no". Such a zone is signed offline and this serves what the signer
+    /// produced, byte for byte.
+    /// </para>
+    /// <para>
+    /// <see cref="Sign"/> is the other way round: hand it keys and it signs what
+    /// is already here, in process. The records it produces are the same records
+    /// an offline signer would have written, so everything downstream — the
+    /// denial index, the DO-bit selection, the referral logic — is unchanged and
+    /// cannot tell the two apart. What changes is only who wrote them.
     /// </para>
     /// <para>
     /// Records outside the apex are still answered by exact name, which is why
@@ -61,6 +68,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private readonly Lock                                                            indexLock = new();
 
         private ZoneIndex?                                                               index;
+
+        /// <summary>
+        /// Bumped by every change to the records. <see cref="Sign"/> remembers the
+        /// value it signed at, which is the whole of how staleness is detected.
+        /// </summary>
+        private Int64                                                                    revision;
+
+        private Int64                                                                    signedRevision = -1;
 
         #endregion
 
@@ -96,6 +111,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public Boolean IsSigned
             => Index().Denial?.IsSigned == true;
+
+        /// <summary>
+        /// When <see cref="Sign"/> last ran, or null if it never has. A zone whose
+        /// records came from an offline signer reports null here and true from
+        /// <see cref="IsSigned"/>, which is the correct pair: it is signed, and
+        /// not by this.
+        /// </summary>
+        public DateTime? SignedAt              { get; private set; }
+
+        /// <summary>
+        /// When the signatures <see cref="Sign"/> produced stop being valid.
+        /// </summary>
+        /// <remarks>
+        /// Worth having in reach rather than buried in the RRSIGs, because this is
+        /// the failure that arrives without anyone doing anything: a server signs
+        /// once at startup and serves the result for longer than the signatures
+        /// last, and every validating resolver in the world starts calling the
+        /// zone Bogus on the same day.
+        /// </remarks>
+        public DateTime? SignaturesExpireAt    { get; private set; }
+
+        /// <summary>
+        /// Whether the records have changed since <see cref="Sign"/> last ran.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is the dangerous state, and it is dangerous in a way that looks
+        /// fine: adding a record to a signed zone leaves that RRset without an
+        /// RRSIG and its owner name outside the chain of denial. A validating
+        /// resolver asking for it does not get "unsigned" — it gets an answer the
+        /// zone's own NSEC records say should not exist, which is the signature of
+        /// an attack rather than of a mistake.
+        /// </para>
+        /// <para>
+        /// Nothing here refuses to serve such a zone: an authoritative server that
+        /// silently stops answering is its own kind of outage, and the decision is
+        /// the operator's. What it does is make the state visible instead of
+        /// leaving it to be inferred from a resolver's complaint.
+        /// </para>
+        /// </remarks>
+        public Boolean SignaturesAreStale
+            => SignedAt.HasValue &&
+               Interlocked.Read(ref revision) != Interlocked.Read(ref signedRevision);
 
         #endregion
 
@@ -255,6 +313,90 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     Origin ?? this.Origin,
                     DefaultTimeToLive
                 ));
+
+            return this;
+
+        }
+
+        #endregion
+
+
+        #region Sign(Keys, Inception = null, Expiration = null, NSEC3 = null)
+
+        /// <summary>
+        /// The record types a signer produces, which are therefore not part of
+        /// the zone's own data and are replaced rather than added to.
+        /// </summary>
+        private static readonly HashSet<DNSResourceRecordTypes> signerOutput = [
+            DNSResourceRecordTypes.RRSIG,
+            DNSResourceRecordTypes.NSEC,
+            DNSResourceRecordTypes.NSEC3,
+            DNSResourceRecordTypes.NSEC3PARAM,
+            DNSResourceRecordTypes.DNSKEY
+        ];
+
+        /// <summary>
+        /// Sign this zone in process: every authoritative RRset gets an RRSIG and
+        /// every name its place in the chain of denial (RFC 4035 §2).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Signing replaces rather than adds. Everything a signer produces —
+        /// RRSIG, NSEC, NSEC3, NSEC3PARAM and the DNSKEY RRset — is dropped first,
+        /// and the DNSKEY RRset is rebuilt from <paramref name="Keys"/>. Without
+        /// that, signing twice would leave the first run's signatures in place
+        /// beside the second's and publish each key twice: a zone that grows every
+        /// time it is signed, and whose stale RRSIGs a resolver is entitled to try
+        /// and entitled to fail on.
+        /// </para>
+        /// <para>
+        /// The consequence worth stating plainly is that a DNSKEY added by hand
+        /// does not survive signing. A key that should be published has to be
+        /// passed in here, because that is the only place the two lists are
+        /// reconciled.
+        /// </para>
+        /// </remarks>
+        /// <param name="Keys">One or more keys; those with the Secure Entry Point flag sign the DNSKEY RRset.</param>
+        /// <param name="Inception">When the signatures become valid; an hour ago by default, for clock skew.</param>
+        /// <param name="Expiration">When they stop; thirty days by default, which is what dnssec-signzone uses.</param>
+        /// <param name="NSEC3">Hash the names instead of listing them (RFC 5155); NSEC by default.</param>
+        public InMemoryDNSZone Sign(IEnumerable<DNSSECSigningKey>  Keys,
+                                    DateTime?                      Inception    = null,
+                                    DateTime?                      Expiration   = null,
+                                    NSEC3Parameters?               NSEC3        = null)
+        {
+
+            var origin = Origin
+                             ?? throw new InvalidOperationException(
+                                    "This zone has no SOA, so it has no apex to sign at. " +
+                                    "A signer needs to know where the zone begins: RFC 4035 §2.2 " +
+                                    "makes the apex the boundary between what is signed and what " +
+                                    "is a delegation.");
+
+            var expiration = Expiration ?? DateTime.UtcNow.AddDays(30);
+
+            var unsigned   = records.Values.
+                                 SelectMany(list => { lock (list) { return list.ToArray(); } }).
+                                 Where     (record => !signerOutput.Contains(record.Type)).
+                                 ToArray();
+
+            var signed     = DNSSECZoneSigner.Sign(
+                                 unsigned,
+                                 origin,
+                                 Keys,
+                                 Inception,
+                                 expiration,
+                                 NSEC3
+                             );
+
+            records.Clear();
+            Add(signed);
+
+            SignedAt            = DateTime.UtcNow;
+            SignaturesExpireAt  = expiration;
+
+            // After Add's own bump, so the zone is not born stale.
+            Interlocked.Exchange(ref signedRevision, Interlocked.Read(ref revision));
 
             return this;
 
@@ -795,8 +937,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         private void Invalidate()
         {
+
+            // Every change bumps the revision, which is what lets Sign tell
+            // afterwards whether the records it signed are still the records
+            // being served.
+            Interlocked.Increment(ref revision);
+
             lock (indexLock)
                 index = null;
+
         }
 
 

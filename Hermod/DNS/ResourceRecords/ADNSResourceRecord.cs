@@ -979,8 +979,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 var absolute = DNS.DomainName.ParseLenient(ownerNameText, Origin).FullName;
 
-                if (domainName is not null || ownerNameText == "@")
-                    domainName = DNS.DomainName.ParseLenient(absolute);
+                // With an origin in hand, the name that has to be valid is the
+                // completed one and not the fragment written on the line. Judging
+                // the fragment refused every owner name that is only a name once
+                // it has been completed: "@" had a special case for exactly that
+                // reason, and the bare "*" of a relative wildcard - which is how
+                // a hand-written zone file spells one - had none, so the line was
+                // rejected with a complaint about its owner name.
+                if (DNS.DomainName.TryParseLenient(absolute, out var qualifiedName, out var qualifiedError))
+                {
+                    domainName      = qualifiedName;
+                    ownerNameError  = null;
+                }
+                else
+                    ownerNameError  = qualifiedError;
 
                 // And the service name with it. SRV and URI are keyed on this one
                 // rather than on the DomainName, so qualifying only the latter
