@@ -275,6 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     DNSResourceRecordTypes.APL         => APL.       TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.DS          => DS.        TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.SSHFP       => SSHFP.     TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.IPSECKEY    => IPSECKEY.  TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.RRSIG       => RRSIG.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.NSEC        => NSEC.      TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.DNSKEY      => DNSKEY.    TryParseFromJSON(DomainName, TimeToLive, RData),

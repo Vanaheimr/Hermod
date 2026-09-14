@@ -177,6 +177,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         SSHFP        = 44,
 
         /// <summary>
+        /// IPsec keying material record (RFC 4025), which names the gateway that
+        /// speaks IPsec for a host and, optionally, publishes its public key.
+        /// </summary>
+        IPSECKEY     = 45,
+
+        /// <summary>
         /// Resource Record Signature (RFC 4034), the core DNSSEC signature over an RRSet.
         /// </summary>
         RRSIG        = 46,
