@@ -244,7 +244,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var parts = Data.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 5) return null;
                 var salt = parts[3] == "-" ? Array.Empty<Byte>() : Convert.FromHexString(parts[3]);
-                var nextHash = Convert.FromHexString(parts[4]);
+                // Hex salt, base32hex hash: RFC 5155 §3.3, and the asymmetry is
+                // the specification's, not a typo here.
+                var nextHash = Base32HexDecode(parts[4]);
                 return new NSEC3(Name, DNSQueryClasses.IN, TimeToLive,
                                  Byte.Parse(parts[0]), Byte.Parse(parts[1]), UInt16.Parse(parts[2]),
                                  salt, nextHash, EncodeTypeBitMaps(parts.Skip(5)));
@@ -423,10 +425,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region (protected override) ZoneFileRData()
 
         /// <inheritdoc/>
+        /// <remarks>
+        /// The two variable-length fields are spelled differently on purpose,
+        /// and RFC 5155 §3.3 is explicit about both: the salt is hexadecimal,
+        /// the next hashed owner name is "an unpadded sequence of
+        /// case-insensitive base32 digits, with the extended hex alphabet".
+        /// Hex for the hash is wrong in a way that still looks plausible — it
+        /// renders, it round-trips through itself, and it is 40 characters where
+        /// every signer writes 32.
+        /// </remarks>
         protected override String ZoneFileRData()
         {
             var saltHex     = Salt.Length > 0 ? Convert.ToHexString(Salt).ToLowerInvariant() : "-";
-            var nextHashB32 = Convert.ToHexString(NextHashedOwnerName).ToLowerInvariant();
+            var nextHashB32 = Base32HexEncode(NextHashedOwnerName);
             return $"{HashAlgorithm} {Flags} {Iterations} {saltHex} {nextHashB32} {DecodeTypeBitMaps(TypeBitMaps)}";
         }
 
