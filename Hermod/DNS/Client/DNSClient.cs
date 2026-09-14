@@ -532,10 +532,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                        );
 
-            var resourceRecordTypes = ResourceRecordTypes.ToList();
+            // Distinct, because asking the same server twice for the same
+            // type in the same breath cannot produce a second answer.
+            var resourceRecordTypes = ResourceRecordTypes.Distinct().ToList();
 
             if (resourceRecordTypes.Count == 0)
                 resourceRecordTypes = [ DNSResourceRecordTypes.Any ];
+
+            #endregion
+
+            #region More than one record type is more than one query
+
+            // RFC 1035 §4.1.2 lets a query carry several questions, and nothing
+            // in the specification obliges a server to answer more than the
+            // first. In practice none of them answer at all: a query with
+            // QDCOUNT > 1 is dropped rather than refused, because a responder
+            // has one RCODE and one authority section to give and no way to say
+            // "yes to this question, no to that one". So the caller waits out
+            // the whole timeout and is handed nothing.
+            //
+            // That is what asking for A and AAAA together did here - the most
+            // ordinary pair there is, and the one this client picks by itself
+            // when a caller says "resolve this". One question per query, then,
+            // run together and put back together below.
+            if (resourceRecordTypes.Count > 1)
+                return await QueryEachTypeAsync(
+                                 DNSServiceName,
+                                 resourceRecordTypes,
+                                 effectiveTimeout,
+                                 RecursionDesired,
+                                 ForceUpdate,
+                                 stopWatch,
+                                 CancellationToken
+                             ).ConfigureAwait(false);
 
             #endregion
 
@@ -1179,6 +1208,155 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                       )
 
             };
+
+        }
+
+        #endregion
+
+        #region (private) QueryEachTypeAsync(DNSServiceName, ResourceRecordTypes, ...)
+
+        /// <summary>
+        /// Ask for each resource record type with a query of its own, and put
+        /// the answers back together as one.
+        /// </summary>
+        /// <remarks>
+        /// See the caller for why a query carries one question. The queries run
+        /// together rather than one after another, so asking for two types
+        /// costs what asking for one costs; each of them goes through the whole
+        /// of <see cref="Query(DNSServiceName, IEnumerable{DNSResourceRecordTypes}, TimeSpan?, Boolean?, Boolean?, CancellationToken)"/>,
+        /// so each of them reads and fills the cache and races the servers the
+        /// same way a single-type query does.
+        /// </remarks>
+        private async Task<DNSInfo> QueryEachTypeAsync(DNSServiceName                         DNSServiceName,
+                                                       IReadOnlyList<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                                       TimeSpan                               Timeout,
+                                                       Boolean?                               RecursionDesired,
+                                                       Boolean?                               ForceUpdate,
+                                                       Stopwatch                              StopWatch,
+                                                       CancellationToken                      CancellationToken)
+        {
+
+            var responses = await Task.WhenAll(
+                                      ResourceRecordTypes.Select(resourceRecordType =>
+                                          Query(
+                                              DNSServiceName,
+                                              [ resourceRecordType ],
+                                              Timeout,
+                                              RecursionDesired,
+                                              ForceUpdate,
+                                              CancellationToken
+                                          )
+                                      )
+                                  ).ConfigureAwait(false);
+
+            StopWatch.Stop();
+
+            // One of them speaks for the whole, and it is one that answered:
+            // its server is the origin, its id the id, and its additional
+            // section the additional section. There is no such thing as the
+            // union of several additional sections - an OPT record belongs to
+            // a single message and must not be carried out of it (RFC 6891
+            // §6.1.1) - so the honest thing is to hand on one message's, not a
+            // pile of them.
+            var primary      = responses.FirstOrDefault(response => response.ResponseCode == DNSResponseCodes.NoError)
+                                   ?? responses[0];
+
+            var answers      = WithoutRepeats(responses.SelectMany(response => response.Answers));
+            var authorities  = WithoutRepeats(responses.SelectMany(response => response.Authorities));
+
+            logger.LogDebug(
+                "DNS query for '{DNSServiceName}' asked {TypeCount} type(s) separately: {ResponseCode} with {AnswerCount} answer(s) in {Runtime}ms",
+                DNSServiceName,
+                ResourceRecordTypes.Count,
+                primary.ResponseCode,
+                answers.Count,
+                StopWatch.ElapsedMilliseconds
+            );
+
+            return new DNSInfo(
+
+                       Origin:                 primary.Origin,
+                       QueryId:                primary.QueryId,
+
+                       // Only when every one of them was: half an authoritative
+                       // picture is not an authoritative picture.
+                       IsAuthoritativeAnswer:  responses.All(response => response.AuthoritativeAnswer),
+
+                       // Any of them, because a caller that has to retry over
+                       // TCP has to retry whatever the reason.
+                       IsTruncated:            responses.Any(response => response.IsTruncated),
+
+                       RecursionDesired:       primary.RecursionRequested,
+                       RecursionAvailable:     responses.Any(response => response.RecursionAvailable),
+                       ResponseCode:           primary.ResponseCode,
+
+                       Answers:                answers,
+                       Authorities:            authorities,
+                       AdditionalRecords:      primary.AdditionalRecords,
+
+                       IsValid:                responses.Any(response => response.IsValid),
+
+                       // Only when nothing came back at all. One type timing
+                       // out while another answered is an answer, and saying
+                       // "timeout" over it would throw the answer away.
+                       IsTimeout:              responses.All(response => response.IsTimeout),
+
+                       Timeout:                Timeout,
+                       Runtime:                StopWatch.Elapsed,
+
+                       AuthenticData:          responses.All(response => response.AuthenticData),
+                       CheckingDisabled:       primary.CheckingDisabled
+
+                   );
+
+        }
+
+        #endregion
+
+        #region (private static) WithoutRepeats(ResourceRecords)
+
+        /// <summary>
+        /// The given records with the repeats taken out, in the order they
+        /// first appeared.
+        /// </summary>
+        /// <remarks>
+        /// Two queries for the same name come back with the same CNAME chain,
+        /// and a caller shown it twice is being shown an artefact of how it was
+        /// asked rather than something about the name. What "the same record"
+        /// means on paper is its zone-file form, so that is what they are told
+        /// apart by.
+        /// </remarks>
+        private static List<IDNSResourceRecord> WithoutRepeats(IEnumerable<IDNSResourceRecord> ResourceRecords)
+        {
+
+            var seen  = new HashSet<String>(StringComparer.Ordinal);
+            var kept  = new List<IDNSResourceRecord>();
+
+            foreach (var resourceRecord in ResourceRecords)
+            {
+
+                String key;
+
+                try
+                {
+                    key = resourceRecord.ToZoneFileString();
+                }
+                catch
+                {
+                    // A record with no presentation form at all - OPT says so
+                    // by throwing. Those do not belong in an answer or an
+                    // authority section anyway; if one turns up, it is told
+                    // apart by what can be read off it instead of being
+                    // dropped.
+                    key = $"{resourceRecord.DomainName}|{resourceRecord.Type}|{resourceRecord.Class}|{resourceRecord.RText}";
+                }
+
+                if (seen.Add(key))
+                    kept.Add(resourceRecord);
+
+            }
+
+            return kept;
 
         }
 
