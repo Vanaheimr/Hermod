@@ -49,6 +49,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public TimeSpan  ProbeInterval               { get; init; } = MulticastDNS.DefaultProbeInterval;
 
         /// <summary>
+        /// The smallest random delay before the first probe (default: none).
+        /// </summary>
+        /// <remarks>
+        /// RFC 6762 §8.1 asks for a wait "between 0 and 250 ms", so zero is a
+        /// legitimate draw and the default keeps it. A caller that needs the delay
+        /// to actually happen — a test that wants to observe the wait, or a host
+        /// that would rather not race its neighbours at startup — can raise the
+        /// floor.
+        /// </remarks>
+        public TimeSpan  MinInitialProbeDelay        { get; init; } = TimeSpan.Zero;
+
+        /// <summary>
         /// The maximum random delay before the first probe (default: 250 ms).
         /// </summary>
         public TimeSpan  MaxInitialProbeDelay        { get; init; } = MulticastDNS.DefaultProbeInterval;
@@ -563,7 +575,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     await SetStateAsync(publication, MulticastDNSPublicationState.Probing, linked.Token).ConfigureAwait(false);
 
-                    var initialDelay = RandomDelay(TimeSpan.Zero, Options.MaxInitialProbeDelay);
+                    var initialDelay = RandomDelay(Options.MinInitialProbeDelay, Options.MaxInitialProbeDelay);
                     if (initialDelay > TimeSpan.Zero)
                         await Task.Delay(initialDelay, TimeProvider, linked.Token).ConfigureAwait(false);
 

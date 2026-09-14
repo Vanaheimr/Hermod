@@ -175,7 +175,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             var clock    = new FirstDelayGateTimeProvider();
             var options  = new MulticastDNSResponderOptions {
                                ProbeInterval         = TimeSpan.FromMilliseconds(10),
+
+                               // The floor is what makes this test deterministic, and it
+                               // took a while to see why it needed one. RFC 6762 §8.1 asks
+                               // for a wait "between 0 and 250 ms", and
+                               // TimeSpan.FromMilliseconds rounds to whole milliseconds — so
+                               // roughly one draw in five hundred is zero, the responder
+                               // skips the delay, and no timer is ever created. The gate
+                               // below then claims the *next* timer, the probe interval, by
+                               // which time the first probe has already gone out. That is a
+                               // 0.2 % flake, which is exactly rare enough to look like
+                               // somebody else's commit when it finally fires.
+                               MinInitialProbeDelay  = TimeSpan.FromMilliseconds(50),
                                MaxInitialProbeDelay  = TimeSpan.FromMilliseconds(250),
+
                                AnnouncementInterval  = TimeSpan.FromMilliseconds(10)
                            };
 
