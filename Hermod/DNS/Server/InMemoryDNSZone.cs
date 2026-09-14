@@ -77,6 +77,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         private Int64                                                                    signedRevision = -1;
 
+        /// <summary>
+        /// What the last <see cref="Sign"/> was given, so that it can be repeated
+        /// without the caller having to hold on to any of it.
+        /// </summary>
+        /// <remarks>
+        /// The keys are kept by reference. That is not a new exposure — the
+        /// caller already holds them and <see cref="DNSSECSigningKey"/> already
+        /// holds the private half — but it is worth saying out loud that a signed
+        /// zone now keeps its signing keys for as long as it lives.
+        /// </remarks>
+        private DNSSECSigningKey[]?                                                      signingKeys;
+
+        private NSEC3Parameters?                                                         signingNSEC3;
+
+        private TimeSpan?                                                                signingValidity;
+
         #endregion
 
         #region (class) ZoneIndex
@@ -374,6 +390,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     "is a delegation.");
 
             var expiration = Expiration ?? DateTime.UtcNow.AddDays(30);
+            var keys       = Keys.ToArray();
 
             var unsigned   = records.Values.
                                  SelectMany(list => { lock (list) { return list.ToArray(); } }).
@@ -383,7 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var signed     = DNSSECZoneSigner.Sign(
                                  unsigned,
                                  origin,
-                                 Keys,
+                                 keys,
                                  Inception,
                                  expiration,
                                  NSEC3
@@ -395,10 +412,92 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             SignedAt            = DateTime.UtcNow;
             SignaturesExpireAt  = expiration;
 
+            // The validity is remembered as a duration rather than as the
+            // absolute moment it ends, because that is what a repeat needs: a
+            // re-signing that reused the old expiration would produce signatures
+            // that are already as stale as the ones it replaced.
+            signingKeys         = keys;
+            signingNSEC3        = NSEC3;
+            signingValidity     = expiration - SignedAt.Value;
+
             // After Add's own bump, so the zone is not born stale.
             Interlocked.Exchange(ref signedRevision, Interlocked.Read(ref revision));
 
             return this;
+
+        }
+
+        #endregion
+
+        #region Resign() / ResignIfDue(Before)
+
+        /// <summary>
+        /// Sign again with the keys and parameters of the last <see cref="Sign"/>,
+        /// giving the signatures a fresh validity of the same length.
+        /// </summary>
+        /// <remarks>
+        /// Nothing about this is required by a specification. RFC 6781 is
+        /// Informational and states no interval; a validating resolver, not an
+        /// authoritative server, is what decides an expired signature is expired.
+        /// This exists because a zone that signs itself at start-up and is then
+        /// served for longer than its signatures last will be called Bogus by
+        /// every validator on the same day, and the server will have done nothing
+        /// wrong to deserve it.
+        /// </remarks>
+        public InMemoryDNSZone Resign()
+        {
+
+            var keys = signingKeys
+                           ?? throw new InvalidOperationException(
+                                  "This zone has never been signed, so there is nothing to repeat. " +
+                                  "Call Sign with keys first — a re-signing deliberately does not " +
+                                  "invent parameters it was never given.");
+
+            return Sign(
+                       keys,
+                       Inception:  null,
+                       Expiration: DateTime.UtcNow.Add(signingValidity ?? TimeSpan.FromDays(30)),
+                       NSEC3:      signingNSEC3
+                   );
+
+        }
+
+        /// <summary>
+        /// Sign again if the signatures expire within <paramref name="Before"/>,
+        /// or if the records have moved on from them.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Driven by the caller rather than by a timer inside this object, on
+        /// purpose. A timer here would need disposing, would fire on a thread
+        /// nobody owns, and would make every test of this behaviour wait for wall
+        /// clock time. An operator — or a server's own housekeeping — knows when
+        /// it is convenient to spend the CPU that signing a zone costs.
+        /// </para>
+        /// <para>
+        /// The window matters more than it looks: signatures have to be replaced
+        /// before the old ones leave caches, not before they expire, which is why
+        /// <paramref name="Before"/> is a parameter and not a constant.
+        /// </para>
+        /// </remarks>
+        /// <param name="Before">How long before expiry to act.</param>
+        /// <returns>Whether it signed.</returns>
+        public Boolean ResignIfDue(TimeSpan Before)
+        {
+
+            // A zone nobody has signed is not due for anything.
+            if (signingKeys is null || !SignaturesExpireAt.HasValue)
+                return false;
+
+            if (!SignaturesAreStale &&
+                 SignaturesExpireAt.Value - DateTime.UtcNow > Before)
+            {
+                return false;
+            }
+
+            Resign();
+
+            return true;
 
         }
 
