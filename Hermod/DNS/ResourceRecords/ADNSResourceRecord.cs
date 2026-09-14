@@ -272,11 +272,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     DNSResourceRecordTypes.NAPTR       => NAPTR.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.CERT        => CERT.      TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.DNAME       => DNAME.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
+                    DNSResourceRecordTypes.APL         => APL.       TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.DS          => DS.        TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.SSHFP       => SSHFP.     TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.RRSIG       => RRSIG.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.NSEC        => NSEC.      TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.DNSKEY      => DNSKEY.    TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.DHCID       => DHCID.     TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.KEY         => KEY.       TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.SIG         => SIG.       TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.NSEC3       => NSEC3.     TryParseFromJSON(DomainName, TimeToLive, RData),
@@ -1030,7 +1032,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return false;
             }
 
-            if (index >= tokens.Count)
+            // An APL is the one type whose RDATA may legitimately be empty:
+            // RFC 3123 §4 puts no lower bound on the number of prefixes, and a
+            // list of none denies everything. BIND writes such a record as a
+            // line that simply stops after the type, and reads it back again.
+            if (index >= tokens.Count &&
+                resourceRecordType != DNSResourceRecordTypes.APL)
             {
                 ErrorResponse = $"Missing RDATA for DNS resource record type '{resourceRecordType}'!";
                 return false;

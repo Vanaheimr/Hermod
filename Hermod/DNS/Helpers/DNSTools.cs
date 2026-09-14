@@ -553,6 +553,99 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
 
+        #region (static) ToZoneFileText(IPv6Address)
+
+        /// <summary>
+        /// The canonical text form of an IPv6 address for use in a zone file:
+        /// RFC 5952 §4 — lowercase hexadecimal, no leading zeros in a group, and
+        /// the longest run of all-zero groups replaced by "::".
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>IPv6Address.ToString()</c> is not this. It is shaped for an HTTP
+        /// authority, where an IPv6 literal is bracketed: it returns
+        /// <c>[::1]</c> and <c>[::]</c> for those two addresses, and eight
+        /// zero-padded groups for every other. Brackets are not zone-file syntax,
+        /// and a reader handed one would be right to refuse it.
+        /// </para>
+        /// <para>
+        /// RFC 5952 §4.2.2 is the rule people get wrong: a single zero group is
+        /// written as "0" and never compressed, because "::" standing for one
+        /// group is ambiguous with "::" standing for several. §4.2.3 settles ties
+        /// in favour of the leftmost run.
+        /// </para>
+        /// </remarks>
+        /// <param name="IPv6Address">An IPv6 address.</param>
+        public static String ToZoneFileText(IPv6Address IPv6Address)
+        {
+
+            var bytes   = IPv6Address.GetBytes();
+            var groups  = new UInt16[8];
+
+            for (var i = 0; i < 8; i++)
+                groups[i] = (UInt16) ((bytes[2 * i] << 8) | bytes[2 * i + 1]);
+
+            // The longest run of zero groups, leftmost on a tie (RFC 5952 §4.2.3).
+            var bestStart   = -1;
+            var bestLength  =  0;
+            var runStart    = -1;
+
+            for (var i = 0; i < 8; i++)
+            {
+
+                if (groups[i] == 0)
+                {
+
+                    if (runStart < 0)
+                        runStart = i;
+
+                    var runLength = i - runStart + 1;
+
+                    if (runLength > bestLength)
+                    {
+                        bestLength  = runLength;
+                        bestStart   = runStart;
+                    }
+
+                }
+                else
+                    runStart = -1;
+
+            }
+
+            // RFC 5952 §4.2.2: a run of exactly one zero group is written out.
+            if (bestLength < 2)
+            {
+                bestStart   = -1;
+                bestLength  =  0;
+            }
+
+            var text = new System.Text.StringBuilder();
+
+            for (var i = 0; i < 8; i++)
+            {
+
+                if (bestStart >= 0 && i == bestStart)
+                {
+                    text.Append(i == 0 ? "::" : ":");
+                    i += bestLength - 1;
+                    continue;
+                }
+
+                text.Append(groups[i].ToString("x"));
+
+                if (i < 7)
+                    text.Append(':');
+
+            }
+
+            return text.ToString();
+
+        }
+
+        #endregion
+
+
 
 
 

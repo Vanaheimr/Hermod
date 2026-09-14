@@ -157,6 +157,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         DNAME        = 39,
 
+        /// <summary>
+        /// Address Prefix List record (RFC 3123), which carries lists of address
+        /// prefixes, each optionally negated by a leading '!'.
+        /// </summary>
+        APL          = 42,
+
 
         // DNSSEC Types (RFC 4033/4034/4035)
 
@@ -184,6 +190,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// DNS Public Key record (RFC 4034), stores the public key used for DNSSEC zone signing.
         /// </summary>
         DNSKEY       = 48,
+
+        /// <summary>
+        /// DHCID record (RFC 4701), which ties a DHCP client's identity to a name
+        /// so that two clients cannot silently claim the same one.
+        /// </summary>
+        DHCID        = 49,
 
         /// <summary>
         /// NSEC3 record (RFC 5155), hashed authenticated denial of existence (prevents zone walking).

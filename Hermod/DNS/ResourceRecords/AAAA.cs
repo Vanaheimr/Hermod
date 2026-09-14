@@ -264,8 +264,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region (protected override) ZoneFileRData()
 
         /// <inheritdoc/>
+        /// <remarks>
+        /// Not <c>IPv6Address.ToString()</c>, which is shaped for an HTTP
+        /// authority: it brackets the two addresses it special-cases, returning
+        /// "[::1]" and "[::]". A bracket is authority syntax, and BIND refuses a
+        /// zone file carrying one — "bad IPv6 address" — so an AAAA for
+        /// localhost made the whole zone unloadable. Nothing here caught it,
+        /// because Parse accepts the brackets ToString writes and the round trip
+        /// closed on itself.
+        /// </remarks>
         protected override String ZoneFileRData()
-            => IPv6Address.ToString();
+            => DNSTools.ToZoneFileText(IPv6Address);
 
         #endregion
 
