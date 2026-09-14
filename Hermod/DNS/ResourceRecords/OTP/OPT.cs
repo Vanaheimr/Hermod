@@ -296,6 +296,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region ToZoneFileString()
+
+        /// <summary>
+        /// An OPT has no zone-file form, and RFC 6891 §6.1.1 is explicit about it.
+        /// </summary>
+        /// <remarks>
+        /// "OPT RRs MUST NOT be cached, forwarded, or stored in or loaded from
+        /// master files." An OPT carries the EDNS parameters of one message and
+        /// means nothing outside it — its CLASS is a payload size and its TTL is a
+        /// flags field, so even the columns of a master file would be lies.
+        /// Refusing is the answer; refusing quietly, by inventing a line, would
+        /// not be.
+        /// </remarks>
+        public String ToZoneFileString()
+
+            => throw new NotSupportedException(
+                   "An OPT resource record has no zone-file representation: RFC 6891 §6.1.1 says " +
+                   "it \"MUST NOT be cached, forwarded, or stored in or loaded from master files\"."
+               );
+
+        #endregion
+
     }
 
 }

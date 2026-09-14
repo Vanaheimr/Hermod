@@ -33,6 +33,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        Boolean                     UseCompression       = true,
                        Dictionary<String, Int32>?  CompressionOffsets   = null);
 
+        /// <summary>
+        /// The zone-file presentation form of this resource record
+        /// (RFC 1035 §5.1): name, TTL, class, type and RDATA.
+        /// </summary>
+        /// <remarks>
+        /// The counterpart of <see cref="Serialize"/>, which is the other way a
+        /// record is written down. Both belong here for the same reason: the
+        /// zone-file reader hands back this interface, so without it, writing
+        /// back what was just read needed a cast to the abstract base in every
+        /// caller, for a method every one of them had.
+        /// <para>
+        /// One implementation refuses. RFC 6891 §6.1.1 says an OPT "MUST NOT be
+        /// cached, forwarded, or stored in or loaded from master files": it
+        /// belongs to a single message and has no presentation form at all. That
+        /// is the specification speaking rather than a gap, so OPT throws and
+        /// says which section.
+        /// </para>
+        /// </remarks>
+        String ToZoneFileString();
+
     }
 
 }
