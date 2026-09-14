@@ -678,9 +678,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               GeoLocation,
                                               Address,
                                               AcceptedEULA,
-                                              IsAuthenticated,
-                                              IsDisabled,
-                                              DataSource: DataSource
+                                              // By name, and that is the fix rather than
+                                              // the tidying: User's constructor takes
+                                              // IsDisabled first and IsAuthenticated
+                                              // second, these were handed over the other
+                                              // way round, and both are Booleans - so the
+                                              // compiler had nothing to say while every
+                                              // user created as authenticated came out
+                                              // disabled instead, and could not sign in.
+                                              IsDisabled:       IsDisabled,
+                                              IsAuthenticated:  IsAuthenticated,
+                                              DataSource:       DataSource
                                           ),
 
                                           SkipDefaultNotifications,
@@ -689,27 +697,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                              if (Password is not null && _user.API is not null) {
-                                                  var result = await _user.API._ChangePassword(
-                                                                         _user,
-                                                                         Password,
-                                                                         null,
-                                                                         SuppressNotifications:  true,
-                                                                         EventTrackingId:        _eventTrackingId,
-                                                                         CurrentUserId:          CurrentUserId
-                                                                     );
-                                              }
-
-                                              if (Password is not null && _user.API is not null) {
-                                                  var result = await _user.API._ChangePassword(
-                                                                         _user,
-                                                                         Password,
-                                                                         null,
-                                                                         SuppressNotifications:  true,
-                                                                         EventTrackingId:        _eventTrackingId,
-                                                                         CurrentUserId:          CurrentUserId
-                                                                     );
-                                              }
+                                              // Once, and the result is not read because
+                                              // there is nothing to do with it here: the
+                                              // user has already been added, and a password
+                                              // that will not take is a user who has to use
+                                              // the password-reset route.
+                                              if (Password is not null && _user.API is not null)
+                                                  await _user.API._ChangePassword(
+                                                            _user,
+                                                            Password,
+                                                            null,
+                                                            SuppressNotifications:  true,
+                                                            EventTrackingId:        _eventTrackingId,
+                                                            CurrentUserId:          CurrentUserId
+                                                        );
 
                                           },
 
@@ -805,9 +806,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               GeoLocation,
                                               Address,
                                               AcceptedEULA,
-                                              IsAuthenticated,
-                                              IsDisabled,
-                                              DataSource: DataSource
+                                              // By name, and that is the fix rather than
+                                              // the tidying: User's constructor takes
+                                              // IsDisabled first and IsAuthenticated
+                                              // second, these were handed over the other
+                                              // way round, and both are Booleans - so the
+                                              // compiler had nothing to say while every
+                                              // user created as authenticated came out
+                                              // disabled instead, and could not sign in.
+                                              IsDisabled:       IsDisabled,
+                                              IsAuthenticated:  IsAuthenticated,
+                                              DataSource:       DataSource
                                           ),
 
                                           AccessRight,
@@ -819,27 +828,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                              if (Password is not null && _user.API is not null) {
-                                                  var result = await _user.API._ChangePassword(
-                                                                         _user,
-                                                                         Password,
-                                                                         null,
-                                                                         SuppressNotifications:  true,
-                                                                         EventTrackingId:        _eventTrackingId,
-                                                                         CurrentUserId:          CurrentUserId
-                                                                     );
-                                              }
-
-                                              if (Password is not null && _user.API is not null) {
-                                                  var result = await _user.API._ChangePassword(
-                                                                         _user,
-                                                                         Password,
-                                                                         null,
-                                                                         SuppressNotifications:  true,
-                                                                         EventTrackingId:        _eventTrackingId,
-                                                                         CurrentUserId:          CurrentUserId
-                                                                     );
-                                              }
+                                              // Once, and the result is not read because
+                                              // there is nothing to do with it here: the
+                                              // user has already been added, and a password
+                                              // that will not take is a user who has to use
+                                              // the password-reset route.
+                                              if (Password is not null && _user.API is not null)
+                                                  await _user.API._ChangePassword(
+                                                            _user,
+                                                            Password,
+                                                            null,
+                                                            SuppressNotifications:  true,
+                                                            EventTrackingId:        _eventTrackingId,
+                                                            CurrentUserId:          CurrentUserId
+                                                        );
 
                                           },
 
@@ -931,9 +933,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               GeoLocation,
                                               Address,
                                               AcceptedEULA,
-                                              IsAuthenticated,
-                                              IsDisabled,
-                                              DataSource: DataSource
+                                              // By name, and that is the fix rather than
+                                              // the tidying: User's constructor takes
+                                              // IsDisabled first and IsAuthenticated
+                                              // second, these were handed over the other
+                                              // way round, and both are Booleans - so the
+                                              // compiler had nothing to say while every
+                                              // user created as authenticated came out
+                                              // disabled instead, and could not sign in.
+                                              IsDisabled:       IsDisabled,
+                                              IsAuthenticated:  IsAuthenticated,
+                                              DataSource:       DataSource
                                           ),
 
                                           SkipDefaultNotifications,
@@ -942,27 +952,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                              if (Password is not null && _user.API is not null) {
-                                                  var result = await _user.API._ChangePassword(
-                                                                         _user,
-                                                                         Password,
-                                                                         null,
-                                                                         SuppressNotifications:  true,
-                                                                         EventTrackingId:        _eventTrackingId,
-                                                                         CurrentUserId:          CurrentUserId
-                                                                     );
-                                              }
-
-                                              if (Password is not null && _user.API is not null) {
-                                                  var result = await _user.API._ChangePassword(
-                                                                         _user,
-                                                                         Password,
-                                                                         null,
-                                                                         SuppressNotifications:  true,
-                                                                         EventTrackingId:        _eventTrackingId,
-                                                                         CurrentUserId:          CurrentUserId
-                                                                     );
-                                              }
+                                              // Once, and the result is not read because
+                                              // there is nothing to do with it here: the
+                                              // user has already been added, and a password
+                                              // that will not take is a user who has to use
+                                              // the password-reset route.
+                                              if (Password is not null && _user.API is not null)
+                                                  await _user.API._ChangePassword(
+                                                            _user,
+                                                            Password,
+                                                            null,
+                                                            SuppressNotifications:  true,
+                                                            EventTrackingId:        _eventTrackingId,
+                                                            CurrentUserId:          CurrentUserId
+                                                        );
 
                                           },
 
@@ -1058,9 +1061,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               GeoLocation,
                                               Address,
                                               AcceptedEULA,
-                                              IsAuthenticated,
-                                              IsDisabled,
-                                              DataSource: DataSource
+                                              // By name, and that is the fix rather than
+                                              // the tidying: User's constructor takes
+                                              // IsDisabled first and IsAuthenticated
+                                              // second, these were handed over the other
+                                              // way round, and both are Booleans - so the
+                                              // compiler had nothing to say while every
+                                              // user created as authenticated came out
+                                              // disabled instead, and could not sign in.
+                                              IsDisabled:       IsDisabled,
+                                              IsAuthenticated:  IsAuthenticated,
+                                              DataSource:       DataSource
                                           ),
 
                                           AccessRight,
@@ -1072,27 +1083,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                              if (Password is not null && _user.API is not null) {
-                                                  var result = await _user.API._ChangePassword(
-                                                                         _user,
-                                                                         Password,
-                                                                         null,
-                                                                         SuppressNotifications:  true,
-                                                                         EventTrackingId:        _eventTrackingId,
-                                                                         CurrentUserId:          CurrentUserId
-                                                                     );
-                                              }
-
-                                              if (Password is not null && _user.API is not null) {
-                                                  var result = await _user.API._ChangePassword(
-                                                                         _user,
-                                                                         Password,
-                                                                         null,
-                                                                         SuppressNotifications:  true,
-                                                                         EventTrackingId:        _eventTrackingId,
-                                                                         CurrentUserId:          CurrentUserId
-                                                                     );
-                                              }
+                                              // Once, and the result is not read because
+                                              // there is nothing to do with it here: the
+                                              // user has already been added, and a password
+                                              // that will not take is a user who has to use
+                                              // the password-reset route.
+                                              if (Password is not null && _user.API is not null)
+                                                  await _user.API._ChangePassword(
+                                                            _user,
+                                                            Password,
+                                                            null,
+                                                            SuppressNotifications:  true,
+                                                            EventTrackingId:        _eventTrackingId,
+                                                            CurrentUserId:          CurrentUserId
+                                                        );
 
                                           },
 
@@ -2625,10 +2629,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          (Int32) Math.Ceiling(Decision.RetryAfter.TotalSeconds)
                                      );
 
+            // The body is not decoration. Without one this response carried no
+            // Content-Length either, and a response with neither a length nor a
+            // chunked encoding ends where the connection ends - while this one
+            // says "keep-alive". So the client sat waiting for a body that was
+            // never coming: the ration worked and every refusal cost whoever
+            // tripped it a read timeout, which is five seconds against curl's
+            // default and thirty against HttpClient's.
+            //
+            // It also gives whatever asked something to show. A sign-in page
+            // that has to tell somebody to wait ninety seconds would otherwise
+            // have to invent the sentence.
             return new HTTPResponse.Builder(Request) {
                        HTTPStatusCode             = HTTPStatusCode.TooManyRequests,
                        Server                     = HTTPServer?.HTTPServerName,
                        Date                       = Timestamp.Now,
+                       ContentType                = HTTPContentType.Application.JSON_UTF8,
+                       Content                    = JSONObject.Create(
+                                                        new JProperty("description",  "Too many requests, please try again later."),
+                                                        new JProperty("retryAfter",   retryAfterSeconds)
+                                                    ).ToUTF8Bytes(),
                        RetryAfter                 = retryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture),
                        AccessControlAllowOrigin   = "*",
                        AccessControlAllowMethods  = [ HTTPMethod.RESET, HTTPMethod.SET ],

@@ -27,6 +27,7 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.Passkeys;
 using org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys;
 
@@ -376,6 +377,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(json?["user"]?["displayName"]?.ToString(),     Is.EqualTo("dave"));
 
                 Assert.That((await new Browser(client).Call(HttpMethod.Put, "accounts/auth/me", new { displayName = "Eve" })).Status,  Is.EqualTo(HttpStatusCode.Unauthorized));
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region AUserCreatedInCode_IsEnabledAndCanSignIn()
+
+        /// <summary>
+        /// A user made by CreateUserIfNotExists, rather than by signing up over
+        /// HTTP, has to be the user that was asked for.
+        /// </summary>
+        /// <remarks>
+        /// The two Booleans were handed to User's constructor in the wrong
+        /// order - it takes IsDisabled first and IsAuthenticated second, and
+        /// they were passed the other way round - so every user created as
+        /// authenticated came out disabled instead and could not sign in. Both
+        /// are Booleans, so nothing complained; the first sign-in simply said
+        /// "Unknown login or wrong password", which is what it says for a user
+        /// who is not there at all.
+        ///
+        /// The sign-in at the end is the point of the test. Asserting the two
+        /// flags alone would pass again the day somebody swaps them back and
+        /// also swaps what the assertion reads.
+        /// </remarks>
+        [Test]
+        public async Task AUserCreatedInCode_IsEnabledAndCanSignIn()
+        {
+
+            var (server, api, client, directory) = await StartAsync();
+
+            try
+            {
+
+                var created = await api.CreateUserIfNotExists(
+                                        User_Id.Parse("dora"),
+                                        I18NString.Create("Dora"),
+                                        SimpleEMailAddress.Parse("dora@example.test"),
+                                        Password:                  "Correct-Horse-9",
+                                        IsAuthenticated:           true,
+                                        SkipNewUserEMail:          true,
+                                        SkipNewUserNotifications:  true,
+                                        SkipDefaultNotifications:  true
+                                    );
+
+                Assert.That(created, Is.Not.Null);
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(created!.IsDisabled,       Is.False, "asked for an enabled user and got one");
+                    Assert.That(created!.IsAuthenticated,  Is.True,  "asked for an authenticated user and got one");
+                });
+
+                var browser         = new Browser(client);
+                var (status, json)  = await browser.Call(HttpMethod.Post, "accounts/auth/login",
+                                                         new { login = "dora", password = "Correct-Horse-9" });
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(status,                          Is.EqualTo(HttpStatusCode.OK), "and can sign in, which is what the flags are for");
+                    Assert.That(json?["user"]?["id"]?.ToString(), Is.EqualTo("dora"));
+                    Assert.That(browser.HasSession,              Is.True);
+                });
 
             }
             finally
