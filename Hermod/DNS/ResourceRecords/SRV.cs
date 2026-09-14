@@ -226,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return new SRV(Name, DNSQueryClasses.IN, TimeToLive,
                                UInt16.Parse(parts[0]), UInt16.Parse(parts[1]),
                                IPPort.Parse(parts[2]),
-                               DNS.DomainName.Parse(parts[3].EndsWith('.') ? parts[3] : parts[3] + "."));
+                               DNS.DomainName.ParseLenient(parts[3].EndsWith('.') ? parts[3] : parts[3] + "."));
             }
             catch { return null; }
         }

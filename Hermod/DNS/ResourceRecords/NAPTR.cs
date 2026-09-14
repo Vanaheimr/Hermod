@@ -227,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return new NAPTR(Name, DNSQueryClasses.IN, TimeToLive,
                                  UInt16.Parse(parts[0]), UInt16.Parse(parts[1]),
                                  parts[2].Trim('"'), parts[3].Trim('"'), parts[4].Trim('"'),
-                                 DNS.DomainName.Parse(replacement));
+                                 DNS.DomainName.ParseLenient(replacement));
             }
             catch { return null; }
         }

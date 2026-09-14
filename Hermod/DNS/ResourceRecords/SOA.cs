@@ -237,7 +237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 var parts = Data.Split(' ');
                 return new SOA(Name, DNSQueryClasses.IN, TimeToLive,
-                               DNS.DomainName.Parse(parts[0].EndsWith('.') ? parts[0] : parts[0] + "."),
+                               DNS.DomainName.ParseLenient(parts[0].EndsWith('.') ? parts[0] : parts[0] + "."),
                                SimpleEMailAddress.Parse(DNSTools.ReplaceFirstDotWithAt(parts[1].TrimEnd('.'))),
                                UInt32.Parse(parts[2]),
                                TimeSpan.FromSeconds(UInt32.Parse(parts[3])),

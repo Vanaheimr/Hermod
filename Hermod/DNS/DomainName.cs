@@ -268,6 +268,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region TryParseLenient(Text, out DomainName, out ErrorResponse)
+
+        /// <summary>
+        /// Try to parse the given text as a resource record name, tolerating the
+        /// two label forms a hostname never has: underscore labels
+        /// (e.g. "_dmarc.example.com") and a leading wildcard
+        /// (e.g. "*.example.com").
+        /// </summary>
+        /// <remarks>
+        /// The non-throwing half of <see cref="ParseLenient(String)"/>, and the
+        /// one a parser wants: a zone file or a DNS response carries names that
+        /// RFC 2181 §11 permits and hostname syntax does not, and refusing them
+        /// is not the same thing as failing to parse a line.
+        /// </remarks>
+        /// <param name="Text">The text representation of a domain name.</param>
+        /// <param name="DomainName">The parsed domain name.</param>
+        /// <param name="ErrorResponse">An optional error response in case the parsing fails.</param>
+        public static Boolean TryParseLenient(String                                Text,
+                                              [NotNullWhen(true)]  out DomainName?  DomainName,
+                                              [NotNullWhen(false)] out String?      ErrorResponse)
+
+            => TryParse(Text,
+                        out DomainName,
+                        out ErrorResponse,
+                        AllowUnderscoreLabels:  true,
+                        AllowWildcardLabel:     true);
+
+        #endregion
+
         #region TryParse (Text)
 
         /// <summary>

@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (parts.Length < 2) return null;
                 var mailbox  = parts[0].EndsWith('.') ? parts[0] : parts[0] + ".";
                 var txtDname = parts[1].EndsWith('.') ? parts[1] : parts[1] + ".";
-                return new RP(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.Parse(mailbox), DNS.DomainName.Parse(txtDname));
+                return new RP(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.ParseLenient(mailbox), DNS.DomainName.ParseLenient(txtDname));
             }
             catch { return null; }
         }

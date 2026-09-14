@@ -274,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                  Byte.Parse(parts[1]), Byte.Parse(parts[2]),
                                  UInt32.Parse(parts[3]), signatureExpiration, signatureInception,
                                  UInt16.Parse(parts[6]),
-                                 DNS.DomainName.Parse(signerName),
+                                 DNS.DomainName.ParseLenient(signerName),
                                  Convert.FromBase64String(parts[8]));
             }
             catch { return null; }

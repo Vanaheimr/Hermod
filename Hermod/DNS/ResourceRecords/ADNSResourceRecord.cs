@@ -761,7 +761,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!DNSServiceName.TryParse(ownerNameText, out var dnsServiceName, out ErrorResponse))
                 return false;
 
-            DNS.DomainName.TryParse(ownerNameText, out var domainName, out _);
+            // Lenient, because this is a resource record name and not a hostname.
+            // RFC 2181 §11: "any binary string whatever can be used as the label
+            // of any resource record" — hostname syntax restricts hostnames. The
+            // two forms that reach a zone file in practice are the wildcard of
+            // RFC 4592 §2.1.1 and the underscore names of RFC 8552, and refusing
+            // either here did not report a bad name: it left domainName null,
+            // which silently skipped the whole type dispatch below and surfaced
+            // as "could not parse RDATA" for RDATA that was perfectly good.
+            DNS.DomainName.TryParseLenient(ownerNameText, out var domainName, out var ownerNameError);
 
             var resourceRecordClass  = DNSQueryClasses.IN;
             var timeToLive           = DefaultTimeToLive ?? TimeSpan.Zero;
@@ -820,7 +828,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    out ResourceRecord
                ))
             {
-                ErrorResponse = $"Could not parse RDATA for DNS resource record type '{resourceRecordType}'!";
+                // Which half of the line is at fault. A name that cannot become a
+                // DomainName silently skips the type dispatch inside, so every
+                // such line used to be reported as bad RDATA — and the RDATA was
+                // usually perfect. SRV and URI are exempt: they are keyed on the
+                // DNSServiceName and never needed the DomainName.
+                ErrorResponse = domainName is null &&
+                                resourceRecordType is not DNSResourceRecordTypes.SRV and
+                                                      not DNSResourceRecordTypes.URI
+
+                                    ? $"The owner name '{ownerNameText}' is not one the '{resourceRecordType}' zone-file parser accepts: {ownerNameError}"
+                                    : $"Could not parse RDATA for DNS resource record type '{resourceRecordType}'!";
+
                 return false;
             }
 

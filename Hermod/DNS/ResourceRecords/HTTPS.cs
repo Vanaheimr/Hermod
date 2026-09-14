@@ -278,7 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (targetStr.Length == 0 || targetStr == ".") targetStr = ".";
                 else if (!targetStr.EndsWith('.')) targetStr += ".";
 
-                var targetName = DNS.DomainName.Parse(targetStr);
+                var targetName = DNS.DomainName.ParseLenient(targetStr);
                 var svcParams  = new List<SVCParameter>();
 
                 if (parts.Length > 2)

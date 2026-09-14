@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             try
             {
                 var target = Data.EndsWith('.') ? Data : Data + ".";
-                return new NS(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.Parse(target));
+                return new NS(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.ParseLenient(target));
             }
             catch { return null; }
         }

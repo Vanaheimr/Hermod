@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var parts = Data.Split(' ', 2);
                 if (parts.Length < 2) return null;
                 var hostname = parts[1].EndsWith('.') ? parts[1] : parts[1] + ".";
-                return new AFSDB(Name, DNSQueryClasses.IN, TimeToLive, UInt16.Parse(parts[0]), DNS.DomainName.Parse(hostname));
+                return new AFSDB(Name, DNSQueryClasses.IN, TimeToLive, UInt16.Parse(parts[0]), DNS.DomainName.ParseLenient(hostname));
             }
             catch { return null; }
         }

@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var preference = UInt16.Parse(parts[0]);
                 var exchange   = parts[1];
                 if (!exchange.EndsWith('.')) exchange += ".";
-                return new MX(Name, DNSQueryClasses.IN, TimeToLive, preference, DNS.DomainName.Parse(exchange));
+                return new MX(Name, DNSQueryClasses.IN, TimeToLive, preference, DNS.DomainName.ParseLenient(exchange));
             }
             catch { return null; }
         }

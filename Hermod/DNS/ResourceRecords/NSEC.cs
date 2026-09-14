@@ -174,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var parts = Data.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 1) return null;
                 var nextName = parts[0].EndsWith('.') ? parts[0] : parts[0] + ".";
-                return new NSEC(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.Parse(nextName), EncodeTypeBitMaps(parts.Skip(1)));
+                return new NSEC(Name, DNSQueryClasses.IN, TimeToLive, DNS.DomainName.ParseLenient(nextName), EncodeTypeBitMaps(parts.Skip(1)));
             }
             catch { return null; }
         }
