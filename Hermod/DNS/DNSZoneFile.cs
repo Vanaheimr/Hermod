@@ -137,13 +137,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (keyword == "$TTL")
                     {
 
-                        if (directive.Length < 2 || !UInt32.TryParse(directive[1], out var seconds))
+                        if (directive.Length < 2 ||
+                            !ADNSResourceRecord.TryParseZoneFileTimeToLive(directive[1], out var directiveTTL))
                         {
-                            ErrorResponse = $"Line {number}: $TTL needs a number of seconds — '{(directive.Length < 2 ? "" : directive[1])}' is not one!";
+                            ErrorResponse = $"Line {number}: $TTL needs a TTL — '{(directive.Length < 2 ? "" : directive[1])}' is not one!";
                             return false;
                         }
 
-                        dollarTTL = TimeSpan.FromSeconds(seconds);
+                        dollarTTL = directiveTTL;
                         continue;
 
                     }
@@ -211,8 +212,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // stated value"; RFC 2308 §4 added $TTL, which takes precedence
                 // where it is present — so a file with a $TTL does not drift when
                 // one record states a TTL of its own.
-                if (tokens.Length > 0 && UInt32.TryParse(tokens[0], out var explicitSeconds))
-                    lastExplicitTTL = TimeSpan.FromSeconds(explicitSeconds);
+                if (tokens.Length > 0 && ADNSResourceRecord.TryParseZoneFileTimeToLive(tokens[0], out var explicitTTL))
+                    lastExplicitTTL = explicitTTL;
 
                 var defaultTTL = dollarTTL ?? lastExplicitTTL ?? DefaultTimeToLive;
 

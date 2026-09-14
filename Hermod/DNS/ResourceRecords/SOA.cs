@@ -247,14 +247,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                        DNS.DomainName.ParseLenient(parts[1], Origin).FullName.TrimEnd('.')
                                    )
                                ),
+                               // The serial is a number and the four after it are
+                               // durations, which is why only the four take units.
                                UInt32.Parse(parts[2]),
-                               TimeSpan.FromSeconds(UInt32.Parse(parts[3])),
-                               TimeSpan.FromSeconds(UInt32.Parse(parts[4])),
-                               TimeSpan.FromSeconds(UInt32.Parse(parts[5])),
-                               TimeSpan.FromSeconds(UInt32.Parse(parts[6])));
+                               Interval(parts[3]),
+                               Interval(parts[4]),
+                               Interval(parts[5]),
+                               Interval(parts[6]));
             }
             catch { return null; }
         }
+
+        private static TimeSpan Interval(String Text)
+
+            => TryParseZoneFileTimeToLive(Text, out var interval)
+                   ? interval
+                   : throw new FormatException($"'{Text}' is not an SOA interval!");
 
         #endregion
 

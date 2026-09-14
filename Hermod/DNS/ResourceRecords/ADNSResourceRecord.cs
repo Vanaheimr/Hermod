@@ -231,6 +231,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
+            // A record built by a type parser is always class IN, because that is
+            // the only class a JSON API has — but a zone file states one, RFC 1035
+            // §3.2.4 defines more than one, and the zone and the wire both honour
+            // whatever the record says. Rather than teach thirty-nine parsers a
+            // class they have no use for, a record that came back in the wrong one
+            // is rebuilt through the wire form, which carries the class already.
+            Boolean InTheClassTheLineStated(ref IDNSResourceRecord? Record)
+            {
+
+                if (Record is null)
+                    return false;
+
+                if (Record.Class == Class)
+                    return true;
+
+                Record = ReadBackFromWire(DNSServiceName, Type, Class, TimeToLive, RDataOf(Record));
+
+                return Record is not null;
+
+            }
+
             if (DomainName is not null)
             {
 
@@ -282,7 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 };
 
                 if (ResourceRecord is not null)
-                    return true;
+                    return InTheClassTheLineStated(ref ResourceRecord);
 
             }
 
@@ -296,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             };
 
             if (ResourceRecord is not null)
-                return true;
+                return InTheClassTheLineStated(ref ResourceRecord);
 
             ResourceRecord = null;
             return false;
@@ -522,6 +543,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (private static) RDataOf(ResourceRecord)
+
+        /// <summary>
+        /// The RDATA octets of a resource record, taken from its own uncompressed
+        /// wire form.
+        /// </summary>
+        private static Byte[] RDataOf(IDNSResourceRecord ResourceRecord)
+        {
+
+            using var wire = new MemoryStream();
+
+            ResourceRecord.Serialize(wire, UseCompression: false);
+
+            var bytes   = wire.ToArray();
+            var offset  = 0;
+
+            while (offset < bytes.Length && bytes[offset] != 0)
+            {
+
+                if ((bytes[offset] & 0xC0) == 0xC0)
+                {
+                    offset++;
+                    break;
+                }
+
+                offset += 1 + bytes[offset];
+
+            }
+
+            offset += 1;    // the root label, or the second octet of a pointer
+            offset += 8;    // type, class, TTL
+
+            var length = (bytes[offset] << 8) | bytes[offset + 1];
+
+            return bytes[(offset + 2)..(offset + 2 + length)];
+
+        }
+
+        #endregion
+
         #region (private static) ReadBackFromWire(DNSServiceName, Type, Class, TimeToLive, RData)
 
         /// <summary>
@@ -637,11 +698,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (private static) TryParseZoneFileTimeToLive(Text, out TimeToLive)
 
-        private static Boolean TryParseZoneFileTimeToLive(String        Text,
-                                                          out TimeSpan  TimeToLive)
+        /// <summary>
+        /// Read a TTL as a zone file writes one.
+        /// </summary>
+        /// <remarks>
+        /// RFC 1035 §5.1 spells a TTL as "a decimal integer", and that form is read
+        /// first. The <c>1h</c> / <c>2w</c> / <c>1d12h</c> form after it is BIND's
+        /// extension rather than the RFC's — but it is what zone files are written
+        /// with, and a reader that refuses it refuses most files in the world.
+        /// Nothing is written in that form: the presentation output stays the
+        /// integer the RFC names.
+        /// </remarks>
+        /// <param name="Text">The presentation form of a TTL.</param>
+        /// <param name="TimeToLive">The parsed TTL.</param>
+        public static Boolean TryParseZoneFileTimeToLive(String        Text,
+                                                         out TimeSpan  TimeToLive)
         {
 
             TimeToLive = TimeSpan.Zero;
+
+            if (String.IsNullOrEmpty(Text))
+                return false;
 
             if (UInt32.TryParse(Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds))
             {
@@ -649,7 +726,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return true;
             }
 
-            return false;
+            // <number><unit> one or more times, and nothing else: a number with no
+            // unit after it or a unit with no number before it is not a TTL. That
+            // matters beyond tidiness, because the header reader tries class, then
+            // TTL, then type against the same token — anything this accepts too
+            // freely is a record type it will never reach.
+            var total  = 0UL;
+            var index  = 0;
+
+            while (index < Text.Length)
+            {
+
+                var start = index;
+
+                while (index < Text.Length && Char.IsAsciiDigit(Text[index]))
+                    index++;
+
+                if (index == start || index >= Text.Length)
+                    return false;
+
+                if (!UInt64.TryParse(Text[start..index], NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ||
+                    value > UInt32.MaxValue)
+                {
+                    return false;
+                }
+
+                var factor = Char.ToLowerInvariant(Text[index]) switch {
+                                 's'  =>       1UL,
+                                 'm'  =>      60UL,
+                                 'h'  =>    3600UL,
+                                 'd'  =>   86400UL,
+                                 'w'  =>  604800UL,
+                                 _    =>       0UL
+                             };
+
+                if (factor == 0)
+                    return false;
+
+                total += value * factor;
+
+                if (total > UInt32.MaxValue)
+                    return false;
+
+                index++;
+
+            }
+
+            TimeToLive = TimeSpan.FromSeconds(total);
+            return true;
 
         }
 
