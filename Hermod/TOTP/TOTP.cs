@@ -215,13 +215,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                    );
 
             var timeReference    = TOTPTimestamp ?? Timestamp.Now;
+            var validitySeconds  = (Int64) ValidityTime.Value.TotalSeconds;
             var currentUnixTime  = timeReference.ToUnixTimeSeconds();
-            var currentSlot      = (UInt64) (currentUnixTime / ValidityTime.Value.TotalSeconds);
-            var remainingTime    = TimeSpan.FromSeconds(
-                                       (Int32) ValidityTime.Value.TotalSeconds
-                                         -
-                                       (currentUnixTime % (Int32) ValidityTime.Value.TotalSeconds)
-                                   );
+            var currentSlot      = (UInt64) (currentUnixTime / validitySeconds);
+
+            // Where this window ends is a fixed instant: the start of the next
+            // slot, counted in whole seconds from the Unix epoch. Everybody who
+            // asks during the window is told the same one.
+            //
+            // It used to be worked out as "now, plus what is left", where what
+            // is left was counted from whole seconds and now was not - so two
+            // callers a fraction of a second apart were given two different
+            // ends of the same window, and the time left was over-stated by up
+            // to a second. Over-stating it is the half that bites: a caller
+            // deciding whether a password is still worth handing out was told
+            // it had longer than it did.
+            var endTime          = DateTimeOffset.FromUnixTimeSeconds(
+                                       (Int64) (currentSlot + 1) * validitySeconds
+                                   ).ToOffset(timeReference.Offset);
+
+            var remainingTime    = endTime - timeReference;
 
             return (CalcTOTPSlot(
                         currentSlot,
@@ -232,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         TLSExporterMaterial
                     ),
                     remainingTime,
-                    timeReference + remainingTime);
+                    endTime);
 
         }
 
