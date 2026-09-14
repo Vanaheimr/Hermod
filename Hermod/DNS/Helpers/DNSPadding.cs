@@ -210,6 +210,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               padded
                        ],
 
+                       Message.AuthenticData,
+                       Message.CheckingDisabled,
+
                        Message.LocalSocket,
                        Message.RemoteSocket
 

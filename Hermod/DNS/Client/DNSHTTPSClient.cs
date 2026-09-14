@@ -1304,6 +1304,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var tc     = json["TC"]?.    Value<Boolean>() ?? false;
             var rd     = json["RD"]?.    Value<Boolean>() ?? true;
             var ra     = json["RA"]?.    Value<Boolean>() ?? false;
+            // Google and Cloudflare both report these, and they are the only way
+            // a JSON answer can say it was validated — there is no header to read
+            // the bits out of. RFC 4035 §3.2.
+            var ad     = json["AD"]?.    Value<Boolean>() ?? false;
+            var cd     = json["CD"]?.    Value<Boolean>() ?? false;
 
             var answers     = new List<IDNSResourceRecord>();
             var authorities = new List<IDNSResourceRecord>();
@@ -1336,7 +1341,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                           IsValid:                true,
                           IsTimeout:              false,
                           Timeout:                Timeout,
-                          Runtime:                Runtime
+                          Runtime:                Runtime,
+                          AuthenticData:          ad,
+                          CheckingDisabled:       cd
                       );
 
             return true;

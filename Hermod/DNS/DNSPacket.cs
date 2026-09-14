@@ -89,7 +89,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            IEnumerable<DNSQuestion>         Questions,
                            IEnumerable<IDNSResourceRecord>  AnswerRRs,
                            IEnumerable<IDNSResourceRecord>  AuthorityRRs,
-                           IEnumerable<IDNSResourceRecord>  AdditionalRRs)
+                           IEnumerable<IDNSResourceRecord>  AdditionalRRs,
+
+                           Boolean                          AuthenticData      = false,
+                           Boolean                          CheckingDisabled   = false)
 
             : base(TransactionId,
                    QueryOrResponse,
@@ -104,6 +107,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    AnswerRRs,
                    AuthorityRRs,
                    AdditionalRRs,
+
+                   AuthenticData,
+                   CheckingDisabled,
 
                    Request?.LocalSocket  ?? IPSocket.Zero,
                    Request?.RemoteSocket ?? IPSocket.Zero)
@@ -157,6 +163,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public Boolean                          RecursionDesired       { get; }
         public Boolean                          RecursionAvailable     { get; }
+
+        /// <summary>
+        /// Whether a security-aware resolver validated the data in this message
+        /// (RFC 4035 §3.2.3, "Authentic Data").
+        /// </summary>
+        /// <remarks>
+        /// RFC 6840 §5.7 is the sentence that makes it useful and the one that
+        /// limits it: the bit means something to a stub only over a channel the
+        /// stub trusts, which is what a DoT or DoH client is for.
+        /// </remarks>
+        public Boolean                          AuthenticData          { get; }
+
+        /// <summary>
+        /// Whether the sender does its own validation and the receiver should not
+        /// do it on the sender's behalf (RFC 4035 §3.2.2, "Checking Disabled").
+        /// </summary>
+        public Boolean                          CheckingDisabled       { get; }
+
         public DNSResponseCodes                 ResponseCode           { get; }
 
         public IEnumerable<DNSQuestion>         Questions              { get; } = [];
@@ -187,8 +211,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                          IEnumerable<IDNSResourceRecord>  AuthorityRRs,
                          IEnumerable<IDNSResourceRecord>  AdditionalRRs,
 
-                         IPSocket?                        LocalSocket    = null,
-                         IPSocket?                        RemoteSocket   = null)
+                         Boolean                          AuthenticData      = false,
+                         Boolean                          CheckingDisabled   = false,
+
+                         IPSocket?                        LocalSocket        = null,
+                         IPSocket?                        RemoteSocket       = null)
 
         {
 
@@ -201,6 +228,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.AuthoritativeAnswer  = AuthoritativeAnswer;
             this.Truncation           = Truncation;
             this.RecursionDesired     = RecursionDesired;
+            this.AuthenticData        = AuthenticData;
+            this.CheckingDisabled     = CheckingDisabled;
             this.RecursionAvailable   = RecursionAvailable;
             this.ResponseCode         = ResponseCode;
 
@@ -475,6 +504,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var truncation             = (flags1 & 0x02) != 0;
             var recursionDesired       = (flags1 & 0x01) != 0;
             var recursionAvailable     = (flags2 & 0x80) != 0;
+            // 0x40 is Z, which RFC 1035 §4.1.1 reserves and RFC 6895 §2 keeps
+            // reserved; it is read past rather than acted on. 0x20 and 0x10 are
+            // the two bits RFC 4035 §3.2 added between it and the RCODE.
+            var authenticData          = (flags2 & 0x20) != 0;
+            var checkingDisabled       = (flags2 & 0x10) != 0;
             var responseCode           = (DNSResponseCodes) (flags2 & 0x0F);
 
             var numberOfQuestions      = Stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
@@ -507,6 +541,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        answerRRs,
                        authorityRRs,
                        additionalRRs,
+
+                       authenticData,
+                       checkingDisabled,
 
                        LocalSocket,
                        RemoteSocket
@@ -561,6 +598,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // Set Recursion Available (RA)
             if (RecursionAvailable)
                 flags2 |= 0x80;
+
+            // 0x40 is Z and stays clear: RFC 1035 §4.1.1 reserves it and RFC 6895
+            // §2 keeps it reserved.
+
+            // Set Authentic Data (AD), RFC 4035 §3.2.3
+            if (AuthenticData)
+                flags2 |= 0x20;
+
+            // Set Checking Disabled (CD), RFC 4035 §3.2.2
+            if (CheckingDisabled)
+                flags2 |= 0x10;
 
             // Set Response Code (RCODE)
             flags2 |= (Byte) ((Byte) ResponseCode & 0x0F);
@@ -687,6 +735,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     AnswerRRs,
                     AuthorityRRs,
                     AdditionalRRs,
+
+                    AuthenticData,
+                    CheckingDisabled,
 
                     LocalSocket,
                     RemoteSocket);

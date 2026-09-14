@@ -43,7 +43,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean                          IsTimeout,
                             TimeSpan                         Timeout,
 
-                            TimeSpan                         Runtime)
+                            TimeSpan                         Runtime,
+
+                            Boolean                          AuthenticData      = false,
+                            Boolean                          CheckingDisabled   = false)
 
         : DNSInfo(Origin,
                   QueryId,
@@ -58,7 +61,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                   IsValid,
                   IsTimeout,
                   Timeout,
-                  Runtime)
+                  Runtime,
+                  AuthenticData,
+                  CheckingDisabled)
 
         where T : ADNSResourceRecord
 
@@ -83,7 +88,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Legacy.IsValid,
                    Legacy.IsTimeout,
                    Legacy.Timeout,
-                   Legacy.Runtime)
+                   Legacy.Runtime,
+                   Legacy.AuthenticData,
+                   Legacy.CheckingDisabled)
 
         { }
 
@@ -121,6 +128,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Boolean                          RecursionRequested    { get; }
 
         public Boolean                          RecursionAvailable    { get; }
+
+        /// <summary>
+        /// Whether a security-aware resolver validated this answer
+        /// (RFC 4035 §3.2.3, "Authentic Data").
+        /// </summary>
+        /// <remarks>
+        /// The verdict of somebody else's validator, and worth exactly as much as
+        /// the channel it arrived over: RFC 6840 §5.7 says a stub may trust the
+        /// bit only when it trusts the path to the resolver, which is what a DoT
+        /// or DoH client is for. It is reported here rather than acted on — what
+        /// to make of it is the caller's decision, and Hermod carries a validator
+        /// of its own for callers who would rather not decide.
+        /// </remarks>
+        public Boolean                          AuthenticData         { get; }
+
+        /// <summary>
+        /// Whether the sender asked that no validation be done on its behalf
+        /// (RFC 4035 §3.2.2, "Checking Disabled").
+        /// </summary>
+        public Boolean                          CheckingDisabled      { get; }
 
         public DNSResponseCodes                 ResponseCode          { get; }
 
@@ -231,7 +258,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        Boolean                          IsTimeout,
                        TimeSpan                         Timeout,
 
-                       TimeSpan                         Runtime)
+                       TimeSpan                         Runtime,
+
+                       Boolean                          AuthenticData      = false,
+                       Boolean                          CheckingDisabled   = false)
         {
 
             this.Origin               = Origin;
@@ -240,6 +270,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.IsTruncated          = IsTruncated;
             this.RecursionRequested   = RecursionDesired;
             this.RecursionAvailable   = RecursionAvailable;
+            this.AuthenticData        = AuthenticData;
+            this.CheckingDisabled     = CheckingDisabled;
             this.ResponseCode         = ResponseCode;
 
             this.answers              = [.. Answers];
@@ -286,9 +318,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var RD               = (Byte2 & 1) == 1;
 
             var Byte3            = DNSResponseStream.ReadByte();
-            var RA               = (Byte3 & 128) == 128;
-            var Z                = (Byte3 & 1);    //reserved, not used
-            var ResponseCode     = (DNSResponseCodes) (Byte3 & 15);
+            var RA               = (Byte3 & 0x80) != 0;
+            // 0x40 is Z. RFC 1035 §4.1.1 reserves it and RFC 6895 §2 keeps it
+            // reserved, so it is read past rather than acted on — but it has to be
+            // the right bit. The older line took 0x01 for Z, which is the low bit
+            // of the RCODE, and the comment beside it said "reserved, not used".
+            var AD               = (Byte3 & 0x20) != 0;   // RFC 4035 §3.2.3
+            var CD               = (Byte3 & 0x10) != 0;   // RFC 4035 §3.2.2
+            var ResponseCode     = (DNSResponseCodes) (Byte3 & 0x0F);
 
             var QuestionCount    = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
             var AnswerCount      = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
@@ -360,7 +397,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        false,
                        Timeout,
 
-                       Runtime
+                       Runtime,
+
+                       AD,
+                       CD
 
                    );
 
