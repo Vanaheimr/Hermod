@@ -964,11 +964,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     // called "returned HTTP {code}", which credited a resolver
                     // that had said nothing with the client's own 400.
                     if (httpResponse.HTTPStatusCode == HTTPStatusCode.ClientError)
+                    {
+
                         logger.LogWarning(
                             "DNS HTTPS query to {DNSServer} was never answered: {Reason}",
                             DNSServerLabel,
                             httpResponse.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN)
                         );
+
+                        // A query that ran out of its own time is a timeout, and
+                        // every other transport says so. Here the deadline never
+                        // surfaces as an exception — the HTTP layer turns it into
+                        // this statusless response first — so the TimedOut path
+                        // below is unreachable and a caller deciding whether to
+                        // retry was told "failed" for a resolver that was merely
+                        // slow. The distinction is the same one the catch below
+                        // draws: our deadline, not the caller's cancellation.
+                        if (timeoutCTS.IsCancellationRequested &&
+                           !CancellationToken.IsCancellationRequested &&
+                            clientCancellationTokenSource?.IsCancellationRequested != true)
+                        {
+                            return DNSInfo.TimedOut(
+                                       serverConfig,
+                                       dnsQuery.TransactionId,
+                                       effectiveTimeout
+                                   );
+                        }
+
+                    }
 
                     else
                         logger.LogWarning(
