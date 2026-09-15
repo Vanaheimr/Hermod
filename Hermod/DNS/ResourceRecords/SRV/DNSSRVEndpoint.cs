@@ -102,7 +102,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             unchecked
             {
-                hashCode = this.Target.           GetHashCode()  *  3 ^
+                hashCode = this.Target.ToLowerInvariant().
+                                            GetHashCode()  *  3 ^
                            this.Priority.         GetHashCode()  *  5 ^
                            this.Weight.           GetHashCode()  *  7 ^
                            this.Port.             GetHashCode()  * 11 ^
@@ -236,7 +237,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Int32 CompareTo(DNSSRVEndpoint? DNSSRVEndpoint)
         {
 
-            var c = 0;
+            if (DNSSRVEndpoint is null)
+                throw new ArgumentNullException(nameof(DNSSRVEndpoint),
+                                                "The given DNS SRV Endpoint must not be null!");
+
+            // Priority first and weight second, because that is the order RFC
+            // 2782 tries them in: "A client MUST attempt to contact the target
+            // host with the lowest-numbered priority it can reach". Sorting a
+            // list of endpoints therefore puts them in the order the RFC asks a
+            // client to walk, rather than in an order of this type's invention.
+            var c = Priority.CompareTo(DNSSRVEndpoint.Priority);
+
+            if (c == 0)
+                c = Weight.  CompareTo(DNSSRVEndpoint.Weight);
+
+            // And the rest so that the comparison is total: two endpoints that
+            // differ must not compare equal, or every container that orders or
+            // de-duplicates them loses one.
+            if (c == 0)
+                c = String.Compare(Target, DNSSRVEndpoint.Target, StringComparison.OrdinalIgnoreCase);
+
+            if (c == 0)
+                c = Port.    CompareTo(DNSSRVEndpoint.Port);
+
+            if (c == 0)
+                c = TTL.     CompareTo(DNSSRVEndpoint.TTL);
 
             return c;
 
@@ -269,7 +294,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="DNSSRVEndpoint">A DNS SRV Endpoint to compare with.</param>
         public Boolean Equals(DNSSRVEndpoint? DNSSRVEndpoint)
 
-            => false;
+            => DNSSRVEndpoint is not null &&
+
+               // The same seven fields GetHashCode is built from, or two
+               // endpoints can share a bucket and still disagree about being
+               // the same one.
+               String.Equals(Target,
+                             DNSSRVEndpoint.Target,
+                             StringComparison.OrdinalIgnoreCase) &&
+
+               Priority  == DNSSRVEndpoint.Priority  &&
+               Weight    == DNSSRVEndpoint.Weight    &&
+               Port      == DNSSRVEndpoint.Port      &&
+               TTL       == DNSSRVEndpoint.TTL       &&
+               IsHealthy == DNSSRVEndpoint.IsHealthy &&
+
+               ResolvedAddresses.SequenceEqual(DNSSRVEndpoint.ResolvedAddresses);
 
         #endregion
 
