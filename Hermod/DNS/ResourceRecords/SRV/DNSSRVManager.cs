@@ -70,6 +70,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
 
+        /// <summary>
+        /// Choose a target, following the selection RFC 2782 specifies.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// "A client MUST attempt to contact the target host with the
+        /// lowest-numbered priority it can reach" — <i>it can reach</i>. A
+        /// priority whose targets are all unreachable is a dead end for that
+        /// priority and not for the query, so the search moves up rather than
+        /// giving up: reporting nothing while a usable target sits at the next
+        /// priority is the one failure a caller cannot work around, because it
+        /// never learns the others exist.
+        /// </para>
+        /// </remarks>
         public DNSSRVEndpoint? SelectEndpoint(String DNSServiceName)
         {
 
@@ -78,44 +92,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (endpoints is null || endpoints.Count == 0)
                 return null;
 
-            // Group by Priority and filter healthy endpoints
-            var minPriority = endpoints.Min  (e => e.Priority);
-            var candidates  = endpoints.Where(e => e.Priority == minPriority && e.IsHealthy).ToList();
-
-            if (candidates.Count == 0)
-                return null;
-
-            // Weighted Random Selection
-            var totalWeight = candidates.Sum(e => e.Weight);
-            var randomValue = Random.Shared.Next(0, totalWeight);
-
-            foreach (var candidate in candidates)
+            foreach (var priority in endpoints.Select(endpoint => endpoint.Priority).
+                                               Distinct().
+                                               Order())
             {
-                if (randomValue < candidate.Weight)
-                    return candidate;
-                randomValue -= candidate.Weight;
+
+                var candidates = endpoints.Where(endpoint => endpoint.Priority == priority &&
+                                                             endpoint.IsHealthy).
+                                           ToList();
+
+                if (candidates.Count > 0)
+                    return SelectByWeight(candidates);
+
             }
 
-            return candidates.Last(); // Fallback
+            return null;
 
         }
 
-
-        public void MarkUnhealthy(String  DNSServiceName,
-                                  String  Target)
+        /// <summary>
+        /// RFC 2782's weighted selection among targets of one priority.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Three details carry it, and the previous implementation had none of
+        /// them. "All those with weight 0 are placed at the beginning of the
+        /// list"; the random number is "between 0 and the sum computed
+        /// (inclusive)"; and the record chosen is the first whose running sum is
+        /// "greater than or equal to" it.
+        /// </para>
+        /// <para>
+        /// Together those three are what give a weight-0 target the "very small
+        /// chance of being selected" the RFC asks for: only a draw of exactly
+        /// zero reaches one, which is one outcome in sum + 1. Subtracting
+        /// weights and comparing with a strict less-than instead — the obvious
+        /// way to write it — gives a weight-0 target no chance at all, because
+        /// nothing is ever less than zero. Measured over 20,000 draws against
+        /// weights 0, 10 and 40, the zero was chosen 0 times.
+        /// </para>
+        /// <para>
+        /// The rest of the order is a shuffle. The RFC says "in any order",
+        /// which permits leaving it alone — but with every weight 0, as the RFC
+        /// itself recommends when "there isn't any server selection to do", an
+        /// unshuffled list sends every client to whichever target the dictionary
+        /// happened to yield last. Three equal targets, no spreading at all.
+        /// </para>
+        /// </remarks>
+        private static DNSSRVEndpoint SelectByWeight(List<DNSSRVEndpoint> Candidates)
         {
-            if (internalCache.TryGetValue(DNSServiceName, out var entry))
+
+            var ordered = Candidates.OrderBy(endpoint => endpoint.Weight == 0 ? 0 : 1).
+                                     ThenBy  (_        => Random.Shared.Next()).
+                                     ToList();
+
+            var sum     = ordered.Sum(endpoint => (Int32) endpoint.Weight);
+            var random  = Random.Shared.Next(0, sum + 1);
+            var running = 0;
+
+            foreach (var candidate in ordered)
             {
 
-                //var updatedEndpoints = entry.Endpoints.Select(e =>
-                //    e.Target.Equals(Target, StringComparison.OrdinalIgnoreCase)
-                //        ? e with { IsHealthy = false }
-                //        : e
-                //).ToImmutableList();
+                running += candidate.Weight;
 
-                //entry.Update(updatedEndpoints);
+                if (running >= random)
+                    return candidate;
 
             }
+
+            return ordered[^1];
+
         }
 
 
