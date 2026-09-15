@@ -140,14 +140,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static Byte[] ExtractByteArray(Stream DNSStream, UInt32 LengthOfSegment)
         {
 
-            if (LengthOfSegment > 0)
+            if (LengthOfSegment == 0)
+                return [];
+
+            var buffer = new Byte[LengthOfSegment];
+            var total  = 0;
+
+            // Stream.Read may return fewer octets than asked for even when more
+            // are coming, so one call is not a read of LengthOfSegment octets.
+            while (total < buffer.Length)
             {
-                var ByteArray = new Byte[LengthOfSegment];
-                DNSStream.Read(ByteArray, 0, (Int32) LengthOfSegment);
-                return ByteArray;
+
+                var read = DNSStream.Read(buffer, total, buffer.Length - total);
+
+                if (read == 0)
+                    break;
+
+                total += read;
+
             }
 
-            return [];
+            // And what did not arrive is not a zero. Returning the full-length
+            // array would complete a truncated record with octets the wire never
+            // carried, and every length check downstream would then be satisfied
+            // by the padding rather than by the data — which is how RFC 4255
+            // §3.1.3's twenty octets were being met by two.
+            //
+            // Returning what actually arrived lets each record type decide:
+            // those with a fixed field width refuse the record, those that guard
+            // on a minimum length degrade as they were written to. Throwing here
+            // would cost every record behind this one instead (finding 21).
+            return total == buffer.Length
+                       ? buffer
+                       : buffer[..total];
 
         }
 
