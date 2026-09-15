@@ -389,9 +389,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             try
             {
 
-                if (TryParseQuotedStrings(Data, out var quotedStrings) && quotedStrings.Count > 1)
+                // Whenever the text is quoted, it is read by the reader that knows
+                // what a quote and a backslash mean. That used to be true only for
+                // two or more character-strings, and one is the common case: every
+                // SPF, DKIM and DMARC record is a single quoted string, and each of
+                // them arrived with its RFC 1035 §5.1 escapes still in the data.
+                if (TryParseQuotedStrings(Data, out var quotedStrings))
                     return new TXT(Name, DNSQueryClasses.IN, TimeToLive, quotedStrings);
 
+                // Unquoted, it is one character-string that cannot contain a blank,
+                // so there is nothing to unescape and nothing to split on.
                 return new TXT(Name, DNSQueryClasses.IN, TimeToLive, Data.Trim('"'));
 
             }
@@ -537,36 +544,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var strings   = new List<String>();
             var current   = new StringBuilder();
             var inString  = false;
-            var escaped   = false;
 
-            foreach (var character in text)
+            for (var i = 0; i < text.Length; i++)
             {
+
+                var character = text[i];
 
                 if (inString)
                 {
 
-                    if (escaped)
+                    if (character == '\\')
                     {
-                        current.Append(character);
-                        escaped = false;
+
+                        // RFC 1035 §5.1: "\DDD where each D is a digit is the octet
+                        // corresponding to the decimal number described by DDD. The
+                        // resulting octet is assumed to be text and is not checked
+                        // for special meaning." Three digits or none: a backslash
+                        // followed by one or two digits is the other form.
+                        if (i + 3 < text.Length &&
+                            Char.IsAsciiDigit(text[i + 1]) &&
+                            Char.IsAsciiDigit(text[i + 2]) &&
+                            Char.IsAsciiDigit(text[i + 3]))
+                        {
+
+                            var value = (text[i + 1] - '0') * 100 +
+                                        (text[i + 2] - '0') *  10 +
+                                        (text[i + 3] - '0');
+
+                            if (value > 255)
+                                return false;
+
+                            current.Append((Char) value);
+                            i += 3;
+                            continue;
+
+                        }
+
+                        // "\X where X is any character other than a digit (0-9), is
+                        // used to quote that character so that its special meaning
+                        // does not apply." A backslash at the very end quotes
+                        // nothing, and a character-string that ends in one is not
+                        // one this reader can finish.
+                        if (i + 1 >= text.Length)
+                            return false;
+
+                        current.Append(text[i + 1]);
+                        i++;
+                        continue;
+
                     }
 
-                    else if (character == '\\')
-                        escaped = true;
-
-                    else if (character == '"')
+                    if (character == '"')
                     {
                         strings.Add(current.ToString());
                         current.Clear();
                         inString = false;
+                        continue;
                     }
 
-                    else
-                        current.Append(character);
+                    current.Append(character);
+                    continue;
 
                 }
 
-                else if (character == '"')
+                if (character == '"')
                     inString = true;
 
                 else if (!Char.IsWhiteSpace(character))

@@ -284,8 +284,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (private static) TryParseTypeCovered(Text, out TypeCovered)
 
-        private static Boolean TryParseTypeCovered(String                       Text,
-                                                   out DNSResourceRecordTypes  TypeCovered)
+        internal static Boolean TryParseTypeCovered(String                       Text,
+                                                    out DNSResourceRecordTypes  TypeCovered)
         {
 
             if (Enum.TryParse(Text, true, out TypeCovered) &&
@@ -320,7 +320,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
             var expiration = DateTimeOffset.FromUnixTimeSeconds(SignatureExpiration).UtcDateTime.ToString("yyyyMMddHHmmss");
             var inception  = DateTimeOffset.FromUnixTimeSeconds(SignatureInception).UtcDateTime.ToString("yyyyMMddHHmmss");
-            return $"{TypeCovered} {Algorithm} {Labels} {OriginalTTL} {expiration} {inception} {KeyTag} {SignerName} {Convert.ToBase64String(Signature)}";
+            // RFC 4034 §3.2: "The Type Covered field is represented as an RR type
+            // mnemonic. When the mnemonic is not known, the TYPE representation as
+            // described in [RFC3597], Section 5, MUST be used." TypeName is that
+            // rule, and the record header two lines up has always used it.
+            return $"{TypeName(TypeCovered)} {Algorithm} {Labels} {OriginalTTL} {expiration} {inception} {KeyTag} {SignerName} {Convert.ToBase64String(Signature)}";
         }
 
         #endregion

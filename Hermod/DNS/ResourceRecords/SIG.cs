@@ -262,11 +262,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (parts.Length < 9)
                     return null;
 
-                if (!Enum.TryParse<DNSResourceRecordTypes>(parts[0], true, out var typeCovered) &&
-                    !(parts[0] == "0" || parts[0].Equals("TYPE0", StringComparison.OrdinalIgnoreCase)))
-                {
+                // One reader for both signature types. RFC 2535 §7.2 gives SIG the
+                // presentation format RFC 4034 §3.2 later gave RRSIG, so a
+                // second copy of the rule is only a second place for it to be wrong:
+                // this one knew the mnemonics and TYPE0, and refused every other
+                // RFC 3597 §5 spelling it had to accept.
+                if (!RRSIG.TryParseTypeCovered(parts[0], out var typeCovered))
                     return null;
-                }
 
                 // RFC 2535 §4.4, and the reason a SIG could not be read back from
                 // the line it had just written: fourteen digits do not fit in a
@@ -312,9 +314,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var expiration = DateTimeOffset.FromUnixTimeSeconds(SignatureExpiration).UtcDateTime.ToString("yyyyMMddHHmmss");
             var inception  = DateTimeOffset.FromUnixTimeSeconds(SignatureInception). UtcDateTime.ToString("yyyyMMddHHmmss");
 
-            var covered    = IsTransactionSignature
-                                 ? "TYPE0"
-                                 : TypeCovered.ToString();
+            // RFC 2535 §7.2 gives SIG the same presentation as RRSIG, so the same
+            // rule applies: a mnemonic when there is one, and RFC 3597 §5's
+            // TYPE + decimal when there is not. Type 0 has no mnemonic, so SIG(0)
+            // comes out as TYPE0 without needing a case of its own.
+            var covered    = TypeName(TypeCovered);
 
             return $"{covered} {Algorithm} {Labels} {OriginalTTL} {expiration} {inception} {KeyTag} {SignerName} {Convert.ToBase64String(Signature)}";
 
