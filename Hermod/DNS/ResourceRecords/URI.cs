@@ -189,8 +189,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          UInt16  RDLength)
         {
 
-            if (RDLength < 4)
-                throw new InvalidDataException($"URI RDATA of {RDLength} bytes is too short for Priority and Weight!");
+            // RFC 7553 §4.5: "The length of the Target field MUST be greater than
+            // zero", and §4.4 that the Target "MUST NOT be an empty URI" — so an
+            // RDLENGTH of exactly four, Priority and Weight with nothing behind
+            // them, is the one length this type may never have. The empty string
+            // was refused one line below already, by a URL parser that happens not
+            // to take it; saying it here states the rule rather than leaning on
+            // that. No record changes hands differently for it.
+            if (RDLength < 5)
+                throw new InvalidDataException($"URI RDATA of {RDLength} bytes leaves nothing for the target, which RFC 7553 §4.5 requires to be at least one octet!");
 
             var buffer = new Byte[RDLength - 4];
             Stream.ReadExactly(buffer, 0, buffer.Length);
