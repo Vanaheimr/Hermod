@@ -404,53 +404,101 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             await TCPStream.WriteAsync(Data, CancellationToken).ConfigureAwait(false);
             await TCPStream.FlushAsync(CancellationToken).      ConfigureAwait(false);
 
-            var responseLength = await TCPStream.ReadUInt16BEAsync(CancellationToken).
-                                                 ConfigureAwait(false);
-
-            // DNS header requires at least 12 bytes
-            if (responseLength < 12)
-                return DNSInfo.Failed(
-                           OriginOf(EffectiveTimeout),
-                           DNSQuery.TransactionId,
-                           EffectiveTimeout
-                       );
-
-            var buffer    = new Byte[responseLength];
-            var totalRead = 0;
-
-            while (totalRead < responseLength)
+            // RFC 7766 §7: "Stub and recursive resolvers MUST be able to process
+            // responses that arrive in a different order than that in which the
+            // requests were sent, regardless of the transport protocol in use."
+            //
+            // On a reused connection the message waiting here need not be ours:
+            // a query that timed out is still answered, and that answer arrives
+            // on the next read. Returning it — even as a failure — leaves the
+            // stream one message behind for good. So a message that does not
+            // match is skipped and the next one read, which is the reaction the
+            // UDP client got in finding 49 and this one did not. The loop is
+            // bounded by the same cancellation token as a single read, so a
+            // server that sends nothing matching costs exactly one timeout.
+            while (true)
             {
 
-                var bytesRead = await TCPStream.ReadAsync(
-                                          buffer.AsMemory(totalRead, responseLength - totalRead),
-                                          CancellationToken
-                                      ).ConfigureAwait(false);
+                var responseLength = await TCPStream.ReadUInt16BEAsync(CancellationToken).
+                                                     ConfigureAwait(false);
 
-                if (bytesRead == 0)
-                    break;
+                // From the first octet of the body onwards the frame boundary is
+                // only known for as long as exactly responseLength octets are
+                // consumed. Giving up in the middle loses it, and nothing repairs
+                // a stream whose boundary is unknown — no matching rule can, since
+                // every later read starts mid-message. The connection goes instead;
+                // the next query opens a fresh one, which costs a round trip and is
+                // the only honest answer.
+                var buffer    = new Byte[responseLength];
+                var totalRead = 0;
 
-                totalRead += bytesRead;
+                try
+                {
+
+                    while (totalRead < responseLength)
+                    {
+
+                        var bytesRead = await TCPStream.ReadAsync(
+                                                  buffer.AsMemory(totalRead, responseLength - totalRead),
+                                                  CancellationToken
+                                              ).ConfigureAwait(false);
+
+                        if (bytesRead == 0)
+                        {
+
+                            await CloseConnection().ConfigureAwait(false);
+
+                            return DNSInfo.Failed(
+                                       OriginOf(EffectiveTimeout),
+                                       DNSQuery.TransactionId,
+                                       EffectiveTimeout
+                                   );
+
+                        }
+
+                        totalRead += bytesRead;
+
+                    }
+
+                }
+                catch
+                {
+                    await CloseConnection().ConfigureAwait(false);
+                    throw;
+                }
+
+                // A length below the 12-octet header cannot be a DNS message —
+                // but its octets are part of the framing and have now been read,
+                // so the stream is still aligned and the next message can follow.
+                if (responseLength < 12)
+                    continue;
+
+                var response = DNSInfo.ReadResponse(
+                                   OriginOf(EffectiveTimeout),
+                                   DNSQuery.TransactionId,
+                                   DNSQuery.Questions,
+                                   new MemoryStream(buffer, 0, totalRead),
+                                   EffectiveTimeout,
+                                   stopwatch.Elapsed
+                               );
+
+                // Not ours — RFC 7766 §7's other half, the matching rule, said so.
+                // Keep waiting rather than hand the caller somebody else's answer,
+                // or a failure that the real answer would have contradicted.
+                if (!response.IsValid)
+                    continue;
+
+                // RFC 7828 §3.2.2, both halves: record what the server advertised,
+                // drop the connection at once on a TIMEOUT of 0, and otherwise restart
+                // the idle clock so the connection does not outlive the timeout it was
+                // given. Nothing else has to change for either — every query begins by
+                // reconnecting when IsConnected is false, so the next one opens a fresh
+                // connection on its own.
+                await keepalive.ApplyAsync(response).ConfigureAwait(false);
+
+                return response;
 
             }
-
-            var response = DNSInfo.ReadResponse(
-                               OriginOf(EffectiveTimeout),
-                               DNSQuery.TransactionId,
-                               DNSQuery.Questions,
-                               new MemoryStream(buffer, 0, totalRead),
-                               EffectiveTimeout,
-                               stopwatch.Elapsed
-                           );
-
-            // RFC 7828 §3.2.2, both halves: record what the server advertised,
-            // drop the connection at once on a TIMEOUT of 0, and otherwise restart
-            // the idle clock so the connection does not outlive the timeout it was
-            // given. Nothing else has to change for either — every query begins by
-            // reconnecting when IsConnected is false, so the next one opens a fresh
-            // connection on its own.
-            await keepalive.ApplyAsync(response).ConfigureAwait(false);
-
-            return response;
 
         }
 

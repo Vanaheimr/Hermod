@@ -648,68 +648,106 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             await TLSStream.WriteAsync(Data, CancellationToken).ConfigureAwait(false);
             await TLSStream.FlushAsync(CancellationToken).      ConfigureAwait(false);
 
-            var responseLength = await TLSStream.ReadUInt16BEAsync(CancellationToken).
-                                                  ConfigureAwait(false);
-
-            // DNS header requires at least 12 bytes
-            if (responseLength < 12)
-                return DNSInfo.Failed(
-                           OriginOf(EffectiveTimeout),
-                           DNSQuery.TransactionId,
-                           EffectiveTimeout
-                       );
-
-            var buffer    = new Byte[responseLength];
-            var totalRead = 0;
-
-            while (totalRead < responseLength)
+            // RFC 7766 §7: "Stub and recursive resolvers MUST be able to process
+            // responses that arrive in a different order than that in which the
+            // requests were sent, regardless of the transport protocol in use."
+            // §7 says "regardless of the transport protocol", and RFC 7858 §3.3
+            // puts DoT on RFC 7766's framing, so this stream is the same stream:
+            // an answer to a query that already timed out is waiting here, and
+            // returning it leaves the session one message behind for good.
+            while (true)
             {
 
-                var bytesRead = await TLSStream.ReadAsync(
-                                          buffer.AsMemory(totalRead, responseLength - totalRead),
-                                          CancellationToken
-                                      ).ConfigureAwait(false);
+                var responseLength = await TLSStream.ReadUInt16BEAsync(CancellationToken).
+                                                      ConfigureAwait(false);
 
-                if (bytesRead == 0)
-                    break;
+                // From the first octet of the body onwards the frame boundary is
+                // only known for as long as exactly responseLength octets are
+                // consumed. Giving up in the middle loses it, and nothing repairs
+                // a stream whose boundary is unknown. The session goes instead.
+                var buffer    = new Byte[responseLength];
+                var totalRead = 0;
 
-                totalRead += bytesRead;
+                try
+                {
+
+                    while (totalRead < responseLength)
+                    {
+
+                        var bytesRead = await TLSStream.ReadAsync(
+                                                  buffer.AsMemory(totalRead, responseLength - totalRead),
+                                                  CancellationToken
+                                              ).ConfigureAwait(false);
+
+                        if (bytesRead == 0)
+                        {
+
+                            await CloseConnection().ConfigureAwait(false);
+
+                            return DNSInfo.Failed(
+                                       OriginOf(EffectiveTimeout),
+                                       DNSQuery.TransactionId,
+                                       EffectiveTimeout
+                                   );
+
+                        }
+
+                        totalRead += bytesRead;
+
+                    }
+
+                }
+                catch
+                {
+                    await CloseConnection().ConfigureAwait(false);
+                    throw;
+                }
+
+                // A length below the 12-octet header cannot be a DNS message —
+                // but its octets are part of the framing and have now been read,
+                // so the stream is still aligned and the next message can follow.
+                if (responseLength < 12)
+                    continue;
+
+                var body = buffer[..totalRead];
+
+                // RFC 8945 §5.4 does not merely permit waiting here, it asks for
+                // it: "the client SHOULD log an error and continue to wait for a
+                // signed response until the request times out". Returning a
+                // failure instead ends the request on a message the specification
+                // says to treat as though it had not arrived — and on a reused
+                // stream that message is often the answer to a query that already
+                // timed out, whose MAC folds in a different request's.
+                if (!TransactionSecurity.TryAcceptResponse(ref body, RequestMAC, SignedQuery, out var reason))
+                {
+                    await Log($"Discarding a DoT response from {DNSServerLabel} that failed transaction-signature verification: {reason}");
+                    continue;
+                }
+
+                var response = DNSInfo.ReadResponse(
+                                   OriginOf(EffectiveTimeout),
+                                   DNSQuery.TransactionId,
+                                   DNSQuery.Questions,
+                                   new MemoryStream(body),
+                                   EffectiveTimeout,
+                                   stopwatch.Elapsed
+                               );
+
+                // Not ours — RFC 7766 §7's other half, the matching rule, said so.
+                if (!response.IsValid)
+                    continue;
+
+                // RFC 7828 §3.2.2, both halves: record what the server advertised,
+                // drop the session at once on a TIMEOUT of 0, and otherwise restart
+                // the idle clock so the session does not outlive the timeout it was
+                // given. Nothing else has to change for either — every query begins
+                // by reconnecting when IsConnected is false, so the next one opens a
+                // fresh TLS session on its own.
+                await keepalive.ApplyAsync(response).ConfigureAwait(false);
+
+                return response;
 
             }
-
-            var body = buffer[..totalRead];
-
-            if (!TransactionSecurity.TryAcceptResponse(ref body, RequestMAC, SignedQuery, out var reason))
-            {
-
-                await Log($"Discarding a DoT response from {DNSServerLabel} that failed transaction-signature verification: {reason}");
-
-                return DNSInfo.Failed(
-                           OriginOf(EffectiveTimeout),
-                           DNSQuery.TransactionId,
-                           EffectiveTimeout
-                       );
-
-            }
-
-            var response = DNSInfo.ReadResponse(
-                               OriginOf(EffectiveTimeout),
-                               DNSQuery.TransactionId,
-                               DNSQuery.Questions,
-                               new MemoryStream(body),
-                               EffectiveTimeout,
-                               stopwatch.Elapsed
-                           );
-
-            // RFC 7828 §3.2.2, both halves: record what the server advertised,
-            // drop the session at once on a TIMEOUT of 0, and otherwise restart
-            // the idle clock so the session does not outlive the timeout it was
-            // given. Nothing else has to change for either — every query begins
-            // by reconnecting when IsConnected is false, so the next one opens a
-            // fresh TLS session on its own.
-            await keepalive.ApplyAsync(response).ConfigureAwait(false);
-
-            return response;
 
         }
 
