@@ -30,11 +30,13 @@ using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Operators;
 using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math.EC.Multiplier;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Pqc.Crypto.Falcon;
 using Org.BouncyCastle.Asn1.Pkcs;
 
-using BCx509 = Org.BouncyCastle.X509;
+using BCx509      = Org.BouncyCastle.X509;
+using dotNetX509 = System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -596,6 +598,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #endregion
 
+
+        #region (static) PublicKeyOf                       (PrivateKey)
+
+        /// <summary>
+        /// The public half of a private key, whatever kind it is.
+        /// </summary>
+        /// <remarks>
+        /// Bouncy Castle has no one method for this: an RSA private key carries
+        /// the modulus and exponent that make up the public one, an elliptic
+        /// curve key is a scalar that has to be multiplied by the generator,
+        /// and the newer kinds simply hand theirs over. So one branch each, and
+        /// a sentence rather than a silent null for anything else.
+        /// </remarks>
+        public static AsymmetricKeyParameter PublicKeyOf(AsymmetricKeyParameter PrivateKey)
+
+            => PrivateKey switch {
+
+                   RsaPrivateCrtKeyParameters rsa
+                       => new RsaKeyParameters(false, rsa.Modulus, rsa.PublicExponent),
+
+                   ECPrivateKeyParameters ec
+                       => new ECPublicKeyParameters(
+                              ec.AlgorithmName,
+                              new FixedPointCombMultiplier().Multiply(ec.Parameters.G, ec.D),
+                              ec.Parameters
+                          ),
+
+                   Ed25519PrivateKeyParameters ed25519  => ed25519.GeneratePublicKey(),
+                   Ed448PrivateKeyParameters   ed448    => ed448.  GeneratePublicKey(),
+                   MLDsaPrivateKeyParameters   mldsa    => mldsa.  GetPublicKey(),
+                   SlhDsaPrivateKeyParameters  slhdsa   => slhdsa. GetPublicKey(),
+
+                   _ => throw new NotSupportedException($"{PrivateKey.GetType().Name} is not a private key this factory knows how to read!")
+
+               };
+
+        #endregion
+
+        #region (static) WithPrivateKey                    (Certificate, PrivateKey)
+
+        /// <summary>
+        /// A certificate with its private key attached, in a form the platform
+        /// can actually present.
+        /// </summary>
+        /// <remarks>
+        /// Through PKCS#12, and built by Bouncy Castle rather than by .NET: a
+        /// certificate whose key was attached in memory is handed to the
+        /// platform's TLS stack without one, and .NET has no key object at all
+        /// for an Ed448 or an ML-DSA key to attach. Bouncy Castle can write
+        /// every one of them into a PKCS#12 blob, and loading that back is the
+        /// one door every kind of key goes through.
+        ///
+        /// It throws where the platform will not take the result - which is
+        /// information about the platform rather than a fault, and worth
+        /// catching and keeping rather than passing on.
+        /// </remarks>
+        public static dotNetX509.X509Certificate2 WithPrivateKey(dotNetX509.X509Certificate2  Certificate,
+                                                                 AsymmetricKeyParameter       PrivateKey)
+        {
+
+            var store       = new Pkcs12StoreBuilder().Build();
+            var bouncy      = new BCx509.X509CertificateParser().ReadCertificate(Certificate.RawData);
+            var entry       = new X509CertificateEntry(bouncy);
+
+            store.SetCertificateEntry(bouncy.SubjectDN.ToString(), entry);
+            store.SetKeyEntry        (bouncy.SubjectDN.ToString(), new AsymmetricKeyEntry(PrivateKey), [ entry ]);
+
+            using var blob  = new MemoryStream();
+
+            var password    = Guid.NewGuid().ToString("N");
+
+            store.Save(blob, password.ToCharArray(), new SecureRandom());
+
+            return dotNetX509.X509CertificateLoader.LoadPkcs12(
+                       blob.ToArray(),
+                       password,
+                       dotNetX509.X509KeyStorageFlags.Exportable
+                   );
+
+        }
+
+        #endregion
 
         #region (static) GenerateCertificateSigningRequest (KeyPair, Subject, Algorithm, ReachableAs = null, For = null)
 

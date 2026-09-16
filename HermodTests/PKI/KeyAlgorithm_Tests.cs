@@ -24,6 +24,10 @@ using Org.BouncyCastle.Asn1.Pkcs;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.OpenSsl;
 using Org.BouncyCastle.Pkcs;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.X509;
+
+using dotNetX509 = System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Hermod.PKI;
 
@@ -268,6 +272,118 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                 Assert.That(asClient.HasKeyPurposeId(KeyPurposeID.id_kp_serverAuth), Is.False,
                             "A request for a client certificate also asked to be a server.");
             });
+
+        }
+
+        #endregion
+
+        #region EveryPrivateKeyGivesItsPublicHalfBack(Algorithm)
+
+        /// <summary>
+        /// A key read back off a disk is a private key, and everything else
+        /// about an entry is derived from the public half of it.
+        /// </summary>
+        /// <remarks>
+        /// Bouncy Castle has no one method for this - an elliptic curve key has
+        /// to be multiplied out, the newer kinds simply hand theirs over - so
+        /// it is one branch per kind, and this is what says none of them is
+        /// missing.
+        /// </remarks>
+        [Test]
+        [TestCaseSource(nameof(EveryAlgorithm))]
+        public void EveryPrivateKeyGivesItsPublicHalfBack(String Algorithm)
+        {
+
+            var pair    = KeyAlgorithm.Find(Algorithm)!.Generate();
+
+            var derived = PKIFactory.PublicKeyOf(pair.Private);
+
+            Assert.That(SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(derived).GetDerEncoded(),
+                        Is.EqualTo(SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(pair.Public).GetDerEncoded()),
+                        "The public half derived from the private key is not the one it was generated with.");
+
+        }
+
+        #endregion
+
+        #region WhatThisPlatformCanHoldUp()
+
+        /// <summary>
+        /// What this machine can actually serve, found out rather than claimed
+        /// - and written into the test output, because the answer belongs to
+        /// the machine and to the year.
+        /// </summary>
+        /// <remarks>
+        /// The whole way round, because a shortcut answers a different
+        /// question: a key, a signing request, a certificate authority that
+        /// signs it, and then the certificate held up in a handshake.
+        ///
+        /// Nothing is asserted about the newer algorithms: a platform that
+        /// refuses an Ed448 certificate today may serve it after an update, and
+        /// a test that demanded one would fail on somebody else's machine for
+        /// no fault of theirs. What is asserted is the one that must work,
+        /// because everything else rests on the probe being able to answer yes
+        /// at all - a probe that always said no would quietly mark every
+        /// algorithm unusable.
+        ///
+        /// It also writes down what this library's own certificate authority
+        /// could not sign, which at the time of writing is every subject key
+        /// that is not an elliptic curve one.
+        /// </remarks>
+        [Test]
+        public void WhatThisPlatformCanHoldUp()
+        {
+
+            // One ordinary certificate authority to sign with, of the kind
+            // every platform understands.
+            var caKeyPair      = KeyAlgorithm.Find("ecdsa-p256")!.Generate();
+            var caCertificate  = PKIFactory.CreateRootCACertificate(
+                                     RootKeyPair:  caKeyPair,
+                                     SubjectName:  "Hermod probe CA"
+                                 );
+
+            var found = new List<String>();
+
+            foreach (var algorithm in KeyAlgorithm.All)
+            {
+
+                var pair = algorithm.Generate();
+
+                try
+                {
+
+                    var signed = PKIFactory.SignServerCertificate(
+                                     PKIFactory.GenerateCertificateSigningRequest(
+                                         pair,
+                                         new X509Name("CN=probe.example.org"),
+                                         algorithm,
+                                         [ "probe.example.org", "127.0.0.1" ]
+                                     ),
+                                     caKeyPair.Private,
+                                     caCertificate
+                                 );
+
+                    var usable = PKIFactory.WithPrivateKey(
+                                     dotNetX509.X509CertificateLoader.LoadCertificate(signed.GetEncoded()),
+                                     pair.Private
+                                 );
+
+                    found.Add($"  {algorithm.Id,-20}  {(KeyAlgorithm.CanBePresented(algorithm.Id, usable) ? "served" : "not served here")}");
+
+                }
+                catch (Exception e)
+                {
+                    found.Add($"  {algorithm.Id,-20}  got no further than {e.GetType().Name}");
+                }
+
+            }
+
+            TestContext.Out.WriteLine("What this machine can hold up:");
+            foreach (var line in found)
+                TestContext.Out.WriteLine(line);
+
+            Assert.That(KeyAlgorithm.Find("ecdsa-p256")!.KnownToBePresentable, Is.True,
+                        "A P-256 certificate could not be served here, so the probe is not answering.");
 
         }
 
