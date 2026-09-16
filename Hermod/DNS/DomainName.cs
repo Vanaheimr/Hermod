@@ -417,9 +417,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!Text.EndsWith('.'))
                 Text += ".";
 
-            if (Text.Length > 255)
+            // RFC 1035 §2.3.4: "names 255 octets or less". The octets are the wire form
+            // of §3.1 — a length octet and its label for every label, plus the zero octet
+            // of the root — and not the characters of the presentation form. Text ends in
+            // the root dot by now, so each label's separating dot stands for that label's
+            // length octet and the wire form is exactly one octet longer than the text:
+            // the octet the root contributes. Labels are ASCII here, because the regex
+            // below accepts nothing else, so a character is an octet.
+            //
+            // The regex carries a length lookahead of its own, but it is applied to the
+            // name with a leading wildcard label already removed, and so measures two
+            // octets too few for exactly the names TryParseLenient exists to accept.
+            if (Text.Length + 1 > 255)
             {
-                ErrorResponse = "The given domain name exceeds maximum length of 255 characters!";
+                ErrorResponse = "The given domain name exceeds the maximum wire length of 255 octets!";
                 return false;
             }
 
