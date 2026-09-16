@@ -60,7 +60,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         private          readonly  TcpListener?                               tcpListenerIPv6;
         private          readonly  TcpListener?                               tcpListenerIPv4;
         private          readonly  TCPEchoLoggingDelegate?                    loggingHandler;
-        private          readonly  CancellationTokenSource                    cts;
+        /// <summary>
+        /// What stops the accept loop. Not readonly, because a server that was
+        /// stopped can be started again and a cancelled
+        /// <see cref="CancellationTokenSource"/> cannot be un-cancelled - see
+        /// <see cref="Start"/>.
+        /// </summary>
+        private                     CancellationTokenSource                    cts;
         private                    Task?                                      serverTask;
         private          readonly  SemaphoreSlim                              connectionSlots;
 
@@ -629,6 +635,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
+
+            #region A server that was stopped can be started again
+
+            // Stop() cancels the token, and a cancelled one stays cancelled -
+            // so without this the listener below would bind its socket and the
+            // accept loop would leave again on its first line, giving a server
+            // that holds a port and answers nothing. Replaced rather than
+            // reset, because that is the only way a CancellationTokenSource
+            // goes back to not being cancelled.
+            if (cts.IsCancellationRequested)
+            {
+                var spent = cts;
+                cts = new CancellationTokenSource();
+                spent.Dispose();
+            }
+
+            #endregion
 
             try
             {

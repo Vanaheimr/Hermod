@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -1278,7 +1278,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                                  token2))).
                                                                                                    ConfigureAwait(false);
 
-                                                                httpResponse = httpResponseTasks.FirstOrDefault();
+                                                                // The first refusal, and not the first answer: a server
+                                                                // built on this one registers a validator of its own in
+                                                                // its constructor, so it is always asked first, and
+                                                                // taking its "null, go ahead" as the verdict made every
+                                                                // validator added afterwards decorative - a second lock
+                                                                // fitted to the door and never engaged.
+                                                                httpResponse = httpResponseTasks.FirstOrDefault(response => response is not null);
 
                                                             }
 
