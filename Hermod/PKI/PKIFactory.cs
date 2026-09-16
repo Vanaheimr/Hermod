@@ -89,15 +89,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #region (static) SelectSignatureAlgorithm (SigningKey)
 
-        private static String SelectSignatureAlgorithm(//AsymmetricKeyParameter  SigningKey,
-                                                       AsymmetricKeyParameter  SigningKey)
+        /// <summary>
+        /// Which signature the key that does the signing makes.
+        /// </summary>
+        /// <remarks>
+        /// The key meant here is the one that signs - the issuer's. Handing the
+        /// subject's key in instead picks a signature the issuer cannot make,
+        /// and Bouncy Castle then complains a long way from the mistake:
+        /// "Not an RSA key", or a cast that fails on a type nobody at the call
+        /// site named.
+        ///
+        /// Either half will do. Every branch here asks what family the key
+        /// belongs to and how strong it is, and both halves carry that: RSA
+        /// keeps both in one class, an elliptic curve key of either half knows
+        /// its curve, and the newer kinds know their parameter set. So nothing
+        /// has to be converted - and in particular no elliptic curve point has
+        /// to be multiplied - merely to find out what to call the signature.
+        /// </remarks>
+        private static String SelectSignatureAlgorithm(AsymmetricKeyParameter SigningKey)
         {
 
             // --- EdDSA (RFC 8032 / 8410 names) ---
-            if (SigningKey is Ed25519PublicKeyParameters)
+            if (SigningKey is Ed25519PublicKeyParameters or Ed25519PrivateKeyParameters)
                 return "Ed25519";   // pure Ed25519
 
-            if (SigningKey is Ed448PublicKeyParameters)
+            if (SigningKey is Ed448PublicKeyParameters   or Ed448PrivateKeyParameters)
                 return "Ed448";     // pure Ed448
 
 
@@ -114,11 +130,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
             }
 
-            if (SigningKey is ECPublicKeyParameters ecPrivateKey)
+            if (SigningKey is ECKeyParameters ecKey)
             {
 
                 // Pick hash by elliptic curve strength
-                var fieldSize = ecPrivateKey.Parameters.Curve.FieldSize;
+                var fieldSize = ecKey.Parameters.Curve.FieldSize;
 
                 if      (fieldSize >= 521)  return "SHA512WITHECDSA";
                 else if (fieldSize >= 384)  return "SHA384WITHECDSA";
@@ -126,10 +142,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
             }
 
-            if (SigningKey is MLDsaPublicKeyParameters mlDSAPrivateKey)
+            if (SigningKey is MLDsaKeyParameters mlDSAKey)
             {
 
-                var parameters = mlDSAPrivateKey.Parameters;
+                var parameters = mlDSAKey.Parameters;
 
                 if (parameters == MLDsaParameters.ml_dsa_44)
                     return "ML-DSA-44";   // ~128-bit security (NIST Level 1)
@@ -142,10 +158,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
             }
 
-            if (SigningKey is MLKemPublicKeyParameters mlKEMPrivateKey)
-                throw new NotSupportedException("ML-KEM keys cannot sign X.509 certificates. Use a signature-capable issuer key (RSA/ECDSA/Ed25519/Ed448/ML-DSA)!");
+            // FIPS 205. The parameter set names itself, and it is the name
+            // Bouncy Castle registers its signer under, so there is nothing to
+            // map: a table here would only be a second place to forget one of
+            // the twelve.
+            if (SigningKey is SlhDsaKeyParameters slhDSAKey)
+                return slhDSAKey.Parameters.Name.ToUpperInvariant();
 
-            throw new ArgumentException("Unknown signing key type!");
+            if (SigningKey is MLKemKeyParameters)
+                throw new NotSupportedException("ML-KEM keys cannot sign X.509 certificates. Use a signature-capable issuer key (RSA/ECDSA/Ed25519/Ed448/ML-DSA/SLH-DSA)!");
+
+            throw new ArgumentException($"{SigningKey.GetType().Name} is not a key this factory knows how to sign with!");
 
         }
 
@@ -1615,10 +1638,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
             #endregion
 
 
+            // The signature belongs to the issuer, so the issuer's key decides
+            // which signature it is. Choosing it from the subject's key instead
+            // works only while the two happen to be of the same kind - and a
+            // root CA signs itself, which is precisely the case where they
+            // always are. That is what kept this quiet.
+            var signingKey  = Issuer?.Item1
+                                  ?? throw new ArgumentException("A certificate cannot be signed without the signing key of its issuer!");
+
             return certGen.Generate(
                 new Asn1SignatureFactory(
-                    SelectSignatureAlgorithm(SubjectPublicKey),
-                    Issuer?.Item1,
+                    SelectSignatureAlgorithm(signingKey),
+                    signingKey,
                     new SecureRandom()
                 )
             );
