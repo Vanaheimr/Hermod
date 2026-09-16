@@ -17134,13 +17134,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Change the password of the given enumeration of users.
         /// </summary>
+        /// <remarks>
+        /// Unlike the single-user overload, this one does not ask for the
+        /// current password and sets the new one whatever was there before.
+        /// That is what an administrator resetting somebody else's password
+        /// needs, because they do not know the old one - which is why calling
+        /// this for one user is not the same thing as calling the overload
+        /// above it.
+        /// </remarks>
         /// <param name="Users">An enumeration of users.</param>
         /// <param name="NewPassword">The new password of the user.</param>
         /// <param name="CurrentPassword">The optional current password of the user.</param>
         /// <param name="SuppressNotifications">Do not send 'Password changed e-mails'.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
-        public async Task<ChangePasswordResult> ChangePassword(IEnumerable<User>  Users,
+        public async Task<ChangePasswordResult> ChangePassword(IEnumerable<IUser>  Users,
                                                                String             NewPassword,
                                                                String?            CurrentPassword         = null,
                                                                Boolean            SuppressNotifications   = false,
