@@ -144,6 +144,78 @@ public sealed class SunSpecMeterDevice : ASunSpecDeviceBase
     }
 
     /// <summary>
+    /// What the two energy counters stand at, as the registers hold them:
+    /// raw, unscaled, and with the scale factor that gives them meaning.
+    /// </summary>
+    /// <remarks>
+    /// For a host that keeps these across a restart. A real meter's energy
+    /// register is monotonic and survives losing power - that is most of what
+    /// makes it a meter rather than a sensor - and a simulation that starts at
+    /// zero every time it comes up cannot be used to exercise anything that
+    /// spans a restart: a charging session, a rollover, a bill.
+    ///
+    /// Raw rather than scaled, because the scale factor is what makes the
+    /// number mean something and a host writing one down without the other is
+    /// writing down a number it cannot read back.
+    /// </remarks>
+    public (UInt32 ImportedWh, UInt32 ExportedWh, Int16 ScaleFactor) EnergyCounters
+    {
+        get
+        {
+            lock (Lock)
+                return (
+                           ReadUInt32(SunSpecMeterMap.OffMeterTotWhImp),
+                           ReadUInt32(SunSpecMeterMap.OffMeterTotWhExp),
+                           (Int16) Registers[SunSpecMeterMap.OffMeterWh_SF]
+                       );
+        }
+    }
+
+    /// <summary>
+    /// Put the energy counters back where a previous run left them.
+    /// </summary>
+    /// <remarks>
+    /// Refused unless the scale factor matches the one this device is running
+    /// with: the same number under a different scale factor is a different
+    /// amount of energy, and quietly taking it would move a meter reading by a
+    /// factor of ten.
+    ///
+    /// Only ever called before a device starts measuring. Nothing stops a host
+    /// calling it later, and nothing should want to: an energy counter that
+    /// jumps is the one thing a meter must never do.
+    /// </remarks>
+    /// <param name="ImportedWh">The imported counter, as the register holds it.</param>
+    /// <param name="ExportedWh">The exported counter, as the register holds it.</param>
+    /// <param name="ScaleFactor">The scale factor those were written down under.</param>
+    /// <returns>Whether they were taken.</returns>
+    public Boolean RestoreEnergyCounters(UInt32  ImportedWh,
+                                         UInt32  ExportedWh,
+                                         Int16   ScaleFactor)
+    {
+
+        lock (Lock)
+        {
+
+            if ((Int16) Registers[SunSpecMeterMap.OffMeterWh_SF] != ScaleFactor)
+                return false;
+
+            WriteUInt32(SunSpecMeterMap.OffMeterTotWhImp, ImportedWh);
+            WriteUInt32(SunSpecMeterMap.OffMeterTotWhExp, ExportedWh);
+
+            // The fractions of a watt-hour that had not yet become one start
+            // again from nothing. Less than a watt-hour of what came before is
+            // lost, which is the right side to err on: a counter that came back
+            // slightly high would be a meter billing for energy it never saw.
+            _importedRest = 0;
+            _exportedRest = 0;
+
+            return true;
+
+        }
+
+    }
+
+    /// <summary>
     /// Raised when the mode register was written with a different mode, with
     /// the mode before and the mode after.
     /// </summary>
