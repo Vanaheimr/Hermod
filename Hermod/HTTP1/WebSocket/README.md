@@ -119,6 +119,44 @@ server.OnTextMessageReceived += async (timestamp, srv, connection, frame, eventT
 };
 ```
 
+### On an HTTP path
+
+A WebSocket no longer needs a TCP server of its own. `WebSocketUpgrade.For`
+turns any `AWebSocketServer` into an HTTP handler, so one listener, one
+certificate and one port can serve frames at one path and ordinary HTTP at
+another:
+
+```csharp
+var webSocketServer = new WebSocketServer(AutoStart: false);   // never accepts anything itself
+
+var httpServer      = await HTTPServer.StartNew();
+var api             = httpServer.AddHTTPAPI();
+
+api.AddHandler(HTTPMethod.GET, HTTPPath.Parse("/xmpp"),
+               HTTPDelegate: WebSocketUpgrade.For(webSocketServer));
+
+api.AddHandler(HTTPMethod.PUT, HTTPPath.Parse("/upload"),
+               HTTPDelegate: TakeTheFile);
+```
+
+The case it was written for is XMPP: RFC 7395 over a WebSocket and XEP-0363
+file uploads over HTTP, which no client should have to be told two port numbers
+for.
+
+**The handshake is not duplicated.** The handler decides only whether a request
+is asking for an upgrade; the connection then goes to
+`AcceptUpgradedConnectionAsync` together with the request that asked for it, and
+the WebSocket server's own single implementation of RFC 6455 &sect;4.2.1
+validates it, chooses the subprotocol, negotiates `permessage-deflate` and
+writes the 101. Two copies of a security handshake is how one of them comes to
+be a version behind.
+
+Underneath it: `HTTPResponse.UpgradeWorker`, a response that says "101, and here
+is who takes over". `AHTTPServer` runs it *instead of* sending the response —
+the answer to an upgrade carries the `Sec-WebSocket-Accept` and what was
+negotiated, and the HTTP layer knows neither — and then ends the connection,
+because after a 101 there is no way back to HTTP.
+
 ## Client usage
 
 ```csharp

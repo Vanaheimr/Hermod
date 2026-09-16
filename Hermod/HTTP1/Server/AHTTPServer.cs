@@ -392,6 +392,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
                     connection.IsClosed = true;
                     connection.Dispose();
+
+                    // And the socket, explicitly.
+                    //
+                    // Disposing the stream is not enough and looks as though it
+                    // were: TcpClient.GetStream() hands out a NetworkStream that
+                    // does not own the socket, so closing it leaves the connection
+                    // standing. Nothing here is going to speak on it again - the
+                    // loop above has ended, which means either "Connection: close",
+                    // a protocol that took the connection over and finished with
+                    // it, or a client that went away.
+                    //
+                    // It went unnoticed for as long as it did because the far side
+                    // usually closes too, and then nobody is left waiting. Two
+                    // places where somebody is: a WebSocket server throwing an
+                    // occupant off, and a client that was told "Connection: close"
+                    // and goes on to send a second request.
+                    connection.TCPClient?.Close();
                 }
                 catch (Exception e)
                 {
@@ -826,6 +843,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  httpResponse.HTTPBodyStream is ChunkedTransferEncodingStream;
                         var hasSSEWorker       = !HasNoResponseBody(httpResponse) &&
                                                  httpResponse.ContentType == HTTPContentType.Text.EVENTSTREAM;
+
+                        #region Hand the connection over to whatever speaks next
+
+                        // RFC 9110, section 15.2.2: after a 101 what is on this
+                        // connection is no longer HTTP. Two things follow from
+                        // that, and the first is the surprising one.
+                        //
+                        // The worker runs *instead of* sending the response, not
+                        // after it. The answer to an upgrade is the upgraded
+                        // protocol's own business - for RFC 6455 it carries the
+                        // Sec-WebSocket-Accept, the chosen subprotocol and the
+                        // negotiated extensions, none of which this layer knows
+                        // anything about. What a handler hands back here says
+                        // only "101, and here is who takes over"; writing it as
+                        // well would put two answers on one wire.
+                        //
+                        // Then the loop ends. There is no parsing a second
+                        // request off this connection, no keep-alive, and no way
+                        // back to HTTP - the break is the only correct ending
+                        // rather than a shortcut.
+                        //
+                        // The exception is caught for the same reason as with the
+                        // other two workers below: whatever goes wrong up there
+                        // closes one connection and does not take the accept loop
+                        // with it.
+                        if (httpResponse.UpgradeWorker is not null)
+                        {
+
+                            try
+                            {
+                                await httpResponse.UpgradeWorker(
+                                          httpResponse,
+                                          stream
+                                      );
+                            }
+                            catch (Exception e)
+                            {
+                                httpLogger.LogError(e, "HTTP server upgrade worker failed.");
+                            }
+
+                            break;
+
+                        }
+
+                        #endregion
 
                         await SendResponse(
                                   stream,
