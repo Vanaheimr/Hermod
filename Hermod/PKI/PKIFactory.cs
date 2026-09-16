@@ -596,6 +596,108 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #endregion
 
+
+        #region (static) GenerateCertificateSigningRequest (KeyPair, Subject, Algorithm, ReachableAs = null, For = null)
+
+        /// <summary>
+        /// A PKCS#10 certificate signing request, signed by the key it names.
+        /// </summary>
+        /// <remarks>
+        /// Everything goes through Bouncy Castle, including the kinds .NET
+        /// could do by itself: .NET cannot sign a request with an Ed448 or an
+        /// ML-DSA key, and a builder that used one library for some algorithms
+        /// and the other for the rest would be two builders with two sets of
+        /// bugs. Which signature is made is decided by the key, through
+        /// <see cref="KeyAlgorithm"/>.
+        ///
+        /// What the certificate is for is said in the request rather than
+        /// hoped for in the answer: a certificate authority handed a request
+        /// without those extensions frequently issues something that is not
+        /// the kind of certificate that was wanted.
+        /// </remarks>
+        /// <param name="KeyPair">The key the request is about, and is signed with.</param>
+        /// <param name="Subject">Who is asking.</param>
+        /// <param name="Algorithm">The kind of key, which decides the signature and what may be claimed for it.</param>
+        /// <param name="ReachableAs">The names and addresses the certificate is to cover; a host name or an IP address, told apart here.</param>
+        /// <param name="For">What the certificate is to be used for; server authentication unless something else is said.</param>
+        public static Pkcs10CertificationRequest GenerateCertificateSigningRequest(AsymmetricCipherKeyPair  KeyPair,
+                                                                                   X509Name                 Subject,
+                                                                                   KeyAlgorithm             Algorithm,
+                                                                                   IEnumerable<String>?     ReachableAs   = null,
+                                                                                   KeyPurposeID?            For           = null)
+        {
+
+            var extensions = new X509ExtensionsGenerator();
+
+            #region What it is reachable as
+
+            var names = (ReachableAs ?? []).Select  (name => name.Trim()).
+                                            Where   (name => name.Length > 0).
+                                            Distinct(StringComparer.OrdinalIgnoreCase).
+                                            ToArray();
+
+            if (names.Length > 0)
+                extensions.AddExtension(
+                    X509Extensions.SubjectAlternativeName,
+                    false,
+                    new GeneralNames([
+                        .. names.Select(name =>
+                               System.Net.IPAddress.TryParse(name, out _)
+                                   ? new GeneralName(GeneralName.IPAddress, name)
+                                   : new GeneralName(GeneralName.DnsName,   name))
+                    ])
+                );
+
+            #endregion
+
+            #region What it is for
+
+            extensions.AddExtension(
+                X509Extensions.BasicConstraints,
+                true,
+                new BasicConstraints(false)
+            );
+
+            // Only RSA can encipher. An elliptic curve key agrees rather than
+            // enciphers, and RFC 8410 section 5 says plainly that an Ed25519 or
+            // an Ed448 key is for signing - as is every post-quantum signature
+            // scheme here. Claiming keyEncipherment for one of those is a claim
+            // a strict certificate authority is entitled to refuse.
+            extensions.AddExtension(
+                X509Extensions.KeyUsage,
+                true,
+                new KeyUsage(
+                    Algorithm.CanEncipher
+                        ? KeyUsage.DigitalSignature | KeyUsage.KeyEncipherment
+                        : KeyUsage.DigitalSignature
+                )
+            );
+
+            extensions.AddExtension(
+                X509Extensions.ExtendedKeyUsage,
+                false,
+                new ExtendedKeyUsage(For ?? KeyPurposeID.id_kp_serverAuth)
+            );
+
+            #endregion
+
+            return new Pkcs10CertificationRequest(
+                       new Asn1SignatureFactory(Algorithm.SignatureAlgorithm, KeyPair.Private),
+                       Subject,
+                       KeyPair.Public,
+                       new DerSet(
+                           new AttributePkcs(
+                               PkcsObjectIdentifiers.Pkcs9AtExtensionRequest,
+                               new DerSet(extensions.Generate())
+                           )
+                       )
+                   );
+
+        }
+
+        #endregion
+
+
         // ToDo: HybridKeyPair, PqcHybridKeyEncapsulation
 
 
