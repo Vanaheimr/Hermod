@@ -663,9 +663,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region GetAllEventsGreater (ClientId, LastEventId = 0)
 
         /// <summary>
-        /// Get a list of events filtered by the event id.
+        /// Get a list of events filtered by the event id: what this source
+        /// still remembers, and then everything from now on.
         /// </summary>
+        /// <remarks>
+        /// The client is subscribed **before** the remembered events are
+        /// replayed, and that order is the whole of it. Submitting an event
+        /// puts it into the history and then hands it to the fan-out, which
+        /// writes it to the channels of the clients that exist at that moment.
+        /// Subscribing afterwards would leave a gap exactly as wide as the
+        /// replay: an event submitted while it runs is past the end of the
+        /// queue this loop is walking, and there is no channel yet for the
+        /// fan-out to write it to, so it never reaches this client at all.
+        ///
+        /// Subscribing first closes that gap and costs nothing, because the
+        /// two can now overlap: an event that arrives during the replay is
+        /// delivered twice - once from the history and once from the channel -
+        /// and the second one is dropped below by its id. Every event a client
+        /// is entitled to arrives exactly once, and in order.
+        /// </remarks>
+        /// <param name="ClientId">The unique client identification.</param>
         /// <param name="LastEventId">The Last-Event-Id header value.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
         public async IAsyncEnumerable<HTTPEvent<T>> GetAllEventsGreater(String                                      ClientId,
                                                                         UInt64?                                     LastEventId         = 0,
                                                                         [EnumeratorCancellation] CancellationToken  CancellationToken   = default)
@@ -674,38 +693,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var lastEventId  = LastEventId ?? 0;
             var lastEventId2 = lastEventId;
 
-            foreach (var httpEvent in eventHistory)
+            var reader       = Subscribe(ClientId);
+
+            try
             {
 
-                if (httpEvent.Id > lastEventId)
+                foreach (var httpEvent in eventHistory)
                 {
-                    yield return httpEvent;
-                    lastEventId2 = httpEvent.Id;
+
+                    if (httpEvent.Id > lastEventId)
+                    {
+                        yield return httpEvent;
+                        lastEventId2 = httpEvent.Id;
+                    }
+
+                    if (CancellationToken.IsCancellationRequested)
+                        yield break;
+
                 }
 
-                if (CancellationToken.IsCancellationRequested)
-                    yield break;
+                await foreach (var httpEvent in reader.ReadAllAsync(CancellationToken))
+                {
+                    // Everything up to and including lastEventId2 has been sent
+                    // from the history already - which is also what makes the
+                    // overlap above harmless.
+                    if (httpEvent.Id > lastEventId2)
+                        yield return httpEvent;
+                }
 
             }
-
-            //await foreach (var httpEvent in liveChannel.Reader.ReadAllAsync(CancellationToken))
-            //{
-
-            //    // We already sent everything <= current ID from history,
-            //    // so live events should all be > last seen
-            //    if (httpEvent.Id > lastEventId2)
-            //        yield return httpEvent;
-
-            //}
-
-            var reader = Subscribe(ClientId);
-
-            await foreach (var httpEvent in reader.ReadAllAsync(CancellationToken))
+            finally
             {
-                // We already sent everything <= current ID from history,
-                // so live events should all be > last seen
-                if (httpEvent.Id > lastEventId2)
-                    yield return httpEvent;
+                // Whichever way this ends - the client went away, the source
+                // was disposed, the caller stopped enumerating - the channel
+                // goes with it. Subscribing before the replay would otherwise
+                // leave one behind every time a client gave up during it.
+                await Unsubscribe(ClientId);
             }
 
         }
