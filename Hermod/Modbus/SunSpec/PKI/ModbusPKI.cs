@@ -50,8 +50,28 @@ public class ModbusPKI
     }
 
 
-    public Task BuildPKI(String outputDirectory = "pki")
+    /// <summary>
+    /// Build the whole PKI into the given directory.
+    /// </summary>
+    /// <param name="outputDirectory">Where the certificates end up.</param>
+    /// <param name="DeviceName">The common name of the mbaps device, and the stem of its ".local" DNS name.</param>
+    /// <param name="DNSNames">Further DNS names the device answers to, on top of "localhost" and "&lt;DeviceName&gt;.local".</param>
+    /// <param name="IPAddresses">Further IP addresses the device answers on, on top of both loopback addresses.</param>
+    /// <remarks>
+    /// The defaults produce a certificate for a meter on the same machine. A
+    /// meter reached over the network needs the name or the address that its
+    /// clients dial, because everything but Hermod's own client - PLC4x among
+    /// them - checks the subject alternative names.
+    /// </remarks>
+    public Task BuildPKI(String                             outputDirectory   = "pki",
+                         String?                            DeviceName        = null,
+                         IEnumerable<String>?               DNSNames          = null,
+                         IEnumerable<System.Net.IPAddress>? IPAddresses       = null)
     {
+
+        var deviceName = String.IsNullOrWhiteSpace(DeviceName)
+                             ? "EnergyMeter01"
+                             : DeviceName.Trim();
 
         var outDir = Path.Combine(Environment.CurrentDirectory, outputDirectory);
         Directory.CreateDirectory(outDir);
@@ -93,7 +113,17 @@ public class ModbusPKI
 
 
         // 4) Modbus Device Certificate
-        var deviceDNSNames = new[] { "localhost", "EnergyMeter01.local" };
+        var deviceDNSNames = new[] { "localhost", $"{deviceName}.local" }.
+                                 Concat(DNSNames ?? []).
+                                 Where  (dnsName => !String.IsNullOrWhiteSpace(dnsName)).
+                                 Select (dnsName => dnsName.Trim()).
+                                 Distinct(StringComparer.OrdinalIgnoreCase).
+                                 ToArray();
+
+        var deviceIPAddresses = new[] { System.Net.IPAddress.Loopback, System.Net.IPAddress.IPv6Loopback }.
+                                    Concat(IPAddresses ?? []).
+                                    Distinct().
+                                    ToArray();
 
         using (var serverKey = ECDsa.Create(ECCurve.NamedCurves.nistP256))
         {
@@ -102,9 +132,9 @@ public class ModbusPKI
                                  issuingDeviceCAPrivateKey,
                                  issuingDeviceCACertificate,
                                  serverKey,
-                                 Subject:      "CN=EnergyMeter01, O=OCC Energy Meters, C=DE",
+                                 Subject:      $"CN={deviceName}, O=OCC Energy Meters, C=DE",
                                  DNSNames:      deviceDNSNames,
-                                 IPAddresses:   [ System.Net.IPAddress.Loopback, System.Net.IPAddress.IPv6Loopback ]
+                                 IPAddresses:   deviceIPAddresses
                              );
 
             WriteServerCertWithKey(
@@ -131,7 +161,7 @@ public class ModbusPKI
                            issuingClientsCACertificate,
                            issuingClientsCAPrivateKey,
                            clientKey,
-                           subject: $"CN=EnergyMeter-Client-{role}, O=OCC Energy Meters, C=DE",
+                           subject: $"CN={deviceName}-Client-{role}, O=OCC Energy Meters, C=DE",
                            role: role
                        );
 
@@ -150,7 +180,7 @@ public class ModbusPKI
                                  issuingClientsCACertificate,
                                  issuingClientsCAPrivateKey,
                                  noRoleKey,
-                                 subject: "CN=EnergyMeter-Client-NO-ROLE, O=OCC Energy Meters, C=DE",
+                                 subject: $"CN={deviceName}-Client-NO-ROLE, O=OCC Energy Meters, C=DE",
                                  role: null
                               );
 
