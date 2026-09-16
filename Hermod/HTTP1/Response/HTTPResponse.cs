@@ -331,6 +331,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Func<HTTPResponse, StreamWriter,                  Task>  HTTPSSEWorker    { get; set; } = (response, stream) => Task.CompletedTask;
 
         /// <summary>
+        /// Takes the connection over once this response has been written.
+        /// </summary>
+        /// <remarks>
+        /// <b>For a protocol that is not HTTP any more</b> - the WebSocket
+        /// upgrade of RFC 6455, and whatever else answers 101. The handler
+        /// returns the response, the server writes it and keeps the stream open,
+        /// and this then owns the connection until it returns; the connection is
+        /// closed afterwards, because there is no way back to HTTP on it.
+        ///
+        /// <b>Null and not a no-op</b>, unlike the two workers above. Those are
+        /// reached only when the body already says they apply - a chunked stream,
+        /// an event-stream content type - so an empty default is harmless there.
+        /// Here the presence of the worker is the whole signal, and a default
+        /// that does nothing would be a connection nobody speaks on and nobody
+        /// closes.
+        /// </remarks>
+        public Func<HTTPResponse, Stream, Task>?                        UpgradeWorker    { get; set; }
+
+        /// <summary>
         /// Whether the server shall apply chunked transfer encoding to the static response body.
         /// </summary>
         public Boolean AutomaticallyChunkContent { get; internal set; }

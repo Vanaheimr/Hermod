@@ -23,7 +23,8 @@ Hermod is a .NET library for simplified advanced networking tasks...
 - [Static content and single-page applications](Hermod/HTTP/StaticContent/README.md)
   over the HTTP/1.1 server: embedded or on-disk bundles with entity tags,
   conditional requests, Brotli/gzip, caching policy and security headers
-- [HTTP/1.1 WebSocket Client / Server](Hermod/HTTP1/WebSocket/README.md)
+- [HTTP/1.1 WebSocket Client / Server](Hermod/HTTP1/WebSocket/README.md), on a
+  port of its own or mounted on an HTTP path beside ordinary handlers
 - [HTTP/2.0 Client / Server](Hermod/HTTP2/README.md)
 - [HTTP/3 Client / Server (RFC 9114) + QPACK (RFC 9204)](Hermod/HTTP3/README.md)
   incl. WebSockets (RFC 9220), HTTP datagrams (RFC 9297) and WebTransport
