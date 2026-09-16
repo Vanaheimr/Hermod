@@ -1515,8 +1515,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             if (httpResponse is null)
                                                             {
 
-                                                                if (webSocketConnection.HTTPRequest.Authorization is HTTPBasicAuthentication basicAuthentication)
-                                                                    webSocketConnection.Login = basicAuthentication.Username;
+                                                                // Whatever the client called itself, under either scheme
+                                                                // that carries a name. A TOTP login is a login like any
+                                                                // other, and a connection that has one should not show up
+                                                                // in the logs as nobody.
+                                                                webSocketConnection.Login = webSocketConnection.HTTPRequest.Authorization switch {
+                                                                                                HTTPBasicAuthentication basicAuthentication  => basicAuthentication.Username,
+                                                                                                HTTPTOTPAuthentication  totpAuthentication   => totpAuthentication.Login,
+                                                                                                _                                            => webSocketConnection.Login
+                                                                                            };
 
                                                                 // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
                                                                 // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
