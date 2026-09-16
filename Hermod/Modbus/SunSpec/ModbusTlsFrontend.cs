@@ -16,6 +16,7 @@
  */
 
 using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -43,8 +44,20 @@ public sealed class ModbusTlsFrontend : IDisposable
     private readonly AuthorizationPolicy       _authz;
     private readonly ILogger                   _logger;
     private readonly TcpListener               _listener;
-    private readonly CertificateBinding        _defaultBinding;
+    private readonly CertificateBinding?       _defaultBinding;
     private readonly Dictionary<String, CertificateBinding> _sniBindings;
+
+    // When these are set, the certificate and the trusted CAs are asked for at
+    // every handshake rather than read once at construction - which is what
+    // lets a certificate be replaced under a running frontend.
+    private readonly Func<String?, ServerCertificateChain>?       _serverCertificateSelector;
+    private readonly Func<IReadOnlyCollection<X509Certificate2>>? _clientTrustAnchors;
+
+    // Building one of these walks the chain, so it is done once per distinct
+    // chain rather than once per handshake. Keyed by the thumbprints of
+    // everything in the chain: a context built before the intermediates were
+    // known must not go on being used after they are.
+    private static readonly ConcurrentDictionary<String, SslStreamCertificateContext> _certificateContexts = new();
     private readonly CancellationTokenSource   _cts = new();
 
     private long                               _connectionCounter;
@@ -66,11 +79,23 @@ public sealed class ModbusTlsFrontend : IDisposable
                              ILogger<ModbusTlsFrontend>?  logger   = null)
     {
 
-        _opts               = opts;
-        _backendFactory     = backendFactory;
-        _authz              = authz;
-        _logger             = (ILogger?)logger ?? NullLogger.Instance;
-        _defaultBinding     = LoadBinding(null, opts.ServerPfxPath, opts.ServerPfxPassword, opts.CaCertPath);
+        _opts                       = opts;
+        _backendFactory             = backendFactory;
+        _authz                      = authz;
+        _logger                     = (ILogger?)logger ?? NullLogger.Instance;
+        _serverCertificateSelector  = opts.ServerCertificateSelector;
+        _clientTrustAnchors         = opts.ClientTrustAnchors;
+
+        if (_serverCertificateSelector is null && opts.ServerPfxPath is null)
+            throw new ArgumentException("Either a ServerPfxPath or a ServerCertificateSelector is needed: a TLS server has to have a certificate to show.", nameof(opts));
+
+        if (_clientTrustAnchors is null && opts.CaCertPath is null)
+            throw new ArgumentException("Either a CaCertPath or ClientTrustAnchors are needed: mutual authentication has to have something to anchor on.", nameof(opts));
+
+        _defaultBinding     = opts.ServerPfxPath is not null && opts.CaCertPath is not null
+                                  ? LoadBinding(null, opts.ServerPfxPath, opts.ServerPfxPassword, opts.CaCertPath)
+                                  : null;
+
         _sniBindings        = opts.SNIBindings?.
                                    ToDictionary(
                                        binding => NormalizeServerName(binding.ServerName),
@@ -78,7 +103,7 @@ public sealed class ModbusTlsFrontend : IDisposable
                                    ) ??
                                [];
 
-        if (!_defaultBinding.ServerCertWithKey.HasPrivateKey)
+        if (_defaultBinding is not null && !_defaultBinding.ServerCertWithKey.HasPrivateKey)
             throw new InvalidOperationException("Server cert PFX has no private key.");
 
         _listener           = new TcpListener(opts.ListenAddress, opts.ListenPort);
@@ -95,8 +120,11 @@ public sealed class ModbusTlsFrontend : IDisposable
         _listener.Start();
         _logger.LogInformation("mbaps frontend listening on {Endpoint} (TLS-only, mutual auth)",
             $"{_opts.ListenAddress}:{_opts.ListenPort}");
-        _logger.LogInformation("server cert: {Subject}", _defaultBinding.ServerCertWithKey.Subject);
-        _logger.LogInformation("trusted CA: {Subject}", _defaultBinding.TrustedCa.Subject);
+        var startupChain = ServerCertificateFor(null);
+
+        _logger.LogInformation("server cert: {Subject}", startupChain.Certificate.Subject);
+        _logger.LogInformation("intermediates sent: {Count}", startupChain.Intermediates.Count);
+        _logger.LogInformation("trusted CA: {Subject}", String.Join(", ", TrustAnchorsFor(null).Select(anchor => anchor.Subject)));
 
         try
         {
@@ -144,33 +172,51 @@ public sealed class ModbusTlsFrontend : IDisposable
         {
 
             tcp.NoDelay = true;
-            var selectedBinding = _defaultBinding;
 
             using var net = tcp.GetStream();
-            using var ssl = new SslStream(
-                                net,
-                                leaveInnerStreamOpen:               false,
-                                userCertificateValidationCallback:  (sender, certificate, certificateChain, policyErrors) =>
-                                                                       ValidateClientCertificate(
-                                                                           sender,
-                                                                           certificate,
-                                                                           certificateChain,
-                                                                           policyErrors,
-                                                                           selectedBinding.TrustedCa
-                                                                       )
-            );
+            using var ssl = new SslStream(net, leaveInnerStreamOpen: false);
 
-            var sslOpts = new SslServerAuthenticationOptions {
-                              ServerCertificateSelectionCallback = (sender, serverName) => {
-                                                                        selectedBinding = SelectBinding(serverName);
-                                                                        return selectedBinding.ServerCertWithKey;
-                                                                    },
-                              ClientCertificateRequired = true,
-                              EnabledSslProtocols       = SslProtocols.Tls12 | SslProtocols.Tls13,
-                              CertificateRevocationCheckMode = X509RevocationMode.NoCheck, // demo: no CRL/OCSP infra
-                              AllowRenegotiation        = false,                            // mbaps doesn't need it
-                              EncryptionPolicy          = EncryptionPolicy.RequireEncryption,
-                          };
+            // Everything about this handshake is decided in one place, once
+            // the ClientHello has been read: which certificate to show, which
+            // intermediates to send with it, and which CAs the client may
+            // chain to. All three can depend on the name the client asked for,
+            // and none of them can be known before it arrives - which is why
+            // this is a callback and not a set of options built above.
+            ServerOptionsSelectionCallback optionsFor = (stream, clientHello, state, token) => {
+
+                var serverName = String.IsNullOrWhiteSpace(clientHello.ServerName)
+                                     ? null
+                                     : clientHello.ServerName;
+
+                return ValueTask.FromResult(
+                           new SslServerAuthenticationOptions {
+
+                               // The whole chain and not only the leaf: without
+                               // the intermediates a client that does not
+                               // already hold them cannot build a path to its
+                               // trust anchor, and says so as a handshake
+                               // failure with nothing useful in it.
+                               ServerCertificateContext        = ContextFor(ServerCertificateFor(serverName)),
+
+                               ClientCertificateRequired       = true,
+                               EnabledSslProtocols             = SslProtocols.Tls12 | SslProtocols.Tls13,
+                               CertificateRevocationCheckMode  = X509RevocationMode.NoCheck, // demo: no CRL/OCSP infra
+                               AllowRenegotiation              = false,                      // mbaps doesn't need it
+                               EncryptionPolicy                = EncryptionPolicy.RequireEncryption,
+
+                               RemoteCertificateValidationCallback = (sender, certificate, certificateChain, policyErrors) =>
+                                                                         ValidateClientCertificate(
+                                                                             sender,
+                                                                             certificate,
+                                                                             certificateChain,
+                                                                             policyErrors,
+                                                                             TrustAnchorsFor(serverName)
+                                                                         )
+
+                           }
+                       );
+
+            };
 
             using var handshakeCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             handshakeCts.CancelAfter(_opts.HandshakeTimeout);
@@ -182,7 +228,7 @@ public sealed class ModbusTlsFrontend : IDisposable
             string handshakeOutcome = "ok";
             try
             {
-                await ssl.AuthenticateAsServerAsync(sslOpts, handshakeCts.Token).ConfigureAwait(false);
+                await ssl.AuthenticateAsServerAsync(optionsFor, null, handshakeCts.Token).ConfigureAwait(false);
             }
             catch (AuthenticationException ex)
             {
@@ -249,14 +295,27 @@ public sealed class ModbusTlsFrontend : IDisposable
     }
 
     /// <summary>
-    /// Validates the client cert chain against our pinned CA.
+    /// Validates the client cert chain against the CAs this frontend trusts.
     /// </summary>
-    private Boolean ValidateClientCertificate(Object            sender,
-                                              X509Certificate?  cert,
-                                              X509Chain?        _ignoreSystemChain,
-                                              SslPolicyErrors   errors,
-                                              X509Certificate2  trustedCa)
+    /// <remarks>
+    /// More than one, because a meter in the field is reached by peers whose
+    /// certificates were issued by different people - the operator's own PKI
+    /// and a manufacturer's, say - and a trust anchor being replaced is a thing
+    /// that happens while both the old and the new one have to work.
+    /// </remarks>
+    private Boolean ValidateClientCertificate(Object                                 sender,
+                                              X509Certificate?                       cert,
+                                              X509Chain?                             _ignoreSystemChain,
+                                              SslPolicyErrors                        errors,
+                                              IReadOnlyCollection<X509Certificate2>  trustAnchors)
     {
+
+        if (trustAnchors.Count == 0)
+        {
+            _logger.LogWarning("no trust anchor configured: every client certificate is refused");
+            return false;
+        }
+
 
         if (cert is null)
         {
@@ -274,7 +333,8 @@ public sealed class ModbusTlsFrontend : IDisposable
                 VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority,
             },
         };
-        chain.ChainPolicy.CustomTrustStore.Add(trustedCa);
+        foreach (var anchor in trustAnchors)
+            chain.ChainPolicy.CustomTrustStore.Add(anchor);
 
         if (_ignoreSystemChain is not null)
         {
@@ -286,7 +346,7 @@ public sealed class ModbusTlsFrontend : IDisposable
         }
 
         if (!chain.Build(x) ||
-            !IsAnchoredByTrustedCA(x, chain, trustedCa))
+            !trustAnchors.Any(anchor => IsAnchoredByTrustedCA(x, chain, anchor)))
         {
             foreach (var s in chain.ChainStatus)
                 _logger.LogWarning("chain status: {Status} {Information}", s.Status, s.StatusInformation?.Trim());
@@ -624,6 +684,45 @@ public sealed class ModbusTlsFrontend : IDisposable
         }
     }
 
+    /// <summary>
+    /// The certificate to show a client that asked for this name, with the
+    /// intermediates that lead to it.
+    /// </summary>
+    private ServerCertificateChain ServerCertificateFor(String? serverName)
+
+        => _serverCertificateSelector is not null
+               ? _serverCertificateSelector(serverName)
+               : SelectBinding(serverName).ServerChain;
+
+    /// <summary>
+    /// The TLS context for a chain, built once and kept.
+    /// </summary>
+    /// <remarks>
+    /// offline: true, so that building it never reaches for the network - no
+    /// AIA fetch, no CRL, no OCSP. A server that pauses a handshake to
+    /// download something is a server somebody can hold still by not
+    /// answering.
+    /// </remarks>
+    private static SslStreamCertificateContext ContextFor(ServerCertificateChain chain)
+
+        => _certificateContexts.GetOrAdd(
+               chain.CacheKey,
+               _ => SslStreamCertificateContext.Create(
+                        target:                  chain.Certificate,
+                        additionalCertificates:  chain.HasIntermediates ? chain.Intermediates : null,
+                        offline:                 true
+                    )
+           );
+
+    /// <summary>
+    /// The CAs a client certificate may chain to for this name.
+    /// </summary>
+    private IReadOnlyCollection<X509Certificate2> TrustAnchorsFor(String? serverName)
+
+        => _clientTrustAnchors is not null
+               ? _clientTrustAnchors()
+               : [SelectBinding(serverName).TrustedCa];
+
     private CertificateBinding SelectBinding(String? serverName)
     {
 
@@ -637,7 +736,8 @@ public sealed class ModbusTlsFrontend : IDisposable
             return binding;
         }
 
-        return _defaultBinding;
+        return _defaultBinding
+                   ?? throw new InvalidOperationException("No certificate binding was loaded: this frontend was given selectors instead, and one of them did not answer.");
 
     }
 
@@ -649,7 +749,7 @@ public sealed class ModbusTlsFrontend : IDisposable
 
         return new CertificateBinding(
                    serverName,
-                   LoadPfx(serverPfxPath, serverPfxPassword),
+                   LoadChain(serverPfxPath, serverPfxPassword),
                    X509CertificateLoader.LoadCertificateFromFile(caCertPath)
                );
 
@@ -659,21 +759,51 @@ public sealed class ModbusTlsFrontend : IDisposable
 
         => serverName.Trim().TrimEnd('.').ToLowerInvariant();
 
-    private static X509Certificate2 LoadPfx(string path, string? password)
+    /// <summary>
+    /// The certificate out of a PKCS#12 file, and whatever else was in there
+    /// with it.
+    /// </summary>
+    /// <remarks>
+    /// The whole collection rather than one certificate: a PKCS#12 file that
+    /// carries the intermediates is the ordinary way to hand a server its
+    /// chain, and reading only the leaf out of it would quietly throw them
+    /// away. The leaf is the one with the private key.
+    /// </remarks>
+    private static ServerCertificateChain LoadChain(string path, string? password)
     {
-        return X509CertificateLoader.LoadPkcs12FromFile(path, password,
-            X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable);
+
+        var certificates = X509CertificateLoader.LoadPkcs12CollectionFromFile(
+                               path,
+                               password,
+                               X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable
+                           );
+
+        var leaf = certificates.Cast<X509Certificate2>().FirstOrDefault(certificate => certificate.HasPrivateKey)
+                       ?? throw new InvalidOperationException($"'{path}' holds no certificate with a private key.");
+
+        return new ServerCertificateChain(
+                   leaf,
+                   certificates.Cast<X509Certificate2>().Where(certificate => certificate.Thumbprint != leaf.Thumbprint)
+               );
+
     }
 
-    private sealed record CertificateBinding(String?           ServerName,
-                                             X509Certificate2  ServerCertWithKey,
-                                             X509Certificate2  TrustedCa);
+    private sealed record CertificateBinding(String?                 ServerName,
+                                             ServerCertificateChain  ServerChain,
+                                             X509Certificate2        TrustedCa)
+    {
+        public X509Certificate2 ServerCertWithKey => ServerChain.Certificate;
+    }
 
     public void Dispose()
     {
         _cts.Cancel();
-        _defaultBinding.ServerCertWithKey.Dispose();
-        _defaultBinding.TrustedCa.Dispose();
+
+        // Only what this frontend loaded itself. Certificates handed over by a
+        // selector belong to whoever holds that selector, and are very probably
+        // still in use by it.
+        _defaultBinding?.ServerCertWithKey.Dispose();
+        _defaultBinding?.TrustedCa.Dispose();
         foreach (var binding in _sniBindings.Values)
         {
             binding.ServerCertWithKey.Dispose();

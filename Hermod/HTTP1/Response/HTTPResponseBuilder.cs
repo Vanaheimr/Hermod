@@ -80,6 +80,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public Func<HTTPResponse, StreamWriter,                  Task>  HTTPSSEWorker    { get; set; } = (response, stream) => Task.CompletedTask;
 
             /// <summary>
+            /// Takes the connection over once this response has been written -
+            /// see <see cref="HTTPResponse.UpgradeWorker"/>.
+            /// </summary>
+            public Func<HTTPResponse, Stream, Task>?                        UpgradeWorker    { get; set; }
+
+            /// <summary>
             /// Trailer header fields to send after an automatically chunked static response body.
             /// </summary>
             public Dictionary<String, String>  TrailingHeaders  { get; } = new(StringComparer.OrdinalIgnoreCase);
@@ -1292,6 +1298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     httpResponse.ChunkWorker   = ChunkWorker;
                     httpResponse.HTTPSSEWorker = HTTPSSEWorker;
+                    httpResponse.UpgradeWorker = UpgradeWorker;
                     httpResponse.AutomaticallyChunkContent = AutomaticallyChunkContent;
 
                     foreach (var (name, value) in TrailingHeaders)

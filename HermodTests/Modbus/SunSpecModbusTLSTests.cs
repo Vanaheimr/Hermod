@@ -53,7 +53,7 @@ public class SunSpecModbusTLSTests
 
         var listenPort = GetFreeTcpPort();
 
-        using var meter        = new SunSpecMeterDevice("meter-test-001");
+        using var meter        = new SunSpecMeterDevice("meter-test-001",     SunSpecMeterMode.ImportOnly);
         using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         using var frontend     = new ModbusTlsFrontend(
                                      new ModbusTlsFrontendOptions(
@@ -111,7 +111,7 @@ public class SunSpecModbusTLSTests
 
         var listenPort = GetFreeTcpPort();
 
-        using var meter        = new SunSpecMeterDevice("meter-test-sni-001");
+        using var meter        = new SunSpecMeterDevice("meter-test-sni-001", SunSpecMeterMode.ImportOnly);
         using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         using var frontend     = new ModbusTlsFrontend(
                                      new ModbusTlsFrontendOptions(
@@ -268,10 +268,19 @@ public class SunSpecModbusTLSTests
             Assert.That(meterRegisters[0], Is.EqualTo(SunSpecMeterMap.MeterModelId));
             Assert.That(meterRegisters[1], Is.EqualTo(SunSpecMeterMap.MeterModelLength));
 
-            Assert.That(meterRegisters[SunSpecMeterMap.OffMeterA   - SunSpecMeterMap.OffMeterId], Is.InRange((ushort)900,  (ushort)1100));
             Assert.That(meterRegisters[SunSpecMeterMap.OffMeterPhV - SunSpecMeterMap.OffMeterId], Is.InRange((ushort)2280, (ushort)2320));
             Assert.That(meterRegisters[SunSpecMeterMap.OffMeterHz  - SunSpecMeterMap.OffMeterId], Is.InRange((ushort)4990, (ushort)5010));
-            Assert.That(meterRegisters[SunSpecMeterMap.OffMeterW   - SunSpecMeterMap.OffMeterId], Is.GreaterThan((ushort)0));
+
+            // This meter is in front of a load, so it draws - and SunSpec "A"
+            // is the TOTAL current, which is the three phases added up.
+            Assert.That((short) meterRegisters[SunSpecMeterMap.OffMeterW - SunSpecMeterMap.OffMeterId], Is.GreaterThan(0));
+            Assert.That((short) meterRegisters[SunSpecMeterMap.OffMeterA - SunSpecMeterMap.OffMeterId],
+                        Is.EqualTo((short) meterRegisters[SunSpecMeterMap.OffMeterAphA - SunSpecMeterMap.OffMeterId] +
+                                   (short) meterRegisters[SunSpecMeterMap.OffMeterAphB - SunSpecMeterMap.OffMeterId] +
+                                   (short) meterRegisters[SunSpecMeterMap.OffMeterAphC - SunSpecMeterMap.OffMeterId]));
+
+            Assert.That(meterRegisters[SunSpecMeterMap.OffMeterMeterMode - SunSpecMeterMap.OffMeterId],
+                        Is.EqualTo((ushort) SunSpecMeterMode.ImportOnly));
 
             Assert.That(meterRegisters[SunSpecMeterMap.OffEndModelId  - SunSpecMeterMap.OffMeterId], Is.EqualTo(SunSpecMeterMap.EndModelId));
             Assert.That(meterRegisters[SunSpecMeterMap.OffEndModelLen - SunSpecMeterMap.OffMeterId], Is.EqualTo((ushort)0));

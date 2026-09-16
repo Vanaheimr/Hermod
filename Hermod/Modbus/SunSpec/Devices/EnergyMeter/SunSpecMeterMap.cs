@@ -73,20 +73,31 @@ public static class SunSpecMeterMap
     public const ushort OffMeterHz         = 82;
     public const ushort OffMeterHz_SF      = 83;
 
-    // Powers (int16) + scale factor
+    // Powers (int16) + scale factor. Signed, and the sign is the direction:
+    // positive is power flowing INTO the site (imported), negative out of it
+    // (exported). The currents above are magnitudes and stay positive either
+    // way, as a real meter reports them.
     public const ushort OffMeterW          = 84;  // total real power
     public const ushort OffMeterWphA       = 85;
     public const ushort OffMeterWphB       = 86;
     public const ushort OffMeterWphC       = 87;
     public const ushort OffMeterW_SF       = 88;
 
-    // Energy (uint32 across 2 regs) + scale factor
+    // Energy (uint32 across 2 regs) + scale factor. Both counters only ever
+    // grow, as a meter's do: whichever way power is flowing at the moment
+    // adds to one of them, and nothing subtracts from either.
     public const ushort OffMeterTotWhExp   = 89;  // 2 regs
     public const ushort OffMeterTotWhImp   = 91;  // 2 regs
     public const ushort OffMeterWh_SF      = 93;
 
-    // Demo "command" register (writable settings live here)
-    public const ushort OffMeterMeterMode  = 94;  // (custom: 0=net, 1=import-only, 2=export-only)
+    // Demo "command" registers (writable settings live here)
+
+    /// <summary>
+    /// What kind of meter this is - see <see cref="SunSpecMeterMode"/>. Not a
+    /// SunSpec register: the simulator's own, and it takes those three values
+    /// and no others. A write of anything else leaves the register as it was.
+    /// </summary>
+    public const ushort OffMeterMeterMode  = 94;  // 0=net, 1=import-only, 2=export-only
     public const ushort OffMeterResetEnergy= 95;  // write 0xCAFE to clear counters
 
     // End marker

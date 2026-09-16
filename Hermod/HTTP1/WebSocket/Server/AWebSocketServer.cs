@@ -931,11 +931,126 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                        CancellationToken  token)
         {
 
-            var x = Task.Factory.StartNew(async context => {
+            await RunConnectionAsync(
+                      new WebSocketServerConnection(
+
+                                        WebSocketServer:              this,
+                                        TcpClient:                    Connection.TCPClient,
+                                        TLSStream:                    Connection.SSLStream,
+                                        ClientCertificate:            Connection.ClientCertificate,
+
+                                        HTTPRequest:                  null,
+                                        HTTPResponse:                 null,
+
+                                        MaxTextMessageSizeIn:         MaxTextMessageSizeIn,
+                                        MaxTextMessageSizeOut:        MaxTextMessageSizeOut,
+                                        MaxTextFragmentLengthIn:      MaxTextFragmentLengthIn,
+                                        MaxTextFragmentLengthOut:     MaxTextFragmentLengthOut,
+
+                                        MaxBinaryMessageSizeIn:       MaxBinaryMessageSizeIn,
+                                        MaxBinaryMessageSizeOut:      MaxBinaryMessageSizeOut,
+                                        MaxBinaryFragmentLengthIn:    MaxBinaryFragmentLengthIn,
+                                        MaxBinaryFragmentLengthOut:   MaxBinaryFragmentLengthOut,
+
+                                        SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
+
+                      ),
+                      token
+                  );
+
+        }
+
+        #endregion
+
+        #region AcceptUpgradedConnectionAsync(NetworkStream, LocalSocket, RemoteSocket, RequestBytes, ...)
+
+        /// <summary>
+        /// Takes over a connection somebody else accepted and speaks WebSocket
+        /// on it.
+        /// </summary>
+        /// <param name="NetworkStream">The stream, already through TLS if there is any.</param>
+        /// <param name="LocalSocket">Where this end is.</param>
+        /// <param name="RemoteSocket">Where the other end is.</param>
+        /// <param name="RequestBytes">
+        /// The bytes of the HTTP request that asked for the upgrade, exactly as
+        /// they would have arrived here.
+        /// </param>
+        /// <remarks>
+        /// <b>For a WebSocket mounted on an HTTP path</b> - see
+        /// <c>WebSocketUpgrade</c>. An HTTP server has accepted the connection,
+        /// done the TLS and read the request; from the path it knows this is a
+        /// WebSocket, and it hands the stream over here.
+        ///
+        /// <b>The handshake is not redone and not duplicated.</b> The request is
+        /// handed back in as bytes and the ordinary loop parses it, validates
+        /// it against RFC 6455 section 4.2.1, negotiates the subprotocol and
+        /// permessage-deflate, and writes the 101 itself - the same code, once.
+        /// Two copies of a security handshake is how one of them comes to be a
+        /// version behind, and this one refuses connections for a living.
+        ///
+        /// What that costs is that the request is reconstructed from what was
+        /// parsed rather than passed through byte for byte. Nothing in the
+        /// handshake reads anything the parse did not keep, and a client asking
+        /// for an upgrade waits for the 101 before it says anything else, so
+        /// there is nothing after the request to lose.
+        /// </remarks>
+        public Task AcceptUpgradedConnectionAsync(Stream             NetworkStream,
+                                                  IPSocket           LocalSocket,
+                                                  IPSocket           RemoteSocket,
+                                                  Byte[]             RequestBytes,
+                                                  X509Certificate2?  ClientCertificate   = null,
+                                                  CancellationToken  CancellationToken   = default)
+
+            => RunConnectionAsync(
+                   new WebSocketServerConnection(
+
+                       WebSocketServer:              this,
+
+                       // The request that asked for the upgrade goes in front of
+                       // the stream, so the loop below reads it exactly as it
+                       // would have read it off the socket itself. See
+                       // PrefixedStream for why it is not handed to the loop as
+                       // a starting buffer instead.
+                       NetworkStream:                new PrefixedStream(RequestBytes, NetworkStream),
+                       LocalSocket:                  LocalSocket,
+                       RemoteSocket:                 RemoteSocket,
+                       ClientCertificate:            ClientCertificate,
+
+                       HTTPRequest:                  null,
+                       HTTPResponse:                 null,
+
+                       MaxTextMessageSizeIn:         MaxTextMessageSizeIn,
+                       MaxTextMessageSizeOut:        MaxTextMessageSizeOut,
+                       MaxTextFragmentLengthIn:      MaxTextFragmentLengthIn,
+                       MaxTextFragmentLengthOut:     MaxTextFragmentLengthOut,
+
+                       MaxBinaryMessageSizeIn:       MaxBinaryMessageSizeIn,
+                       MaxBinaryMessageSizeOut:      MaxBinaryMessageSizeOut,
+                       MaxBinaryFragmentLengthIn:    MaxBinaryFragmentLengthIn,
+                       MaxBinaryFragmentLengthOut:   MaxBinaryFragmentLengthOut,
+
+                       SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
+
+                   ),
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region (protected) RunConnectionAsync(WebSocketConnection, SeedBytes, token)
+
+        /// <summary>
+        /// The handshake and the frame loop, for a connection however it was
+        /// come by.
+        /// </summary>
+        protected async Task RunConnectionAsync(WebSocketServerConnection  webSocketConnection,
+                                                CancellationToken          token)
+        {
+
+            var x = Task.Factory.StartNew(async () => {
                                         try
                                         {
 
-                                            if (context is WebSocketServerConnection webSocketConnection)
                                             {
 
                                                 #region Data
@@ -947,7 +1062,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 HTTPResponse?  httpResponse     = null;
                                                 var            pingCounter      = 1UL;
 
-                                                var cts2                        = CancellationTokenSource.CreateLinkedTokenSource(token);
+                                                // Linked to the connection as well as to the server, and the
+                                                // first of the two is not a nicety.
+                                                //
+                                                // Close() lays the connection down and then cancels this token.
+                                                // For a connection that owns its socket that is belt and braces -
+                                                // closing the socket makes a pending read fail at once. For a
+                                                // connection that was handed a stream it is the only thing that
+                                                // works: disposing a stream does not necessarily end a read that
+                                                // is already in flight, so without this the loop sits there until
+                                                // the next ping interval and only then notices. Ten seconds,
+                                                // measured - and in that time a server that has just thrown
+                                                // somebody off still believes they are connected.
+                                                var cts2                        = CancellationTokenSource.CreateLinkedTokenSource(
+                                                                                      token,
+                                                                                      webSocketConnection.CancellationTokenSource.Token
+                                                                                  );
                                                 var token2                      = cts2.Token;
                                                 var lastWebSocketPingTimestamp  = Timestamp.Now;
                                                 var lastActivityTimestamp       = Timestamp.Now;
@@ -2053,6 +2183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #region OnTCPConnectionClosed
 
+
                                                 await LogEvent(
                                                           OnTCPConnectionClosed,
                                                           loggingDelegate => loggingDelegate.Invoke(
@@ -2068,8 +2199,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 #endregion
 
                                             }
-                                            else
-                                                Logger.LogWarning("The given WebSocket connection is invalid.");
 
                                         }
                                         catch (Exception e)
@@ -2078,29 +2207,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         }
 
                                     },
-                                    new WebSocketServerConnection(
-
-                                        WebSocketServer:              this,
-                                        TcpClient:                    Connection.TCPClient,
-                                        TLSStream:                    Connection.SSLStream,
-                                        ClientCertificate:            Connection.ClientCertificate,
-
-                                        HTTPRequest:                  null,
-                                        HTTPResponse:                 null,
-
-                                        MaxTextMessageSizeIn:         MaxTextMessageSizeIn,
-                                        MaxTextMessageSizeOut:        MaxTextMessageSizeOut,
-                                        MaxTextFragmentLengthIn:      MaxTextFragmentLengthIn,
-                                        MaxTextFragmentLengthOut:     MaxTextFragmentLengthOut,
-
-                                        MaxBinaryMessageSizeIn:       MaxBinaryMessageSizeIn,
-                                        MaxBinaryMessageSizeOut:      MaxBinaryMessageSizeOut,
-                                        MaxBinaryFragmentLengthIn:    MaxBinaryFragmentLengthIn,
-                                        MaxBinaryFragmentLengthOut:   MaxBinaryFragmentLengthOut,
-
-                                        SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
-
-                                    ),
                                     token);
 
             await x.Unwrap().ConfigureAwait(false);

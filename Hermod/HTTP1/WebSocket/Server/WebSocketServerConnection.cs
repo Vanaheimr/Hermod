@@ -58,11 +58,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly  ConcurrentDictionary<String, Object?>  customData             = [];
 
-        private readonly  TcpClient                              tcpClient;
+        /// <summary>
+        /// The TCP connection, when this connection owns one.
+        /// </summary>
+        /// <remarks>
+        /// <b>Null for a connection that was handed a stream rather than a
+        /// socket</b> - a WebSocket mounted on an HTTP path, where the HTTP
+        /// server accepted the connection, read the request and then gave the
+        /// stream away. Everything this class does with the connection it does
+        /// through <see cref="networkStream"/>; the socket is only needed for
+        /// the two conveniences below and for closing, and closing is then the
+        /// HTTP server's business.
+        /// </remarks>
+        private readonly  TcpClient?                             tcpClient;
 
         private readonly  Stream                                 networkStream;
 
-        private readonly  NetworkStream                          tcpStream;
+        private readonly  NetworkStream?                         tcpStream;
 
         private readonly  SslStream?                             tlsStream;
 
@@ -239,7 +251,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
                 try
                 {
-                    return tcpStream.DataAvailable;
+                    // False, not "unknown", for a connection without a socket of
+                    // its own. Nothing in the read loop asks - it reads and
+                    // blocks - so this is a convenience for callers, and a
+                    // convenience that cannot answer says no.
+                    return tcpStream?.DataAvailable == true;
                 }
                 catch
                 {
@@ -257,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
                 try
                 {
-                    return tcpClient.Available;
+                    return tcpClient?.Available ?? 0;
                 }
                 catch
                 {
@@ -324,6 +340,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.networkStream               = (Stream?) tlsStream ?? tcpStream;
             this.LocalSocket                 = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint)  ?? IPSocket.Zero;
             this.RemoteSocket                = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint) ?? IPSocket.Zero;
+            this.ClientCertificate           = ClientCertificate;
+            this.HTTPRequest                 = HTTPRequest;
+            this.HTTPResponse                = HTTPResponse;
+
+            this.MaxTextMessageSizeIn        = MaxTextMessageSizeIn;
+            this.MaxTextMessageSizeOut       = MaxTextMessageSizeOut;
+            this.MaxTextFragmentLengthIn     = MaxTextFragmentLengthIn;
+            this.MaxTextFragmentLengthOut    = MaxTextFragmentLengthOut;
+
+            this.MaxBinaryMessageSizeIn      = MaxBinaryMessageSizeIn;
+            this.MaxBinaryMessageSizeOut     = MaxBinaryMessageSizeOut;
+            this.MaxBinaryFragmentLengthIn   = MaxBinaryFragmentLengthIn;
+            this.MaxBinaryFragmentLengthOut  = MaxBinaryFragmentLengthOut;
+
+            this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
+
+            if (CustomData is not null)
+            {
+                foreach (var customData in CustomData)
+                {
+                    this.customData.TryAdd(customData.Key,
+                                           customData.Value);
+                }
+            }
+
+        }
+
+        /// <summary>
+        /// Create a WebSocket server connection over a stream somebody else
+        /// accepted.
+        /// </summary>
+        /// <param name="WebSocketServer">The WebSocket server this connection belongs to.</param>
+        /// <param name="NetworkStream">The stream, already through TLS if there is any.</param>
+        /// <param name="LocalSocket">Where this end is.</param>
+        /// <param name="RemoteSocket">Where the other end is.</param>
+        /// <remarks>
+        /// <b>For a WebSocket that lives on an HTTP path.</b> There the HTTP
+        /// server accepted the connection, did the TLS, read the request and
+        /// decided from its path that this is a WebSocket - so by the time this
+        /// is reached there is a stream and no socket to be had, and the socket
+        /// is not this class's to close anyway.
+        ///
+        /// Everything else is identical, which is the point: the frame loop, the
+        /// backpressure, the close handshake and the timeouts all work through
+        /// the stream and never asked what was underneath it.
+        /// </remarks>
+        public WebSocketServerConnection(AWebSocketServer                             WebSocketServer,
+                                         Stream                                       NetworkStream,
+                                         IPSocket                                     LocalSocket,
+                                         IPSocket                                     RemoteSocket,
+                                         X509Certificate2?                            ClientCertificate            = null,
+                                         HTTPRequest?                                 HTTPRequest                  = null,
+                                         HTTPResponse?                                HTTPResponse                 = null,
+
+                                         UInt64?                                      MaxTextMessageSizeIn         = null,
+                                         UInt64?                                      MaxTextMessageSizeOut        = null,
+                                         UInt64?                                      MaxTextFragmentLengthIn      = null,
+                                         UInt64?                                      MaxTextFragmentLengthOut     = null,
+
+                                         UInt64?                                      MaxBinaryMessageSizeIn       = null,
+                                         UInt64?                                      MaxBinaryMessageSizeOut      = null,
+                                         UInt64?                                      MaxBinaryFragmentLengthIn    = null,
+                                         UInt64?                                      MaxBinaryFragmentLengthOut   = null,
+
+                                         TimeSpan?                                    SlowNetworkSimulationDelay   = null,
+
+                                         IEnumerable<KeyValuePair<String, Object?>>?  CustomData                   = null)
+        {
+
+            this.ConnectedSince              = Timestamp.Now;
+            this.CancellationTokenSource     = new CancellationTokenSource();
+            this.WebSocketServer             = WebSocketServer;
+            this.tcpClient                   = null;
+            this.tcpStream                   = NetworkStream as NetworkStream;
+            this.tlsStream                   = NetworkStream as SslStream;
+            this.networkStream               = NetworkStream;
+            this.LocalSocket                 = LocalSocket;
+            this.RemoteSocket                = RemoteSocket;
             this.ClientCertificate           = ClientCertificate;
             this.HTTPRequest                 = HTTPRequest;
             this.HTTPResponse                = HTTPResponse;
@@ -673,7 +767,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 try
                 {
-                    tcpClient.Close();
+                    // A connection that was handed a stream closes the stream and
+                    // no more. Whoever opened the socket closes the socket - for
+                    // a WebSocket mounted on an HTTP path that is the HTTP
+                    // server, which is still holding it and still has the
+                    // logging and the keep-alive bookkeeping hanging off it.
+                    if (tcpClient is not null)
+                        tcpClient.Close();
+                    else
+                        networkStream.Close();
                 }
                 catch
                 { }
