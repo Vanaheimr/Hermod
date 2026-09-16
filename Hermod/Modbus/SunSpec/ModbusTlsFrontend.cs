@@ -49,6 +49,17 @@ public sealed class ModbusTlsFrontend : IDisposable
 
     private long                               _connectionCounter;
 
+    /// <summary>
+    /// Raised once per Modbus request, refused ones included.
+    /// </summary>
+    /// <remarks>
+    /// Synchronous and inside the request path, because a host that writes
+    /// these down wants them in the order they happened. A handler that throws
+    /// is logged and otherwise ignored: an audit log that cannot be written is
+    /// not a reason to stop answering a meter.
+    /// </remarks>
+    public event Action<ModbusRequestInfo>?    OnModbusRequest;
+
     public ModbusTlsFrontend(ModbusTlsFrontendOptions     opts,
                              IModbusBackendFactory        backendFactory,
                              AuthorizationPolicy          authz,
@@ -217,7 +228,7 @@ public sealed class ModbusTlsFrontend : IDisposable
 
             backend = await _backendFactory.CreateAsync(connId, role, ct).ConfigureAwait(false);
 
-            await PumpModbusAsync(ssl, role, backend, connId, ct).ConfigureAwait(false);
+            await PumpModbusAsync(ssl, role, backend, connId, remote, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -315,19 +326,30 @@ public sealed class ModbusTlsFrontend : IDisposable
                                        String?            role,
                                        IModbusBackend     backend,
                                        long               connId,
+                                       String             peer,
                                        CancellationToken  ct)
     {
-
-        ssl.ReadTimeout  = (int)_opts.IdleTimeout.TotalMilliseconds;
-        ssl.WriteTimeout = (int)_opts.WriteTimeout.TotalMilliseconds;
 
         while (!ct.IsCancellationRequested)
         {
 
             ModbusFrame req;
 
+            // SslStream.ReadTimeout governs synchronous reads only, and this read
+            // is asynchronous, so the idle timeout has to come from the token
+            // instead. Without it a peer that falls silent without closing - one
+            // whose network went away, most often - holds its connection, and the
+            // socket under it, until the process ends.
+            using var idleCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            idleCts.CancelAfter(_opts.IdleTimeout);
+
             try {
-                req = await ModbusFrame.ReadAsync(ssl, ct).ConfigureAwait(false);
+                req = await ModbusFrame.ReadAsync(ssl, idleCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (idleCts.IsCancellationRequested && !ct.IsCancellationRequested)
+            {
+                _logger.LogInformation("idle for {IdleTimeout}, closing", _opts.IdleTimeout);
+                return;
             }
             catch (EndOfStreamException)
             {
@@ -347,19 +369,36 @@ public sealed class ModbusTlsFrontend : IDisposable
             byte[] respPdu;
             try
             {
-                respPdu = await DispatchAsync(fc, req, role, backend, ct).ConfigureAwait(false);
+                respPdu = await DispatchAsync(fc, req, role, backend, connId, peer, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "dispatch error: {ExceptionType}", ex.GetType().Name);
                 respPdu = ModbusPDU.BuildException(fc, ModbusExceptionCode.ServerDeviceFailure);
+                Report(connId, peer, role, req, fc, 0, 0, true, null,
+                       ModbusExceptionCode.ServerDeviceFailure, respPdu.Length, TimeSpan.Zero);
             }
 
             var resp  = new ModbusFrame(req.TransactionId, req.UnitId, respPdu);
             var bytes = resp.ToBytes();
 
-            await ssl.WriteAsync(bytes, ct).ConfigureAwait(false);
-            await ssl.FlushAsync(ct).       ConfigureAwait(false);
+            // SslStream.WriteTimeout is synchronous-only in the same way as its
+            // read counterpart. A peer that asks and then stops reading leaves
+            // the send buffer full, and this write waits on a window that never
+            // opens - so the deadline has to come from the token here as well.
+            using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            writeCts.CancelAfter(_opts.WriteTimeout);
+
+            try
+            {
+                await ssl.WriteAsync(bytes, writeCts.Token).ConfigureAwait(false);
+                await ssl.FlushAsync(writeCts.Token).       ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (writeCts.IsCancellationRequested && !ct.IsCancellationRequested)
+            {
+                _logger.LogWarning("peer stopped reading for {WriteTimeout}, closing", _opts.WriteTimeout);
+                return;
+            }
 
         }
 
@@ -374,6 +413,8 @@ public sealed class ModbusTlsFrontend : IDisposable
                                              ModbusFrame          req,
                                              String?              role,
                                              IModbusBackend       backend,
+                                             long                 connId,
+                                             String               peer,
                                              CancellationToken    ct)
     {
 
@@ -400,7 +441,10 @@ public sealed class ModbusTlsFrontend : IDisposable
             {
                 _logger.LogWarning("malformed PDU: fc={FunctionCode}", fcLabel);
                 activity?.SetStatus(ActivityStatusCode.Error, "malformed PDU");
-                return ModbusPDU.BuildException(fc, ModbusExceptionCode.IllegalFunction);
+                var malformed = ModbusPDU.BuildException(fc, ModbusExceptionCode.IllegalFunction);
+                Report(connId, peer, role, req, fc, 0, 0, false, "malformed PDU",
+                       ModbusExceptionCode.IllegalFunction, malformed.Length, sw.Elapsed);
+                return malformed;
             }
 
             activity?.SetTag("modbus.address",  addr);
@@ -420,7 +464,10 @@ public sealed class ModbusTlsFrontend : IDisposable
                 });
                 activity?.SetTag("mbaps.deny_reason", d.Reason);
                 activity?.SetStatus(ActivityStatusCode.Error, d.Reason);
-                return ModbusPDU.BuildException(fc, ModbusExceptionCode.IllegalFunction);
+                var denied = ModbusPDU.BuildException(fc, ModbusExceptionCode.IllegalFunction);
+                Report(connId, peer, role, req, fc, addr, qty, false, d.Reason,
+                       ModbusExceptionCode.IllegalFunction, denied.Length, sw.Elapsed);
+                return denied;
             }
 
             decision = "allow";
@@ -428,6 +475,9 @@ public sealed class ModbusTlsFrontend : IDisposable
                 fcLabel, addr, qty, role ?? "(none)");
 
             var resp = await backend.ProcessRequestAsync(req.UnitId, pdu, ct).ConfigureAwait(false);
+
+            Report(connId, peer, role, req, fc, addr, qty, true, null,
+                   ExceptionCodeOf(resp), resp.Length, sw.Elapsed);
 
             return resp;
 
@@ -444,6 +494,67 @@ public sealed class ModbusTlsFrontend : IDisposable
             ServerMetrics.RequestDuration.Record(sw.Elapsed.TotalSeconds, tags);
         }
     }
+
+    /// <summary>
+    /// Hand one finished request to whoever is writing them down.
+    /// </summary>
+    private void Report(long                  connId,
+                        String                peer,
+                        String?               role,
+                        ModbusFrame           req,
+                        ModbusFunctionCodes   fc,
+                        ushort                addr,
+                        ushort                qty,
+                        Boolean               allowed,
+                        String?               denyReason,
+                        ModbusExceptionCode?  exceptionCode,
+                        Int32                 responseLength,
+                        TimeSpan              duration)
+    {
+
+        var handler = OnModbusRequest;
+
+        if (handler is null)
+            return;
+
+        try
+        {
+            handler(
+                new ModbusRequestInfo(
+                    DateTimeOffset.UtcNow,
+                    connId,
+                    peer,
+                    role,
+                    req.UnitId,
+                    req.TransactionId,
+                    fc,
+                    addr,
+                    qty,
+                    allowed,
+                    denyReason,
+                    exceptionCode,
+                    responseLength,
+                    duration
+                )
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "a Modbus request handler threw: {ExceptionType}", ex.GetType().Name);
+        }
+
+    }
+
+    /// <summary>
+    /// The exception a response PDU carries, or null when it is an ordinary
+    /// answer. Per [MB] a Modbus exception echoes the function code with its
+    /// high bit set, and puts the code in the byte after it.
+    /// </summary>
+    private static ModbusExceptionCode? ExceptionCodeOf(byte[] responsePdu)
+
+        => responsePdu.Length >= 2 && (responsePdu[0] & 0x80) != 0
+               ? (ModbusExceptionCode) responsePdu[1]
+               : null;
 
     /// <summary>
     /// Pull the (firstAddress, quantity) pair out of a request PDU for FCs the
