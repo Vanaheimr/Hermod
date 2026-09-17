@@ -68,6 +68,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
         #endregion
 
+        #region (private static) UniqueName(Role)
+
+        /// <summary>
+        /// A subject name no certificate has ever used before.
+        /// </summary>
+        /// <remarks>
+        /// The same lesson as <c>Mutual_TLS_Tests.UniqueCAName</c>, and these
+        /// tests had to learn it again. Windows resolves an issuer by name, and
+        /// <see cref="System.Net.Security.SslStreamCertificateContext"/> installs
+        /// the intermediates it is given into the current user's CA store so that
+        /// SChannel can send them. A fixed name therefore leaves one more
+        /// "Hermod Test Intermediate" behind on every run, each with a different
+        /// key, until the chain engine can no longer tell which one signed this
+        /// leaf: CertGetCertificateChain stops answering PartialChain and fails
+        /// outright, and every test here that builds a context dies with "An
+        /// unknown chain building error occurred" - on a machine where they
+        /// passed the day before, and for a reason that is not in this file.
+        ///
+        /// So the tests poisoned the machine by doing the very thing they test,
+        /// a hundred runs before anybody noticed.
+        /// </remarks>
+        private static String UniqueName(String Role)
+
+            => $"Hermod Test {Role} {Guid.NewGuid().ToString("N")[..8]}";
+
+        #endregion
+
         #region Setup / TearDown
 
         [SetUp]
@@ -80,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
             using var rootKey = RSA.Create(2048);
 
-            var rootRequest = new CertificateRequest("CN=Hermod Test Root",
+            var rootRequest = new CertificateRequest($"CN={UniqueName("Root")}",
                                                      rootKey,
                                                      HashAlgorithmName.SHA256,
                                                      RSASignaturePadding.Pkcs1);
@@ -97,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
             using var intermediateKey = RSA.Create(2048);
 
-            var intermediateRequest = new CertificateRequest("CN=Hermod Test Intermediate",
+            var intermediateRequest = new CertificateRequest($"CN={UniqueName("Intermediate")}",
                                                              intermediateKey,
                                                              HashAlgorithmName.SHA256,
                                                              RSASignaturePadding.Pkcs1);
