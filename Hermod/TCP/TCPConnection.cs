@@ -471,14 +471,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             if (certificateContextCache.TryGetValue(cacheKey, out var cachedContext))
                 return cachedContext;
 
-            var context = SslStreamCertificateContext.Create(
-                              target:                   Certificate,
-                              additionalCertificates:   Chain is { HasIntermediates: true } chain
-                                                            ? chain.Intermediates
-                                                            : null,
-                              trust:                    null,  // Standard-Trust reicht für Server-Zertifikate
-                              offline:                  true   // ← verhindert jegliche Netzwerk-Aktivität (AIA, CRL, OCSP…)
-                          );
+            // Through the chain, so that the one place that knows why a context
+            // cannot be built is the one place that builds it - and so that the
+            // answer is the same whether it is asked here, in the middle of a
+            // handshake, or in advance by whoever is starting a server.
+            var chain = Chain ?? new ServerCertificateChain(Certificate);
+
+            if (!chain.TryCreateContext(out var context, out var error))
+                // Not the CryptographicException .NET raises, which says
+                // "An unknown chain building error occurred" and names neither
+                // the certificate nor what is missing. Thrown rather than
+                // swallowed: the caller aborts the connection either way, and
+                // the difference is whether anybody can find out why.
+                throw new InvalidOperationException(error);
 
             certificateContextCache.TryAdd(cacheKey, context);
 
