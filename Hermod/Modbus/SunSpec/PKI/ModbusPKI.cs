@@ -15,11 +15,17 @@
  * limitations under the License.
  */
 
-using System.Formats.Asn1;
-using System.Net;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+
+using Org.BouncyCastle.Asn1;
+using Org.BouncyCastle.Asn1.X509;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.OpenSsl;
+
+using org.GraphDefined.Vanaheimr.Hermod.PKI;
 using org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.Common;
+
+using BCx509 = Org.BouncyCastle.X509;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.PKI;
 
@@ -32,17 +38,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.PKI;
 ///   5) Four client certs, one for each mandatory SunSpec role,
 ///      with the X.509v3 Role Extension (OID 1.3.6.1.4.1.50316.802.1, UTF8String).
 ///
-/// All artefacts are written as PEM (.crt) and PKCS#12 (.pfx).
-/// 
-/// 
+/// All artefacts are written as PEM (.crt) and, where the platform can hold the
+/// key, PKCS#12 (.pfx).
+///
+///
 /// Notes:
 ///  1. SunSpec verlangt, dass mbaps Devices beim Zertifikat die komplette Zertifikatskette bis zur Root CA senden!
-/// 
+///
 /// </summary>
+/// <remarks>
+/// Every key here is made through <see cref="KeyAlgorithm"/> and every
+/// certificate signed through <see cref="PKIFactory"/>, which is what lets this
+/// build a chain in any of the kinds this library knows - including the ones
+/// .NET cannot make at all. It used to call ECDsa.Create with a curve written
+/// into the line, so the one corner of this library that generates a PKI was
+/// also the one corner that could only generate what .NET can.
+///
+/// The defaults are unchanged: P-384 for the certificate authorities and P-256
+/// for the leaves, which is what SunSpec deployments interoperate with today.
+/// They are two parameters rather than one because they are two decisions - a
+/// key that has to stand up for ten years is not the same question as one that
+/// is replaced in two.
+///
+/// Whether the result can be written as PKCS#12 is a question about the
+/// platform rather than about the certificate. .NET has no key object for an
+/// Ed448 or an SLH-DSA key today, so such a chain is written as PEM and the
+/// .pfx is left out with a line saying why, rather than the whole run failing
+/// at the last step.
+/// </remarks>
 public class ModbusPKI
 {
 
     private const String DemoPfxPassword = "demo";
+
+    /// <summary>
+    /// The kind of key the certificate authorities get when nothing else is
+    /// said.
+    /// </summary>
+    public const String DefaultCAAlgorithm    = "ecdsa-p384";
+
+    /// <summary>
+    /// The kind of key the server and client certificates get when nothing
+    /// else is said.
+    /// </summary>
+    public const String DefaultLeafAlgorithm  = "ecdsa-p256";
 
     public ModbusPKI()
     {
@@ -57,6 +96,8 @@ public class ModbusPKI
     /// <param name="DeviceName">The common name of the mbaps device, and the stem of its ".local" DNS name.</param>
     /// <param name="DNSNames">Further DNS names the device answers to, on top of "localhost" and "&lt;DeviceName&gt;.local".</param>
     /// <param name="IPAddresses">Further IP addresses the device answers on, on top of both loopback addresses.</param>
+    /// <param name="CAAlgorithm">The kind of key the three certificate authorities get; P-384 when nothing is said.</param>
+    /// <param name="LeafAlgorithm">The kind of key the server and client certificates get; P-256 when nothing is said.</param>
     /// <remarks>
     /// The defaults produce a certificate for a meter on the same machine. A
     /// meter reached over the network needs the name or the address that its
@@ -66,48 +107,74 @@ public class ModbusPKI
     public Task BuildPKI(String                             outputDirectory   = "pki",
                          String?                            DeviceName        = null,
                          IEnumerable<String>?               DNSNames          = null,
-                         IEnumerable<System.Net.IPAddress>? IPAddresses       = null)
+                         IEnumerable<System.Net.IPAddress>? IPAddresses       = null,
+                         String?                            CAAlgorithm       = null,
+                         String?                            LeafAlgorithm     = null)
     {
 
         var deviceName = String.IsNullOrWhiteSpace(DeviceName)
                              ? "EnergyMeter01"
                              : DeviceName.Trim();
 
+        var forCAs     = Chosen(CAAlgorithm,   DefaultCAAlgorithm);
+        var forLeaves  = Chosen(LeafAlgorithm, DefaultLeafAlgorithm);
+
         var outDir = Path.Combine(Environment.CurrentDirectory, outputDirectory);
         Directory.CreateDirectory(outDir);
 
         Console.WriteLine($"[certgen] writing to {outDir}");
+        Console.WriteLine($"[certgen] authorities: {forCAs.Name}, leaves: {forLeaves.Name}");
 
 
 
 
         // 1) Root CA
-        var (rootCAPrivateKey, rootCACertificate) = BuildRootCA("CN=OCC SunSpec Modbus Root CA, O=Open Charging Cloud, C=DE");
-        WriteCertAndKey(outDir, "ca", rootCACertificate, rootCAPrivateKey, includePfx: false);
+        var rootCAKeyPair      = forCAs.Generate();
+
+        var rootCACertificate  = PKIFactory.SignCertificate(
+                                     CertificateTypes.RootCA,
+                                     "OCC SunSpec Modbus Root CA, O=Open Charging Cloud, C=DE",
+                                     rootCAKeyPair.Public,
+                                     Issuing(rootCAKeyPair.Private, null),
+                                     LifeTime:           TimeSpan.FromDays(3650),
+                                     PathLenConstraint:  1
+                                 );
+
+        WriteCertAndKey(outDir, "ca", rootCACertificate, rootCAKeyPair.Private, includePfx: false);
 
 
 
 
         // 2) Issuing Device CA
-        var (issuingDeviceCAPrivateKey, issuingDeviceCACertificate) = BuildIssuingCA(
-                                                                        rootCAPrivateKey,
-                                                                        rootCACertificate,
-                                                                        "CN=OCC SunSpec Modbus Issuing Device CA, O=Open Charging Cloud, C=DE"
-                                                                    );
+        var issuingDeviceCAKeyPair      = forCAs.Generate();
 
-        WriteCertAndKey(outDir, "issuing-device-ca", issuingDeviceCACertificate, issuingDeviceCAPrivateKey, includePfx: false);
+        var issuingDeviceCACertificate  = PKIFactory.SignCertificate(
+                                              CertificateTypes.IntermediateCA,
+                                              "OCC SunSpec Modbus Issuing Device CA, O=Open Charging Cloud, C=DE",
+                                              issuingDeviceCAKeyPair.Public,
+                                              Issuing(rootCAKeyPair.Private, rootCACertificate),
+                                              LifeTime:           TimeSpan.FromDays(1825),
+                                              PathLenConstraint:  0
+                                          );
+
+        WriteCertAndKey(outDir, "issuing-device-ca", issuingDeviceCACertificate, issuingDeviceCAKeyPair.Private, includePfx: false);
 
 
 
 
         // 3) Issuing Clients CA
-        var (issuingClientsCAPrivateKey, issuingClientsCACertificate) = BuildIssuingCA(
-                                                                         rootCAPrivateKey,
-                                                                         rootCACertificate,
-                                                                         "CN=OCC SunSpec Modbus Issuing Clients CA, O=Open Charging Cloud, C=DE"
-                                                                     );
+        var issuingClientsCAKeyPair      = forCAs.Generate();
 
-        WriteCertAndKey(outDir, "issuing-clients-ca", issuingClientsCACertificate, issuingClientsCAPrivateKey, includePfx: false);
+        var issuingClientsCACertificate  = PKIFactory.SignCertificate(
+                                               CertificateTypes.IntermediateCA,
+                                               "OCC SunSpec Modbus Issuing Clients CA, O=Open Charging Cloud, C=DE",
+                                               issuingClientsCAKeyPair.Public,
+                                               Issuing(rootCAKeyPair.Private, rootCACertificate),
+                                               LifeTime:           TimeSpan.FromDays(1825),
+                                               PathLenConstraint:  0
+                                           );
+
+        WriteCertAndKey(outDir, "issuing-clients-ca", issuingClientsCACertificate, issuingClientsCAKeyPair.Private, includePfx: false);
 
 
 
@@ -125,28 +192,28 @@ public class ModbusPKI
                                     Distinct().
                                     ToArray();
 
-        using (var serverKey = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-        {
+        var serverKeyPair  = forLeaves.Generate();
 
-            var serverCert = IssueServerCert(
-                                 issuingDeviceCAPrivateKey,
-                                 issuingDeviceCACertificate,
-                                 serverKey,
-                                 Subject:      $"CN={deviceName}, O=OCC Energy Meters, C=DE",
-                                 DNSNames:      deviceDNSNames,
-                                 IPAddresses:   deviceIPAddresses
+        var serverCert     = PKIFactory.SignCertificate(
+                                 CertificateTypes.Server,
+                                 $"{deviceName}, O=OCC Energy Meters, C=DE",
+                                 serverKeyPair.Public,
+                                 Issuing(issuingDeviceCAKeyPair.Private, issuingDeviceCACertificate),
+                                 SubjectAltNames:  [
+                                                       .. deviceDNSNames.   Select(name => new GeneralName(GeneralName.DnsName,   name)),
+                                                       .. deviceIPAddresses.Select(one  => new GeneralName(GeneralName.IPAddress, one.ToString()))
+                                                   ],
+                                 LifeTime:         TimeSpan.FromDays(730)
                              );
 
-            WriteServerCertWithKey(
-                outDir,
-                "server",
-                serverCert,
-                serverKey,
-                issuingDeviceCACertificate,
-                rootCACertificate
-            );
-
-        }
+        WriteServerCertWithKey(
+            outDir,
+            "server",
+            serverCert,
+            serverKeyPair.Private,
+            issuingDeviceCACertificate,
+            rootCACertificate
+        );
 
 
 
@@ -155,17 +222,17 @@ public class ModbusPKI
         foreach (var role in SunSpecRoles.AllMandatory)
         {
 
-            using var clientKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var clientKeyPair  = forLeaves.Generate();
 
-            var cert = IssueClientCert(
-                           issuingClientsCACertificate,
-                           issuingClientsCAPrivateKey,
-                           clientKey,
-                           subject: $"CN={deviceName}-Client-{role}, O=OCC Energy Meters, C=DE",
-                           role: role
-                       );
+            var cert           = IssueClientCert(
+                                     issuingClientsCACertificate,
+                                     issuingClientsCAKeyPair.Private,
+                                     clientKeyPair.Public,
+                                     $"{deviceName}-Client-{role}, O=OCC Energy Meters, C=DE",
+                                     role
+                                 );
 
-            WriteClientCertWithKey(outDir, $"client-{role}", cert, clientKey, issuingClientsCACertificate, rootCACertificate);
+            WriteClientCertWithKey(outDir, $"client-{role}", cert, clientKeyPair.Private, issuingClientsCACertificate, rootCACertificate);
 
         }
 
@@ -173,20 +240,17 @@ public class ModbusPKI
 
 
         // 6) Bonus: a client cert WITHOUT a role - useful for negative pentests
-        using (var noRoleKey = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-        {
+        var noRoleKeyPair  = forLeaves.Generate();
 
-            var noRoleCert = IssueClientCert(
+        var noRoleCert     = IssueClientCert(
                                  issuingClientsCACertificate,
-                                 issuingClientsCAPrivateKey,
-                                 noRoleKey,
-                                 subject: $"CN={deviceName}-Client-NO-ROLE, O=OCC Energy Meters, C=DE",
-                                 role: null
-                              );
+                                 issuingClientsCAKeyPair.Private,
+                                 noRoleKeyPair.Public,
+                                 $"{deviceName}-Client-NO-ROLE, O=OCC Energy Meters, C=DE",
+                                 null
+                             );
 
-            WriteClientCertWithKey(outDir, "client-NO-ROLE", noRoleCert, noRoleKey, issuingClientsCACertificate, rootCACertificate);
-
-        }
+        WriteClientCertWithKey(outDir, "client-NO-ROLE", noRoleCert, noRoleKeyPair.Private, issuingClientsCACertificate, rootCACertificate);
 
         Console.WriteLine("[certgen] done.");
         Console.WriteLine();
@@ -208,276 +272,44 @@ public class ModbusPKI
     // ---------------- Cert building ----------------
 
     /// <summary>
-    /// Build a self-signed Root CA with EC P-384.
+    /// The kind of key that was asked for, or the one this generator uses when
+    /// nothing was said.
     /// </summary>
-    private static (ECDsa key, X509Certificate2 cert) BuildRootCA(String Subject)
-    {
+    private static KeyAlgorithm Chosen(String? Asked, String Default)
 
-        var key                 = ECDsa.Create(
-                                      ECCurve.NamedCurves.nistP384
-                                  );
-
-        var certificateRequest  = new CertificateRequest(
-                                      Subject,
-                                      key,
-                                      HashAlgorithmName.SHA384
-                                  );
-
-        certificateRequest.CertificateExtensions.Add(
-            new X509BasicConstraintsExtension(
-                certificateAuthority:     true,
-                hasPathLengthConstraint:  true,
-                pathLengthConstraint:     1,
-                critical:                 true
-            )
-        );
-
-        certificateRequest.CertificateExtensions.Add(
-            new X509KeyUsageExtension(
-
-                X509KeyUsageFlags.KeyCertSign |
-                X509KeyUsageFlags.CrlSign,
-
-                critical:                 true
-
-            )
-        );
-
-        certificateRequest.CertificateExtensions.Add(
-            new X509SubjectKeyIdentifierExtension(
-
-                certificateRequest.PublicKey,
-
-                critical:                 false
-
-            )
-        );
-
-        var notBefore  = DateTimeOffset.UtcNow.AddDays(-1);
-        var notAfter   = DateTimeOffset.UtcNow.AddYears(10);
-
-        var cert       = certificateRequest.CreateSelfSigned(
-                             notBefore,
-                             notAfter
-                         );
-
-        return (key, cert);
-
-    }
+        => KeyAlgorithm.Find(Asked ?? Default)
+               ?? throw new ArgumentException($"'{Asked}' is not a kind of key this library makes. " +
+                                              $"It makes: {String.Join(", ", KeyAlgorithm.All.Select(one => one.Id))}.");
 
 
     /// <summary>
-    /// Build an issuing CA with EC P-384.
+    /// The pair PKIFactory wants for "who is signing this".
     /// </summary>
-    private static (ECDsa key, X509Certificate2 cert) BuildIssuingCA(ECDsa             RootCAKey,
-                                                                     X509Certificate2  RootCACert,
-                                                                     String            Subject)
-    {
+    private static Tuple<AsymmetricKeyParameter, BCx509.X509Certificate?> Issuing(AsymmetricKeyParameter   PrivateKey,
+                                                                                  BCx509.X509Certificate?  Certificate)
 
-        var key                 = ECDsa.Create(
-                                      ECCurve.NamedCurves.nistP384
-                                  );
-
-        var certificateRequest  = new CertificateRequest(
-                                      Subject,
-                                      key,
-                                      HashAlgorithmName.SHA384
-                                  );
-
-        certificateRequest.CertificateExtensions.Add(
-            new X509BasicConstraintsExtension(
-                certificateAuthority:     true,
-                hasPathLengthConstraint:  true,
-                pathLengthConstraint:     0,
-                critical:                 true
-            )
-        );
-
-        certificateRequest.CertificateExtensions.Add(
-            new X509KeyUsageExtension(
-
-                X509KeyUsageFlags.KeyCertSign |
-                X509KeyUsageFlags.CrlSign,
-
-                critical: true
-
-            )
-        );
-
-        certificateRequest.CertificateExtensions.Add(
-            new X509SubjectKeyIdentifierExtension(
-                certificateRequest.PublicKey,
-                critical: false
-            )
-        );
-
-        certificateRequest.CertificateExtensions.Add(
-            BuildAuthorityKeyIdentifier(RootCACert)
-        );
-
-        var serial     = RandomNumberGenerator.GetBytes(16);
-        serial[0]     &= 0x7F;
-
-        var notBefore  = DateTimeOffset.UtcNow.AddDays(-1);
-        var notAfter   = DateTimeOffset.UtcNow.AddYears(5);
-
-        var cert       = certificateRequest.Create(
-                             RootCACert.SubjectName,
-                             X509SignatureGenerator.CreateForECDsa(RootCAKey),
-                             notBefore,
-                             notAfter,
-                             serial
-                         );
-
-        return (key, cert);
-
-    }
-
-
-    /// <summary>
-    /// Server cert with TLS Web Server Authentication EKU and SAN.
-    /// </summary>
-    private static X509Certificate2 IssueServerCert(ECDsa                   IssuerKey,
-                                                    X509Certificate2        IssuerCert,
-                                                    ECDsa                   ServerKey,
-                                                    String                  Subject,
-                                                    String[]                DNSNames,
-                                                    System.Net.IPAddress[]  IPAddresses)
-    {
-
-        var certificateRequest  = new CertificateRequest(
-                                      Subject,
-                                      ServerKey,
-                                      HashAlgorithmName.SHA256
-                                  );
-
-        certificateRequest.CertificateExtensions.Add(
-            new X509BasicConstraintsExtension(
-
-                certificateAuthority:     false,
-                hasPathLengthConstraint:  false,
-                pathLengthConstraint:     0,
-
-                critical:                 true
-
-            )
-        );
-
-        certificateRequest.CertificateExtensions.Add(
-            new X509KeyUsageExtension(
-
-                X509KeyUsageFlags.DigitalSignature,
-
-                critical:                 true
-
-            )
-        );
-
-        certificateRequest.CertificateExtensions.Add(
-            new X509EnhancedKeyUsageExtension(
-
-                [
-                    new("1.3.6.1.5.5.7.3.1") /* serverAuth */
-                ],
-
-                critical: false
-
-            )
-        );
-
-
-        var sanBuilder = new SubjectAlternativeNameBuilder();
-
-        foreach (var dnsName   in DNSNames)
-            sanBuilder.AddDnsName(dnsName);
-
-        foreach (var ipAddress in IPAddresses)
-            sanBuilder.AddIpAddress(ipAddress);
-
-        certificateRequest.CertificateExtensions.Add(
-            sanBuilder.Build()
-        );
-
-
-        certificateRequest.CertificateExtensions.Add(
-            new X509SubjectKeyIdentifierExtension(
-                certificateRequest.PublicKey,
-                false
-            )
-        );
-
-        certificateRequest.CertificateExtensions.Add(
-            BuildAuthorityKeyIdentifier(IssuerCert)
-        );
-
-
-        // Server certs MAY also carry a role (server's own role) per [MBTLS] §6.1
-        // but per spec the client does NOT use it. We omit it here for clarity.
-
-
-        var serial = RandomNumberGenerator.GetBytes(16);
-        serial[0] &= 0x7F; // ensure positive
-        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-5);
-        var notAfter  = DateTimeOffset.UtcNow.AddYears(2);
-
-        return certificateRequest.Create(
-                   IssuerCert.SubjectName,
-                   X509SignatureGenerator.CreateForECDsa(IssuerKey),
-                   notBefore,
-                   notAfter,
-                   serial
-               );
-
-    }
+        => new (PrivateKey, Certificate);
 
 
     /// <summary>
     /// Client cert with clientAuth EKU and (optionally) the SunSpec Role Extension.
     /// </summary>
-    private static X509Certificate2 IssueClientCert(X509Certificate2  issuerCert,
-                                                    ECDsa             issuerKey,
-                                                    ECDsa             clientKey,
-                                                    String            subject,
-                                                    String?           role)
-    {
+    private static BCx509.X509Certificate IssueClientCert(BCx509.X509Certificate  IssuerCertificate,
+                                                          AsymmetricKeyParameter  IssuerKey,
+                                                          AsymmetricKeyParameter  ClientPublicKey,
+                                                          String                  Subject,
+                                                          String?                 Role)
 
-        var certificateRequest  = new CertificateRequest(subject, clientKey, HashAlgorithmName.SHA256);
-
-        certificateRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, critical: true));
-
-        certificateRequest.CertificateExtensions.Add(new X509KeyUsageExtension(
-            X509KeyUsageFlags.DigitalSignature,
-            critical: true));
-
-        certificateRequest.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-            [new("1.3.6.1.5.5.7.3.2") /* clientAuth */], critical: false));
-
-        if (role is not null)
-            certificateRequest.CertificateExtensions.Add(BuildSunSpecRoleExtension(role));
-
-        certificateRequest.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(certificateRequest.PublicKey, false));
-        certificateRequest.CertificateExtensions.Add(BuildAuthorityKeyIdentifier(issuerCert));
-
-        var serial = RandomNumberGenerator.GetBytes(16);
-        serial[0] &= 0x7F;
-
-        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-5);
-        var notAfter  = DateTimeOffset.UtcNow.AddYears(2);
-
-        return certificateRequest.Create(
-                   issuerCert.SubjectName,
-                   X509SignatureGenerator.CreateForECDsa(issuerKey),
-                   notBefore,
-                   notAfter,
-                   serial
-               );
-
-    }
-
-
-
-
-
+        => PKIFactory.SignCertificate(
+               CertificateTypes.Client,
+               Subject,
+               ClientPublicKey,
+               Issuing(IssuerKey, IssuerCertificate),
+               LifeTime:              TimeSpan.FromDays(730),
+               AdditionalExtensions:  Role is not null
+                                          ? [ BuildSunSpecRoleExtension(Role) ]
+                                          : null
+           );
 
 
     /// <summary>
@@ -486,114 +318,131 @@ public class ModbusPKI
     ///   value = ASN.1 UTF8String containing the role name
     /// non-critical (so legacy stacks still parse the cert).
     /// </summary>
-    public static X509Extension BuildSunSpecRoleExtension(String ModbusRole)
-    {
+    public static AdditionalExtension BuildSunSpecRoleExtension(String ModbusRole)
 
-        var writer = new AsnWriter(
-                         AsnEncodingRules.DER
-                     );
-
-        writer.WriteCharacterString(
-            UniversalTagNumber.UTF8String,
-            ModbusRole
-        );
-
-        return new X509Extension(
-                   new Oid(
-                       SunSpecRoles.RoleOid
-                   ),
-                   writer.Encode(),
-                   critical: false
-               );
-
-    }
-
-    /// <summary>
-    /// Authority Key Identifier built from the issuer's SubjectKeyIdentifier.
-    /// </summary>
-    private static X509Extension BuildAuthorityKeyIdentifier(X509Certificate2 issuer)
-    {
-
-        var ski  = issuer.Extensions["2.5.29.14"] as X509SubjectKeyIdentifierExtension
-                       ?? throw new InvalidOperationException("Issuer has no SubjectKeyIdentifier extension.");
-
-        // AKI ::= SEQUENCE { keyIdentifier [0] OCTET STRING OPTIONAL, ... }
-        var w    = new AsnWriter(AsnEncodingRules.DER);
-
-        using (w.PushSequence())
-        {
-            w.WriteOctetString(
-                Convert.FromHexString(ski.SubjectKeyIdentifier!),
-                new Asn1Tag(
-                    TagClass.ContextSpecific,
-                    0,
-                    isConstructed: false
-                )
-            );
-        }
-
-        return new X509Extension(
-                   new Oid("2.5.29.35"),
-                   w.Encode(),
-                   critical: false
-               );
-
-    }
-
-
-
-
-
+        => new (SunSpecRoles.RoleOid,
+                Critical: false,
+                Value:    new DerUtf8String(ModbusRole));
 
 
 
 
     // ---------------- File I/O ----------------
 
-    private static void WriteCertAndKey(
-        String dir, String baseName, X509Certificate2 cert, ECDsa key, Boolean includePfx)
+    /// <summary>
+    /// A certificate as PEM, which every kind of key can be written as.
+    /// </summary>
+    private static String AsPem(Object What)
     {
-        File.WriteAllText(Path.Combine(dir, $"{baseName}.crt"), cert.ExportCertificatePem() + "\n");
-        File.WriteAllText(Path.Combine(dir, $"{baseName}.key"), key.ExportPkcs8PrivateKeyPem() + "\n");
-        if (includePfx)
+
+        using var text    = new StringWriter();
+        var       writer  = new PemWriter(text);
+
+        writer.WriteObject(What);
+        writer.Writer.Flush();
+
+        return text.ToString();
+
+    }
+
+
+    /// <summary>
+    /// The certificate with its key attached, or null where this platform has
+    /// no key object for that kind.
+    /// </summary>
+    /// <remarks>
+    /// Null and a line rather than an exception that ends the run: a PKI in a
+    /// kind .NET cannot hold is still a PKI, its PEM files are still what a
+    /// device is given, and the missing .pfx is a fact about this machine.
+    /// </remarks>
+    private static X509Certificate2? WithKeyOrNothing(BCx509.X509Certificate  Certificate,
+                                                      AsymmetricKeyParameter  PrivateKey,
+                                                      String                  BaseName)
+    {
+        try
+        {
+            return PKIFactory.WithPrivateKey(
+                       X509CertificateLoader.LoadCertificate(Certificate.GetEncoded()),
+                       PrivateKey
+                   );
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"  ! {BaseName}.pfx left out: this runtime cannot hold that key ({e.GetType().Name}: {e.Message})");
+            return null;
+        }
+    }
+
+
+    private static void WriteCertAndKey(String                  dir,
+                                        String                  baseName,
+                                        BCx509.X509Certificate  cert,
+                                        AsymmetricKeyParameter  key,
+                                        Boolean                 includePfx)
+    {
+
+        File.WriteAllText(Path.Combine(dir, $"{baseName}.crt"), AsPem(cert));
+        File.WriteAllText(Path.Combine(dir, $"{baseName}.key"), AsPem(key));
+
+        if (includePfx && WithKeyOrNothing(cert, key, baseName) is X509Certificate2 withKey)
             File.WriteAllBytes(Path.Combine(dir, $"{baseName}.pfx"),
-                cert.CopyWithPrivateKey(key).Export(X509ContentType.Pfx, DemoPfxPassword));
+                               withKey.Export(X509ContentType.Pfx, DemoPfxPassword));
+
         Console.WriteLine($"  + {baseName}.crt / {baseName}.key");
+
     }
 
-    private static void WriteServerCertWithKey(String dir,
-                                               String baseName,
-                                               X509Certificate2 cert,
-                                               ECDsa key,
-                                               params X509Certificate2[] chainCertificates)
+    private static void WriteServerCertWithKey(String                          dir,
+                                               String                          baseName,
+                                               BCx509.X509Certificate          cert,
+                                               AsymmetricKeyParameter          key,
+                                               params BCx509.X509Certificate[] chainCertificates)
+
+        => WriteLeafCertWithKey(dir, baseName, cert, key, chainCertificates);
+
+    private static void WriteClientCertWithKey(String                          dir,
+                                               String                          baseName,
+                                               BCx509.X509Certificate          cert,
+                                               AsymmetricKeyParameter          key,
+                                               params BCx509.X509Certificate[] chainCertificates)
+
+        => WriteLeafCertWithKey(dir, baseName, cert, key, chainCertificates);
+
+    /// <summary>
+    /// A leaf certificate, its chain, its key, and a PKCS#12 where one can be
+    /// made.
+    /// </summary>
+    /// <remarks>
+    /// The server and the client used to have a copy each of this, identical
+    /// down to the console line. They now share it: two copies of a file
+    /// writer is two places to fix the day the layout changes.
+    /// </remarks>
+    private static void WriteLeafCertWithKey(String                  dir,
+                                             String                  baseName,
+                                             BCx509.X509Certificate  cert,
+                                             AsymmetricKeyParameter  key,
+                                             BCx509.X509Certificate[] chainCertificates)
     {
-        File.WriteAllText(Path.Combine(dir, $"{baseName}.crt"), cert.ExportCertificatePem() + "\n");
-        WriteCertificateChain(dir, baseName, cert, chainCertificates);
-        File.WriteAllText(Path.Combine(dir, $"{baseName}.key"), key.ExportPkcs8PrivateKeyPem() + "\n");
-        var withKey = cert.CopyWithPrivateKey(key);
-        File.WriteAllBytes(Path.Combine(dir, $"{baseName}.pfx"), ExportPfxWithChain(withKey, chainCertificates));
-        Console.WriteLine($"  + {baseName}.crt / {baseName}.chain.crt / {baseName}.key / {baseName}.pfx");
-    }
 
-    private static void WriteClientCertWithKey(String dir,
-                                               String baseName,
-                                               X509Certificate2 cert,
-                                               ECDsa key,
-                                               params X509Certificate2[] chainCertificates)
-    {
-        File.WriteAllText(Path.Combine(dir, $"{baseName}.crt"), cert.ExportCertificatePem() + "\n");
+        File.WriteAllText(Path.Combine(dir, $"{baseName}.crt"), AsPem(cert));
+
         WriteCertificateChain(dir, baseName, cert, chainCertificates);
-        File.WriteAllText(Path.Combine(dir, $"{baseName}.key"), key.ExportPkcs8PrivateKeyPem() + "\n");
-        var withKey = cert.CopyWithPrivateKey(key);
-        File.WriteAllBytes(Path.Combine(dir, $"{baseName}.pfx"), ExportPfxWithChain(withKey, chainCertificates));
+
+        File.WriteAllText(Path.Combine(dir, $"{baseName}.key"), AsPem(key));
+
+        if (WithKeyOrNothing(cert, key, baseName) is X509Certificate2 withKey)
+            File.WriteAllBytes(Path.Combine(dir, $"{baseName}.pfx"),
+                               ExportPfxWithChain(withKey, chainCertificates));
+
         Console.WriteLine($"  + {baseName}.crt / {baseName}.chain.crt / {baseName}.key / {baseName}.pfx");
+
     }
 
 
-    private static void WriteCertificateChain(String dir,
-                                              String baseName,
-                                              X509Certificate2 leafCertificate,
-                                              params X509Certificate2[] chainCertificates)
+    private static void WriteCertificateChain(String                   dir,
+                                              String                   baseName,
+                                              BCx509.X509Certificate   leafCertificate,
+                                              BCx509.X509Certificate[] chainCertificates)
     {
 
         File.WriteAllText(
@@ -601,15 +450,15 @@ public class ModbusPKI
             String.Concat(
                 new[] { leafCertificate }.
                     Concat(chainCertificates).
-                    Select(certificate => certificate.ExportCertificatePem() + "\n")
+                    Select(AsPem)
             )
         );
 
     }
 
 
-    private static Byte[] ExportPfxWithChain(X509Certificate2 leafCertificateWithKey,
-                                             params X509Certificate2[] chainCertificates)
+    private static Byte[] ExportPfxWithChain(X509Certificate2         leafCertificateWithKey,
+                                             BCx509.X509Certificate[] chainCertificates)
     {
 
         var collection = new X509Certificate2Collection {
@@ -617,7 +466,7 @@ public class ModbusPKI
         };
 
         foreach (var certificate in chainCertificates)
-            collection.Add(certificate);
+            collection.Add(X509CertificateLoader.LoadCertificate(certificate.GetEncoded()));
 
         return collection.Export(X509ContentType.Pfx, DemoPfxPassword);
 

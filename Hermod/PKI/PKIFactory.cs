@@ -1229,7 +1229,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
                             IEnumerable<URL>?                                        AIA_CAIssuersURLs        = null,
                             Boolean?                                                 TLSMustStaple            = false,  // true -> id-pe-tlsfeature: status_request(5)
                             Boolean?                                                 TLSMustStapleV2          = false,  // when true and TLSMustStaple==true -> {5,17})
-                            IEnumerable<CertificatePolicy>?                          CertificatePolicies      = null)
+                            IEnumerable<CertificatePolicy>?                          CertificatePolicies      = null,
+                            IEnumerable<AdditionalExtension>?                        AdditionalExtensions     = null)
 
         {
 
@@ -1634,6 +1635,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
                 );
 
             }
+
+            #endregion
+
+
+            #region Anything else the caller needs in it
+
+            // Last, and after everything this factory builds itself: a
+            // certificate profile from outside this library is the caller's to
+            // get right, and one that collides with an extension above would
+            // otherwise silently win or silently lose depending on the order.
+            // Bouncy Castle refuses a duplicate outright, which is the answer
+            // that leaves nobody guessing.
+            foreach (var extension in AdditionalExtensions ?? [])
+                certGen.AddExtension(
+                    extension.OID,
+                    extension.Critical,
+                    extension.Value
+                );
 
             #endregion
 
