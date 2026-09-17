@@ -73,6 +73,25 @@ public class ModbusPKI
                              ? "EnergyMeter01"
                              : DeviceName.Trim();
 
+        // Every PKI built here is a new one, and its CAs are named so that no
+        // other PKI's CAs share the name.
+        //
+        // Windows resolves an issuer by name. SslStreamCertificateContext
+        // installs the intermediates a server is given into the current user's
+        // CA store so that SChannel can send them, so a fixed name leaves one
+        // more same-named CA behind on every run, each with a different key.
+        // Once enough have piled up the chain engine can no longer tell which
+        // one signed a leaf: it stops answering PartialChain and fails
+        // outright, and everything that builds a certificate context dies with
+        // "An unknown chain building error occurred" - on a machine where it
+        // worked the day before, and for a reason that is nowhere near the
+        // code that broke. ServerCertificateChainTests died of exactly this,
+        // a hundred runs after the first one.
+        //
+        // It also makes the two PKIs of a test that builds two of them tell
+        // each other apart, which is the point of building two.
+        var pkiId = Guid.NewGuid().ToString("N")[..8];
+
         var outDir = Path.Combine(Environment.CurrentDirectory, outputDirectory);
         Directory.CreateDirectory(outDir);
 
@@ -82,7 +101,7 @@ public class ModbusPKI
 
 
         // 1) Root CA
-        var (rootCAPrivateKey, rootCACertificate) = BuildRootCA("CN=OCC SunSpec Modbus Root CA, O=Open Charging Cloud, C=DE");
+        var (rootCAPrivateKey, rootCACertificate) = BuildRootCA($"CN=OCC SunSpec Modbus Root CA {pkiId}, O=Open Charging Cloud, C=DE");
         WriteCertAndKey(outDir, "ca", rootCACertificate, rootCAPrivateKey, includePfx: false);
 
 
@@ -92,7 +111,7 @@ public class ModbusPKI
         var (issuingDeviceCAPrivateKey, issuingDeviceCACertificate) = BuildIssuingCA(
                                                                         rootCAPrivateKey,
                                                                         rootCACertificate,
-                                                                        "CN=OCC SunSpec Modbus Issuing Device CA, O=Open Charging Cloud, C=DE"
+                                                                        $"CN=OCC SunSpec Modbus Issuing Device CA {pkiId}, O=Open Charging Cloud, C=DE"
                                                                     );
 
         WriteCertAndKey(outDir, "issuing-device-ca", issuingDeviceCACertificate, issuingDeviceCAPrivateKey, includePfx: false);
@@ -104,7 +123,7 @@ public class ModbusPKI
         var (issuingClientsCAPrivateKey, issuingClientsCACertificate) = BuildIssuingCA(
                                                                          rootCAPrivateKey,
                                                                          rootCACertificate,
-                                                                         "CN=OCC SunSpec Modbus Issuing Clients CA, O=Open Charging Cloud, C=DE"
+                                                                         $"CN=OCC SunSpec Modbus Issuing Clients CA {pkiId}, O=Open Charging Cloud, C=DE"
                                                                      );
 
         WriteCertAndKey(outDir, "issuing-clients-ca", issuingClientsCACertificate, issuingClientsCAPrivateKey, includePfx: false);
