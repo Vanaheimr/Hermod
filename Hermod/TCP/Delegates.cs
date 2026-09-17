@@ -138,6 +138,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
 
     /// <summary>
+    /// A connection this server could not handle at all.
+    /// </summary>
+    /// <remarks>
+    /// Its own event, because what happens to such a connection is that it is
+    /// dropped - and from the other end that is a bare TCP reset with nothing
+    /// to explain it. The commonest reason by far is a TLS handshake that could
+    /// not be started because the server's own certificate chain cannot be
+    /// built on this machine, which is a configuration mistake somebody can fix
+    /// as soon as they are told. A server that only logs this where nobody
+    /// looks is a server that refuses everybody in silence.
+    /// </remarks>
+    /// <param name="TCPServer">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+    /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+    /// <param name="ConnectionId">The identification of this connection.</param>
+    /// <param name="Exception">What went wrong.</param>
+    public delegate Task TCPConnectionFailedDelegate(ITCPServer        TCPServer,
+                                                     DateTimeOffset    Timestamp,
+                                                     EventTracking_Id  EventTrackingId,
+                                                     IPSocket          RemoteSocket,
+                                                     String            ConnectionId,
+                                                     Exception         Exception);
+
+
+    /// <summary>
     /// Connection closed delegate.
     /// </summary>
     /// <param name="TCPServer">The sender of this event.</param>

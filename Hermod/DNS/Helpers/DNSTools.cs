@@ -407,20 +407,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var labels = Text.Trim('.').Split('.');
 
-            foreach (var label in labels)
+            // Every suffix of this name is itself a name, and each one starts
+            // where the label in front of it ends. The running offset therefore
+            // has to advance label by label: measuring every suffix from
+            // CurrentOffset only happens to be right for the first one, which is
+            // the same fault as finding 9 and this is the copy of the code it was
+            // not fixed in. A table that points at the wrong octet is worse than
+            // one that never matches, because the pointer it produces decodes to
+            // a name nobody wrote.
+            //
+            // The position is what identifies a label, not its text: Array.IndexOf
+            // finds the first label spelled that way, which is the wrong one for
+            // the second "example" in "example.com.example.com".
+            var offset = CurrentOffset;
+
+            for (var i = 0; i < labels.Length; i++)
             {
 
-                var labelBytes = Encoding.ASCII.GetBytes(label);
+                var labelBytes = Encoding.ASCII.GetBytes(labels[i]);
                 if (labelBytes.Length > 63)
                     throw new ArgumentException("Label too long");
 
                 Stream.WriteByte((Byte) labelBytes.Length);
                 Stream.Write    (labelBytes, 0, labelBytes.Length);
 
-                // Update offset for suffixes
-                var suffix = String.Join(".", labels.AsEnumerable().Skip(Array.IndexOf(labels, label) + 1));
+                offset += 1 + labelBytes.Length;
+
+                var suffix = String.Join(".", labels.Skip(i + 1));
                 if (!String.IsNullOrEmpty(suffix) && !Offsets.ContainsKey(suffix))
-                    Offsets[suffix] = CurrentOffset + 1 + labelBytes.Length;
+                    Offsets[suffix] = offset;
 
             }
 
