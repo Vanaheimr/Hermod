@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 #endregion
@@ -138,6 +140,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+
+        #region TryCreateContext(out Context, out Error)
+
+        /// <summary>
+        /// Build the TLS context a server needs in order to present this chain,
+        /// or say why it cannot be built.
+        /// </summary>
+        /// <remarks>
+        /// <b>This is where a certificate that cannot be served is found out
+        /// about.</b> .NET does not merely hold the bytes: it builds and checks
+        /// the chain of the server's own certificate while making the context,
+        /// and throws when it cannot complete it - which happens when the
+        /// issuing certificate authority's root is neither sent along nor known
+        /// to this machine. Whoever asks a server to present such a certificate
+        /// gets a TLS handshake that is reset without explanation.
+        ///
+        /// So this is offered as a question rather than only done in the middle
+        /// of a handshake: the answer is the same, and asked in advance it can
+        /// be put in front of somebody who can fix it.
+        ///
+        /// Note that the chain only has to be <em>buildable</em>, not trusted.
+        /// A private authority whose root is in the machine's store is fine; a
+        /// private authority whose root is nowhere is not.
+        /// </remarks>
+        public Boolean TryCreateContext([NotNullWhen(true)]  out SslStreamCertificateContext?  Context,
+                                        [NotNullWhen(false)] out String?                      Error)
+        {
+
+            Context  = null;
+            Error    = null;
+
+            try
+            {
+
+                Context = SslStreamCertificateContext.Create(
+                              target:                   Certificate,
+                              additionalCertificates:   HasIntermediates ? Intermediates : null,
+                              trust:                    null,
+                              offline:                  true
+                          );
+
+                return true;
+
+            }
+            catch (Exception e)
+            {
+
+                // The exception .NET raises here is "An unknown chain building
+                // error occurred", which names neither the certificate nor what
+                // is missing. Said again in words somebody can act on.
+                Error = $"The chain of '{Certificate.Subject}' cannot be built on this machine" +
+                        $"{(HasIntermediates ? $", although {Intermediates.Count} intermediate(s) were sent with it" : " and no intermediates were sent with it")}" +
+                        $": {e.Message} " +
+                         "A TLS server cannot present a certificate whose chain does not lead to a root this machine has - " +
+                         "either send the intermediates that lead to one, or put the root of the issuing authority into the machine's certificate store.";
+
+                return false;
+
+            }
+
+        }
+
+        #endregion
 
         #region (private static) IsSelfSigned(Certificate)
 

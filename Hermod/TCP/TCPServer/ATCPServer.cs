@@ -272,6 +272,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public event ConnectionClosedDelegate?           OnTCPConnectionClosed;
 
         /// <summary>
+        /// A connection that could not be handled at all and was therefore
+        /// dropped - which the other end sees as a bare TCP reset.
+        /// </summary>
+        public event TCPConnectionFailedDelegate?        OnTCPConnectionFailed;
+
+        /// <summary>
         /// An event fired whenever the TCP EchoTest server stopped.
         /// </summary>
         public event TCPServerStoppedDelegate?           OnTCPServerStopped;
@@ -946,6 +952,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
             catch (Exception ex)
             {
+                // Raised as well as logged: the logging handler is optional and is
+                // null unless somebody passed one, so a server that only logged this
+                // would drop the connection and leave no trace anywhere. From the
+                // other end this is a bare reset, and the reason is the only thing
+                // that makes it fixable.
+                await LogEvent(
+                          OnTCPConnectionFailed,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              this,
+                              Timestamp.Now,
+                              eventTrackingId2,
+                              remoteSocket,
+                              Connection.ConnectionId,
+                              ex
+                          )
+                      );
+
                 await Log($"Unhandled error in client handler: {ex.Message}");
             }
             finally
