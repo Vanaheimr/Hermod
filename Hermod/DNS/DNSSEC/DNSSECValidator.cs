@@ -179,10 +179,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         ///
         /// Call this periodically (e.g. daily) to keep trust anchors current.
         /// </summary>
+        /// <param name="Now">
+        /// The time to measure RFC 5011 §2.4.1's add hold-down against; the current
+        /// time when omitted. One reading serves the whole probe, both for the keys
+        /// whose hold-down is being checked and for the ones whose hold-down starts
+        /// here — otherwise the two ends of a thirty-day interval are taken from two
+        /// different instants, and no caller can name either of them.
+        /// </param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
         /// <returns>True if the trust anchor set was modified.</returns>
-        public async Task<Boolean> ProbeForTrustAnchorUpdatesAsync(CancellationToken CancellationToken = default)
+        public async Task<Boolean> ProbeForTrustAnchorUpdatesAsync(DateTimeOffset?    Now                = null,
+                                                                   CancellationToken  CancellationToken  = default)
         {
+
+            var now = Now ?? Timestamp.Now;
 
             try
             {
@@ -290,7 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             if (pendingAnchors.TryGetValue(keyId, out var pending))
                             {
                                 // Already pending — check if hold-down time has elapsed
-                                if (Timestamp.Now - pending.FirstSeen >= AddHoldDownTime)
+                                if (now - pending.FirstSeen >= AddHoldDownTime)
                                 {
                                     trustAnchors.Add(ds);
                                     pendingAnchors.Remove(keyId);
@@ -301,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             else
                             {
                                 // First time seeing this key — start the hold-down timer
-                                pendingAnchors[keyId] = (ds, Timestamp.Now);
+                                pendingAnchors[keyId] = (ds, now);
                             }
 
                         }
