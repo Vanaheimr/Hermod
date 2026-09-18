@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -169,6 +169,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(restarted.TryGetPasskey("credential-1", out var owner, out _),  Is.True);
                 Assert.That(owner!.Id,                                                       Is.EqualTo(reloaded.Id));
                 Assert.That(restarted.TryGetPasskey("credential-2", out _, out _),          Is.False);
+
+            }
+            finally
+            {
+                if (Directory.Exists(directory))
+                    Directory.Delete(directory, recursive: true);
+            }
+
+        }
+
+        #endregion
+
+        #region Authenticated_And_Disabled_Do_Not_Swap_Places()
+
+        /// <summary>
+        /// An authenticated account must not come back disabled.
+        /// </summary>
+        /// <remarks>
+        /// The two flags are given opposite values here on purpose. Both are
+        /// Booleans sitting next to each other in a long argument list, so
+        /// handing them over the wrong way round is something no compiler can
+        /// see - and giving them the same value in a test would hide exactly
+        /// that, because a swap and a clean round-trip then look alike.
+        ///
+        /// A second restart with a save in between is what the last part is
+        /// for. Reading swapped the flags and writing them back made the swap
+        /// permanent, so they changed places at every start and were never
+        /// wrong twice in the same direction - which is how this survived
+        /// being looked at.
+        /// </remarks>
+        [Test]
+        public async Task Authenticated_And_Disabled_Do_Not_Swap_Places()
+        {
+
+            var directory = Path.Combine(Path.GetTempPath(), $"hermod-accounts-{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
+
+            try
+            {
+
+                var api = NewAPI(directory);
+                await api.LoadDatabase();
+
+                var user = await api.CreateUser(
+                                     User_Id.Parse("alice"),
+                                     I18NString.Create("Alice"),
+                                     SimpleEMailAddress.Parse("alice@example.test"),
+                                     "Correct-Horse-1",
+                                     IsAuthenticated:           true,
+                                     IsDisabled:                false,
+                                     SkipDefaultNotifications:  true,
+                                     SkipNewUserEMail:          true,
+                                     SkipNewUserNotifications:  true
+                                 );
+
+                Assert.That(user,                   Is.Not.Null);
+                Assert.That(user!.IsAuthenticated,  Is.True);
+                Assert.That(user.IsDisabled,        Is.False);
+
+                #region A restart replays the database files
+
+                var restarted = NewAPI(directory);
+                await restarted.LoadDatabase();
+
+                Assert.That(restarted.TryGetUser(user.Id, out var reloaded),  Is.True);
+                Assert.That(reloaded!.IsAuthenticated,  Is.True,   "an authenticated account came back unauthenticated");
+                Assert.That(reloaded.IsDisabled,        Is.False,  "an account that was never disabled came back disabled");
+
+                #endregion
+
+                #region And a second one, with a save in between
+
+                var updated = await restarted.UpdateUser(
+                                        reloaded,
+                                        builder => builder.LastLoginAt = DateTimeOffset.Parse("2026-09-18T10:00:00+00:00"),
+                                        SkipUserUpdatedNotifications:  true
+                                    );
+
+                Assert.That(updated.Result,  Is.EqualTo(CommandResult.Success),  updated.Description.FirstText());
+
+                var again = NewAPI(directory);
+                await again.LoadDatabase();
+
+                Assert.That(again.TryGetUser(user.Id, out var twice),  Is.True);
+                Assert.That(twice!.IsAuthenticated,  Is.True,   "the flags settle rather than changing places at every start");
+                Assert.That(twice.IsDisabled,        Is.False);
+
+                #endregion
 
             }
             finally

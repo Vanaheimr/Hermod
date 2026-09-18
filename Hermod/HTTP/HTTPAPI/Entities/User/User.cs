@@ -1357,8 +1357,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            GeoLocation,
                            Address,
                            AcceptedEULA,
-                           IsAuthenticated ?? false,
-                           IsDisabled ?? false,
+                           // By name, for the same reason CreateUser passes them by
+                           // name: the constructor takes IsDisabled first and
+                           // IsAuthenticated second, and here they were handed over
+                           // the other way round. Both are Booleans, so nothing
+                           // complained - and because a user read back this way is
+                           // written back the same way at the next save, the two
+                           // flags swapped places at every single start.
+                           IsDisabled:       IsDisabled      ?? false,
+                           IsAuthenticated:  IsAuthenticated ?? false,
 
                            null,
                            null,
