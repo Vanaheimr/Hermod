@@ -1338,7 +1338,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public  const              Byte                                          DefaultMinUserIdLength                  = 4;
         public  const              Byte                                          DefaultMinRealmLength                   = 2;
-        public  const              Byte                                          DefaultMinUserNameLength                = 4;
+        // Three, because there are people called Bob, Ida and Jan, and a display
+        // name is not a secret - it is what somebody is called. The identifier
+        // next to it keeps its four.
+        public  const              Byte                                          DefaultMinUserNameLength                = 3;
         public  const              Byte                                          DefaultMinUserGroupIdLength             = 4;
         public  const              UInt16                                        DefaultMinAPIKeyLength                  = 20;
         public  const              Byte                                          DefaultMinOrganizationIdLength          = 4;
@@ -15758,6 +15761,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddOrUpdateUser    (User,      (Membership, Organization), ..., OnAdded = null, OnUpdated = null, ...)
 
+        #region LastEnabledAdminOf (User, out Organization)
+
+        /// <summary>
+        /// Whether disabling the given account would leave an organization with
+        /// no enabled administrator at all, and which organization that would be.
+        /// </summary>
+        /// <remarks>
+        /// Disabling an account is meant to shut one person out, not everybody.
+        /// An organization whose last enabled administrator is disabled cannot be
+        /// administered by anyone any more - including by the account that would
+        /// have to enable it again, which is the one just disabled. What is left
+        /// is editing the database file by hand.
+        ///
+        /// Administrators of a parent organization count, because they administer
+        /// its children as well; that is what Organizations(Admin) already answers,
+        /// and asking it on both sides keeps the question symmetrical.
+        ///
+        /// This walks every account. It is asked only when an account is actually
+        /// being disabled, which is rare and is the one moment worth the walk.
+        /// </remarks>
+        /// <param name="User">The account about to be disabled.</param>
+        /// <param name="Organization">The organization it would leave without one.</param>
+        public Boolean LastEnabledAdminOf(IUser                                 User,
+                                          [NotNullWhen(true)] out IOrganization?  Organization)
+        {
+
+            foreach (var organization in User.Organizations(Access_Levels.Admin))
+            {
+
+                var somebodyElse = users.Values.Any(other => !other.Id.Equals(User.Id) &&
+                                                             !other.IsDisabled         &&
+                                                              other.Organizations(Access_Levels.Admin).
+                                                                    Any(theirs => theirs.Id.Equals(organization.Id)));
+
+                if (!somebodyElse)
+                {
+                    Organization = organization;
+                    return true;
+                }
+
+            }
+
+            Organization = null;
+            return false;
+
+        }
+
+        #endregion
+
         #region (protected internal) addOrUpdateUser(User,                            SkipDefaultNotifications = false, OnAdded = null, OnUpdated = null, ...)
 
         /// <summary>
@@ -15819,6 +15871,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return AddOrUpdateUserResult.ArgumentError(
                            User,
                            $"The given user name '{User.Name}' is too short!".ToI18NString(),
+                           eventTrackingId,
+                           SystemId,
+                           this
+                       );
+
+            // Asked of the stored account rather than the given one: the
+            // organization edges hang on the account this API already has, and
+            // whoever hands one in may well have left them off.
+            if (User.IsDisabled &&
+                TryGetUser(User.Id, out var storedUser) &&
+                storedUser is not null &&
+               !storedUser.IsDisabled &&
+                LastEnabledAdminOf(storedUser, out var orphaned))
+                return AddOrUpdateUserResult.ArgumentError(
+                           User,
+                           $"'{User.Id}' is the last enabled administrator of organization '{orphaned.Id}' and can not be disabled!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
                            this
@@ -16250,6 +16318,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
+            if (NewUser.IsDisabled &&
+               !OldUser.IsDisabled &&
+                LastEnabledAdminOf(OldUser, out var orphanedOrganization))
+                return UpdateUserResult.ArgumentError(
+                           NewUser,
+                           $"'{NewUser.Id}' is the last enabled administrator of organization '{orphanedOrganization.Id}' and can not be disabled!".ToI18NString(),
+                           eventTrackingId,
+                           SystemId,
+                           this
+                       );
+
             NewUser.API = this;
 
 
@@ -16431,6 +16510,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var builder = User.ToBuilder();
             UpdateDelegate(builder);
             var updatedUser = builder.ToImmutable;
+
+            // Against User and not updatedUser: the builder's result has no linked
+            // data yet - CopyAllLinkedDataFrom runs further below - so it knows of
+            // no organizations at all and would answer that it administers none.
+            if (updatedUser.IsDisabled &&
+               !User.IsDisabled &&
+                LastEnabledAdminOf(User, out var orphanedOrganization))
+                return UpdateUserResult.ArgumentError(
+                           User,
+                           $"'{User.Id}' is the last enabled administrator of organization '{orphanedOrganization.Id}' and can not be disabled!".ToI18NString(),
+                           eventTrackingId,
+                           SystemId,
+                           this
+                       );
 
             await WriteToDatabaseFile(
                       updateUser_MessageType,
