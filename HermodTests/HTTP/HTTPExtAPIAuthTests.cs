@@ -941,6 +941,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region Disabling_The_Last_Administrator_Answers_409()
+
+        /// <summary>
+        /// Over HTTP, the refusal to leave an organization without an enabled
+        /// administrator is a conflict rather than a bad request.
+        /// </summary>
+        /// <remarks>
+        /// The distinction is worth a test because the two are easy to confuse
+        /// and only one of them is honest: 400 tells a client that it sent
+        /// something wrong and should fix its request, which invites it to try
+        /// again with a tidier body forever. Nothing about this body is wrong.
+        /// The API will not go to the state it asks for, and that is 409.
+        ///
+        /// The refusal also names the organization, because "no" without a
+        /// reason is the kind of answer somebody debugs for an hour.
+        /// </remarks>
+        [Test]
+        public async Task Disabling_The_Last_Administrator_Answers_409()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                var browser = new Browser(client);
+
+                Assert.That((await SignUp(browser, "alice")).Status,  Is.EqualTo(HttpStatusCode.Created));
+
+                var acme = new Organization(Organization_Id.Parse("acme"), I18NString.Create("ACME"));
+
+                Assert.That((await api.AddOrganization(acme)).Result,                                                                     Is.EqualTo(CommandResult.Success));
+                Assert.That((await api.AddUserToOrganization(UserOf(api, "alice"), User2OrganizationEdgeLabel.IsAdmin, acme)).IsSuccess,   Is.True);
+
+                var body = new JObject(
+                               new JProperty("@id",         "alice"),
+                               new JProperty("@context",    "https://opendata.social/contexts/UsersAPI/user"),
+                               new JProperty("name",        new JObject(new JProperty("en", "alice"))),
+                               new JProperty("email",       "alice@example.test"),
+                               new JProperty("isDisabled",  true)
+                           );
+
+                var (status, json) = await browser.Call(new HttpMethod("SET"), "accounts/users/alice", body);
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(status,                                Is.EqualTo(HttpStatusCode.Conflict),  browser.LastBody);
+                    Assert.That(json?["description"]?.ToString(),      Does.Contain("acme"),                 "the refusal names the organization");
+                });
+
+                // Nothing was written, and the account carries on as before.
+                var stillSignedIn = (await browser.Call(HttpMethod.Get, "accounts/auth/me")).Status;
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(UserOf(api, "alice").IsDisabled,  Is.False);
+                    Assert.That(stillSignedIn,                    Is.EqualTo(HttpStatusCode.OK));
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
     }
 
 }

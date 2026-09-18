@@ -6735,6 +6735,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 }.AsImmutable;
 
 
+                    #region Refuse to leave an organization without an administrator
+
+                    // AddOrUpdateUser refuses this too, and would answer 400 like
+                    // every other refusal it makes. 400 says the request was
+                    // malformed, and this one is not: it is well formed and asks
+                    // for a state this API will not go to, which is 409.
+                    //
+                    // Asked here rather than read off the result because the result
+                    // cannot say it. CommandResult lives in Styx, shared by
+                    // everything, and growing it by one value to carry one status
+                    // code is a poor trade - so the route asks the same published
+                    // question the guard asks, and the guard stays the backstop for
+                    // whoever does not come through here.
+                    if (user.IsDisabled &&
+                        TryGetUser(user.Id, out var storedUser) &&
+                        storedUser is not null &&
+                       !storedUser.IsDisabled &&
+                        LastEnabledAdminOf(storedUser, out var orphanedOrganization))
+                        return new HTTPResponse.Builder(request) {
+                                    HTTPStatusCode              = HTTPStatusCode.Conflict,
+                                    Server                      = HTTPServer?.HTTPServerName,
+                                    Date                        = Timestamp.Now,
+                                    AccessControlAllowOrigin    = "*",
+                                    AccessControlAllowMethods   = [ HTTPMethod.GET, HTTPMethod.SET ],
+                                    AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                    ContentType                 = HTTPContentType.Application.JSON_UTF8,
+                                    Content                     = JSONObject.Create(
+                                                                      new JProperty("description",  $"'{user.Id}' is the last enabled administrator of organization '{orphanedOrganization.Id}' and can not be disabled!")
+                                                                  ).ToUTF8Bytes(),
+                                    Connection                  = ConnectionType.KeepAlive
+                                }.AsImmutable;
+
+                    #endregion
+
+
                     var result = await AddOrUpdateUser(user,
                                                        EventTrackingId:  request.EventTrackingId,
                                                        CurrentUserId:    httpUser.Id);
