@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<User2UserGroupEdge> Edges(IUser User)
 
             => _User2UserGroup_Edges.
-                   Where(edge => edge.Source == User);
+                   Where(edge => edge.Source.Id.Equals(User.Id));
 
 
         /// <summary>
@@ -177,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      IUser User)
 
             => _User2UserGroup_Edges.
-                   Where(edge => edge.Source == User && edge.EdgeLabel == EdgeLabel);
+                   Where(edge => edge.Source.Id.Equals(User.Id) && edge.EdgeLabel == EdgeLabel);
 
 
         /// <summary>
@@ -188,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<User2UserGroupEdgeLabel> EdgeLabels(IUser User)
 
             => _User2UserGroup_Edges.
-                   Where(edge => edge.Source == User).
+                   Where(edge => edge.Source.Id.Equals(User.Id)).
                    Select(edge => edge.EdgeLabel);
 
 
@@ -196,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                IUser User)
 
             => _User2UserGroup_Edges.
-                   Any(edge => edge.EdgeLabel == EdgeLabel && edge.Source == User);
+                   Any(edge => edge.EdgeLabel == EdgeLabel && edge.Source.Id.Equals(User.Id));
 
         #endregion
 
@@ -216,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public UserGroup2UserGroupEdge AddEdge(UserGroup2UserGroupEdge Edge)
 
-            => Edge.Target == this
+            => Edge.Target.Id.Equals(Id)
                    ? _UserGroup2UserGroup_InEdges.AddAndReturnElement(Edge)
                    : _UserGroup2UserGroup_OutEdges.AddAndReturnElement(Edge);
 
@@ -269,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var parents = _UserGroup2UserGroup_OutEdges.
-                              Where(edge => edge.Source == this && edge.EdgeLabel == UserGroup2UserGroupEdgeLabel.IsSubgroupOf).
+                              Where(edge => edge.Source.Id.Equals(Id) && edge.EdgeLabel == UserGroup2UserGroupEdgeLabel.IsSubgroupOf).
                               Select(edge => edge.Target).
                               ToArray();
 
@@ -322,7 +322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<UserGroup> ParentUserGroups
 
             => _UserGroup2UserGroup_OutEdges.
-                   Where(edge => edge.Source == this && edge.EdgeLabel == UserGroup2UserGroupEdgeLabel.IsSubgroupOf).
+                   Where(edge => edge.Source.Id.Equals(Id) && edge.EdgeLabel == UserGroup2UserGroupEdgeLabel.IsSubgroupOf).
                    Select(edge => edge.Target).
                    ToArray();
 
@@ -335,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var childs = _UserGroup2UserGroup_InEdges.
-                             Where(edge => edge.Target == this && edge.EdgeLabel == UserGroup2UserGroupEdgeLabel.IsSubgroupOf).
+                             Where(edge => edge.Target.Id.Equals(Id) && edge.EdgeLabel == UserGroup2UserGroupEdgeLabel.IsSubgroupOf).
                              Select(edge => edge.Source).
                              ToArray();
 
@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<UserGroup> SubUserGroups
 
             => _UserGroup2UserGroup_InEdges.
-                   Where(edge => edge.Target == this && edge.EdgeLabel == UserGroup2UserGroupEdgeLabel.IsSubgroupOf).
+                   Where(edge => edge.Target.Id.Equals(Id) && edge.EdgeLabel == UserGroup2UserGroupEdgeLabel.IsSubgroupOf).
                    Select(edge => edge.Source).
                    ToArray();
 
@@ -410,11 +410,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ? new UserGroup2UserGroupEdgeLabel[0]
 
                    : _UserGroup2UserGroup_InEdges.
-                         Where(edge => edge.Source == UserGroup).
+                         Where(edge => edge.Source.Id.Equals(UserGroup.Id)).
                          Select(edge => edge.EdgeLabel).Concat(
 
                      _UserGroup2UserGroup_OutEdges.
-                         Where(edge => edge.Target == UserGroup).
+                         Where(edge => edge.Target.Id.Equals(UserGroup.Id)).
                          Select(edge => edge.EdgeLabel));
 
         #endregion
@@ -436,7 +436,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var edges = _UserGroup2UserGroup_InEdges.
                             Where(edge => edge.EdgeLabel == EdgeLabel &&
-                                          edge.Source == SourceUserGroup).
+                                          edge.Source.Id.Equals(SourceUserGroup.Id)).
                             ToArray();
 
             foreach (var edge in edges)
@@ -462,7 +462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var edges = _UserGroup2UserGroup_OutEdges.
                             Where(edge => edge.EdgeLabel == EdgeLabel &&
-                                          edge.Target == TargetUserGroup).
+                                          edge.Target.Id.Equals(TargetUserGroup.Id)).
                             ToArray();
 
             foreach (var edge in edges)

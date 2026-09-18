@@ -12853,7 +12853,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (O2O_OrganizationOut.
                             Organization2OrganizationOutEdges.
-                            Where(edge => edge.Target    == O2O_OrganizationIn).
+                            Where(edge => edge.Target.Id.Equals(O2O_OrganizationIn.Id)).
                             Any  (edge => edge.EdgeLabel == O2O_EdgeLabel))
                     {
 
@@ -12861,7 +12861,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (O2O_OrganizationIn.
                                 Organization2OrganizationInEdges.
-                                Where(edge => edge.Source    == O2O_OrganizationOut).
+                                Where(edge => edge.Source.Id.Equals(O2O_OrganizationOut.Id)).
                                 Any  (edge => edge.EdgeLabel == O2O_EdgeLabel))
                         {
                             O2O_OrganizationIn.RemoveInEdges(O2O_EdgeLabel, O2O_OrganizationOut);
@@ -29489,7 +29489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (!OrganizationOut.
                         Organization2OrganizationOutEdges.
-                        Where(edge => edge.Target    == OrganizationIn).
+                        Where(edge => edge.Target.Id.Equals(OrganizationIn.Id)).
                         Any  (edge => edge.EdgeLabel == EdgeLabel))
                 {
 
@@ -29508,7 +29508,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (!OrganizationIn.
                             Organization2OrganizationInEdges.
-                            Where(edge => edge.Source    == OrganizationOut).
+                            Where(edge => edge.Source.Id.Equals(OrganizationOut.Id)).
                             Any  (edge => edge.EdgeLabel == EdgeLabel))
                     {
                         OrganizationIn.AddInEdge(EdgeLabel, OrganizationOut);
@@ -29609,7 +29609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (OrganizationOut.
                     Organization2OrganizationOutEdges.
-                    Where(edge => edge.Target    == OrganizationIn).
+                    Where(edge => edge.Target.Id.Equals(OrganizationIn.Id)).
                     Any  (edge => edge.EdgeLabel == EdgeLabel))
             {
 
@@ -29628,7 +29628,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (OrganizationIn.
                         Organization2OrganizationInEdges.
-                        Where(edge => edge.Source    == OrganizationOut).
+                        Where(edge => edge.Source.Id.Equals(OrganizationOut.Id)).
                         Any  (edge => edge.EdgeLabel == EdgeLabel))
                 {
                     OrganizationIn.RemoveInEdges(EdgeLabel, OrganizationOut);

@@ -284,7 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<User2OrganizationEdge> User2OrganizationInEdges(IUser User)
 
             => _User2Organization_Edges.
-                   Where(edge => edge.Source == User);
+                   Where(edge => edge.Source.Id.Equals(User.Id));
 
         #endregion
 
@@ -296,7 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<User2OrganizationEdgeLabel> User2OrganizationInEdgeLabels(IUser User)
 
             => _User2Organization_Edges.
-                   Where(edge => edge.Source == User).
+                   Where(edge => edge.Source.Id.Equals(User.Id)).
                    Select(edge => edge.EdgeLabel);
 
         #endregion
@@ -310,7 +310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var edges = _User2Organization_Edges.
                             Where(edge => edge.EdgeLabel == EdgeLabel &&
-                                          edge.Source == User).
+                                          edge.Source.Id.Equals(User.Id)).
                             ToArray();
 
             foreach (var edge in edges)
@@ -572,7 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var edges = _Organization2Organization_InEdges.
                             Where(edge => edge.EdgeLabel == EdgeLabel &&
-                                          edge.Source == SourceOrganization).
+                                          edge.Source.Id.Equals(SourceOrganization.Id)).
                             ToArray();
 
             foreach (var edge in edges)
@@ -598,7 +598,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var edges = _Organization2Organization_OutEdges.
                             Where(edge => edge.EdgeLabel == EdgeLabel &&
-                                          edge.Target == TargetOrganization).
+                                          edge.Target.Id.Equals(TargetOrganization.Id)).
                             ToArray();
 
             foreach (var edge in edges)

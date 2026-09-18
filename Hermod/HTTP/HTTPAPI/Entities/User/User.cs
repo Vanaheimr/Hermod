@@ -443,7 +443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<User2OrganizationEdgeLabel> EdgeLabels(IOrganization Organization)
 
             => _User2Organization_Edges.
-                   Where (edge => edge.Target == Organization).
+                   Where (edge => edge.Target.Id.Equals(Organization.Id)).
                    Select(edge => edge.EdgeLabel);
 
         #endregion
@@ -457,7 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<User2OrganizationEdge> Edges(IOrganization Organization)
 
             => _User2Organization_Edges.
-                   Where(edge => edge.Target == Organization);
+                   Where(edge => edge.Target.Id.Equals(Organization.Id));
 
         #endregion
 
@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         User2OrganizationEdgeLabel  EdgeLabel)
 
             => _User2Organization_Edges.
-                   Where(edge => edge.Target == Organization && edge.EdgeLabel == EdgeLabel);
+                   Where(edge => edge.Target.Id.Equals(Organization.Id) && edge.EdgeLabel == EdgeLabel);
 
         #endregion
 
