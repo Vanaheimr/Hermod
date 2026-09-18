@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -178,6 +178,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (user is null)
                 return HTTPExtAPI.AuthError(Request, HTTPStatusCode.InternalServerError, "The account could not be created.");
+
+            // CreateUser makes an enabled account, so this does not fire today.
+            // It is here because the next line hands out a session, and if this
+            // API ever signs people up pending a verified e-mail - the obvious
+            // next step - the account it creates will be a disabled one.
+            if (!HTTPExtAPI.CanAuthenticate(user))
+                return HTTPExtAPI.AuthError(Request, HTTPStatusCode.Forbidden, "This account has been disabled.");
 
             return API.SignedIn(Request, HTTPStatusCode.Created, user, API.Sessions.Create(user.Id));
 

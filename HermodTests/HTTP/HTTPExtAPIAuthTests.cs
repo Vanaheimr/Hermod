@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -778,6 +778,158 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 Assert.That(api.TryGetOrganization(Organization_Id.Parse("acme"), out var organization),  Is.True);
                 Assert.That(organization?.Members.Select(member => member.Id.ToString()),                  Does.Contain("paula"));
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region Disabling_An_Account_Closes_Every_Door()
+
+        /// <summary>
+        /// A disabled account cannot sign in, cannot go on using the session it
+        /// signed in with earlier, cannot come back through HTTP Basic Auth, and
+        /// cannot be reached through one of its API keys.
+        /// </summary>
+        /// <remarks>
+        /// Every door is opened first and closed afterwards in the same test,
+        /// with the same credentials. A test that only checked the refusals
+        /// would pass just as happily if the account had never been able to get
+        /// in at all - which is the way a test about being shut out fools you.
+        ///
+        /// The session is the interesting one. It is minted while the account is
+        /// still enabled, so nothing about the cookie changes when the account is
+        /// disabled; what changes is that the account behind it no longer counts.
+        ///
+        /// Four password attempts in total, and the ration is ten a minute -
+        /// close enough to be worth saying out loud.
+        /// </remarks>
+        [Test]
+        public async Task Disabling_An_Account_Closes_Every_Door()
+        {
+
+            var (server, api, client, directory) = await StartAsync();
+
+            try
+            {
+
+                #region An account that can use all four doors
+
+                var created = await api.CreateUserIfNotExists(
+                                        User_Id.Parse("ivan"),
+                                        I18NString.Create("Ivan"),
+                                        SimpleEMailAddress.Parse("ivan@example.test"),
+                                        Password:                  "Correct-Horse-4",
+                                        IsAuthenticated:           true,
+                                        // HTTP Basic Auth insists on one.
+                                        AcceptedEULA:              DateTimeOffset.UtcNow.AddDays(-1),
+                                        SkipNewUserEMail:          true,
+                                        SkipNewUserNotifications:  true,
+                                        SkipDefaultNotifications:  true
+                                    );
+
+                Assert.That(created,              Is.Not.Null);
+                Assert.That(created!.IsDisabled,  Is.False);
+
+                var keyId = APIKey_Id.Parse("ivans-only-key-0123456789abcdef");
+
+                Assert.That((await api.AddAPIKey(new APIKey(keyId, User_Id.Parse("ivan")))).Result,  Is.EqualTo(CommandResult.Success));
+
+                async Task<HttpStatusCode> WithBasicAuth()
+                {
+
+                    using var request = new HttpRequestMessage(HttpMethod.Get, "accounts/auth/me");
+
+                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                                                        "Basic",
+                                                        Convert.ToBase64String(Encoding.UTF8.GetBytes("ivan:Correct-Horse-4"))
+                                                    );
+
+                    using var response = await client.SendAsync(request);
+
+                    return response.StatusCode;
+
+                }
+
+                async Task<HttpStatusCode> WithAPIKey()
+                {
+
+                    using var request = new HttpRequestMessage(HttpMethod.Get, "accounts/auth/me");
+
+                    request.Headers.Add("API-Key", keyId.ToString());
+
+                    using var response = await client.SendAsync(request);
+
+                    return response.StatusCode;
+
+                }
+
+                #endregion
+
+                #region All four are open
+
+                var browser         = new Browser(client);
+                var (status, json)  = await browser.Call(HttpMethod.Post, "accounts/auth/login",
+                                                         new { login = "ivan", password = "Correct-Horse-4" });
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(status,              Is.EqualTo(HttpStatusCode.OK),  browser.LastBody);
+                    Assert.That(browser.HasSession,  Is.True);
+                });
+
+                Assert.That((await browser.Call(HttpMethod.Get, "accounts/auth/me")).Status,  Is.EqualTo(HttpStatusCode.OK),  "the session");
+                Assert.That(await WithBasicAuth(),                                            Is.EqualTo(HttpStatusCode.OK),  "HTTP Basic Auth");
+                Assert.That(await WithAPIKey(),                                               Is.EqualTo(HttpStatusCode.OK),  "the API key");
+
+                #endregion
+
+                #region Disable it, and all four are shut
+
+                Assert.That(api.TryGetUser(User_Id.Parse("ivan"), out var ivan),  Is.True);
+
+                var disabled = await api.UpdateUser(
+                                         ivan!,
+                                         builder => builder.IsDisabled = true,
+                                         SkipUserUpdatedNotifications:  true
+                                     );
+
+                Assert.That(disabled.Result,  Is.EqualTo(CommandResult.Success),  disabled.Description.FirstText());
+
+                // The same cookie jar, holding the same session as a moment ago.
+                // Gathered, so that neutralising the check reports all three doors
+                // at once rather than stopping at whichever one is asked first.
+                var session  = (await browser.Call(HttpMethod.Get, "accounts/auth/me")).Status;
+                var basic    = await WithBasicAuth();
+                var apiKey   = await WithAPIKey();
+
+                // And it cannot sign in again to get a fresh session. Forbidden
+                // rather than Unauthorized: the password was right, the account
+                // is not.
+                var again = new Browser(client);
+
+                (status, json) = await again.Call(HttpMethod.Post, "accounts/auth/login",
+                                                  new { login = "ivan", password = "Correct-Horse-4" });
+
+                // Every door reported together. Asserting them one after another
+                // would stop at whichever is asked first, and a check that only
+                // ever proves one door is a check that lets the others rot.
+                Assert.Multiple(() =>
+                {
+                    Assert.That(session,                                           Is.EqualTo(HttpStatusCode.Unauthorized),  "the session it already had");
+                    Assert.That(basic,                                             Is.EqualTo(HttpStatusCode.Unauthorized),  "HTTP Basic Auth");
+                    Assert.That(apiKey,                                            Is.EqualTo(HttpStatusCode.Unauthorized),  "the API key");
+                    Assert.That(status,                                            Is.EqualTo(HttpStatusCode.Forbidden),     "signing in again: " + again.LastBody);
+                    Assert.That(again.HasSession,                                  Is.False,                                 "and no session was handed out");
+                    Assert.That(api.Sessions.CountForUser(User_Id.Parse("ivan")),  Is.EqualTo(1),                            "still only the one it had before");
+                });
+
+                #endregion
 
             }
             finally

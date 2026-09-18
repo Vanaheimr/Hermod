@@ -3619,9 +3619,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region CanAuthenticate(User)
+
+        /// <summary>
+        /// Whether the given account may authenticate at all: sign in, be
+        /// recognised by a session cookie or by HTTP Basic Auth, and be
+        /// reached through one of its API keys.
+        /// </summary>
+        /// <remarks>
+        /// One predicate rather than a "!user.IsDisabled" scattered over every
+        /// door. A second reason to turn an account away then has one place to
+        /// be added, and the doors cannot drift apart from one another.
+        /// </remarks>
+        /// <param name="User">An account, or none.</param>
+        public static Boolean CanAuthenticate(IUser? User)
+
+            => User is not null &&
+              !User.IsDisabled;
+
+        #endregion
+
         #region TryGetHTTPUser (Request, out User)
 
+        /// <summary>
+        /// The account behind the request: one the pipeline already put there,
+        /// a session cookie, HTTP Basic Auth, or an API key.
+        /// </summary>
+        /// <remarks>
+        /// A disabled account is nobody here, and that includes the session it
+        /// signed in with before it was disabled: the cookie still exists, the
+        /// account behind it no longer counts.
+        ///
+        /// All four ways in are found by TryGetAnyHTTPUser, so the check sits
+        /// once at this door rather than four times behind it - and a fifth way
+        /// added later is covered without anybody having to remember it.
+        /// </remarks>
         public Boolean TryGetHTTPUser(HTTPRequest Request, out IUser? User)
+        {
+
+            if (TryGetAnyHTTPUser(Request, out User) &&
+                CanAuthenticate(User))
+            {
+                return true;
+            }
+
+            User = null;
+            return false;
+
+        }
+
+        #endregion
+
+        #region (private) TryGetAnyHTTPUser (Request, out User)
+
+        /// <summary>
+        /// The account behind the request, whether or not it is still allowed
+        /// to be anybody. Only TryGetHTTPUser calls this, and that is where the
+        /// disabled account is turned away.
+        /// </summary>
+        private Boolean TryGetAnyHTTPUser(HTTPRequest Request, out IUser? User)
         {
 
             if (Request.User is not null)
@@ -3756,7 +3812,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 cookie is not null &&
                 SecurityToken_Id.TryParse   (cookie.FirstOrDefault().Key, out var securityTokenId)     &&
                 Sessions.        TryGet     (securityTokenId,             out var session)             &&
-                TryGetUser(session.SuperUserId ?? session.UserId, out User))
+                TryGetUser(session.SuperUserId ?? session.UserId, out User)                            &&
+                // A super user is not exempt: this is its own way in, past the
+                // door TryGetHTTPUser keeps, so it is checked here as well.
+                CanAuthenticate(User))
             {
                 return true;
             }
@@ -5086,6 +5145,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 CacheControl    = "private",
                                 Connection      = ConnectionType.KeepAlive
                             }.AsImmutable;
+
+                    #endregion
+
+
+                    #region Refuse a disabled account
+
+                    // After the password, never before it: refusing earlier would
+                    // tell anybody who guessed a username that the account exists
+                    // and has been disabled. Whoever reaches this line already
+                    // knew the password.
+                    if (!CanAuthenticate(validUser))
+                        return new HTTPResponse.Builder(Request) {
+                                   HTTPStatusCode  = HTTPStatusCode.Forbidden,
+                                   Server          = HTTPServer?.HTTPServerName,
+                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                   Content         = new JObject(
+                                                         new JProperty("@context",    SignInOutContext),
+                                                         new JProperty("description", "This account has been disabled!")
+                                                     ).ToString().ToUTF8Bytes(),
+                                   CacheControl    = "private",
+                                   Connection      = ConnectionType.KeepAlive
+                               }.AsImmutable;
 
                     #endregion
 
@@ -7132,6 +7213,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #endregion
 
 
+                    #region Refuse a disabled account
+
+                    // After the password, never before it: refusing earlier would
+                    // tell anybody who guessed a username that the account exists
+                    // and has been disabled. Whoever reaches this line already
+                    // knew the password.
+                    if (!CanAuthenticate(validUser))
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.Forbidden,
+                                   Server          = HTTPServer?.HTTPServerName,
+                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                   Content         = new JObject(
+                                                         new JProperty("@context",    SignInOutContext),
+                                                         new JProperty("description", "This account has been disabled!")
+                                                     ).ToString().ToUTF8Bytes(),
+                                   CacheControl    = "private",
+                                   Connection      = ConnectionType.KeepAlive
+                               }.AsImmutable;
+
+                    #endregion
+
+
                     #region Register security token
 
                     validUser = await SignInNoted(validUser, request.EventTrackingId);
@@ -7269,6 +7372,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #endregion
 
 
+                                  #region Refuse a disabled account
+
+                                  // Impersonating means holding a working session as
+                                  // that account, which is the one thing disabling it
+                                  // is meant to stop. Being allowed to impersonate
+                                  // says nothing about whether there is anybody left
+                                  // to impersonate.
+                                  if (!CanAuthenticate(userURL))
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode              = HTTPStatusCode.Forbidden,
+                                                 Server                      = HTTPServer?.HTTPServerName,
+                                                 Date                        = Timestamp.Now,
+                                                 AccessControlAllowOrigin    = "*",
+                                                 AccessControlAllowMethods   = [ HTTPMethod.IMPERSONATE ],
+                                                 AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                                 ContentType                 = HTTPContentType.Application.JSON_UTF8,
+                                                 Content                     = new JObject(
+                                                                                   new JProperty("@context",    SignInOutContext),
+                                                                                   new JProperty("description", "This account has been disabled!")
+                                                                               ).ToString().ToUTF8Bytes(),
+                                                 Connection                  = ConnectionType.KeepAlive
+                                             }.AsImmutable;
+
+                                  #endregion
+
+
                                   #region Register security token
 
                                   var signInSession    = Sessions.Create(userURL.Id, SuperUserId: superUser.Id);
@@ -7357,6 +7486,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
                                   #region Switch back to super user identification...
+
+                                  // The same door checked twice, deliberately.
+                                  // TryGetSuperUser already refuses a disabled super
+                                  // user, so this cannot fire today - but a session is
+                                  // minted on the next line, and that is the act the
+                                  // flag is about. It should not depend on a check
+                                  // somewhere else staying where it is.
+                                  if (!CanAuthenticate(superUser))
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode              = HTTPStatusCode.Forbidden,
+                                                 Server                      = HTTPServer?.HTTPServerName,
+                                                 Date                        = Timestamp.Now,
+                                                 AccessControlAllowOrigin    = "*",
+                                                 AccessControlAllowMethods   = [ HTTPMethod.DEPERSONATE ],
+                                                 AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                                 ContentType                 = HTTPContentType.Application.JSON_UTF8,
+                                                 Content                     = new JObject(
+                                                                                   new JProperty("@context",    SignInOutContext),
+                                                                                   new JProperty("description", "This account has been disabled!")
+                                                                               ).ToString().ToUTF8Bytes(),
+                                                 Connection                  = ConnectionType.KeepAlive
+                                             }.AsImmutable;
 
                                   var signInSession    = Sessions.Create(superUser.Id);
                                   var securityTokenId  = signInSession.Token;
@@ -19012,7 +19163,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => (!APIKey.NotBefore.HasValue || Timestamp.Now >= APIKey.NotBefore) &&
                (!APIKey.NotAfter. HasValue || Timestamp.Now <  APIKey.NotAfter)  &&
-                !APIKey.IsDisabled;
+                !APIKey.IsDisabled                                               &&
+                // A key is never more permitted than whoever owns it. Without
+                // this, disabling an account shuts it out of the doors it would
+                // have walked through itself and leaves its keys in the lock -
+                // and those are the credentials nobody thinks to go looking for.
+                // users is a ConcurrentDictionary, so this reads no lock.
+                users.TryGetValue(APIKey.UserId, out var owner)                  &&
+                CanAuthenticate(owner);
 
 
         /// <summary>

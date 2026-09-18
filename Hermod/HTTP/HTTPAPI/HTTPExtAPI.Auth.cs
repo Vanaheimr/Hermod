@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -165,6 +165,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // Several accounts may share an e-mail address; the password decides.
             if (validUsers.Count > 1)
                 return AuthError(Request, HTTPStatusCode.MultipleChoices, "The login is ambiguous, please sign in with the username.");
+
+            // After the password, not before it: refusing earlier would tell
+            // anybody who merely guessed a username that the account exists and
+            // has been disabled. Whoever gets this far already knew the password.
+            if (!CanAuthenticate(validUsers[0]))
+                return AuthError(Request, HTTPStatusCode.Forbidden, "This account has been disabled.");
 
             var user = await SignInNoted(validUsers[0], Request.EventTrackingId);
 
@@ -459,6 +465,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (!WebAuthnCeremonies.TryVerifyAuthentication(WebAuthnSettings!, ceremony, credential, passkey, user.Id, out var result, out var error))
                 return AuthError(Request, HTTPStatusCode.Unauthorized, error);
+
+            // Before the passkey is written back as used: a sign-in that is
+            // refused should leave no record of having worked.
+            if (!CanAuthenticate(user))
+                return AuthError(Request, HTTPStatusCode.Forbidden, "This account has been disabled.");
 
             await UpdatePasskey(
                       user.Id,
