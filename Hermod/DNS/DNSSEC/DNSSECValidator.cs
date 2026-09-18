@@ -371,11 +371,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// RFC 4035 (Protocol Modifications for the DNS Security Extensions).
         /// </remarks>
         /// <param name="Response">The DNS response to validate.</param>
+        /// <param name="Now">The time to check RFC 4034 §3.1.5's validity windows against; the current time when omitted.</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
         public async Task<DNSSECValidationResult> ValidateAsync(DNSInfo            Response,
-                                                                CancellationToken  CancellationToken = default)
+                                                                DateTimeOffset?    Now                = null,
+                                                                CancellationToken  CancellationToken  = default)
 
-            => await ValidateAsync(Response, null, CancellationToken).ConfigureAwait(false);
+            => await ValidateAsync(Response, null, Now, CancellationToken).ConfigureAwait(false);
 
 
         /// <summary>
@@ -384,10 +386,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="Response">The response to validate.</param>
         /// <param name="Question">What was asked. Without it a negative answer cannot be checked, because the proof is a statement about a specific name and type.</param>
+        /// <param name="Now">
+        /// The time to check RFC 4034 §3.1.5's validity windows against; the
+        /// current time when omitted. A signature does not know what time it is,
+        /// so the window is a separate check from the cryptography — and one that
+        /// cannot be exercised at its own boundary without saying when "now" is.
+        /// <see cref="TSIGSigner.Verify"/> and <see cref="SIG0Signer.Verify"/>
+        /// take the same parameter for the same reason.
+        /// </param>
         /// <param name="CancellationToken">A cancellation token.</param>
         public async Task<DNSSECValidationResult> ValidateAsync(DNSInfo                                                     Response,
                                                                 (DomainName QName, DNSResourceRecordTypes QType)?           Question,
-                                                                CancellationToken                                           CancellationToken = default)
+                                                                DateTimeOffset?                                             Now                = null,
+                                                                CancellationToken                                           CancellationToken  = default)
         {
 
             try
@@ -410,6 +421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          Response,
                                          Question.Value.QName,
                                          Question.Value.QType,
+                                         Now,
                                          CancellationToken
                                      ).ConfigureAwait(false);
 
@@ -448,7 +460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         continue;
 
                     // Check signature timestamps
-                    var now = (UInt32) Timestamp.Now.ToUnixTimeSeconds();
+                    var now = (UInt32) (Now ?? Timestamp.Now).ToUnixTimeSeconds();
                     if (now < rrsig.SignatureInception || now > rrsig.SignatureExpiration)
                         return DNSSECValidationResult.Bogus;
 
@@ -548,6 +560,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private async Task<DNSSECValidationResult> ValidateDenialAsync(DNSInfo                 Response,
                                                                        DomainName              QName,
                                                                        DNSResourceRecordTypes  QType,
+                                                                       DateTimeOffset?         Now,
                                                                        CancellationToken       CancellationToken)
         {
 
@@ -573,7 +586,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (rrSet.Count == 0)
                     return DNSSECValidationResult.Bogus;
 
-                var now = (UInt32) Timestamp.Now.ToUnixTimeSeconds();
+                var now = (UInt32) (Now ?? Timestamp.Now).ToUnixTimeSeconds();
                 if (now < rrsig.SignatureInception || now > rrsig.SignatureExpiration)
                     return DNSSECValidationResult.Bogus;
 

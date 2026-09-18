@@ -99,7 +99,7 @@ public sealed class DaneResolver
             return DaneResult.None("no TLSA records");
 
         // The records only count if the zone is DNSSEC-signed and validates.
-        var dnssec = await dnssecValidator.ValidateAsync(response, CancellationToken).ConfigureAwait(false);
+        var dnssec = await dnssecValidator.ValidateAsync(response, CancellationToken: CancellationToken).ConfigureAwait(false);
 
         logger.Log(LogLevel.Debug,
                    $"DANE: '{owner}' returned {tlsaRecords.Count} TLSA record(s), DNSSEC={dnssec}");

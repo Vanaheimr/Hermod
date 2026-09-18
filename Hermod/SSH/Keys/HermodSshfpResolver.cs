@@ -161,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             try
             {
-                return await dnssecValidator.ValidateAsync(Response, CancellationToken).ConfigureAwait(false)
+                return await dnssecValidator.ValidateAsync(Response, CancellationToken: CancellationToken).ConfigureAwait(false)
                            == DNSSECValidationResult.Secure;
             }
             catch (OperationCanceledException) when (CancellationToken.IsCancellationRequested)
