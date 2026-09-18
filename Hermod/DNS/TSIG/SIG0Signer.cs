@@ -455,8 +455,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (type != DNSResourceRecordTypes.SIG)
                     return false;
 
+                // The owner name is meaningless for a SIG(0) (RFC 2931 §3) and a
+                // signer SHOULD write the root, but it need not, and ExtractName
+                // already answers "." for the single zero octet that is the root
+                // — it never returns an empty string. Whatever is there is what
+                // the record carries.
                 Record           = new SIG(
-                                       DomainName.ParseLenient(owner.Length == 0 ? "." : owner),
+                                       DomainName.ParseLenient(owner),
                                        stream
                                    );
 
