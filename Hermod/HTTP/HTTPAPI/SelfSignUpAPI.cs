@@ -33,10 +33,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// { "username", "email", "password", "displayName"? } and signs it in.
     /// Without it accounts are created by administrators only.
     /// </summary>
+    /// <remarks>
+    /// The account is made in no organization and no group: what it may do is
+    /// the API owner's decision, made in <see cref="OnSignedUp"/> - which is
+    /// also where an account has to be put into an organization if the HTML
+    /// sign-in door, which refuses accounts outside every organization, is to
+    /// open for it.
+    /// </remarks>
     public partial class SelfSignUpAPI
     {
 
         #region Data
+
+        /// <summary>
+        /// A delegate called after an account signed up and before it is
+        /// signed in: where the account is put - an organization, a group -
+        /// so that it can do something.
+        /// </summary>
+        /// <param name="User">The account that signed up.</param>
+        /// <param name="Request">The sign-up request.</param>
+        /// <returns>Null when the account is set up, otherwise one sentence saying why it is not - which the sign-up answers with.</returns>
+        public delegate Task<String?> OnSignedUpDelegate(IUser        User,
+                                                         HTTPRequest  Request);
 
         /// <summary>
         /// The default maximum length of a username.
@@ -69,6 +87,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public Regex       UserIdPattern     { get; }
 
+        /// <summary>
+        /// What happens to an account the moment it signed up, or null when
+        /// nothing does.
+        /// </summary>
+        public OnSignedUpDelegate?  OnSignedUp  { get; }
+
         #endregion
 
         #region Constructor(s)
@@ -80,15 +104,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxUserIdLength">The maximum length of a username.</param>
         /// <param name="UserIdPattern">An optional pattern a username must match.</param>
         /// <param name="RateLimiter">An optional rate limiter per remote address (default: 5 sign-ups per 10 minutes).</param>
+        /// <param name="OnSignedUp">An optional delegate called after an account signed up and before it is signed in, e.g. to put it into an organization and a group.</param>
         public SelfSignUpAPI(HTTPExtAPI                       API,
                              UInt16                           MaxUserIdLength   = DefaultMaxUserIdLength,
                              Regex?                           UserIdPattern     = null,
-                             InMemoryTokenBucketRateLimiter?  RateLimiter       = null)
+                             InMemoryTokenBucketRateLimiter?  RateLimiter       = null,
+                             OnSignedUpDelegate?              OnSignedUp        = null)
         {
 
             this.API              = API;
             this.MaxUserIdLength  = MaxUserIdLength;
             this.UserIdPattern    = UserIdPattern ?? DefaultUserIdPattern();
+            this.OnSignedUp       = OnSignedUp;
             this.rateLimiter      = RateLimiter   ?? new InMemoryTokenBucketRateLimiter(
                                                          Capacity:        5,
                                                          RefillPeriod:    TimeSpan.FromMinutes(10),
@@ -178,6 +205,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (user is null)
                 return HTTPExtAPI.AuthError(Request, HTTPStatusCode.InternalServerError, "The account could not be created.");
+
+            // Where the account goes is the API owner's decision, and it is
+            // made here - after the account exists and before a session is
+            // handed out, so that whoever asks "who am I" a moment later gets
+            // the whole answer. An account the owner could not set up stays,
+            // but is not signed in: it would be a session that can do nothing,
+            // and the answer says whom to ask instead.
+            if (OnSignedUp is not null)
+            {
+
+                String? problem;
+
+                try
+                {
+                    problem = await OnSignedUp(user, Request);
+                }
+                catch (Exception e)
+                {
+                    problem = e.Message;
+                }
+
+                if (problem is not null)
+                    return HTTPExtAPI.AuthError(Request, HTTPStatusCode.InternalServerError, problem);
+
+            }
 
             // CreateUser makes an enabled account, so this does not fire today.
             // It is here because the next line hands out a session, and if this

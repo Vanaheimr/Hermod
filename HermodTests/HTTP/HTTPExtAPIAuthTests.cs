@@ -121,7 +121,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region (private) StartAsync()
 
-        private static async Task<(HTTPServer Server, HTTPExtAPI API, HttpClient Client, String Directory)> StartAsync(Boolean WithTemplates = false)
+        private static async Task<(HTTPServer Server, HTTPExtAPI API, HttpClient Client, String Directory)> StartAsync(Boolean                            WithTemplates   = false,
+                                                                                                                       SelfSignUpAPI.OnSignedUpDelegate?  OnSignedUp      = null)
         {
 
             var directory  = Path.Combine(Path.GetTempPath(), $"hermod-auth-{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
@@ -143,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             await api.LoadDatabase();
 
-            _ = new SelfSignUpAPI(api);
+            _ = new SelfSignUpAPI(api, OnSignedUp: OnSignedUp);
 
             // No automatic cookie jar: the Browser class above sends the cookies deliberately.
             var client = new HttpClient(new HttpClientHandler { UseCookies = false }) {
@@ -235,6 +236,73 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(json?["description"]?.ToString(),  Does.Contain("password"));
 
                 Assert.That(other.HasSession,  Is.False);
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region SignUp_Hands_The_Account_To_OnSignedUp_Before_Signing_It_In()
+
+        /// <summary>
+        /// The API owner decides where an account goes: the delegate runs
+        /// after the account exists and before the session is handed out, so
+        /// that "who am I" a moment later already sees the organization. And
+        /// when the owner cannot set the account up, nobody is signed in.
+        /// </summary>
+        [Test]
+        public async Task SignUp_Hands_The_Account_To_OnSignedUp_Before_Signing_It_In()
+        {
+
+            IUser?         signedUp  = null;
+            IOrganization? drivers   = null;
+            HTTPExtAPI?    extAPI    = null;
+
+            var (server, api, client, directory) = await StartAsync(OnSignedUp: async (user, request) => {
+
+                signedUp = user;
+
+                if (user.Id.ToString() == "mallory")
+                    return "The account was made, but there is no room for it. Ask the operator.";
+
+                drivers ??= await extAPI!.CreateOrganizationIfNotExists(Organization_Id.Parse("drivers"), I18NString.Create("Drivers"));
+
+                var joined = await extAPI!.AddUserToOrganization(user, User2OrganizationEdgeLabel.IsMember, drivers!);
+
+                return joined.IsSuccess ? null : "The account could not be put into the organization.";
+
+            });
+
+            extAPI = api;
+
+            try
+            {
+
+                var browser        = new Browser(client);
+                var (status, json) = await SignUp(browser, "alice");
+
+                Assert.That(status,                          Is.EqualTo(HttpStatusCode.Created));
+                Assert.That(signedUp?.Id.ToString(),         Is.EqualTo("alice"));
+                Assert.That(browser.HasSession,              Is.True);
+                Assert.That(UserOf(api, "alice").User2Organization_OutEdges.Count(),  Is.EqualTo(1),
+                            "the delegate ran before the answer, and the account is in its organization");
+
+                // A refusal is a 500 that says what the delegate said, with an
+                // account that exists and a browser that is not signed in.
+                var other = new Browser(client);
+
+                (status, json) = await SignUp(other, "mallory");
+
+                Assert.That(status,                                       Is.EqualTo(HttpStatusCode.InternalServerError));
+                Assert.That(json?["description"]?.ToString(),             Does.Contain("no room"));
+                Assert.That(other.HasSession,                             Is.False);
+                Assert.That(api.TryGetUser(User_Id.Parse("mallory"), out _),  Is.True);
+                Assert.That(api.Sessions.CountForUser(User_Id.Parse("mallory")),  Is.EqualTo(0));
 
             }
             finally
