@@ -54,20 +54,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public const string Response = "permessage-deflate; server_no_context_takeover; client_no_context_takeover";
 
         /// <summary>
-        /// Server side: whether a client's <c>Sec-WebSocket-Extensions</c> offer
-        /// includes permessage-deflate. When it does, <paramref name="ResponseValue"/>
-        /// is the header value to echo back on the accepting response; otherwise it
-        /// is null and the connection runs uncompressed.
+        /// Server side: whether a client's <c>Sec-WebSocket-Extensions</c> offer is one
+        /// this stack can actually honor. When it is, <paramref name="ResponseValue"/> is
+        /// the header value to echo back on the accepting response; otherwise it is null
+        /// and the connection runs uncompressed.
+        ///
+        /// The parameters are parsed rather than ignored, and that distinction is the
+        /// whole point of this method. Until 2026-09-22 it returned true for any value
+        /// whose text merely contained "permessage-deflate", so a client offering
+        /// <c>server_max_window_bits=9</c> — capping the window this server may compress
+        /// with — was answered "accepted", after which we compressed with the full 15-bit
+        /// window anyway. A peer that had sized its inflate window to 9 bits could not
+        /// have decoded that. RFC 7692 Section 7.1.2.1 is explicit: a server that cannot
+        /// satisfy the offer must decline it, and the fallback is simply no compression.
+        ///
+        /// DeflateStream exposes no control over the window size, so 15 is the only value
+        /// we can promise. The sibling HTTP/1.1 implementation
+        /// (<c>WebSocketPerMessageDeflate.TryNegotiateAsServer</c>) has always done this;
+        /// this is that logic, not a new policy.
         /// </summary>
         public static bool ShouldAccept(string? ClientOffer, out string? ResponseValue)
         {
-            if (Lists(ClientOffer))
+
+            ResponseValue = null;
+
+            if (ClientOffer is null)
+                return false;
+
+            // A client may stack several offers, comma-separated, most-preferred
+            // first (RFC 7692 Section 5.1). Take the first one we can honor —
+            // which is what makes an offer list containing both "with 9 bits" and
+            // "without the parameter" negotiable rather than a flat refusal.
+            foreach (var offer in ClientOffer.Split(','))
             {
+
+                var parameters = offer.Split(';').Select(p => p.Trim()).ToArray();
+
+                if (parameters.Length == 0 ||
+                    !parameters[0].Equals(ExtensionName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var canHonor = true;
+
+                foreach (var parameter in parameters.Skip(1))
+                {
+
+                    var kv     = parameter.Split('=', 2);
+                    var name   = kv[0].Trim();
+                    var value  = kv.Length > 1 ? kv[1].Trim().Trim('"') : null;
+
+                    // The only parameter that can make an offer un-honorable here.
+                    // A bare or unparseable value is malformed per Section 7.1.2.1
+                    // (it MUST carry 8..15), and is treated as un-honorable rather
+                    // than silently ignored.
+                    //
+                    // client_max_window_bits needs no check: it constrains the
+                    // *client's* window, and inflating with 15 decodes a stream
+                    // produced with any smaller window, so we never have to care.
+                    if (name.Equals("server_max_window_bits", StringComparison.OrdinalIgnoreCase) &&
+                        (value is null ||
+                         !Byte.TryParse(value, out var bits) ||
+                         bits != 15))
+                    {
+                        canHonor = false;
+                    }
+
+                }
+
+                if (!canHonor)
+                    continue;
+
                 ResponseValue = Response;
                 return true;
+
             }
-            ResponseValue = null;
+
             return false;
+
         }
 
         /// <summary>
