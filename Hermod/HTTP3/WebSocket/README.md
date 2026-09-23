@@ -18,3 +18,17 @@ transport-neutral and belongs in a shared namespace, with one tunnel adapter eac
 for HTTP/2 and HTTP/3, which changes a public namespace for existing callers.
 Until that is decided, keep the diff at exactly one line per file so reconciling
 the two stays trivial.
+
+That request is now **enforced** for the one file where drift had already
+happened. `WebSocketDeflate.ShouldAccept` was fixed on the HTTP/2 side on
+2026-09-22 (parse the permessage-deflate offer instead of pattern-matching it,
+RFC 7692 Section 7.1.2.1) and the copy here was left behind, carrying the bug for
+a day with nothing pointed at it — the HTTP/2 copy is covered by a nightly
+Autobahn run, this one by no foreign suite at all.
+
+`HermodTests/HTTP2/WebSocketDeflateNegotiationTests` now runs one offer table
+against **both** copies and asserts they answer identically, and
+`HermodTests/HTTP3/Tunnels/` inherits the fixture so it also runs under the
+`Hermod.Tests.HTTP3` name the HTTP/3 conformance repository filters on. A fix
+applied to only one copy fails there now, instead of waiting for a suite that
+never visits this half.
