@@ -21,6 +21,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Quic;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Connection;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Frames;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Packets;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Recovery;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
 
@@ -326,6 +327,141 @@ public class AckFrequencyTests
             Assert.That(client.ApplicationReorderingThresholdForTest, Is.EqualTo(3UL));
             Assert.That(client.LocalMaxAckDelayForTest, Is.EqualTo(TimeSpan.FromMilliseconds(50)));
         }
+    }
+
+    [Test]
+    public void PromptAcknowledgment_IsTheDefault_UnlessThePeerAsks()
+    {
+        // The default used to hold acknowledgments back per §13.2.2 even though no peer had asked.
+        // Measured against msquic over loopback, that cost every small flight its tail ack: the
+        // first uploads of a connection ran 250-400 ms instead of ~27 ms, because a slow-start
+        // sender grows its window per acknowledged flight. The ack-frequency draft's control model
+        // is that the DATA SENDER requests delay when it wants it — so prompt is the default and
+        // delay needs a request.
+        var time = new FakeTimeProvider();
+        var cert = ServerCertificate.CreateSelfSigned("localhost");
+        var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
+        // BOTH ends share the fake clock: the client's own ack deadlines and keep-alives would
+        // otherwise fire on real time mid-test and slip extra packets into the exchange. And the
+        // MTU search is pinned to its floor, or a padded probe — ack-eliciting — rides along with
+        // the one PING this test wants to be alone on the wire.
+        var client = new QuicClientConnection("localhost", certificateValidation: validation, timeProvider: time,
+                                              maxDatagramSizeCeiling: PathMtuDiscovery.BasePlpmtu);
+        var server = new QuicServerConnection(cert, timeProvider: time);
+        using (cert) using (client) using (server)
+        {
+            client.Start();
+            for (int round = 0; round < 30 && !client.HandshakeConfirmed; round++)
+            {
+                foreach (byte[] dg in client.GetDatagramsToSend()) server.ProcessDatagram(dg);
+                foreach (byte[] dg in server.GetDatagramsToSend()) client.ProcessDatagram(dg);
+            }
+            Assert.That(client.HandshakeConfirmed, Is.True);
+
+            SettleToZero(time, client, server);
+
+            // Exactly ONE ack-eliciting packet, verified as such. The clock stands still, so if the
+            // ack is not due NOW it never will be - the precise distinction this test pins.
+            PacketNumberSpace space = server.ApplicationSpaceForTest;
+            client.SendApplicationFrameForTest(PingFrame.Instance);
+            foreach (byte[] dg in client.GetDatagramsToSend()) server.ProcessDatagram(dg);
+            Assert.That(space.AckElicitingSinceLastAck, Is.EqualTo(1),
+                        "precondition: exactly one eliciting packet must have arrived");
+            Assert.That(space.ImmediateAckNeeded, Is.False,
+                        "precondition: an in-order packet must not look like reordering");
+
+            Assert.That(server.GetDatagramsToSend(), Is.Not.Empty,
+                        "one eliciting packet, no request to delay, a standing clock - the ack must go out now");
+        }
+    }
+
+    /// <summary>
+    /// Brings the pair to a defined zero: clock stepped past every ack deadline, both directions
+    /// pumped dry, and the server's application space verifiably holding nothing back. Without this
+    /// the handshake tail can leave an odd eliciting packet unacked, and the next packet would then
+    /// be due by the two-packet rule under EITHER setting - the assertions would test leftovers.
+    /// </summary>
+    private static void SettleToZero(FakeTimeProvider time, QuicClientConnection client, QuicServerConnection server)
+    {
+        // The condition is the ELICITING counter, deliberately not AckPending: AckPending only says
+        // there are ranges worth repeating in the next ACK frame, and it stays set until the peer
+        // confirms one of our ACKs (§13.2.4) — which it may never do, since pure ACKs elicit
+        // nothing. What the assertions above need is that no eliciting packet is waiting for its
+        // FIRST acknowledgment, and that is exactly what the counter measures.
+        PacketNumberSpace space = server.ApplicationSpaceForTest;
+        for (int i = 0; i < 10 && space.AckElicitingSinceLastAck > 0; i++)
+        {
+            time.Advance(TimeSpan.FromMilliseconds(60));
+            Quiesce(client, server);
+        }
+        Assert.That(space.AckElicitingSinceLastAck, Is.Zero, "settle: the eliciting counter is not at nought");
+    }
+
+    [Test]
+    public void AckFrequencyRequest_OverridesTheEagerDefault()
+    {
+        // The other half of the same contract: when the peer DOES ask for delay via ACK_FREQUENCY,
+        // that request governs no matter what DelayedAcknowledgments is set to. Without this, an
+        // eager default would bulldoze the one mechanism the extension gives a sender.
+        var time = new FakeTimeProvider();
+        var cert = ServerCertificate.CreateSelfSigned("localhost");
+        var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
+        var client = new QuicClientConnection("localhost", certificateValidation: validation, timeProvider: time,
+                                              maxDatagramSizeCeiling: PathMtuDiscovery.BasePlpmtu);
+        var server = new QuicServerConnection(cert, timeProvider: time);
+        using (cert) using (client) using (server)
+        {
+            client.Start();
+            for (int round = 0; round < 30 && !client.HandshakeConfirmed; round++)
+            {
+                foreach (byte[] dg in client.GetDatagramsToSend()) server.ProcessDatagram(dg);
+                foreach (byte[] dg in server.GetDatagramsToSend()) client.ProcessDatagram(dg);
+            }
+            Assert.That(client.HandshakeConfirmed, Is.True);
+
+            // The client asks the server to hold back: ack only after 9 eliciting packets or 50 ms.
+            Assert.That(client.TrySendAckFrequency(ackElicitingThreshold: 9,
+                                                   requestedMaxAckDelay: TimeSpan.FromMilliseconds(50)), Is.True);
+            for (int round = 0; round < 4; round++)
+            {
+                foreach (byte[] dg in client.GetDatagramsToSend()) server.ProcessDatagram(dg);
+                foreach (byte[] dg in server.GetDatagramsToSend()) client.ProcessDatagram(dg);
+            }
+            SettleToZero(time, client, server);
+
+            PacketNumberSpace space = server.ApplicationSpaceForTest;
+            client.SendApplicationFrameForTest(PingFrame.Instance);
+            foreach (byte[] dg in client.GetDatagramsToSend()) server.ProcessDatagram(dg);
+            Assert.That(space.AckElicitingSinceLastAck, Is.EqualTo(1),
+                        "precondition: exactly one eliciting packet must have arrived");
+
+            Assert.That(server.GetDatagramsToSend(), Is.Empty,
+                        "the peer asked for threshold 9 and 50 ms - one packet on a standing clock is not due");
+
+            // And the granted delay is a promise with an end: once the clock passes it, the ack goes.
+            time.Advance(TimeSpan.FromMilliseconds(51));
+            Assert.That(server.GetDatagramsToSend(), Is.Not.Empty,
+                        "past the requested max ack delay the ack must not be held any longer");
+        }
+    }
+
+    /// <summary>
+    /// Pumps both directions until neither side has anything left to say — the handshake tail
+    /// (HANDSHAKE_DONE, NewSessionTicket, their acks) must not leak into the assertions. Asserts
+    /// that silence is actually reached: an assertion against a connection that is still talking
+    /// tests the leftover traffic, not the behaviour it claims to.
+    /// </summary>
+    private static void Quiesce(QuicClientConnection client, QuicServerConnection server)
+    {
+        for (int round = 0; round < 40; round++)
+        {
+            bool moved = false;
+            foreach (byte[] dg in client.GetDatagramsToSend()) { server.ProcessDatagram(dg); moved = true; }
+            foreach (byte[] dg in server.GetDatagramsToSend()) { client.ProcessDatagram(dg); moved = true; }
+            if (!moved)
+                return;
+        }
+        Assert.Fail("the connection never went quiet - 40 pump rounds and both sides are still talking");
     }
 
     [Test]

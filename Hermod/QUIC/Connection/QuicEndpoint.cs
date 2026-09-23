@@ -336,25 +336,37 @@ public abstract class QuicEndpoint : IDisposable
 
     /// <summary>
     /// Whether acknowledgments may be held back per RFC 9000 §13.2.2 ("A receiver SHOULD send an ACK
-    /// frame after receiving at least two ack-eliciting packets") instead of going out for every
-    /// packet. Default <c>true</c>.
+    /// frame after receiving at least two ack-eliciting packets") even when the peer never asked for
+    /// that. Default <c>false</c>: acknowledge promptly, and delay only once the peer REQUESTS it
+    /// through an ACK_FREQUENCY frame (draft-ietf-quic-ack-frequency) — a request that is honoured
+    /// regardless of this setting.
     /// <para>
-    /// Two observations kept this off for a while, and neither turned out to be about acknowledgments.
-    /// The first was a WebSocket-over-HTTP/3 stall: the HTTP/3 client drained its tunnel send queue
-    /// only when a datagram came in, so an application writing into a quiet connection had its data
-    /// sit there. Frequent acknowledgments had merely hidden it by keeping traffic flowing both ways.
+    /// The default was <c>true</c> for two weeks, and no in-process test minded: both ends were ours,
+    /// and the suite got moving clocks where it stalled. The first foreign stack to drive this server
+    /// put a number on it. msquic uploading 300 KB over loopback: ~46 ms per request with unrequested
+    /// delays, ~30 ms without — and the first requests of a connection collapsed from 250–400 ms to
+    /// ~27 ms, because a slow-start sender lives from the acknowledgment of every small flight, and
+    /// any flight whose tail we sat on for max_ack_delay stalled its congestion-window growth. The
+    /// same held acknowledgments fed both RTT estimators samples of 10–30 ms on a 0.5 ms path, and
+    /// msquic sized its flow-control grants from that estimate: 6 KB slices every 2.3 ms.
     /// </para>
     /// <para>
-    /// The second was an idle timeout that seemed to fire late once delays were switched on. It does
-    /// fire late — but equally so with delays off. The cause is the 3·PTO floor of §10.1 meeting an
-    /// RTT estimate that, on an in-process pair, measures the handshake's own signature and
-    /// verification work rather than any network delay: 25–90 ms of "RTT" puts 3·PTO between roughly
-    /// 250 ms and 750 ms, which is at or above a short negotiated timeout. Ten alternating handshakes
-    /// showed no systematic difference between the two settings; the original measurement had
-    /// compared a cold process against a warm one.
+    /// This is also the control model the ack-frequency draft prescribes: the DATA SENDER knows what
+    /// ack cadence its loss recovery and congestion control can afford, so it is the one who asks.
+    /// A receiver that delays unasked imposes a cost the sender never budgeted — msquic sent 2953
+    /// ACKs in that benchmark and not one ACK_FREQUENCY frame. Set this to <c>true</c> only where
+    /// the ACK traffic itself is the scarce resource and the peers are known to cope.
     /// </para>
     /// </summary>
-    public bool DelayedAcknowledgments { get; set; } = true;
+    public bool DelayedAcknowledgments { get; set; }
+
+    /// <summary>
+    /// The peer sent at least one ACK_FREQUENCY frame (draft-ietf-quic-ack-frequency §4): from then
+    /// on its requested thresholds govern the acknowledgment cadence, whatever
+    /// <see cref="DelayedAcknowledgments"/> says — the request is the sender exercising exactly the
+    /// control the extension exists to give it.
+    /// </summary>
+    private bool PeerRequestedAckFrequency => _ackFrequencySeqReceived >= 0;
 
     /// <summary>
     /// How often an otherwise ACK-only packet gets a PING so the peer acknowledges it and our ACK
@@ -1137,7 +1149,7 @@ public abstract class QuicEndpoint : IDisposable
         bool sendingAnyway = control.Count > 0 ||
                              _outgoingDatagrams.Count > 0 ||
                              StreamMap.Values.Any(s => s.Send.HasPending);
-        if ((Spaces[i].IsAckDue(NowTicks, LocalMaxAckDelay, immediateSpace: !DelayedAcknowledgments) ||
+        if ((Spaces[i].IsAckDue(NowTicks, LocalMaxAckDelay, immediateSpace: !DelayedAcknowledgments && !PeerRequestedAckFrequency) ||
              (Spaces[i].AckPending && sendingAnyway)) &&
             BuildAckFor(i) is { } ack)
             control.Add(ack);
@@ -1150,7 +1162,9 @@ public abstract class QuicEndpoint : IDisposable
         // choose to occasionally add an ack-eliciting frame to those packets to ensure that it
         // receives an acknowledgment … In that case, an endpoint MUST NOT send an ack-eliciting
         // frame in all packets", hence every fourth rather than every one.
-        if (DelayedAcknowledgments && control.Count > 0 && control.TrueForAll(f => f is AckFrame) &&
+        // Not gated on DelayedAcknowledgments: eager acking produces MORE ack-only packets, not
+        // fewer, so the §13.2.4 release problem is at its worst exactly when delays are off.
+        if (control.Count > 0 && control.TrueForAll(f => f is AckFrame) &&
             !StreamMap.Values.Any(s => s.Send.HasPending) && _outgoingDatagrams.Count == 0)
         {
             if (++_consecutiveAckOnlyPackets % AckElicitingAckInterval == 0)
@@ -1727,6 +1741,11 @@ public abstract class QuicEndpoint : IDisposable
     /// How many STREAMS_BLOCKED frames arrived — the peer-side view of our own de-duplication.
     /// </summary>
     internal int PeerStreamsBlockedCountForTest { get; private set; }
+
+    /// <summary>
+    /// The application packet-number space, for tests that pin acknowledgment scheduling.
+    /// </summary>
+    internal PacketNumberSpace ApplicationSpaceForTest => Spaces[(int)EncryptionLevel.Application];
 
     /// <summary>
     /// Current (possibly auto-tuned) size of the connection receive window — for diagnostics/tests.

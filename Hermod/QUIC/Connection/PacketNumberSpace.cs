@@ -65,6 +65,7 @@ public sealed class PacketNumberSpace
 
     // Tracked separately from _received, which pruning may empty out entirely.
     private long _largestReceived = -1;
+    private long _largestReceivedBefore = -1; // _largestReceived as it stood before its last update
 
     /// <summary>
     /// Number of received packets with a CE mark (diagnostics/test).
@@ -114,7 +115,10 @@ public sealed class PacketNumberSpace
     public void RecordReceived(ulong packetNumber, EcnCodepoint ecn = EcnCodepoint.NotEct, long nowTicks = 0)
     {
         if ((long)packetNumber > _largestReceived)
+        {
+            _largestReceivedBefore = _largestReceived; // for the §13.2.1 reordering test, see below
             _largestReceived = (long)packetNumber;
+        }
 
         // Below the pruning bound the peer has already confirmed our acknowledgment (§13.2.4):
         // a packet arriving there is a duplicate or extremely late reordering and needs no new ACK.
@@ -289,7 +293,6 @@ public sealed class PacketNumberSpace
         if (_firstUnackedElicitingTicks < 0)
             _firstUnackedElicitingTicks = nowTicks;
 
-        long previousLargest = _largestAckEliciting;
         if ((long)packetNumber > _largestAckEliciting)
             _largestAckEliciting = (long)packetNumber;
 
@@ -299,8 +302,17 @@ public sealed class PacketNumberSpace
             // 1): a packet number below one already received, or one above the highest with a gap in
             // between. Both mean the peer is looking at a hole and would otherwise wait out its loss
             // timer.
-            if (previousLargest >= 0 &&
-                ((long)packetNumber < previousLargest || (long)packetNumber > previousLargest + 1))
+            //
+            // "Already received" means received at ALL, not received-and-ack-eliciting. Pure ACK
+            // packets consume packet numbers like any other, so measuring the gap against the largest
+            // ELICITING packet manufactured a phantom hole whenever elicitings resumed after an
+            // ack-only exchange — the tail of every request/response turn — and the phantom hole
+            // forced an immediate ACK that quietly defeated delayed acknowledgments and the
+            // ack-frequency thresholds a peer had asked for. RecordReceived runs before this method,
+            // so for the packet that just became the largest the reference is the largest BEFORE it.
+            long reference = (long)packetNumber == _largestReceived ? _largestReceivedBefore : _largestReceived;
+            if (reference >= 0 &&
+                ((long)packetNumber < reference || (long)packetNumber > reference + 1))
                 ImmediateAckNeeded = true;
         }
         else if (ReorderingThreshold >= 2 && ReorderingThresholdTriggersAck(packetNumber))

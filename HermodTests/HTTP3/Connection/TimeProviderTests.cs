@@ -134,8 +134,13 @@ public class TimeProviderTests
         Assert.That(server.IsIdleTimedOut, Is.False, "Keep-alive PINGs must prevent the server idle timeout.");
         Assert.That(client.IsIdleTimedOut, Is.False);
 
-        // Counter-check: stop pumping and the very same clock does time the connection out.
-        clock.Advance(TimeSpan.FromMilliseconds(400));
+        // Counter-check: stop pumping and the very same clock does time the connection out. The
+        // advance is 2 s rather than "just past 300 ms" because §10.1 raises the effective timeout
+        // to at least 3×PTO — and the PTO here is fed by fake-clock RTT samples of a whole pump
+        // step (100 ms), since an ack always arrives one pump after its packet. 400 ms sat exactly
+        // on that boundary and flipped with the acknowledgment cadence; the closing-period test
+        // above uses the same 2 s margin for the same reason.
+        clock.Advance(TimeSpan.FromSeconds(2));
         server.CheckIdleTimeout();
         Assert.That(server.IsIdleTimedOut, Is.True);
     }
