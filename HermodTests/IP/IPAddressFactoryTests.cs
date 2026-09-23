@@ -15,6 +15,13 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 {
 
@@ -90,6 +97,124 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
             Assert.That(ipv6Address is IIPAddress,  Is.True);
             Assert.That(ipv6Address is IPv4Address, Is.False);
             Assert.That(ipv6Address is IPv6Address, Is.True);
+
+        }
+
+        #endregion
+
+
+        #region TryParse_says_no_to_a_text_that_only_contains_an_address(Text)
+
+        /// <summary>
+        /// An address with something around it is not an address, and a
+        /// TryParse says so rather than throwing.
+        /// </summary>
+        /// <remarks>
+        /// Every one of these threw: a pattern found an address somewhere in
+        /// the text, and IPv4Address.Parse or IPv6Address.Parse then threw on
+        /// the rest of it. The first is a name server as a log line names it,
+        /// written into a vehicle's configuration file - which stopped the
+        /// vehicle at its start with this exception instead of a sentence
+        /// about the file.
+        /// </remarks>
+        [TestCase("udp://213.133.98.98:53")]
+        [TestCase("udp://[2a01:4f8:0:1::add:1010]:53")]
+        [TestCase("213.133.98.98:53")]
+        [TestCase("[2001:db8::1]:53")]
+        [TestCase("10.0.0.1.nip.io")]
+        [TestCase("999.1.1.1")]
+        public void TryParse_says_no_to_a_text_that_only_contains_an_address(String Text)
+        {
+
+            var         parsed     = true;
+            IIPAddress? ipAddress  = null;
+
+            Assert.That(() => parsed = IPAddress.TryParse(Text, out ipAddress),  Throws.Nothing);
+
+            Assert.Multiple(() => {
+                Assert.That(parsed,                  Is.False);
+                Assert.That(ipAddress,               Is.Null);
+                Assert.That(IPAddress.IsIPv4(Text),  Is.False);
+                Assert.That(IPAddress.IsIPv6(Text),  Is.False);
+            });
+
+        }
+
+        #endregion
+
+        #region TryParse_still_reads_what_is_an_address(Text, Version)
+
+        /// <summary>
+        /// And what is an address is still read as one, in every form the old
+        /// pattern let through: with blanks around it, in brackets, in capitals,
+        /// with an interface.
+        /// </summary>
+        [TestCase("141.24.12.2",    4)]
+        [TestCase(" 141.24.12.2 ",  4)]
+        [TestCase("::1",            6)]
+        [TestCase("[::1]",          6)]
+        [TestCase("2A01:4F8::1",    6)]
+        [TestCase("fe80::1%eth0",   6)]
+        public void TryParse_still_reads_what_is_an_address(String Text, Int32 Version)
+        {
+
+            Assert.That(IPAddress.TryParse(Text, out var ipAddress),  Is.True);
+
+            Assert.Multiple(() => {
+
+                Assert.That(Version == 4
+                                ? ipAddress is IPv4Address
+                                : ipAddress is IPv6Address,          Is.True);
+
+                Assert.That(Version == 4
+                                ? IPAddress.IsIPv4(Text)
+                                : IPAddress.IsIPv6(Text),            Is.True);
+
+            });
+
+        }
+
+        #endregion
+
+        #region Localhost_is_the_address_and_not_a_name_that_begins_with_it()
+
+        /// <summary>
+        /// "127.0.0.1.example.com" is a host name somebody else's name server
+        /// answers for. It was taken for localhost, because it contains an
+        /// address and begins with 127.
+        /// </summary>
+        [Test]
+        public void Localhost_is_the_address_and_not_a_name_that_begins_with_it()
+        {
+
+            Assert.Multiple(() => {
+                Assert.That(IPAddress.IsIPv4Localhost("127.0.0.1"),              Is.True);
+                Assert.That(IPAddress.IsIPv4Localhost("127.0.0.1.example.com"),  Is.False);
+                Assert.That(IPAddress.IsIPv6Localhost("::1"),                    Is.True);
+                Assert.That(IPAddress.IsLocalhost    ("localhost"),              Is.True);
+            });
+
+        }
+
+        #endregion
+
+        #region A_host_names_port_and_a_domain_names_root_are_not_part_of_the_question()
+
+        /// <summary>
+        /// The overloads for a host name and a domain name ask about the name:
+        /// a port after it, or the root's dot, do not make it any less an
+        /// address - and a name with an address inside it is still a name.
+        /// </summary>
+        [Test]
+        public void A_host_names_port_and_a_domain_names_root_are_not_part_of_the_question()
+        {
+
+            Assert.Multiple(() => {
+                Assert.That(IPAddress.IsIPv4(HTTPHostname.Parse("141.24.12.2:8080")),  Is.True);
+                Assert.That(IPAddress.IsIPv4(DomainName.  Parse("141.24.12.2")),       Is.True);
+                Assert.That(IPAddress.IsIPv4(DomainName.  Parse("10.0.0.1.nip.io")),   Is.False);
+                Assert.That(IPAddress.IsIPv6(HTTPHostname.Parse("[::1]:8080")),        Is.True);
+            });
 
         }
 

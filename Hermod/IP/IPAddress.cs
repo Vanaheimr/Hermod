@@ -39,10 +39,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        //ToDo: Better do this by hand!
+        /// <summary>
+        /// Something that looks like an IPv4 address, anywhere in a text.
+        /// </summary>
+        /// <remarks>
+        /// Not whether a text IS one - "udp://213.133.98.98:53" and
+        /// "10.0.0.1.nip.io" both match - which is why IsIPv4 and TryParse
+        /// no longer ask it. They used to, and TryParse then threw on
+        /// whatever the pattern had let through.
+        /// </remarks>
         public static readonly Regex IPv4AddressRegExpr = new (@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
 
-        //ToDo: Better do this by hand!
+        /// <summary>
+        /// Something that looks like an IPv6 address, anywhere in a text - see
+        /// IPv4AddressRegExpr for why nothing here asks it any more.
+        /// </summary>
         public static readonly Regex IPv6AddressRegExpr = new (@"(([a-f0-9:]+:+)+[a-f0-9]+)");
 
         #endregion
@@ -91,29 +102,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Try to parse the given text as an IP address.
         /// </summary>
+        /// <remarks>
+        /// The whole text has to be the address. This used to find one
+        /// anywhere in it with IPv4AddressRegExpr and then Parse it, which threw
+        /// on what the pattern had let through: "udp://213.133.98.98:53" in a
+        /// configuration file stopped a program at its start with an exception
+        /// out of a TryParse, where the file should have been refused with a
+        /// sentence. The typed parsers read the whole text and say no instead.
+        /// </remarks>
         /// <param name="Text">A text representation of an IP address.</param>
         /// <param name="IPAddress">The parsed IP address.</param>
         public static Boolean TryParse(String                               Text,
                                        [NotNullWhen(true)] out IIPAddress?  IPAddress)
         {
 
-            Text = Text.Trim();
-
-            if (Text.IsNotNullOrEmpty())
+            if (IPv4Address.TryParse(Text, out var ipv4Address))
             {
+                IPAddress = ipv4Address;
+                return true;
+            }
 
-                if (IsIPv4(Text))
-                {
-                    IPAddress = IPv4Address.Parse(Text);
-                    return true;
-                }
-
-                if (IsIPv6(Text))
-                {
-                    IPAddress = IPv6Address.Parse(Text);
-                    return true;
-                }
-
+            if (IPv6Address.TryParse(Text, out var ipv6Address))
+            {
+                IPAddress = ipv6Address;
+                return true;
             }
 
             IPAddress = null;
@@ -154,30 +166,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+        // Whether the whole of it is an address, by the typed parsers - see
+        // TryParse. Asked of a pattern, a host name that merely contained an
+        // address was one: "10.0.0.1.nip.io" went on to IPv4Address.Parse in
+        // the TCP client and threw, and "127.0.0.1.example.com" was taken for
+        // localhost. The host name's own port is not part of the question;
+        // the domain name's root dot is not either.
+
         public static Boolean IsIPv4(String        IPAddress)
-            => IPAddress.IsNotNullOrEmpty() &&
-               IPv4AddressRegExpr.IsMatch(IPAddress.Trim());
+            => IPv4Address.TryParse(IPAddress, out _);
 
         public static Boolean IsIPv4(HTTPHostname  Hostname)
             => Hostname.IsNotNullOrEmpty &&
-               IPv4AddressRegExpr.IsMatch(Hostname.ToString());
+               IPv4Address.TryParse(Hostname, out _);
 
         public static Boolean IsIPv4(DomainName    DomainName)
             => DomainName.IsNotNullOrEmpty() &&
-               IPv4AddressRegExpr.IsMatch(DomainName.ToString());
+               IPv4Address.TryParse(DomainName, out _);
 
 
         public static Boolean IsIPv6(String        IPAddress)
-            => IPAddress.IsNotNullOrEmpty() &&
-               IPv6AddressRegExpr.IsMatch(IPAddress.Trim());
+            => IPv6Address.TryParse(IPAddress, out _);
 
         public static Boolean IsIPv6(HTTPHostname  Hostname)
             => Hostname.IsNotNullOrEmpty &&
-               IPv6AddressRegExpr.IsMatch(Hostname.ToString());
+               IPv6Address.TryParse(Hostname, out _);
 
         public static Boolean IsIPv6(DomainName    DomainName)
             => DomainName.IsNotNullOrEmpty() &&
-               IPv6AddressRegExpr.IsMatch(DomainName.ToString());
+               IPv6Address.TryParse(DomainName, out _);
 
 
         public static Boolean IsLocalhost(String        Text)
