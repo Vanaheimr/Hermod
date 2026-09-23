@@ -62,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Is NOT successful.
         /// </summary>
         public Boolean  IsNotSuccessful
-            => Code < 200 && Code >= 300;
+            => Code < 200 || Code >= 300;
 
         /// <summary>
         /// Is redirection.
@@ -173,6 +173,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       "Switching Protocols",
                                       "Indicates that the protocol version or protocol is being changed.");
 
+        /// <summary>
+        /// The server has received the request and is processing it,
+        /// but no final response is available yet.
+        /// </summary>
+        public static readonly HTTPStatusCode
+
+            Processing          = new (102,
+                                      "Processing",
+                                      "The server has received the request and is processing it, " +
+                                      "but no final response is available yet.");
+
+        /// <summary>
+        /// Hints the client about resources the final response will reference,
+        /// so that it can start preloading them while the server is still
+        /// preparing that response.
+        /// </summary>
+        public static readonly HTTPStatusCode
+
+            EarlyHints          = new (103,
+                                      "Early Hints",
+                                      "Hints the client about resources the final response will reference, " +
+                                      "so that it can start preloading them while the server is still " +
+                                      "preparing that response.");
+
         #endregion
 
         #region 2xx Successful
@@ -280,6 +304,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       "The response is a MultiStatus response as requested by a WebDAV PROPFIND " +
                                       "request that contains the content of a requested destination.");
 
+        /// <summary>
+        /// The members of a WebDAV binding have already been enumerated in a
+        /// preceding part of this multistatus response, and are not being
+        /// included again.
+        /// </summary>
+        public static readonly HTTPStatusCode
+
+            AlreadyReported     = new (208,
+                                      "Already Reported",
+                                      "The members of a WebDAV binding have already been enumerated in a " +
+                                      "preceding part of this multistatus response, and are not being " +
+                                      "included again.");
+
+        /// <summary>
+        /// The server has fulfilled a GET request for the resource, and the
+        /// response is a representation of the result of one or more
+        /// instance-manipulations applied to the current instance.
+        /// </summary>
+        public static readonly HTTPStatusCode
+
+            IMUsed              = new (226,
+                                      "IM Used",
+                                      "The server has fulfilled a GET request for the resource, and the " +
+                                      "response is a representation of the result of one or more " +
+                                      "instance-manipulations applied to the current instance.");
+
         #endregion
 
         #region 3xx Redirection
@@ -362,12 +412,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       "the Location field.");
 
         /// <summary>
-        /// Switch Proxy
+        /// Reserved, and no longer used. The name comes from an early draft;
+        /// RFC 9110, Section 15.4.7 lists 306 as "(Unused)".
         /// </summary>
         public static readonly HTTPStatusCode
 
             SwitchProxy         = new (306,
-                                       "Switch Proxy");
+                                       "Switch Proxy",
+                                       "Reserved, and no longer used. The name comes from an early " +
+                                       "draft; RFC 9110, Section 15.4.7 lists 306 as '(Unused)'.");
 
         /// <summary>
         /// The requested resource resides temporarily under a different URI.
@@ -381,6 +434,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       "The requested resource resides temporarily under a different URI. " +
                                       "Since the redirection MAY be altered on occasion, the client SHOULD " +
                                       "continue to use the Request-URI for future requests.");
+
+        /// <summary>
+        /// The target resource has been assigned a new permanent URI.
+        /// Unlike 301 (Moved Permanently), the request method and the body
+        /// MUST NOT be changed when the redirect is followed.
+        /// </summary>
+        public static readonly HTTPStatusCode
+
+            PermanentRedirect   = new (308,
+                                      "Permanent Redirect",
+                                      "The target resource has been assigned a new permanent URI. " +
+                                      "Unlike 301 (Moved Permanently), the request method and the body " +
+                                      "MUST NOT be changed when the redirect is followed.");
 
         #endregion
 
@@ -634,6 +700,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       "See RFC 2324 for details!");
 
         /// <summary>
+        /// The request was directed at a server that is unable or unwilling to
+        /// produce an authoritative response for the target URI — typically
+        /// because a connection was reused for an origin this server does not
+        /// serve.
+        /// </summary>
+        public static readonly HTTPStatusCode
+
+            MisdirectedRequest  = new (421,
+                                      "Misdirected Request",
+                                      "The request was directed at a server that is unable or unwilling " +
+                                      "to produce an authoritative response for the target URI.");
+
+        /// <summary>
         /// The server understands the media type of the request entity,
         /// but was unable to process the contained instructions.
         /// </summary>
@@ -671,12 +750,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       "action failed.");
 
         /// <summary>
-        /// No code
+        /// The server is unwilling to risk processing a request that might be
+        /// replayed, because it arrived in TLS early data.
         /// </summary>
         public static readonly HTTPStatusCode
 
-            NoCode              = new (425,
-                                      "No code");
+            TooEarly            = new (425,
+                                      "Too Early",
+                                      "The server is unwilling to risk processing a request that might " +
+                                      "be replayed, because it arrived in TLS early data.");
 
         /// <summary>
         /// The requested resource can only be retrieved using SSL.
@@ -742,6 +824,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             RequestHeaderFieldsTooLarge = new (431,
                                                "Request Header Fields Too Large",
                                                "The server is unwilling to process the request because its header fields are too large.");
+
+        /// <summary>
+        /// The server is denying access to the resource as a consequence of a
+        /// legal demand.
+        /// </summary>
+        public static readonly HTTPStatusCode
+
+            UnavailableForLegalReasons  = new (451,
+                                               "Unavailable For Legal Reasons",
+                                               "The server is denying access to the resource as a consequence " +
+                                               "of a legal demand.");
 
         #endregion
 
@@ -857,6 +950,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           "Indicates a InsufficientStorage of a WebDAV upload request.");
 
         /// <summary>
+        /// The server terminated an operation because it encountered an
+        /// infinite loop while processing a request with 'Depth: infinity'.
+        /// </summary>
+        public static readonly HTTPStatusCode
+
+            LoopDetected            = new (508,
+                                          "Loop Detected",
+                                          "The server terminated an operation because it encountered an " +
+                                          "infinite loop while processing a request with 'Depth: infinity'.");
+
+        /// <summary>
         /// Bandwidth Limit Exceeded
         /// </summary>
         public static readonly HTTPStatusCode
@@ -873,6 +977,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           "Not Extended",
                                           "Further extensions to the request are required for the server to " +
                                           "fulfill it.");
+
+        /// <summary>
+        /// The client needs to authenticate to gain network access. Intended
+        /// for intercepting proxies such as captive portals, and never
+        /// generated by origin servers.
+        /// </summary>
+        public static readonly HTTPStatusCode
+
+            NetworkAuthenticationRequired = new (511,
+                                                "Network Authentication Required",
+                                                "The client needs to authenticate to gain network access. " +
+                                                "Intended for intercepting proxies such as captive portals, " +
+                                                "and never generated by origin servers.");
 
         #endregion
 
