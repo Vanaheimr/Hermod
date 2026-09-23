@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-07-18**
+Last verified: **2026-09-23**
 
 ## Support levels
 
@@ -22,7 +22,7 @@ Last verified: **2026-07-18**
 | Specification | Hermod support |
 |---|---|
 | [RFC 1945](https://www.rfc-editor.org/rfc/rfc1945.html), HTTP/1.0 | Implemented and regression-tested for requests, responses, `Content-Length`, close-delimited responses, default connection closing, optional negotiated keep-alive, and HTTP/1.0-specific rejection/fallback behavior. |
-| [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host`, connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Resource semantics remain application-defined. |
+| [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host`, connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Every status code in the IANA registry is defined with its registered reason phrase — the six that predate RFC 9110 keep their older phrase, pinned explicitly by `HTTPStatusCodeTests`. Resource semantics remain application-defined. |
 | [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html), HTTP/1.1 message syntax and routing | Implemented and regression-tested for start lines, header parsing, message framing, persistent connections, pipelining, chunked transfer coding, trailers, and malformed-message rejection. |
 | [RFC 10008](https://www.rfc-editor.org/rfc/rfc10008.html), HTTP `QUERY` method | The method is modeled as safe and idempotent and is end-to-end tested with fixed-length and chunked request content, trailers, and chunk extensions. Media-type policy, `Accept-Query`, caching, conditional requests, and query-result URI policy are handler responsibilities. |
 | [RFC 4918](https://www.rfc-editor.org/rfc/rfc4918.html), WebDAV | Method tokens are modeled (`COPY`, `LOCK`, `MKCOL`, `MOVE`, `PROPFIND`, `PROPPATCH`, and `UNLOCK`). Hermod does not provide a complete WebDAV resource implementation. |
@@ -227,6 +227,32 @@ The following trailer fields are rejected for incoming and outgoing trailers:
 
 All limits are configurable on the HTTP server.
 
+## Content codings
+
+`Content-Encoding` is undone on the message, not in the client or in the server:
+`AHTTPPDU.DecodeBody(...)` serves both directions, so a gzipped request body a
+handler receives and a gzipped response body a client receives take the same
+path.
+
+| | |
+|---|---|
+| Codings | `br`, `gzip`, `deflate` — the last one both zlib-wrapped (RFC 1950, what RFC 9110 names) and raw (RFC 1951, what many servers send). The octets are sniffed, because `DeflateStream` reads only the raw form. |
+| Stacked codings | Undone in reverse order, as RFC 9110, Section 8.4 defines the list. |
+| `identity` | The absence of a coding, so nothing is decoded. |
+| An unknown coding | Refused: `DecodeBody(...)` throws, `TryDecodeBody(...)` returns false. Returning the encoded octets as if they were the representation is the one answer that would be dangerous. |
+| Decompression bound | 64 MiB by default, overridable per call. The ceiling bites *during* decompression, not after it. |
+
+Decoding is explicit: `HTTPBody` is what arrived, `DecodeBody(...)` is what it
+means. Nothing decodes a body behind a caller's back, and a message declaring no
+coding gets its body back unchanged and uncopied.
+
+Not implemented, and deliberately not claimed: the HTTP/1.x client neither
+offers `Accept-Encoding` on its own nor decodes a *streamed* response body
+transparently — only a buffered one, through the seam above. On the server side,
+on-the-fly compression exists only in `SinglePageAppHandler` (`br`/`gzip`, with
+`Vary: Accept-Encoding` and coding-specific entity tags); there is no general
+response-compression filter for arbitrary handlers.
+
 ## Server-Sent Events
 
 Hermod implements SSE as an HTTP streaming extension using
@@ -324,14 +350,16 @@ The principal regression suites are:
 - `HermodTests/HTTP/HTTPClientProtocolRegressionTests.cs`
 - `HermodTests/HTTP/HTTP11AuditRegressionTests.cs`
 - `HermodTests/HTTP/HTTPServerListenerMatrixTests.cs`
+- `HermodTests/HTTP/HTTPStatusCodeTests.cs`
+- `HermodTests/HTTP/ContentEncodingHeaderTests.cs`
 
 As of the verification date, the broad HTTP/1.x regression selection contains
-**295 passing tests, 0 failed, 0 skipped**.
+**319 passing tests, 0 failed, 0 skipped**.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTPServerListenerMatrixTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~ContentEncodingHeaderTests"
 ```
 
 ## Deliberate exclusions and qualification

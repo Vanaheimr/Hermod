@@ -17,6 +17,9 @@
 
 #region Usings
 
+using System.Text;
+using System.IO.Compression;
+
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -121,6 +124,290 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.That(builder.ContentEncoding,                Is.Empty);
             Assert.That(builder.AsImmutable.RawHTTPHeader,      Does.Not.Contain("Content-Encoding"));
+
+        }
+
+        #endregion
+
+
+        // Decoding — AHTTPPDU.DecodeBody(...) and friends, which is where the
+        // header field above stops being an assertion about a string and starts
+        // deciding what the body actually says.
+
+        #region (private) Encoded(Coding, Text)
+
+        private static readonly String payload = String.Concat(Enumerable.Repeat("Hermod speaks HTTP/1.1. ", 40));
+
+        /// <summary>
+        /// A response carrying <paramref name="Body"/> and declaring
+        /// <paramref name="ContentEncoding"/>, as it would arrive from the wire.
+        /// </summary>
+        private static HTTPResponse ResponseWith(String? ContentEncoding, Byte[] Body)
+
+            => HTTPResponse.Parse(
+                   "HTTP/1.1 200 OK\r\n" +
+                   "Content-Type: text/plain\r\n" +
+                   (ContentEncoding is null ? "" : $"Content-Encoding: {ContentEncoding}\r\n") +
+                   $"Content-Length: {Body.Length}\r\n\r\n",
+                   Body
+               );
+
+        #endregion
+
+
+        #region EverySupportedCodingRoundTrips()
+
+        /// <summary>
+        /// br, gzip and deflate, through the same seam a received message uses.
+        /// </summary>
+        [Test]
+        public void EverySupportedCodingRoundTrips()
+        {
+
+            var identity = Encoding.UTF8.GetBytes(payload);
+
+            Assert.Multiple(() => {
+
+                foreach (var coding in HTTPContentCoding.Supported)
+                {
+
+                    var encoded  = HTTPContentCoding.Encode(identity, coding);
+                    var response = ResponseWith(coding, encoded);
+
+                    Assert.That(response.IsContentEncoded,             Is.True,                   coding);
+                    Assert.That(response.ContentCodings,               Is.EqualTo(new[] { coding }));
+
+                    // What arrived is not what was meant...
+                    Assert.That(response.HTTPBody,                     Is.Not.EqualTo(identity),  coding);
+                    Assert.That(encoded.Length,                        Is.LessThan(identity.Length), coding);
+
+                    // ...and this is what was meant.
+                    Assert.That(response.DecodeBody(),                 Is.EqualTo(identity),      coding);
+                    Assert.That(response.DecodedBodyAsUTF8String(),    Is.EqualTo(payload),       coding);
+
+                }
+
+            });
+
+        }
+
+        #endregion
+
+        #region StackedCodingsAreUndoneInReverseOrder()
+
+        /// <summary>
+        /// "Content-Encoding: gzip, br" means gzip was applied first and Brotli
+        /// to the result, so undoing them runs the list backwards (RFC 9110,
+        /// Section 8.4). With a single coding — every case in practice — the two
+        /// orders are indistinguishable, which is exactly why this is a test and
+        /// not a comment.
+        /// </summary>
+        [Test]
+        public void StackedCodingsAreUndoneInReverseOrder()
+        {
+
+            var identity  = Encoding.UTF8.GetBytes(payload);
+            var onTheWire = HTTPContentCoding.Encode(
+                                HTTPContentCoding.Encode(identity, "gzip"),
+                                "br"
+                            );
+
+            Assert.Multiple(() => {
+
+                var right = ResponseWith("gzip, br", onTheWire);
+
+                Assert.That(right.ContentCodings, Is.EqualTo(new[] { "gzip", "br" }));
+                Assert.That(right.DecodeBody(),   Is.EqualTo(identity));
+
+                // The same octets, claimed in the other order: Brotli output is
+                // not gzip input, so the first step already fails. If the order
+                // were ignored this would pass, and the test would be worthless.
+                var wrong = ResponseWith("br, gzip", onTheWire);
+
+                Assert.That(wrong.TryDecodeBody(out var body, out var errorResponse), Is.False);
+                Assert.That(body,                                                     Is.Empty);
+                Assert.That(errorResponse,                                            Is.Not.Null);
+
+            });
+
+        }
+
+        #endregion
+
+        #region IdentityIsTheAbsenceOfACoding()
+
+        /// <summary>
+        /// "identity" names the absence of a coding, so it must not send the
+        /// body through a decoder — there is nothing to undo, and every decoder
+        /// would reject the plain octets.
+        /// </summary>
+        [Test]
+        public void IdentityIsTheAbsenceOfACoding()
+        {
+
+            var identity  = Encoding.UTF8.GetBytes(payload);
+            var response  = ResponseWith("identity", identity);
+
+            Assert.Multiple(() => {
+                Assert.That(response.ContentEncoding,  Is.EqualTo(new[] { "identity" }));
+                Assert.That(response.ContentCodings,   Is.Empty);
+                Assert.That(response.IsContentEncoded, Is.False);
+                Assert.That(response.DecodeBody(),     Is.EqualTo(identity));
+            });
+
+        }
+
+        #endregion
+
+        #region AMessageWithoutACodingReturnsItsBodyUnchanged()
+
+        [Test]
+        public void AMessageWithoutACodingReturnsItsBodyUnchanged()
+        {
+
+            var identity  = Encoding.UTF8.GetBytes(payload);
+            var response  = ResponseWith(null, identity);
+
+            Assert.Multiple(() => {
+                Assert.That(response.IsContentEncoded, Is.False);
+                Assert.That(response.DecodeBody(),     Is.EqualTo(identity));
+                Assert.That(response.DecodeBody(),     Is.SameAs(response.HTTPBody), "the identity case must not copy the body");
+            });
+
+        }
+
+        #endregion
+
+        #region AnUnknownCodingIsRefusedRatherThanIgnored()
+
+        /// <summary>
+        /// "compress" (LZW) is registered and we cannot undo it. Returning the
+        /// encoded octets as if they were the representation would be the one
+        /// genuinely dangerous answer, so the coding has to be refused.
+        /// </summary>
+        [Test]
+        public void AnUnknownCodingIsRefusedRatherThanIgnored()
+        {
+
+            var response = ResponseWith("compress", Encoding.UTF8.GetBytes(payload));
+
+            Assert.Multiple(() => {
+
+                Assert.That(response.IsContentEncoded, Is.True);
+                Assert.Throws<NotSupportedException>(() => response.DecodeBody());
+
+                Assert.That(response.TryDecodeBody(out var body, out var errorResponse), Is.False);
+                Assert.That(body,                                                       Is.Empty);
+                Assert.That(errorResponse,                                              Does.Contain("compress"));
+
+            });
+
+        }
+
+        #endregion
+
+        #region ADecompressionBombIsRefusedAtTheCeiling()
+
+        /// <summary>
+        /// 4 MiB of zeros gzip down to a few kilobytes. Decoding them is fine;
+        /// decoding them under a smaller ceiling has to fail, and fail *during*
+        /// decompression rather than after it, or the memory is already gone by
+        /// the time anyone looks at the size.
+        /// </summary>
+        [Test]
+        public void ADecompressionBombIsRefusedAtTheCeiling()
+        {
+
+            var bomb     = HTTPContentCoding.Encode(new Byte[4 * 1024 * 1024], "gzip");
+            var response = ResponseWith("gzip", bomb);
+
+            Assert.Multiple(() => {
+
+                Assert.That(bomb.Length, Is.LessThan(64 * 1024), "the point of the test is that it is small on the wire");
+
+                // Under a ceiling it cannot fit.
+                Assert.That(response.TryDecodeBody(out var refused, out var errorResponse, 1024 * 1024), Is.False);
+                Assert.That(refused,                                                                     Is.Empty);
+                Assert.That(errorResponse,                                                               Does.Contain("limit"));
+
+                // ...and the same octets under one it can.
+                Assert.That(response.DecodeBody(16 * 1024 * 1024).Length, Is.EqualTo(4 * 1024 * 1024));
+
+            });
+
+        }
+
+        #endregion
+
+        #region DeflateIsAcceptedBothZLibWrappedAndRaw()
+
+        /// <summary>
+        /// RFC 9110 names RFC 1950 (zlib-wrapped) for "deflate", plenty of
+        /// servers send RFC 1951 (raw), and .NET's DeflateStream reads only the
+        /// latter. Both have to work, the way browsers cope with it.
+        /// </summary>
+        [Test]
+        public void DeflateIsAcceptedBothZLibWrappedAndRaw()
+        {
+
+            var identity = Encoding.UTF8.GetBytes(payload);
+
+            var raw      = HTTPContentCoding.Encode(identity, "deflate");
+
+            var zlib     = new Func<Byte[]>(() => {
+                               using var output = new MemoryStream();
+                               using (var compressor = new ZLibStream(output, CompressionLevel.Optimal, leaveOpen: true))
+                                   compressor.Write(identity, 0, identity.Length);
+                               return output.ToArray();
+                           })();
+
+            Assert.Multiple(() => {
+
+                // The two really are different octets, so the sniffer has work to do.
+                Assert.That(zlib, Is.Not.EqualTo(raw));
+
+                Assert.That(ResponseWith("deflate", raw). DecodeBody(), Is.EqualTo(identity), "raw deflate (RFC 1951)");
+                Assert.That(ResponseWith("deflate", zlib).DecodeBody(), Is.EqualTo(identity), "zlib-wrapped (RFC 1950)");
+
+            });
+
+        }
+
+        #endregion
+
+        #region RequestBodiesAreDecodedByTheSameSeam()
+
+        /// <summary>
+        /// The wiring sits on AHTTPPDU rather than on the response, so a request
+        /// that arrives gzipped decodes through exactly the same code — which is
+        /// the half a server needs and the half that did not exist before.
+        /// </summary>
+        [Test]
+        public void RequestBodiesAreDecodedByTheSameSeam()
+        {
+
+            var identity = Encoding.UTF8.GetBytes(payload);
+            var encoded  = HTTPContentCoding.Encode(identity, "gzip");
+
+            Assert.That(
+                HTTPRequest.TryParse(
+                    "POST /echo HTTP/1.1\r\n" +
+                    "Host: example.test\r\n" +
+                    "Content-Type: text/plain\r\n" +
+                    "Content-Encoding: gzip\r\n" +
+                    $"Content-Length: {encoded.Length}\r\n\r\n",
+                    encoded,
+                    out var request
+                ),
+                Is.True,
+                "The HTTP request could not be parsed!"
+            );
+
+            Assert.Multiple(() => {
+                Assert.That(request!.IsContentEncoded,          Is.True);
+                Assert.That(request. DecodeBody(),              Is.EqualTo(identity));
+                Assert.That(request. DecodedBodyAsUTF8String(), Is.EqualTo(payload));
+            });
 
         }
 
