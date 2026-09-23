@@ -227,6 +227,32 @@ The following trailer fields are rejected for incoming and outgoing trailers:
 
 All limits are configurable on the HTTP server.
 
+## Content codings
+
+`Content-Encoding` is undone on the message, not in the client or in the server:
+`AHTTPPDU.DecodeBody(...)` serves both directions, so a gzipped request body a
+handler receives and a gzipped response body a client receives take the same
+path.
+
+| | |
+|---|---|
+| Codings | `br`, `gzip`, `deflate` — the last one both zlib-wrapped (RFC 1950, what RFC 9110 names) and raw (RFC 1951, what many servers send). The octets are sniffed, because `DeflateStream` reads only the raw form. |
+| Stacked codings | Undone in reverse order, as RFC 9110, Section 8.4 defines the list. |
+| `identity` | The absence of a coding, so nothing is decoded. |
+| An unknown coding | Refused: `DecodeBody(...)` throws, `TryDecodeBody(...)` returns false. Returning the encoded octets as if they were the representation is the one answer that would be dangerous. |
+| Decompression bound | 64 MiB by default, overridable per call. The ceiling bites *during* decompression, not after it. |
+
+Decoding is explicit: `HTTPBody` is what arrived, `DecodeBody(...)` is what it
+means. Nothing decodes a body behind a caller's back, and a message declaring no
+coding gets its body back unchanged and uncopied.
+
+Not implemented, and deliberately not claimed: the HTTP/1.x client neither
+offers `Accept-Encoding` on its own nor decodes a *streamed* response body
+transparently — only a buffered one, through the seam above. On the server side,
+on-the-fly compression exists only in `SinglePageAppHandler` (`br`/`gzip`, with
+`Vary: Accept-Encoding` and coding-specific entity tags); there is no general
+response-compression filter for arbitrary handlers.
+
 ## Server-Sent Events
 
 Hermod implements SSE as an HTTP streaming extension using
@@ -325,14 +351,15 @@ The principal regression suites are:
 - `HermodTests/HTTP/HTTP11AuditRegressionTests.cs`
 - `HermodTests/HTTP/HTTPServerListenerMatrixTests.cs`
 - `HermodTests/HTTP/HTTPStatusCodeTests.cs`
+- `HermodTests/HTTP/ContentEncodingHeaderTests.cs`
 
 As of the verification date, the broad HTTP/1.x regression selection contains
-**306 passing tests, 0 failed, 0 skipped**.
+**319 passing tests, 0 failed, 0 skipped**.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPStatusCodeTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~ContentEncodingHeaderTests"
 ```
 
 ## Deliberate exclusions and qualification

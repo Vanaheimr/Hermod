@@ -513,6 +513,145 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Content codings (RFC 9110, Section 8.4)
+
+        /// <summary>
+        /// The ceiling on a decoded body when a caller does not name one.
+        ///
+        /// An encoded body is a decompression bomb until proven otherwise:
+        /// gzip reaches roughly 1000:1 on repetitive input, so a 64 KiB request
+        /// body can ask for 64 MiB of memory, and a few of those concurrently
+        /// are a denial of service. The limit bites *during* decompression —
+        /// see <see cref="HTTPContentCoding.Decode(Byte[], String, Int64)"/> —
+        /// not after, when the memory has already been taken.
+        /// </summary>
+        public const UInt64 DefaultMaxDecodedBodySize = 64UL * 1024 * 1024;
+
+
+        #region ContentCodings
+
+        /// <summary>
+        /// The content codings this message declares, in the order they were
+        /// applied to the representation, with "identity" left out — it names
+        /// the absence of a coding, which is the same thing as an empty list.
+        /// </summary>
+        public IEnumerable<String> ContentCodings
+
+            => ContentEncoding.
+                   SelectMany(value  => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)).
+                   Where     (coding => !coding.Equals("identity", StringComparison.OrdinalIgnoreCase));
+
+        #endregion
+
+        #region IsContentEncoded
+
+        /// <summary>
+        /// Whether <see cref="HTTPBody"/> holds encoded octets rather than the
+        /// representation itself — i.e. whether reading it directly is wrong.
+        /// </summary>
+        public Boolean IsContentEncoded
+
+            => ContentCodings.Any();
+
+        #endregion
+
+        #region DecodeBody             (MaxDecodedSize = null)
+
+        /// <summary>
+        /// The representation this message carries, with every content coding it
+        /// declares undone. A message without a content coding returns its body
+        /// unchanged, so this is always the right thing to read — the identity
+        /// case costs one header lookup.
+        /// </summary>
+        /// <param name="MaxDecodedSize">The ceiling on the decoded size, <see cref="DefaultMaxDecodedBodySize"/> when null.</param>
+        /// <exception cref="NotSupportedException">A declared coding is not one this stack can undo.</exception>
+        /// <exception cref="InvalidDataException">The octets are not valid for the declared coding, or the decoded content exceeds the ceiling.</exception>
+        public Byte[] DecodeBody(UInt64? MaxDecodedSize = null)
+        {
+
+            var body     = HTTPBody ?? [];
+            var codings  = ContentCodings.ToArray();
+
+            if (codings.Length == 0)
+                return body;
+
+            var limit    = (Int64) (MaxDecodedSize ?? DefaultMaxDecodedBodySize);
+
+            // RFC 9110, Section 8.4: "Content-Encoding: gzip, br" means gzip was
+            // applied first and Brotli to the result of that, so undoing them
+            // means walking the list backwards. Getting this wrong is invisible
+            // for the single-coding case, which is every case in practice —
+            // which is precisely why it is worth a test rather than a comment.
+            for (var i = codings.Length - 1; i >= 0; i--)
+            {
+
+                var coding = codings[i].Trim();
+
+                if (!HTTPContentCoding.IsSupported(coding))
+                    throw new NotSupportedException($"Unsupported content coding '{coding}'!");
+
+                body = HTTPContentCoding.Decode(
+                           body,
+                           coding.ToLowerInvariant(),
+                           limit
+                       );
+
+            }
+
+            return body;
+
+        }
+
+        #endregion
+
+        #region TryDecodeBody          (out Body, out ErrorResponse, MaxDecodedSize = null)
+
+        /// <summary>
+        /// The same as <see cref="DecodeBody(UInt64?)"/>, but for the receiving
+        /// side, where a bad body is the peer's doing and has to become a status
+        /// code rather than an exception.
+        /// </summary>
+        /// <param name="Body">The decoded representation, or empty when this returns false.</param>
+        /// <param name="ErrorResponse">Why the body could not be decoded.</param>
+        /// <param name="MaxDecodedSize">The ceiling on the decoded size, <see cref="DefaultMaxDecodedBodySize"/> when null.</param>
+        public Boolean TryDecodeBody(out Byte[]   Body,
+                                     out String?  ErrorResponse,
+                                     UInt64?      MaxDecodedSize = null)
+        {
+
+            try
+            {
+                Body           = DecodeBody(MaxDecodedSize);
+                ErrorResponse  = null;
+                return true;
+            }
+            catch (Exception e)
+            {
+                Body           = [];
+                ErrorResponse  = e.Message;
+                return false;
+            }
+
+        }
+
+        #endregion
+
+        #region DecodedBodyAsUTF8String(MaxDecodedSize = null)
+
+        /// <summary>
+        /// The decoded representation as an UTF-8 string — the counterpart of
+        /// <see cref="HTTPBodyAsUTF8String"/> for a message that declares a
+        /// content coding.
+        /// </summary>
+        /// <param name="MaxDecodedSize">The ceiling on the decoded size, <see cref="DefaultMaxDecodedBodySize"/> when null.</param>
+        public String DecodedBodyAsUTF8String(UInt64? MaxDecodedSize = null)
+
+            => Encoding.UTF8.GetString(DecodeBody(MaxDecodedSize));
+
+        #endregion
+
+        #endregion
+
         #region HTTPBodyAsUTF8String
 
         /// <summary>

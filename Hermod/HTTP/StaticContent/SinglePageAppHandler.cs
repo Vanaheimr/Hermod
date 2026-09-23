@@ -21,7 +21,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Concurrent;
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
 #endregion
 
