@@ -67,14 +67,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Coding = null;
 
-            // Nothing to do, or nothing this filter can work on. A response whose
-            // body is still a stream belongs to whoever is writing it — a live
-            // chunked worker or an event source — and taking it over here would
-            // break the framing they own.
-            if (Response.HTTPBody is not Byte[] body || body.Length == 0)
+            // A response whose body is still a stream belongs to whoever is about
+            // to write it — a live chunked worker, an event source — and taking it
+            // over here would break the framing they own.
+            //
+            // The order of what follows is not arrangement, it is correctness.
+            // HTTPBody is a property that *makes* the body an array if it is not
+            // one yet, by draining HTTPBodyStream to the end — and for the two
+            // cases above that stream is the connection. So everything that can be
+            // decided from the header is decided first, and the body is not looked
+            // at until looking is harmless.
+            if (Response.HTTPBodyStream is not null)
                 return false;
 
-            if (Response.HTTPBodyStream is not null)
+            // An event stream is written by its worker rather than sent as a body,
+            // and text/event-stream is text/*, so the media-type test below would
+            // wave it through.
+            if (Response.ContentType == HTTPContentType.Text.EVENTSTREAM)
+                return false;
+
+            // After a 101 what is on this connection is not HTTP any more.
+            if (Response.UpgradeWorker is not null)
                 return false;
 
             // A body the semantics forbid, or one already chunked: in the chunked
@@ -101,6 +114,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Response.ContentType is null ||
                 !ContentNegotiation.IsCompressible(Response.ContentType))
+                return false;
+
+            // Now it is safe.
+            if (Response.HTTPBody is not Byte[] body || body.Length == 0)
                 return false;
 
             if ((UInt64) body.LongLength < MinimumSize)

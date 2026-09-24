@@ -44,6 +44,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
     public class ServerContentCompressionTests
     {
 
+        #region (private) CountingStream
+
+        /// <summary>
+        /// A body stream that is empty and remembers being asked.
+        /// </summary>
+        private sealed class CountingStream : Stream
+        {
+
+            public Int32 Reads { get; private set; }
+
+            public override Boolean  CanRead   => true;
+            public override Boolean  CanSeek   => false;
+            public override Boolean  CanWrite  => false;
+            public override Int64    Length    => throw new NotSupportedException();
+
+            public override Int64 Position
+            {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+
+            public override Int32 Read(Byte[] Buffer, Int32 Offset, Int32 Count)
+            {
+                Reads++;
+                return 0;
+            }
+
+            public override ValueTask<Int32> ReadAsync(Memory<Byte>       Buffer,
+                                                       CancellationToken  CancellationToken = default)
+            {
+                Reads++;
+                return ValueTask.FromResult(0);
+            }
+
+            public override void  Flush()                             { }
+            public override void  Write(Byte[] B, Int32 O, Int32 C)   => throw new NotSupportedException();
+            public override Int64 Seek (Int64  O, SeekOrigin Origin)  => throw new NotSupportedException();
+            public override void  SetLength(Int64 Value)              => throw new NotSupportedException();
+
+        }
+
+        #endregion
+
         #region Data
 
         private static readonly String  compressibleText  = String.Join("\n", Enumerable.Range(0, 400).Select(i => $"line {i} of a very repetitive document"));
@@ -481,6 +524,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(response.DecodedContentEncoding,  Is.EqualTo("br"));
                 Assert.That(response.ContentEncoding,         Is.Empty);
                 Assert.That(response.RawHTTPHeader,           Does.Contain("Content-Encoding: br"));
+            });
+
+        }
+
+        #endregion
+
+        #region (unit) AResponseStillBeingWrittenIsNotEvenLookedAt()
+
+        /// <summary>
+        /// The order of the checks in ShouldCompress is correctness, not
+        /// arrangement, and this is why. HTTPBody is a property that *makes* the
+        /// body an array if it is not one yet, by draining HTTPBodyStream to the
+        /// end — and for a live chunked response or an event source, that stream is
+        /// the connection. Asking "is there a body worth compressing" before ruling
+        /// the stream out consumes the response instead of examining it.
+        ///
+        /// The wire harnesses found this; nineteen tests in this file did not,
+        /// because every one of them used a response whose body was already an
+        /// array. So the assertion here is not on the verdict — which was right
+        /// either way — but on whether the stream was touched at all.
+        /// </summary>
+        [Test]
+        public void AResponseStillBeingWrittenIsNotEvenLookedAt()
+        {
+
+            var probe = new CountingStream();
+
+            var response = HTTPResponse.Parse(
+                               "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nTransfer-Encoding: chunked\r\n\r\n",
+                               probe
+                           );
+
+            Assert.That(
+                HTTPRequest.TryParse("GET / HTTP/1.1\r\nHost: example.test\r\nAccept-Encoding: gzip\r\n\r\n", out var request),
+                Is.True
+            );
+
+            var verdict = HTTPContentCompression.ShouldCompress(request!, response, MinimumSize: 1, out _);
+
+            Assert.Multiple(() => {
+                Assert.That(verdict,      Is.False);
+                Assert.That(probe.Reads,  Is.Zero, "the body stream was read to decide not to use it");
             });
 
         }
