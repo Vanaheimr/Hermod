@@ -188,6 +188,113 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #endregion
 
+
+        #region TheSameServerTwice_IsOneServer()
+
+        /// <summary>
+        /// Two configs of one server are one server.
+        /// </summary>
+        /// <remarks>
+        /// DNSClient keeps its servers in a set, and fills it from every network
+        /// interface - where one server is listed once per interface. Compared
+        /// by reference, as a class is unless it says otherwise, every one of
+        /// those was a server of its own: a Windows machine listed its router's
+        /// address twice and fec0:0:0:ffff::1 to ::3 three times each, and a
+        /// query nobody answered was asked of each of them again.
+        /// </remarks>
+        [Test]
+        public void TheSameServerTwice_IsOneServer()
+        {
+
+            var first   = new DNSServerConfig(IPv6Address.Parse("fd00::2e3a:fdff:fefe:dd09"));
+            var second  = new DNSServerConfig(IPv6Address.Parse("fd00::2e3a:fdff:fefe:dd09"));
+
+            Assert.Multiple(() => {
+                Assert.That(first.Equals(second),                             Is.True);
+                Assert.That(first.GetHashCode(),                              Is.EqualTo(second.GetHashCode()));
+                Assert.That(new HashSet<DNSServerConfig> { first, second },   Has.Count.EqualTo(1));
+            });
+
+        }
+
+        #endregion
+
+        #region TheSameServerOnThreeInterfaces_IsOneServerOfTheClient()
+
+        /// <summary>
+        /// The server list a client keeps holds each server once - here from the
+        /// same address as three interfaces report it, each with a scope of its
+        /// own, which is how Windows hands out its site-local name servers.
+        /// </summary>
+        /// <remarks>
+        /// A client given its servers rather than looking for the machine's, so
+        /// that what is counted is only what this test put in.
+        /// </remarks>
+        [Test]
+        public void TheSameServerOnThreeInterfaces_IsOneServerOfTheClient()
+        {
+
+            var client = new DNSClient([
+                             IPv6Address.From(System.Net.IPAddress.Parse("fec0:0:0:ffff::1%1")),
+                             IPv6Address.From(System.Net.IPAddress.Parse("fec0:0:0:ffff::1%2")),
+                             IPv6Address.From(System.Net.IPAddress.Parse("fec0:0:0:ffff::1%3"))
+                         ]);
+
+            Assert.That(client.DNSServers, Has.Count.EqualTo(1),
+                        String.Join(", ", client.DNSServers));
+
+        }
+
+        #endregion
+
+        #region AnotherTimeout_IsTheSameServer()
+
+        /// <summary>
+        /// How long to wait for a server is not which server it is.
+        /// </summary>
+        /// <remarks>
+        /// And the timeout can be changed after the config went into a set,
+        /// which is exactly what a hash code must not follow.
+        /// </remarks>
+        [Test]
+        public void AnotherTimeout_IsTheSameServer()
+        {
+
+            var patient    = new DNSServerConfig(IPv4Address.Parse("192.0.2.53"), QueryTimeout: TimeSpan.FromSeconds(30));
+            var impatient  = new DNSServerConfig(IPv4Address.Parse("192.0.2.53"), QueryTimeout: TimeSpan.FromSeconds(1));
+
+            Assert.That(patient, Is.EqualTo(impatient));
+
+        }
+
+        #endregion
+
+        #region AnotherTransportOrPort_IsAnotherServer()
+
+        /// <summary>
+        /// What keeps the equality from being too generous: the same address
+        /// asked another way, or on another port, is another server.
+        /// </summary>
+        [Test]
+        public void AnotherTransportOrPort_IsAnotherServer()
+        {
+
+            var address  = IPv4Address.Parse("192.0.2.53");
+
+            var servers  = new HashSet<DNSServerConfig> {
+                               new (address),
+                               new (address, Transport: DNSTransport.TCP),
+                               new (address, IPPort.Parse(5353)),
+                               new (DomainName.Parse("dns.example"), address)
+                           };
+
+            Assert.That(servers, Has.Count.EqualTo(4),
+                        String.Join(", ", servers));
+
+        }
+
+        #endregion
+
     }
 
 }

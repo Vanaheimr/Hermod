@@ -21,7 +21,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// A DNS server configuration.
     /// </summary>
-    public class DNSServerConfig
+    public class DNSServerConfig : IEquatable<DNSServerConfig>
     {
 
         #region Properties
@@ -193,6 +193,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    _                          => IPPort.DNS
 
                };
+
+        #endregion
+
+        #region Equals(DNSServerConfig) / Equals(Object) / GetHashCode()
+
+        /// <summary>
+        /// The same server: the same transport to the same address, or name, on
+        /// the same port.
+        /// </summary>
+        /// <remarks>
+        /// DNSClient keeps its servers in a set and fills it from every network
+        /// interface, where one server is listed once per interface. Compared by
+        /// reference, as a class is unless it says otherwise, each of those was
+        /// a server of its own: a Windows machine listed its router's address
+        /// twice and fec0:0:0:ffff::1 to ::3 three times each, and asked each of
+        /// them again whenever a query went unanswered. An address with another
+        /// scope is the same server here, because IPv6Address compares without
+        /// one.
+        ///
+        /// The timeout is left out. It says how long to wait for a server rather
+        /// than which one, and it can be set after the config has gone into a
+        /// set - which a hash code must never follow.
+        /// </remarks>
+        /// <param name="DNSServerConfig">A DNS server configuration to compare with.</param>
+        public Boolean Equals(DNSServerConfig? DNSServerConfig)
+
+            => DNSServerConfig is not null &&
+               Transport == DNSServerConfig.Transport &&
+               Port      == DNSServerConfig.Port      &&
+               Equals(IPAddress,  DNSServerConfig.IPAddress) &&
+               Equals(DomainName, DNSServerConfig.DomainName);
+
+        /// <summary>
+        /// Whether the given object is a configuration of the same DNS server.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is DNSServerConfig dnsServerConfig &&
+               Equals(dnsServerConfig);
+
+        /// <summary>
+        /// The hash code of the server this configures; the timeout is not part
+        /// of it, see <see cref="Equals(DNSServerConfig)"/>.
+        /// </summary>
+        public override Int32 GetHashCode()
+
+            => HashCode.Combine(
+                   Transport,
+                   Port,
+                   IPAddress,
+                   DomainName
+               );
 
         #endregion
 
