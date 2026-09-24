@@ -142,6 +142,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Content compression (RFC 9110, Section 8.4)
+
+        /// <summary>
+        /// Compress a response when the client said it could decompress one, the
+        /// content type is worth compressing, and the handler did not already
+        /// choose a coding of its own (RFC 9110, Sections 8.4 and 12.5.3).
+        ///
+        /// Off by default. It changes every response this server sends, and the
+        /// cost — compressing per response rather than once per representation —
+        /// is a trade only the operator can make. <see cref="SinglePageAppHandler"/>
+        /// keeps doing it the better way for static files either way; a response
+        /// that already carries a Content-Encoding is left alone.
+        /// </summary>
+        public Boolean  AutomaticContentCompression     { get; set; }
+
+        /// <summary>
+        /// Responses with a body smaller than this are never compressed, because
+        /// below roughly a kilobyte the gzip framing and the extra header field
+        /// cost more than the compression saves.
+        /// </summary>
+        public UInt64   MinimumCompressibleSize         { get; set; } = HTTPContentCompression.DefaultMinimumSize;
+
+        #endregion
+
         #region Events
 
         /// <summary>
@@ -838,6 +862,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                Content         = "Manually streamed chunked responses are not supported for HTTP/1.0 clients.".ToUTF8Bytes()
                                            }.AsImmutable;
                         }
+
+                        // RFC 9110, Section 8.4: the last thing that happens to a
+                        // response, after the handler, after the error paths above,
+                        // and before anything reads it — so that what gets
+                        // compressed is what is actually about to be sent, and
+                        // every handler gets it without knowing about it.
+                        if (AutomaticContentCompression)
+                            httpResponse = HTTPContentCompression.Apply(
+                                               request,
+                                               httpResponse,
+                                               MinimumCompressibleSize
+                                           );
 
                         var hasLiveChunkWorker = !HasNoResponseBody(httpResponse) &&
                                                  httpResponse.HTTPBodyStream is ChunkedTransferEncodingStream;
