@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
@@ -31,10 +30,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// scheme defers that to an app callback, so `Core` stays BCL-only and free of
     /// any credential store.
     ///
-    /// Like <see cref="HTTPSemantics"/> this is version-independent (RFC 9110), so
-    /// it lives in the shared library and is reusable in front of any transport.
-    /// It composes with `HTTPSemantics` by wrapping the final
-    /// <see cref="HTTP2RequestHandler"/>.
+    /// This is version-independent (RFC 9110), so it lives in the shared library
+    /// and is reusable in front of any transport. It composes with a semantics
+    /// layer by wrapping that transport's final request-handler delegate.
+    ///
+    /// The sentence above was true of the design and not of the file until
+    /// 2026-09-24: this type, the scheme interface, the four schemes, the
+    /// credential parser and the identity all sat under <c>HTTP2/</c>, which is
+    /// what made RFC 7616 Digest unreachable from HTTP/1.x (finding H-3 of the
+    /// HTTP/1.1 conformance suite). Moving them changed no behaviour.
     /// </summary>
     public sealed class HTTPAuthenticator
     {

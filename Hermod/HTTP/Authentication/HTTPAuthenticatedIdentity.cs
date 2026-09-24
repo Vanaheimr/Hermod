@@ -15,13 +15,14 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
     /// Handler shape for a request that has already been authenticated — the same
-    /// as <see cref="HTTP2RequestHandler"/> but with the caller's identity threaded
-    /// in. Produced for you by <see cref="HTTPAuthentication.RequireAuthentication"/>.
+    /// as the transport's own request-handler delegate, but with the caller's
+    /// identity threaded in. The HTTP/2 stack produces one for you through
+    /// <c>HTTPAuthentication.RequireAuthentication</c>.
     /// </summary>
     public delegate Task<(List<(string Name, string Value)> ResponseHeaders, byte[]? ResponseBody)>
         HTTPAuthenticatedRequestHandler(

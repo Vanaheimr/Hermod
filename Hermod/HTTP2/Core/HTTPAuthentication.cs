@@ -18,6 +18,8 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
     /// <summary>
     /// Convenience helpers for putting an <see cref="HTTPAuthenticator"/> in front
     /// of application logic.

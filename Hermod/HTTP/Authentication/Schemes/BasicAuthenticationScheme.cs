@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
-    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Text;
 
     /// <summary>

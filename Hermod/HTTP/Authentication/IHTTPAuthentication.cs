@@ -45,6 +45,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return true;
                 }
 
+                if (HTTPDigestAuthentication.TryParseHTTPHeader(authorizationString, out var digestAuthentication))
+                {
+                    HTTPAuthentication = digestAuthentication;
+                    return true;
+                }
+
                 if (HTTPTokenAuthentication.TryParseHTTPHeader(authorizationString, out var tokenAuthentication))
                 {
                     HTTPAuthentication = tokenAuthentication;

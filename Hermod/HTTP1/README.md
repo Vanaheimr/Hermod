@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-09-23**
+Last verified: **2026-09-24**
 
 ## Support levels
 
@@ -253,6 +253,45 @@ on-the-fly compression exists only in `SinglePageAppHandler` (`br`/`gzip`, with
 `Vary: Accept-Encoding` and coding-specific entity tags); there is no general
 response-compression filter for arbitrary handlers.
 
+## Authentication
+
+The RFC 9110 Section 11 framework — the authenticator, the scheme interface, the
+credential parser, the identity, and the Basic / Bearer / Digest / Token schemes
+— lives in `HTTP/Authentication/` and is version-independent. It sat under
+`HTTP2/` until 2026-09-24, which is what had made RFC 7616 Digest unreachable
+from HTTP/1.x; moving it changed no behaviour.
+
+| Scheme | Support |
+|---|---|
+| Basic (RFC 7617) | Typed credentials and a store-agnostic validator. |
+| Bearer (RFC 6750) | Typed credentials; token validation is the application's. |
+| **Digest (RFC 7616)** | Challenge and validation: stateless signed nonce with an age bound, `qop=auth` with `nc`/`cnonce`, the legacy RFC 2069 no-`qop` form, `-sess` variants, SHA-256 (default) and MD5. `auth-int` is not advertised. |
+| Token (non-standard) | Vanaheimr's own. |
+
+`HTTPDigestAuthentication` parses the credentials off the wire;
+`DigestAuthenticationScheme` decides whether they are valid, because that needs
+the nonce's own integrity and age, the realm, and a password lookup.
+
+`BuildChallenges(realm, algorithms…)` emits one challenge per algorithm, most
+preferred first, all sharing one nonce — RFC 7616 Section 3.3. Sharing the nonce
+is what makes them one offer the client may answer either way.
+
+**Interoperability, measured rather than claimed** (2026-09-24, against the
+HTTP/1.1 conformance suite's demo host):
+
+| Client | MD5 | SHA-256 |
+|---|---|---|
+| curl 8.14.1, `x86_64-pc-linux-gnu`, OpenSSL | 200 | 200 |
+| curl 8.21.0, `x86_64-w64-mingw32`, Schannel | 200 | no `Authorization` sent |
+
+Note also what curl does with more than one challenge in a single
+`WWW-Authenticate` field: nothing. Two Digest challenges, or Digest beside
+Basic, and it sends no credentials at all, in either order. RFC 9110
+Section 11.6.1 permits several challenges per field and observes in the same
+breath that parsing them is ambiguous, since auth-params are comma-separated
+too. Separate header lines are the unambiguous form; one challenge per response
+is the form that works today.
+
 ## Server-Sent Events
 
 Hermod implements SSE as an HTTP streaming extension using
@@ -352,14 +391,15 @@ The principal regression suites are:
 - `HermodTests/HTTP/HTTPServerListenerMatrixTests.cs`
 - `HermodTests/HTTP/HTTPStatusCodeTests.cs`
 - `HermodTests/HTTP/ContentEncodingHeaderTests.cs`
+- `HermodTests/HTTP/HTTPDigestAuthenticationTests.cs`
 
 As of the verification date, the broad HTTP/1.x regression selection contains
-**319 passing tests, 0 failed, 0 skipped**.
+**329 passing tests, 0 failed, 0 skipped**.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~ContentEncodingHeaderTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~HTTPDigestAuthenticationTests"
 ```
 
 ## Deliberate exclusions and qualification

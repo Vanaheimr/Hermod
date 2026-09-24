@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
-    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Security.Cryptography;
     using System.Text;
 
@@ -76,6 +75,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         // optional (RFC 7616, Section 3.3).
         public string BuildChallenge(string Realm)
             => $"Digest realm=\"{Realm}\", qop=\"auth\", algorithm={algorithm}, nonce=\"{CreateNonce()}\"";
+
+        /// <summary>
+        /// One challenge per algorithm, strongest first, all carrying the SAME
+        /// nonce — RFC 7616, Section 3.3: "the server SHOULD add the challenges
+        /// to the response in order of preference, starting with the most
+        /// preferred algorithm, followed by the next most preferred algorithm".
+        ///
+        /// Sharing the nonce is what makes it one offer rather than several: the
+        /// client picks whichever algorithm it implements, and this object
+        /// validates the answer either way, because <c>AuthenticateAsync</c>
+        /// accepts the algorithm the client echoes back and the nonce is the same
+        /// one whichever line it came from.
+        ///
+        /// It is needed. curl 8.21 (the Windows Schannel build) simply does not
+        /// answer a Digest challenge that advertises SHA-256: it takes the 401
+        /// and stops, without sending an Authorization header at all. Advertising
+        /// only MD5 to accommodate that would be giving up the algorithm RFC 7616
+        /// exists to introduce; advertising only SHA-256 means no interop with a
+        /// client that is still very much in use. Both, in the order the RFC
+        /// prescribes, is the answer the RFC already gave.
+        /// </summary>
+        /// <param name="Realm">The protection space.</param>
+        /// <param name="Algorithms">The algorithms to advertise, strongest first.</param>
+        public string BuildChallenges(string Realm, params string[] Algorithms)
+        {
+
+            if (Algorithms.Length == 0)
+                return BuildChallenge(Realm);
+
+            var nonce = CreateNonce();
+
+            return string.Join(
+                       ", ",
+                       Algorithms.Select(a => $"Digest realm=\"{Realm}\", qop=\"auth\", algorithm={a}, nonce=\"{nonce}\"")
+                   );
+
+        }
 
         public async Task<HTTPAuthenticatedIdentity?> AuthenticateAsync(String             Credentials,
                                                                         HTTPMethod         Method,
