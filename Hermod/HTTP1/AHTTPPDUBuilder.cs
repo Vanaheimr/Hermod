@@ -709,6 +709,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region X_AccelBuffering
+
+        /// <summary>
+        /// Whether nginx - and a proxy that follows its lead - should buffer
+        /// this response on its way to the client; "no" for an event stream.
+        /// See <see cref="HTTPResponseHeaderField.X_AccelBuffering"/>.
+        /// </summary>
+        /// <example>no</example>
+        public String? X_AccelBuffering
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPResponseHeaderField.X_AccelBuffering);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPResponseHeaderField.X_AccelBuffering, value);
+            }
+
+        }
+
+        #endregion
+
         #region X_FrameOptions
 
         /// <summary>

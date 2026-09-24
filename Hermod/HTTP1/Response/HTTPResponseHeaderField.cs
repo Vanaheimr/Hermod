@@ -611,6 +611,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region X-Accel-Buffering
+
+        /// <summary>
+        /// Whether nginx - and a proxy that follows its lead - should buffer
+        /// this response on its way to the client. "no" for anything that is
+        /// read while it is still being written, such as an event stream: nginx
+        /// buffers what it proxies unless it is told otherwise, and a buffered
+        /// event stream reaches the client as nothing at all, not even its
+        /// header, until a buffer is full or the upstream has been silent for
+        /// long enough that nginx gives up on it. nginx consumes this field and
+        /// does not pass it on to the client.
+        /// </summary>
+        /// <example>X-Accel-Buffering: no</example>
+        public static readonly HTTPResponseHeaderField X_AccelBuffering = new ("X-Accel-Buffering",
+                                                                               RequestPathSemantic.HopToHop);
+
+        #endregion
+
         #region X-Frame-Options
 
         /// <summary>

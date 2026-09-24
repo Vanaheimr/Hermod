@@ -1425,6 +1425,16 @@ Error:
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
+        /// <param name="Heartbeat">How long the stream may stay silent before a comment is sent down it: <see cref="HTTPEventSourceExtensions.DefaultHeartbeat"/> when not given, never when zero.</param>
+        /// <remarks>
+        /// Two things in here are for a proxy in front of this server, and both
+        /// were learned from nginx as it comes: "X-Accel-Buffering: no", because
+        /// nginx buffers what it proxies and a buffered event stream reaches the
+        /// client as nothing at all - not even its header - until a buffer is
+        /// full or nginx gives up on the upstream; and the heartbeat, because
+        /// nginx gives up on an upstream that has sent nothing for 60 seconds,
+        /// which an event source with nothing to say does all the time.
+        /// </remarks>
         public Boolean MapEventSource<T>(IHTTPEventSource              EventSource,
                                          HTTPPath                      URLTemplate,
 
@@ -1438,7 +1448,8 @@ Error:
                                          HTTPAuthentication?           URLAuthentication          = null,
                                          HTTPAuthentication?           HTTPMethodAuthentication   = null,
 
-                                         HTTPDelegate?                 DefaultErrorHandler        = null)
+                                         HTTPDelegate?                 DefaultErrorHandler        = null,
+                                         TimeSpan?                     Heartbeat                  = null)
 
         {
 
@@ -1447,6 +1458,8 @@ Error:
             {
 
                 IncludeFilterAtRuntime ??= httpEvent => true;
+
+                var heartbeat = Heartbeat ?? HTTPEventSourceExtensions.DefaultHeartbeat;
 
                 AddHandler(
 
@@ -1464,6 +1477,7 @@ Error:
                             CacheControl              = "no-cache",
                             Connection                = ConnectionType.KeepAlive,
                             AccessControlAllowOrigin  = "*",
+                            X_AccelBuffering          = "no",
 
                             // As it is an obsolete HTTP/1.0 header, we do not set the "Keep-Alive" header.
                             //KeepAlive                 = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval.TotalSeconds)),
@@ -1497,17 +1511,15 @@ Error:
                                                                 // start when we say it starts.
                                                                 await stream.FlushAsync(request.CancellationToken);
 
-                                                                await foreach (var httpEvent in eventSource.GetAllEventsGreater(
-                                                                                                    streamId ?? request.RemoteSocket.ToString(),
-                                                                                                    request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
-                                                                                                    request.CancellationToken
-                                                                                                ).Where(IncludeFilterAtRuntime))
-                                                                {
-                                                                    await stream.WriteAsync(httpEvent.SerializedHeader);
-                                                                    await stream.WriteAsync(httpEvent.SerializedData);
-                                                                    await stream.WriteAsync("\n\n");
-                                                                    await stream.FlushAsync(request.CancellationToken);
-                                                                }
+                                                                await stream.WriteEvents(
+                                                                          eventSource.GetAllEventsGreater(
+                                                                              streamId ?? request.RemoteSocket.ToString(),
+                                                                              request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
+                                                                              request.CancellationToken
+                                                                          ).Where(IncludeFilterAtRuntime),
+                                                                          heartbeat,
+                                                                          request.CancellationToken
+                                                                      );
 
                                                             }
 

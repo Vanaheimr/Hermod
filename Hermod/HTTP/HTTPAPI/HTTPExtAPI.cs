@@ -4172,6 +4172,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
+        /// <param name="Heartbeat">How long the stream may stay silent before a comment is sent down it: <see cref="HTTPEventSourceExtensions.DefaultHeartbeat"/> when not given, never when zero.</param>
+        /// <remarks>
+        /// "X-Accel-Buffering: no" and the heartbeat are for a proxy in front of
+        /// this server; see HTTPAPI.MapEventSource.
+        /// </remarks>
         public Boolean MapEventSource<T>(IHTTPEventSource              EventSource,
                                          HTTPPath                      URLTemplate,
                                          Boolean                       RequireAuthentication,
@@ -4185,7 +4190,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPAuthentication?           URLAuthentication          = null,
                                          HTTPAuthentication?           HTTPMethodAuthentication   = null,
 
-                                         HTTPDelegate?                 DefaultErrorHandler        = null)
+                                         HTTPDelegate?                 DefaultErrorHandler        = null,
+                                         TimeSpan?                     Heartbeat                  = null)
 
         {
 
@@ -4194,6 +4200,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 IncludeFilterAtRuntime ??= httpEvent => true;
+
+                var heartbeat = Heartbeat ?? HTTPEventSourceExtensions.DefaultHeartbeat;
 
                 AddHandler(
 
@@ -4233,6 +4241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    CacheControl              = "no-cache",
                                    Connection                = ConnectionType.KeepAlive,
                                    AccessControlAllowOrigin  = "*",
+                                   X_AccelBuffering          = "no",
 
                                    // As it is an obsolete HTTP/1.0 header, we do not set the "Keep-Alive" header.
                                    //KeepAlive                 = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval.TotalSeconds)),
@@ -4261,17 +4270,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        // client on a quiet event source receives nothing at all.
                                                                        await stream.FlushAsync(request.CancellationToken);
 
-                                                                       await foreach (var httpEvent in eventSource.GetAllEventsGreater(
-                                                                                                           streamId ?? request.RemoteSocket.ToString(),
-                                                                                                           request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
-                                                                                                           request.CancellationToken
-                                                                                                       ).Where(IncludeFilterAtRuntime))
-                                                                       {
-                                                                           await stream.WriteAsync(httpEvent.SerializedHeader);
-                                                                           await stream.WriteAsync(httpEvent.SerializedData);
-                                                                           await stream.WriteAsync("\n\n");
-                                                                           await stream.FlushAsync(request.CancellationToken);
-                                                                       }
+                                                                       await stream.WriteEvents(
+                                                                                 eventSource.GetAllEventsGreater(
+                                                                                     streamId ?? request.RemoteSocket.ToString(),
+                                                                                     request.GetHeaderField(HTTPRequestHeaderField.LastEventId),
+                                                                                     request.CancellationToken
+                                                                                 ).Where(IncludeFilterAtRuntime),
+                                                                                 heartbeat,
+                                                                                 request.CancellationToken
+                                                                             );
 
                                                                    }
 

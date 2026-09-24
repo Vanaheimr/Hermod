@@ -38,6 +38,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPEventSourceExtensions
     {
 
+        #region DefaultHeartbeat
+
+        /// <summary>
+        /// How long an event stream stays silent before a heartbeat comment is
+        /// sent down it, unless the mapping says otherwise.
+        /// </summary>
+        /// <remarks>
+        /// Silence is how an event stream waits, and a proxy in front of the
+        /// server cannot tell it from a server that has gone: nginx gives up on
+        /// an upstream that has sent nothing for 60 seconds. Fifteen seconds is
+        /// what the HTML standard suggests for exactly this.
+        /// </remarks>
+        public static readonly TimeSpan DefaultHeartbeat = TimeSpan.FromSeconds(15);
+
+        #endregion
+
         #region WriteHeartbeat(StreamWriter, Comment = "keep-alive", CancellationToken = default)
 
         /// <summary>
@@ -53,6 +69,96 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             await StreamWriter.WriteAsync($": {Comment.Replace("\r", "").Replace("\n", " ")}\n\n");
             await StreamWriter.FlushAsync(CancellationToken);
+
+        }
+
+        #endregion
+
+        #region WriteEvents (StreamWriter, Events, Heartbeat, CancellationToken = default)
+
+        /// <summary>
+        /// Write the given events to an event stream as they come, and a
+        /// heartbeat comment whenever the stream has been silent for the given
+        /// time. Returns when the events end, and throws when the stream cannot
+        /// be written or the token is cancelled.
+        /// </summary>
+        /// <remarks>
+        /// The next event is waited for across heartbeats rather than asked for
+        /// again: an enumerator takes one question at a time, and asking a second
+        /// time while the first is still open is an error - or, in an enumerator
+        /// that does not check, an event lost.
+        ///
+        /// Whatever ends the loop may leave that question open - a heartbeat
+        /// that could not be written does - and an async iterator cannot be
+        /// disposed while it is running. So it is cancelled first, and disposed
+        /// once it has stopped.
+        /// </remarks>
+        /// <param name="StreamWriter">The event stream.</param>
+        /// <param name="Events">The events to write, e.g. what GetAllEventsGreater returns.</param>
+        /// <param name="Heartbeat">The silence after which a comment is written; none when zero.</param>
+        /// <param name="CancellationToken">Ends the stream.</param>
+        public static async Task WriteEvents<T>(this StreamWriter               StreamWriter,
+                                                IAsyncEnumerable<HTTPEvent<T>>  Events,
+                                                TimeSpan                        Heartbeat,
+                                                CancellationToken               CancellationToken   = default)
+        {
+
+            ArgumentNullException.ThrowIfNull(StreamWriter);
+            ArgumentNullException.ThrowIfNull(Events);
+
+            var silence    = Heartbeat > TimeSpan.Zero
+                                 ? Heartbeat
+                                 : Timeout.InfiniteTimeSpan;
+
+            using var stop = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
+            var events     = Events.GetAsyncEnumerator(stop.Token);
+            var next       = events.MoveNextAsync().AsTask();
+
+            try
+            {
+
+                while (true)
+                {
+
+                    try
+                    {
+                        if (!await next.WaitAsync(silence, CancellationToken))
+                            return;
+                    }
+                    catch (TimeoutException)
+                    {
+                        await StreamWriter.WriteHeartbeat(CancellationToken: CancellationToken);
+                        continue;
+                    }
+
+                    var httpEvent = events.Current;
+
+                    await StreamWriter.WriteAsync(httpEvent.SerializedHeader);
+                    await StreamWriter.WriteAsync(httpEvent.SerializedData);
+                    await StreamWriter.WriteAsync("\n\n");
+                    await StreamWriter.FlushAsync(CancellationToken);
+
+                    next = events.MoveNextAsync().AsTask();
+
+                }
+
+            }
+            finally
+            {
+
+                stop.Cancel();
+
+                try
+                {
+                    await next;
+                }
+                catch
+                { }
+
+                await events.DisposeAsync();
+
+            }
 
         }
 
