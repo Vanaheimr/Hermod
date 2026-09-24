@@ -563,11 +563,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     logger.LogTrace("TCP Server {IPSocket} Warden: Checking active TCP clients ({ActiveClientCount})...", IPSocket, activeClients.Count);
                     await Log($"TCP Server {IPSocket} Warden: Checking active TCP clients ({activeClients.Count})...");
 
-                    foreach (var tcpConnection in tcpClients.Keys.ToList())
+                    // Reap the connections whose HANDLER has finished — not the ones
+                    // whose socket merely looks quiet.
+                    //
+                    // This used to ask TCPConnection.IsConnectionClosed(), which is
+                    //
+                    //     socket.Poll(0, SelectMode.SelectRead) && socket.Available == 0
+                    //
+                    // and that is a race against the connection's own reader.
+                    // Poll(SelectRead) is true when the socket is readable, which means
+                    // data has arrived OR the peer closed; Available == 0 is what
+                    // separates the two. Between those two statements the handler's read
+                    // loop drains the socket, so this saw "readable, nothing available",
+                    // concluded the peer was gone, and called Close() on a live
+                    // connection — disposing the NetworkStream under an in-flight read.
+                    //
+                    // It was not theoretical. HTTP1ConformanceTests finding H-25: the
+                    // Autobahn nightly dropped cases 12.4.18 and 12.5.15 mid-transfer
+                    // with no close handshake, about one run in four, and the demo host's
+                    // log named it exactly — an ObjectDisposedException inside
+                    // AWebSocketServer's read loop, and twelve milliseconds later
+                    // "Cleaned up stale client" on the same socket.
+                    //
+                    // The handler task is the answer that does not race, and this loop
+                    // already had it in hand: it awaits the task two lines down. A
+                    // completed handler means the connection is finished and its entry
+                    // can go; a running handler means the connection is owned, and its
+                    // owner — not a timer that cannot see the protocol — is what notices
+                    // a peer that went away. Both servers built on this class already do
+                    // that: AWebSocketServer pings and tears down a silent peer after
+                    // MaxOutstandingPings intervals (RFC 6455 Section 7.4.1), and
+                    // AHTTPServer carries its own idle and Slowloris deadlines.
+                    //
+                    // The trade is deliberate and in the safe direction: a half-open
+                    // connection whose handler never times out is now held until it does,
+                    // instead of a live connection being killed while it works.
+                    foreach (var (tcpConnection, handler) in tcpClients.ToArray())
                     {
                         try
                         {
-                            if (tcpConnection.IsConnectionClosed())
+                            if (handler.IsCompleted)
                             {
                                 if (activeClients.TryRemove(tcpConnection, out var task))
                                 {
@@ -575,8 +610,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                     {
                                         tcpConnection.TCPClient.Close();
                                         await task;
-                                        logger.LogDebug("Cleaned up stale client {RemoteSocket}.", tcpConnection.RemoteSocket);
-                                        await Log($"Cleaned up stale client '{tcpConnection.RemoteSocket}'!");
+                                        logger.LogDebug("Cleaned up finished client {RemoteSocket}.", tcpConnection.RemoteSocket);
+                                        await Log($"Cleaned up finished client '{tcpConnection.RemoteSocket}'!");
                                     }
                                     catch (Exception e)
                                     {
