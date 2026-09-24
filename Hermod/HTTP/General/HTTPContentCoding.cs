@@ -168,6 +168,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region DecodeStream (Source, Codings, MaxDecodedSize, LeaveSourceOpen = true)
+
+        /// <summary>
+        /// The same reversal as <see cref="Decode"/>, but as a pipeline over a
+        /// stream rather than over a byte array — for the bodies that are never a
+        /// byte array in the first place: chunked, close-delimited, and the event
+        /// streams that are supposed to arrive a piece at a time.
+        ///
+        /// <c>Content-Encoding: gzip, br</c> means gzip was applied first and
+        /// Brotli to its output, so the wire has to be un-Brotli'd before it can be
+        /// un-gzipped: the list is walked backwards, exactly as in <see cref="Decode"/>,
+        /// and each step wraps the one before it.
+        ///
+        /// Every step is bounded separately, not just the last one. A bomb in an
+        /// intermediate coding would otherwise be invisible to a cap on the final
+        /// output: two kilobytes of gzip can expand to a gigabyte that the next
+        /// coding compresses back down to nothing the caller ever sees, while the
+        /// gigabyte is very much real.
+        /// </summary>
+        /// <param name="Source">The encoded octets, as they arrive.</param>
+        /// <param name="Codings">The content codings, in the order the sender applied them.</param>
+        /// <param name="MaxDecodedSize">Hard ceiling on the output of every single step.</param>
+        /// <param name="LeaveSourceOpen">Whether disposing the returned stream leaves <paramref name="Source"/> open. The rest of the pipeline is always disposed with it.</param>
+        /// <exception cref="NotSupportedException">A coding is not one this stack can undo. Nothing is wrapped in that case.</exception>
+        public static Stream DecodeStream(Stream               Source,
+                                          IEnumerable<String>  Codings,
+                                          UInt64               MaxDecodedSize,
+                                          Boolean              LeaveSourceOpen   = true)
+        {
+
+            var codings = Codings.Select(coding => coding.Trim()).
+                                  Where (coding => !coding.Equals("identity", StringComparison.OrdinalIgnoreCase)).
+                                  ToArray();
+
+            foreach (var coding in codings)
+            {
+                if (!IsSupported(coding))
+                    throw new NotSupportedException($"Unsupported content coding '{coding}'!");
+            }
+
+            var stream = Source;
+
+            for (var i = codings.Length - 1; i >= 0; i--)
+            {
+
+                // Only the innermost decoder touches Source, so it is the only one
+                // that gets a say in whether Source survives being disposed.
+                var leaveOpen = i == codings.Length - 1 && LeaveSourceOpen;
+
+                stream = new MaximumLengthStream(
+                             new ContentDecodingStream(stream, codings[i], leaveOpen),
+                             MaxDecodedSize,
+                             LeaveInnerStreamOpen: false
+                         );
+
+            }
+
+            return stream;
+
+        }
+
+        #endregion
+
         #region DecodeBody (Headers, Body, MaxDecodedSize)
 
         /// <summary>
