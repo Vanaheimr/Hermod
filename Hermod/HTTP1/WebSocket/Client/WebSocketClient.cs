@@ -352,6 +352,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public event OnWebSocketClientReconnectingDelegate?           OnReconnecting;
 
         /// <summary>
+        /// An event sent whenever the server has accepted the upgrade - before the
+        /// first frame from it is read, so that whatever it takes to handle that
+        /// frame, such as knowing who the server is, is in place. Sent again for
+        /// the connection every reconnect opens.
+        /// </summary>
+        public event OnWebSocketClientConnectionAcceptedDelegate?     OnWebSocketConnectionAccepted;
+
+        /// <summary>
         /// An event sent whenever a text message was sent.
         /// </summary>
         public event OnWebSocketClientTextMessageSentDelegate?         OnTextMessageSent;
@@ -1295,6 +1303,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 webSocketClientConnection.PerMessageDeflate = WebSocketPerMessageDeflate.ServerAcceptedDeflate(
                                                                                   httpResponse.GetHeaderField("Sec-WebSocket-Extensions")
                                                                               );
+
+                            // Before the first frame is read, and before whoever called Connect
+                            // learns that the connection is open: a server may send the moment
+                            // its 101 is out, and what it takes to handle that - who the server
+                            // is, the way back to it - has to be in place by then.
+                            await LogEvent(
+                                      OnWebSocketConnectionAccepted,
+                                      loggingDelegate => loggingDelegate.Invoke(
+                                          Timestamp.Now,
+                                          this,
+                                          webSocketClientConnection,
+                                          httpResponse,
+                                          networkingCancellationToken
+                                      )
+                                  );
 
                             waitingForHTTPResponse = httpResponse;
 

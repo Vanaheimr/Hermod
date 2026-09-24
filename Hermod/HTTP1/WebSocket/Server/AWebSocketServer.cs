@@ -432,6 +432,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public       SubprotocolSelectorDelegate?                       SubprotocolSelector;
 
         /// <summary>
+        /// An event sent whenever an upgrade has passed every check and is about to
+        /// be answered with 101 Switching Protocols - before that answer is sent, so
+        /// that whatever has to be in place by the time the peer knows it is
+        /// connected, such as its registration, is in place.
+        /// </summary>
+        /// <remarks>
+        /// Nothing can be sent on the connection yet: a frame sent now waits until
+        /// the 101 has gone out. So a handler must not wait for a send of its own on
+        /// this connection - the 101 is only sent once every handler has returned.
+        /// </remarks>
+        public event OnNewWebSocketConnectionDelegate?                  OnWebSocketConnectionAccepted;
+
+        /// <summary>
         /// An event sent whenever the HTTP connection switched successfully to web socket.
         /// </summary>
         public event OnNewWebSocketConnectionDelegate?                  OnNewWebSocketConnection;
@@ -1603,11 +1616,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #endregion
 
+                                                        #region Send OnWebSocketConnectionAccepted event
+
+                                                        // Before the 101 goes out, not after it. A peer that has read the 101
+                                                        // may send at once and be sent to at once, so whatever it takes for this
+                                                        // server to know the connection - its registration, its route - has to
+                                                        // be done by then, or the first request either way can find it unknown.
+                                                        if (httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols)
+                                                            await LogEvent(
+                                                                      OnWebSocketConnectionAccepted,
+                                                                      loggingDelegate => loggingDelegate.Invoke(
+                                                                          Timestamp.Now,
+                                                                          this,
+                                                                          webSocketConnection,
+                                                                          sharedSubprotocols,
+                                                                          selectedSubprotocol,
+                                                                          EventTracking_Id.New,
+                                                                          token2
+                                                                      )
+                                                                  );
+
+                                                        #endregion
+
                                                         #region Send HTTP response
 
                                                         webSocketConnection.HTTPResponse = httpResponse;
 
                                                         var success = await webSocketConnection.Send($"{httpResponse.EntirePDU}\r\n\r\n".ToUTF8Bytes());
+
+                                                        // Only a 101 opens the connection for frames. An answer that is not one
+                                                        // - a challenge to authenticate, say - leaves it waiting for the next.
+                                                        if (httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols)
+                                                            webSocketConnection.UpgradeAnswered();
 
                                                         await LogEvent(
                                                                   OnHTTPResponse,

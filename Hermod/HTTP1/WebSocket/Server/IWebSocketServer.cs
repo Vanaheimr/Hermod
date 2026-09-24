@@ -130,6 +130,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         event OnValidateWebSocketConnectionDelegate?             OnValidateWebSocketConnection;
 
         /// <summary>
+        /// An event sent whenever an upgrade has passed every check and is about to
+        /// be answered with 101 Switching Protocols - before that answer is sent.
+        /// </summary>
+        event OnNewWebSocketConnectionDelegate?                  OnWebSocketConnectionAccepted;
+
+        /// <summary>
         /// An event sent whenever the HTTP connection switched successfully to web socket.
         /// </summary>
         event OnNewWebSocketConnectionDelegate?                  OnNewWebSocketConnection;

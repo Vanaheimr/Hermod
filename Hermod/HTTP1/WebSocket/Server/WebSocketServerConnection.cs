@@ -89,6 +89,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly  SemaphoreSlim                          socketWriteSemaphore   = new (1, 1);
 
+        /// <summary>
+        /// Completed once the answer to the upgrade request - the 101 Switching
+        /// Protocols - has been sent.
+        /// </summary>
+        /// <remarks>
+        /// No frame may go out before that answer: the peer would read it as part
+        /// of the HTTP response. And a connection can be known to others a moment
+        /// before its answer leaves, which is what the web socket server's
+        /// OnWebSocketConnectionAccepted is for, so a frame sent in that moment
+        /// waits here for the answer to go first.
+        /// </remarks>
+        private readonly  TaskCompletionSource                   upgradeAnswered        = new (TaskCreationOptions.RunContinuationsAsynchronously);
+
         private           UInt64                                 messagesReceivedCounter;
         private           UInt64                                 messagesSentCounter;
         private           UInt64                                 framesReceivedCounter;
@@ -593,9 +606,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="WebSocketFrame">A web socket frame.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<SentStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
-                                                   CancellationToken  CancellationToken   = default)
+        public async Task<SentStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
+                                                         CancellationToken  CancellationToken   = default)
         {
+
+            // Not before the 101 has gone out, see upgradeAnswered. Bounded like a
+            // write: a frame that has waited longer than a write may take is not
+            // going to be sent - most likely because a handler of
+            // OnWebSocketConnectionAccepted is waiting for it, while the 101 is only
+            // sent once that handler has returned.
+            if (!upgradeAnswered.Task.IsCompleted)
+            {
+                try
+                {
+                    await upgradeAnswered.Task.WaitAsync(DefaultSendTimeout, CancellationToken);
+                }
+                catch (TimeoutException)
+                {
+                    return SentStatus.Error;
+                }
+            }
 
             if (WebSocketFrame.IsFinal)
                 Interlocked.Increment(ref messagesSentCounter);
@@ -603,10 +633,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             Interlocked.Increment(ref framesSentCounter);
             LastSentTimestamp = Timestamp.Now;
 
-            return Send(WebSocketFrame.ToByteArray(),
-                        CancellationToken);
+            return await Send(WebSocketFrame.ToByteArray(),
+                              CancellationToken);
 
         }
+
+        #endregion
+
+        #region (internal) UpgradeAnswered()
+
+        /// <summary>
+        /// The 101 Switching Protocols has been sent: frames may follow it now.
+        /// </summary>
+        internal void UpgradeAnswered()
+
+            => upgradeAnswered.TrySetResult();
 
         #endregion
 
@@ -727,6 +768,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             // backpressure limit (and must not recurse when the close was itself
             // triggered by backpressure).
             isClosing = true;
+
+            // Nor wait for a 101 that is not coming any more.
+            upgradeAnswered.TrySetResult();
 
             try
             {

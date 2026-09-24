@@ -42,6 +42,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           TimeSpan                           Delay,
                                                                           CancellationToken                  CancellationToken);
 
+    /// <summary>
+    /// An event sent whenever the server has accepted the upgrade: its 101
+    /// Switching Protocols has been validated, the connection is open, and
+    /// nothing the server sent after the 101 has been read yet.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="Client">The WebSocket client.</param>
+    /// <param name="Connection">The new WebSocket connection.</param>
+    /// <param name="HTTPResponse">The server's 101 Switching Protocols.</param>
+    /// <param name="CancellationToken">A cancellation token.</param>
+    public delegate Task  OnWebSocketClientConnectionAcceptedDelegate    (DateTimeOffset                     Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          HTTPResponse                       HTTPResponse,
+                                                                          CancellationToken                  CancellationToken);
+
     public delegate Task  OnWebSocketClientFrameSentDelegate             (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
