@@ -604,6 +604,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         /// Poll non-blocking for readability
         /// If poll indicates readable but no data available, it's likely closed (EOF detected)
         /// </summary>
+        /// <summary>
+        /// Whether the peer appears to have gone away.
+        ///
+        /// **Only meaningful when nothing else is reading this connection.** The
+        /// test is <c>Poll(SelectRead) &amp;&amp; Available == 0</c>: the poll is
+        /// true when the socket is readable, which means data has arrived *or*
+        /// the peer closed, and <c>Available</c> is what separates the two. A
+        /// concurrent reader that takes the bytes between the two calls turns a
+        /// live connection into a false "closed".
+        ///
+        /// That is not hypothetical — it is HTTP1ConformanceTests finding H-25,
+        /// where this predicate made the TCP server's Warden close connections in
+        /// the middle of a transfer. The Warden no longer uses it; it reaps on the
+        /// handler task instead. Anything else calling this must be the only
+        /// reader, or must treat a true as a hint rather than as an answer.
+        /// </summary>
         public Boolean IsConnectionClosed()
         {
             try
