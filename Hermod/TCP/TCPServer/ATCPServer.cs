@@ -824,9 +824,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                          Logger:                       loggerFactory.CreateLogger<TCPConnection>()
                                                       );
 
+                                // Entered before its handler starts, so that a handler which
+                                // finishes at once finds its entry to remove - but under a
+                                // placeholder that is NOT finished. The real task takes the
+                                // entry only when HandleNewTCPClientAsync returns, at its
+                                // first await that does not complete at once, and the Warden
+                                // reaps an entry whose task has completed. Task.CompletedTask
+                                // told it that a connection was done while its handler was
+                                // still on its way there - accepting TLS, validating, or on a
+                                // fresh process being compiled on its first request - and it
+                                // closed the connection under the handler.
+                                //
+                                // The placeholder finishes with the handler, so that whoever
+                                // took it in the meantime - the Warden's snapshot, a Stop()
+                                // that awaits every client - learns from it what the handler
+                                // did rather than waiting for ever.
+                                var placeholder = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
                                 activeClients.TryAdd(
                                     tcpConnection,
-                                    Task.CompletedTask
+                                    placeholder.Task
                                 );
 
                                 var clientTask = HandleNewTCPClientAsync(tcpConnection);
@@ -834,8 +851,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 activeClients.TryUpdate(
                                     tcpConnection,
                                     clientTask,
-                                    Task.CompletedTask
+                                    placeholder.Task
                                 );
+
+                                _ = clientTask.ContinueWith(
+                                        static (_, state) => ((TaskCompletionSource) state!).TrySetResult(),
+                                        placeholder,
+                                        CancellationToken.None,
+                                        TaskContinuationOptions.ExecuteSynchronously,
+                                        TaskScheduler.Default
+                                    );
 
                                 connectionSlotAcquired = false;
 
