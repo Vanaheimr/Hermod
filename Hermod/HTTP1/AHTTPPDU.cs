@@ -747,6 +747,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region TryDecodeBodyInPlace   (out ErrorResponse, MaxDecodedSize = null)
+
+        /// <summary>
+        /// <see cref="TryDecodeBodyStream"/> for a body that is already an array:
+        /// the representation replaces the octets that carried it, and the message
+        /// stops claiming a coding it no longer has.
+        ///
+        /// The two exist because the choice is not the caller's — a chunked body
+        /// consumed the moment it arrived is an array before anybody can wrap its
+        /// stream, and a body still on the wire is not an array at all. What they
+        /// share is the rule about the field lines: a field describes the body the
+        /// caller reads, or it is not there. So <c>Content-Encoding</c> goes in both
+        /// cases, and <c>Content-Length</c> is rewritten here — where the decoded
+        /// length is known and provably right — rather than dropped, which is all
+        /// the stream version can honestly do.
+        /// </summary>
+        /// <param name="ErrorResponse">Why the body was left alone.</param>
+        /// <param name="MaxDecodedSize">The ceiling on the decoded size, <see cref="DefaultMaxDecodedBodySize"/> when null.</param>
+        /// <returns>True when <see cref="HTTPBody"/> is the representation — including the ordinary case of a message that declares no coding at all.</returns>
+        public Boolean TryDecodeBodyInPlace(out String?  ErrorResponse,
+                                            UInt64?      MaxDecodedSize   = null)
+        {
+
+            ErrorResponse = null;
+
+            var codings = ContentCodings.ToArray();
+
+            if (codings.Length == 0)
+                return true;
+
+            if (httpBody is null)
+            {
+                ErrorResponse = "The HTTP body has not been read yet, use TryDecodeBodyStream(...) instead!";
+                return false;
+            }
+
+            if (!TryDecodeBody(out var decoded, out ErrorResponse, MaxDecodedSize))
+                return false;
+
+            httpBody                = decoded;
+            DecodedContentEncoding  = String.Join(", ", codings);
+
+            RemoveHeaderField(HTTPHeaderField.ContentEncoding.Name);
+            RemoveHeaderField(HTTPHeaderField.ContentLength.  Name);
+            SetHeaderField   (HTTPHeaderField.ContentLength, (UInt64?) decoded.LongLength);
+
+            return true;
+
+        }
+
+        #endregion
+
         #region DecodedBodyAsUTF8String(MaxDecodedSize = null)
 
         /// <summary>
