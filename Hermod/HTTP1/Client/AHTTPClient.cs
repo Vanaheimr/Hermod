@@ -119,6 +119,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public Boolean        UseHTTPPipelining    { get; set; }
 
+        /// <summary>
+        /// Advertise "Accept-Encoding: br, gzip, deflate" on requests that do not
+        /// already carry one, and undo the content coding of the responses that
+        /// come back (RFC 9110, Section 8.4), so that the caller reads the
+        /// representation rather than the octets that carried it.
+        ///
+        /// Off by default. It changes what goes out on the wire and what the caller
+        /// gets back, which makes it the caller's decision and not ours — and it is
+        /// off for the same reason in the HTTP/2 client, where it is called the same
+        /// thing.
+        /// </summary>
+        public Boolean        AutomaticDecompression    { get; set; }
+
+        /// <summary>
+        /// The ceiling on a decoded response body, enforced *during* decompression
+        /// and at every step of a multi-coding chain. A few kilobytes of gzip can
+        /// expand to gigabytes, so a client that decodes automatically needs a bound
+        /// exactly as much as a server that buffers request bodies does.
+        /// </summary>
+        public UInt64         MaxDecodedBodySize        { get; set; } = AHTTPPDU.DefaultMaxDecodedBodySize;
+
         public Boolean        Connected
             => IsHTTPConnected;
 
@@ -752,6 +773,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 requestBuilder.ContentType                            = HTTPContentType.Application.OCTETSTREAM;
 
             requestBuilder.Connection                                 = Connection     ?? this.Connection         ?? requestBuilder2.Connection;
+
+            // RFC 9110, Section 12.5.3: ask for the codings we can undo — but never
+            // over a caller's own Accept-Encoding, which may be deliberately
+            // narrower, or an explicit "identity" switching compression off for one
+            // request.
+            if (AutomaticDecompression && requestBuilder.AcceptEncoding is null)
+                requestBuilder.AcceptEncoding                         = HTTPContentCoding.AcceptEncoding;
             requestBuilder.TOTPConfig                                 = TOTPConfig     ?? this.TOTPConfig         ?? requestBuilder2.TOTPConfig;
             requestBuilder.EventTrackingId                            = EventTrackingId;
 
@@ -1247,6 +1275,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                     )
                                                                   : httpStream;
 
+                                    // An event stream can be gzipped like anything
+                                    // else — nginx does it by default — and this is
+                                    // the path where decoding has to happen *in* the
+                                    // stream: the body is not supposed to end, so
+                                    // there is never a moment at which it could be
+                                    // buffered and decoded afterwards. Ownership of
+                                    // the connection stream stays where it is; that
+                                    // is what CloseActionAfterBodyWasRead below is.
+                                    if (AutomaticDecompression &&
+                                        !response.TryDecodeBodyStream(out var sseDecodeError, MaxDecodedBodySize))
+                                    {
+                                        DebugX.LogT($"{nameof(AHTTPClient)} left the event stream encoded: {sseDecodeError}");
+                                    }
+
                                     IsHTTPConnected = false;
                                     response.CloseActionAfterBodyWasRead = () => {
                                         try
@@ -1272,11 +1314,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         if (bodyStream is not null)
                                         {
 
+                                            // RFC 9110, Section 8.4: undo what we asked
+                                            // for. Before the body is read rather than
+                                            // after, so that the buffered and the
+                                            // streamed case are one implementation and
+                                            // cannot drift apart. The decoder takes the
+                                            // pipeline over — hence the reassignment,
+                                            // which is also what puts it in reach of
+                                            // the finally below.
+                                            if (AutomaticDecompression && !bodyAlreadyConsumed)
+                                            {
+
+                                                if (response.TryDecodeBodyStream(out var decodeError,
+                                                                                 MaxDecodedBodySize,
+                                                                                 LeaveBodyStreamOpen: false))
+                                                    bodyStream = response.HTTPBodyStream ?? bodyStream;
+
+                                                else
+                                                    // A body we cannot decode is still a
+                                                    // body: it is handed on as it came,
+                                                    // Content-Encoding intact, rather
+                                                    // than passed off as identity.
+                                                    DebugX.LogT($"{nameof(AHTTPClient)} left the response body encoded: {decodeError}");
+
+                                            }
+
                                             if (!bodyAlreadyConsumed)
                                                 response.HTTPBody = await ReadHTTPBodyStream(
                                                                         bodyStream,
                                                                         linkedCancellationToken.Token
                                                                     ).ConfigureAwait(false);
+
+                                            // A chunked body consumed the moment it
+                                            // arrived was already an array before the
+                                            // stream could be wrapped, so that case
+                                            // decodes the other way round.
+                                            if (AutomaticDecompression && bodyAlreadyConsumed &&
+                                                !response.TryDecodeBodyInPlace(out var inPlaceError, MaxDecodedBodySize))
+                                            {
+                                                DebugX.LogT($"{nameof(AHTTPClient)} left the chunked response body encoded: {inPlaceError}");
+                                            }
 
                                             response.HTTPBodyStream = null;
 

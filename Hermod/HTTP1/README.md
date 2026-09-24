@@ -230,9 +230,15 @@ All limits are configurable on the HTTP server.
 ## Content codings
 
 `Content-Encoding` is undone on the message, not in the client or in the server:
-`AHTTPPDU.DecodeBody(...)` serves both directions, so a gzipped request body a
-handler receives and a gzipped response body a client receives take the same
+the three methods on `AHTTPPDU` serve both directions, so a gzipped request body
+a handler receives and a gzipped response body a client receives take the same
 path.
+
+| Undoing a coding | |
+|---|---|
+| `DecodeBody(...)` | Returns the representation of a body already in hand, leaving the message alone. |
+| `TryDecodeBodyInPlace(...)` | The same, but the message stops claiming a coding it no longer has: `Content-Encoding` goes, `Content-Length` is corrected to the decoded length, and what was undone is kept in `DecodedContentEncoding`. |
+| `TryDecodeBodyStream(...)` | Puts the reversal *into* `HTTPBodyStream`, for the bodies that never are an array: chunked, close-delimited, and event streams. `Content-Encoding` goes and `Content-Length` goes with it — it counted the encoded octets, and the buffering loop stops reading at it, so leaving it would truncate the body at its compressed size. `RawHTTPHeader` keeps both: it is the record of what arrived. |
 
 | | |
 |---|---|
@@ -246,12 +252,52 @@ Decoding is explicit: `HTTPBody` is what arrived, `DecodeBody(...)` is what it
 means. Nothing decodes a body behind a caller's back, and a message declaring no
 coding gets its body back unchanged and uncopied.
 
-Not implemented, and deliberately not claimed: the HTTP/1.x client neither
-offers `Accept-Encoding` on its own nor decodes a *streamed* response body
-transparently — only a buffered one, through the seam above. On the server side,
-on-the-fly compression exists only in `SinglePageAppHandler` (`br`/`gzip`, with
-`Vary: Accept-Encoding` and coding-specific entity tags); there is no general
-response-compression filter for arbitrary handlers.
+### The client asks
+
+`AHTTPClient.AutomaticDecompression` — **off by default**, because it changes
+what goes out on the wire and what the caller gets back — advertises
+`Accept-Encoding: br, gzip, deflate` on requests that do not already carry one,
+and hands the caller the representation. Never over a caller's own field:
+`identity` is how compression is switched off for one request. The ceiling is
+`MaxDecodedBodySize`, 64 MiB by default.
+
+All three body shapes decode, and each takes a different route for a reason: a
+length-framed or close-delimited body is wrapped before it is read, an event
+stream has no alternative to being wrapped, and a chunked body consumed on
+arrival was already an array before anything could wrap it.
+
+### The server offers
+
+`AHTTPServer.AutomaticContentCompression` — **off by default**, because
+compressing per response rather than once per representation is a trade only the
+operator can make. `SinglePageAppHandler` keeps doing it the better way for
+static files, compressing each once at startup; this is for every other handler,
+and it skips a response that already carries a `Content-Encoding`.
+
+It runs after the handler and after the error paths, so what gets compressed is
+what is about to be sent. What it declines to compress is the longer list, and
+every entry is a way to be wrong rather than merely inefficient:
+
+| Left alone | Why |
+|---|---|
+| A body that is still a stream | It belongs to whoever is about to write it — a live chunked worker, an event source — and taking it over breaks the framing they own. Checked *before* anything reads `HTTPBody`, which would drain that stream to find out whether there is one. |
+| A chunked response | Its length must not be restated and its trailers belong to the stream. |
+| A response that already has a coding | The handler has already thought about this. |
+| `206`, or anything with a `Content-Range` | A range is part of the *selected representation*; a coding applies to the representation as a whole (RFC 9110, Section 14.4). |
+| A media type that is already compressed | The decision is made on the type, not on how well the bytes would happen to compress. |
+| A body under `MinimumCompressibleSize` | 1 KiB by default: below that the gzip framing and the extra field cost more than they save. |
+| `gzip;q=0` | A refusal, not a request (Section 12.4.2). |
+| A result that came out no smaller | Sending more bytes and calling them compressed helps nobody. |
+
+When it does compress, three fields follow the octets: `Vary` gains
+`Accept-Encoding`, merged rather than overwritten (Section 12.5.5), a strong
+`ETag` gains the coding, because the encoded and the identity form are different
+representations (Section 8.8.3), and `HEAD` is treated exactly like `GET` so the
+two agree on `Content-Length` (Section 9.3.2).
+
+The server offers `br` and `gzip` where the client accepts `br`, `gzip` and
+`deflate`: `deflate` is the one the wire disagrees about, so it is read and not
+written.
 
 ## Authentication
 
@@ -392,14 +438,17 @@ The principal regression suites are:
 - `HermodTests/HTTP/HTTPStatusCodeTests.cs`
 - `HermodTests/HTTP/ContentEncodingHeaderTests.cs`
 - `HermodTests/HTTP/HTTPDigestAuthenticationTests.cs`
+- `HermodTests/HTTP/ContentCodingStreamTests.cs`
+- `HermodTests/HTTP/ClientContentDecodingTests.cs`
+- `HermodTests/HTTP/ServerContentCompressionTests.cs`
 
 As of the verification date, the broad HTTP/1.x regression selection contains
-**329 passing tests, 0 failed, 0 skipped**.
+**372 passing tests, 0 failed, 0 skipped**.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~HTTPDigestAuthenticationTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests"
 ```
 
 ## Deliberate exclusions and qualification

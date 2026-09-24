@@ -527,6 +527,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public const UInt64 DefaultMaxDecodedBodySize = 64UL * 1024 * 1024;
 
+        #region DecodedContentEncoding
+
+        /// <summary>
+        /// The content codings <see cref="TryDecodeBodyStream"/> undid on this
+        /// message, or null when nothing was undone.
+        ///
+        /// Once the body decodes on its way out of <see cref="HTTPBodyStream"/>,
+        /// <c>Content-Encoding</c> no longer describes what the caller reads and is
+        /// dropped — but "this arrived as gzip" is worth knowing, so it is kept
+        /// here rather than lost.
+        /// </summary>
+        public String? DecodedContentEncoding { get; private set; }
+
+        #endregion
+
+
 
         #region ContentCodings
 
@@ -631,6 +647,153 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 ErrorResponse  = e.Message;
                 return false;
             }
+
+        }
+
+        #endregion
+
+        #region TryDecodeBodyStream    (out ErrorResponse, MaxDecodedSize = null, LeaveBodyStreamOpen = true)
+
+        /// <summary>
+        /// Put the content-coding reversal *into* <see cref="HTTPBodyStream"/>, so
+        /// that everything reading from it sees the representation rather than the
+        /// octets that carried it — the buffering in
+        /// <see cref="TryReadHTTPBodyStreamAsync"/> as much as an event-stream
+        /// consumer taking one line at a time.
+        ///
+        /// This is the half of RFC 9110, Section 8.4 that <see cref="DecodeBody"/>
+        /// cannot do. A chunked, close-delimited or SSE body is never a byte array
+        /// to begin with, and buffering one just to decode it would undo the reason
+        /// it was streamed in the first place.
+        ///
+        /// On success two field lines are dropped, because they stop being true of
+        /// what the caller now reads:
+        /// <list type="bullet">
+        ///   <item><c>Content-Encoding</c> — the body is the identity representation
+        ///   from here on; what it arrived as is kept in <see cref="DecodedContentEncoding"/>.</item>
+        ///   <item><c>Content-Length</c> — it counted the *encoded* octets, and here
+        ///   it is not merely wrong but harmful: the buffering loop below stops
+        ///   reading at it, so leaving it in place truncates the decoded body.</item>
+        /// </list>
+        /// <see cref="RawHTTPHeader"/> deliberately keeps both. It is the record of
+        /// what arrived on the wire, which does not change because we decoded it.
+        ///
+        /// Nothing at all is touched when this returns false.
+        /// </summary>
+        /// <param name="ErrorResponse">Why the body stream was left alone.</param>
+        /// <param name="MaxDecodedSize">The ceiling on every decoding step's output, <see cref="DefaultMaxDecodedBodySize"/> when null.</param>
+        /// <param name="LeaveBodyStreamOpen">Whether disposing the new <see cref="HTTPBodyStream"/> leaves the current one open. True keeps ownership where it is, which is what a caller holding its own reference wants.</param>
+        /// <returns>True when reading <see cref="HTTPBodyStream"/> now yields the representation — including the ordinary case of a message that declares no coding at all.</returns>
+        public Boolean TryDecodeBodyStream(out String?  ErrorResponse,
+                                           UInt64?      MaxDecodedSize        = null,
+                                           Boolean      LeaveBodyStreamOpen   = true)
+        {
+
+            ErrorResponse = null;
+
+            var codings = ContentCodings.ToArray();
+
+            if (codings.Length == 0)
+                return true;
+
+            if (httpBody is not null)
+            {
+                ErrorResponse = "The HTTP body has already been read, use DecodeBody(...) instead!";
+                return false;
+            }
+
+            if (HTTPBodyStream is null)
+            {
+                ErrorResponse = "There is no HTTP body stream to decode!";
+                return false;
+            }
+
+            var unsupported = codings.FirstOrDefault(coding => !HTTPContentCoding.IsSupported(coding));
+
+            if (unsupported is not null)
+            {
+                // A body we cannot decode is still a body the caller may want: it is
+                // left exactly as received, header intact, rather than handed on as
+                // an identity representation it is not.
+                ErrorResponse = $"Unsupported content coding '{unsupported}'!";
+                return false;
+            }
+
+            // Wrapping the stream hides what it is, and TryReadHTTPBodyStreamAsync
+            // recognises a chunked body by the type of the stream in order to pick
+            // up the trailer fields. Remember it here, while it is still visible,
+            // so that decoding a chunked body does not quietly cost its trailers.
+            if (HTTPBodyStream is ChunkedTransferEncodingStream chunkedBodyStream &&
+                ChunkedTransferEncodingStream is null)
+            {
+                ChunkedTransferEncodingStream = chunkedBodyStream;
+            }
+
+            HTTPBodyStream          = HTTPContentCoding.DecodeStream(
+                                          HTTPBodyStream,
+                                          codings,
+                                          MaxDecodedSize ?? DefaultMaxDecodedBodySize,
+                                          LeaveBodyStreamOpen
+                                      );
+
+            DecodedContentEncoding  = String.Join(", ", codings);
+
+            RemoveHeaderField(HTTPHeaderField.ContentEncoding.Name);
+            RemoveHeaderField(HTTPHeaderField.ContentLength.  Name);
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region TryDecodeBodyInPlace   (out ErrorResponse, MaxDecodedSize = null)
+
+        /// <summary>
+        /// <see cref="TryDecodeBodyStream"/> for a body that is already an array:
+        /// the representation replaces the octets that carried it, and the message
+        /// stops claiming a coding it no longer has.
+        ///
+        /// The two exist because the choice is not the caller's — a chunked body
+        /// consumed the moment it arrived is an array before anybody can wrap its
+        /// stream, and a body still on the wire is not an array at all. What they
+        /// share is the rule about the field lines: a field describes the body the
+        /// caller reads, or it is not there. So <c>Content-Encoding</c> goes in both
+        /// cases, and <c>Content-Length</c> is rewritten here — where the decoded
+        /// length is known and provably right — rather than dropped, which is all
+        /// the stream version can honestly do.
+        /// </summary>
+        /// <param name="ErrorResponse">Why the body was left alone.</param>
+        /// <param name="MaxDecodedSize">The ceiling on the decoded size, <see cref="DefaultMaxDecodedBodySize"/> when null.</param>
+        /// <returns>True when <see cref="HTTPBody"/> is the representation — including the ordinary case of a message that declares no coding at all.</returns>
+        public Boolean TryDecodeBodyInPlace(out String?  ErrorResponse,
+                                            UInt64?      MaxDecodedSize   = null)
+        {
+
+            ErrorResponse = null;
+
+            var codings = ContentCodings.ToArray();
+
+            if (codings.Length == 0)
+                return true;
+
+            if (httpBody is null)
+            {
+                ErrorResponse = "The HTTP body has not been read yet, use TryDecodeBodyStream(...) instead!";
+                return false;
+            }
+
+            if (!TryDecodeBody(out var decoded, out ErrorResponse, MaxDecodedSize))
+                return false;
+
+            httpBody                = decoded;
+            DecodedContentEncoding  = String.Join(", ", codings);
+
+            RemoveHeaderField(HTTPHeaderField.ContentEncoding.Name);
+            RemoveHeaderField(HTTPHeaderField.ContentLength.  Name);
+            SetHeaderField   (HTTPHeaderField.ContentLength, (UInt64?) decoded.LongLength);
+
+            return true;
 
         }
 
@@ -1622,8 +1785,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FieldName">The name of the header field.</param>
         protected internal void RemoveHeaderField(String FieldName)
         {
-            if (headerFields.ContainsKey(FieldName))
-                headerFields.TryRemove  (FieldName, out _);
+
+            headerFields.      TryRemove(FieldName, out _);
+
+            // The parsed value is a cache of the raw one and GetHeaderField(s)
+            // consults it first, so a removal that left it behind would remove the
+            // field for everything reading the header text and for nothing reading
+            // the typed property.
+            headerFieldsParsed.TryRemove(FieldName, out _);
+
         }
 
         #endregion
@@ -1883,6 +2053,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (HTTPReadTimeoutException)
                 {
+                    throw;
+                }
+                catch (InvalidDataException)
+                {
+                    // Octets that are not valid for their content coding, thrown by
+                    // the decoder TryDecodeBodyStream() put in the way. It is not an
+                    // IOException, so without this it would reach the catch-all
+                    // below and the caller would see a null body and no reason for
+                    // it — the one outcome worse than an exception.
                     throw;
                 }
                 catch (IOException ex)
