@@ -306,7 +306,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #region Setup HTTP Server
 
             var httpServer = new HTTPServer(
-                                 TCPPort:                      IPPort.Parse(9001),
+                                 TCPPort:                      IPPort.Zero,
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;
                                                                },
@@ -653,7 +653,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #region Setup HTTP Server
 
             var httpServer = new HTTPServer(
-                                 TCPPort:                      IPPort.Parse(9002),
+                                 TCPPort:                      IPPort.Zero,
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;
                                                                },
@@ -994,7 +994,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #region Setup HTTP Server
 
             var httpServer = new HTTPServer(
-                                 TCPPort:                      IPPort.Parse(9003),
+                                 TCPPort:                      IPPort.Zero,
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;
                                                                },
@@ -1351,7 +1351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #region Setup HTTP Server
 
             var httpServer = new HTTPServer(
-                                 TCPPort:                      IPPort.Parse(9004),
+                                 TCPPort:                      IPPort.Zero,
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;
                                                                },
@@ -1708,7 +1708,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #region Setup HTTP Server
 
             var httpServer = new HTTPServer(
-                                 TCPPort:                      IPPort.Parse(9005),
+                                 TCPPort:                      IPPort.Zero,
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;
                                                                },
@@ -1815,17 +1815,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
         #endregion
 
-        #region (private) WithAndWithoutAnyClientCert_TestRun(TCPPort, ClientTLSProtocols, TolerateCertlessRejectionOnWindowsRunners)
+        #region (private) WithAndWithoutAnyClientCert_TestRun(ClientTLSProtocols, TolerateCertlessRejectionOnWindowsRunners)
 
         /// <summary>
         /// Create a ECC mutual TLS PKI and connect with and without any client certificate.
         /// The HTTP server accepts requests without client certificates!
         /// </summary>
-        /// <param name="TCPPort">The TCP port of this run's HTTP server.</param>
         /// <param name="ClientTLSProtocols">The TLS protocol version(s) the HTTP clients offer, null for the client default (TLS 1.3).</param>
         /// <param name="TolerateCertlessRejectionOnWindowsRunners">Report the known Schannel rejection of certless TLS 1.3 handshakes on GitHub-hosted Windows runners as Inconclusive instead of failing.</param>
-        private async Task WithAndWithoutAnyClientCert_TestRun(IPPort         TCPPort,
-                                                               SslProtocols?  ClientTLSProtocols,
+        private async Task WithAndWithoutAnyClientCert_TestRun(SslProtocols?  ClientTLSProtocols,
                                                                Boolean        TolerateCertlessRejectionOnWindowsRunners)
         {
 
@@ -2062,7 +2060,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             #region Setup HTTP Server
 
             var httpServer = new HTTPServer(
-                                 TCPPort:                      TCPPort,
+                                 TCPPort:                      IPPort.Zero,
                                  ServerCertificateSelector:    (tcpServer, tcpClient) => {
                                                                    return serverCertificate2!;
                                                                },
@@ -2246,7 +2244,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         public Task Mutual_TLS_ECC__6a_WithAndWithoutAnyClientCert_TLS12_Test()
 
             => WithAndWithoutAnyClientCert_TestRun(
-                   IPPort.Parse(9006),
                    SslProtocols.Tls12,
                    TolerateCertlessRejectionOnWindowsRunners: false
                );
@@ -2266,7 +2263,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
         public Task Mutual_TLS_ECC__6b_WithAndWithoutAnyClientCert_TLS13_Test()
 
             => WithAndWithoutAnyClientCert_TestRun(
-                   IPPort.Parse(9007),
                    // Tls12|Tls13 rather than null (= Hermod's Tls13-only default),
                    // and not for protocol reasons — TLS 1.3 still wins the
                    // negotiation. EnabledSslProtocols is part of the key of
