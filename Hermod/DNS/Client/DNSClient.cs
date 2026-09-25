@@ -110,7 +110,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => currentDNSServers;
 
         /// <summary>
-        /// The DNS query timeout.
+        /// The DNS query timeout: what a server is given that has no timeout
+        /// of its own, when a query brings none either.
         /// </summary>
         public TimeSpan                       QueryTimeout        { get; set; }
 
@@ -485,7 +486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="DNSServiceName">The DNS service name to query.</param>
         /// <param name="ResourceRecordTypes">An enumeration of DNS resource record types to query for (e.g. SRV, SVCB, HTTPS). Use 'Any' to query for all types.</param>
-        /// <param name="Timeout">An optional timeout for this query. If not specified, the client's default QueryTimeout will be used.</param>
+        /// <param name="Timeout">An optional timeout for this query, for every server it asks. If not specified, each server is given its own QueryTimeout, and one without the client's QueryTimeout.</param>
         /// <param name="RecursionDesired">Whether to set the Recursion Desired flag in the DNS query. If not specified, the client's default RecursionDesired setting will be used (default: true).</param>
         /// <param name="ForceUpdate">Whether to force an upstream DNS query and update the DNS cache with the response. Default: false.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel the query.</param>
@@ -555,11 +556,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // ordinary pair there is, and the one this client picks by itself
             // when a caller says "resolve this". One question per query, then,
             // run together and put back together below.
+            //
+            // The timeout goes on as it was given, and not as it is used here:
+            // one that none was given for gives every server its own below.
             if (resourceRecordTypes.Count > 1)
                 return await QueryEachTypeAsync(
                                  DNSServiceName,
                                  resourceRecordTypes,
-                                 effectiveTimeout,
+                                 Timeout,
                                  RecursionDesired,
                                  ForceUpdate,
                                  stopWatch,
@@ -707,9 +711,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 dnsServers.Count
             );
 
+            // Each server for as long as it may take: what this query was
+            // given, or else the server's own timeout, or else the client's.
+            // Every server used to be raced for the client's - measured on a
+            // WWCP node, two name servers that never answer, configured at
+            // three seconds each, kept a lookup waiting ten, and the timeout a
+            // DNSServerConfig carries was read by nobody.
             var allDNSServerRequests = dnsServers.Select(dnsServer =>
 
-                QueryDNSServerAsync(dnsServer, dnsQuery, effectiveTimeout, raceCTS.Token)
+                QueryDNSServerAsync(dnsServer, dnsQuery, Timeout ?? dnsServer.QueryTimeout ?? QueryTimeout, raceCTS.Token)
 
             ).ToList();
 
@@ -1229,7 +1239,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         private async Task<DNSInfo> QueryEachTypeAsync(DNSServiceName                         DNSServiceName,
                                                        IReadOnlyList<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                                       TimeSpan                               Timeout,
+                                                       TimeSpan?                              Timeout,
                                                        Boolean?                               RecursionDesired,
                                                        Boolean?                               ForceUpdate,
                                                        Stopwatch                              StopWatch,
@@ -1301,7 +1311,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        // "timeout" over it would throw the answer away.
                        IsTimeout:              responses.All(response => response.IsTimeout),
 
-                       Timeout:                Timeout,
+                       // The one it was given, or else the longest a server
+                       // was given - which is what a single type says, too.
+                       Timeout:                Timeout ?? responses.Max(response => response.Timeout),
                        Runtime:                StopWatch.Elapsed,
 
                        AuthenticData:          responses.All(response => response.AuthenticData),

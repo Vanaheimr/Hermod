@@ -60,7 +60,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public DNSTransport  Transport       { get; }
 
         /// <summary>
-        /// The query timeout for this DNS server.
+        /// The query timeout for this DNS server: how long a client gives it,
+        /// unless a query brings a timeout of its own. Null leaves it to the
+        /// client's QueryTimeout.
         /// </summary>
         public TimeSpan?     QueryTimeout    { get; set; }
 
