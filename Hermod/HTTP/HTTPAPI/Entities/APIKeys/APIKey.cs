@@ -338,7 +338,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Parse NotBefore                 [optional]
 
-                if (JSON.ParseOptional("NotBefore",
+                // "notBefore" and "notAfter", as ToJSON writes them and every
+                // database file holds them. This read "NotBefore" and
+                // "NotAfter", and the lookup is case-sensitive: the window was
+                // lost at every restart, and an expired key came back valid.
+                if (JSON.ParseOptional("notBefore",
                                              "'not-valid-before'-timestamp",
                                              out DateTimeOffset? NotBefore,
                                              out ErrorResponse))
@@ -351,7 +355,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Parse NotAfter                  [optional]
 
-                if (JSON.ParseOptional("NotAfter",
+                if (JSON.ParseOptional("notAfter",
                                              "'not-valid-after'-timestamp",
                                              out DateTimeOffset? NotAfter,
                                              out ErrorResponse))
@@ -899,7 +903,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                Description,
                                AccessRights ?? APIKeyRights.ReadOnly,
                                Created,
-                               NotBefore    ?? Timestamp.Now,
+                               // As it was: a key without a beginning gets
+                               // none from being built, or renaming it would
+                               // start it anew at the moment of the rename.
+                               NotBefore,
                                NotAfter,
                                ValidRemoteIPAddresses,
                                IsDisabled   ?? false,
