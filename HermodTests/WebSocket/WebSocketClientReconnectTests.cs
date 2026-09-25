@@ -183,6 +183,137 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         #endregion
 
 
+        #region AClientWithAPolicyComesBackAfterItsServerStayedAwayForAWhile()
+
+        /// <summary>
+        /// The server is gone for a while - long enough for several attempts
+        /// to find nothing listening - and the client comes back all the same.
+        /// </summary>
+        /// <remarks>
+        /// The first attempt that found nothing listening ended the client: the
+        /// answer to it was built from a request there was not yet, and the
+        /// exception that made escaped the catch it was built in. A server that
+        /// was back before the first attempt was reached; one that took longer,
+        /// which is every real restart, was not.
+        /// </remarks>
+        [Test]
+        public async Task AClientWithAPolicyComesBackAfterItsServerStayedAwayForAWhile()
+        {
+
+            var port      = FreePort();
+            var attempts  = 0;
+
+            await Connect(port, Quickly);
+
+            client!.OnReconnecting += (timestamp, sender, attempt, delay, cancellationToken) => {
+                Interlocked.Increment(ref attempts);
+                return Task.CompletedTask;
+            };
+
+            await server!.Stop();
+
+            // At least three attempts into the silence, however the backoff
+            // falls.
+            var giveUp = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
+
+            while (DateTimeOffset.UtcNow < giveUp && Volatile.Read(ref attempts) < 3)
+                await Task.Delay(50);
+
+            Assert.That(attempts, Is.GreaterThanOrEqualTo(3),
+                        $"The client made {attempts} attempt(s) while its server was away, and stopped trying.");
+
+            Assert.That(await ComesBack(port, TimeSpan.FromSeconds(10)), Is.True,
+                        "The server came back after a while, and the client did not.");
+
+        }
+
+        #endregion
+
+        #region AClientWithAPolicyIsToldOfItsFirstAttemptAndGoesOnTrying()
+
+        /// <summary>
+        /// A client with a policy whose first attempt finds nothing listening
+        /// is told so at once, and connects by itself once there is something
+        /// to connect to.
+        /// </summary>
+        /// <remarks>
+        /// Connect() waited for an answer for as long as the policy kept trying,
+        /// up to the request timeout - ten minutes by default. A caller that
+        /// sets a policy before the first attempt, so that a server that is not
+        /// there yet is reached when it is, was held for all of that: a
+        /// charging station started while its CSMS was down would not have
+        /// finished starting.
+        /// </remarks>
+        [Test]
+        public async Task AClientWithAPolicyIsToldOfItsFirstAttemptAndGoesOnTrying()
+        {
+
+            var port   = FreePort();
+
+            client     = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"),
+                                             RequestTimeout: TimeSpan.FromSeconds(20)) {
+                             ReconnectPolicy = Quickly
+                         };
+
+            var took   = System.Diagnostics.Stopwatch.StartNew();
+            var (_, response) = await client.Connect();
+            took.Stop();
+
+            Assert.Multiple(() => {
+                Assert.That(took.Elapsed,                    Is.LessThan(TimeSpan.FromSeconds(5)),
+                            "Connect() held its caller while the policy went on trying.");
+                Assert.That(response.HTTPStatusCode.Code,    Is.Not.EqualTo(101),
+                            "There was nothing to connect to, and the first attempt said it had connected.");
+            });
+
+            Assert.That(await ComesBack(port, TimeSpan.FromSeconds(10)), Is.True,
+                        "The client did not connect by itself once the server was there.");
+
+        }
+
+        #endregion
+
+        #region AClientSaysWhetherItKeepsTrying()
+
+        /// <summary>
+        /// After a first attempt that failed, a client says whether it goes on:
+        /// with a policy, it does; without one, it does not; and closed, it
+        /// does not either.
+        /// </summary>
+        [Test]
+        public async Task AClientSaysWhetherItKeepsTrying()
+        {
+
+            var withPolicy     = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{FreePort()}")) { ReconnectPolicy = Quickly };
+            var withoutPolicy  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{FreePort()}"));
+
+            try
+            {
+
+                await withPolicy.   Connect();
+                await withoutPolicy.Connect();
+
+                Assert.Multiple(() => {
+                    Assert.That(withPolicy.   KeepsTrying, Is.True,  "A client with a policy whose first attempt failed said it had given up.");
+                    Assert.That(withoutPolicy.KeepsTrying, Is.False, "A client without a policy whose first attempt failed said it kept trying.");
+                });
+
+                await withPolicy.Close();
+
+                Assert.That(withPolicy.KeepsTrying, Is.False, "A client that was closed said it kept trying.");
+
+            }
+            finally
+            {
+                await withPolicy.   Close();
+                await withoutPolicy.Close();
+            }
+
+        }
+
+        #endregion
+
+
         #region (private) Connect(Port, Policy)
 
         /// <summary>

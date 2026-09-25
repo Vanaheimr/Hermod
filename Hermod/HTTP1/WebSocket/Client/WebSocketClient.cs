@@ -298,6 +298,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public UInt32                               ReconnectAttempts                    { get; private set; }
 
         /// <summary>
+        /// Whether this client is connected, or on its way to being so: its networking
+        /// loop is running and nobody has closed it. False once it has given up - an
+        /// answer that means no, no reconnect policy to try again with, or the attempts
+        /// its policy allows used up - or has been closed.
+        /// </summary>
+        /// <remarks>
+        /// What a caller whose Connect() came back with a failure needs to know to say
+        /// what happens next: with a reconnect policy, Connect() answers after the first
+        /// attempt, and the client may well go on trying by itself.
+        /// </remarks>
+        public Boolean                              KeepsTrying
+            => networkingTask is { IsCompleted: false } &&
+               !networkingCancellationTokenSource.IsCancellationRequested;
+
+        /// <summary>
         /// The maximum number of outgoing bytes that may be queued and in-flight
         /// (the send backpressure) before <see cref="BackpressureBehaviour"/> is
         /// applied. Zero (the default) disables the check.
@@ -1991,15 +2006,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         #region Create a HTTP response for the exception...
 
-                        httpResponse = new HTTPResponse.Builder(httpRequest) {
-                                            HTTPStatusCode  = HTTPStatusCode.RequestTimeout,
-                                            ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                            Content         = JSONObject.Create(
-                                                                    new JProperty("timeout",     (Int32) hte.Timeout.TotalMilliseconds),
-                                                                    new JProperty("message",     hte.Message),
-                                                                    new JProperty("stackTrace",  hte.StackTrace)
-                                                                ).ToUTF8Bytes()
-                                        };
+                        var failure             = FailureResponse(httpRequest, HTTPStatusCode.RequestTimeout);
+
+                        failure.ContentType     = HTTPContentType.Application.JSON_UTF8;
+                        failure.Content         = JSONObject.Create(
+                                                      new JProperty("timeout",     (Int32) hte.Timeout.TotalMilliseconds),
+                                                      new JProperty("message",     hte.Message),
+                                                      new JProperty("stackTrace",  hte.StackTrace)
+                                                  ).ToUTF8Bytes();
+
+                        httpResponse            = failure;
 
                         #endregion
 
@@ -2017,14 +2033,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         while (e.InnerException is not null)
                             e = e.InnerException;
 
-                        httpResponse = new HTTPResponse.Builder(httpRequest) {
-                                            HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                            ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                            Content         = JSONObject.Create(
-                                                                    new JProperty("message",     e.Message),
-                                                                    new JProperty("stackTrace",  e.StackTrace)
-                                                                ).ToUTF8Bytes()
-                                        };
+                        var failure             = FailureResponse(httpRequest, HTTPStatusCode.BadRequest);
+
+                        failure.ContentType     = HTTPContentType.Application.JSON_UTF8;
+                        failure.Content         = JSONObject.Create(
+                                                      new JProperty("message",     e.Message),
+                                                      new JProperty("stackTrace",  e.StackTrace)
+                                                  ).ToUTF8Bytes();
+
+                        httpResponse            = failure;
 
                         #endregion
 
@@ -2137,7 +2154,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             // networking task: when the connection attempt failed and no reconnect policy
             // keeps trying, nothing will arrive any more, and the caller gets the failure of
             // that attempt instead of waiting for the whole request timeout.
-            while (waitingForHTTPResponse is null && !connectionAttempts.IsCompleted && ts + RequestTimeout > Timestamp.Now) {
+            //
+            // Nor beyond the first attempt that failed where a reconnect policy does keep
+            // trying: the caller is told how the first attempt went, and the client goes on
+            // by itself - OnWebSocketConnectionAccepted says when it gets through. Waiting
+            // for that instead held the caller for up to the request timeout, ten minutes
+            // by default, for a server that was simply not there yet.
+            while (waitingForHTTPResponse is null &&
+                   !(ReconnectPolicy is not null && lastFailureResponse is not null) &&
+                   !connectionAttempts.IsCompleted &&
+                   ts + RequestTimeout > Timestamp.Now) {
                 await Task.Delay(10, CancellationToken);
             }
 
@@ -2174,6 +2200,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
             networkingCancellationTokenSource.Cancel();
         }
+
+        #endregion
+
+        #region (private static) FailureResponse(Request, StatusCode)
+
+        /// <summary>
+        /// The answer to an attempt that failed - for the request it made, or,
+        /// where it failed before it had made one, for none.
+        /// </summary>
+        /// <remarks>
+        /// An attempt that finds nothing listening, or no address for the name,
+        /// fails before there is a request. The answer to it used to be built
+        /// from that request regardless, and the NullReferenceException that
+        /// made escaped the very catch it was built in: the networking loop
+        /// ended there, and a reconnect policy was never asked. So a client
+        /// whose server was still down at its first attempt to come back - any
+        /// restart that took longer than the first backoff - stayed away.
+        /// </remarks>
+        /// <param name="Request">The request the attempt made, if it got that far.</param>
+        /// <param name="StatusCode">What the attempt came to.</param>
+        private static HTTPResponse.Builder FailureResponse(HTTPRequest?    Request,
+                                                            HTTPStatusCode  StatusCode)
+
+            => Request is not null
+
+                   ? new HTTPResponse.Builder(Request) {
+                         HTTPStatusCode = StatusCode
+                     }
+
+                   : new HTTPResponse.Builder(
+                         Timestamp.Now,
+                         EventTracking_Id.New,
+                         TimeSpan.Zero,
+                         new HTTPSource(),
+                         IPSocket.Zero,
+                         IPSocket.Zero,
+                         ConnectionType.Close,
+                         StatusCode
+                     );
 
         #endregion
 
