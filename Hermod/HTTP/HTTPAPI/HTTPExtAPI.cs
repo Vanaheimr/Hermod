@@ -8527,13 +8527,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #endregion
 
+                                  #region Refuse an API key that exists already
+
+                                  // AddAPIKey refuses this key too, but as an argument error, the
+                                  // same result as for a key that is too short: its result cannot
+                                  // tell a malformed request (400) from a well formed one asking for
+                                  // a key this API holds already (409). So the route asks, as SET
+                                  // ~/users/{UserId} asks about the last administrator, and AddAPIKey
+                                  // stays the backstop for a key added between here and there.
+                                  if (APIKeyExists(apiKey.Id))
+                                  {
+
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode             = HTTPStatusCode.Conflict,
+                                                 Server                     = HTTPServer?.HTTPServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = [ HTTPMethod.ADD, HTTPMethod.GET ],
+                                                 AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+                                                                                  new JProperty("description", $"APIKey identification '{apiKey.Id}' already exists!")
+                                                                              ).ToUTF8Bytes(),
+                                                 Connection                 = ConnectionType.KeepAlive,
+                                                 Vary                       = "Accept"
+                                             }.AsImmutable;
+
+                                  }
+
+                                  #endregion
+
 
                                   var result = await AddAPIKey(apiKey,
                                                                null,
                                                                Request.EventTrackingId,
                                                                httpUser.Id);
 
-                                  return result is not null
+                                  return result.Result == CommandResult.Success
 
                                              ? new HTTPResponse.Builder(Request) {
                                                        HTTPStatusCode             = HTTPStatusCode.OK,
@@ -8557,7 +8587,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                        ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                        Content                    = JSONObject.Create(
-                                                                                        new JProperty("description", errorString)
+                                                                                        new JProperty("description", result.Description.ToJSON())
                                                                                     ).ToUTF8Bytes()
                                                    }.AsImmutable;
 
@@ -19299,7 +19329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     CurrentUserId);
 
             return UpdateAPIKeyResult.Success(
-                       APIKey,
+                       updatedAPIKey,
                        eventTrackingId,
                        SystemId,
                        this
@@ -20092,9 +20122,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="User">A user.</param>
         protected internal IEnumerable<APIKey> _GetValidAPIKeysForUser(IUser User)
 
+            // The unlocked _APIKeyIsValid: whoever calls this holds the lock the
+            // public APIKeyIsValid waits for, and SemaphoreSlim is not reentrant -
+            // every key would wait out the lock timeout, and be called invalid.
             => [.. apiKeys.Values.
                        Where(apiKey => apiKey.UserId == User.Id &&
-                                       APIKeyIsValid(apiKey))];
+                                       _APIKeyIsValid(apiKey))];
 
 
         /// <summary>
