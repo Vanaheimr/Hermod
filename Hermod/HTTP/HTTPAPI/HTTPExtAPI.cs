@@ -8694,24 +8694,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #endregion
 
 
-                                  await RemoveAPIKey(apiKeyInfo,
-                                                     null,
-                                                     Request.EventTrackingId,
-                                                     httpUser.Id);
+                                  var result = await RemoveAPIKey(apiKeyInfo,
+                                                                  null,
+                                                                  Request.EventTrackingId,
+                                                                  httpUser.Id);
 
 
-                                  return new HTTPResponse.Builder(Request) {
-                                             HTTPStatusCode             = HTTPStatusCode.OK,
-                                             Server                     = HTTPServer?.HTTPServerName,
-                                             Date                       = Timestamp.Now,
-                                             AccessControlAllowOrigin   = "*",
-                                             AccessControlAllowMethods  = [ HTTPMethod.DELETE ],
-                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                             Content                    = apiKeyInfo.ToJSON().ToUTF8Bytes(),
-                                             Connection                 = ConnectionType.KeepAlive,
-                                             Vary                       = "Accept"
-                                         }.AsImmutable;
+                                  // What RemoveAPIKey says, not 200 whatever it says: a key
+                                  // it refused to remove is still valid, and this used to
+                                  // tell whoever revoked it that it was gone.
+                                  return result.Result == CommandResult.Success
+
+                                             ? new HTTPResponse.Builder(Request) {
+                                                   HTTPStatusCode             = HTTPStatusCode.OK,
+                                                   Server                     = HTTPServer?.HTTPServerName,
+                                                   Date                       = Timestamp.Now,
+                                                   AccessControlAllowOrigin   = "*",
+                                                   AccessControlAllowMethods  = [ HTTPMethod.DELETE ],
+                                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                                   Content                    = apiKeyInfo.ToJSON().ToUTF8Bytes(),
+                                                   Connection                 = ConnectionType.KeepAlive,
+                                                   Vary                       = "Accept"
+                                               }.AsImmutable
+
+                                             : new HTTPResponse.Builder(Request) {
+                                                   HTTPStatusCode             = HTTPStatusCode.FailedDependency,
+                                                   Server                     = HTTPServer?.HTTPServerName,
+                                                   Date                       = Timestamp.Now,
+                                                   AccessControlAllowOrigin   = "*",
+                                                   AccessControlAllowMethods  = [ HTTPMethod.DELETE ],
+                                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                                   Content                    = JSONObject.Create(
+                                                                                    new JProperty("description", result.Description.ToJSON())
+                                                                                ).ToUTF8Bytes(),
+                                                   Connection                 = ConnectionType.KeepAlive,
+                                                   Vary                       = "Accept"
+                                               }.AsImmutable;
 
                               });
 
@@ -12631,7 +12651,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         out apiKey,
                                         out errorResponse))
                     {
+
                         apiKeys.AddAndReturnValue(apiKey.Id, apiKey);
+
+                        // Attached, as addAPIKey attaches the key it adds and the
+                        // other cases here attach the keys they read. Without it
+                        // RemoveAPIKey refused every key read back from this
+                        // line: after a restart, a key could not be revoked.
+                        apiKey.APIX = this;
+
                     }
 
                     else
@@ -19438,6 +19466,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var builder = APIKey.ToBuilder();
             UpdateDelegate(builder);
             var updatedAPIKey = builder.ToImmutable;
+
+            // The builder makes a new key, and it belongs to this API as the old
+            // one did. Unattached, it could be neither updated again nor removed
+            // until a restart attached it.
+            updatedAPIKey.APIX = this;
 
             await WriteToDatabaseFile(updateAPIKey_MessageType,
                                       updatedAPIKey.ToJSON(false),
