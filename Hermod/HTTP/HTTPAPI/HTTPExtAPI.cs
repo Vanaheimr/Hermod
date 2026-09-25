@@ -18877,7 +18877,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 CurrentUserId);
 
             await SendNotifications(APIKey,
-                                    addUser_MessageType,
+                                    addAPIKey_MessageType,
                                     null,
                                     eventTrackingId,
                                     CurrentUserId);
