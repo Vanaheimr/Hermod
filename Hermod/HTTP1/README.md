@@ -28,7 +28,7 @@ Last verified: **2026-09-24**
 | [RFC 4918](https://www.rfc-editor.org/rfc/rfc4918.html), WebDAV | Method tokens are modeled (`COPY`, `LOCK`, `MKCOL`, `MOVE`, `PROPFIND`, `PROPPATCH`, and `UNLOCK`). Hermod does not provide a complete WebDAV resource implementation. |
 | [RFC 7617](https://www.rfc-editor.org/rfc/rfc7617.html), Basic authentication | Typed parsing/serialization and end-to-end server authorization tests, including challenge, malformed credentials, invalid credentials, and forbidden users. Authentication policy is configured by the application. |
 | [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750.html), Bearer tokens | Typed Bearer authorization parsing/serialization is available. Token validation and authorization policy are application concerns. |
-| [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), WebSocket | Implemented in Hermod's separate WebSocket client/server subsystem. HTTP Upgrade is not part of the HTTP/1.x origin-server support claim in this document. |
+| [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), WebSocket | Implemented in Hermod's WebSocket client/server subsystem. The HTTP/1.1 server can also serve a WebSocket on a path of its own, beside ordinary HTTP on the same listener: `WebSocketUpgrade.For` hands a request that asks for an upgrade over to a WebSocket server, whose single implementation of the opening handshake (RFC 6455 §4.2) validates it and answers the `101` - the HTTP layer only decides whether a request is asking. Regression-tested by `WebSocketOnAnHTTPPathTests`; see [WebSocket/README.md](WebSocket/README.md#on-an-http-path). |
 | [WHATWG Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Implemented and regression-tested for `text/event-stream`, parsing, live streaming, reconnection, `Last-Event-ID`, retry intervals, comments/heartbeats, cancellation, and disconnect cleanup. |
 
 Older source comments may refer to RFC 2616 or the RFC 7230 series. The current
@@ -462,7 +462,9 @@ scope, with these explicit boundaries:
 - It does not provide a shared RFC 9111 cache.
 - It does not automatically implement application-specific conditional,
   range, WebDAV, or QUERY semantics.
-- WebSocket is tested and maintained as a separate subsystem.
+- WebSocket is tested and maintained as a separate subsystem; the HTTP/1.1
+  server only hands a request that asks for an upgrade over to it
+  (`WebSocketUpgrade.For`).
 - HTTP/2 and HTTP/3 are separate protocols and are not covered here.
 - Typed or generic support for a header is not a claim that every RFC defining
   application semantics for that header is implemented automatically.
