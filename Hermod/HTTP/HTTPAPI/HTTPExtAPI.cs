@@ -13170,6 +13170,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
+                #region Remove user from user group
+
+                // Written by RemoveUserFromUserGroup all along, and never read
+                // back: a membership taken away came back at the next start,
+                // from the "addUserToUserGroup" line before it.
+                case "removeUserFromUserGroup":
+
+                    if (!User_Id.TryParse(Data["userId"]?.Value<String>() ?? "", out U2G_UserId))
+                    {
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Invalid user identification '{Data["userId"]?.Value<String>()}'!");
+                        break;
+                    }
+
+                    if (!TryGetUser(U2G_UserId, out U2G_User))
+                    {
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown user '{U2G_UserId}'!");
+                        break;
+                    }
+
+
+                    if (!UserGroup_Id.TryParse(Data["userGroupId"]?.Value<String>() ?? "", out U2G_GroupId))
+                    {
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Invalid group identification '{Data["userGroupId"]?.Value<String>()}'!");
+                        break;
+                    }
+
+                    if (!TryGetUserGroup(U2G_GroupId, out U2G_Group))
+                    {
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown group '{U2G_GroupId}'!");
+                        break;
+                    }
+
+
+                    if (!Enum.TryParse(Data["edgeLabel"]?.Value<String>() ?? "", out U2G_EdgeLabel))
+                    {
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}: Unknown edge label '{Data["edgeLabel"]?.Value<String>() ?? ""}'!");
+                        break;
+                    }
+
+
+                    foreach (var edge in U2G_User.User2Group_OutEdges.
+                                                  Where(_edge => _edge.EdgeLabel == U2G_EdgeLabel &&
+                                                                 _edge.Target.Id.Equals(U2G_GroupId)).
+                                                  ToArray())
+                    {
+                        U2G_User.RemoveOutEdge(edge);
+                    }
+
+                    U2G_Group.RemoveUser(U2G_EdgeLabel, U2G_User);
+
+                    break;
+
+                #endregion
+
 
                 #region Add    notification
 
@@ -28259,11 +28313,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 edges.Add(edge);
 
 
+            // Off both ends: the user's edge and the group's. This put the
+            // user back on the group where it was to take them off it, and the
+            // group is what IsMember asks - so a user taken out of a group
+            // stayed in it, with the removal written down as done.
             foreach (var edge in edges)
-            {
+                User.RemoveOutEdge(edge);
 
-                User.     RemoveOutEdge(edge);
-                UserGroup.AddUser      (edge.EdgeLabel, User);
+            UserGroup.RemoveUser(EdgeLabel, User);
+
+            // Written once, however many edge objects there were: one
+            // membership is one line, and the replay takes it off both ends.
+            if (edges.Count != 0)
+            {
 
                 await WriteToDatabaseFile(removeUserFromUserGroup_MessageType,
                                           new JObject(
@@ -28434,24 +28496,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 edges.Add(edge);
 
 
+            // Off both ends, as above, and one line per label rather than per
+            // edge object.
             foreach (var edge in edges)
+                User.RemoveOutEdge(edge);
+
+            foreach (var edgeLabel in edges.Select(edge => edge.EdgeLabel).Distinct().ToArray())
             {
 
-                User.     RemoveOutEdge(edge);
-                UserGroup.AddUser      (edge.EdgeLabel, User);
+                UserGroup.RemoveUser(edgeLabel, User);
 
                 await WriteToDatabaseFile(removeUserFromUserGroup_MessageType,
                                           new JObject(
-                                              new JProperty("userId",      User.     Id.       ToString()),
-                                              new JProperty("edgeLabel",   edge.     EdgeLabel.ToString()),
-                                              new JProperty("userGroupId", UserGroup.Id.       ToString())
+                                              new JProperty("userId",      User.     Id.ToString()),
+                                              new JProperty("edgeLabel",   edgeLabel.   ToString()),
+                                              new JProperty("userGroupId", UserGroup.Id.ToString())
                                           ),
                                           eventTrackingId,
                                           CurrentUserId);
 
                 if (!SuppressNotifications)
                     await SendNotifications(User,
-                                            edge.EdgeLabel,
+                                            edgeLabel,
                                             UserGroup,
                                             removeUserFromUserGroup_MessageType,
                                             eventTrackingId,

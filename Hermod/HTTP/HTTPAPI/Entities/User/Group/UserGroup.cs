@@ -198,6 +198,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => _User2UserGroup_Edges.
                    Any(edge => edge.EdgeLabel == EdgeLabel && edge.Source.Id.Equals(User.Id));
 
+
+        #region RemoveUser(EdgeLabel, User)
+
+        /// <summary>
+        /// Take the given user's edges of the given label off this group: the
+        /// group's half of taking a user out of it.
+        /// </summary>
+        /// <remarks>
+        /// By the user's identification rather than by the edge object, like
+        /// <see cref="HasEdge"/> asks: the user's edge and the group's are one
+        /// object when they were made together and two when they were not.
+        /// </remarks>
+        /// <param name="EdgeLabel">The label of the edges to take off.</param>
+        /// <param name="User">The user whose edges they are.</param>
+        public void RemoveUser(User2UserGroupEdgeLabel  EdgeLabel,
+                               IUser                    User)
+        {
+
+            var edges = _User2UserGroup_Edges.
+                            Where(edge => edge.EdgeLabel == EdgeLabel &&
+                                          edge.Source.Id.Equals(User.Id)).
+                            ToArray();
+
+            foreach (var edge in edges)
+                _User2UserGroup_Edges.Remove(edge);
+
+        }
+
+        #endregion
+
         #endregion
 
         #region UserGroup -> UserGroup edges
