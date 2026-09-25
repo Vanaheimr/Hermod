@@ -280,12 +280,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public UInt32                                                          MaxOutstandingPings           { get; set; } = 3;
 
 
-        public UInt64?                                                         MaxTextMessageSizeIn          { get; set; }
+        public UInt64?                                                         MaxTextMessageSizeIn          { get; set; } = WebSocketFrame.DefaultMaxPayloadSize;
         public UInt64?                                                         MaxTextMessageSizeOut         { get; set; }
         public UInt64?                                                         MaxTextFragmentLengthIn       { get; set; }
         public UInt64?                                                         MaxTextFragmentLengthOut      { get; set; }
 
-        public UInt64?                                                         MaxBinaryMessageSizeIn        { get; set; }
+        public UInt64?                                                         MaxBinaryMessageSizeIn        { get; set; } = WebSocketFrame.DefaultMaxPayloadSize;
         public UInt64?                                                         MaxBinaryMessageSizeOut       { get; set; }
         public UInt64?                                                         MaxBinaryFragmentLengthIn     { get; set; }
         public UInt64?                                                         MaxBinaryFragmentLengthOut    { get; set; }
@@ -1784,7 +1784,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         // permessage-deflate (RFC 7692): decompress a compressed message.
                                                                         if (frame.IsCompressed && webSocketConnection.PerMessageDeflate is not null)
                                                                         {
-                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(textPayload, out textPayload, out _, out var textExceededSizeLimit))
+                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(textPayload, out textPayload, out _, out var textExceededSizeLimit, MaxTextMessageSizeIn))
                                                                             {
                                                                                 failConnection = textExceededSizeLimit
                                                                                                      ? WebSocketFrame.ClosingStatusCode.MessageTooBig
@@ -1870,7 +1870,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         // permessage-deflate (RFC 7692): decompress a compressed message.
                                                                         if (frame.IsCompressed && webSocketConnection.PerMessageDeflate is not null)
                                                                         {
-                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(binaryPayload, out binaryPayload, out _, out var binaryExceededSizeLimit))
+                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(binaryPayload, out binaryPayload, out _, out var binaryExceededSizeLimit, MaxBinaryMessageSizeIn))
                                                                             {
                                                                                 failConnection = binaryExceededSizeLimit
                                                                                                      ? WebSocketFrame.ClosingStatusCode.MessageTooBig
@@ -1960,7 +1960,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                         // permessage-deflate (RFC 7692): decompress the reassembled message.
                                                                         if (fragmentCompressed && webSocketConnection.PerMessageDeflate is not null)
                                                                         {
-                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(completePayload, out completePayload, out _, out var fragmentExceededSizeLimit))
+                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(completePayload, out completePayload, out _, out var fragmentExceededSizeLimit, maxFragmentedSize))
                                                                             {
                                                                                 failConnection = fragmentExceededSizeLimit
                                                                                                      ? WebSocketFrame.ClosingStatusCode.MessageTooBig

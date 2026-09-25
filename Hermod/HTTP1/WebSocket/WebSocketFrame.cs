@@ -1064,8 +1064,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     return ParseResult.ProtocolViolation;
                 }
 
-                var payload     = new Byte[(Int32) payloadLength];
-                var maskingKey  = new Byte[4] { 0x00, 0x00, 0x00, 0x00 };
                 var headerSize  = offset + (mask == MaskStatus.On ? 4U : 0U);
 
                 if ((UInt64) Bytes.Length < headerSize + payloadLength)
@@ -1073,6 +1071,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     ErrorResponse = "Web socket frame is shorter than advertised!";
                     return ParseResult.IncompleteData;
                 }
+
+                var payload     = new Byte[(Int32) payloadLength];
+                var maskingKey  = new Byte[4] { 0x00, 0x00, 0x00, 0x00 };
 
                 if (mask == MaskStatus.Off)
                     Bytes.Slice((Int32) offset, (Int32) payloadLength).CopyTo(payload);
