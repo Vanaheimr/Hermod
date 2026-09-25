@@ -49,10 +49,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
     /// one-second period the defect still only showed in one forced run out of
     /// four, which is too close to the base rate to prove anything either way.
     ///
-    /// Sampled directly, it takes milliseconds.
+    /// Sampled directly, it usually takes milliseconds - but only usually.
+    /// Whether a reader lands in the few instructions between Poll and Available
+    /// is up to the scheduler, and on a busy runner it can take longer than the
+    /// time given: EVCLI's nightly run 36115581323 sampled a Debian container
+    /// for twenty seconds without one false reading, and a test that documents
+    /// a defect was read as a regression. So a run that catches no lie is
+    /// inconclusive rather than failed; it proves nothing either way.
     ///
-    /// If this test ever FAILS, that is news rather than breakage: it would mean
-    /// the predicate stopped lying, and the Warden could go back to asking it.
+    /// Only a change to TCPConnection could make the predicate stop lying, and
+    /// that would be news rather than breakage: the Warden could go back to
+    /// asking it.
     /// </summary>
     [TestFixture]
     public class ConnectionLivenessTests
@@ -127,22 +134,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
             try { await sender; } catch { }
             await server.Stop();
 
-            Assert.Multiple(() => {
+            // The connection really was alive throughout — otherwise a
+            // "closed" reading would simply have been correct and this test
+            // would prove nothing at all.
+            Assert.That(stillConnected, Is.True, "the peer's end was still connected");
 
-                // The connection really was alive throughout — otherwise a
-                // "closed" reading would simply have been correct and this test
-                // would prove nothing at all.
-                Assert.That(stillConnected, Is.True, "the peer's end was still connected");
-
-                Assert.That(
-                    falsePositives,
-                    Is.GreaterThan(0),
-                    $"IsConnectionClosed() never lied in {samples} samples against a live, " +
-                     "actively-read connection. That would be good news, not a broken test: " +
+            // Not catching the lie within the time given says nothing about the
+            // predicate, only about where the scheduler happened to put the two
+            // readers: a skip in the results rather than a red run.
+            if (falsePositives == 0)
+                Assert.Inconclusive(
+                    $"IsConnectionClosed() did not lie in {samples} samples against a live, " +
+                     "actively-read connection within the time given. That proves nothing either way: " +
                      "see this fixture's summary before changing anything."
                 );
-
-            });
 
         }
 
