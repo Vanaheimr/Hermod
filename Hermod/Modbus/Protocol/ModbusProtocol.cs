@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region CreateWriteHeader    (InvocationId, StartAddress, numData, numBytes, FunctionCode)
+        #region CreateWriteHeader    (InvocationId, StartAddress, numData, numBytes, FunctionCode, UnitIdentifier = 0)
 
         /// <summary>
         /// Create a new modbus header for writing data.
@@ -123,16 +123,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="numData"></param>
         /// <param name="numBytes"></param>
         /// <param name="FunctionCode">The function code.</param>
+        /// <param name="UnitIdentifier">An unit identifier/slave address.</param>
         public static MemoryStream CreateWriteHeader(UInt16        InvocationId,
                                                      UInt16        StartAddress,
                                                      UInt16        numData,
                                                      Byte          numBytes,
-                                                     FunctionCode  FunctionCode)
+                                                     FunctionCode  FunctionCode,
+                                                     Byte          UnitIdentifier   = 0)
         {
 
             var header = CreateGenericHeader(InvocationId,
                                              (UInt16) (numBytes + 5),
-                                             FunctionCode);
+                                             FunctionCode,
+                                             UnitIdentifier);
 
             header.WriteWord(StartAddress, ByteOrder.HostToNetwork);
 
@@ -148,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region CreateReadWriteHeader(InvocationId, ReadStartAddress, ReadLength, WriteStartAddress, WriteLength)
+        #region CreateReadWriteHeader(InvocationId, ReadStartAddress, ReadLength, WriteStartAddress, WriteLength, UnitIdentifier = 0)
 
         /// <summary>
         /// Create a new modbus header for reading and writing data.
@@ -158,16 +161,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="ReadLength"></param>
         /// <param name="WriteStartAddress"></param>
         /// <param name="WriteLength"></param>
+        /// <param name="UnitIdentifier">An unit identifier/slave address.</param>
         public static MemoryStream CreateReadWriteHeader(UInt16  InvocationId,
                                                          UInt16  ReadStartAddress,
                                                          UInt16  ReadLength,
                                                          UInt16  WriteStartAddress,
-                                                         UInt16  WriteLength)
+                                                         UInt16  WriteLength,
+                                                         Byte    UnitIdentifier   = 0)
         {
 
             var header = CreateGenericHeader(InvocationId,
                                              (UInt16) (11 + WriteLength * 2),
-                                             FunctionCode.ReadWriteMultipleRegister);
+                                             FunctionCode.ReadWriteMultipleRegister,
+                                             UnitIdentifier);
 
             header.WriteWord(ReadStartAddress,  ByteOrder.HostToNetwork);
             header.WriteWord(ReadLength,           ByteOrder.HostToNetwork);

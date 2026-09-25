@@ -19,6 +19,7 @@
 
 using System.Net;
 using System.Net.Sockets;
+using System.Collections.Concurrent;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
@@ -166,6 +167,195 @@ public class SunSpecModbusTLSTests
     }
 
     #endregion
+
+
+    #region Hermod_ModbusTLSClient_WriteSingleRegister_SunSpecEnergyMeter_Test()
+
+    /// <summary>
+    /// Function code 06 over Modbus/TLS: the client writes the meter mode
+    /// register, and reads back what the meter holds now.
+    /// </summary>
+    [Test]
+    public async Task Hermod_ModbusTLSClient_WriteSingleRegister_SunSpecEnergyMeter_Test()
+    {
+
+        using       var meter    = new SunSpecMeterDevice("meter-test-write-06", SunSpecMeterMode.ImportOnly);
+        await using var sunSpec  = await SunSpecMeterServer.StartAsync(meter);
+        using       var client   = await sunSpec.ConnectAsync(SunSpecRoles.GridService,
+                                                              StartingAddressOffset: 1,
+                                                              UnitAddress:           7);
+
+        var modeRegister  = SunSpecMeterMap.Addr(SunSpecMeterMap.OffMeterMeterMode);
+
+        var response      = await client.WriteSingleRegister(
+                                      modeRegister,
+                                      [ 0x00, (Byte) SunSpecMeterMode.ExportOnly ]
+                                  );
+
+        var readBack      = (await client.ReadHoldingRegisters(modeRegister, 1)).HoldingRegisters.ToArray();
+
+        var request       = sunSpec.Requests.Single(info => info.FunctionCode == ModbusFunctionCodes.WriteSingleRegister);
+
+        Assert.Multiple(() => {
+
+            // What the meter was asked...
+            Assert.That(request.UnitId,         Is.EqualTo(7));
+            Assert.That(request.Address,        Is.EqualTo(modeRegister));
+            Assert.That(request.Quantity,       Is.EqualTo(1));
+            Assert.That(request.Allowed,        Is.True, request.DenyReason);
+            Assert.That(request.ExceptionCode,  Is.Null);
+
+            // ...what it answered, which for this function code is the request itself...
+            Assert.That(response, Is.EqualTo(new Byte[] {
+                                      (Byte) (request.TransactionId >> 8), (Byte) request.TransactionId,
+                                      0x00, 0x00,                                       // protocol identifier
+                                      0x00, 0x06,                                       // length
+                                      0x07,                                             // unit identifier
+                                      0x06,                                             // write single register
+                                      (Byte) (modeRegister >> 8), (Byte) modeRegister,
+                                      0x00, (Byte) SunSpecMeterMode.ExportOnly
+                                  }));
+
+            // ...and what it is now.
+            Assert.That(meter.Mode,  Is.EqualTo(SunSpecMeterMode.ExportOnly));
+            Assert.That(readBack,    Is.EqualTo(new[] { (UInt16) SunSpecMeterMode.ExportOnly }));
+
+        });
+
+    }
+
+    #endregion
+
+    #region Hermod_ModbusTLSClient_WriteMultipleRegister_SunSpecEnergyMeter_Test()
+
+    /// <summary>
+    /// Function code 16 over Modbus/TLS: two registers in one request - the
+    /// meter mode, and the register after it, which clears both energy
+    /// counters when 0xCAFE is written to it.
+    /// </summary>
+    [Test]
+    public async Task Hermod_ModbusTLSClient_WriteMultipleRegister_SunSpecEnergyMeter_Test()
+    {
+
+        // Stepped by hand rather than by its background task, so that between
+        // the write and the reads nothing changes but what the write changed.
+        using var meter = new SunSpecMeterDevice("meter-test-write-16", SunSpecMeterMode.ImportOnly, runSimulation: false);
+
+        meter.Advance(TimeSpan.FromHours(1));
+
+        Assert.That(meter.EnergyCounters.ImportedWh, Is.GreaterThan(0), "a meter in front of a load has counted something after an hour");
+
+        await using var sunSpec  = await SunSpecMeterServer.StartAsync(meter);
+        using       var client   = await sunSpec.ConnectAsync(SunSpecRoles.GridService,
+                                                              StartingAddressOffset: 1);
+
+        var modeRegister  = SunSpecMeterMap.Addr(SunSpecMeterMap.OffMeterMeterMode);
+
+        var response      = await client.WriteMultipleRegister(
+                                      modeRegister,
+                                      [ 0x00, (Byte) SunSpecMeterMode.ExportOnly,
+                                        0xCA, 0xFE ]
+                                  );
+
+        // Both energy counters, their scale factor, the mode and the reset register
+        var readBack      = (await client.ReadHoldingRegisters(
+                                       SunSpecMeterMap.Addr(SunSpecMeterMap.OffMeterTotWhExp),
+                                       SunSpecMeterMap.OffMeterResetEnergy - SunSpecMeterMap.OffMeterTotWhExp + 1
+                                   )).HoldingRegisters.ToArray();
+
+        var request       = sunSpec.Requests.Single(info => info.FunctionCode == ModbusFunctionCodes.WriteMultipleRegisters);
+
+        Assert.Multiple(() => {
+
+            Assert.That(request.UnitId,         Is.EqualTo(1));
+            Assert.That(request.Address,        Is.EqualTo(modeRegister));
+            Assert.That(request.Quantity,       Is.EqualTo(2));
+            Assert.That(request.Allowed,        Is.True, request.DenyReason);
+            Assert.That(request.ExceptionCode,  Is.Null);
+
+            // Answered with where the registers were written, and how many
+            Assert.That(response, Is.EqualTo(new Byte[] {
+                                      (Byte) (request.TransactionId >> 8), (Byte) request.TransactionId,
+                                      0x00, 0x00,                                       // protocol identifier
+                                      0x00, 0x06,                                       // length
+                                      0x01,                                             // unit identifier
+                                      0x10,                                             // write multiple registers
+                                      (Byte) (modeRegister >> 8), (Byte) modeRegister,
+                                      0x00, 0x02                                        // two registers
+                                  }));
+
+            Assert.That(meter.Mode,                       Is.EqualTo(SunSpecMeterMode.ExportOnly));
+            Assert.That(meter.EnergyCounters.ImportedWh,  Is.Zero);
+            Assert.That(meter.EnergyCounters.ExportedWh,  Is.Zero);
+
+            Assert.That(readBack, Is.EqualTo(new UInt16[] {
+                                      0, 0,                                             // exported
+                                      0, 0,                                             // imported
+                                      unchecked((UInt16) meter.EnergyCounters.ScaleFactor),
+                                      (UInt16) SunSpecMeterMode.ExportOnly,
+                                      0                                                 // what was written to it is not kept
+                                  }));
+
+        });
+
+    }
+
+    #endregion
+
+    #region Hermod_ModbusTLSClient_WritesTheRegisterItReads_Test(StartingAddressOffset)
+
+    /// <summary>
+    /// The client numbers registers from 1, as the Modbus data model does, and
+    /// adds its StartingAddressOffset: a read of register N asks for address
+    /// N + offset - 1. A write of register N has to go to the same address, or
+    /// the client changes a register it does not read back.
+    /// </summary>
+    [TestCase((Int16)   0)]
+    [TestCase((Int16)   1)]
+    [TestCase((Int16) 100)]
+    public async Task Hermod_ModbusTLSClient_WritesTheRegisterItReads_Test(Int16 StartingAddressOffset)
+    {
+
+        using       var meter    = new SunSpecMeterDevice($"meter-test-offset-{StartingAddressOffset}", SunSpecMeterMode.ImportOnly);
+        await using var sunSpec  = await SunSpecMeterServer.StartAsync(meter);
+        using       var client   = await sunSpec.ConnectAsync(SunSpecRoles.GridService,
+                                                              StartingAddressOffset);
+
+        var modeAddress   = SunSpecMeterMap.Addr(SunSpecMeterMap.OffMeterMeterMode);
+        var modeRegister  = (UInt16) (modeAddress + 1 - StartingAddressOffset);
+
+        await client.WriteSingleRegister  (modeRegister, [ 0x00, (Byte) SunSpecMeterMode.ExportOnly ]);
+
+        var modeAfterSingle        = meter.Mode;
+        var readBackAfterSingle    = (await client.ReadHoldingRegisters(modeRegister, 1)).HoldingRegisters.ToArray();
+
+        await client.WriteMultipleRegister(modeRegister, [ 0x00, (Byte) SunSpecMeterMode.Net ]);
+
+        var modeAfterMultiple      = meter.Mode;
+        var readBackAfterMultiple  = (await client.ReadHoldingRegisters(modeRegister, 1)).HoldingRegisters.ToArray();
+
+        Assert.Multiple(() => {
+
+            Assert.That(sunSpec.Requests.Select(info => (info.FunctionCode, info.Address)),
+                        Is.EqualTo(new[] {
+                            (ModbusFunctionCodes.WriteSingleRegister,    modeAddress),
+                            (ModbusFunctionCodes.ReadHoldingRegisters,   modeAddress),
+                            (ModbusFunctionCodes.WriteMultipleRegisters, modeAddress),
+                            (ModbusFunctionCodes.ReadHoldingRegisters,   modeAddress)
+                        }));
+
+            Assert.That(modeAfterSingle,        Is.EqualTo(SunSpecMeterMode.ExportOnly));
+            Assert.That(readBackAfterSingle,    Is.EqualTo(new[] { (UInt16) SunSpecMeterMode.ExportOnly }));
+
+            Assert.That(modeAfterMultiple,      Is.EqualTo(SunSpecMeterMode.Net));
+            Assert.That(readBackAfterMultiple,  Is.EqualTo(new[] { (UInt16) SunSpecMeterMode.Net }));
+
+        });
+
+    }
+
+    #endregion
+
 
     private static Int32 GetFreeTcpPort()
     {
@@ -336,6 +526,147 @@ public class SunSpecModbusTLSTests
                              StringComparison.OrdinalIgnoreCase)
                    ? TLSValidationResult.Success()
                    : TLSValidationResult.Failed("The Modbus/TLS server certificate did not match the pinned test certificate!");
+
+    }
+
+    /// <summary>
+    /// A simulated SunSpec energy meter behind Hermod's Modbus/TLS frontend, on
+    /// a free loopback port and with a PKI of its own - and every request the
+    /// frontend saw, as it saw it.
+    /// </summary>
+    private sealed class SunSpecMeterServer : IAsyncDisposable
+    {
+
+        private readonly ModbusTlsFrontend        frontend;
+        private readonly CancellationTokenSource  frontendCts;
+        private readonly Task                     frontendTask;
+
+        public String                              PKIDirectory    { get; }
+        public Int32                               ListenPort      { get; }
+
+        /// <summary>
+        /// Every Modbus request the frontend saw, refused ones included.
+        /// </summary>
+        public ConcurrentQueue<ModbusRequestInfo>  Requests        { get; } = new();
+
+        private SunSpecMeterServer(String                   PKIDirectory,
+                                   Int32                    ListenPort,
+                                   ModbusTlsFrontend        Frontend,
+                                   CancellationTokenSource  FrontendCts)
+        {
+
+            this.PKIDirectory  = PKIDirectory;
+            this.ListenPort    = ListenPort;
+            this.frontend      = Frontend;
+            this.frontendCts   = FrontendCts;
+
+            frontend.OnModbusRequest += Requests.Enqueue;
+
+            this.frontendTask  = frontend.RunAsync(frontendCts.Token);
+
+        }
+
+        public static async Task<SunSpecMeterServer> StartAsync(SunSpecMeterDevice Meter)
+        {
+
+            var pkiDirectory  = Path.Combine(
+                                    TestContext.CurrentContext.WorkDirectory,
+                                    "SunSpecModbusTLS",
+                                    Guid.NewGuid().ToString("N")
+                                );
+
+            await new ModbusPKI().BuildPKI(pkiDirectory);
+
+            var listenPort    = GetFreeTcpPort();
+
+            var server        = new SunSpecMeterServer(
+                                    pkiDirectory,
+                                    listenPort,
+                                    new ModbusTlsFrontend(
+                                        new ModbusTlsFrontendOptions(
+                                            NetIPAddress.Loopback,
+                                            listenPort,
+                                            Path.Combine(pkiDirectory, "server.pfx"),
+                                            "demo",
+                                            Path.Combine(pkiDirectory, "issuing-clients-ca.crt"),
+                                            TimeSpan.FromSeconds(5),
+                                            TimeSpan.FromSeconds(5),
+                                            TimeSpan.FromSeconds(5)
+                                        ),
+                                        new SunSpecBackendFactory(Meter),
+                                        new AuthorizationPolicy(Meter),
+                                        new NUnitLogger<ModbusTlsFrontend>()
+                                    ),
+                                    new CancellationTokenSource(TimeSpan.FromSeconds(20))
+                                );
+
+            await WaitForListenerAsync(listenPort, server.frontendCts.Token);
+
+            return server;
+
+        }
+
+        /// <summary>
+        /// A Hermod Modbus/TLS client, connected with the client certificate
+        /// of the given SunSpec role.
+        /// </summary>
+        public async Task<HermodModbusTCPClient> ConnectAsync(String  Role,
+                                                              Int16   StartingAddressOffset,
+                                                              Byte    UnitAddress   = 1)
+        {
+
+            var expectedServerCertificate  = X509CertificateLoader.LoadCertificateFromFile(
+                                                 Path.Combine(PKIDirectory, "server.crt")
+                                             );
+
+            var clientCertificateChain     = LoadPkcs12CertificateChain(
+                                                 Path.Combine(PKIDirectory, $"client-{Role}.pfx"),
+                                                 "demo",
+                                                 "Issuing Clients CA"
+                                             );
+
+            var client                     = new HermodModbusTCPClient(
+                                                 IPv4Address.Localhost,
+                                                 IPPort.Parse(ListenPort),
+                                                 UnitAddress:                UnitAddress,
+                                                 StartingAddressOffset:      StartingAddressOffset,
+                                                 RemoteCertificateValidator: (sender,
+                                                                              serverCertificate,
+                                                                              serverCertificateChain,
+                                                                              modbusClient,
+                                                                              policyErrors) =>
+                                                                                  ValidatePinnedServerCertificate(
+                                                                                      serverCertificate,
+                                                                                      expectedServerCertificate
+                                                                                  ),
+                                                 ClientCert:                 clientCertificateChain[0],
+                                                 ClientCertificateChain:     clientCertificateChain,
+                                                 TLSProtocol:                SslProtocols.Tls12 | SslProtocols.Tls13,
+                                                 PreferIPv4:                 true,
+                                                 RequestTimeout:             TimeSpan.FromSeconds(5),
+                                                 MaxNumberOfRetries:         1
+                                             );
+
+            var connectResult              = await client.ReconnectAsync(frontendCts.Token);
+
+            Assert.That(connectResult.IsSuccess,
+                        Is.True,
+                        String.Join(", ", connectResult.Errors.Select(error => error.ToString())));
+
+            return client;
+
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+
+            await frontendCts.CancelAsync();
+            await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+
+            frontend.Dispose();
+            frontendCts.Dispose();
+
+        }
 
     }
 

@@ -827,6 +827,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         #endregion
 
 
+        #region (private) WireAddress(StartingAddress)
+
+        /// <summary>
+        /// The address a starting address goes on the wire as. Registers and
+        /// coils are numbered from 1 and addressed from 0, after the
+        /// StartingAddressOffset has been added - the arithmetic a read request
+        /// does, so that a write goes to the register which a read of the same
+        /// starting address returns.
+        /// </summary>
+        /// <param name="StartingAddress">A starting address, as the read and write methods take it.</param>
+        private UInt16 WireAddress(UInt16 StartingAddress)
+
+            => (UInt16) (StartingAddress + StartingAddressOffset - 1);
+
+        #endregion
+
         #region WriteSingleCoils         (StartingAddress, OnOff)
 
         /// <summary>
@@ -839,16 +855,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         {
 
             var header  = ModbusProtocol.CreateWriteHeader(NextInvocationId,
-                                                           StartingAddress,
+                                                           WireAddress(StartingAddress),
                                                            1,
                                                            1,
-                                                           FunctionCode.WriteSingleCoil);
+                                                           FunctionCode.WriteSingleCoil,
+                                                           UnitAddress);
 
-            if (OnOff == true)
-            {
-                header.Seek(10, SeekOrigin.Begin);
-                header.WriteByte(255);
-            }
+            // On is 0xFF00 and off is 0x0000: two bytes either way.
+            header.WriteByte(OnOff ? (Byte) 0xFF : (Byte) 0x00);
+            header.WriteByte(0x00);
 
             var response = await WriteAsyncData(header);
 
@@ -875,15 +890,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var header         = ModbusProtocol.CreateWriteHeader(
                                      NextInvocationId,
-                                     StartingAddress,
+                                     WireAddress(StartingAddress),
                                      NumberOfBits,
                                      (byte) (numberOfBytes + 2),
-                                     FunctionCode.WriteMultipleCoils
+                                     FunctionCode.WriteMultipleCoils,
+                                     UnitAddress
                                  );
 
             header.Write(Values,
-                         13,
-                         numberOfBytes);
+                         13);
 
             var response = await WriteAsyncData(header);
 
@@ -900,39 +915,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// </summary>
         /// <param name="StartingAddress">The starting address for writing the data.</param>
         /// <param name="Coils">The array of coils.</param>
-        public async Task<ModbusTCPResponse> WriteMultipleCoils(UInt16            StartingAddress,
-                                                                params Boolean[]  Coils)
+        public async Task<Byte[]> WriteMultipleCoils(UInt16            StartingAddress,
+                                                     params Boolean[]  Coils)
         {
 
-            var numberOfBits   = Coils.Length;
-            var numberOfBytes  = Convert.ToByte(Coils.Length);
-            var coils          = new Byte[numberOfBytes];
-            var bitPosition    = 0;
+            // Eight coils to a byte, the first one in its lowest bit
+            var coils = new Byte[(Coils.Length + 7) / 8];
 
-            for (var i=0; i<Coils.Length; i++)
+            for (var i = 0; i < Coils.Length; i++)
             {
                 if (Coils[i])
-                    coils[bitPosition / 8] |= (Byte) (1 << (bitPosition % 8));
+                    coils[i / 8] |= (Byte) (1 << (i % 8));
             }
 
-            var header         = ModbusProtocol.CreateWriteHeader(
-                                     NextInvocationId,
-                                     StartingAddress,
-                                     (UInt16) numberOfBits,
-                                     (Byte)  (numberOfBytes + 2),
-                                     FunctionCode.WriteMultipleCoils
-                                 );
-
-            header.Write(coils,
-                         13,
-                         numberOfBytes);
-
-
-            var response = new ModbusTCPResponse(null,
-                                                 null,
-                                                 await WriteAsyncData(header));
-
-            return response;
+            return await WriteMultipleCoils(StartingAddress,
+                                            (UInt16) Coils.Length,
+                                            coils);
 
         }
 
@@ -949,17 +947,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                                       Byte[]  Values)
         {
 
+            if (Values.Length != 2)
+                throw new ArgumentException("A register is two bytes!", nameof(Values));
+
             var header    = ModbusProtocol.CreateWriteHeader(
                                 NextInvocationId,
-                                StartingAddress,
+                                WireAddress(StartingAddress),
                                 1,
                                 1,
-                                FunctionCode.WriteSingleRegister
+                                FunctionCode.WriteSingleRegister,
+                                UnitAddress
                             );
 
             header.Write(Values,
-                         10,
-                         2);
+                         10);
 
             var response  = await WriteAsyncData(header);
 
@@ -987,14 +988,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var header    = ModbusProtocol.CreateWriteHeader(
                                 NextInvocationId,
-                                StartingAddress,
+                                WireAddress(StartingAddress),
                                 Convert.ToUInt16(numBytes / 2),
                                 Convert.ToByte  (numBytes + 2),
-                                FunctionCode.WriteMultipleRegister
+                                FunctionCode.WriteMultipleRegister,
+                                UnitAddress
                             );
 
             header.Write(Values,
                          13);
+
+            // An odd last byte fills its register up with a zero: the header
+            // above counts whole registers.
+            if (Values.Length % 2 > 0)
+                header.WriteByte(0x00);
 
             var response  = await WriteAsyncData(header);
 
@@ -1024,14 +1031,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var header         = ModbusProtocol.CreateReadWriteHeader(
                                      NextInvocationId,
-                                     StartReadAddress,
+                                     WireAddress(StartReadAddress),
                                      NumberOfInputs,
-                                     StartWriteAddress,
-                                     Convert.ToUInt16(numberOfBytes / 2)
+                                     WireAddress(StartWriteAddress),
+                                     Convert.ToUInt16(numberOfBytes / 2),
+                                     UnitAddress
                                  );
 
             header.Write(Values,
                          17);
+
+            if (Values.Length % 2 > 0)
+                header.WriteByte(0x00);
 
             var response       = await WriteAsyncData(header);
 
@@ -1255,31 +1266,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
 
 
-        // Write asynchronous data
-        private async Task<Byte[]> WriteAsyncData(MemoryStream write_data)
-        {
+        #region (private) ModbusStream()
 
-            //if ((tcpAsyCl is not null) && (tcpAsyCl.Connected))
-            //{
-            //    try
-            //    {
-            //        tcpAsyCl.BeginSend(write_data, 0, write_data.Length, SocketFlags.None, new AsyncCallback(OnSend), null);
-            //        tcpAsyCl.BeginReceive(tcpAsyClBuffer, 0, tcpAsyClBuffer.Length, SocketFlags.None, new AsyncCallback(OnReceive), tcpAsyCl);
-            //    }
-            //    catch (SystemException)
-            //    {
-            //        CallException(id, write_data[7], excExceptionConnectionLost);
-            //    }
-            //}
-            //else CallException(id, write_data[7], excExceptionConnectionLost);
-
-            await Task.Delay(500);
-
-            return [];
-
-        }
-
-        private async Task<Byte[]> WriteAsyncData(ModbusTCPRequest Request)
+        /// <summary>
+        /// The stream to the Modbus device, connected first when it is not.
+        /// </summary>
+        private async Task<Stream> ModbusStream()
         {
 
             if (!IsConnected ||
@@ -1293,7 +1285,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             }
 
-            var modbusStream = ActiveStream ?? throw new IOException("The Modbus/TCP stream could not be created!");
+            return ActiveStream ?? throw new IOException("The Modbus/TCP stream could not be created!");
+
+        }
+
+        #endregion
+
+        #region (private) WriteAsyncData(Frame)
+
+        /// <summary>
+        /// Send a request frame, and return the frame that answers it.
+        /// </summary>
+        /// <param name="Frame">A whole Modbus/TCP request frame.</param>
+        private async Task<Byte[]> WriteAsyncData(MemoryStream Frame)
+        {
+
+            var modbusStream = await ModbusStream().ConfigureAwait(false);
+
+            await modbusStream.WriteAsync(Frame.ToArray()).ConfigureAwait(false);
+            await modbusStream.FlushAsync().ConfigureAwait(false);
+
+            using var timeout = new CancellationTokenSource(RequestTimeout);
+
+            // Read by the length in the MBAP header, which counts everything
+            // after itself: exactly one response frame, and all of it.
+            var header = new Byte[7];
+
+            await modbusStream.ReadExactlyAsync(header, timeout.Token).ConfigureAwait(false);
+
+            var length = (header[4] << 8) | header[5];
+
+            if (length < 2)
+                throw new InvalidDataException($"The Modbus/TCP response length {length} is invalid!");
+
+            var response = new Byte[6 + length];
+            header.CopyTo(response, 0);
+
+            await modbusStream.ReadExactlyAsync(response.AsMemory(7), timeout.Token).ConfigureAwait(false);
+
+            return response;
+
+        }
+
+        #endregion
+
+        private async Task<Byte[]> WriteAsyncData(ModbusTCPRequest Request)
+        {
+
+            var modbusStream = await ModbusStream().ConfigureAwait(false);
 
             Request.LocalSocket   = LocalSocket  ?? IPSocket.Zero;
             Request.RemoteSocket  = RemoteSocket ?? IPSocket.Zero;
