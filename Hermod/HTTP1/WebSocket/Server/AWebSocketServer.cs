@@ -2318,18 +2318,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Shutdown(Message = null, Wait = true)
 
         /// <summary>
-        /// Shutdown the HTTP WebSocket listener.
+        /// Shutdown the HTTP WebSocket listener, telling every client so first.
         /// </summary>
-        /// <param name="Message">An optional shutdown message.</param>
+        /// <remarks>
+        /// Every connection is sent a close frame - 1001, going away, with the
+        /// message as its reason - before it ends. Close() sends one only where
+        /// it is given a status or a reason, and this used to give it neither,
+        /// so every client found out from a connection that broke rather than
+        /// from the server.
+        ///
+        /// All at once rather than one after another: a close frame is a send,
+        /// a send can hang, and each close gives up on it after
+        /// WebSocketServerConnection.DefaultCloseTimeout - which, one connection
+        /// after another, would add up.
+        /// </remarks>
+        /// <param name="Message">What every client is told, as the reason of its close frame; cut where it is longer than a close frame can carry.</param>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
         public async Task Shutdown(String?  Message   = null,
                                    Boolean  Wait      = true)
         {
 
-            foreach (var webSocketConnection in WebSocketConnections)
-                await webSocketConnection.Close();
+            var reason = CloseReason(Message);
+
+            await Task.WhenAll(
+                      WebSocketConnections.
+                          ToArray().
+                          Select(webSocketConnection => webSocketConnection.Close(
+                                                            WebSocketFrame.ClosingStatusCode.GoingAway,
+                                                            reason
+                                                        ))
+                  );
 
             await Stop();
+
+        }
+
+        /// <summary>
+        /// As much of a message as the reason of a close frame can carry.
+        /// </summary>
+        /// <remarks>
+        /// A close frame is a control frame, and a control frame's payload is at
+        /// most 125 bytes (RFC 6455, 5.5): two of status and 123 of reason. A
+        /// longer reason makes a frame the client has to fail the connection
+        /// over, so it is cut to fit - where a character ends, because half a
+        /// character is no UTF-8 either.
+        /// </remarks>
+        private static String? CloseReason(String? Message)
+        {
+
+            if (Message is null)
+                return null;
+
+            var bytes   = 0;
+            var length  = 0;
+
+            foreach (var rune in Message.EnumerateRunes())
+            {
+
+                if (bytes + rune.Utf8SequenceLength > 123)
+                    break;
+
+                bytes  += rune.Utf8SequenceLength;
+                length += rune.Utf16SequenceLength;
+
+            }
+
+            return Message[..length];
 
         }
 
