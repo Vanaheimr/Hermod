@@ -60,11 +60,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #region Constructor(s)
 
-        public AWebSocketTLSServerTests(IPPort                HTTPPort,
-                                        IEnumerable<String>?  SecWebSocketProtocols   = null)
+        public AWebSocketTLSServerTests(IEnumerable<String>?  SecWebSocketProtocols   = null)
         {
 
-            this.HTTPPort               = HTTPPort;
             this.SecWebSocketProtocols  = SecWebSocketProtocols;
 
             // Root CA
@@ -122,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             webSocketServer = new WebSocketMirrorServer(
 
-                                  HTTPPort:                    HTTPPort,
+                                  HTTPPort:                    IPPort.Zero,
 
                                   // Without this the "TLS" fixture served plain HTTP while its
                                   // clients spoke TLS, so every test here timed out waiting for a
@@ -137,6 +135,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                   AutoStart:                   true
 
                               );
+
+            // The port the system picked: the tests reach the server on it.
+            HTTPPort        = webSocketServer.IPPort;
 
         }
 

@@ -42,13 +42,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
-        #region (helper) StartServer(Port, Strict)
+        #region (helper) StartServer(Strict)
 
-        private WebSocketMirrorServer StartServer(IPPort Port, Boolean Strict)
+        private WebSocketMirrorServer StartServer(Boolean Strict)
         {
 
             server = new WebSocketMirrorServer(
-                         HTTPPort:               Port,
+                         HTTPPort:               IPPort.Zero,
                          SecWebSocketProtocols:  [ "ocpp2.1", "ocpp2.0.1" ],
                          AutoStart:              true
                      );
@@ -79,8 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Strict_NoMatchingSubprotocol_Rejects400()
         {
 
-            var port    = IPPort.Parse(1141);
-            StartServer(port, Strict: true);
+            var port    = StartServer(Strict: true).IPPort;
 
             var client  = new WebSocketClient(
                               URL.Parse($"ws://127.0.0.1:{port}"),
@@ -101,8 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Strict_MatchingSubprotocol_Upgrades101()
         {
 
-            var port    = IPPort.Parse(1142);
-            StartServer(port, Strict: true);
+            var port    = StartServer(Strict: true).IPPort;
 
             var client  = new WebSocketClient(
                               URL.Parse($"ws://127.0.0.1:{port}"),
@@ -128,8 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             // Default behaviour (RFC 6455 Section 4.1): complete the handshake
             // without a 'Sec-WebSocket-Protocol' header even if nothing matched.
-            var port    = IPPort.Parse(1143);
-            StartServer(port, Strict: false);
+            var port    = StartServer(Strict: false).IPPort;
 
             var client  = new WebSocketClient(
                               URL.Parse($"ws://127.0.0.1:{port}"),

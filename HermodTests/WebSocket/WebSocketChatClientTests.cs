@@ -33,14 +33,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     public class WebSocketChatClientTests : AWebSocketChatServerTests
     {
 
-        #region Constructor(s)
-
-        public WebSocketChatClientTests()
-            : base(IPPort.Parse(2001))
-        { }
-
-        #endregion
-
         #region Test_ChatClients()
 
         [Test]

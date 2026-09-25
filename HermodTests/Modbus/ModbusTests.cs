@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
         {
 
             ModbusTCPServer = new ModbusTCPServer(
-                                  TCPPort:   IPPort.Parse(24694),
+                                  TCPPort:   IPPort.Zero,
                                   AutoStart: true
                               );
 
@@ -130,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
 
             };
 
-            var tcpClient = new TcpClient("127.0.0.1", 24694);
+            var tcpClient = new TcpClient("127.0.0.1", ModbusTCPServer.TCPPort.ToInt32());
             var tcpStream = tcpClient.GetStream();
 
             await tcpStream.WriteAsync(new Byte[12] {
@@ -203,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
             };
 
             var client = new ModbusTCPClient(IPv4Address.Localhost,
-                                             IPPort.Parse(24694),
+                                             ModbusTCPServer.TCPPort,
                                              StartingAddressOffset: 0);
 
             var response = await client.ReadHoldingRegisters(9, 4);

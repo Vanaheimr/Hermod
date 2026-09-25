@@ -36,11 +36,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         protected IPPort                HTTPPort;
         protected IEnumerable<String>?  SecWebSocketProtocols;
 
-        public AWebSocketChatServerTests(IPPort                HTTPPort,
-                                         IEnumerable<String>?  SecWebSocketProtocols   = null)
+        public AWebSocketChatServerTests(IEnumerable<String>?  SecWebSocketProtocols   = null)
         {
 
-            this.HTTPPort               = HTTPPort;
             this.SecWebSocketProtocols  = SecWebSocketProtocols;
 
         }
@@ -54,10 +52,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             webSocketChatServer = new WebSocketChatServer(
-                                      HTTPPort:               HTTPPort,
+                                      HTTPPort:               IPPort.Zero,
                                       SecWebSocketProtocols:  SecWebSocketProtocols,
                                       AutoStart:              true
                                   );
+
+            // The port the system picked: the tests reach the server on it.
+            HTTPPort            = webSocketChatServer.IPPort;
 
         }
 

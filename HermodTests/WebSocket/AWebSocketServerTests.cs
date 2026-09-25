@@ -27,14 +27,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     /// <summary>
     /// Hermod HTTP WebSocket server tests endpoints.
     /// </summary>
-    public abstract class AWebSocketServerTests(IPPort                HTTPPort,
-                                                IEnumerable<String>?  SecWebSocketProtocols   = null)
+    public abstract class AWebSocketServerTests(IEnumerable<String>?  SecWebSocketProtocols   = null)
     {
 
         #region Data
 
         protected WebSocketMirrorServer?  webSocketServer;
-        protected IPPort                  HTTPPort               = HTTPPort;
+        protected IPPort                  HTTPPort;
         protected IEnumerable<String>?    SecWebSocketProtocols  = SecWebSocketProtocols;
 
         #endregion
@@ -46,10 +45,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             webSocketServer = new WebSocketMirrorServer(
-                                  HTTPPort:               HTTPPort,
+                                  HTTPPort:               IPPort.Zero,
                                   SecWebSocketProtocols:  SecWebSocketProtocols,
                                   AutoStart:              true
                               );
+
+            // The port the system picked: the tests reach the server on it.
+            HTTPPort        = webSocketServer.IPPort;
 
         }
 
