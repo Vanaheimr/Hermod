@@ -33,14 +33,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     public class WebSocketClientTests : AWebSocketServerTests
     {
 
-        #region Constructor(s)
-
-        public WebSocketClientTests()
-            : base(IPPort.Parse(1101))
-        { }
-
-        #endregion
-
         #region Test_AnonymousAccess()
 
         [Test]

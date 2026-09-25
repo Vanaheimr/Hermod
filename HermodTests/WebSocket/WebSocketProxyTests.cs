@@ -33,17 +33,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     public class WebSocketProxyTests : AWebSocketProxyTests
     {
 
-        #region Constructor(s)
-
-        public WebSocketProxyTests()
-
-            : base(IPPort.Parse(2002),
-                   IPPort.Parse(2001))
-
-        { }
-
-        #endregion
-
         #region Test_Proxy()
 
         [Test]

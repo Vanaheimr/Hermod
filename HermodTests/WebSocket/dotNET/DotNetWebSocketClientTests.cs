@@ -37,14 +37,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     public class DotNetWebSocketClientTests : AWebSocketServerTests
     {
 
-        #region Constructor(s)
-
-        public DotNetWebSocketClientTests()
-            : base(IPPort.Parse(10111))
-        { }
-
-        #endregion
-
         #region Test_AnonymousAccess()
 
         [Test]

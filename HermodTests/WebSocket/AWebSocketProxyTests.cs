@@ -40,15 +40,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         protected IPPort                HTTPPortServer;
         protected IEnumerable<String>?  SecWebSocketProtocols;
 
-        public AWebSocketProxyTests(IPPort                HTTPPortProxy,
-
-                                    IPPort                HTTPPortServer,
-                                    IEnumerable<String>?  SecWebSocketProtocols   = null)
+        public AWebSocketProxyTests(IEnumerable<String>?  SecWebSocketProtocols   = null)
         {
 
-            this.HTTPPortProxy          = HTTPPortProxy;
-
-            this.HTTPPortServer         = HTTPPortServer;
             this.SecWebSocketProtocols  = SecWebSocketProtocols;
 
         }
@@ -62,19 +56,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             webSocketServer  = new WebSocketMirrorServer(
-                                   HTTPPort:                HTTPPortServer,
+                                   HTTPPort:                IPPort.Zero,
                                    SecWebSocketProtocols:   SecWebSocketProtocols,
                                    AutoStart:               true
                                );
+
+            // The ports the system picked: the proxy reaches the server on the
+            // one, the tests reach the proxy on the other.
+            HTTPPortServer   = webSocketServer.IPPort;
 
             webSocketProxy   = new WebSocketProxy(
                                    UpstreamServerURL:       URL.Parse($"ws://127.0.0.1:{HTTPPortServer}"),
                                    AutoConnect:             true,
 
-                                   HTTPPort:                HTTPPortProxy,
+                                   HTTPPort:                IPPort.Zero,
                                    SecWebSocketProtocols:   SecWebSocketProtocols,
                                    AutoStart:               true
                                );
+
+            HTTPPortProxy    = webSocketProxy.IPPort;
 
         }
 

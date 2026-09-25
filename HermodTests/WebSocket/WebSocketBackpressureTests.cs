@@ -60,8 +60,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Backpressure_MessageExceedsLimit_DropsMessage()
         {
 
-            var port    = IPPort.Parse(1147);
-            server      = new WebSocketMirrorServer(HTTPPort: port, AutoStart: true);
+            server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            var port    = server.IPPort;
 
             var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {
                               MaxBackpressure        = 4,   // any real frame is larger
@@ -84,8 +84,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Backpressure_MessageExceedsLimit_ClosesConnection()
         {
 
-            var port    = IPPort.Parse(1148);
-            server      = new WebSocketMirrorServer(HTTPPort: port, AutoStart: true);
+            server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            var port    = server.IPPort;
 
             var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {
                               MaxBackpressure        = 4,
@@ -108,8 +108,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Backpressure_UnderLimit_Succeeds()
         {
 
-            var port    = IPPort.Parse(1149);
-            server      = new WebSocketMirrorServer(HTTPPort: port, AutoStart: true);
+            server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            var port    = server.IPPort;
 
             var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {
                               MaxBackpressure        = 1024 * 1024,   // generous

@@ -42,13 +42,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
-        #region (helper) StartServer(Port, AllowedOrigins)
+        #region (helper) StartServer(AllowedOrigins)
 
-        private WebSocketMirrorServer StartServer(IPPort Port, params String[] AllowedOrigins)
+        private WebSocketMirrorServer StartServer(params String[] AllowedOrigins)
         {
 
             server = new WebSocketMirrorServer(
-                         HTTPPort:   Port,
+                         HTTPPort:   IPPort.Zero,
                          AutoStart:  true
                      );
 
@@ -79,8 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Origin_NotInAllowList_Rejects403()
         {
 
-            var port    = IPPort.Parse(1144);
-            StartServer(port, "https://good.example");
+            var port    = StartServer("https://good.example").IPPort;
 
             var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
 
@@ -100,8 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Origin_InAllowList_Upgrades101()
         {
 
-            var port    = IPPort.Parse(1145);
-            StartServer(port, "https://good.example");
+            var port    = StartServer("https://good.example").IPPort;
 
             var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
 
@@ -123,8 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             // Non-browser clients (e.g. OCPP charging stations) send no Origin header
             // and must still be accepted even when an allow-list is configured.
-            var port    = IPPort.Parse(1146);
-            StartServer(port, "https://good.example");
+            var port    = StartServer("https://good.example").IPPort;
 
             var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
 
