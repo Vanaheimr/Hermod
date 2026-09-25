@@ -3189,6 +3189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static NotificationMessageType addPassword_MessageType                         = NotificationMessageType.Parse("addPassword");
         public static NotificationMessageType changePassword_MessageType                      = NotificationMessageType.Parse("changePassword");
         public static NotificationMessageType resetPassword_MessageType                       = NotificationMessageType.Parse("resetPassword");
+        public static NotificationMessageType removePassword_MessageType                      = NotificationMessageType.Parse("removePassword");
         public static NotificationMessageType addToPasswordFile                               = NotificationMessageType.Parse("add");
         public static NotificationMessageType removeFromPasswordFile                          = NotificationMessageType.Parse("remove");
 
@@ -11952,6 +11953,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #endregion
 
+                                    #region removePassword
+
+                                    // Written when the user is deleted. Without it the password
+                                    // outlived its account: an account created again under the
+                                    // same login signed in with it, and the "addPassword" of that
+                                    // new account was refused above, as the login had one already.
+                                    case "removePassword":
+
+                                        loginPasswords.TryRemove(login, out _);
+
+                                        break;
+
+                                    #endregion
+
                                     default:
                                         DebugX.Log($"Unknown command '{jsonCommand}' in password file '{HTTPAPIPath + DefaultPasswordFile}' line {linenumber}!");
                                         break;
@@ -12580,14 +12595,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         user = user2;
 
+                        // Out of its groups and organizations, off both ends. A
+                        // deletion writes a line for each membership before this
+                        // one and leaves nothing here to do; but a database written
+                        // before it did would hand the memberships of the deleted
+                        // account to the next one created under the same id.
                         if (users.TryGetValue(user.Id, out var __User))
-                        {
-
-                            // this --edge--> organization
-                            foreach (var edge in __User.User2Organization_OutEdges.ToArray())
-                                edge.Target.RemoveUser(edge);
-
-                        }
+                            TakeOutOfAllGroupsAndOrganizations(__User);
 
                         users.TryRemove(user.Id, out _);
 
@@ -16789,10 +16803,239 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (private) UserGroupMembershipsOf   (User)
+
+        /// <summary>
+        /// The user groups the given user is in, each with the label of its
+        /// edge: from the user's edges and from the groups' edges alike.
+        /// </summary>
+        /// <remarks>
+        /// The groups are asked by the user's identification, as IsMember
+        /// asks them. So what a group still holds of an earlier object of this
+        /// user, or holds without the user holding it too, is found as well.
+        /// </remarks>
+        /// <param name="User">A user.</param>
+        private (UserGroup_Id, User2UserGroupEdgeLabel)[] UserGroupMembershipsOf(IUser User)
+
+            => [.. User.User2Group_OutEdges.
+                        Select(edge => (edge.Target.Id, edge.EdgeLabel)).
+                        Concat(userGroups.Values.
+                                          SelectMany(userGroup => userGroup.EdgeLabels(User).
+                                                                            Select(edgeLabel => (userGroup.Id, edgeLabel)))).
+                        Distinct()];
+
+        #endregion
+
+        #region (private) OrganizationMembershipsOf(User)
+
+        /// <summary>
+        /// The organizations the given user is in, each with the label of its
+        /// edge: from the user's edges and from the organizations' edges alike.
+        /// </summary>
+        /// <remarks>
+        /// By the user's identification, as <see cref="UserGroupMembershipsOf"/>.
+        /// </remarks>
+        /// <param name="User">A user.</param>
+        private (Organization_Id, User2OrganizationEdgeLabel)[] OrganizationMembershipsOf(IUser User)
+
+            => [.. User.User2Organization_OutEdges.
+                        Select(edge => (edge.Target.Id, edge.EdgeLabel)).
+                        Concat(organizations.Values.
+                                             SelectMany(organization => organization.User2OrganizationInEdges(User).
+                                                                                     Select(edge => (organization.Id, edge.EdgeLabel)))).
+                        Distinct()];
+
+        #endregion
+
+        #region (private) TakeOutOfUserGroup       (User, UserGroupId,    EdgeLabel)
+
+        /// <summary>
+        /// Take the given membership off both ends: off the user, and off the
+        /// group, which is what IsMember asks.
+        /// </summary>
+        /// <param name="User">A user.</param>
+        /// <param name="UserGroupId">The user group to take the user out of.</param>
+        /// <param name="EdgeLabel">The label of the edges to take off.</param>
+        private void TakeOutOfUserGroup(IUser                    User,
+                                        UserGroup_Id             UserGroupId,
+                                        User2UserGroupEdgeLabel  EdgeLabel)
+        {
+
+            foreach (var edge in User.User2Group_OutEdges.
+                                      Where(edge => edge.EdgeLabel == EdgeLabel &&
+                                                    edge.Target.Id.Equals(UserGroupId)).
+                                      ToArray())
+            {
+                User.RemoveOutEdge(edge);
+            }
+
+            if (userGroups.TryGetValue(UserGroupId, out var userGroup))
+                userGroup.RemoveUser(EdgeLabel, User);
+
+        }
+
+        #endregion
+
+        #region (private) TakeOutOfOrganization    (User, OrganizationId, EdgeLabel)
+
+        /// <summary>
+        /// Take the given membership off both ends: off the user, and off the
+        /// organization.
+        /// </summary>
+        /// <param name="User">A user.</param>
+        /// <param name="OrganizationId">The organization to take the user out of.</param>
+        /// <param name="EdgeLabel">The label of the edges to take off.</param>
+        private void TakeOutOfOrganization(IUser                       User,
+                                           Organization_Id             OrganizationId,
+                                           User2OrganizationEdgeLabel  EdgeLabel)
+        {
+
+            foreach (var edge in User.User2Organization_OutEdges.
+                                      Where(edge => edge.EdgeLabel == EdgeLabel &&
+                                                    edge.Target.Id.Equals(OrganizationId)).
+                                      ToArray())
+            {
+                User.RemoveOutEdge(edge);
+            }
+
+            if (organizations.TryGetValue(OrganizationId, out var organization))
+                organization.RemoveUser(EdgeLabel, User);
+
+        }
+
+        #endregion
+
+        #region (private) TakeOutOfAllGroupsAndOrganizations(User)
+
+        /// <summary>
+        /// Take the given user out of every user group and organization it is
+        /// in, off both ends of each edge, and write nothing: what the replay
+        /// of a "deleteUser" line does.
+        /// </summary>
+        /// <param name="User">A user.</param>
+        private void TakeOutOfAllGroupsAndOrganizations(IUser User)
+        {
+
+            foreach (var (userGroupId, edgeLabel) in UserGroupMembershipsOf(User))
+                TakeOutOfUserGroup(User, userGroupId, edgeLabel);
+
+            foreach (var (organizationId, edgeLabel) in OrganizationMembershipsOf(User))
+                TakeOutOfOrganization(User, organizationId, edgeLabel);
+
+        }
+
+        #endregion
+
+        #region (private) RemoveAllMemberships(User, EventTrackingId, CurrentUserId)
+
+        /// <summary>
+        /// Take the given user out of every user group and organization it is
+        /// in, off both ends of each edge, with a line for each membership in
+        /// the database file - the same lines taking a user out of a group or
+        /// an organization writes, and the replay takes them off both ends
+        /// again.
+        /// </summary>
+        /// <remarks>
+        /// What was left of a deleted user in its groups made the next account
+        /// created under the same id a member at once - of an administrators
+        /// group, say - since a group finds its members by their id.
+        ///
+        /// Takes the user group and the organization locks itself, after the
+        /// users lock the caller holds, in the order every membership change
+        /// takes them; and gives them back before anybody hears of the
+        /// deletion, as a handler may well ask a group about something.
+        /// </remarks>
+        /// <param name="User">The user to be deleted.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
+        /// <returns>False, and nothing taken off, when the locks could not be had.</returns>
+        private async Task<Boolean> RemoveAllMemberships(IUser             User,
+                                                         EventTracking_Id  EventTrackingId,
+                                                         User_Id?          CurrentUserId)
+        {
+
+            if (!await UserGroupsSemaphore.WaitAsync(SemaphoreSlimTimeout))
+                return false;
+
+            try
+            {
+
+                if (!await OrganizationsSemaphore.WaitAsync(SemaphoreSlimTimeout))
+                    return false;
+
+                try
+                {
+
+                    foreach (var (userGroupId, edgeLabel) in UserGroupMembershipsOf(User))
+                    {
+
+                        await WriteToDatabaseFile(
+                                  removeUserFromUserGroup_MessageType,
+                                  new JObject(
+                                      new JProperty("userId",       User.Id.    ToString()),
+                                      new JProperty("edgeLabel",    edgeLabel.  ToString()),
+                                      new JProperty("userGroupId",  userGroupId.ToString())
+                                  ),
+                                  EventTrackingId,
+                                  CurrentUserId
+                              );
+
+                        TakeOutOfUserGroup(User, userGroupId, edgeLabel);
+
+                    }
+
+                    foreach (var (organizationId, edgeLabel) in OrganizationMembershipsOf(User))
+                    {
+
+                        await WriteToDatabaseFile(
+                                  removeUserFromOrganization_MessageType,
+                                  new JObject(
+                                      new JProperty("user",          User.Id.       ToString()),
+                                      new JProperty("edge",          edgeLabel.     ToString()),
+                                      new JProperty("organization",  organizationId.ToString())
+                                  ),
+                                  EventTrackingId,
+                                  CurrentUserId
+                              );
+
+                        TakeOutOfOrganization(User, organizationId, edgeLabel);
+
+                    }
+
+                    return true;
+
+                }
+                finally
+                {
+                    try
+                    {
+                        OrganizationsSemaphore.Release();
+                    }
+                    catch
+                    { }
+                }
+
+            }
+            finally
+            {
+                try
+                {
+                    UserGroupsSemaphore.Release();
+                }
+                catch
+                { }
+            }
+
+        }
+
+        #endregion
+
         #region (protected internal) deleteUser(User, SkipUserDeletedNotifications = false, OnDeleted = null, ...)
 
         /// <summary>
-        /// Delete the given user.
+        /// Delete the given user, and with it its password and its memberships
+        /// in user groups and organizations: an account created later under the
+        /// same id starts without any of them.
         /// </summary>
         /// <param name="User">The user to be deleted.</param>
         /// <param name="OnDeleted">A delegate run whenever the user has been deleted successfully.</param>
@@ -16844,6 +17087,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var parentOrganizations = User.ParentOrganizations().
                                            ToArray();
 
+            // Out of its groups and organizations first, while the user is
+            // still there for the replay to find when it reads these lines.
+            if (!await RemoveAllMemberships(User, eventTrackingId, CurrentUserId))
+                return DeleteUserResult.LockTimeout(
+                           User,
+                           SemaphoreSlimTimeout,
+                           eventTrackingId,
+                           SystemId,
+                           this
+                       );
+
             await WriteToDatabaseFile(
                       deleteUser_MessageType,
                       User.ToJSON(false),
@@ -16856,6 +17110,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             users.TryRemove(User.Id, out _);
+
+            // And its password, which is kept by login: left there, it was
+            // the password of the next account created under the same id,
+            // and that account could not be given one of its own without it.
+            if (loginPasswords.ContainsKey(User.Id))
+            {
+
+                await WriteToDatabaseFile(
+                          HTTPAPIPath + DefaultPasswordFile,
+                          removePassword_MessageType,
+                          new JObject(
+                              new JProperty("login",  User.Id.ToString())
+                          ),
+                          eventTrackingId,
+                          CurrentUserId
+                      );
+
+                loginPasswords.TryRemove(User.Id, out _);
+
+            }
 
             OnDeleted?.Invoke(User,
                               eventTrackingId);
@@ -16893,8 +17167,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region DeleteUser                      (User, SkipUserDeletedNotifications = false, OnDeleted = null, ...)
 
         /// <summary>
-        /// Delete the given user.
+        /// Delete the given user, and with it its password and its memberships
+        /// in user groups and organizations: an account created later under the
+        /// same id starts without any of them.
         /// </summary>
+        /// <remarks>
+        /// A user who is still in an organization is not deleted at all, unless
+        /// canDeleteUser is overridden to allow it.
+        /// </remarks>
         /// <param name="User">The user to be deleted.</param>
         /// <param name="OnDeleted">A delegate run whenever the user has been deleted successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
