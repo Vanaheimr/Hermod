@@ -165,6 +165,153 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
+
+        #region RetryAfter_InSeconds_Test()
+
+        [Test]
+        public void RetryAfter_InSeconds_Test()
+        {
+
+            var now = DateTimeOffset.UtcNow;
+
+            Assert.Multiple(() => {
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter("120",  now), Is.EqualTo(TimeSpan.FromSeconds(120)));
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter(" 7 ",  now), Is.EqualTo(TimeSpan.FromSeconds(7)));
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter("0",    now), Is.EqualTo(TimeSpan.Zero));
+            });
+
+        }
+
+        #endregion
+
+        #region RetryAfter_AsADate_InAllThreeForms_Test()
+
+        /// <summary>
+        /// RFC 9110, section 5.6.7: a recipient takes all three forms of an HTTP date -
+        /// the one that is sent now, and the two that older servers still send.
+        /// </summary>
+        [Test]
+        public void RetryAfter_AsADate_InAllThreeForms_Test()
+        {
+
+            var now = new DateTimeOffset(1994, 11, 6, 8, 49, 0, TimeSpan.Zero);
+
+            Assert.Multiple(() => {
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter("Sun, 06 Nov 1994 08:49:37 GMT",   now), Is.EqualTo(TimeSpan.FromSeconds(37)), "IMF-fixdate");
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter("Sunday, 06-Nov-94 08:49:37 GMT",  now), Is.EqualTo(TimeSpan.FromSeconds(37)), "RFC 850");
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter("Sun Nov  6 08:49:37 1994",        now), Is.EqualTo(TimeSpan.FromSeconds(37)), "asctime");
+            });
+
+        }
+
+        #endregion
+
+        #region RetryAfter_InThePast_IsNothingToWaitFor_Test()
+
+        [Test]
+        public void RetryAfter_InThePast_IsNothingToWaitFor_Test()
+        {
+
+            Assert.That(WebSocketClientReconnectPolicy.RetryAfter("Sun, 06 Nov 1994 08:49:37 GMT",
+                                                                  new DateTimeOffset(1994, 11, 6, 9, 0, 0, TimeSpan.Zero)),
+                        Is.EqualTo(TimeSpan.Zero));
+
+        }
+
+        #endregion
+
+        #region RetryAfter_Nonsense_IsNoRetryAfter_Test()
+
+        [Test]
+        public void RetryAfter_Nonsense_IsNoRetryAfter_Test()
+        {
+
+            var now = DateTimeOffset.UtcNow;
+
+            Assert.Multiple(() => {
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter(null,                now), Is.Null);
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter("",                  now), Is.Null);
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter("soon",              now), Is.Null);
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter("-5",                now), Is.Null);
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter("1.5",               now), Is.Null);
+                Assert.That(WebSocketClientReconnectPolicy.RetryAfter("Sun, 06 Nov 1994",  now), Is.Null);
+            });
+
+        }
+
+        #endregion
+
+        #region DelayForAttempt_WaitsForRetryAfter_Test()
+
+        /// <summary>
+        /// The later of the backoff and the Retry-After, and nothing asked for
+        /// when nothing was said.
+        /// </summary>
+        [Test]
+        public void DelayForAttempt_WaitsForRetryAfter_Test()
+        {
+
+            var policy = new WebSocketClientReconnectPolicy(
+                             InitialDelay:   TimeSpan.FromSeconds(1),
+                             JitterRatio:    0.0
+                         );
+
+            Assert.Multiple(() => {
+                Assert.That(policy.DelayForAttempt(1, TimeSpan.FromSeconds(10)),          Is.EqualTo(TimeSpan.FromSeconds(10)));
+                Assert.That(policy.DelayForAttempt(1, TimeSpan.FromMilliseconds(500)),    Is.EqualTo(TimeSpan.FromSeconds(1)),
+                            "A Retry-After shorter than the backoff hurried the client.");
+                Assert.That(policy.DelayForAttempt(1, null),                              Is.EqualTo(TimeSpan.FromSeconds(1)));
+                Assert.That(policy.DelayForAttempt(3, TimeSpan.Zero),                     Is.EqualTo(TimeSpan.FromSeconds(4)));
+            });
+
+        }
+
+        #endregion
+
+        #region DelayForAttempt_RetryAfter_IsCapped_Test()
+
+        [Test]
+        public void DelayForAttempt_RetryAfter_IsCapped_Test()
+        {
+
+            var capped   = new WebSocketClientReconnectPolicy(JitterRatio: 0.0, MaxRetryAfter: TimeSpan.FromSeconds(60));
+            var ignoring = new WebSocketClientReconnectPolicy(JitterRatio: 0.0, MaxRetryAfter: TimeSpan.Zero);
+
+            Assert.Multiple(() => {
+                Assert.That(new WebSocketClientReconnectPolicy().MaxRetryAfter,  Is.EqualTo(TimeSpan.FromMinutes(5)));
+                Assert.That(capped.  DelayForAttempt(1, TimeSpan.FromHours(1)),  Is.EqualTo(TimeSpan.FromSeconds(60)));
+                Assert.That(ignoring.DelayForAttempt(1, TimeSpan.FromHours(1)),  Is.EqualTo(TimeSpan.FromSeconds(1)),
+                            "A policy that allows no Retry-After waited for one.");
+            });
+
+        }
+
+        #endregion
+
+        #region DelayForAttempt_RetryAfter_JitterOnlyAfterIt_Test()
+
+        /// <summary>
+        /// Never earlier than the server asked, and spread out after it: every
+        /// client it turned away was told the same moment.
+        /// </summary>
+        [Test]
+        public void DelayForAttempt_RetryAfter_JitterOnlyAfterIt_Test()
+        {
+
+            var policy  = new WebSocketClientReconnectPolicy(JitterRatio: 0.2);
+            var delays  = Enumerable.Range(0, 1000).Select(_ => policy.DelayForAttempt(1, TimeSpan.FromSeconds(10)).TotalSeconds).ToArray();
+
+            Assert.Multiple(() => {
+                Assert.That(delays.Min(), Is.GreaterThanOrEqualTo(10.0));
+                Assert.That(delays.Max(), Is.LessThanOrEqualTo(  12.0 + 0.001));
+                Assert.That(delays.Max() - delays.Min(), Is.GreaterThan(1.0),
+                            "Every client told the same moment would come back at the same moment.");
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

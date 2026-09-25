@@ -1131,6 +1131,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     HTTPRequest?  httpRequest   = null;
                     HTTPResponse? httpResponse  = null;
 
+                    // How long a server that turned this attempt away for now asked
+                    // to be left alone, where it said.
+                    TimeSpan?     retryAfter    = null;
+
                     try
                     {
 
@@ -1241,9 +1245,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             // service is restarting, a server busy or not up yet - has not said
                             // no, and where a reconnect policy says so this is a loss to come
                             // back from. Anything else is an answer, and ends the attempts.
+                            //
+                            // One that says when to come back is taken at its word: the next
+                            // attempt is not made before then. Coming back sooner only asks
+                            // again the thing that has just said it cannot answer yet.
                             if (ReconnectPolicy is not null &&
                                 IsTemporaryRefusal(httpResponse.HTTPStatusCode))
-                                connectionLost = true;
+                            {
+                                connectionLost  = true;
+                                retryAfter      = WebSocketClientReconnectPolicy.RetryAfter(
+                                                      httpResponse.RetryAfter,
+                                                      httpResponse.Date ?? Timestamp.Now
+                                                  );
+                            }
                             else
                                 networkingCancellationTokenSource.Cancel();
 
@@ -2109,14 +2123,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         ClientCloseMessage  = null;
                         connectionLost      = false;
 
-                        var reconnectDelay = reconnectPolicy.DelayForAttempt(ReconnectAttempts);
+                        var reconnectDelay = reconnectPolicy.DelayForAttempt(ReconnectAttempts, retryAfter);
 
-                        Logger.LogInformation(
-                            "HTTP WebSocket connection to '{RemoteURL}' lost; reconnect attempt {Attempt} in {Delay:F1}s.",
-                            RemoteURL,
-                            ReconnectAttempts,
-                            reconnectDelay.TotalSeconds
-                        );
+                        if (retryAfter.HasValue)
+                            Logger.LogInformation(
+                                "HTTP WebSocket connection to '{RemoteURL}' lost; reconnect attempt {Attempt} in {Delay:F1}s, the server having asked for {RetryAfter:F1}s.",
+                                RemoteURL,
+                                ReconnectAttempts,
+                                reconnectDelay.TotalSeconds,
+                                retryAfter.Value.TotalSeconds
+                            );
+
+                        else
+                            Logger.LogInformation(
+                                "HTTP WebSocket connection to '{RemoteURL}' lost; reconnect attempt {Attempt} in {Delay:F1}s.",
+                                RemoteURL,
+                                ReconnectAttempts,
+                                reconnectDelay.TotalSeconds
+                            );
 
                         await LogEvent(
                                   OnReconnecting,

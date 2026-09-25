@@ -43,6 +43,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     /// after the backoff. Anything else - a 401, a 404 - still ends it: a
     /// client that is not wanted there is not helped by asking again every
     /// thirty seconds.
+    ///
+    /// And a server that says when to come back, in a Retry-After, is not
+    /// asked again before then - up to what the policy allows.
     /// </remarks>
     [TestFixture]
     public class WebSocketClientReconnectThroughRefusalsTests
@@ -149,19 +152,170 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         #endregion
 
 
+        #region AClientWaitsAsLongAsARetryAfterAsksInSeconds()
+
+        /// <summary>
+        /// A 503 that says "Retry-After: 2" is not asked again for two seconds -
+        /// by a client whose own backoff would have asked again after a fifth of
+        /// one.
+        /// </summary>
+        /// <remarks>
+        /// The client read the status and not the header, so a server that said
+        /// when it would be ready was asked again at the client's own pace -
+        /// the thing it was asking not to happen, times every client it had.
+        /// </remarks>
+        [Test]
+        public async Task AClientWaitsAsLongAsARetryAfterAsksInSeconds()
+        {
+
+            var port   = FreePort();
+            var asked  = new List<DateTimeOffset>();
+
+            await ConnectAndLoseIt(port);
+
+            StartAgain(port, request => {
+                lock (asked)
+                {
+
+                    asked.Add(DateTimeOffset.UtcNow);
+
+                    return asked.Count == 1
+                               ? new HTTPResponse.Builder(request) {
+                                     HTTPStatusCode  = HTTPStatusCode.ServiceUnavailable,
+                                     RetryAfter      = "2",
+                                     Connection      = ConnectionType.Close
+                                 }
+                               : null;
+
+                }
+            });
+
+            Assert.That(await Upgraded(TimeSpan.FromSeconds(10)), Is.True,
+                        "The client did not come back after the server had asked for two seconds.");
+
+            var gap = Gap(asked);
+
+            Assert.That(gap, Is.GreaterThanOrEqualTo(TimeSpan.FromSeconds(1.9)),
+                        $"Asked to come back in two seconds, the client came back after {gap.TotalSeconds:F2} s.");
+
+        }
+
+        #endregion
+
+        #region AClientWaitsAsLongAsARetryAfterAsksAsADate()
+
+        /// <summary>
+        /// The same, said as a date - counted from the server's own Date, so
+        /// that a client whose clock is off still waits as long as it was asked
+        /// to.
+        /// </summary>
+        [Test]
+        public async Task AClientWaitsAsLongAsARetryAfterAsksAsADate()
+        {
+
+            var port   = FreePort();
+            var asked  = new List<DateTimeOffset>();
+
+            await ConnectAndLoseIt(port);
+
+            StartAgain(port, request => {
+                lock (asked)
+                {
+
+                    asked.Add(DateTimeOffset.UtcNow);
+
+                    if (asked.Count > 1)
+                        return null;
+
+                    // Whole seconds, because that is all an HTTP date can say.
+                    var now = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+
+                    return new HTTPResponse.Builder(request) {
+                               HTTPStatusCode  = HTTPStatusCode.ServiceUnavailable,
+                               Date            = now,
+                               RetryAfter      = now.AddSeconds(3).ToString("r", System.Globalization.CultureInfo.InvariantCulture),
+                               Connection      = ConnectionType.Close
+                           };
+
+                }
+            });
+
+            Assert.That(await Upgraded(TimeSpan.FromSeconds(10)), Is.True,
+                        "The client did not come back after the server had named a time three seconds on.");
+
+            var gap = Gap(asked);
+
+            Assert.That(gap, Is.GreaterThanOrEqualTo(TimeSpan.FromSeconds(2.9)),
+                        $"Asked to come back three seconds on, the client came back after {gap.TotalSeconds:F2} s.");
+
+        }
+
+        #endregion
+
+        #region AClientDoesNotWaitLongerThanItsPolicyAllows()
+
+        /// <summary>
+        /// A Retry-After of an hour is waited for as long as the policy allows,
+        /// and then the server is asked again.
+        /// </summary>
+        [Test]
+        public async Task AClientDoesNotWaitLongerThanItsPolicyAllows()
+        {
+
+            var port   = FreePort();
+            var asked  = new List<DateTimeOffset>();
+
+            await ConnectAndLoseIt(port, new WebSocketClientReconnectPolicy(
+                                             InitialDelay:   TimeSpan.FromMilliseconds(200),
+                                             MaxDelay:       TimeSpan.FromMilliseconds(500),
+                                             JitterRatio:    0.0,
+                                             MaxRetryAfter:  TimeSpan.FromSeconds(1)
+                                         ));
+
+            StartAgain(port, request => {
+                lock (asked)
+                {
+
+                    asked.Add(DateTimeOffset.UtcNow);
+
+                    return asked.Count == 1
+                               ? new HTTPResponse.Builder(request) {
+                                     HTTPStatusCode  = HTTPStatusCode.ServiceUnavailable,
+                                     RetryAfter      = "3600",
+                                     Connection      = ConnectionType.Close
+                                 }
+                               : null;
+
+                }
+            });
+
+            Assert.That(await Upgraded(TimeSpan.FromSeconds(10)), Is.True,
+                        "The client stayed away for as long as the server asked, rather than as long as its policy allows.");
+
+            var gap = Gap(asked);
+
+            Assert.That(gap, Is.InRange(TimeSpan.FromSeconds(0.9), TimeSpan.FromSeconds(3)),
+                        $"With Retry-After allowed up to one second, the client came back after {gap.TotalSeconds:F2} s.");
+
+        }
+
+        #endregion
+
+
         #region (private) ConnectAndLoseIt(Port)
 
         /// <summary>
-        /// The client, with a quick policy, connected to a server on the port -
-        /// and the server stopped again.
+        /// The client, with a quick policy or the one given, connected to a
+        /// server on the port - and the server stopped again.
         /// </summary>
-        private async Task ConnectAndLoseIt(IPPort Port)
+        private async Task ConnectAndLoseIt(IPPort                           Port,
+                                            WebSocketClientReconnectPolicy?  Policy   = null)
         {
 
             first   = new WebSocketMirrorServer(HTTPPort: Port, AutoStart: true);
 
             client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{Port}")) {
-                          ReconnectPolicy = Quickly
+                          ReconnectPolicy = Policy ?? Quickly
                       };
 
             await client.Connect();
@@ -191,6 +345,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// </summary>
         private void StartAgain(IPPort                             Port,
                                 Func<HTTPRequest, HTTPStatusCode?>  Refusal)
+
+            => StartAgain(Port, request => Refusal(request) is HTTPStatusCode status
+                                               ? new HTTPResponse.Builder(request) {
+                                                     HTTPStatusCode  = status,
+                                                     Connection      = ConnectionType.Close
+                                                 }
+                                               : null);
+
+        /// <summary>
+        /// The same, with the whole answer to the upgrade named by the function,
+        /// or the upgrade made where it names none.
+        /// </summary>
+        private void StartAgain(IPPort                                    Port,
+                                Func<HTTPRequest, HTTPResponse.Builder?>  Answer)
         {
 
             lent        = new WebSocketMirrorServer(AutoStart: false);
@@ -201,15 +369,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             httpServer.AddHTTPAPI().AddHandler(
                 HTTPMethod.GET,
                 HTTPPath.Parse("/"),
-                HTTPDelegate: request => Refusal(request) is HTTPStatusCode status
-                                             ? Task.FromResult(new HTTPResponse.Builder(request) {
-                                                                   HTTPStatusCode  = status,
-                                                                   Connection      = ConnectionType.Close
-                                                               }.AsImmutable)
+                HTTPDelegate: request => Answer(request) is HTTPResponse.Builder answer
+                                             ? Task.FromResult(answer.AsImmutable)
                                              : upgrade(request)
             );
 
             httpServer.Start().GetAwaiter().GetResult();
+
+        }
+
+        #endregion
+
+        #region (private static) Gap(Asked)
+
+        /// <summary>
+        /// How long the client left between the attempt that was turned away and
+        /// the one after it, as the server saw them arrive.
+        /// </summary>
+        private static TimeSpan Gap(List<DateTimeOffset> Asked)
+        {
+
+            lock (Asked)
+            {
+
+                Assert.That(Asked, Has.Count.GreaterThanOrEqualTo(2),
+                            "The client was not turned away and then let in, so this test tested nothing.");
+
+                return Asked[1] - Asked[0];
+
+            }
 
         }
 

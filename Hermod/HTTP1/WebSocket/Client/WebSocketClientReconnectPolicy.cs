@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System.Globalization;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
@@ -28,6 +34,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// enable automatic reconnects; leaving it null disables them. A clean,
     /// application-initiated close (via <see cref="WebSocketClient.Close"/>) and
     /// a fatal protocol violation never trigger a reconnect.
+    ///
+    /// A server that turns an attempt away for now - 503, 429 - and says when
+    /// to come back, in a Retry-After, is taken at its word up to
+    /// <see cref="MaxRetryAfter"/>: the next attempt is not made before then.
     /// </summary>
     public sealed class WebSocketClientReconnectPolicy
     {
@@ -67,6 +77,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public UInt32?   MaxAttempts      { get; }
 
+        /// <summary>
+        /// The longest a Retry-After is waited for. Default: 5 minutes.
+        /// </summary>
+        /// <remarks>
+        /// Beyond the delay the backoff would have waited anyway, and not beyond
+        /// this: a server that asks for an hour - a maintenance page saying so,
+        /// a proxy misconfigured to - is asked again after this, and every time
+        /// after that it still says so. A client of something that has to be
+        /// reachable, a charging station for one, should not be told by a
+        /// header to stay away for a day. Zero ignores Retry-After altogether.
+        /// </remarks>
+        public TimeSpan  MaxRetryAfter    { get; }
+
         #endregion
 
         #region Constructor(s)
@@ -79,11 +102,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="BackoffFactor">The exponential backoff factor (default: 2.0).</param>
         /// <param name="JitterRatio">The relative random jitter in [0, 1] (default: 0.2).</param>
         /// <param name="MaxAttempts">The maximum number of consecutive attempts, or null for unlimited (default: null).</param>
+        /// <param name="MaxRetryAfter">The longest a Retry-After is waited for (default: 5 minutes; zero ignores it).</param>
         public WebSocketClientReconnectPolicy(TimeSpan?  InitialDelay    = null,
                                               TimeSpan?  MaxDelay        = null,
                                               Double     BackoffFactor   = 2.0,
                                               Double     JitterRatio     = 0.2,
-                                              UInt32?    MaxAttempts     = null)
+                                              UInt32?    MaxAttempts     = null,
+                                              TimeSpan?  MaxRetryAfter   = null)
         {
 
             this.InitialDelay   = InitialDelay ?? TimeSpan.FromSeconds(1);
@@ -91,6 +116,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.BackoffFactor  = BackoffFactor < 1.0 ? 1.0 : BackoffFactor;
             this.JitterRatio    = JitterRatio  < 0.0 ? 0.0 : (JitterRatio > 1.0 ? 1.0 : JitterRatio);
             this.MaxAttempts    = MaxAttempts;
+            this.MaxRetryAfter  = MaxRetryAfter is TimeSpan maxRetryAfter && maxRetryAfter > TimeSpan.Zero
+                                      ? maxRetryAfter
+                                      : MaxRetryAfter.HasValue
+                                            ? TimeSpan.Zero
+                                            : TimeSpan.FromMinutes(5);
 
             if (this.MaxDelay < this.InitialDelay)
                 this.MaxDelay = this.InitialDelay;
@@ -137,6 +167,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #region DelayForAttempt(Attempt, RetryAfter)
+
+        /// <summary>
+        /// Compute the delay to wait before the given reconnect attempt, where the
+        /// server may have said when to come back.
+        /// </summary>
+        /// <remarks>
+        /// The later of the two: the backoff, or what the server asked for, up to
+        /// <see cref="MaxRetryAfter"/>. Never earlier than it asked - that is what
+        /// it asked - and where its wish is what decides, the jitter goes on top of
+        /// it rather than either side: every client a restarting server turns away
+        /// is told the same moment, and a thousand charging stations arriving at it
+        /// together is the very thing the server was trying to spread out.
+        /// </remarks>
+        /// <param name="Attempt">The 1-based reconnect attempt number.</param>
+        /// <param name="RetryAfter">How long the server asked to be left alone, if it said.</param>
+        public TimeSpan DelayForAttempt(UInt32     Attempt,
+                                        TimeSpan?  RetryAfter)
+        {
+
+            var backoff = DelayForAttempt(Attempt);
+
+            if (RetryAfter is not TimeSpan asked || asked <= TimeSpan.Zero || MaxRetryAfter <= TimeSpan.Zero)
+                return backoff;
+
+            var honoured = asked > MaxRetryAfter
+                               ? MaxRetryAfter
+                               : asked;
+
+            if (honoured <= backoff)
+                return backoff;
+
+            return JitterRatio > 0.0
+                       ? honoured + TimeSpan.FromMilliseconds(honoured.TotalMilliseconds * JitterRatio * Random.Shared.NextDouble())
+                       : honoured;
+
+        }
+
+        #endregion
+
+        #region (static) RetryAfter(Value, Now)
+
+        /// <summary>
+        /// How long a Retry-After asks to be left alone (RFC 9110 &#167;10.2.3):
+        /// a number of seconds, or a date - in any of the three forms an HTTP date
+        /// may take (&#167;5.6.7) - counted from the given moment. Null for a value
+        /// that is neither, and zero for a date already past.
+        /// </summary>
+        /// <param name="Value">The value of the header, if there was one.</param>
+        /// <param name="Now">What time it is - best the server's own Date, where it sent one, so that a client whose clock is wrong still waits as long as it was asked to.</param>
+        public static TimeSpan? RetryAfter(String?         Value,
+                                           DateTimeOffset  Now)
+        {
+
+            var value = Value?.Trim();
+
+            if (String.IsNullOrEmpty(value))
+                return null;
+
+            if (value.All(Char.IsAsciiDigit))
+                return Int64.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) &&
+                       seconds <= TimeSpan.MaxValue.TotalSeconds
+                           ? TimeSpan.FromSeconds(seconds)
+                           : TimeSpan.MaxValue;
+
+            if (DateTimeOffset.TryParseExact(value,
+                                             [
+                                                 "ddd, dd MMM yyyy HH:mm:ss 'GMT'",    // IMF-fixdate
+                                                 "dddd, dd-MMM-yy HH:mm:ss 'GMT'",     // obsolete RFC 850
+                                                 "ddd MMM d HH:mm:ss yyyy"             // obsolete asctime()
+                                             ],
+                                             CultureInfo.InvariantCulture,
+                                             DateTimeStyles.AllowInnerWhite | DateTimeStyles.AssumeUniversal,
+                                             out var date))
+            {
+                var wait = date - Now;
+                return wait > TimeSpan.Zero ? wait : TimeSpan.Zero;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
         #region (override) ToString()
 
         /// <summary>
@@ -144,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public override String ToString()
 
-            => $"reconnect: {InitialDelay.TotalSeconds:F1}s..{MaxDelay.TotalSeconds:F1}s, x{BackoffFactor}, ±{JitterRatio:P0} jitter, {(MaxAttempts.HasValue ? $"max {MaxAttempts} attempts" : "unlimited")}";
+            => $"reconnect: {InitialDelay.TotalSeconds:F1}s..{MaxDelay.TotalSeconds:F1}s, x{BackoffFactor}, ±{JitterRatio:P0} jitter, {(MaxAttempts.HasValue ? $"max {MaxAttempts} attempts" : "unlimited")}, Retry-After up to {MaxRetryAfter.TotalSeconds:F0}s";
 
         #endregion
 

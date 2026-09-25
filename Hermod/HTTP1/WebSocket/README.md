@@ -51,7 +51,11 @@ Implemented (both server and client, unless noted):
   `400 Bad Request` when the client offers only unsupported subprotocols.
 - Client auto-reconnect after an unexpected connection loss, with exponential
   backoff and jitter (`ReconnectPolicy`, opt-in; see below). A clean close or a
-  fatal protocol violation never triggers a reconnect.
+  fatal protocol violation never triggers a reconnect. An upgrade answered with
+  408, 429 or a 5xx - a server not ready yet, a proxy whose service restarts -
+  is tried again; one that also says when, in a `Retry-After` (seconds or an
+  HTTP date, counted from the server's own `Date`), is not tried again before
+  then, up to `MaxRetryAfter`, with the jitter after it rather than either side.
 - Message and fragment size limits (`MaxTextMessageSizeIn/Out`,
   `MaxBinaryMessageSizeIn/Out`), enforced *before* buffering; violations close
   with 1009 (Message Too Big).
@@ -173,7 +177,8 @@ client.ReconnectPolicy = new WebSocketClientReconnectPolicy(
                              MaxDelay:       TimeSpan.FromSeconds(30),
                              BackoffFactor:  2.0,
                              JitterRatio:    0.2,    // ±20 %
-                             MaxAttempts:    null    // unlimited
+                             MaxAttempts:    null,   // unlimited
+                             MaxRetryAfter:  TimeSpan.FromMinutes(5)   // the longest a Retry-After is waited for
                          );
 
 client.OnTextMessageReceived += async (timestamp, cl, connection, frame, eventTrackingId, text, ct) => {
