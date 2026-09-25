@@ -110,6 +110,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private const             String                      LogfileName                 = "WebSocketClient.log";
 
         private                   Task?                       networkingTask;
+
+        /// <summary>
+        /// Whether the connection that just ended was ended by the other side
+        /// or by the network - a loss to reconnect after - rather than by this
+        /// application or by a protocol violation, which are not.
+        /// </summary>
+        private          volatile Boolean                     connectionLost;
         private readonly          CancellationTokenSource     networkingCancellationTokenSource;
         private readonly          CancellationToken           networkingCancellationToken;
 
@@ -1099,6 +1106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                        );
 
             ReconnectAttempts = 0;
+            connectionLost    = false;
 
             networkingTask = Task.Run(async () => {
 
@@ -1407,6 +1415,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 else
                                                     ClientCloseMessage ??= "The HTTP WebSocket connection was closed!";
 
+                                                // Ended by the other side - a close frame answered, or a
+                                                // socket closed underneath - and so a loss to come back
+                                                // from, where a reconnect policy says so.
+                                                connectionLost = true;
+
                                                 buffer = null;
                                                 break;
 
@@ -1452,6 +1465,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     await webSocketClientConnection.Close();
 
                                                     ClientCloseMessage ??= "The remote endpoint stopped responding (ping timeout)!";
+
+                                                    connectionLost = true;
 
                                                     buffer = null;
                                                     break;
@@ -2027,11 +2042,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     #region Auto-reconnect: back off before the next connection attempt
 
                     // The connection has ended. Reconnect only on an *unexpected* loss
-                    // (i.e. not on a clean, application-initiated close and not on a fatal
-                    // protocol violation, both of which the loop condition below handles),
-                    // and only if a reconnect policy has been configured.
+                    // (i.e. not on a clean, application-initiated close, which cancels
+                    // the networking token, and not on a fatal protocol violation, which
+                    // leaves a ClientCloseMessage and no loss), and only if a reconnect
+                    // policy has been configured.
+                    //
+                    // A connection the other side ended - with a close frame, by closing
+                    // its socket, or by no longer answering pings - is such a loss: it
+                    // leaves a ClientCloseMessage too, and used to end the loop here, so
+                    // that a client whose server restarted never came back.
                     if (!networkingCancellationToken.IsCancellationRequested &&
-                        ClientCloseMessage is null)
+                        (ClientCloseMessage is null || connectionLost))
                     {
 
                         var reconnectPolicy = ReconnectPolicy;
@@ -2052,6 +2073,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             );
                             break;
                         }
+
+                        // Why the last connection ended has been said, in the log and
+                        // in OnCloseMessageReceived; it is no reason to stay away, and
+                        // left standing it would end the loop below.
+                        ClientCloseMessage  = null;
+                        connectionLost      = false;
 
                         var reconnectDelay = reconnectPolicy.DelayForAttempt(ReconnectAttempts);
 
