@@ -65,6 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         void RemoveInEdges(UserGroup2UserGroupEdgeLabel EdgeLabel, UserGroup SourceUserGroup);
         bool RemoveOutEdge(UserGroup2UserGroupEdge Edge);
         void RemoveOutEdges(UserGroup2UserGroupEdgeLabel EdgeLabel, UserGroup TargetUserGroup);
+        void RemoveUser(User2UserGroupEdgeLabel EdgeLabel, IUser User);
         UserGroup.Builder ToBuilder(UserGroup_Id? NewUserGroupId = null);
         JObject ToJSON(bool Embedded = false);
         JObject ToJSON(bool Embedded = false, InfoStatus ExpandUsers = InfoStatus.ShowIdOnly, InfoStatus ExpandParentGroup = InfoStatus.ShowIdOnly, InfoStatus ExpandSubgroups = InfoStatus.ShowIdOnly, InfoStatus ExpandAttachedFiles = InfoStatus.ShowIdOnly, InfoStatus IncludeAttachedFileSignatures = InfoStatus.ShowIdOnly);
