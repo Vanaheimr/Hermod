@@ -12605,6 +12605,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         users.TryRemove(user.Id, out _);
 
+                        // Its API keys and passkeys likewise, which name it by
+                        // id too: a deletion writes a line for each of them
+                        // before this one now, a database written before it
+                        // did not.
+                        ForgetAPIKeys (user.Id);
+                        ForgetPasskeys(user.Id);
+
                     }
 
                     else
@@ -17030,11 +17037,147 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (private) RemoveAllAPIKeys(User, EventTrackingId, CurrentUserId)
+
+        /// <summary>
+        /// Remove every API key of the given user, with the "removeAPIKey" line
+        /// removing an API key writes for each of them.
+        /// </summary>
+        /// <remarks>
+        /// An API key names its user by id, and authenticated as whichever
+        /// account has that id when it is used: the key of a deleted user was
+        /// a key of the next account created under the same id.
+        ///
+        /// Without the notifications and the event of RemoveAPIKey, as the
+        /// memberships go without theirs: the deletion's own say it. Takes the
+        /// API keys lock after the users lock the caller holds.
+        /// </remarks>
+        /// <param name="User">The user to be deleted.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
+        /// <returns>False, and nothing removed, when the lock could not be had.</returns>
+        private async Task<Boolean> RemoveAllAPIKeys(IUser             User,
+                                                     EventTracking_Id  EventTrackingId,
+                                                     User_Id?          CurrentUserId)
+        {
+
+            if (!await APIKeysSemaphore.WaitAsync(SemaphoreSlimTimeout))
+                return false;
+
+            try
+            {
+
+                foreach (var apiKey in _GetAPIKeysForUser(User))
+                {
+
+                    await WriteToDatabaseFile(
+                              removeAPIKey_MessageType,
+                              apiKey.ToJSON(false),
+                              EventTrackingId,
+                              CurrentUserId
+                          );
+
+                    apiKeys.TryRemove(apiKey.Id, out _);
+
+                }
+
+                return true;
+
+            }
+            finally
+            {
+                try
+                {
+                    APIKeysSemaphore.Release();
+                }
+                catch
+                { }
+            }
+
+        }
+
+        #endregion
+
+        #region (private) ForgetAPIKeys   (UserId)
+
+        /// <summary>
+        /// Drop the API keys of the given user and write nothing: what the
+        /// replay of a "deleteUser" line does.
+        /// </summary>
+        /// <param name="UserId">The identification of a deleted user.</param>
+        private void ForgetAPIKeys(User_Id UserId)
+        {
+
+            foreach (var apiKey in apiKeys.Values.Where(apiKey => apiKey.UserId == UserId).ToArray())
+                apiKeys.TryRemove(apiKey.Id, out _);
+
+        }
+
+        #endregion
+
+        #region (private) RemoveFromPasswordResets(User, EventTrackingId, CurrentUserId)
+
+        /// <summary>
+        /// Take the given user out of every pending password reset: a reset for
+        /// this user alone is removed, a reset shared with other logins stays
+        /// for them, with the same tokens and the same age.
+        /// </summary>
+        /// <remarks>
+        /// A reset sets the password of each of its users by login, and the
+        /// login of a deleted user is the login of the next account created
+        /// under the same id: the token mailed to the one set the password of
+        /// the other.
+        ///
+        /// Written as the "remove" and "add" lines of the password resets file,
+        /// which its replay honours as they are. The users lock the caller
+        /// holds is the one every password reset is changed under.
+        /// </remarks>
+        /// <param name="User">The user to be deleted.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
+        private async Task RemoveFromPasswordResets(IUser             User,
+                                                    EventTracking_Id  EventTrackingId,
+                                                    User_Id?          CurrentUserId)
+        {
+
+            foreach (var passwordReset in passwordResets.Values.
+                                              Where(passwordReset => passwordReset.Users.Any(user => user.Id == User.Id)).
+                                              ToArray())
+            {
+
+                await deletePasswordReset(
+                          passwordReset,
+                          EventTrackingId,
+                          CurrentUserId
+                      );
+
+                var otherUsers = passwordReset.Users.Where(user => user.Id != User.Id).ToArray();
+
+                if (otherUsers.Length > 0)
+                    await addPasswordReset(
+                              new PasswordReset(
+                                  passwordReset.Timestamp,
+                                  otherUsers,
+                                  passwordReset.SecurityToken1,
+                                  passwordReset.SecurityToken2,
+                                  passwordReset.EventTrackingId
+                              ),
+                              SuppressNotifications:  true,
+                              EventTrackingId:        EventTrackingId
+                          );
+
+            }
+
+        }
+
+        #endregion
+
         #region (protected internal) deleteUser(User, SkipUserDeletedNotifications = false, OnDeleted = null, ...)
 
         /// <summary>
-        /// Delete the given user, and with it its password and its memberships
-        /// in user groups and organizations: an account created later under the
+        /// Delete the given user, and with it its password, its memberships in
+        /// user groups and organizations, its sessions, passkeys and API keys
+        /// and its pending password resets: an account created later under the
         /// same id starts without any of them.
         /// </summary>
         /// <param name="User">The user to be deleted.</param>
@@ -17098,6 +17241,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
+            // Then its API keys and passkeys, which name it by id as well, and
+            // are written to the same file: the replay reads an API key only
+            // while its user is there.
+            if (!await RemoveAllAPIKeys(User, eventTrackingId, CurrentUserId))
+                return DeleteUserResult.LockTimeout(
+                           User,
+                           SemaphoreSlimTimeout,
+                           eventTrackingId,
+                           SystemId,
+                           this
+                       );
+
+            await RemoveAllPasskeys(User, eventTrackingId, CurrentUserId);
+
             await WriteToDatabaseFile(
                       deleteUser_MessageType,
                       User.ToJSON(false),
@@ -17130,6 +17287,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 loginPasswords.TryRemove(User.Id, out _);
 
             }
+
+            // And what is kept by its id in files of their own. Its sessions:
+            // the cookie of one of them signed in the next account created
+            // under the same id, and the session store writes their ends down
+            // itself - those it impersonated somebody in included. And the
+            // password resets pending for it.
+            Sessions.RemoveAllForUser(User.Id);
+
+            await RemoveFromPasswordResets(User, eventTrackingId, CurrentUserId);
 
             OnDeleted?.Invoke(User,
                               eventTrackingId);
@@ -17167,8 +17333,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region DeleteUser                      (User, SkipUserDeletedNotifications = false, OnDeleted = null, ...)
 
         /// <summary>
-        /// Delete the given user, and with it its password and its memberships
-        /// in user groups and organizations: an account created later under the
+        /// Delete the given user, and with it its password, its memberships in
+        /// user groups and organizations, its sessions, passkeys and API keys
+        /// and its pending password resets: an account created later under the
         /// same id starts without any of them.
         /// </summary>
         /// <remarks>

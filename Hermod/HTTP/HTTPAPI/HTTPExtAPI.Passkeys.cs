@@ -220,6 +220,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region (private) RemoveAllPasskeys(User, EventTrackingId, CurrentUserId)
+
+        /// <summary>
+        /// Remove every passkey of the given user, each as RemovePasskey does
+        /// it, with its "removePasskey" line: part of deleting the user.
+        /// </summary>
+        /// <remarks>
+        /// A passkey finds its owner by id when it signs in, so the passkeys of
+        /// a deleted user signed in the next account created under the same id
+        /// - and kept their credential ids from being registered again.
+        /// </remarks>
+        /// <param name="User">The user to be deleted.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
+        private async Task RemoveAllPasskeys(IUser             User,
+                                             EventTracking_Id  EventTrackingId,
+                                             User_Id?          CurrentUserId)
+        {
+
+            foreach (var passkey in GetPasskeys(User.Id))
+                await RemovePasskey(User.Id, passkey.Id, EventTrackingId, CurrentUserId);
+
+            ForgetPasskeys(User.Id);
+
+        }
+
+        #endregion
+
+        #region (private) ForgetPasskeys   (UserId)
+
+        /// <summary>
+        /// Drop the passkeys of the given user and write nothing: what the
+        /// replay of a "deleteUser" line does.
+        /// </summary>
+        /// <param name="UserId">The identification of a deleted user.</param>
+        private void ForgetPasskeys(User_Id UserId)
+        {
+
+            if (passkeys.TryRemove(UserId, out var userPasskeys))
+                foreach (var credentialId in userPasskeys.Keys)
+                    passkeyOwners.TryRemove(KeyValuePair.Create(credentialId, UserId));
+
+        }
+
+        #endregion
+
+
         #region (private) ProcessPasskeyEvent(Command, Data, out ErrorResponse)
 
         /// <summary>
