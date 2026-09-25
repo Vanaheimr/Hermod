@@ -1219,9 +1219,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         var responseConnection  = httpResponse.GetHeaderField("Connection") ?? "";
 
                         if (101 != httpResponse.HTTPStatusCode.Code) {
+
                             ClientCloseMessage  = $"Invalid HTTP StatusCode response: 101 != {httpResponse.HTTPStatusCode.Code}!";
-                            networkingCancellationTokenSource.Cancel();
+
+                            // A server that cannot let the client in yet - a reverse proxy whose
+                            // service is restarting, a server busy or not up yet - has not said
+                            // no, and where a reconnect policy says so this is a loss to come
+                            // back from. Anything else is an answer, and ends the attempts.
+                            if (ReconnectPolicy is not null &&
+                                IsTemporaryRefusal(httpResponse.HTTPStatusCode))
+                                connectionLost = true;
+                            else
+                                networkingCancellationTokenSource.Cancel();
+
                             webSocketUpgradeAccepted = false;
+
                         }
 
                         // Step 2: The 'Upgrade' header must contain the "websocket" token.
@@ -2162,6 +2174,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
             networkingCancellationTokenSource.Cancel();
         }
+
+        #endregion
+
+        #region (private static) IsTemporaryRefusal(StatusCode)
+
+        /// <summary>
+        /// Whether an answer to the upgrade request says "not yet" rather than
+        /// "no": a request that timed out, too many requests, or a server error
+        /// - which is what a reverse proxy answers while the service behind it
+        /// restarts.
+        /// </summary>
+        /// <param name="StatusCode">The status the upgrade request was answered with.</param>
+        private static Boolean IsTemporaryRefusal(HTTPStatusCode StatusCode)
+            => StatusCode.Code is 408 or 429 or (>= 500 and <= 599);
 
         #endregion
 
