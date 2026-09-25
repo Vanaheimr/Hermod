@@ -25,6 +25,7 @@ using System.Net.Security;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 using Microsoft.Extensions.Logging;
@@ -928,6 +929,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        private Boolean TryAuthenticate(HTTPRequest  request,
+                                        out String?  login)
+        {
+
+            login = null;
+
+            if (request.Authorization is HTTPBasicAuthentication basicAuthentication &&
+                ClientLogins.TryGetValue(basicAuthentication.Username, out var storedPassword) &&
+                storedPassword.Verify(basicAuthentication.Password))
+            {
+                login = basicAuthentication.Username;
+                return true;
+            }
+
+            if (request.Authorization is HTTPTOTPAuthentication totpAuthentication &&
+                ClientTOTPConfig.TryGetValue(totpAuthentication.Login, out var config))
+            {
+
+                // SslStream does not expose TLS exporter material here. Reject a
+                // channel-bound credential rather than verify an unbound token.
+                if (config.UseTLSExporterMaterial == true ||
+                    totpAuthentication.Type != TOTPHTTPHeaderType.RAW)
+                    return false;
+
+                try
+                {
+                    var (previous, current, next, _, _) = TOTPGenerator.GenerateTOTPs(
+                                                             config.SharedSecret,
+                                                             config.ValidityTime,
+                                                             config.Length,
+                                                             config.Alphabet,
+                                                             Timestamp.Now,
+                                                             null,
+                                                             config.HashAlgorithm
+                                                         );
+
+                    if (MatchesToken(totpAuthentication.TOTP, previous) ||
+                        MatchesToken(totpAuthentication.TOTP, current)  ||
+                        MatchesToken(totpAuthentication.TOTP, next))
+                    {
+                        login = totpAuthentication.Login;
+                        return true;
+                    }
+                }
+                catch (ArgumentException)
+                {
+                    // Invalid server-side TOTP configuration must fail closed.
+                }
+
+            }
+
+            return false;
+
+        }
+
+        private static Boolean MatchesToken(String supplied, String expected)
+            => supplied.Length == expected.Length &&
+               CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(supplied),
+                                                       Encoding.UTF8.GetBytes(expected));
+
 
         public void AddSecWebSocketProtocol(String Protocol)
         {
@@ -1525,18 +1586,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                             #endregion
 
+                                                            if (RequireAuthentication &&
+                                                                (httpResponse is null || httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols))
+                                                            {
+                                                                if (TryAuthenticate(httpRequest, out var authenticatedLogin))
+                                                                    webSocketConnection.Login = authenticatedLogin!;
+                                                                else
+                                                                {
+                                                                    var unauthorizedResponse = new HTTPResponse.Builder(httpRequest) {
+                                                                                                   HTTPStatusCode  = HTTPStatusCode.Unauthorized,
+                                                                                                   Server          = HTTPServiceName,
+                                                                                                   Connection      = ConnectionType.Close,
+                                                                                                   ContentType     = HTTPContentType.Text.PLAIN,
+                                                                                                   Content         = "WebSocket authentication required.".ToUTF8Bytes()
+                                                                                               };
+
+                                                                    if (!ClientLogins.IsEmpty)
+                                                                        unauthorizedResponse.WWWAuthenticate = WWWAuthenticate.Basic("WebSocket");
+
+                                                                    httpResponse = unauthorizedResponse.AsImmutable;
+                                                                }
+                                                            }
+
                                                             if (httpResponse is null)
                                                             {
-
-                                                                // Whatever the client called itself, under either scheme
-                                                                // that carries a name. A TOTP login is a login like any
-                                                                // other, and a connection that has one should not show up
-                                                                // in the logs as nobody.
-                                                                webSocketConnection.Login = webSocketConnection.HTTPRequest.Authorization switch {
-                                                                                                HTTPBasicAuthentication basicAuthentication  => basicAuthentication.Username,
-                                                                                                HTTPTOTPAuthentication  totpAuthentication   => totpAuthentication.Login,
-                                                                                                _                                            => webSocketConnection.Login
-                                                                                            };
 
                                                                 // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
                                                                 // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)

@@ -29,6 +29,111 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     public class WebSocketSecurityTests
     {
 
+        private static async Task<HTTPResponse> Connect(WebSocketServer     server,
+                                                        IHTTPAuthentication? authentication = null)
+        {
+            var client = new WebSocketClient(
+                             URL.Parse($"ws://127.0.0.1:{server.IPPort}"),
+                             HTTPAuthentication: authentication
+                         );
+
+            try
+            {
+                return (await client.Connect()).Item2;
+            }
+            finally
+            {
+                client.Disconnect();
+            }
+        }
+
+        [Test]
+        public async Task AuthenticationIsRequiredByDefault()
+        {
+            var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+
+            try
+            {
+                Assert.That((await Connect(server)).HTTPStatusCode.Code, Is.EqualTo(401));
+            }
+            finally
+            {
+                await server.Shutdown(Wait: true);
+            }
+        }
+
+        [Test]
+        public async Task BasicAuthenticationVerifiesStoredPassword()
+        {
+            var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            server.AddOrUpdateHTTPBasicAuth("alice", "correct-password");
+
+            try
+            {
+                Assert.That((await Connect(server,
+                                           HTTPBasicAuthentication.Create("alice", "wrong-password"))).HTTPStatusCode.Code,
+                            Is.EqualTo(401));
+
+                Assert.That((await Connect(server,
+                                           HTTPBasicAuthentication.Create("alice", "correct-password"))).HTTPStatusCode.Code,
+                            Is.EqualTo(101));
+            }
+            finally
+            {
+                await server.Shutdown(Wait: true);
+            }
+        }
+
+        [Test]
+        public async Task AnonymousModeRemainsAvailableWhenExplicitlySelected()
+        {
+            var server = new WebSocketServer(HTTPPort: IPPort.Zero,
+                                             RequireAuthentication: false,
+                                             AutoStart: true);
+
+            try
+            {
+                Assert.That((await Connect(server)).HTTPStatusCode.Code, Is.EqualTo(101));
+            }
+            finally
+            {
+                await server.Shutdown(Wait: true);
+            }
+        }
+
+        [Test]
+        public async Task RawTOTPIsAcceptedOnlyWithMatchingConfiguration()
+        {
+            var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            var secret = "abcdefghijklmnop";
+            server.ClientTOTPConfig["station"] = new TOTPConfig(secret, UseTLSExporterMaterial: false);
+
+            try
+            {
+                var token = TOTPGenerator.GenerateTOTP(secret).Current;
+
+                Assert.That((await Connect(server,
+                                           HTTPTOTPAuthentication.Create("station", token,
+                                                                         TOTPHTTPHeaderType.RAW))).HTTPStatusCode.Code,
+                            Is.EqualTo(101));
+
+                Assert.That((await Connect(server,
+                                           HTTPTOTPAuthentication.Create("station", token,
+                                                                         TOTPHTTPHeaderType.TLSChannelBinding))).HTTPStatusCode.Code,
+                            Is.EqualTo(401));
+
+                server.ClientTOTPConfig["station"] = new TOTPConfig(secret, UseTLSExporterMaterial: true);
+                Assert.That((await Connect(server,
+                                           HTTPTOTPAuthentication.Create("station", token,
+                                                                         TOTPHTTPHeaderType.RAW))).HTTPStatusCode.Code,
+                            Is.EqualTo(401));
+            }
+            finally
+            {
+                await server.Shutdown(Wait: true);
+            }
+        }
+
         [Test]
         public void InboundMessagesHaveFiniteDefaults()
         {

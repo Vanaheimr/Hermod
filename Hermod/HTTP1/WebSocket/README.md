@@ -60,6 +60,11 @@ Implemented (both server and client, unless noted):
   (including fragmented messages). Smaller configured limits are checked before
   fragment accumulation and against decompressed data; violations close with
   1009 (Message Too Big). The frame parser also caps individual frames at 64 MiB.
+- `RequireAuthentication` defaults to `true`: the server checks stored HTTP
+  Basic credentials or raw TOTP credentials before upgrading. Configure an
+  account with `AddOrUpdateHTTPBasicAuth` or `ClientTOTPConfig`, or explicitly
+  set `RequireAuthentication: false` for public endpoints. Optional handshake
+  validators can impose additional restrictions but do not replace this check.
 - Server handshake hardening: `HandshakeTimeout` (Slowloris protection, default
   10 s), `MaxHandshakeRequestSize` (oversized/unterminated header block, default
   64 KB), `MaxConnectionsPerIP` (connection-flood protection, opt-in), and an
@@ -91,6 +96,9 @@ Known limitations:
   values below 15 are not supported; `no_context_takeover` is always
   negotiated in both directions (permitted by RFC 7692). Offers requiring a
   smaller server window are declined.
+- TLS-channel-bound TOTP cannot be verified by this HTTP/1.1 WebSocket server
+  because its `SslStream` does not expose TLS exporter material; such credentials
+  are rejected rather than silently treated as raw TOTP.
 - WebSocket over HTTP/2 (RFC 8441) / HTTP/3 (RFC 9220) is out of scope for
   this HTTP/1.1 implementation.
 

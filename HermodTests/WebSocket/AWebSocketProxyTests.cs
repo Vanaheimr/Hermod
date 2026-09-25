@@ -57,6 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             webSocketServer  = new WebSocketMirrorServer(
                                    HTTPPort:                IPPort.Zero,
+                                   RequireAuthentication:   false,
                                    SecWebSocketProtocols:   SecWebSocketProtocols,
                                    AutoStart:               true
                                );
@@ -70,6 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                    AutoConnect:             true,
 
                                    HTTPPort:                IPPort.Zero,
+                                   RequireAuthentication:   false,
                                    SecWebSocketProtocols:   SecWebSocketProtocols,
                                    AutoStart:               true
                                );

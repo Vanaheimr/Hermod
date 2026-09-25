@@ -48,8 +48,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             server = new WebSocketMirrorServer(
-                         HTTPPort:   IPPort.Zero,
-                         AutoStart:  true
+                         HTTPPort:               IPPort.Zero,
+                         RequireAuthentication:  false,
+                         AutoStart:              true
                      );
 
             foreach (var origin in AllowedOrigins)

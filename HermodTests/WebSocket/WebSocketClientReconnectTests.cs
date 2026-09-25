@@ -323,7 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                    WebSocketClientReconnectPolicy?  Policy)
         {
 
-            server  = new WebSocketMirrorServer(HTTPPort: Port, AutoStart: true);
+            server  = new WebSocketMirrorServer(HTTPPort: Port, RequireAuthentication: false, AutoStart: true);
 
             client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{Port}")) {
                           ReconnectPolicy = Policy
@@ -353,7 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                               TimeSpan  Within)
         {
 
-            server = new WebSocketMirrorServer(HTTPPort: Port, AutoStart: true);
+            server = new WebSocketMirrorServer(HTTPPort: Port, RequireAuthentication: false, AutoStart: true);
 
             var giveUp = DateTimeOffset.UtcNow + Within;
 
