@@ -545,18 +545,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.DisableWardenTasks          = DisableWardenTasks          ?? false;
             this.WardenInitialDelay          = WardenInitialDelay          ?? DefaultWardenCheckEvery;
             this.WardenCheckEvery            = WardenCheckEvery            ?? DefaultWardenCheckEvery;
+            // The two lines above have already resolved the defaults. Resolving them
+            // a second time here, against the *parameters* and against different
+            // numbers, is how WardenCheckEvery came to say 30 seconds while the
+            // Warden ticked once a minute, and WardenInitialDelay 30 seconds while
+            // the first tick was three minutes away. The properties are public and
+            // documented; they are what the Warden gets.
             this.Warden                      = new Warden.Warden(
                                                    $"TCP Server {IPSocket}",
-                                                   WardenInitialDelay ?? TimeSpan.FromMinutes(3),
-                                                   WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
+                                                   this.WardenInitialDelay,
+                                                   this.WardenCheckEvery,
                                                    this.DNSClient
                                                );
 
 
             #region Warden: Check active TCP-clients...
 
-            this.Warden.EveryMinutes(
-                1,
+            // Every Warden tick, which is WardenCheckEvery. Not EveryMinutes(1,...):
+            // that reads like "once a minute" and is two things instead. Its
+            // predicate is `Minute % 1 == 0`, which is true always, so the schedule
+            // came entirely from the one-minute SleepTime it passes — a debounce
+            // that no constructor argument can reach. A caller asking for a
+            // five-second Warden got a Warden ticking every five seconds and a
+            // connection check still running once a minute, which is exactly what
+            // reproducing H-25 ran into.
+            this.Warden.Check(
+                (timestamp, properties) => true,
+                TimeSpan.Zero,
                 activeClients,
                 async (timestamp, tcpClients, ct) => {
 

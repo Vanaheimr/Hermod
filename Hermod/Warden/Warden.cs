@@ -63,7 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
         /// An enumeration of all Warden checks.
         /// </summary>
         public IEnumerable<IWardenCheck>  AllWardenChecks
-            => AllWardenChecks;
+            => allWardenChecks;
 
         /// <summary>
         /// The Warden check properties.

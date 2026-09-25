@@ -161,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
                                           UInt16                                         Offset,
                                           Func<DateTimeOffset, CancellationToken, Task>  ServiceChecker)
 
-            => Warden.Check(timestamp => timestamp.Minute % Seconds == Offset,
+            => Warden.Check(timestamp => timestamp.Second % Seconds == Offset,
                             TimeSpan.FromSeconds(1),
                             ServiceChecker);
 
@@ -181,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
                                           PropertyCheckDelegate                          PropertyChecker,
                                           Func<DateTimeOffset, CancellationToken, Task>  ServiceChecker)
 
-            => Warden.Check((timestamp, properties) => timestamp.Minute % Seconds == Offset && (PropertyChecker?.Invoke(properties) ?? false),
+            => Warden.Check((timestamp, properties) => timestamp.Second % Seconds == Offset && (PropertyChecker?.Invoke(properties) ?? false),
                             TimeSpan.FromSeconds(1),
                             ServiceChecker);
 
@@ -209,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             where TEntity : class
 
-            => Warden.Check(timestamp => timestamp.Minute % Seconds == Offset,
+            => Warden.Check(timestamp => timestamp.Second % Seconds == Offset,
                             TimeSpan.FromSeconds(1),
                             Entity,
                             ServiceChecker);
@@ -237,7 +237,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             where TEntity : class
 
-            => Warden.Check((timestamp, properties) => timestamp.Minute % Seconds == Offset && (PropertyChecker?.Invoke(properties) ?? false),
+            => Warden.Check((timestamp, properties) => timestamp.Second % Seconds == Offset && (PropertyChecker?.Invoke(properties) ?? false),
                             TimeSpan.FromSeconds(1),
                             Entity,
                             ServiceChecker);
@@ -262,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
                                                    Func<DateTimeOffset, CancellationToken, Task<TResult>>  ServiceChecker,
                                                    params Action<TResult>[]                                ResultConsumers)
 
-            => Warden.Check(timestamp => timestamp.Minute % Seconds == Offset,
+            => Warden.Check(timestamp => timestamp.Second % Seconds == Offset,
                             TimeSpan.FromSeconds(1),
                             ServiceChecker,
                             ResultConsumers);
@@ -286,7 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
                                                    Func<DateTimeOffset, CancellationToken, Task<TResult>>  ServiceChecker,
                                                    params Action<TResult>[]                                ResultConsumers)
 
-            => Warden.Check((timestamp, properties) => timestamp.Minute % Seconds == Offset && (PropertyChecker?.Invoke(properties) ?? false),
+            => Warden.Check((timestamp, properties) => timestamp.Second % Seconds == Offset && (PropertyChecker?.Invoke(properties) ?? false),
                             TimeSpan.FromSeconds(1),
                             ServiceChecker,
                             ResultConsumers);
