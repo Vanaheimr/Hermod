@@ -52,6 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private                 Int64    currentChunkSize   = 0;
         private                 Int64    currentChunkRead   = 0;
         private                 Boolean  done               = false;
+        private                 Boolean  finished           = false;
         private                 Boolean  hasStarted         = false;
         private readonly        Boolean  leaveInnerOpen;
         private                 UInt64   metadataBytesRead;
@@ -1096,12 +1097,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Finish (Trailers = null, CancellationToken = default)
 
+        /// <summary>
+        /// Write the terminating zero-length chunk and the optional trailer
+        /// section. Finishing twice is a no-op rather than an error: whoever
+        /// owns this stream may want to make sure it was ended without knowing
+        /// whether the worker that wrote into it already did so, and a second
+        /// terminal chunk would start a second message on this connection.
+        /// </summary>
         public async ValueTask Finish(Dictionary<String, String>?  Trailers            = null,
                                       CancellationToken            CancellationToken   = default)
         {
 
+            if (finished)
+                return;
+
             if (Trailers is not null)
                 ValidateOutgoingTrailerHeaders(Trailers);
+
+            finished = true;
 
             await innerStream.WriteAsync(Encoding.ASCII.GetBytes($"0\r\n"), CancellationToken);
 

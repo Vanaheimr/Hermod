@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-09-24**
+Last verified: **2026-09-26**
 
 ## Support levels
 
@@ -204,10 +204,26 @@ and server roles.
 
 - Static response bodies can be chunked automatically.
 - Request and response workers can stream chunks asynchronously.
+- A worker needs no stream of its own: announcing `Transfer-Encoding: chunked`
+  and supplying a `ChunkWorker` is enough, and the server wraps the connection.
+  Supplying a `ChunkedTransferEncodingStream` as the body still works and is
+  what a handler that wants its own chunk sizes or its own lifetime should do.
+- The terminal zero-size chunk is written whether or not the worker wrote it,
+  so a worker that returns early - or throws - cannot leave the recipient
+  waiting for a message that is already over. The same holds for a chunked
+  *request* body written by the client's `ChunkWorker`. `Finish` is idempotent,
+  so a worker that ends its own body is unaffected.
 - Workers can attach token, valueless, or quoted chunk extensions.
 - Unsafe extension names or values are rejected before being written.
 - Both static and live responses can send trailer fields.
 - Outgoing trailers are validated before the terminal chunk is emitted.
+
+A byte array or an ordinary stream on a response that announces
+`Transfer-Encoding: chunked` is taken to be **framed already** and is copied
+through untouched; `AutomaticallyChunkContent` is how a handler says that its
+bytes are raw and wants them framed. That is a contract rather than an
+oversight, and it is why the server does not simply frame everything that says
+"chunked".
 
 The following trailer fields are rejected for incoming and outgoing trailers:
 

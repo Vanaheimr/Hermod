@@ -875,6 +875,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                MinimumCompressibleSize
                                            );
 
+                        // RFC 9112, Section 7.1: what the header field announces
+                        // is what the wire has to carry. A chunked response is
+                        // announced in two steps that look independent - the
+                        // Transfer-Encoding field, and a
+                        // ChunkedTransferEncodingStream as the body - and the
+                        // dispatch below keys on the second. So a handler that
+                        // set only the first, plus a ChunkWorker, got correct
+                        // headers, no body, no terminating chunk and no error:
+                        // a truncated message its recipient can only diagnose
+                        // as a timeout.
+                        //
+                        // The stream is something this layer can build, so it
+                        // builds it, and the handler no longer needs to know
+                        // about request.NetworkStream to send a chunked body.
+                        //
+                        // HTTPBodyStream is asked first on purpose: reading
+                        // HTTPBody drains a body stream into an array, so the
+                        // question "is there a static body" is only safe to ask
+                        // once the stream is known to be absent.
+                        if (httpResponse.IsChunkedTransferEncoding &&
+                          !HasNoResponseBody(httpResponse) &&
+                            httpResponse.HTTPBodyStream is null &&
+                            httpResponse.HTTPBody?.Length is null or 0)
+                        {
+                            httpResponse.HTTPBodyStream = new ChunkedTransferEncodingStream(
+                                                              stream,
+                                                              LeaveInnerStreamOpen: true
+                                                          );
+                        }
+
                         var hasLiveChunkWorker = !HasNoResponseBody(httpResponse) &&
                                                  httpResponse.HTTPBodyStream is ChunkedTransferEncodingStream;
                         var hasSSEWorker       = !HasNoResponseBody(httpResponse) &&
@@ -948,6 +978,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
                                 httpLogger.LogError(e, "HTTP server response worker failed.");
                             }
+
+                            // A chunked body ends with the zero-length chunk and
+                            // with nothing else. A worker that wrote one has
+                            // nothing left to do here; one that returned without
+                            // writing one - or that threw halfway - would
+                            // otherwise leave the recipient waiting for a message
+                            // that is already over. Finish is idempotent, which
+                            // is what lets this be unconditional.
+                            try
+                            {
+                                await chunkedStream.Finish(
+                                          httpResponse.TrailingHeaders.ToDictionary(trailer => trailer.Key, trailer => trailer.Value),
+                                          CancellationToken
+                                      );
+                            }
+                            catch (Exception e)
+                            {
+                                httpLogger.LogError(e, "HTTP server could not terminate the chunked response.");
+                            }
+
                         }
 
                         #endregion
