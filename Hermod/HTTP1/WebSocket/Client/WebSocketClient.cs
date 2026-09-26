@@ -1045,41 +1045,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             var buffer  = new Byte[16 * 1024];
             var pos     = 0U;
             var sw      = Stopwatch.StartNew();
+            var within  = HTTPRequest.Timeout ?? TimeSpan.FromSeconds(5);
 
-            // Read byte-by-byte until the end of the HTTP header block, as reading
-            // larger chunks might already consume WebSocket frames sent by the
-            // server directly after its HTTP response!
-            while (pos < buffer.Length)
+            // The deadline is kept by the reading itself, and not only looked at
+            // between reads. A server that takes the connection and the request and
+            // then says nothing at all - a hung process, a load balancer with nothing
+            // behind it - never finishes a read, and a deadline looked at after one
+            // was never looked at: the attempt waited for as long as the socket
+            // stayed open, Connect() held its caller until its own request timeout,
+            // and a client with a reconnect policy never tried again, because the
+            // attempt it would have tried again after never ended. And a client
+            // being closed ends a read that is waiting, rather than leaving it to the
+            // socket underneath.
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, networkingCancellationToken);
+
+            if (within < TimeSpan.FromMilliseconds(Int32.MaxValue))
+                deadline.CancelAfter(within > TimeSpan.Zero ? within : TimeSpan.Zero);
+
+            try
             {
 
-                var read = await HTTPStream.ReadAsync(
-                                     buffer,
-                                     (Int32) pos,
-                                     1,
-                                     CancellationToken
-                                 );
-
-                if (read > 0)
+                // Read byte-by-byte until the end of the HTTP header block, as reading
+                // larger chunks might already consume WebSocket frames sent by the
+                // server directly after its HTTP response!
+                while (pos < buffer.Length)
                 {
 
-                    pos += (UInt32) read;
+                    var read = await HTTPStream.ReadAsync(
+                                         buffer,
+                                         (Int32) pos,
+                                         1,
+                                         deadline.Token
+                                     );
 
-                    if (pos           >= 4    &&
-                        buffer[pos-4] == 0x0d &&
-                        buffer[pos-3] == 0x0a &&
-                        buffer[pos-2] == 0x0d &&
-                        buffer[pos-1] == 0x0a)
+                    if (read > 0)
                     {
-                        break;
+
+                        pos += (UInt32) read;
+
+                        if (pos           >= 4    &&
+                            buffer[pos-4] == 0x0d &&
+                            buffer[pos-3] == 0x0a &&
+                            buffer[pos-2] == 0x0d &&
+                            buffer[pos-1] == 0x0a)
+                        {
+                            break;
+                        }
+
                     }
+                    else
+                        await Task.Delay(1, deadline.Token);
+
+                    if (sw.Elapsed >= within)
+                        throw new HTTPTimeoutException(sw.Elapsed);
 
                 }
-                else
-                    await Task.Delay(1, CancellationToken);
 
-                if (sw.Elapsed >= (HTTPRequest.Timeout ?? TimeSpan.FromSeconds(5)))
-                    throw new HTTPTimeoutException(sw.Elapsed);
-
+            }
+            catch (Exception e) when (e is not HTTPTimeoutException                          &&
+                                      deadline.IsCancellationRequested                       &&
+                                      !CancellationToken.IsCancellationRequested             &&
+                                      !networkingCancellationToken.IsCancellationRequested)
+            {
+                // Neither the caller nor Close(): the deadline - however the stream
+                // underneath chose to say that its read was called off.
+                throw new HTTPTimeoutException(sw.Elapsed);
             }
 
             var responseData  = buffer.ToUTF8String(pos);

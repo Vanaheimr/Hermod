@@ -56,6 +56,11 @@ Implemented (both server and client, unless noted):
   is tried again; one that also says when, in a `Retry-After` (seconds or an
   HTTP date, counted from the server's own `Date`), is not tried again before
   then, up to `MaxRetryAfter`, with the jitter after it rather than either side.
+- The client waits five seconds for the answer to its upgrade, or as long as
+  the request's `Timeout` says, and the deadline holds against a server that
+  takes the connection and then says nothing at all: the attempt ends with a
+  408, `Connect()` answers with it, and a client with a reconnect policy tries
+  again. `Close()` ends an attempt that is still waiting.
 - Incoming text and binary messages have a 64 MiB aggregate limit by default
   (including fragmented messages). Smaller configured limits are checked before
   fragment accumulation and against decompressed data; violations close with
