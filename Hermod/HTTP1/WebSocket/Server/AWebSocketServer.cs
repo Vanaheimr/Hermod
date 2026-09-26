@@ -1156,6 +1156,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             var x = Task.Factory.StartNew(async () => {
+
+                                        // Linked to the connection as well as to the server, and the
+                                        // first of the two is not a nicety.
+                                        //
+                                        // Close() lays the connection down and then cancels this token.
+                                        // For a connection that owns its socket that is belt and braces -
+                                        // closing the socket makes a pending read fail at once. For a
+                                        // connection that was handed a stream it is the only thing that
+                                        // works: disposing a stream does not necessarily end a read that
+                                        // is already in flight, so without this the loop sits there until
+                                        // the next ping interval and only then notices. Ten seconds,
+                                        // measured - and in that time a server that has just thrown
+                                        // somebody off still believes they are connected.
+                                        //
+                                        // Out here rather than with the rest of the loop's data, so that
+                                        // the finally at the bottom can reach it on every way out.
+                                        var cts2 = CancellationTokenSource.CreateLinkedTokenSource(
+                                                       token,
+                                                       webSocketConnection.CancellationTokenSource.Token
+                                                   );
+
                                         try
                                         {
 
@@ -1170,22 +1191,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 HTTPResponse?  httpResponse     = null;
                                                 var            pingCounter      = 1UL;
 
-                                                // Linked to the connection as well as to the server, and the
-                                                // first of the two is not a nicety.
-                                                //
-                                                // Close() lays the connection down and then cancels this token.
-                                                // For a connection that owns its socket that is belt and braces -
-                                                // closing the socket makes a pending read fail at once. For a
-                                                // connection that was handed a stream it is the only thing that
-                                                // works: disposing a stream does not necessarily end a read that
-                                                // is already in flight, so without this the loop sits there until
-                                                // the next ping interval and only then notices. Ten seconds,
-                                                // measured - and in that time a server that has just thrown
-                                                // somebody off still believes they are connected.
-                                                var cts2                        = CancellationTokenSource.CreateLinkedTokenSource(
-                                                                                      token,
-                                                                                      webSocketConnection.CancellationTokenSource.Token
-                                                                                  );
                                                 var token2                      = cts2.Token;
                                                 var lastWebSocketPingTimestamp  = Timestamp.Now;
                                                 var lastActivityTimestamp       = Timestamp.Now;
@@ -2393,6 +2398,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         catch (Exception e)
                                         {
                                             Logger.LogError(e, "Exception in HTTP WebSocket server connection loop.");
+                                        }
+                                        finally
+                                        {
+
+                                            // Disposed, because a linked token source stays registered on the
+                                            // tokens it was linked to until it is disposed, and one of them
+                                            // belongs to whichever server accepted the connection - this one,
+                                            // or an HTTP server that lent it - and lives as long as that
+                                            // server does. Undisposed, every connection the server ever
+                                            // handled stays on it: this source, a callback node on either
+                                            // side and, behind the one on the connection's side, the
+                                            // connection's own token source. About 350 bytes a connection,
+                                            // measured, for as long as the server runs.
+                                            //
+                                            // And cancelled before that. Every way out but an exception has
+                                            // been through Close(), which has cancelled it already, and there
+                                            // this changes nothing. An exception - a subprotocol selector
+                                            // that throws, say - skips Close(), and a source disposed without
+                                            // having been cancelled can never be cancelled any more: disposing
+                                            // unlinks it from the server's token too, so whatever a handler
+                                            // had started on its token would wait for ever, and not even the
+                                            // server stopping would end it.
+                                            //
+                                            // Whoever still holds the token afterwards - a handler that passed
+                                            // it on to work of its own, a send still under way - can go on
+                                            // asking it whether it is cancelled and registering on it, and a
+                                            // registration on a cancelled token runs at once. Only its
+                                            // WaitHandle is gone: that throws once the source is disposed.
+                                            try
+                                            {
+                                                cts2.Cancel();
+                                            }
+                                            catch
+                                            {
+                                                // What a registration on the token throws is its own affair,
+                                                // just as when Close() cancels it on the ordinary way out.
+                                            }
+
+                                            cts2.Dispose();
+
                                         }
 
                                     },
