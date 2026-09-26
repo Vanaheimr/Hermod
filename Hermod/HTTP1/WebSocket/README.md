@@ -65,6 +65,11 @@ Implemented (both server and client, unless noted):
   account with `AddOrUpdateHTTPBasicAuth` or `ClientTOTPConfig`, or explicitly
   set `RequireAuthentication: false` for public endpoints. Optional handshake
   validators can impose additional restrictions but do not replace this check.
+  A server that knows its clients otherwise (a client certificate, a store of
+  its own, credentials in the query string) overrides `AuthenticateAsync` and
+  calls the base for the defaults; an exception thrown there refuses with 500.
+  `Login` is the authenticated login, and `null` on a connection nobody
+  authenticated.
 - Server handshake hardening: `HandshakeTimeout` (Slowloris protection, default
   10 s), `MaxHandshakeRequestSize` (oversized/unterminated header block, default
   64 KB), `MaxConnectionsPerIP` (connection-flood protection, opt-in), and an

@@ -162,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 await Task.Delay(10, cancellationToken);
                 await webSocketServerConnection.SendWebSocketFrame(
-                          WebSocketFrame.Text($"Welcome '{webSocketServerConnection.Login}' to the '{HTTPServiceName}' web socket chat server!"),
+                          WebSocketFrame.Text($"Welcome '{webSocketServerConnection.Login ?? webSocketServerConnection.RemoteSocket.ToString()}' to the '{HTTPServiceName}' web socket chat server!"),
                           cancellationToken
                       );
 

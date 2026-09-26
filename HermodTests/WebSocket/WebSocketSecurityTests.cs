@@ -16,6 +16,7 @@
  */
 
 using System.Text;
+using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
@@ -45,6 +46,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             {
                 client.Disconnect();
             }
+        }
+
+        // The Login of every connection the server accepts. Accepted comes
+        // before the 101 goes out, so it is in here once Connect has its answer.
+        private static ConcurrentQueue<String?> AcceptedLogins(AWebSocketServer server)
+        {
+            var logins = new ConcurrentQueue<String?>();
+
+            server.OnWebSocketConnectionAccepted += (timestamp, webSocketServer, connection, sharedSubprotocols,
+                                                     selectedSubprotocol, eventTrackingId, cancellationToken) => {
+                logins.Enqueue(connection.Login);
+                return Task.CompletedTask;
+            };
+
+            return logins;
         }
 
         [Test]
@@ -127,6 +143,98 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                            HTTPTOTPAuthentication.Create("station", token,
                                                                          TOTPHTTPHeaderType.RAW))).HTTPStatusCode.Code,
                             Is.EqualTo(401));
+            }
+            finally
+            {
+                await server.Shutdown(Wait: true);
+            }
+        }
+
+        [Test]
+        public async Task AnAnonymousConnectionHasNoLogin()
+        {
+            var server = new WebSocketServer(HTTPPort: IPPort.Zero,
+                                             RequireAuthentication: false,
+                                             AutoStart: true);
+            var logins = AcceptedLogins(server);
+
+            try
+            {
+                // Credentials sent along are nobody's word for anything here.
+                Assert.That((await Connect(server,
+                                           HTTPBasicAuthentication.Create("alice", "never-checked"))).HTTPStatusCode.Code,
+                            Is.EqualTo(101));
+
+                Assert.That(logins, Is.EqualTo(new String?[] { null }));
+            }
+            finally
+            {
+                await server.Shutdown(Wait: true);
+            }
+        }
+
+        [Test]
+        public async Task AnAuthenticatedConnectionCarriesItsLogin()
+        {
+            var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            server.AddOrUpdateHTTPBasicAuth("alice", "correct-password");
+            var logins = AcceptedLogins(server);
+
+            try
+            {
+                Assert.That((await Connect(server,
+                                           HTTPBasicAuthentication.Create("alice", "correct-password"))).HTTPStatusCode.Code,
+                            Is.EqualTo(101));
+
+                Assert.That(logins, Is.EqualTo(new String?[] { "alice" }));
+            }
+            finally
+            {
+                await server.Shutdown(Wait: true);
+            }
+        }
+
+        [Test]
+        public async Task AnOverrideKnowsClientsOfItsOwnAndAsksTheBaseForTheRest()
+        {
+            var server = new StationServer();
+            server.Stations["cs01"] = "station-secret";
+            server.AddOrUpdateHTTPBasicAuth("alice", "correct-password");
+            var logins = AcceptedLogins(server);
+
+            try
+            {
+                Assert.That((await Connect(server,
+                                           HTTPBasicAuthentication.Create("cs01", "station-secret"))).HTTPStatusCode.Code,
+                            Is.EqualTo(101));
+
+                Assert.That((await Connect(server,
+                                           HTTPBasicAuthentication.Create("alice", "correct-password"))).HTTPStatusCode.Code,
+                            Is.EqualTo(101));
+
+                Assert.That((await Connect(server,
+                                           HTTPBasicAuthentication.Create("cs01", "wrong-secret"))).HTTPStatusCode.Code,
+                            Is.EqualTo(401));
+
+                Assert.That(logins, Is.EqualTo(new String?[] { "station cs01", "alice" }));
+            }
+            finally
+            {
+                await server.Shutdown(Wait: true);
+            }
+        }
+
+        [Test]
+        public async Task AnOverrideThatThrowsRefusesWithAServerError()
+        {
+            var server = new ThrowingServer();
+            server.AddOrUpdateHTTPBasicAuth("alice", "correct-password");
+
+            try
+            {
+                Assert.That((await Connect(server,
+                                           HTTPBasicAuthentication.Create("alice", "correct-password"))).HTTPStatusCode.Code,
+                            Is.EqualTo(500));
             }
             finally
             {
@@ -218,6 +326,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                                 MessageSizeLimit: 4096), Is.True);
             Assert.That(exceeded, Is.False);
             Assert.That(decompressed, Is.EqualTo(plainText));
+        }
+
+        /// <summary>
+        /// Knows its stations from a store of its own, the way the WWCP servers
+        /// do, and everybody else from the base.
+        /// </summary>
+        private sealed class StationServer : WebSocketServer
+        {
+
+            public ConcurrentDictionary<String, String> Stations { get; } = [];
+
+            public StationServer()
+                : base(HTTPPort: IPPort.Zero, AutoStart: true)
+            { }
+
+            protected override Task<String?> AuthenticateAsync(WebSocketServerConnection  Connection,
+                                                               HTTPRequest                Request,
+                                                               CancellationToken          CancellationToken)
+
+                => Request.Authorization is HTTPBasicAuthentication basicAuthentication &&
+                   Stations.TryGetValue(basicAuthentication.Username, out var secret) &&
+                   secret == basicAuthentication.Password
+
+                       ? Task.FromResult<String?>($"station {basicAuthentication.Username}")
+                       : base.AuthenticateAsync(Connection, Request, CancellationToken);
+
+        }
+
+        /// <summary>
+        /// An override failing the way somebody else's code does.
+        /// </summary>
+        private sealed class ThrowingServer : WebSocketServer
+        {
+
+            public ThrowingServer()
+                : base(HTTPPort: IPPort.Zero, AutoStart: true)
+            { }
+
+            protected override Task<String?> AuthenticateAsync(WebSocketServerConnection  Connection,
+                                                               HTTPRequest                Request,
+                                                               CancellationToken          CancellationToken)
+
+                => throw new InvalidOperationException("The store of logins is not there.");
+
         }
 
     }

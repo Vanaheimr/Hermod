@@ -929,21 +929,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        private Boolean TryAuthenticate(HTTPRequest  request,
-                                        out String?  login)
+        #region (protected virtual) AuthenticateAsync(Connection, Request, CancellationToken)
+
+        /// <summary>
+        /// Who the client asking for an upgrade is, if it is anybody this server
+        /// knows: its login, or null. Asked only when RequireAuthentication is set,
+        /// and only after the OnValidateWebSocketConnection handlers and the checks
+        /// of the handshake itself have let the request through. A login lets the
+        /// upgrade happen and becomes the connection's Login; null refuses it with
+        /// 401 Unauthorized.
+        /// </summary>
+        /// <remarks>
+        /// What this knows by default: HTTP Basic credentials in ClientLogins, and a
+        /// raw TOTP in ClientTOTPConfig. A server that knows its clients by something
+        /// else - a client certificate, a store of its own, credentials in the query
+        /// string - overrides it, and asks the base for whatever it keeps of these.
+        /// What an override throws refuses the upgrade too, with 500.
+        /// </remarks>
+        /// <param name="Connection">The connection asking for the upgrade, with its client certificate, if there is one.</param>
+        /// <param name="Request">The HTTP request asking for the upgrade.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        /// <returns>The login of the authenticated client, or null.</returns>
+        protected virtual Task<String?> AuthenticateAsync(WebSocketServerConnection  Connection,
+                                                          HTTPRequest                Request,
+                                                          CancellationToken          CancellationToken)
         {
 
-            login = null;
-
-            if (request.Authorization is HTTPBasicAuthentication basicAuthentication &&
+            if (Request.Authorization is HTTPBasicAuthentication basicAuthentication &&
                 ClientLogins.TryGetValue(basicAuthentication.Username, out var storedPassword) &&
                 storedPassword.Verify(basicAuthentication.Password))
             {
-                login = basicAuthentication.Username;
-                return true;
+                return Task.FromResult<String?>(basicAuthentication.Username);
             }
 
-            if (request.Authorization is HTTPTOTPAuthentication totpAuthentication &&
+            if (Request.Authorization is HTTPTOTPAuthentication totpAuthentication &&
                 ClientTOTPConfig.TryGetValue(totpAuthentication.Login, out var config))
             {
 
@@ -951,10 +970,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 // channel-bound credential rather than verify an unbound token.
                 if (config.UseTLSExporterMaterial == true ||
                     totpAuthentication.Type != TOTPHTTPHeaderType.RAW)
-                    return false;
+                    return Task.FromResult<String?>(null);
 
                 try
                 {
+
                     var (previous, current, next, _, _) = TOTPGenerator.GenerateTOTPs(
                                                              config.SharedSecret,
                                                              config.ValidityTime,
@@ -969,9 +989,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         MatchesToken(totpAuthentication.TOTP, current)  ||
                         MatchesToken(totpAuthentication.TOTP, next))
                     {
-                        login = totpAuthentication.Login;
-                        return true;
+                        return Task.FromResult<String?>(totpAuthentication.Login);
                     }
+
                 }
                 catch (ArgumentException)
                 {
@@ -980,14 +1000,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             }
 
-            return false;
+            return Task.FromResult<String?>(null);
 
         }
 
-        private static Boolean MatchesToken(String supplied, String expected)
-            => supplied.Length == expected.Length &&
-               CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(supplied),
-                                                       Encoding.UTF8.GetBytes(expected));
+        #endregion
+
+        #region (private static)    MatchesToken(Supplied, Expected)
+
+        /// <summary>
+        /// Whether a TOTP a client sent is one this server generated, compared
+        /// in a time that does not depend on where the two differ.
+        /// </summary>
+        /// <param name="Supplied">The TOTP the client sent.</param>
+        /// <param name="Expected">A TOTP this server generated.</param>
+        private static Boolean MatchesToken(String  Supplied,
+                                            String  Expected)
+
+            => Supplied.Length == Expected.Length &&
+               CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(Supplied),
+                                                       Encoding.UTF8.GetBytes(Expected));
+
+        #endregion
 
 
         public void AddSecWebSocketProtocol(String Protocol)
@@ -1443,7 +1477,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         if (HTTPRequest.TryParse(bytes, out var httpRequest))
                                                         {
 
-                                                            webSocketConnection.Login       = webSocketConnection.RemoteSocket.ToString();
+                                                            // Login stays null until an authentication gives it a
+                                                            // name. An address in it could not be told from a login.
                                                             webSocketConnection.HTTPRequest = httpRequest;
 
                                                             #region Log OnHTTPRequest
@@ -1586,27 +1621,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                             #endregion
 
+                                                            #region Authenticate the client, when the server requires it
+
                                                             if (RequireAuthentication &&
                                                                 (httpResponse is null || httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols))
                                                             {
-                                                                if (TryAuthenticate(httpRequest, out var authenticatedLogin))
-                                                                    webSocketConnection.Login = authenticatedLogin!;
+
+                                                                String? authenticatedLogin     = null;
+                                                                var     authenticationFailed   = false;
+
+                                                                // An override is somebody else's code. What it throws
+                                                                // refuses the upgrade like a null would, but answered,
+                                                                // and as the server's fault: a client may try a 500
+                                                                // again, where a 401 tells it not to.
+                                                                try
+                                                                {
+                                                                    authenticatedLogin = await AuthenticateAsync(webSocketConnection,
+                                                                                                                 httpRequest,
+                                                                                                                 token2);
+                                                                }
+                                                                catch (Exception e)
+                                                                {
+                                                                    Logger.LogError(e,
+                                                                                    "Exception while authenticating the WebSocket upgrade from {RemoteSocket}.",
+                                                                                    webSocketConnection.RemoteSocket);
+                                                                    authenticationFailed = true;
+                                                                }
+
+                                                                if (authenticatedLogin is not null)
+                                                                    webSocketConnection.Login = authenticatedLogin;
+
                                                                 else
                                                                 {
-                                                                    var unauthorizedResponse = new HTTPResponse.Builder(httpRequest) {
-                                                                                                   HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                                                                                   Server          = HTTPServiceName,
-                                                                                                   Connection      = ConnectionType.Close,
-                                                                                                   ContentType     = HTTPContentType.Text.PLAIN,
-                                                                                                   Content         = "WebSocket authentication required.".ToUTF8Bytes()
-                                                                                               };
 
-                                                                    if (!ClientLogins.IsEmpty)
-                                                                        unauthorizedResponse.WWWAuthenticate = WWWAuthenticate.Basic("WebSocket");
+                                                                    var refusal = new HTTPResponse.Builder(httpRequest) {
+                                                                                      HTTPStatusCode  = authenticationFailed
+                                                                                                            ? HTTPStatusCode.InternalServerError
+                                                                                                            : HTTPStatusCode.Unauthorized,
+                                                                                      Server          = HTTPServiceName,
+                                                                                      Connection      = ConnectionType.Close,
+                                                                                      ContentType     = HTTPContentType.Text.PLAIN,
+                                                                                      Content         = (authenticationFailed
+                                                                                                            ? "WebSocket authentication failed."
+                                                                                                            : "WebSocket authentication required.").ToUTF8Bytes()
+                                                                                  };
 
-                                                                    httpResponse = unauthorizedResponse.AsImmutable;
+                                                                    if (!authenticationFailed && !ClientLogins.IsEmpty)
+                                                                        refusal.WWWAuthenticate = WWWAuthenticate.Basic("WebSocket");
+
+                                                                    httpResponse = refusal.AsImmutable;
+
                                                                 }
+
                                                             }
+
+                                                            #endregion
 
                                                             if (httpResponse is null)
                                                             {
