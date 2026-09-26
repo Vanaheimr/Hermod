@@ -1503,18 +1503,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             // InvokeAllAsync returns Task and swallows what a handler
                                                             // throws, which here would turn "the validator failed,
                                                             // therefore refuse" into "the validator failed, therefore
-                                                            // let them in".
+                                                            // let them in". Nor may it simply propagate: each handler
+                                                            // is asked through AskValidator, which says why.
                                                             var onValidateWebSocketConnection = OnValidateWebSocketConnection;
                                                             if (onValidateWebSocketConnection is not null)
                                                             {
 
                                                                 var httpResponseTasks = await Task.WhenAll(onValidateWebSocketConnection.GetInvocationList().
                                                                                                    Cast<OnValidateWebSocketConnectionDelegate>().
-                                                                                                   Select(e => e(Timestamp.Now,
-                                                                                                                 this,
-                                                                                                                 webSocketConnection,
-                                                                                                                 EventTracking_Id.New,
-                                                                                                                 token2))).
+                                                                                                   Select(validator => AskValidator(validator,
+                                                                                                                                    webSocketConnection,
+                                                                                                                                    httpRequest,
+                                                                                                                                    token2))).
                                                                                                    ConfigureAwait(false);
 
                                                                 // The first refusal, and not the first answer: a server
@@ -2394,11 +2394,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         {
                                             Logger.LogError(e, "Exception in HTTP WebSocket server connection loop.");
                                         }
+                                        finally
+                                        {
+
+                                            // However the loop ended. The way out after it - close the
+                                            // connection, take it off the books - is only reached where
+                                            // the loop ends as planned. An exception went past it and
+                                            // left the connection in webSocketConnections for as long as
+                                            // the server ran: listed by WebSocketConnections for as long
+                                            // as anything still held it, and counted against its address
+                                            // by MaxConnectionsPerIP for good.
+                                            //
+                                            // Both are no-ops for a connection that did get out the
+                                            // planned way, and the bookkeeping, which cannot fail, goes
+                                            // first. The close sends no close frame: whatever went wrong
+                                            // may have gone wrong before any 101, where a frame would be
+                                            // garbage in an HTTP response.
+                                            webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+
+                                            await webSocketConnection.Close();
+
+                                        }
 
                                     },
                                     token);
 
             await x.Unwrap().ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region (private) AskValidator(Validator, Connection, Request, CancellationToken)
+
+        /// <summary>
+        /// What one OnValidateWebSocketConnection handler says to an upgrade:
+        /// null to let it happen, or the answer that refuses it.
+        /// </summary>
+        /// <remarks>
+        /// A handler is somebody else's code, and what it throws refuses the
+        /// upgrade as well - a validator that failed must never let anybody in -
+        /// but answered, and as the server's fault: 500. Left to propagate, it
+        /// ended the connection loop instead. The client was hung up on without
+        /// an answer, and the connection stayed on the server's books. And a
+        /// client with a reconnect policy may come back after a 500, where a
+        /// 401 or a 403 tells it not to.
+        ///
+        /// The 500 is this handler's refusal, in its place among the others:
+        /// the first refusal is still the answer. A client that an earlier
+        /// handler refuses with 401 is told 401, whether or not a later one
+        /// threw.
+        /// </remarks>
+        /// <param name="Validator">The handler to ask.</param>
+        /// <param name="Connection">The connection asking for the upgrade.</param>
+        /// <param name="Request">The HTTP request asking for the upgrade.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        private async Task<HTTPResponse?> AskValidator(OnValidateWebSocketConnectionDelegate  Validator,
+                                                       WebSocketServerConnection              Connection,
+                                                       HTTPRequest                            Request,
+                                                       CancellationToken                      CancellationToken)
+        {
+
+            try
+            {
+                return await Validator(Timestamp.Now,
+                                       this,
+                                       Connection,
+                                       EventTracking_Id.New,
+                                       CancellationToken);
+            }
+            catch (Exception e)
+            {
+
+                Logger.LogError(e,
+                                "Exception while validating the WebSocket upgrade from {RemoteSocket}.",
+                                Connection.RemoteSocket);
+
+                return new HTTPResponse.Builder(Request) {
+                           HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                           Server          = HTTPServiceName,
+                           Connection      = ConnectionType.Close,
+                           ContentType     = HTTPContentType.Text.PLAIN,
+                           Content         = "WebSocket connection validation failed.".ToUTF8Bytes()
+                       }.AsImmutable;
+
+            }
 
         }
 
