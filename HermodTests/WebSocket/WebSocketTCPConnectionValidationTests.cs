@@ -27,8 +27,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 {
 
     /// <summary>
+    /// How a WebSocket server under test comes by its connections.
+    /// </summary>
+    public enum WebSocketServerArrangement
+    {
+
+        /// <summary>
+        /// It listens on a port of its own, and accepts them itself.
+        /// </summary>
+        OnAPortOfItsOwn,
+
+        /// <summary>
+        /// It is lent to a path of an HTTP server, which accepts them and hands
+        /// them over.
+        /// </summary>
+        LentToAnHTTPPath
+
+    }
+
+
+    /// <summary>
     /// A handler of OnValidateTCPConnection that refuses a connection has it
-    /// refused - and so does a handler that fails.
+    /// refused - and so does a handler that fails - whether the server accepted
+    /// the connection on a port of its own or had it handed over by an HTTP
+    /// server it is lent to.
     /// </summary>
     /// <remarks>
     /// The verdict was the first answer, compared with a Rejected() made for
@@ -42,16 +64,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     /// OnValidateWebSocketConnection, and a handler that throws has refused.
     /// The servers here ask nobody for credentials, so that the handlers under
     /// test are the only thing that can turn a client away.
+    ///
+    /// Every test runs twice, once for each arrangement. A server lent to an
+    /// HTTP path accepts no connection itself, and its handlers used not to be
+    /// asked at all; now they are asked when the HTTP server hands a connection
+    /// over, and the same verdict has to come out of the same answers.
     /// </remarks>
-    [TestFixture]
+    [TestFixture(WebSocketServerArrangement.OnAPortOfItsOwn)]
+    [TestFixture(WebSocketServerArrangement.LentToAnHTTPPath)]
     public class WebSocketTCPConnectionValidationTests
     {
 
         #region Data
 
-        private WebSocketMirrorServer?             server;
-        private WebSocketClient?                   client;
-        private TaskCompletionSource<String>?      refusal;
+        private readonly WebSocketServerArrangement  arrangement;
+
+        private HTTPServer?                          httpServer;
+        private WebSocketMirrorServer?               server;
+        private WebSocketClient?                     client;
+        private TaskCompletionSource<String>?        refusal;
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// The tests, for a server in the given arrangement.
+        /// </summary>
+        /// <param name="Arrangement">How the server under test comes by its connections.</param>
+        public WebSocketTCPConnectionValidationTests(WebSocketServerArrangement Arrangement)
+        {
+            this.arrangement = Arrangement;
+        }
 
         #endregion
 
@@ -67,9 +111,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             if (server is not null)
                 await server.Shutdown(Wait: true);
 
-            client   = null;
-            server   = null;
-            refusal  = null;
+            if (httpServer is not null)
+                await httpServer.Stop();
+
+            client      = null;
+            server      = null;
+            httpServer  = null;
+            refusal     = null;
 
         }
 
@@ -83,14 +131,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// TCP connection may come in, and remember why it refused one.
         /// </summary>
         /// <param name="Validators">The handlers of OnValidateTCPConnection, in the order they are added.</param>
-        private void StartServer(params OnValidateTCPConnectionDelegate[] Validators)
+        private async Task StartServer(params OnValidateTCPConnectionDelegate[] Validators)
         {
 
-            server   = new WebSocketMirrorServer(
-                           HTTPPort:               IPPort.Zero,
-                           RequireAuthentication:  false,
-                           AutoStart:              true
-                       );
+            if (arrangement == WebSocketServerArrangement.OnAPortOfItsOwn)
+                server      = new WebSocketMirrorServer(
+                                  HTTPPort:               IPPort.Zero,
+                                  RequireAuthentication:  false,
+                                  AutoStart:              true
+                              );
+
+            else
+            {
+
+                httpServer  = await HTTPServer.StartNew();
+
+                // Not started: it accepts nothing, and every connection it
+                // speaks on is one the HTTP server accepted and hands over.
+                server      = new WebSocketMirrorServer(
+                                  RequireAuthentication:  false,
+                                  AutoStart:              false
+                              );
+
+                httpServer.AddHTTPAPI().AddHandler(
+                    HTTPMethod.GET,
+                    HTTPPath.Parse("/lent"),
+                    HTTPDelegate: WebSocketUpgrade.For(server)
+                );
+
+            }
 
             refusal  = new TaskCompletionSource<String>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -114,7 +183,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         private async Task<HTTPResponse> Connect()
         {
 
-            client = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{server!.IPPort}"));
+            client = new WebSocketClient(URL.Parse(
+                         arrangement == WebSocketServerArrangement.OnAPortOfItsOwn
+                             ? $"ws://127.0.0.1:{server!.IPPort}"
+                             : $"ws://127.0.0.1:{httpServer!.TCPPort}/lent"
+                     ));
 
             var (_, httpResponse) = await client.Connect();
 
@@ -159,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AHandlerThatSaysNoRefusesTheConnection()
         {
 
-            StartServer(Answer(ConnectionFilterResponse.Rejected("Not from this network.")));
+            await StartServer(Answer(ConnectionFilterResponse.Rejected("Not from this network.")));
 
             var httpResponse = await Connect();
 
@@ -194,7 +267,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 : (timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) =>
                       throw new InvalidOperationException("The allow-list could not be read.");
 
-            StartServer(fails);
+            await StartServer(fails);
 
             var httpResponse = await Connect();
 
@@ -215,8 +288,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AYesDoesNotOutvoteANoAfterIt()
         {
 
-            StartServer(Answer(ConnectionFilterResponse.Accepted()),
-                        Answer(ConnectionFilterResponse.Rejected("Not from this network.")));
+            await StartServer(Answer(ConnectionFilterResponse.Accepted()),
+                              Answer(ConnectionFilterResponse.Rejected("Not from this network.")));
 
             var httpResponse = await Connect();
 
@@ -237,8 +310,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task WhereNobodySaysNoTheConnectionIsLetIn()
         {
 
-            StartServer(Answer(ConnectionFilterResponse.Accepted()),
-                        Answer(ConnectionFilterResponse.NoOperation()));
+            await StartServer(Answer(ConnectionFilterResponse.Accepted()),
+                              Answer(ConnectionFilterResponse.NoOperation()));
 
             var httpResponse = await Connect();
 

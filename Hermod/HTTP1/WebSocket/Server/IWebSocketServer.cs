@@ -103,7 +103,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         /// <summary>
-        /// An event sent whenever a new TCP connection was accepted.
+        /// An event sent whenever a new TCP connection has to be let in or kept
+        /// out: when it is accepted on the server's own port, and when an HTTP
+        /// server the server is lent to hands it over.
         /// </summary>
         event OnValidateTCPConnectionDelegate?                   OnValidateTCPConnection;
 

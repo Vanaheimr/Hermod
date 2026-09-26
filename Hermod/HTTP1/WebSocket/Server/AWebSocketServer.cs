@@ -395,7 +395,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         /// <summary>
-        /// An event sent whenever a new TCP connection was accepted.
+        /// An event sent whenever a new TCP connection has to be let in or kept
+        /// out, before anything else of this server sees it: when it is accepted
+        /// on this server's own port, and when an HTTP server this server is lent
+        /// to hands it over. The first refusal among all answers keeps it out, and
+        /// so does a handler that throws.
         /// </summary>
         public event OnValidateTCPConnectionDelegate?                   OnValidateTCPConnection;
 
@@ -1083,11 +1087,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// The bytes of the HTTP request that asked for the upgrade, exactly as
         /// they would have arrived here.
         /// </param>
+        /// <param name="ClientCertificate">The certificate the other end presented, if any.</param>
+        /// <param name="TCPConnection">
+        /// The TCP connection the stream belongs to, where the caller has one:
+        /// what ValidateConnection, and through it every handler of
+        /// OnValidateTCPConnection, is asked about.
+        /// </param>
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
         /// <remarks>
         /// <b>For a WebSocket mounted on an HTTP path</b> - see
         /// <c>WebSocketUpgrade</c>. An HTTP server has accepted the connection,
         /// done the TLS and read the request; from the path it knows this is a
         /// WebSocket, and it hands the stream over here.
+        ///
+        /// <b>The connection is validated first, as though it had been accepted
+        /// here.</b> On a port of its own this server asks ValidateConnection -
+        /// and through it every handler of OnValidateTCPConnection - before a
+        /// byte of HTTP is read. A connection that is handed over was accepted
+        /// elsewhere, so the same question is asked at the hand-over instead:
+        /// after the HTTP server's TLS and after the request that asked for the
+        /// upgrade, but before anything else of this server's has seen the
+        /// connection. It used not to be asked at all, and a handler meant as a
+        /// firewall kept nobody out of a server lent to a path - without a word
+        /// said about it.
         ///
         /// <b>The handshake is not redone and not duplicated.</b> The request is
         /// handed back in as bytes and the ordinary loop parses it, validates
@@ -1102,46 +1124,147 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// for an upgrade waits for the 101 before it says anything else, so
         /// there is nothing after the request to lose.
         /// </remarks>
-        public Task AcceptUpgradedConnectionAsync(Stream             NetworkStream,
-                                                  IPSocket           LocalSocket,
-                                                  IPSocket           RemoteSocket,
-                                                  Byte[]             RequestBytes,
-                                                  X509Certificate2?  ClientCertificate   = null,
-                                                  CancellationToken  CancellationToken   = default)
+        public async Task AcceptUpgradedConnectionAsync(Stream             NetworkStream,
+                                                        IPSocket           LocalSocket,
+                                                        IPSocket           RemoteSocket,
+                                                        Byte[]             RequestBytes,
+                                                        X509Certificate2?  ClientCertificate   = null,
+                                                        TCPConnection?     TCPConnection       = null,
+                                                        CancellationToken  CancellationToken   = default)
+        {
 
-            => RunConnectionAsync(
-                   new WebSocketServerConnection(
+            #region Validate the connection, as though it had been accepted here
 
-                       WebSocketServer:              this,
+            var eventTrackingId = EventTracking_Id.New;
 
-                       // The request that asked for the upgrade goes in front of
-                       // the stream, so the loop below reads it exactly as it
-                       // would have read it off the socket itself. See
-                       // PrefixedStream for why it is not handed to the loop as
-                       // a starting buffer instead.
-                       NetworkStream:                new PrefixedStream(RequestBytes, NetworkStream),
-                       LocalSocket:                  LocalSocket,
-                       RemoteSocket:                 RemoteSocket,
-                       ClientCertificate:            ClientCertificate,
+            ConnectionFilterResponse verdict;
 
-                       HTTPRequest:                  null,
-                       HTTPResponse:                 null,
+            if (TCPConnection is not null)
+                verdict = await ValidateConnection(
+                                    Timestamp.Now,
+                                    this,
+                                    TCPConnection,
+                                    eventTrackingId,
+                                    CancellationToken
+                                );
 
-                       MaxTextMessageSizeIn:         MaxTextMessageSizeIn,
-                       MaxTextMessageSizeOut:        MaxTextMessageSizeOut,
-                       MaxTextFragmentLengthIn:      MaxTextFragmentLengthIn,
-                       MaxTextFragmentLengthOut:     MaxTextFragmentLengthOut,
+            // Nobody is asking, so there is nothing to decide.
+            else if (OnValidateTCPConnection is null)
+                verdict = ConnectionFilterResponse.Accepted();
 
-                       MaxBinaryMessageSizeIn:       MaxBinaryMessageSizeIn,
-                       MaxBinaryMessageSizeOut:      MaxBinaryMessageSizeOut,
-                       MaxBinaryFragmentLengthIn:    MaxBinaryFragmentLengthIn,
-                       MaxBinaryFragmentLengthOut:   MaxBinaryFragmentLengthOut,
+            // Somebody is, and there is nothing to show them: whoever handed the
+            // stream over did not say which connection it belongs to. A handler
+            // that is there to look at the connection cannot look, and that is
+            // a refusal for the same reason a handler that fails is one - a
+            // filter that could not decide whether a connection may come in has
+            // not said that it may.
+            else
+            {
 
-                       SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
+                Logger.LogWarning("Refusing the WebSocket connection handed over from {RemoteSocket}: {EventName} has handlers, and there is no TCP connection to show them.",
+                                  RemoteSocket,
+                                  nameof(OnValidateTCPConnection));
 
-                   ),
-                   CancellationToken
-               );
+                verdict = ConnectionFilterResponse.Rejected($"{nameof(OnValidateTCPConnection)} has handlers, and a connection handed over without its TCP connection cannot be shown to them.");
+
+            }
+
+            #endregion
+
+            #region Answer a refusal: 403 Forbidden
+
+            if (verdict.Result == ConnectionFilterResult.Rejected)
+            {
+
+                // Answered, and not reset as on a port of its own. There the
+                // connection is refused before a byte of HTTP is read; here the
+                // handshake has been read, and the client is waiting for an HTTP
+                // answer - which is what it gets for every other refusal on this
+                // path. RFC 6455, section 4.2.2: a server that does not wish to
+                // accept a connection answers the handshake with an HTTP error,
+                // and 403 Forbidden is the RFC's own example.
+                //
+                // Why goes to OnNewTCPConnectionRejected and not into the answer:
+                // the reason can carry the message of a handler that failed, and
+                // a firewall does not explain itself to whoever it keeps out.
+                var forbidden = new HTTPResponse.Builder(
+                                    Timestamp.Now,
+                                    eventTrackingId,
+                                    TimeSpan.Zero,
+                                    new HTTPSource(),
+                                    LocalSocket,
+                                    RemoteSocket,
+                                    ConnectionType.Close,
+                                    HTTPStatusCode.Forbidden
+                                ) {
+                                    Server       = HTTPServiceName,
+                                    ContentType  = HTTPContentType.Text.PLAIN,
+                                    Content      = "The connection was refused.".ToUTF8Bytes()
+                                }.AsImmutable;
+
+                try
+                {
+
+                    // The whole message: with a body, EntirePDU is header, empty
+                    // line and body.
+                    await NetworkStream.WriteAsync(forbidden.EntirePDU.ToUTF8Bytes(), CancellationToken);
+                    await NetworkStream.FlushAsync(CancellationToken);
+
+                }
+                catch (Exception e)
+                {
+                    Logger.LogDebug(e, "Could not answer the refused WebSocket connection from {RemoteSocket}.", RemoteSocket);
+                }
+
+                await SendNewTCPConnectionRejected(
+                          Timestamp.Now,
+                          eventTrackingId,
+                          RemoteSocket,
+                          TCPConnection?.ConnectionId ?? ConnectionIdBuilder(this, Timestamp.Now, LocalSocket, RemoteSocket),
+                          verdict.Reason
+                      );
+
+                return;
+
+            }
+
+            #endregion
+
+            await RunConnectionAsync(
+                      new WebSocketServerConnection(
+
+                          WebSocketServer:              this,
+
+                          // The request that asked for the upgrade goes in front of
+                          // the stream, so the loop below reads it exactly as it
+                          // would have read it off the socket itself. See
+                          // PrefixedStream for why it is not handed to the loop as
+                          // a starting buffer instead.
+                          NetworkStream:                new PrefixedStream(RequestBytes, NetworkStream),
+                          LocalSocket:                  LocalSocket,
+                          RemoteSocket:                 RemoteSocket,
+                          ClientCertificate:            ClientCertificate,
+
+                          HTTPRequest:                  null,
+                          HTTPResponse:                 null,
+
+                          MaxTextMessageSizeIn:         MaxTextMessageSizeIn,
+                          MaxTextMessageSizeOut:        MaxTextMessageSizeOut,
+                          MaxTextFragmentLengthIn:      MaxTextFragmentLengthIn,
+                          MaxTextFragmentLengthOut:     MaxTextFragmentLengthOut,
+
+                          MaxBinaryMessageSizeIn:       MaxBinaryMessageSizeIn,
+                          MaxBinaryMessageSizeOut:      MaxBinaryMessageSizeOut,
+                          MaxBinaryFragmentLengthIn:    MaxBinaryFragmentLengthIn,
+                          MaxBinaryFragmentLengthOut:   MaxBinaryFragmentLengthOut,
+
+                          SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
+
+                      ),
+                      CancellationToken
+                  );
+
+        }
 
         #endregion
 
@@ -2413,6 +2536,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// The first refusal among all answers is the verdict, and a handler
         /// that throws has refused: a filter that could not decide whether a
         /// connection may come in has not said that it may.
+        ///
+        /// Asked about a connection accepted on this server's own port, and about
+        /// one an HTTP server hands over to a server lent to one of its paths -
+        /// see AcceptUpgradedConnectionAsync. Either way the handlers are shown
+        /// the TcpClient the client is connected to, which on a lent server is
+        /// the HTTP server's, and either way the verdict is reached the same way.
         /// </remarks>
         public override async Task<ConnectionFilterResponse> ValidateConnection(DateTimeOffset     Timestamp,
                                                                                 ITCPServer         Server,
