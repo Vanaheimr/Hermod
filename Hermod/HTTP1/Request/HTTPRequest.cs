@@ -1436,12 +1436,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Check Host header
 
-            // rfc 2616 - Section 19.6.1.1
-            // A client that sends an HTTP/1.1 request MUST send a Host header.
-
-            // rfc 2616 - Section 14.23
-            // All Internet-based HTTP/1.1 servers MUST respond with a 400 (Bad Request)
-            // status code to any HTTP/1.1 request message which lacks a Host header field.
+            // RFC 9110, Section 7.2: a client MUST send a Host header field in an
+            // HTTP/1.1 request, and a server MUST respond with 400 (Bad Request) to
+            // any HTTP/1.1 request message that lacks one, carries more than one, or
+            // carries one whose field value is invalid.
 
             // This origin-server profile accepts only origin-form (plus OPTIONS *),
             // so the target authority is always supplied by the Host header field.
@@ -2481,12 +2479,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Check Host header
 
-                // rfc 2616 - Section 19.6.1.1
-                // A client that sends an HTTP/1.1 request MUST send a Host header.
-
-                // rfc 2616 - Section 14.23
-                // All Internet-based HTTP/1.1 servers MUST respond with a 400 (Bad Request)
-                // status code to any HTTP/1.1 request message which lacks a Host header field.
+                // RFC 9110, Section 7.2: a client MUST send a Host header field in an
+                // HTTP/1.1 request, and a server MUST respond with 400 (Bad Request) to
+                // any HTTP/1.1 request message that lacks one, carries more than one, or
+                // carries one whose field value is invalid.
 
                 // This origin-server profile accepts only origin-form (plus OPTIONS *),
                 // so the target authority is always supplied by the Host header field.

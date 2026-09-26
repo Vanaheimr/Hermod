@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// at least 31 bits of range.
         /// </summary>
         /// <example>Age: 1234</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9111.html#section-5.1"/>
         public static readonly HTTPResponseHeaderField<UInt64?> Age = new ("Age",
                                                                            RequestPathSemantic.EndToEnd,
                                                                            StringParser: StringParsers.NullableUInt64);
@@ -93,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// the origin server.
         /// </summary>
         /// <example>Allow: GET, HEAD, PUT</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.1"/>
         public static readonly HTTPResponseHeaderField<IEnumerable<HTTPMethod>> Allow = new ("Allow",
                                                                                              RequestPathSemantic.EndToEnd,
                                                                                              MultipleValuesAsList:  true,
@@ -178,7 +178,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// consider caching implications.
         /// </summary>
         /// <example>DAV : 1</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc4918.html#section-10.1"/>
+        /// <remarks>The [RFC2616] references in the text above are RFC 4918's
+        /// own citations, kept as written; the current normative reference is
+        /// RFC 9110.</remarks>
         public static readonly HTTPResponseHeaderField DAV = new ("DAV",
                                                                   RequestPathSemantic.EndToEnd);
 
@@ -194,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// with other entities from the same resource (see section 13.3.3). 
         /// </summary>
         /// <example>ETag: "737060cd8c284d8af7ad3082f209582d"</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-8.8.3"/>
         public static readonly HTTPResponseHeaderField ETag = new ("ETag",
                                                                    RequestPathSemantic.EndToEnd);
 
@@ -243,7 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// header field (section 14.9).
         /// </summary>
         /// <example>Expires: Thu, 01 Dec 1994 16:00:00 GMT</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9111.html#section-5.3"/>
         public static readonly HTTPResponseHeaderField Expires = new ("Expires",
                                                                       RequestPathSemantic.EndToEnd);
 
@@ -321,7 +324,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// HTTP/1.1 servers SHOULD send Last-Modified whenever feasible.
         /// </summary>
         /// <example>Last-Modified: Tue, 15 Nov 1994 12:45:26 GMT</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-8.8.2"/>
         public static readonly HTTPResponseHeaderField<DateTimeOffset> LastModified = new ("Last-Modified",
                                                                                      RequestPathSemantic.EndToEnd,
                                                                                      StringParser:     DateTimeOffset.TryParse,
@@ -349,7 +352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// section 13.10 for cache requirements of some methods.
         /// </summary>
         /// <example>Location: http://www.w3.org/pub/WWW/People.html </example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.2"/>
         public static readonly HTTPResponseHeaderField<Location> Location = new ("Location",
                                                                                  RequestPathSemantic.EndToEnd,
                                                                                  StringParser: HTTP.Location.TryParse);
@@ -375,7 +378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// if the proxy is forwarding the Proxy-Authenticate header field.
         /// </summary>
         /// <example>Proxy-Authenticate: Basic</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-11.7.1"/>
         public static readonly HTTPResponseHeaderField ProxyAuthenticate = new ("Proxy-Authenticate",
                                                                                 RequestPathSemantic.HopToHop);
 
@@ -395,7 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Retry-After: Fri, 31 Dec 1999 23:59:59 GMT</example>
         /// <example>Retry-After: 120</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3"/>
         public static readonly HTTPResponseHeaderField RetryAfter = new ("Retry-After",
                                                                          RequestPathSemantic.EndToEnd);
 
@@ -422,7 +425,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// a configurable option.
         /// </summary>
         /// <example>Server: CERN/3.0 libwww/2.17</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.4"/>
         public static readonly HTTPResponseHeaderField Server = new ("Server",
                                                                      RequestPathSemantic.EndToEnd);
 
@@ -474,7 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// server; it may only be generated by an origin server.
         /// </summary>
         /// <example>Vary: *</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-12.5.5"/>
         public static readonly HTTPResponseHeaderField Vary = new ("Vary",
                                                                    RequestPathSemantic.EndToEnd);
 
@@ -507,7 +510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///                          algorithm  = MD5,
         ///                          qop        = "auth"
         /// </example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-11.6.1"/>
         public static readonly HTTPResponseHeaderField<WWWAuthenticate> WWWAuthenticate = new ("WWW-Authenticate",
                                                                                                RequestPathSemantic.EndToEnd,
                                                                                                StringParser: HTTP.WWWAuthenticate.TryParse);

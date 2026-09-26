@@ -19,7 +19,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// HTTP status codes as defined within RFC 2616 (Hypertext Transfer Protocol v1.1) and other resources.
+    /// HTTP status codes as defined by RFC 9110, Section 15, plus the rest of the IANA registry.
     /// http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
     /// http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
     /// </summary>

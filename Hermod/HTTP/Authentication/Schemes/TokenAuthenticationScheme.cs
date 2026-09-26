@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     ///   <item>the bare form <c>Token &lt;token&gt;</c> (GitHub-style), where the
     ///   whole credential is the token; and</item>
     ///   <item>the parameterized form <c>Token token="&lt;token&gt;", nonce="…", …</c>
-    ///   (Rails-style), an RFC 7235 auth-param list carrying a mandatory
+    ///   (Rails-style), an RFC 9110 auth-param list carrying a mandatory
     ///   <c>token</c> plus optional extra params.</item>
     /// </list>
     /// Functionally close to Bearer (RFC 6750) — a single opaque credential, no

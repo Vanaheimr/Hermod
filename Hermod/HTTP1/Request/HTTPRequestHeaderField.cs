@@ -137,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// the user.
         /// </summary>
         /// <example>Accept: text/plain; q=0.5, text/html</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-12.5.1"/>
         public static readonly HTTPRequestHeaderField<AcceptTypes> Accept = new ("Accept",
                                                                                  RequestPathSemantic.EndToEnd,
                                                                                  StringParser: AcceptTypes.TryParse);
@@ -177,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// response is also allowed.
         /// </summary>
         /// <example>Accept-Charset: iso-8859-5, unicode-1-1;q=0.8</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-12.5.2"/>
         public static readonly HTTPRequestHeaderField AcceptCharset = new ("Accept-Charset",
                                                                            RequestPathSemantic.EndToEnd);
 
@@ -235,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <example>Accept-Encoding: *</example>
         /// <example>Accept-Encoding: compress;q=0.5, gzip;q=1.0</example>
         /// <example>Accept-Encoding: gzip;q=1.0, identity; q=0.5, *;q=0</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-12.5.3"/>
         public static readonly HTTPRequestHeaderField AcceptEncoding = new ("Accept-Encoding",
                                                                             RequestPathSemantic.EndToEnd);
 
@@ -300,7 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// best matching behavior.
         /// </summary>
         /// <example>Accept-Language: da, en-gb;q=0.8, en;q=0.7</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-12.5.4"/>
         public static readonly HTTPRequestHeaderField AcceptLanguage = new ("Accept-Language",
                                                                             RequestPathSemantic.EndToEnd);
 
@@ -374,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// it MAY be returned in reply to any subsequent request.
         /// </summary>
         /// <example>Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-11.6.2"/>
         public static readonly HTTPRequestHeaderField<IHTTPAuthentication> Authorization = new ("Authorization",
                                                                                                 RequestPathSemantic.EndToEnd,
                                                                                                 StringParser: HTTPAuthenticationExtensions.TryParse);
@@ -438,7 +438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <example>Depth: 0</example>
         /// <example>Depth: 1</example>
         /// <example>Depth: infinity</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc4918.html#section-10.2"/>
         public static readonly HTTPRequestHeaderField Depth = new ("Depth",
                                                                    RequestPathSemantic.EndToEnd);
 
@@ -463,7 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// information in an error body.
         /// </summary>
         /// <example>Destination : index-old.html</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc4918.html#section-10.3"/>
         public static readonly HTTPRequestHeaderField Destination = new ("Destination",
                                                                          RequestPathSemantic.EndToEnd);
 
@@ -504,7 +504,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// See section 8.2.3 for the use of the 100 (continue) status.
         /// </summary>
         /// <example>Expect: 100-continue</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-10.1.1"/>
         public static readonly HTTPRequestHeaderField Expect = new ("Expect",
                                                                     RequestPathSemantic.EndToEnd);
 
@@ -541,7 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// modify the value of this field at any time prior to a request. 
         /// </summary> 
         /// <example>From: webmaster@w3.org</example> 
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/> 
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-10.1.2"/> 
         public static readonly HTTPRequestHeaderField From  = new ("From",
                                                                    RequestPathSemantic.EndToEnd);
 
@@ -585,7 +585,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// relating to Host.
         /// </summary>
         /// <example>Host: www.w3.org</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-7.2"/>
         public static readonly HTTPRequestHeaderField<HTTPHostname> Host = new ("Host",
                                                                                 RequestPathSemantic.EndToEnd,
                                                                                 StringParser: HTTPHostname.TryParse);
@@ -812,7 +812,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Note that, as defined above in Section 10.4.4, the same considerations
         /// apply to matching state tokens.
         /// </summary>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc4918.html#section-10.4"/>
+        /// <remarks>The [RFC2616] references in the text above are RFC 4918's
+        /// own citations, kept as written; the current normative reference is
+        /// RFC 9110.</remarks>
         public static readonly HTTPRequestHeaderField If = new ("If",
                                                                 RequestPathSemantic.EndToEnd);
 
@@ -874,7 +877,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <example>If-Match: "xyzzy"</example>
         /// <example>If-Match: "xyzzy", "r2d2xxxx", "c3piozzzz"</example>
         /// <example>If-Match: *</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.1"/>
         public static readonly HTTPRequestHeaderField IfMatch = new ("If-Match",
                                                                      RequestPathSemantic.EndToEnd);
 
@@ -946,7 +949,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// fields is undefined by this specification.
         /// </summary>
         /// <example>If-Modified-Since: Sat, 29 Oct 1994 19:43:31 GMT</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.3"/>
         public static readonly HTTPRequestHeaderField IfModifiedSince = new ("If-Modified-Since",
                                                                              RequestPathSemantic.EndToEnd);
 
@@ -1015,7 +1018,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <example>If-None-Match: "xyzzy", "r2d2xxxx", "c3piozzzz"</example>
         /// <example>If-None-Match: W/"xyzzy", W/"r2d2xxxx", W/"c3piozzzz"</example>
         /// <example>If-None-Match: *</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.2"/>
         public static readonly HTTPRequestHeaderField IfNoneMatch = new ("If-None-Match",
                                                                          RequestPathSemantic.EndToEnd);
 
@@ -1054,7 +1057,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>If-Range: "737060cd8c284d8af7ad3082f209582d"</example>
         /// <example>If-Range: Sat, 29 Oct 1994 19:43:31 GMT</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.5"/>
         public static readonly HTTPRequestHeaderField IfRange = new ("If-Range",
                                                                      RequestPathSemantic.EndToEnd);
 
@@ -1084,7 +1087,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// fields is undefined by this specification.
         /// </summary>
         /// <example>If-Unmodified-Since: Sat, 29 Oct 1994 19:43:31 GMT</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.4"/>
         public static readonly HTTPRequestHeaderField IfUnmodifiedSince = new ("If-Unmodified-Since",
                                                                                RequestPathSemantic.EndToEnd);
 
@@ -1103,7 +1106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// LOCK request to create a new lock.
         /// </summary>
         /// <example>Lock-Token: Coded-URL</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc4918.html#section-10.5"/>
         public static readonly HTTPRequestHeaderField LockToken = new ("Lock-Token",
                                                                        RequestPathSemantic.EndToEnd);
 
@@ -1138,7 +1141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// that method definition.
         /// </summary>
         /// <example>Max-Forwards: 10</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-7.6.2"/>
         public static readonly HTTPRequestHeaderField<UInt64?> MaxForwards = new ("Max-Forwards",
                                                                                   RequestPathSemantic.EndToEnd,
                                                                                   StringParser: StringParsers.NullableUInt64);
@@ -1168,7 +1171,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Overwrite: T</example>
         /// <example>Overwrite: F</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc4918.html#section-10.6"/>
+        /// <remarks>The [RFC2616] references in the text above are RFC 4918's
+        /// own citations, kept as written; the current normative reference is
+        /// RFC 9110.</remarks>
         public static readonly HTTPRequestHeaderField Overwrite = new ("Overwrite",
                                                                        RequestPathSemantic.EndToEnd);
 
@@ -1197,7 +1203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// authenticate a given request.
         /// </summary>
         /// <example>Proxy-Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-11.7.2"/>
         public static readonly HTTPRequestHeaderField ProxyAuthorization = new ("Proxy-Authorization",
                                                                                 RequestPathSemantic.EndToEnd);
 
@@ -1315,7 +1321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <example>Range: bytes=500-999</example>
         /// <example>Range: bytes=500-600,601-999</example>
         /// <example>Range: bytes=500-</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-14.2"/>
         public static readonly HTTPRequestHeaderField Range = new ("Range",
                                                                    RequestPathSemantic.EndToEnd);
 
@@ -1341,7 +1347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Referer: DataSources/Overview.html</example>
         /// <example>Referer: http://www.w3.org/hypertext/DataSources/Overview.html </example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-10.1.3"/>
         public static readonly HTTPRequestHeaderField Referer = new ("Referer",
                                                                      RequestPathSemantic.EndToEnd);
 
@@ -1397,7 +1403,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>TE: deflate</example>
         /// <example>TE: trailers, deflate;q=0.5</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-10.1.4"/>
         public static readonly HTTPRequestHeaderField TE = new ("TE",
                                                                 RequestPathSemantic.EndToEnd);
 
@@ -1419,7 +1425,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// See Section 6.6 for a description of lock timeout behavior.
         /// </summary>
         /// <example>Timeout: 120</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc4918.html#section-10.7"/>
         public static readonly HTTPRequestHeaderField<TimeSpan?> Timeout = new ("Timeout",
                                                                                 RequestPathSemantic.EndToEnd,
                                                                                 StringParser: StringParsers.NullableTimeSpan);
@@ -1441,7 +1447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// their significance for identifying the application. 
         /// </summary>
         /// <example>User-Agent: CERN-LineMode/2.15 libwww/2.17b3</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-10.1.5"/>
         public static readonly HTTPRequestHeaderField UserAgent = new ("User-Agent",
                                                                        RequestPathSemantic.EndToEnd);
 

@@ -33,8 +33,15 @@ Last verified: **2026-09-26**
 | [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), WebSocket | Implemented in Hermod's WebSocket client/server subsystem. The HTTP/1.1 server can also serve a WebSocket on a path of its own, beside ordinary HTTP on the same listener: `WebSocketUpgrade.For` hands a request that asks for an upgrade over to a WebSocket server, whose single implementation of the opening handshake (RFC 6455 §4.2) validates it and answers the `101` - the HTTP layer only decides whether a request is asking. Regression-tested by `WebSocketOnAnHTTPPathTests`; see [WebSocket/README.md](WebSocket/README.md#on-an-http-path). |
 | [WHATWG Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Implemented and regression-tested for `text/event-stream`, parsing, live streaming, reconnection, `Last-Event-ID`, retry intervals, comments/heartbeats, cancellation, and disconnect cleanup. |
 
-Older source comments may refer to RFC 2616 or the RFC 7230 series. The current
-normative HTTP references for this document are RFC 9110 and RFC 9112.
+The normative HTTP references for this document, and for the source comments,
+are RFC 9110 and RFC 9112. The 62 comments that still cited RFC 2616 or the
+RFC 7230 series were rewritten on 2026-09-26 to each field's current defining
+document and section, taken from the IANA HTTP Field Name registry rather than
+from memory. Seven mentions remain deliberately: six are RFC 4918 quoting
+RFC 2616 in text this document quotes in turn, where rewriting them would
+misquote RFC 4918, so each block carries a remark saying where the current
+reference is; the seventh is inside commented-out code under
+`HTTP1/Server/URLMapping_old/`, which is a question of its own.
 
 ## Transport
 

@@ -21,7 +21,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     using System.Text;
 
     /// <summary>
-    /// Shared parser for an RFC 7235 auth-param list — comma-separated
+    /// Shared parser for an RFC 9110, Section 11.2 auth-param list — comma-separated
     /// <c>key=value</c> pairs, values optionally double-quoted (with backslash
     /// escapes and embedded commas). Used by the Digest (RFC 7616) and Token
     /// schemes, both of which carry their credentials as such a list.

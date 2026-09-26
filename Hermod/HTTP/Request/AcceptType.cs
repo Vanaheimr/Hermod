@@ -317,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override String ToString()
         {
 
-            // q=1 is the default quality value per RFC 7231 and can be omitted.
+            // q=1 is the default quality value per RFC 9110, Section 12.4.2, and
             // Some servers (e.g. Cloudflare DNS JSON API) reject Accept headers
             // with any extra parameters.
             if (Quality >= 1.0)

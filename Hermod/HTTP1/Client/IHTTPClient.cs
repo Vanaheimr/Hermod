@@ -475,7 +475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        // RFC 2616 - HTTP/1.1
+        // RFC 9110 / RFC 9112 - HTTP/1.1
 
         #region GETRequest    (Path = "/", ...)
 
