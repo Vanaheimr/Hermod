@@ -60,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Backpressure_MessageExceedsLimit_DropsMessage()
         {
 
-            server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
             var port    = server.IPPort;
 
             var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {
@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Backpressure_MessageExceedsLimit_ClosesConnection()
         {
 
-            server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
             var port    = server.IPPort;
 
             var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {
@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Backpressure_UnderLimit_Succeeds()
         {
 
-            server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
             var port    = server.IPPort;
 
             var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {

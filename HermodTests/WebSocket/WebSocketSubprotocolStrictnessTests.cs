@@ -49,6 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             server = new WebSocketMirrorServer(
                          HTTPPort:               IPPort.Zero,
+                         RequireAuthentication:  false,
                          SecWebSocketProtocols:  [ "ocpp2.1", "ocpp2.0.1" ],
                          AutoStart:              true
                      );

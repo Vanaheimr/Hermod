@@ -47,8 +47,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             webSocketServer = new WebSocketServer(
-                                  HTTPPort:   IPPort.Zero,
-                                  AutoStart:  true
+                                  HTTPPort:               IPPort.Zero,
+                                  RequireAuthentication:  false,
+                                  AutoStart:              true
                               );
 
             // The port the system picked: the tests reach the server on it.

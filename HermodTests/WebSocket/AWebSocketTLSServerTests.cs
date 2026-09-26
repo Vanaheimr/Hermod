@@ -122,6 +122,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
                                   HTTPPort:                    IPPort.Zero,
 
+                                  RequireAuthentication:       false,
+
                                   // Without this the "TLS" fixture served plain HTTP while its
                                   // clients spoke TLS, so every test here timed out waiting for a
                                   // connection that could never complete. It had been commented

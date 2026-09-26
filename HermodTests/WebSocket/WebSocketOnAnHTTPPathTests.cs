@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             public DismissingServer()
-                : base(TCPPort: IPPort.Parse(0), AutoStart: false)
+                : base(TCPPort: IPPort.Parse(0), RequireAuthentication: false, AutoStart: false)
             { }
 
             public override async Task ProcessTextMessage(DateTimeOffset             Timestamp,
@@ -117,7 +117,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // anything. What it is here for is its protocol, which the HTTP
             // server borrows for one path.
             webSocketServer  = new WebSocketMirrorServer(
-                                   AutoStart: false
+                                   RequireAuthentication:  false,
+                                   AutoStart:              false
                                );
 
             var api = httpServer.AddHTTPAPI();

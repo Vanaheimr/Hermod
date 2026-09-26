@@ -158,7 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task TheEventComesBeforeThePeerHasItsAnswer()
         {
 
-            server            = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            server            = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
             var port          = server.IPPort;
 
             using var client  = new TcpClient();
@@ -212,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AFrameSentBeforeTheAnswerFollowsIt()
         {
 
-            server            = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            server            = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
             var port          = server.IPPort;
 
             Task<SentStatus>? early = null;
@@ -257,7 +257,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task TheClientHearsOfItsConnectionBeforeItsFirstFrame()
         {
 
-            server            = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            server            = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
             var port          = server.IPPort;
 
             // A server that speaks first, as soon as it is allowed to.

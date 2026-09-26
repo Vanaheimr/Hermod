@@ -91,7 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             var port          = FreePort();
-            server            = new WebSocketMirrorServer(HTTPPort: port, AutoStart: true);
+            server            = new WebSocketMirrorServer(HTTPPort: port, RequireAuthentication: false, AutoStart: true);
 
             using var first   = await Connect($"ws://127.0.0.1:{port}/");
             using var second  = await Connect($"ws://127.0.0.1:{port}/");
@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             var port        = FreePort();
-            server          = new WebSocketMirrorServer(HTTPPort: port, AutoStart: true);
+            server          = new WebSocketMirrorServer(HTTPPort: port, RequireAuthentication: false, AutoStart: true);
 
             using var client = await Connect($"ws://127.0.0.1:{port}/");
 
@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             var port         = FreePort();
-            server           = new WebSocketMirrorServer(HTTPPort: port, AutoStart: true);
+            server           = new WebSocketMirrorServer(HTTPPort: port, RequireAuthentication: false, AutoStart: true);
 
             using var client = await Connect($"ws://127.0.0.1:{port}/");
 
@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             httpServer       = await HTTPServer.StartNew();
-            server           = new WebSocketMirrorServer(AutoStart: false);
+            server           = new WebSocketMirrorServer(RequireAuthentication: false, AutoStart: false);
 
             httpServer.AddHTTPAPI().AddHandler(
                 HTTPMethod.GET,

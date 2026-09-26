@@ -312,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                             WebSocketClientReconnectPolicy?  Policy   = null)
         {
 
-            first   = new WebSocketMirrorServer(HTTPPort: Port, AutoStart: true);
+            first   = new WebSocketMirrorServer(HTTPPort: Port, RequireAuthentication: false, AutoStart: true);
 
             client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{Port}")) {
                           ReconnectPolicy = Policy ?? Quickly
@@ -361,7 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                 Func<HTTPRequest, HTTPResponse.Builder?>  Answer)
         {
 
-            lent        = new WebSocketMirrorServer(AutoStart: false);
+            lent        = new WebSocketMirrorServer(RequireAuthentication: false, AutoStart: false);
             httpServer  = new HTTPServer(TCPPort: Port);
 
             var upgrade = WebSocketUpgrade.For(lent);
