@@ -14904,7 +14904,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SkipDefaultNotifications">Do not apply the default notifications settings for new users.</param>
         /// <param name="SkipNewUserEMail">Do not send the new user e-mail to the new user.</param>
         /// <param name="SkipNewUserNotifications">Do not send notifications for this user addition.</param>
-        /// <param name="OnAdded">A delegate run whenever the user has been added successfully.</param>
+        /// <param name="OnAdded">A delegate run, and waited for, once the user has been added, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<AddUserResult>
@@ -15010,12 +15010,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            OnAdded?.Invoke(
-                now,
-                User,
-                eventTrackingId,
-                CurrentUserId
-            );
+            await RunCallback(
+                      OnAdded,
+                      callback => callback.Invoke(
+                          now,
+                          User,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             var OnUserAddedLocal = OnUserAdded;
             if (OnUserAddedLocal is not null)
@@ -15085,7 +15088,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SkipDefaultNotifications">Do not apply the default notifications settings for new users.</param>
         /// <param name="SkipNewUserEMail">Do not send the new user e-mail to the new user.</param>
         /// <param name="SkipNewUserNotifications">Do not send notifications for this user addition.</param>
-        /// <param name="OnAdded">A delegate run whenever the user has been added successfully.</param>
+        /// <param name="OnAdded">A delegate run, and waited for, once the user has been added, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         public async Task<AddUserResult> AddUser(IUser                 User,
@@ -15161,7 +15164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SkipDefaultNotifications">Do not apply the default notifications settings for new users.</param>
         /// <param name="SkipNewUserEMail">Do not send the new user e-mail to the new user.</param>
         /// <param name="SkipNewUserNotifications">Do not send notifications for this user addition.</param>
-        /// <param name="OnAdded">A delegate run whenever the user has been added successfully.</param>
+        /// <param name="OnAdded">A delegate run, and waited for, once the user has been added, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         public async Task<AddUserResult>
@@ -15203,12 +15206,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              CurrentUserId:          _currentUserId
                                                          );
 
-                                                   OnAdded?.Invoke(
-                                                       _timestamp,
-                                                       _user,
-                                                       _eventTrackingId,
-                                                       _currentUserId
-                                                   );
+                                                   await RunCallback(
+                                                             OnAdded,
+                                                             callback => callback.Invoke(
+                                                                 _timestamp,
+                                                                 _user,
+                                                                 _eventTrackingId,
+                                                                 _currentUserId
+                                                             )
+                                                         );
 
                                                },
                                                eventTrackingId ?? EventTracking_Id.New,
@@ -15285,7 +15291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SkipDefaultNotifications">Do not apply the default notifications settings for new users.</param>
         /// <param name="SkipNewUserEMail">Do not send the new user e-mail to the new user.</param>
         /// <param name="SkipNewUserNotifications">Do not send notifications for this user addition.</param>
-        /// <param name="OnAdded">A delegate run whenever the user has been added successfully.</param>
+        /// <param name="OnAdded">A delegate run, and waited for, once the user has been added, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         public async Task<AddUserResult>
@@ -15337,12 +15343,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  CurrentUserId:          _currentUserId
                                                              );
 
-                                                   OnAdded?.Invoke(
-                                                       _timestamp,
-                                                       _user,
-                                                       _eventTrackingId,
-                                                       _currentUserId
-                                                   );
+                                                   await RunCallback(
+                                                             OnAdded,
+                                                             callback => callback.Invoke(
+                                                                 _timestamp,
+                                                                 _user,
+                                                                 _eventTrackingId,
+                                                                 _currentUserId
+                                                             )
+                                                         );
 
                                                },
                                                eventTrackingId ?? EventTracking_Id.New,
@@ -15423,7 +15432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SkipDefaultNotifications">Do not apply the default notifications settings for new users.</param>
         /// <param name="SkipNewUserEMail">Do not send the new user e-mail to the new user.</param>
         /// <param name="SkipNewUserNotifications">Do not send notifications for this user addition.</param>
-        /// <param name="OnAdded">A delegate run whenever the user has been added successfully.</param>
+        /// <param name="OnAdded">A delegate run, and waited for, once the user has been added, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<AddUserResult>
@@ -15528,10 +15537,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var now = Timestamp.Now;
 
-            OnAdded?.Invoke(now,
-                            User,
-                            eventTrackingId,
-                            CurrentUserId);
+            await RunCallback(
+                      OnAdded,
+                      callback => callback.Invoke(
+                          now,
+                          User,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             var OnUserAddedLocal = OnUserAdded;
             if (OnUserAddedLocal is not null)
@@ -15601,7 +15615,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SkipDefaultNotifications">Do not apply the default notifications settings for new users.</param>
         /// <param name="SkipNewUserEMail">Do not send the new user e-mail to the new user.</param>
         /// <param name="SkipNewUserNotifications">Do not send notifications for this user addition.</param>
-        /// <param name="OnAdded">A delegate run whenever the user has been added successfully.</param>
+        /// <param name="OnAdded">A delegate run, and waited for, once the user has been added, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         public async Task<AddUserResult>
@@ -15680,7 +15694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SkipDefaultNotifications">Do not apply the default notifications settings for new users.</param>
         /// <param name="SkipNewUserEMail">Do not send the new user e-mail to the new user.</param>
         /// <param name="SkipNewUserNotifications">Do not send notifications for this user addition.</param>
-        /// <param name="OnAdded">A delegate run whenever the user has been added successfully.</param>
+        /// <param name="OnAdded">A delegate run, and waited for, once the user has been added, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         public async Task<AddUserResult>
@@ -15722,12 +15736,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              CurrentUserId:          CurrentUserId
                                                          );
 
-                                                   OnAdded?.Invoke(
-                                                       _timestamp,
-                                                       _user,
-                                                       _eventTrackingId,
-                                                       _currentUserId
-                                                   );
+                                                   await RunCallback(
+                                                             OnAdded,
+                                                             callback => callback.Invoke(
+                                                                 _timestamp,
+                                                                 _user,
+                                                                 _eventTrackingId,
+                                                                 _currentUserId
+                                                             )
+                                                         );
 
                                                },
                                                eventTrackingId,
@@ -15804,7 +15821,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SkipDefaultNotifications">Do not apply the default notifications settings for new users.</param>
         /// <param name="SkipNewUserEMail">Do not send the new user e-mail to the new user.</param>
         /// <param name="SkipNewUserNotifications">Do not send notifications for this user addition.</param>
-        /// <param name="OnAdded">A delegate run whenever the user has been added successfully.</param>
+        /// <param name="OnAdded">A delegate run, and waited for, once the user has been added, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         public async Task<AddUserResult>
@@ -15856,12 +15873,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  CurrentUserId:          CurrentUserId
                                                              );
 
-                                                   OnAdded?.Invoke(
-                                                       _timestamp,
-                                                       _user,
-                                                       _eventTrackingId,
-                                                       _currentUserId
-                                                   );
+                                                   await RunCallback(
+                                                             OnAdded,
+                                                             callback => callback.Invoke(
+                                                                 _timestamp,
+                                                                 _user,
+                                                                 _eventTrackingId,
+                                                                 _currentUserId
+                                                             )
+                                                         );
 
                                                },
                                                eventTrackingId,
@@ -15995,8 +16015,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SkipNewUserEMail">Do not send the new user e-mail to the new user.</param>
         /// <param name="SkipNewUserNotifications">Do not send notifications for this user addition.</param>
         /// <param name="SkipUserUpdatedNotifications">Do not send the updated user information e-mail to the new user.</param>
-        /// <param name="OnAdded">A delegate run whenever the user has been added successfully.</param>
-        /// <param name="OnUpdated">A delegate run whenever the user has been updated successfully.</param>
+        /// <param name="OnAdded">A delegate run, and waited for, once the user has been added, while the users are still locked; what it throws is reported to HandleErrors.</param>
+        /// <param name="OnUpdated">A delegate run, and waited for, once the user has been updated, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<AddOrUpdateUserResult>
@@ -16116,12 +16136,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                OnAdded?.Invoke(
-                    now,
-                    User,
-                    eventTrackingId,
-                    CurrentUserId
-                );
+                await RunCallback(
+                          OnAdded,
+                          callback => callback.Invoke(
+                              now,
+                              User,
+                              eventTrackingId,
+                              CurrentUserId
+                          )
+                      );
 
                 var OnUserAddedLocal = OnUserAdded;
                 if (OnUserAddedLocal is not null)
@@ -16181,13 +16204,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-            OnUpdated?.Invoke(
-                now,
-                User,
-                oldUser,
-                eventTrackingId,
-                CurrentUserId
-            );
+            await RunCallback(
+                      OnUpdated,
+                      callback => callback.Invoke(
+                          now,
+                          User,
+                          oldUser,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             var OnUserUpdatedLocal = OnUserUpdated;
             if (OnUserUpdatedLocal is not null)
@@ -16229,8 +16255,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SkipNewUserEMail">Do not send the new user e-mail to the new user.</param>
         /// <param name="SkipNewUserNotifications">Do not send notifications for this user addition.</param>
         /// <param name="SkipUserUpdatedNotifications">Do not send the updated user information e-mail to the new user.</param>
-        /// <param name="OnAdded">A delegate run whenever the user has been added successfully.</param>
-        /// <param name="OnUpdated">A delegate run whenever the user has been updated successfully.</param>
+        /// <param name="OnAdded">A delegate run, and waited for, once the user has been added, while the users are still locked; what it throws is reported to HandleErrors.</param>
+        /// <param name="OnUpdated">A delegate run, and waited for, once the user has been updated, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         public async Task<AddOrUpdateUserResult>
@@ -16313,8 +16339,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SkipNewUserEMail">Do not send the new user e-mail to the new user.</param>
         /// <param name="SkipNewUserNotifications">Do not send notifications for this user addition.</param>
         /// <param name="SkipUserUpdatedNotifications">Do not send the updated user information e-mail to the new user.</param>
-        /// <param name="OnAdded">A delegate run whenever the user has been added successfully.</param>
-        /// <param name="OnUpdated">A delegate run whenever the user has been updated successfully.</param>
+        /// <param name="OnAdded">A delegate run, and waited for, once the user has been added, while the users are still locked; what it throws is reported to HandleErrors.</param>
+        /// <param name="OnUpdated">A delegate run, and waited for, once the user has been updated, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         public async Task<AddOrUpdateUserResult> AddOrUpdateUser(IUser                       User,
@@ -16356,12 +16382,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              CurrentUserId:          CurrentUserId
                                                          );
 
-                                                   OnAdded?.Invoke(
-                                                       _timestamp,
-                                                       _user,
-                                                       _eventTrackingId,
-                                                       _currentUserId
-                                                   );
+                                                   await RunCallback(
+                                                             OnAdded,
+                                                             callback => callback.Invoke(
+                                                                 _timestamp,
+                                                                 _user,
+                                                                 _eventTrackingId,
+                                                                 _currentUserId
+                                                             )
+                                                         );
 
                                                },
                                                OnUpdated,
@@ -16460,7 +16489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="NewUser">A user.</param>
         /// <param name="SkipUserUpdatedNotifications">Do not send the updated user information e-mail to the new user.</param>
-        /// <param name="OnUpdated">A delegate run whenever the user has been updated successfully.</param>
+        /// <param name="OnUpdated">A delegate run, and waited for, once the user has been updated, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<UpdateUserResult>
@@ -16520,13 +16549,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var now = Timestamp.Now;
 
-            OnUpdated?.Invoke(
-                now,
-                NewUser,
-                OldUser,
-                eventTrackingId,
-                CurrentUserId
-            );
+            await RunCallback(
+                      OnUpdated,
+                      callback => callback.Invoke(
+                          now,
+                          NewUser,
+                          OldUser,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             var OnUserUpdatedLocal = OnUserUpdated;
             if (OnUserUpdatedLocal is not null)
@@ -16565,7 +16597,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="NewUser">A user.</param>
         /// <param name="SkipUserUpdatedNotifications">Do not send the updated user information e-mail to the new user.</param>
-        /// <param name="OnUpdated">A delegate run whenever the user has been updated successfully.</param>
+        /// <param name="OnUpdated">A delegate run, and waited for, once the user has been updated, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         public async Task<UpdateUserResult>
@@ -16638,7 +16670,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="User">A user.</param>
         /// <param name="UpdateDelegate">A delegate to update the given user.</param>
         /// <param name="SkipUserUpdatedNotifications">Do not send the updated user information e-mail to the new user.</param>
-        /// <param name="OnUpdated">A delegate run whenever the user has been updated successfully.</param>
+        /// <param name="OnUpdated">A delegate run, and waited for, once the user has been updated, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<UpdateUserResult>
@@ -16716,13 +16748,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var now = Timestamp.Now;
 
-            OnUpdated?.Invoke(
-                now,
-                updatedUser,
-                User,
-                eventTrackingId,
-                CurrentUserId
-            );
+            await RunCallback(
+                      OnUpdated,
+                      callback => callback.Invoke(
+                          now,
+                          updatedUser,
+                          User,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             var OnUserUpdatedLocal = OnUserUpdated;
             if (OnUserUpdatedLocal is not null)
@@ -16762,7 +16797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="User">A user.</param>
         /// <param name="UpdateDelegate">A delegate to update the given user.</param>
         /// <param name="SkipUserUpdatedNotifications">Do not send the updated user information e-mail to the new user.</param>
-        /// <param name="OnUpdated">A delegate run whenever the user has been updated successfully.</param>
+        /// <param name="OnUpdated">A delegate run, and waited for, once the user has been updated, while the users are still locked; what it throws is reported to HandleErrors.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         public async Task<UpdateUserResult>
@@ -30811,6 +30846,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    nameof(HTTPAPI),
                    Caller,
                    ExceptionOccurred
+               );
+
+        #endregion
+
+        #region (private)  RunCallback  (Callback, Invocation, ...)
+
+        /// <summary>
+        /// Run the OnAdded or OnUpdated delegate that the caller of a user
+        /// method handed in, and wait for it; one that fails is reported to
+        /// HandleErrors.
+        /// </summary>
+        /// <remarks>
+        /// These delegates return a Task, and the user methods called them and
+        /// dropped it. A delegate ran up to its first await that did not finish
+        /// at once, and the method returned - and let go of its locks - while
+        /// the delegate was still at work; what it threw after that, nobody
+        /// saw. Hermod itself finishes two changes in such a delegate:
+        /// CreateUser sets the password, and AddUser with an organization adds
+        /// the membership. Whenever writing them to the database file had to
+        /// wait - for the lock on the database files, which all APIs of a
+        /// process share, or for a retry after an IOException - CreateUser
+        /// returned before the password was stored, and AddUser before the
+        /// membership was written; and the rest of it ran without the locks
+        /// that _ChangePassword and addUserToOrganization rely on.
+        ///
+        /// <b>What a delegate throws does not reach the caller as the answer
+        /// about the change</b> - although the delegate is the caller's own,
+        /// which an event subscriber is not. It runs once the change is in the
+        /// database file and in memory, and nothing is undone when it fails.
+        /// Let through, the failure would answer Error about a user who was
+        /// added all the same: a second AddUser is told that the user already
+        /// exists, and CreateUser returns no user for a name that is taken
+        /// from now on. And it would cut short what the method does after the
+        /// delegate: the event, the sign-up e-mail with the link to set a first
+        /// password, the notifications. Nor was there a rule to keep: a
+        /// delegate that threw at once did all of that, and one that threw
+        /// after its first await - or at once, when an overload with an
+        /// organization ran it - went unseen. A caller that wants to see its
+        /// delegate fail catches in the delegate: the call waits for it now,
+        /// so whatever the catch did is done when the call returns. What is
+        /// not caught is reported to HandleErrors, which writes to DebugX
+        /// unless an application overrides it - as "addUser.OnAdded", say, or
+        /// as "AddUser.OnAdded" when an overload with an organization runs the
+        /// caller's delegate after adding the membership in its own.
+        ///
+        /// <b>Inside the lock of the public method</b>, which is where the two
+        /// delegates of Hermod's own have to run: _ChangePassword and
+        /// addUserToOrganization take no lock of their own, and rely on the
+        /// users and the organizations being locked by whoever calls them. The
+        /// only lock they take is the one on the database files, and
+        /// WriteToDatabaseFile holds that only while it writes, never while
+        /// anything waits for a delegate - so waiting for them cannot deadlock.
+        /// A delegate that calls a public method taking the same lock, such as
+        /// ChangePassword or AddUserToOrganization, does, for thirty seconds:
+        /// these locks are static SemaphoreSlims, shared by all APIs of a
+        /// process and not re-entrant, so that method waits for a lock that is
+        /// held until the delegate has finished, while the delegate waits for
+        /// the method - until the method gives up with a LockTimeout. Such a
+        /// delegate used to get away with it, by running on after the lock had
+        /// been let go of. For the same reason, a slow delegate keeps every
+        /// other user method waiting; what need not happen inside the lock
+        /// belongs after the call.
+        ///
+        /// <b>Every delegate of a multicast delegate</b>, one after another,
+        /// each in its own try/catch - and not only the last one, which is all
+        /// that awaiting the call itself would wait for.
+        /// </remarks>
+        private Task RunCallback<TDelegate>(TDelegate?                                           Callback,
+                                            Func<TDelegate, Task>                                Invocation,
+                                            [CallerArgumentExpression(nameof(Callback))] String  CallbackName   = "",
+                                            [CallerMemberName()]                         String  Command        = "")
+
+            where TDelegate : Delegate
+
+            => Callback.InvokeAllAsync(
+                   Invocation,
+                   (exception, callbackName) => HandleErrors($"{Command}.{callbackName}", exception),
+                   CallbackName
                );
 
         #endregion
