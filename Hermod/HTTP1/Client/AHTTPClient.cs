@@ -1029,6 +1029,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               chunkedStream
                                           ).ConfigureAwait(false);
 
+                                    // RFC 9112, Section 7.1: the zero-length chunk
+                                    // is what ends a chunked body, and a request
+                                    // that stops short of it leaves the server
+                                    // waiting for a message it has already been
+                                    // sent. Same hazard as on the response side,
+                                    // one direction over. Finish is idempotent, so
+                                    // a worker that ended its own body - which is
+                                    // what every worker in this repository does -
+                                    // is unaffected.
+                                    await chunkedStream.Finish(
+                                              Request.TrailingHeaders.ToDictionary(trailer => trailer.Key, trailer => trailer.Value),
+                                              linkedCancellationToken.Token
+                                          ).ConfigureAwait(false);
+
                                 }
 
                                 else if (Request.HTTPBody is not null &&

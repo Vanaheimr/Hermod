@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-09-24**
+Last verified: **2026-09-26**
 
 ## Support levels
 
@@ -28,11 +28,20 @@ Last verified: **2026-09-24**
 | [RFC 4918](https://www.rfc-editor.org/rfc/rfc4918.html), WebDAV | Method tokens are modeled (`COPY`, `LOCK`, `MKCOL`, `MOVE`, `PROPFIND`, `PROPPATCH`, and `UNLOCK`). Hermod does not provide a complete WebDAV resource implementation. |
 | [RFC 7617](https://www.rfc-editor.org/rfc/rfc7617.html), Basic authentication | Typed parsing/serialization and end-to-end server authorization tests, including challenge, malformed credentials, invalid credentials, and forbidden users. Authentication policy is configured by the application. |
 | [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750.html), Bearer tokens | Typed Bearer authorization parsing/serialization is available. Token validation and authorization policy are application concerns. |
+| [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651.html), Structured Field Values | Lists, Dictionaries and Items with all eight bare types, including the Date and Display String that RFC 8941 did not have. Parsing follows Section 4.2 exactly, so what is malformed is refused rather than repaired, and serializing is the canonical form of Section 4.1 - the round trip is byte-for-byte, which is the property RFC 9421 signatures would need. Hermod does not yet *use* it for any field; it is the prerequisite the modern ones are defined in terms of. |
+| [RFC 7239](https://www.rfc-editor.org/rfc/rfc7239.html), Forwarded | The field is parsed into typed elements - `for`, `by`, `host`, `proto` and any extension parameters - and can be built to be sent onwards when a request is proxied. Node identifiers cover addresses, `unknown` and obfuscated identifiers; the last two are kept opaque rather than resolved into an address that was never given. Where a request carries both, `Forwarded` is preferred over the `X-Forwarded-For` family (Section 7.4). Either way the addresses are recorded *beside* the peer socket and never instead of it: everything in these fields is hearsay from whoever wrote them (Section 8.1), and forgeable by the client when no proxy strips them. |
 | [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), WebSocket | Implemented in Hermod's WebSocket client/server subsystem. The HTTP/1.1 server can also serve a WebSocket on a path of its own, beside ordinary HTTP on the same listener: `WebSocketUpgrade.For` hands a request that asks for an upgrade over to a WebSocket server, whose single implementation of the opening handshake (RFC 6455 §4.2) validates it and answers the `101` - the HTTP layer only decides whether a request is asking. Regression-tested by `WebSocketOnAnHTTPPathTests`; see [WebSocket/README.md](WebSocket/README.md#on-an-http-path). |
 | [WHATWG Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Implemented and regression-tested for `text/event-stream`, parsing, live streaming, reconnection, `Last-Event-ID`, retry intervals, comments/heartbeats, cancellation, and disconnect cleanup. |
 
-Older source comments may refer to RFC 2616 or the RFC 7230 series. The current
-normative HTTP references for this document are RFC 9110 and RFC 9112.
+The normative HTTP references for this document, and for the source comments,
+are RFC 9110 and RFC 9112. The 62 comments that still cited RFC 2616 or the
+RFC 7230 series were rewritten on 2026-09-26 to each field's current defining
+document and section, taken from the IANA HTTP Field Name registry rather than
+from memory. Seven mentions remain deliberately: six are RFC 4918 quoting
+RFC 2616 in text this document quotes in turn, where rewriting them would
+misquote RFC 4918, so each block carries a remark saying where the current
+reference is; the seventh is inside commented-out code under
+`HTTP1/Server/URLMapping_old/`, which is a question of its own.
 
 ## Transport
 
@@ -204,10 +213,26 @@ and server roles.
 
 - Static response bodies can be chunked automatically.
 - Request and response workers can stream chunks asynchronously.
+- A worker needs no stream of its own: announcing `Transfer-Encoding: chunked`
+  and supplying a `ChunkWorker` is enough, and the server wraps the connection.
+  Supplying a `ChunkedTransferEncodingStream` as the body still works and is
+  what a handler that wants its own chunk sizes or its own lifetime should do.
+- The terminal zero-size chunk is written whether or not the worker wrote it,
+  so a worker that returns early - or throws - cannot leave the recipient
+  waiting for a message that is already over. The same holds for a chunked
+  *request* body written by the client's `ChunkWorker`. `Finish` is idempotent,
+  so a worker that ends its own body is unaffected.
 - Workers can attach token, valueless, or quoted chunk extensions.
 - Unsafe extension names or values are rejected before being written.
 - Both static and live responses can send trailer fields.
 - Outgoing trailers are validated before the terminal chunk is emitted.
+
+A byte array or an ordinary stream on a response that announces
+`Transfer-Encoding: chunked` is taken to be **framed already** and is copied
+through untouched; `AutomaticallyChunkContent` is how a handler says that its
+bytes are raw and wants them framed. That is a contract rather than an
+oversight, and it is why the server does not simply frame everything that says
+"chunked".
 
 The following trailer fields are rejected for incoming and outgoing trailers:
 

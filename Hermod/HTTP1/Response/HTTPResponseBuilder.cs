@@ -146,8 +146,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region AcceptPatch
 
             /// <summary>
-            /// Accept-Patch
+            /// The patch document media types this server accepts for the
+            /// target resource.
             /// </summary>
+            /// <seealso cref="https://www.rfc-editor.org/rfc/rfc5789.html#section-3.1"/>
             public IEnumerable<HTTPContentType> AcceptPatch
             {
 
@@ -158,7 +160,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 set
                 {
-                    SetHeaderField(HTTPResponseHeaderField.Allow, value);
+                    SetHeaderField(HTTPResponseHeaderField.AcceptPatch, value);
+                }
+
+            }
+
+            #endregion
+
+            #region AcceptRanges
+
+            /// <summary>
+            /// The range units this server accepts for the target resource,
+            /// "none" when it accepts none.
+            /// </summary>
+            /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-14.3"/>
+            public String? AcceptRanges
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPResponseHeaderField.AcceptRanges);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPResponseHeaderField.AcceptRanges, value);
                 }
 
             }

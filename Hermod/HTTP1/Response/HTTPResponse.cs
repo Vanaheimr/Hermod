@@ -378,6 +378,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Accept-Ranges
+
+        /// <summary>
+        /// The range units this server accepts for the target resource,
+        /// "none" when it accepts none.
+        /// </summary>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-14.3"/>
+        public String? AcceptRanges
+
+            => GetHeaderField(HTTPResponseHeaderField.AcceptRanges);
+
+        #endregion
+
         #region DAV
 
         /// <summary>

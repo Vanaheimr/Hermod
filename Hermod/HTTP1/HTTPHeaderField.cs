@@ -409,7 +409,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// interfering with the request or response.
         /// </summary>
         /// <example>Cache-Control: no-cache</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9111.html#section-5.2"/>
         public static readonly HTTPHeaderField<String> CacheControl = new ("Cache-Control",
                                                                            HeaderFieldType.General,
                                                                            RequestPathSemantic.HopToHop);
@@ -428,7 +428,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// in every message.
         /// </summary>
         /// <example>Connection: close</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-7.6.1"/>
         public static readonly HTTPHeaderField<ConnectionType> Connection = new ("Connection",
                                                                                  HeaderFieldType.General,
                                                                                  RequestPathSemantic.EndToEnd,
@@ -448,7 +448,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Connection: keep-alive
         /// Keep-Alive: timeout=5, max=1000
         /// </example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9112.html#section-9.3"/>
         public static readonly HTTPHeaderField<KeepAliveType> KeepAlive = new ("Keep-Alive",
                                                                                HeaderFieldType.General,
                                                                                RequestPathSemantic.EndToEnd,
@@ -489,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// language(s) of the intended audience for the enclosed entity.
         /// </summary>
         /// <example>Content-Language: en, de</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-8.5"/>
         public static readonly HTTPHeaderField<IEnumerable<String>> ContentLanguage = new ("Content-Language",
                                                                                            HeaderFieldType.General,
                                                                                            RequestPathSemantic.EndToEnd,
@@ -507,7 +507,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// a GET request.
         /// </summary>
         /// <example>Content-Length: 3495</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-8.6"/>
         public static readonly HTTPHeaderField<UInt64?> ContentLength = new ("Content-Length",
                                                                              HeaderFieldType.General,
                                                                              RequestPathSemantic.EndToEnd,
@@ -526,7 +526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// interpreted relative to the Request-URI. 
         /// </summary>
         /// <example>Content-Location: ../test.html</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-8.7"/>
         public static readonly HTTPHeaderField<String> ContentLocation = new ("Content-Location",
                                                                               HeaderFieldType.General,
                                                                               RequestPathSemantic.EndToEnd);
@@ -544,7 +544,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// malicious attacks.
         /// </summary>
         /// <example>Content-MD5: Q2hlY2sgSW50ZWdyaXR5IQ==</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc1864.html"/>
         /// <seealso cref="http://tools.ietf.org/html/rfc1864"/>
         public static readonly HTTPHeaderField<String> ContentMD5 = new ("Content-MD5",
                                                                          HeaderFieldType.General,
@@ -577,7 +577,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// code of 416 (Requested range not satisfiable).
         /// </summary>
         /// <example>Content-Range: bytes 21010-47021/47022</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-14.4"/>
         public static readonly HTTPHeaderField<String> ContentRange = new ("Content-Range",
                                                                            HeaderFieldType.General,
                                                                            RequestPathSemantic.EndToEnd);
@@ -593,7 +593,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// been sent had the request been a GET.
         /// </summary>
         /// <example>Content-Type: text/html; charset=ISO-8859-4</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-8.3"/>
         public static readonly HTTPHeaderField<HTTPContentType> ContentType = new ("Content-Type",
                                                                                    HeaderFieldType.General,
                                                                                    RequestPathSemantic.EndToEnd,
@@ -674,7 +674,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// storing separate Expires values for each resource).
         /// </summary>
         /// <example>Date: Tue, 15 Nov 1994 08:12:31 GMT</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-6.6.1"/>
         public static readonly HTTPHeaderField<DateTimeOffset?> Date = new ("Date",
                                                                             HeaderFieldType.General,
                                                                             RequestPathSemantic.EndToEnd,
@@ -715,7 +715,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// be defined in HTTP. 
         /// </summary>
         /// <example>Pragma: no-cache</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9111.html#section-5.4"/>
         public static readonly HTTPHeaderField<String> Pragma = new ("Pragma",
                                                                      HeaderFieldType.General,
                                                                      RequestPathSemantic.both);
@@ -745,7 +745,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///   - Trailer
         /// </summary>
         /// <example>Trailer : Max-Forwards</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-6.6.2"/>
         public static readonly HTTPHeaderField<String> Trailer = new ("Trailer",
                                                                       HeaderFieldType.General,
                                                                       RequestPathSemantic.EndToEnd);
@@ -762,7 +762,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// on responses.
         /// </summary>
         /// <example>Via: 1.0 fred, 1.1 nowhere.com (Apache/1.1)</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-7.6.3"/>
         public static readonly HTTPHeaderField<String> Via = new ("Via",
                                                                   HeaderFieldType.General,
                                                                   RequestPathSemantic.HopToHop);
@@ -785,7 +785,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// specification. 
         /// </summary>
         /// <example>Transfer-Encoding: chunked</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9112.html#section-6.1"/>
         public static readonly HTTPHeaderField<String> TransferEncoding = new ("Transfer-Encoding",
                                                                                HeaderFieldType.General,
                                                                                RequestPathSemantic.EndToEnd);
@@ -843,7 +843,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// server associate the name with the same protocol.
         /// </summary>
         /// <example>Upgrade: websocket</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-7.8"/>
         /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#name-upgrade"/>
         public static readonly HTTPHeaderField<String> Upgrade = new ("Upgrade",
                                                                       HeaderFieldType.General,
@@ -1118,7 +1118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// Defines a field within the HTTP header.
     /// </summary>
-    /// <seealso cref="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html"/>
+    /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-5"/>
     /// <seealso cref="http://restpatterns.org"/>
     /// <seealso cref="http://en.wikipedia.org/wiki/List_of_HTTP_header_fields"/>
     /// <seealso cref="http://www.and.org/texts/server-http"/>

@@ -184,6 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Accept-Ranges
 
+            [Obsolete("Accept-Ranges is a response field (RFC 9110, Section 14.3). Use HTTPResponse.Builder.AcceptRanges.")]
             public String? AcceptRanges
             {
 
@@ -662,6 +663,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 set
                 {
                     SetHeaderField(HTTPRequestHeaderField.Cookie, value);
+                }
+
+            }
+
+            #endregion
+
+            #region Forwarded
+
+            /// <summary>
+            /// The forwarding chain to declare when passing a request on
+            /// (RFC 7239). A proxy appends its own element to what it received
+            /// rather than replacing it, so that the chain stays a chain.
+            /// </summary>
+            public IEnumerable<ForwardedElement> Forwarded
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPRequestHeaderField.Forwarded) ?? [];
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPRequestHeaderField.Forwarded, value);
                 }
 
             }
@@ -1197,6 +1222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP Accept-Language header field.
             /// </summary>
             /// <param name="AcceptRanges">AcceptRanges.</param>
+            [Obsolete("Accept-Ranges is a response field (RFC 9110, Section 14.3). Use HTTPResponse.Builder.AcceptRanges.")]
             public Builder SetAcceptRanges(String AcceptRanges)
             {
                 this.AcceptRanges = AcceptRanges;

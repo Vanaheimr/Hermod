@@ -869,6 +869,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Accept-Ranges
 
+        [Obsolete("Accept-Ranges is a response field (RFC 9110, Section 14.3). Use HTTPResponse.Builder.AcceptRanges.")]
         public String? AcceptRanges
 
             => GetHeaderField(HTTPRequestHeaderField.AcceptRanges);
@@ -1122,7 +1123,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        //ToDo: Forwarded / RFC 7239
+        #region Forwarded
+
+        /// <summary>
+        /// The forwarding chain as the proxies in front of us described it
+        /// (RFC 7239), one element per hop and in the order they were
+        /// traversed, so the first element is the one nearest the client.
+        /// </summary>
+        /// <example>Forwarded: for=192.0.2.43;proto=https;by=203.0.113.60</example>
+        public IEnumerable<ForwardedElement> Forwarded
+
+            => GetHeaderField(HTTPRequestHeaderField.Forwarded) ?? [];
+
+        #endregion
 
         #region API-Key
 
@@ -1423,12 +1436,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Check Host header
 
-            // rfc 2616 - Section 19.6.1.1
-            // A client that sends an HTTP/1.1 request MUST send a Host header.
-
-            // rfc 2616 - Section 14.23
-            // All Internet-based HTTP/1.1 servers MUST respond with a 400 (Bad Request)
-            // status code to any HTTP/1.1 request message which lacks a Host header field.
+            // RFC 9110, Section 7.2: a client MUST send a Host header field in an
+            // HTTP/1.1 request, and a server MUST respond with 400 (Bad Request) to
+            // any HTTP/1.1 request message that lacks one, carries more than one, or
+            // carries one whose field value is invalid.
 
             // This origin-server profile accepts only origin-form (plus OPTIONS *),
             // so the target authority is always supplied by the Host header field.
@@ -2468,12 +2479,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Check Host header
 
-                // rfc 2616 - Section 19.6.1.1
-                // A client that sends an HTTP/1.1 request MUST send a Host header.
-
-                // rfc 2616 - Section 14.23
-                // All Internet-based HTTP/1.1 servers MUST respond with a 400 (Bad Request)
-                // status code to any HTTP/1.1 request message which lacks a Host header field.
+                // RFC 9110, Section 7.2: a client MUST send a Host header field in an
+                // HTTP/1.1 request, and a server MUST respond with 400 (Bad Request) to
+                // any HTTP/1.1 request message that lacks one, carries more than one, or
+                // carries one whose field value is invalid.
 
                 // This origin-server profile accepts only origin-form (plus OPTIONS *),
                 // so the target authority is always supplied by the Host header field.
@@ -2538,14 +2547,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPRequest.MaxHTTPBodySize = HTTPServer?.MaxHTTPBodySize ?? DefaultMaxHTTPBodySize;
 
-                var httpSources = HTTPRequest.X_Forwarded_For;
-                if (httpSources.Any())
-                {
+                #region Who is on the other side, according to the proxies in between
+
+                // RFC 7239, Section 7.4: Forwarded is the standardised form of
+                // the X-Forwarded-For family and is preferred where a proxy
+                // sent both, because its grammar can say which hop each address
+                // belongs to. Only "for" nodes that are addresses can be
+                // recorded - "unknown" and obfuscated identifiers are exactly
+                // the cases where a node declined to give one, and inventing an
+                // address for them would be worse than having none.
+                //
+                // The socket stays the socket. All of this is hearsay from
+                // whoever wrote it (Section 8.1) and trivially forged by the
+                // client when no proxy strips it, so it is recorded *beside*
+                // the peer address and never instead of it.
+                var forwardedFor = HTTPRequest.Forwarded.
+                                       Where (element => element.For?.IPAddress is not null).
+                                       Select(element => element.For!.IPAddress!).
+                                       ToArray();
+
+                if (forwardedFor.Length == 0)
+                    forwardedFor = [.. HTTPRequest.X_Forwarded_For];
+
+                if (forwardedFor.Length != 0)
                     HTTPRequest.HTTPSource = new HTTPSource(
-                        HTTPRequest.RemoteSocket,
-                        httpSources.Skip(1)
-                    );
-                }
+                                                 HTTPRequest.RemoteSocket,
+                                                 forwardedFor
+                                             );
+
+                #endregion
 
                 return true;
 
