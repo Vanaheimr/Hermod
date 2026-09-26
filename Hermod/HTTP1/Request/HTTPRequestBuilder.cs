@@ -669,6 +669,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region Forwarded
+
+            /// <summary>
+            /// The forwarding chain to declare when passing a request on
+            /// (RFC 7239). A proxy appends its own element to what it received
+            /// rather than replacing it, so that the chain stays a chain.
+            /// </summary>
+            public IEnumerable<ForwardedElement> Forwarded
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPRequestHeaderField.Forwarded) ?? [];
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPRequestHeaderField.Forwarded, value);
+                }
+
+            }
+
+            #endregion
+
             #region API_Key
 
             public APIKey_Id? API_Key

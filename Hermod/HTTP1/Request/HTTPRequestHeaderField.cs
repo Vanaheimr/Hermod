@@ -1495,6 +1495,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Forwarded
+
+        /// <summary>
+        /// The Forwarded field discloses information that a reverse proxy would
+        /// otherwise hide: which node connected to it, which of its own
+        /// interfaces received the request, which host was asked for, and over
+        /// which protocol.
+        ///
+        ///    Forwarded         = 1#forwarded-element
+        ///    forwarded-element = [ forwarded-pair ] *( ";" [ forwarded-pair ] )
+        ///    forwarded-pair    = token "=" value
+        ///
+        /// It is the standardised replacement for the X-Forwarded-For family,
+        /// and its advantage over them is that one element holds all four facts
+        /// for one hop, rather than four independent lists that can differ in
+        /// length. Section 7.4 says a recipient may ignore the older fields
+        /// when this one is present.
+        ///
+        /// Everything in it is hearsay: each proxy writes what the previous hop
+        /// told it (Section 8.1).
+        /// </summary>
+        /// <example>Forwarded: for=192.0.2.43, for="[2001:db8:cafe::17]:4711";proto=https</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc7239.html"/>
+        public static readonly HTTPRequestHeaderField<IEnumerable<ForwardedElement>> Forwarded = new ("Forwarded",
+                                                                                                      RequestPathSemantic.HopToHop,
+                                                                                                      MultipleValuesAsList:  true,
+                                                                                                      StringParser:          ForwardedElement.TryParseAll);
+
+        #endregion
+
+
         // Non-standard request header fields
 
         #region X-Real-IP
