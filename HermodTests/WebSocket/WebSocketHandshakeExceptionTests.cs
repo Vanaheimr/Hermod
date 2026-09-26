@@ -32,7 +32,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     /// <summary>
     /// Whatever a handler throws during the WebSocket handshake refuses the
     /// upgrade and leaves nothing of the connection behind - and what a
-    /// validator throws is answered, with a 500.
+    /// validator or an authentication throws is answered: 500 where it
+    /// failed, 503 where the upgrade was called off while it was being asked.
     /// </summary>
     /// <remarks>
     /// The OnValidateWebSocketConnection handlers are awaited rather than fired
@@ -187,8 +188,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task TheFirstRefusalIsStillTheAnswer()
         {
 
-            var refusedFirst  = await AnswerToTwoValidators(Refuses, Throws);
-            var thrownFirst   = await AnswerToTwoValidators(Throws,  Refuses);
+            var refusedFirst  = await AnswerToValidators(Refuses, Throws);
+            var thrownFirst   = await AnswerToValidators(Throws,  Refuses);
 
             Assert.Multiple(() => {
 
@@ -197,6 +198,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
                 Assert.That(thrownFirst,   Is.EqualTo(500),
                             "A validator that threw came before one that refused, and was not the answer.");
+
+            });
+
+        }
+
+        #endregion
+
+        #region AValidationCalledOffIsAnswered503()
+
+        /// <summary>
+        /// A validator that throws because the upgrade was called off while it
+        /// waited is answered 503 - and one whose own lookup was cancelled is
+        /// still answered 500.
+        /// </summary>
+        /// <remarks>
+        /// The server going away, or the connection being closed, cancels the
+        /// token a validator is given. A validator that honours it throws, and
+        /// that is no failure of its own: neither an error to log nor a 500. But
+        /// only that token says so. A cancellation of the validator's own, with
+        /// that token untouched, is a validator that failed.
+        /// </remarks>
+        [Test]
+        public async Task AValidationCalledOffIsAnswered503()
+        {
+
+            var calledOff  = await AnswerToValidators(async (timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) => {
+                                                          await CallOffAndWait(connection, cancellationToken);
+                                                          return null;
+                                                      });
+
+            // A lookup of its own that timed out, while nobody called off the upgrade.
+            var itsOwn     = await AnswerToValidators((timestamp, webSocketServer, connection, eventTrackingId, cancellationToken)
+                                                          => Task.FromCanceled<HTTPResponse?>(new CancellationToken(canceled: true)));
+
+            Assert.Multiple(() => {
+
+                Assert.That(calledOff,  Is.EqualTo(503),
+                            "A validator whose upgrade was called off while it waited was not answered 503.");
+
+                Assert.That(itsOwn,     Is.EqualTo(500),
+                            "A validator whose own lookup was cancelled, with nobody calling off the upgrade, was not answered 500.");
+
+            });
+
+        }
+
+        #endregion
+
+        #region AnAuthenticationCalledOffIsAnswered503()
+
+        /// <summary>
+        /// The same for an AuthenticateAsync override: called off while it
+        /// waited, 503 - cancelled on its own, 500.
+        /// </summary>
+        [Test]
+        public async Task AnAuthenticationCalledOffIsAnswered503()
+        {
+
+            var calledOff  = await AnswerOf(new AuthenticatingServer(async (connection, cancellationToken) => {
+                                                await CallOffAndWait(connection, cancellationToken);
+                                                return null;
+                                            }));
+
+            var itsOwn     = await AnswerOf(new AuthenticatingServer((connection, cancellationToken)
+                                                => Task.FromCanceled<String?>(new CancellationToken(canceled: true))));
+
+            Assert.Multiple(() => {
+
+                Assert.That(calledOff,  Is.EqualTo(503),
+                            "An authentication called off while it waited was not answered 503.");
+
+                Assert.That(itsOwn,     Is.EqualTo(500),
+                            "An authentication whose own lookup was cancelled, with nobody calling off the upgrade, was not answered 500.");
 
             });
 
@@ -347,24 +421,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
-        #region (private static) AnswerToTwoValidators(First, Second)
+        #region (private static) AnswerOf(Server) / AnswerToValidators(Validators)
 
         /// <summary>
-        /// The status a client is answered with by a server that has these two
-        /// validators, registered in this order.
+        /// The status a client asking for an upgrade is answered with by the
+        /// given server, which is shut down afterwards.
         /// </summary>
-        private static async Task<UInt32> AnswerToTwoValidators(OnValidateWebSocketConnectionDelegate  First,
-                                                                OnValidateWebSocketConnectionDelegate  Second)
+        private static async Task<UInt32> AnswerOf(AWebSocketServer Server)
         {
 
-            var twoValidators  = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
-            var asking         = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{twoValidators.IPPort}"));
+            var asking = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{Server.IPPort}"));
 
             try
             {
-
-                twoValidators.OnValidateWebSocketConnection += First;
-                twoValidators.OnValidateWebSocketConnection += Second;
 
                 var (_, httpResponse) = await asking.Connect().WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -374,8 +443,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             finally
             {
                 await asking.Close();
-                await twoValidators.Shutdown(Wait: true);
+                await Server.Shutdown(Wait: true);
             }
+
+        }
+
+        /// <summary>
+        /// The same for a server that has these validators, registered in this
+        /// order.
+        /// </summary>
+        private static Task<UInt32> AnswerToValidators(params OnValidateWebSocketConnectionDelegate[] Validators)
+        {
+
+            var validating = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
+
+            foreach (var validator in Validators)
+                validating.OnValidateWebSocketConnection += validator;
+
+            return AnswerOf(validating);
+
+        }
+
+        #endregion
+
+        #region (private static) CallOffAndWait(Connection, CancellationToken)
+
+        /// <summary>
+        /// Call off the upgrade of the given connection, and wait as somebody
+        /// else's code would that honours the token it was given - until the
+        /// token says to stop.
+        /// </summary>
+        /// <remarks>
+        /// Called off by cancelling the connection's own token source: the one
+        /// the token handed to validators and authentications is linked to, and
+        /// the one Close() cancels too. Only that, and not the close, so that
+        /// the socket stays open and the answer can be read - after a real close
+        /// nobody would read it.
+        /// </remarks>
+        private static async Task CallOffAndWait(WebSocketServerConnection  Connection,
+                                                 CancellationToken          CancellationToken)
+        {
+
+            Connection.CancellationTokenSource.Cancel();
+
+            await Task.Delay(Timeout.Infinite, CancellationToken);
 
         }
 
@@ -478,6 +589,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             }
 
             return (Encoding.ASCII.GetString([.. received]), closed);
+
+        }
+
+        #endregion
+
+
+        #region (private) AuthenticatingServer
+
+        /// <summary>
+        /// A server that authenticates by the given function - an override, and
+        /// so somebody else's code.
+        /// </summary>
+        private sealed class AuthenticatingServer : WebSocketServer
+        {
+
+            private readonly Func<WebSocketServerConnection, CancellationToken, Task<String?>> authenticate;
+
+            public AuthenticatingServer(Func<WebSocketServerConnection, CancellationToken, Task<String?>> Authenticate)
+                : base(HTTPPort: IPPort.Zero, AutoStart: true)
+            {
+                this.authenticate = Authenticate;
+            }
+
+            protected override Task<String?> AuthenticateAsync(WebSocketServerConnection  Connection,
+                                                               HTTPRequest                Request,
+                                                               CancellationToken          CancellationToken)
+
+                => authenticate(Connection, CancellationToken);
 
         }
 

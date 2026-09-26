@@ -944,7 +944,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// raw TOTP in ClientTOTPConfig. A server that knows its clients by something
         /// else - a client certificate, a store of its own, credentials in the query
         /// string - overrides it, and asks the base for whatever it keeps of these.
-        /// What an override throws refuses the upgrade too, with 500.
+        /// What an override throws refuses the upgrade too, with 500 - or with 503
+        /// where it threw only because its token was cancelled, see CalledOff.
         /// </remarks>
         /// <param name="Connection">The connection asking for the upgrade, with its client certificate, if there is one.</param>
         /// <param name="Request">The HTTP request asking for the upgrade.</param>
@@ -1627,18 +1628,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 (httpResponse is null || httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols))
                                                             {
 
-                                                                String? authenticatedLogin     = null;
-                                                                var     authenticationFailed   = false;
+                                                                String? authenticatedLogin        = null;
+                                                                var     authenticationFailed      = false;
+                                                                var     authenticationCalledOff   = false;
 
                                                                 // An override is somebody else's code. What it throws
                                                                 // refuses the upgrade like a null would, but answered,
                                                                 // and as the server's fault: a client may try a 500
-                                                                // again, where a 401 tells it not to.
+                                                                // again, where a 401 tells it not to. Unless it threw
+                                                                // only because its token was cancelled: then the upgrade
+                                                                // was called off, and nothing failed - see CalledOff.
                                                                 try
                                                                 {
                                                                     authenticatedLogin = await AuthenticateAsync(webSocketConnection,
                                                                                                                  httpRequest,
                                                                                                                  token2);
+                                                                }
+                                                                catch (OperationCanceledException) when (token2.IsCancellationRequested)
+                                                                {
+                                                                    Logger.LogDebug("Authenticating the WebSocket upgrade from {RemoteSocket} was called off.",
+                                                                                    webSocketConnection.RemoteSocket);
+                                                                    authenticationCalledOff = true;
                                                                 }
                                                                 catch (Exception e)
                                                                 {
@@ -1650,6 +1660,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                                 if (authenticatedLogin is not null)
                                                                     webSocketConnection.Login = authenticatedLogin;
+
+                                                                else if (authenticationCalledOff)
+                                                                    httpResponse = CalledOff(httpRequest);
 
                                                                 else
                                                                 {
@@ -2444,6 +2457,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// the first refusal is still the answer. A client that an earlier
         /// handler refuses with 401 is told 401, whether or not a later one
         /// threw.
+        ///
+        /// A handler that throws only because its token was cancelled has not
+        /// failed: the upgrade was called off while it was being asked, see
+        /// CalledOff. Its own cancellations - a lookup of its own that timed
+        /// out - are failures like any other.
         /// </remarks>
         /// <param name="Validator">The handler to ask.</param>
         /// <param name="Connection">The connection asking for the upgrade.</param>
@@ -2463,6 +2481,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                        EventTracking_Id.New,
                                        CancellationToken);
             }
+            catch (OperationCanceledException) when (CancellationToken.IsCancellationRequested)
+            {
+
+                Logger.LogDebug("Validating the WebSocket upgrade from {RemoteSocket} was called off.",
+                                Connection.RemoteSocket);
+
+                return CalledOff(Request);
+
+            }
             catch (Exception e)
             {
 
@@ -2481,6 +2508,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
 
         }
+
+        #endregion
+
+        #region (private) CalledOff(Request)
+
+        /// <summary>
+        /// The answer to an upgrade that was called off while somebody else's
+        /// code - a validator, an authentication - was being asked about it.
+        /// </summary>
+        /// <remarks>
+        /// The server is going away, or the connection is being closed, and the
+        /// code that was asked threw only because it was told to stop. That is
+        /// no failure of its own and nothing to log as an error, and the answer
+        /// says what it is: 503, not now, rather than the 500 of code that
+        /// failed. A client with a reconnect policy tries either again after its
+        /// backoff. Where the connection is gone already, nobody reads it.
+        /// </remarks>
+        /// <param name="Request">The HTTP request asking for the upgrade.</param>
+        private HTTPResponse CalledOff(HTTPRequest Request)
+
+            => new HTTPResponse.Builder(Request) {
+                   HTTPStatusCode  = HTTPStatusCode.ServiceUnavailable,
+                   Server          = HTTPServiceName,
+                   Connection      = ConnectionType.Close,
+                   ContentType     = HTTPContentType.Text.PLAIN,
+                   Content         = "The WebSocket upgrade was called off.".ToUTF8Bytes()
+               }.AsImmutable;
 
         #endregion
 
