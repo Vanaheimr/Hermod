@@ -324,7 +324,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// to advise the client not to attempt a range request.
         /// </summary>
         /// <example>Accept-Ranges: bytes</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-14.3"/>
+        [Obsolete("Accept-Ranges is a response field (RFC 9110, Section 14.3). Use HTTPResponse.Builder.AcceptRanges.")]
         public static readonly HTTPRequestHeaderField AcceptRanges = new ("Accept-Ranges",
                                                                           RequestPathSemantic.EndToEnd);
 

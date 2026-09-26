@@ -113,6 +113,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Accept-Ranges
+
+        /// <summary>
+        /// The Accept-Ranges field lets a server advertise its support for
+        /// range requests on the target resource:
+        /// 
+        ///    Accept-Ranges     = acceptable-ranges
+        ///    acceptable-ranges = 1#range-unit
+        /// 
+        /// An origin server that supports byte-range requests MAY send
+        ///    Accept-Ranges: bytes
+        /// but is not required to do so, and a client MAY make a range request
+        /// without having seen the field: it is advice, not a precondition.
+        /// 
+        /// A server that supports no range unit for the resource MAY send
+        ///    Accept-Ranges: none
+        /// to advise the client not to try.
+        /// 
+        /// RFC 9110 defines this as a *response* field, which is why it is
+        /// defined here. HTTPRequestHeaderField.AcceptRanges predates that
+        /// reading and is obsolete.
+        /// </summary>
+        /// <example>Accept-Ranges: bytes</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-14.3"/>
+        public static readonly HTTPResponseHeaderField AcceptRanges = new ("Accept-Ranges",
+                                                                           RequestPathSemantic.EndToEnd);
+
+        #endregion
+
         #region DAV
 
         /// <summary>

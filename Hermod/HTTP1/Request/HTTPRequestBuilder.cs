@@ -184,6 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Accept-Ranges
 
+            [Obsolete("Accept-Ranges is a response field (RFC 9110, Section 14.3). Use HTTPResponse.Builder.AcceptRanges.")]
             public String? AcceptRanges
             {
 
@@ -1197,6 +1198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP Accept-Language header field.
             /// </summary>
             /// <param name="AcceptRanges">AcceptRanges.</param>
+            [Obsolete("Accept-Ranges is a response field (RFC 9110, Section 14.3). Use HTTPResponse.Builder.AcceptRanges.")]
             public Builder SetAcceptRanges(String AcceptRanges)
             {
                 this.AcceptRanges = AcceptRanges;
