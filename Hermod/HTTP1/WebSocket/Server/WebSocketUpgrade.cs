@@ -45,6 +45,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// implementation of RFC 6455 section 4.2.1 does the rest: validate, choose
     /// the subprotocol, negotiate permessage-deflate, write the 101. Two copies
     /// of a security handshake is how one of them ends up a version behind.
+    ///
+    /// <b>Nor is the firewall.</b> The TCP connection the request arrived on
+    /// goes along as well, and the WebSocket server asks its handlers of
+    /// OnValidateTCPConnection about it as though it had accepted the
+    /// connection itself - which on a port of its own it would have.
     /// </remarks>
     public static class WebSocketUpgrade
     {
@@ -92,7 +97,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="WebSocketServer">
         /// The WebSocket server that will speak on the connection. It must
         /// <b>not</b> be started: it is never going to accept anything itself,
-        /// it is only being lent its protocol.
+        /// it is only being lent its protocol. Its handlers of
+        /// OnValidateTCPConnection are still asked about every connection, when
+        /// it is handed over.
         /// </param>
         /// <example>
         /// <code>
@@ -157,12 +164,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   UpgradeWorker   = (response, stream)
 
                                       => WebSocketServer.AcceptUpgradedConnectionAsync(
-                                             stream,
-                                             request.LocalSocket,
-                                             request.RemoteSocket,
-                                             $"{request.EntirePDU}\r\n\r\n".ToUTF8Bytes(),
-                                             request.ClientCertificate,
-                                             request.CancellationToken
+                                             NetworkStream:      stream,
+                                             LocalSocket:        request.LocalSocket,
+                                             RemoteSocket:       request.RemoteSocket,
+                                             RequestBytes:       $"{request.EntirePDU}\r\n\r\n".ToUTF8Bytes(),
+                                             ClientCertificate:  request.ClientCertificate,
+
+                                             // What the WebSocket server's handlers of
+                                             // OnValidateTCPConnection are asked about - the
+                                             // connection the HTTP server accepted, since the
+                                             // WebSocket server accepted none of its own.
+                                             TCPConnection:      request.TCPConnection,
+
+                                             CancellationToken:  request.CancellationToken
                                          )
 
                               }.AsImmutable

@@ -1207,6 +1207,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region (protected) SendNewTCPConnectionRejected(Timestamp, EventTrackingId, RemoteSocket, ConnectionId, Reason = null)
+
+        /// <summary>
+        /// Send a "new TCP connection rejected" event for a connection this
+        /// server was handed rather than one it accepted itself.
+        /// </summary>
+        /// <remarks>
+        /// Only the class that declares an event can raise it, and a WebSocket
+        /// server lent to an HTTP path refuses connections that the HTTP server
+        /// accepted - so it needs this to say so on its own event, the one that
+        /// its handlers of OnValidateTCPConnection are refusing through.
+        /// </remarks>
+        /// <param name="Timestamp">The timestamp of the refusal.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="RemoteSocket">The remote socket of the refused connection.</param>
+        /// <param name="ConnectionId">The internal connection identification.</param>
+        /// <param name="Reason">Why the connection was refused.</param>
+        protected Task SendNewTCPConnectionRejected(DateTimeOffset    Timestamp,
+                                                    EventTracking_Id  EventTrackingId,
+                                                    IPSocket          RemoteSocket,
+                                                    String            ConnectionId,
+                                                    I18NString?       Reason   = null)
+
+            => LogEvent(
+                   OnNewTCPConnectionRejected,
+                   loggingDelegate => loggingDelegate.Invoke(
+                       this,
+                       Timestamp,
+                       EventTrackingId,
+                       RemoteSocket,
+                       ConnectionId,
+                       Reason
+                   )
+               );
+
+        #endregion
+
 
 
         #region (Timer) DoMaintenance(State)
