@@ -151,6 +151,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         }
 
         [Test]
+        public async Task AWrongTOTPIsRefused()
+        {
+            var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            var secret = "abcdefghijklmnop";
+            server.ClientTOTPConfig["station"] = new TOTPConfig(secret, UseTLSExporterMaterial: false);
+
+            try
+            {
+                // Of the right length and alphabet, for the right login, raw -
+                // and generated from another secret.
+                var wrong = TOTPGenerator.GenerateTOTP("qrstuvwxyzabcdef").Current;
+
+                Assert.That((await Connect(server,
+                                           HTTPTOTPAuthentication.Create("station", wrong,
+                                                                         TOTPHTTPHeaderType.RAW))).HTTPStatusCode.Code,
+                            Is.EqualTo(401));
+            }
+            finally
+            {
+                await server.Shutdown(Wait: true);
+            }
+        }
+
+        [Test]
         public async Task AnAnonymousConnectionHasNoLogin()
         {
             var server = new WebSocketServer(HTTPPort: IPPort.Zero,
@@ -326,6 +350,90 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                                 MessageSizeLimit: 4096), Is.True);
             Assert.That(exceeded, Is.False);
             Assert.That(decompressed, Is.EqualTo(plainText));
+        }
+
+        [Test]
+        public async Task AServerRefusesACompressedMessageThatInflatesOverItsLimit()
+        {
+            // 4096 times the same letter compresses to a few bytes: far under the
+            // limit on the wire, far over it once inflated.
+            var server = new WebSocketServer(HTTPPort: IPPort.Zero,
+                                             RequireAuthentication: false,
+                                             AutoStart: true) {
+                             EnablePerMessageDeflate  = true,
+                             MaxTextMessageSizeIn     = 100
+                         };
+
+            var client = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{server.IPPort}")) {
+                             EnablePerMessageDeflate  = true
+                         };
+
+            var close  = new TaskCompletionSource<WebSocketFrame.ClosingStatusCode>(
+                             TaskCreationOptions.RunContinuationsAsynchronously
+                         );
+
+            client.OnCloseMessageReceived += (timestamp, sender, connection, frame,
+                                              eventTrackingId, statusCode, reason, cancellationToken) => {
+                close.TrySetResult(statusCode);
+                return Task.CompletedTask;
+            };
+
+            try
+            {
+                var response = (await client.Connect()).Item2;
+
+                Assert.That(response.HTTPStatusCode.Code,                        Is.EqualTo(101));
+                Assert.That(response.GetHeaderField("Sec-WebSocket-Extensions"), Does.StartWith("permessage-deflate"));
+
+                await client.SendTextMessage(new String('a', 4096));
+
+                Assert.That(await close.Task.WaitAsync(TimeSpan.FromSeconds(5)),
+                            Is.EqualTo(WebSocketFrame.ClosingStatusCode.MessageTooBig));
+            }
+            finally
+            {
+                client.Disconnect();
+                await server.Shutdown(Wait: true);
+            }
+        }
+
+        [Test]
+        public async Task AClientRefusesABinaryMessageOverItsLimit()
+        {
+            // The mirror sends back what it gets, as many bytes as it got: six out
+            // are six in, and it is the client's limit that is asked, not the server's.
+            var server = new WebSocketMirrorServer(HTTPPort: IPPort.Zero,
+                                                   RequireAuthentication: false,
+                                                   AutoStart: true);
+
+            var client = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{server.IPPort}")) {
+                             MaxBinaryMessageSizeIn  = 5
+                         };
+
+            var close  = new TaskCompletionSource<WebSocketFrame.ClosingStatusCode>(
+                             TaskCreationOptions.RunContinuationsAsynchronously
+                         );
+
+            server.OnCloseMessageReceived += (timestamp, webSocketServer, connection, frame,
+                                              eventTrackingId, statusCode, reason, cancellationToken) => {
+                close.TrySetResult(statusCode);
+                return Task.CompletedTask;
+            };
+
+            try
+            {
+                Assert.That((await client.Connect()).Item2.HTTPStatusCode.Code, Is.EqualTo(101));
+
+                await client.SendBinaryMessage([1, 2, 3, 4, 5, 6]);
+
+                Assert.That(await close.Task.WaitAsync(TimeSpan.FromSeconds(5)),
+                            Is.EqualTo(WebSocketFrame.ClosingStatusCode.MessageTooBig));
+            }
+            finally
+            {
+                client.Disconnect();
+                await server.Shutdown(Wait: true);
+            }
         }
 
         /// <summary>
