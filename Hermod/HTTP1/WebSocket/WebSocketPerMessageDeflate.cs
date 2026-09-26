@@ -133,10 +133,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Decompressed">The decompressed message payload.</param>
         /// <param name="ErrorResponse">An error response in case of a decompression failure or a size limit violation.</param>
         /// <param name="ExceededSizeLimit">Whether the failure was a size limit violation (close with 1009 Message Too Big) rather than corrupt/invalid compressed data (close with 1007 Invalid Payload Data).</param>
+        /// <param name="MessageSizeLimit">An optional, per-message limit on the decompressed payload.</param>
         public Boolean TryDecompress(Byte[]                Payload,
                                      out Byte[]            Decompressed,
                                      out String?           ErrorResponse,
-                                     out Boolean           ExceededSizeLimit)
+                                     out Boolean           ExceededSizeLimit,
+                                     UInt64?               MessageSizeLimit = null)
         {
 
             Decompressed       = [];
@@ -156,6 +158,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 using var output   = new MemoryStream();
 
                 var maxSize   = MaxDecompressedSize ?? WebSocketFrame.DefaultMaxPayloadSize;
+                if (MessageSizeLimit.HasValue)
+                    maxSize = Math.Min(maxSize, MessageSizeLimit.Value);
                 var buffer    = new Byte[16 * 1024];
                 var total     = 0UL;
                 int read;

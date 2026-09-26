@@ -56,9 +56,10 @@ Implemented (both server and client, unless noted):
   is tried again; one that also says when, in a `Retry-After` (seconds or an
   HTTP date, counted from the server's own `Date`), is not tried again before
   then, up to `MaxRetryAfter`, with the jitter after it rather than either side.
-- Message and fragment size limits (`MaxTextMessageSizeIn/Out`,
-  `MaxBinaryMessageSizeIn/Out`), enforced *before* buffering; violations close
-  with 1009 (Message Too Big).
+- Incoming text and binary messages have a 64 MiB aggregate limit by default
+  (including fragmented messages). Smaller configured limits are checked before
+  fragment accumulation and against decompressed data; violations close with
+  1009 (Message Too Big). The frame parser also caps individual frames at 64 MiB.
 - Server handshake hardening: `HandshakeTimeout` (Slowloris protection, default
   10 s), `MaxHandshakeRequestSize` (oversized/unterminated header block, default
   64 KB), `MaxConnectionsPerIP` (connection-flood protection, opt-in), and an
