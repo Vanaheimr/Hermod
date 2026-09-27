@@ -153,12 +153,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// connection that is over.
         /// </summary>
         /// <remarks>
-        /// A subprotocol selector that throws takes the loop down past Close(),
-        /// and Close() is what cancels that token on every other way out. A
-        /// source disposed without having been cancelled can never be cancelled
-        /// any more, and disposing it unlinks it from the server's token too -
-        /// so whatever a handler had started on its token would wait for ever,
-        /// and not even the server stopping would end it.
+        /// A subprotocol selector that throws takes the loop down in the middle
+        /// of the handshake, past the way out at its bottom, and leaves the rest
+        /// to the loop's finally. The token its handlers were given has to end up
+        /// cancelled there all the same: a source disposed without having been
+        /// cancelled can never be cancelled any more, and disposing it unlinks it
+        /// from the server's token too - so whatever a handler had started on its
+        /// token would wait for ever, and not even the server stopping would end
+        /// it.
         ///
         /// The selector, because it is one of the few things whose exception
         /// gets that far: what an event handler throws is caught where the
