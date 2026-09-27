@@ -822,7 +822,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region Simultaneous probe tie-breaking (RFC 6762 §8.2)
 
-            if (Query.Authorities.Count > 0)
+            // A probe is a query carrying its proposed records in the authority
+            // section (§8.1), which is the only thing that distinguishes one. The
+            // answer is needed twice: here, for the tie-break between two probers,
+            // and further down, because §6 exempts a response to a probe from its
+            // rate limit.
+            var answeringProbe = Query.Authorities.Count > 0;
+
+            if (answeringProbe)
                 await HandleProbeAsync(Query, Datagram, CancellationToken).ConfigureAwait(false);
 
             #endregion
@@ -928,7 +935,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     await Task.Delay(delay, TimeProvider, token).ConfigureAwait(false);
 
-                    await SendResponseAsync(answers, additionals, unicast, legacy, Query, Datagram, token).ConfigureAwait(false);
+                    await SendResponseAsync(answers, additionals, unicast, legacy, answeringProbe, Query, Datagram, token).ConfigureAwait(false);
 
                 });
 
@@ -936,7 +943,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
-            await SendResponseAsync(answers, additionals, unicast, legacy, Query, Datagram, CancellationToken).ConfigureAwait(false);
+            await SendResponseAsync(answers, additionals, unicast, legacy, answeringProbe, Query, Datagram, CancellationToken).ConfigureAwait(false);
 
         }
 
@@ -1075,12 +1082,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private) SendResponseAsync(Answers, Additionals, Unicast, Legacy, Query, Datagram, CancellationToken)
+        #region (private) SendResponseAsync(Answers, Additionals, Unicast, Legacy, AnsweringProbe, Query, Datagram, CancellationToken)
 
         private async Task SendResponseAsync(List<IDNSResourceRecord>  Answers,
                                              List<IDNSResourceRecord>  Additionals,
                                              Boolean                   Unicast,
                                              Boolean                   Legacy,
+                                             Boolean                   AnsweringProbe,
                                              MulticastDNSMessage       Query,
                                              MulticastDNSDatagram      Datagram,
                                              CancellationToken         CancellationToken)
@@ -1091,6 +1099,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region Rate limit (RFC 6762 §6)
 
+            // §6 writes its own exception into the middle of the sentence: a responder
+            // "MUST NOT (except in the one special case of answering probe queries)
+            // multicast a record on a given interface until at least one second has
+            // elapsed since the last time that record was multicast on that particular
+            // interface."
+            //
+            // §8.1 is why that parenthesis is not an afterthought: "it is important that
+            // when a device receives a probe query for a name that it is currently
+            // using, it SHOULD generate its response to defend that name immediately and
+            // send it as quickly as possible." A prober that sets the unicast-response
+            // bit is answered by unicast and never reaches this code at all - but §8.1
+            // makes that bit a SHOULD, so a conforming prober is free to omit it, and
+            // then this is the path.
+            //
+            // Being stricter than a MUST NOT permits is what causes the failure probing
+            // exists to prevent. The filter empties the answer list, the early return
+            // makes the responder silent rather than late, and the prober concludes that
+            // a name in use is free. The window is not hypothetical: AnnounceAsync stamps
+            // every record it sends, so a name would otherwise be undefendable by
+            // multicast for exactly the second after it is announced - which is when a
+            // neighbour that has just woken on the same link is probing.
+            //
+            // The stamping stays on both paths, so an ordinary answer for the same record
+            // is rate-limited afterwards as usual. The exemption is for the defence, not
+            // for the record.
             if (!Unicast)
             {
 
@@ -1099,14 +1132,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 lock (stateLock)
                 {
 
-                    answers = [.. answers.Where(record => !lastMulticast.TryGetValue(record.RecordKey(), out var last) ||
-                                                          now - last >= Options.MinRecordMulticastInterval)];
+                    if (!AnsweringProbe)
+                    {
 
-                    if (answers.Count == 0)
-                        return;
+                        answers = [.. answers.Where(record => !lastMulticast.TryGetValue(record.RecordKey(), out var last) ||
+                                                              now - last >= Options.MinRecordMulticastInterval)];
 
-                    additionals = [.. additionals.Where(record => !lastMulticast.TryGetValue(record.RecordKey(), out var last) ||
-                                                                  now - last >= Options.MinRecordMulticastInterval)];
+                        if (answers.Count == 0)
+                            return;
+
+                        additionals = [.. additionals.Where(record => !lastMulticast.TryGetValue(record.RecordKey(), out var last) ||
+                                                                      now - last >= Options.MinRecordMulticastInterval)];
+
+                    }
 
                     foreach (var record in answers.Concat(additionals))
                         lastMulticast[record.RecordKey()] = now;
