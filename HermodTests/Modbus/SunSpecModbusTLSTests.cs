@@ -591,8 +591,12 @@ public class SunSpecModbusTLSTests
             await new ModbusPKI().BuildPKI(pkiDirectory);
 
             var port          = new ClosedPort();
+            var server        = default(SunSpecMeterServer);
 
-            var server        = new SunSpecMeterServer(
+            try
+            {
+
+                server        = new SunSpecMeterServer(
                                     pkiDirectory,
                                     port,
                                     new ModbusTlsFrontend(
@@ -613,9 +617,33 @@ public class SunSpecModbusTLSTests
                                     new CancellationTokenSource(TimeSpan.FromSeconds(20))
                                 );
 
-            await WaitForListenerAsync(server.ListenPort, server.frontendCts.Token);
+                await WaitForListenerAsync(server.ListenPort, server.frontendCts.Token);
 
-            return server;
+                return server;
+
+            }
+            catch
+            {
+
+                // A server that did not start is stopped again, and its port let
+                // go of - which otherwise stays held until its socket is
+                // finalized. The test is told what went wrong in the first place,
+                // not what stopping a half-started server has to say.
+                if (server is not null)
+                {
+                    try
+                    {
+                        await server.DisposeAsync();
+                    }
+                    catch
+                    { }
+                }
+
+                port.Dispose();
+
+                throw;
+
+            }
 
         }
 
@@ -673,13 +701,21 @@ public class SunSpecModbusTLSTests
         public async ValueTask DisposeAsync()
         {
 
-            await frontendCts.CancelAsync();
-            await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+            try
+            {
+                await frontendCts.CancelAsync();
+                await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+            }
+            finally
+            {
 
-            frontend.Dispose();
-            frontendCts.Dispose();
+                // Even when the frontend failed, which the wait above reports.
+                frontend.Dispose();
+                frontendCts.Dispose();
 
-            port.Dispose();
+                port.Dispose();
+
+            }
 
         }
 
