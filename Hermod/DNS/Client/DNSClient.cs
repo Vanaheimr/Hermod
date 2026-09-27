@@ -489,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public partial void LogDNSResponse(String DNSServiceName, String RecordTypes, String Answers, Double Runtime);
 
 
-        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         /// <summary>
         /// Query the configured DNS server(s) for the specified domain name and resource record types.
@@ -503,7 +503,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
-                                   Boolean?                             RecursionDesired    = true,
+                                   Boolean?                             RecursionDesired    = null,
                                    Boolean?                             ForceUpdate         = false,
                                    CancellationToken                    CancellationToken   = default)
 
@@ -518,7 +518,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         /// <summary>
         /// Query the configured DNS server(s) for the specified DNS service name and resource record types.
@@ -532,7 +532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                          IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                          TimeSpan?                            Timeout             = null,
-                                         Boolean?                             RecursionDesired    = true,
+                                         Boolean?                             RecursionDesired    = null,
                                          Boolean?                             ForceUpdate         = false,
                                          CancellationToken                    CancellationToken   = default)
         {
@@ -735,7 +735,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
                                UDPPayloadSize,
-                               this.RecursionDesired ?? RecursionDesired ?? true,
+                               RecursionDesired ?? this.RecursionDesired ?? true,
                                EDNSOptions.Count > 0 ? EDNSOptions : null,
                                [.. resourceRecordTypes]
                            );

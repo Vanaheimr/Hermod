@@ -54,14 +54,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query<T>            (DomainName,             Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query<T>            (DomainName,             Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<DNSInfo<T>>
 
             Query<T>(this IDNSClient    IDNSClient,
                      DomainName         DomainName,
                      TimeSpan?          Timeout             = null,
-                     Boolean?           RecursionDesired    = true,
+                     Boolean?           RecursionDesired    = null,
                      Boolean?           ForceUpdate         = false,
                      CancellationToken  CancellationToken   = default)
 
@@ -84,14 +84,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query<T>            (DNSServiceName,         Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query<T>            (DNSServiceName,         Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<DNSInfo<T>>
 
             Query<T>(this IDNSClient    IDNSClient,
                      DNSServiceName     DNSServiceName,
                      TimeSpan?          Timeout             = null,
-                     Boolean?           RecursionDesired    = true,
+                     Boolean?           RecursionDesired    = null,
                      Boolean?           ForceUpdate         = false,
                      CancellationToken  CancellationToken   = default)
 
@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query<T1, T2>       (DomainName,     Mapper, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query<T1, T2>       (DomainName,     Mapper, Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<T2>>
 
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            DomainName         DomainName,
                            Func<TRR, T2>      Mapper,
                            TimeSpan?          Timeout             = null,
-                           Boolean?           RecursionDesired    = true,
+                           Boolean?           RecursionDesired    = null,
                            Boolean?           ForceUpdate         = false,
                            CancellationToken  CancellationToken   = default)
 
@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query<T1, T2>       (DNSServiceName, Mapper, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query<T1, T2>       (DNSServiceName, Mapper, Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<T2>>
 
@@ -147,7 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            DNSServiceName     DNSServiceName,
                            Func<TRR, T2>      Mapper,
                            TimeSpan?          Timeout             = null,
-                           Boolean?           RecursionDesired    = true,
+                           Boolean?           RecursionDesired    = null,
                            Boolean?           ForceUpdate         = false,
                            CancellationToken  CancellationToken   = default)
 
@@ -164,14 +164,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query_IPv4Addresses (DomainName,             Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query_IPv4Addresses (DomainName,             Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv4Address>>
 
             Query_IPv4Addresses(this IDNSClient    IDNSClient,
                                 DomainName         DomainName,
                                 TimeSpan?          Timeout             = null,
-                                Boolean?           RecursionDesired    = true,
+                                Boolean?           RecursionDesired    = null,
                                 Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
@@ -185,14 +185,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPv4Addresses (DNSServiceName,         Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query_IPv4Addresses (DNSServiceName,         Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv4Address>>
 
             Query_IPv4Addresses(this IDNSClient    IDNSClient,
                                 DNSServiceName     DNSServiceName,
                                 TimeSpan?          Timeout             = null,
-                                Boolean?           RecursionDesired    = true,
+                                Boolean?           RecursionDesired    = null,
                                 Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
@@ -206,14 +206,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPv4Addresses (RemoteURL,              Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query_IPv4Addresses (RemoteURL,              Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv4Address>>
 
             Query_IPv4Addresses(this IDNSClient    IDNSClient,
                                 URL                RemoteURL,
                                 TimeSpan?          Timeout             = null,
-                                Boolean?           RecursionDesired    = true,
+                                Boolean?           RecursionDesired    = null,
                                 Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
@@ -243,14 +243,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query_IPv6Addresses (DomainName,             Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query_IPv6Addresses (DomainName,             Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv6Address>>
 
             Query_IPv6Addresses(this IDNSClient    IDNSClient,
                                 DomainName         DomainName,
                                 TimeSpan?          Timeout             = null,
-                                Boolean?           RecursionDesired    = true,
+                                Boolean?           RecursionDesired    = null,
                                 Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
@@ -264,14 +264,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPv6Addresses (DNSServiceName,         Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query_IPv6Addresses (DNSServiceName,         Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv6Address>>
 
             Query_IPv6Addresses(this IDNSClient    IDNSClient,
                                 DNSServiceName     DNSServiceName,
                                 TimeSpan?          Timeout             = null,
-                                Boolean?           RecursionDesired    = true,
+                                Boolean?           RecursionDesired    = null,
                                 Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
@@ -285,14 +285,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPv6Addresses (RemoteURL,              Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query_IPv6Addresses (RemoteURL,              Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IPv6Address>>
 
             Query_IPv6Addresses(this IDNSClient    IDNSClient,
                                 URL                RemoteURL,
                                 TimeSpan?          Timeout             = null,
-                                Boolean?           RecursionDesired    = true,
+                                Boolean?           RecursionDesired    = null,
                                 Boolean?           ForceUpdate         = false,
                                 CancellationToken  CancellationToken   = default)
 
@@ -320,14 +320,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query_IPAddresses   (DomainName,             Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query_IPAddresses   (DomainName,             Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IIPAddress>>
 
             Query_IPAddresses(this IDNSClient    IDNSClient,
                               DomainName         DomainName,
                               TimeSpan?          Timeout             = null,
-                              Boolean?           RecursionDesired    = true,
+                              Boolean?           RecursionDesired    = null,
                               Boolean?           ForceUpdate         = false,
                               CancellationToken  CancellationToken   = default)
 
@@ -351,14 +351,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPAddresses   (DNSServiceName,         Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query_IPAddresses   (DNSServiceName,         Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IIPAddress>>
 
             Query_IPAddresses(this IDNSClient    IDNSClient,
                               DNSServiceName     DNSServiceName,
                               TimeSpan?          Timeout             = null,
-                              Boolean?           RecursionDesired    = true,
+                              Boolean?           RecursionDesired    = null,
                               Boolean?           ForceUpdate         = false,
                               CancellationToken  CancellationToken   = default)
 
@@ -382,14 +382,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPAddresses   (RemoteURL,              Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query_IPAddresses   (RemoteURL,              Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<IIPAddress>>
 
             Query_IPAddresses(this IDNSClient    IDNSClient,
                               URL                RemoteURL,
                               TimeSpan?          Timeout             = null,
-                              Boolean?           RecursionDesired    = true,
+                              Boolean?           RecursionDesired    = null,
                               Boolean?           ForceUpdate         = false,
                               CancellationToken  CancellationToken   = default)
 
@@ -421,7 +421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query_DNSService    (DomainName,             Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query_DNSService    (DomainName,             Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<SRV>>
 
@@ -429,7 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              DomainName         DomainName,
                              SRV_Spec           DNSServiceSpec,
                              TimeSpan?          Timeout             = null,
-                             Boolean?           RecursionDesired    = true,
+                             Boolean?           RecursionDesired    = null,
                              Boolean?           ForceUpdate         = false,
                              CancellationToken  CancellationToken   = default)
 
@@ -446,14 +446,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_DNSService    (DNSServiceName,          Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query_DNSService    (DNSServiceName,          Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public static async Task<IEnumerable<SRV>>
 
             Query_DNSService(this IDNSClient    IDNSClient,
                              DNSServiceName     DNSServiceName,
                              TimeSpan?          Timeout             = null,
-                             Boolean?           RecursionDesired    = true,
+                             Boolean?           RecursionDesired    = null,
                              Boolean?           ForceUpdate         = false,
                              CancellationToken  CancellationToken   = default)
 
@@ -477,23 +477,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   IAsyncDisposable
     {
 
-        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, ForceUpdate = false, RecursionDesired = true, ...)
+        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, ForceUpdate = false, RecursionDesired = null, ...)
 
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
-                                   Boolean?                             RecursionDesired    = true,
+                                   Boolean?                             RecursionDesired    = null,
                                    Boolean?                             ForceUpdate         = false,
                                    CancellationToken                    CancellationToken   = default);
 
         #endregion
 
-        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null,ForceUpdate = false, RecursionDesired = true, ...)
+        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null,ForceUpdate = false, RecursionDesired = null, ...)
 
         public Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
-                                   Boolean?                             RecursionDesired    = true,
+                                   Boolean?                             RecursionDesired    = null,
                                    Boolean?                             ForceUpdate         = false,
                                    CancellationToken                    CancellationToken   = default);
 

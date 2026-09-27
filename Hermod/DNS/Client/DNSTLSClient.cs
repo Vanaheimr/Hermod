@@ -386,12 +386,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query (DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
-                                   Boolean?                             RecursionDesired    = true,
+                                   Boolean?                             RecursionDesired    = null,
                                    Boolean?                             ForceUpdate         = false,
                                    CancellationToken                    CancellationToken   = default)
 
@@ -406,12 +406,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query (DNSServiceName, ResourceRecordTypes, Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         public async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                          IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                          TimeSpan?                            Timeout             = null,
-                                         Boolean?                             RecursionDesired    = true,
+                                         Boolean?                             RecursionDesired    = null,
                                          Boolean?                             ForceUpdate         = false,
                                          CancellationToken                    CancellationToken   = default)
         {
@@ -429,7 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
                                UDPPayloadSize,
-                               this.RecursionDesired ?? RecursionDesired ?? true,
+                               RecursionDesired ?? this.RecursionDesired ?? true,
                                this.DnssecOK,
                                EDNSOptions.Count > 0 ? EDNSOptions : null,
                                [.. resourceRecordTypes]

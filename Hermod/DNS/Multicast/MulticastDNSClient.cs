@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query(DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query(DomainName,     ResourceRecordTypes, Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         /// <summary>
         /// Resolve the given domain name via Multicast DNS.
@@ -399,7 +399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    TimeSpan?                            Timeout             = null,
-                                   Boolean?                             RecursionDesired    = true,
+                                   Boolean?                             RecursionDesired    = null,
                                    Boolean?                             ForceUpdate         = false,
                                    CancellationToken                    CancellationToken   = default)
 
@@ -412,7 +412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query(DNSServiceName, ResourceRecordTypes, Timeout = null, RecursionDesired = true, ForceUpdate = false, ...)
+        #region Query(DNSServiceName, ResourceRecordTypes, Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
         /// <summary>
         /// Resolve the given name via Multicast DNS: cached records answer at once, otherwise a
@@ -428,7 +428,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                          IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                          TimeSpan?                            Timeout             = null,
-                                         Boolean?                             RecursionDesired    = true,
+                                         Boolean?                             RecursionDesired    = null,
                                          Boolean?                             ForceUpdate         = false,
                                          CancellationToken                    CancellationToken   = default)
         {
