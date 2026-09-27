@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System.Net;
-using System.Net.Sockets;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 
@@ -46,6 +43,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     ///
     /// And a server that says when to come back, in a Retry-After, is not
     /// asked again before then - up to what the policy allows.
+    ///
+    /// Between the server that goes away and the one that answers in its
+    /// place, the test holds the port itself - see ClosedPort - so that what
+    /// the client is told on its way back comes from this test's server and
+    /// from no other.
     /// </remarks>
     [TestFixture]
     public class WebSocketClientReconnectThroughRefusalsTests
@@ -101,8 +103,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientComesBackThroughABackEndThatIsStillStarting()
         {
 
-            var port     = FreePort();
-            var refused  = 0;
+            using var port  = new ClosedPort();
+            var refused     = 0;
 
             await ConnectAndLoseIt(port);
 
@@ -129,8 +131,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientStopsAtABackEndThatWillNotHaveIt()
         {
 
-            var port   = FreePort();
-            var asked  = 0;
+            using var port  = new ClosedPort();
+            var asked       = 0;
 
             await ConnectAndLoseIt(port);
 
@@ -168,8 +170,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientWaitsAsLongAsARetryAfterAsksInSeconds()
         {
 
-            var port   = FreePort();
-            var asked  = new List<DateTimeOffset>();
+            using var port  = new ClosedPort();
+            var asked       = new List<DateTimeOffset>();
 
             await ConnectAndLoseIt(port);
 
@@ -213,8 +215,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientWaitsAsLongAsARetryAfterAsksAsADate()
         {
 
-            var port   = FreePort();
-            var asked  = new List<DateTimeOffset>();
+            using var port  = new ClosedPort();
+            var asked       = new List<DateTimeOffset>();
 
             await ConnectAndLoseIt(port);
 
@@ -262,8 +264,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientDoesNotWaitLongerThanItsPolicyAllows()
         {
 
-            var port   = FreePort();
-            var asked  = new List<DateTimeOffset>();
+            using var port  = new ClosedPort();
+            var asked       = new List<DateTimeOffset>();
 
             await ConnectAndLoseIt(port, new WebSocketClientReconnectPolicy(
                                              InitialDelay:   TimeSpan.FromMilliseconds(200),
@@ -306,13 +308,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         /// <summary>
         /// The client, with a quick policy or the one given, connected to a
-        /// server on the port - and the server stopped again.
+        /// server on the port - and the server stopped again, and the port the
+        /// test's once more.
         /// </summary>
-        private async Task ConnectAndLoseIt(IPPort                           Port,
+        private async Task ConnectAndLoseIt(ClosedPort                       Port,
                                             WebSocketClientReconnectPolicy?  Policy   = null)
         {
 
-            first   = new WebSocketMirrorServer(HTTPPort: Port, RequireAuthentication: false, AutoStart: true);
+            Port.HandOver();
+
+            first   = new WebSocketMirrorServer(HTTPPort: Port.Number, RequireAuthentication: false, AutoStart: true);
 
             client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{Port}")) {
                           ReconnectPolicy = Policy ?? Quickly
@@ -332,6 +337,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             first = null;
 
+            Port.TakeBack();
+
         }
 
         #endregion
@@ -343,7 +350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// with the status the given function names, or upgrades it where the
         /// function names none.
         /// </summary>
-        private void StartAgain(IPPort                             Port,
+        private void StartAgain(ClosedPort                          Port,
                                 Func<HTTPRequest, HTTPStatusCode?>  Refusal)
 
             => StartAgain(Port, request => Refusal(request) is HTTPStatusCode status
@@ -357,12 +364,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// The same, with the whole answer to the upgrade named by the function,
         /// or the upgrade made where it names none.
         /// </summary>
-        private void StartAgain(IPPort                                    Port,
+        private void StartAgain(ClosedPort                                Port,
                                 Func<HTTPRequest, HTTPResponse.Builder?>  Answer)
         {
 
+            Port.HandOver();
+
             lent        = new WebSocketMirrorServer(RequireAuthentication: false, AutoStart: false);
-            httpServer  = new HTTPServer(TCPPort: Port);
+            httpServer  = new HTTPServer(TCPPort: Port.Number);
 
             var upgrade = WebSocketUpgrade.For(lent);
 
@@ -421,28 +430,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             }
 
             return false;
-
-        }
-
-        #endregion
-
-        #region (private static) FreePort()
-
-        private static IPPort FreePort()
-        {
-
-            var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-
-            listener.Start();
-
-            try
-            {
-                return IPPort.Parse((UInt16) ((IPEndPoint) listener.LocalEndpoint).Port);
-            }
-            finally
-            {
-                listener.Stop();
-            }
 
         }
 

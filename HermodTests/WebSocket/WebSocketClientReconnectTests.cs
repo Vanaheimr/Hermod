@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System.Net;
-using System.Net.Sockets;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 
@@ -41,6 +38,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     /// application had asked for: the client stopped, whatever its policy said.
     /// A charging station whose CSMS restarted stayed off the network until
     /// somebody restarted the station too.
+    ///
+    /// Whenever the test's server is not on its port, the test holds the port
+    /// itself - see ClosedPort - so that a client trying again meets a refusal
+    /// there and nothing else. A port that was merely free a moment ago was
+    /// taken by another test run now and then, whose server answered 401 - and
+    /// a client that is told no stops trying.
     /// </remarks>
     [TestFixture]
     public class WebSocketClientReconnectTests
@@ -91,11 +94,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientWithAPolicyComesBackWhenItsServerIsShutDownAndStartedAgain()
         {
 
-            var port = FreePort();
+            using var port = new ClosedPort();
 
             await Connect(port, Quickly);
 
             await server!.Shutdown("Restarting.");
+
+            // Nothing on the port but the test until the server is back.
+            port.TakeBack();
 
             Assert.That(await ComesBack(port, TimeSpan.FromSeconds(10)), Is.True,
                         "The server was shut down and started again, and the client did not come back.");
@@ -114,11 +120,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientWithAPolicyComesBackWhenItsServerIsStoppedAndStartedAgain()
         {
 
-            var port = FreePort();
+            using var port = new ClosedPort();
 
             await Connect(port, Quickly);
 
             await server!.Stop();
+
+            port.TakeBack();
 
             Assert.That(await ComesBack(port, TimeSpan.FromSeconds(10)), Is.True,
                         "The server was stopped and started again, and the client did not come back.");
@@ -136,11 +144,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientWithoutAPolicyStaysAway()
         {
 
-            var port = FreePort();
+            using var port = new ClosedPort();
 
             await Connect(port, null);
 
             await server!.Shutdown();
+
+            port.TakeBack();
 
             Assert.That(await ComesBack(port, TimeSpan.FromSeconds(3)), Is.False,
                         "A client without a reconnect policy reconnected.");
@@ -159,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientItsApplicationClosedStaysAway()
         {
 
-            var port = FreePort();
+            using var port = new ClosedPort();
 
             await Connect(port, Quickly);
 
@@ -200,8 +210,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientWithAPolicyComesBackAfterItsServerStayedAwayForAWhile()
         {
 
-            var port      = FreePort();
-            var attempts  = 0;
+            using var port  = new ClosedPort();
+            var attempts    = 0;
 
             await Connect(port, Quickly);
 
@@ -211,6 +221,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             };
 
             await server!.Stop();
+
+            port.TakeBack();
 
             // At least three attempts into the silence, however the backoff
             // falls.
@@ -248,7 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientWithAPolicyIsToldOfItsFirstAttemptAndGoesOnTrying()
         {
 
-            var port   = FreePort();
+            using var port = new ClosedPort();
 
             client     = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"),
                                              RequestTimeout: TimeSpan.FromSeconds(20)) {
@@ -284,8 +296,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AClientSaysWhetherItKeepsTrying()
         {
 
-            var withPolicy     = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{FreePort()}")) { ReconnectPolicy = Quickly };
-            var withoutPolicy  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{FreePort()}"));
+            using var port     = new ClosedPort();
+
+            var withPolicy     = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) { ReconnectPolicy = Quickly };
+            var withoutPolicy  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
 
             try
             {
@@ -319,11 +333,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// <summary>
         /// A server on the port, and the client connected to it.
         /// </summary>
-        private async Task Connect(IPPort                           Port,
+        private async Task Connect(ClosedPort                       Port,
                                    WebSocketClientReconnectPolicy?  Policy)
         {
 
-            server  = new WebSocketMirrorServer(HTTPPort: Port, RequireAuthentication: false, AutoStart: true);
+            Port.HandOver();
+
+            server  = new WebSocketMirrorServer(HTTPPort: Port.Number, RequireAuthentication: false, AutoStart: true);
 
             client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{Port}")) {
                           ReconnectPolicy = Policy
@@ -349,11 +365,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// Whether the client connects to a server started again on the port,
         /// within the given time. The server is the test's from then on.
         /// </summary>
-        private async Task<Boolean> ComesBack(IPPort    Port,
-                                              TimeSpan  Within)
+        private async Task<Boolean> ComesBack(ClosedPort  Port,
+                                              TimeSpan    Within)
         {
 
-            server = new WebSocketMirrorServer(HTTPPort: Port, RequireAuthentication: false, AutoStart: true);
+            Port.HandOver();
+
+            server = new WebSocketMirrorServer(HTTPPort: Port.Number, RequireAuthentication: false, AutoStart: true);
 
             var giveUp = DateTimeOffset.UtcNow + Within;
 
@@ -368,31 +386,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             }
 
             return false;
-
-        }
-
-        #endregion
-
-        #region (private static) FreePort()
-
-        /// <summary>
-        /// A TCP port nobody was listening on a moment ago.
-        /// </summary>
-        private static IPPort FreePort()
-        {
-
-            var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-
-            listener.Start();
-
-            try
-            {
-                return IPPort.Parse((UInt16) ((IPEndPoint) listener.LocalEndpoint).Port);
-            }
-            finally
-            {
-                listener.Stop();
-            }
 
         }
 

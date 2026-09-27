@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System.Net;
-using System.Net.Sockets;
 using System.Net.WebSockets;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -90,11 +88,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task EveryClientIsToldTheServerIsGoingAway()
         {
 
-            var port          = FreePort();
-            server            = new WebSocketMirrorServer(HTTPPort: port, RequireAuthentication: false, AutoStart: true);
+            server            = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
 
-            using var first   = await Connect($"ws://127.0.0.1:{port}/");
-            using var second  = await Connect($"ws://127.0.0.1:{port}/");
+            using var first   = await Connect($"ws://127.0.0.1:{server.IPPort}/");
+            using var second  = await Connect($"ws://127.0.0.1:{server.IPPort}/");
 
             var toldFirst     = ReceiveClose(first);
             var toldSecond    = ReceiveClose(second);
@@ -117,10 +114,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task TheMessageIsTheReason()
         {
 
-            var port        = FreePort();
-            server          = new WebSocketMirrorServer(HTTPPort: port, RequireAuthentication: false, AutoStart: true);
+            server          = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
 
-            using var client = await Connect($"ws://127.0.0.1:{port}/");
+            using var client = await Connect($"ws://127.0.0.1:{server.IPPort}/");
 
             var told        = ReceiveClose(client);
 
@@ -150,10 +146,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AMessageTooLongForACloseFrameIsCutWhereACharacterEnds()
         {
 
-            var port         = FreePort();
-            server           = new WebSocketMirrorServer(HTTPPort: port, RequireAuthentication: false, AutoStart: true);
+            server           = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
 
-            using var client = await Connect($"ws://127.0.0.1:{port}/");
+            using var client = await Connect($"ws://127.0.0.1:{server.IPPort}/");
 
             var told         = ReceiveClose(client);
 
@@ -220,31 +215,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             server = null;
 
             await shuttingDown.Shutdown(Message);
-
-        }
-
-        #endregion
-
-        #region (private static) FreePort()
-
-        /// <summary>
-        /// A TCP port nobody was listening on a moment ago.
-        /// </summary>
-        private static IPPort FreePort()
-        {
-
-            var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-
-            listener.Start();
-
-            try
-            {
-                return IPPort.Parse((UInt16) ((IPEndPoint) listener.LocalEndpoint).Port);
-            }
-            finally
-            {
-                listener.Stop();
-            }
 
         }
 
