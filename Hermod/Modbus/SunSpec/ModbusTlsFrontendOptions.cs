@@ -20,6 +20,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.Common;
 
+/// <param name="ListenPort">The TCP port to listen on, or 0 for any free one - which <see cref="ModbusTlsFrontend.BoundEndPoint"/> names once the frontend has bound it.</param>
 /// <param name="ServerPfxPath">The PKCS#12 file holding the certificate this frontend shows, unless <paramref name="ServerCertificateSelector"/> says.</param>
 /// <param name="CaCertPath">The CA a client certificate must chain to, unless <paramref name="ClientTrustAnchors"/> says.</param>
 /// <param name="ServerCertificateSelector">Asked at every handshake which certificate to show, and which intermediates to send with it, given the SNI name the client sent. A frontend that has one of these can be given a new certificate without being restarted.</param>
