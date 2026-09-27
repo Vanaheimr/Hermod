@@ -948,7 +948,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// raw TOTP in ClientTOTPConfig. A server that knows its clients by something
         /// else - a client certificate, a store of its own, credentials in the query
         /// string - overrides it, and asks the base for whatever it keeps of these.
-        /// What an override throws refuses the upgrade too, with 500.
+        /// What an override throws refuses the upgrade too, with 500 - or with 503
+        /// where it threw only because its token was cancelled, see CalledOff.
         /// </remarks>
         /// <param name="Connection">The connection asking for the upgrade, with its client certificate, if there is one.</param>
         /// <param name="Request">The HTTP request asking for the upgrade.</param>
@@ -1640,18 +1641,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             // InvokeAllAsync returns Task and swallows what a handler
                                                             // throws, which here would turn "the validator failed,
                                                             // therefore refuse" into "the validator failed, therefore
-                                                            // let them in".
+                                                            // let them in". Nor may it simply propagate: each handler
+                                                            // is asked through AskValidator, which says why.
                                                             var onValidateWebSocketConnection = OnValidateWebSocketConnection;
                                                             if (onValidateWebSocketConnection is not null)
                                                             {
 
                                                                 var httpResponseTasks = await Task.WhenAll(onValidateWebSocketConnection.GetInvocationList().
                                                                                                    Cast<OnValidateWebSocketConnectionDelegate>().
-                                                                                                   Select(e => e(Timestamp.Now,
-                                                                                                                 this,
-                                                                                                                 webSocketConnection,
-                                                                                                                 EventTracking_Id.New,
-                                                                                                                 token2))).
+                                                                                                   Select(validator => AskValidator(validator,
+                                                                                                                                    webSocketConnection,
+                                                                                                                                    httpRequest,
+                                                                                                                                    token2))).
                                                                                                    ConfigureAwait(false);
 
                                                                 // The first refusal, and not the first answer: a server
@@ -1764,18 +1765,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 (httpResponse is null || httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols))
                                                             {
 
-                                                                String? authenticatedLogin     = null;
-                                                                var     authenticationFailed   = false;
+                                                                String? authenticatedLogin        = null;
+                                                                var     authenticationFailed      = false;
+                                                                var     authenticationCalledOff   = false;
 
                                                                 // An override is somebody else's code. What it throws
                                                                 // refuses the upgrade like a null would, but answered,
                                                                 // and as the server's fault: a client may try a 500
-                                                                // again, where a 401 tells it not to.
+                                                                // again, where a 401 tells it not to. Unless it threw
+                                                                // only because its token was cancelled: then the upgrade
+                                                                // was called off, and nothing failed - see CalledOff.
                                                                 try
                                                                 {
                                                                     authenticatedLogin = await AuthenticateAsync(webSocketConnection,
                                                                                                                  httpRequest,
                                                                                                                  token2);
+                                                                }
+                                                                catch (OperationCanceledException) when (token2.IsCancellationRequested)
+                                                                {
+                                                                    Logger.LogDebug("Authenticating the WebSocket upgrade from {RemoteSocket} was called off.",
+                                                                                    webSocketConnection.RemoteSocket);
+                                                                    authenticationCalledOff = true;
                                                                 }
                                                                 catch (Exception e)
                                                                 {
@@ -1787,6 +1797,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                                 if (authenticatedLogin is not null)
                                                                     webSocketConnection.Login = authenticatedLogin;
+
+                                                                else if (authenticationCalledOff)
+                                                                    httpResponse = CalledOff(httpRequest);
 
                                                                 else
                                                                 {
@@ -2531,6 +2544,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         {
                                             Logger.LogError(e, "Exception in HTTP WebSocket server connection loop.");
                                         }
+                                        finally
+                                        {
+
+                                            // However the loop ended. The way out after it - close the
+                                            // connection, take it off the books - is only reached where
+                                            // the loop ends as planned. An exception went past it and
+                                            // left the connection in webSocketConnections for as long as
+                                            // the server ran: listed by WebSocketConnections for as long
+                                            // as anything still held it, and counted against its address
+                                            // by MaxConnectionsPerIP for good.
+                                            //
+                                            // Both are no-ops for a connection that did get out the
+                                            // planned way, and the bookkeeping, which cannot fail, goes
+                                            // first. The close sends no close frame: whatever went wrong
+                                            // may have gone wrong before any 101, where a frame would be
+                                            // garbage in an HTTP response.
+                                            webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+
+                                            await webSocketConnection.Close();
+
+                                        }
 
                                     },
                                     token);
@@ -2538,6 +2572,106 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             await x.Unwrap().ConfigureAwait(false);
 
         }
+
+        #endregion
+
+        #region (private) AskValidator(Validator, Connection, Request, CancellationToken)
+
+        /// <summary>
+        /// What one OnValidateWebSocketConnection handler says to an upgrade:
+        /// null to let it happen, or the answer that refuses it.
+        /// </summary>
+        /// <remarks>
+        /// A handler is somebody else's code, and what it throws refuses the
+        /// upgrade as well - a validator that failed must never let anybody in -
+        /// but answered, and as the server's fault: 500. Left to propagate, it
+        /// ended the connection loop instead. The client was hung up on without
+        /// an answer, and the connection stayed on the server's books. And a
+        /// client with a reconnect policy may come back after a 500, where a
+        /// 401 or a 403 tells it not to.
+        ///
+        /// The 500 is this handler's refusal, in its place among the others:
+        /// the first refusal is still the answer. A client that an earlier
+        /// handler refuses with 401 is told 401, whether or not a later one
+        /// threw.
+        ///
+        /// A handler that throws only because its token was cancelled has not
+        /// failed: the upgrade was called off while it was being asked, see
+        /// CalledOff. Its own cancellations - a lookup of its own that timed
+        /// out - are failures like any other.
+        /// </remarks>
+        /// <param name="Validator">The handler to ask.</param>
+        /// <param name="Connection">The connection asking for the upgrade.</param>
+        /// <param name="Request">The HTTP request asking for the upgrade.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        private async Task<HTTPResponse?> AskValidator(OnValidateWebSocketConnectionDelegate  Validator,
+                                                       WebSocketServerConnection              Connection,
+                                                       HTTPRequest                            Request,
+                                                       CancellationToken                      CancellationToken)
+        {
+
+            try
+            {
+                return await Validator(Timestamp.Now,
+                                       this,
+                                       Connection,
+                                       EventTracking_Id.New,
+                                       CancellationToken);
+            }
+            catch (OperationCanceledException) when (CancellationToken.IsCancellationRequested)
+            {
+
+                Logger.LogDebug("Validating the WebSocket upgrade from {RemoteSocket} was called off.",
+                                Connection.RemoteSocket);
+
+                return CalledOff(Request);
+
+            }
+            catch (Exception e)
+            {
+
+                Logger.LogError(e,
+                                "Exception while validating the WebSocket upgrade from {RemoteSocket}.",
+                                Connection.RemoteSocket);
+
+                return new HTTPResponse.Builder(Request) {
+                           HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                           Server          = HTTPServiceName,
+                           Connection      = ConnectionType.Close,
+                           ContentType     = HTTPContentType.Text.PLAIN,
+                           Content         = "WebSocket connection validation failed.".ToUTF8Bytes()
+                       }.AsImmutable;
+
+            }
+
+        }
+
+        #endregion
+
+        #region (private) CalledOff(Request)
+
+        /// <summary>
+        /// The answer to an upgrade that was called off while somebody else's
+        /// code - a validator, an authentication - was being asked about it.
+        /// </summary>
+        /// <remarks>
+        /// The server is going away, or the connection is being closed, and the
+        /// code that was asked threw only because it was told to stop. That is
+        /// no failure of its own and nothing to log as an error, and the answer
+        /// says what it is: 503, not now, rather than the 500 of code that
+        /// failed. A client with a reconnect policy tries either again after its
+        /// backoff. Where the connection is gone already, nobody reads it.
+        /// </remarks>
+        /// <param name="Request">The HTTP request asking for the upgrade.</param>
+        private HTTPResponse CalledOff(HTTPRequest Request)
+
+            => new HTTPResponse.Builder(Request) {
+                   HTTPStatusCode  = HTTPStatusCode.ServiceUnavailable,
+                   Server          = HTTPServiceName,
+                   Connection      = ConnectionType.Close,
+                   ContentType     = HTTPContentType.Text.PLAIN,
+                   Content         = "The WebSocket upgrade was called off.".ToUTF8Bytes()
+               }.AsImmutable;
 
         #endregion
 
@@ -2810,41 +2944,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Send an OnWebSocketFrameSent event
         /// </summary>
-        protected async Task SendOnWebSocketFrameSent(DateTimeOffset             Timestamp,
-                                                      WebSocketServerConnection  Connection,
-                                                      EventTracking_Id           EventTrackingId,
-                                                      WebSocketFrame             Frame,
-                                                      CancellationToken          CancellationToken)
-        {
+        /// <remarks>
+        /// Raised through InvokeAllAsync, like the events next to it in
+        /// SendWebSocketFrame, and no longer by calling the event itself. A
+        /// multicast delegate that returns a Task hands back the task of its
+        /// last subscriber, and only that one. The subscribers before it were
+        /// started and never waited for: the send returned while they were
+        /// still at work, and what they threw afterwards nobody ever saw. And a
+        /// subscriber that threw before it had a task to return ended the call
+        /// there, so that the subscribers behind it were never called at all.
+        ///
+        /// <b>Without the ten seconds</b> the call used to be given, and not ten
+        /// seconds per subscriber either. WaitAsync does not stop a subscriber;
+        /// it only stops waiting for it - after ten seconds, or the moment the
+        /// sender's token is cancelled. A subscriber given up on went on running,
+        /// unobserved, alongside the subscribers of the next frame, and with a
+        /// token whose owner was done with it: for a keep-alive ping that is the
+        /// connection loop's own, cancelled when the connection ends, which is
+        /// exactly when the wait gave up. A bound per subscriber would do the
+        /// same, one subscriber at a time.
+        ///
+        /// Nor did the bound spare the sender much. The events raised right
+        /// after this one, from the same send - OnTextMessageSent,
+        /// OnBinaryMessageSent, OnPingMessageSent and the rest - have no such
+        /// bound. OnTextMessageSent and OnBinaryMessageSent had the same ten
+        /// seconds once, and lost them when they moved to a shared invoker;
+        /// this event was left behind. A subscriber that hangs there has held
+        /// up the send all along. A subscriber that is slow makes the send slow,
+        /// which is where it shows, and one that must not take long has the
+        /// token to stop itself with.
+        /// </remarks>
+        protected Task SendOnWebSocketFrameSent(DateTimeOffset             Timestamp,
+                                                WebSocketServerConnection  Connection,
+                                                EventTracking_Id           EventTrackingId,
+                                                WebSocketFrame             Frame,
+                                                CancellationToken          CancellationToken)
 
-            try
-            {
-
-                var OnWebSocketFrameSentLocal = OnWebSocketFrameSent;
-                if (OnWebSocketFrameSentLocal is not null)
-                {
-
-                    var responseTask = OnWebSocketFrameSentLocal(Timestamp,
-                                                                 this,
-                                                                 Connection,
-                                                                 EventTrackingId,
-                                                                 Frame,
-                                                                 CancellationToken);
-
-                    await responseTask.WaitAsync(
-                              TimeSpan.FromSeconds(10),
-                              CancellationToken
-                          );
-
-                }
-
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnWebSocketFrameSent));
-            }
-
-        }
+            => OnWebSocketFrameSent.InvokeAllAsync(
+                   handler => handler(
+                                  Timestamp,
+                                  this,
+                                  Connection,
+                                  EventTrackingId,
+                                  Frame,
+                                  CancellationToken
+                              ),
+                   Logger
+               );
 
         #endregion
 
