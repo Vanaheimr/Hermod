@@ -1172,7 +1172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             #endregion
 
-            #region Answer a refusal: 403 Forbidden
+            #region Answer a refusal: 403 Forbidden - or 503, where it was called off
 
             if (verdict.Result == ConnectionFilterResult.Rejected)
             {
@@ -1185,31 +1185,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 // accept a connection answers the handshake with an HTTP error,
                 // and 403 Forbidden is the RFC's own example.
                 //
+                // Unless the refusal is a handler's that was called off while it
+                // was being asked - see AskTCPValidator. Nobody said no, the
+                // server is going away, and the answer says so as it does for a
+                // validation or an authentication called off: 503, not now.
+                //
                 // Why goes to OnNewTCPConnectionRejected and not into the answer:
                 // the reason can carry the message of a handler that failed, and
                 // a firewall does not explain itself to whoever it keeps out.
-                var forbidden = new HTTPResponse.Builder(
-                                    Timestamp.Now,
-                                    eventTrackingId,
-                                    TimeSpan.Zero,
-                                    new HTTPSource(),
-                                    LocalSocket,
-                                    RemoteSocket,
-                                    ConnectionType.Close,
-                                    HTTPStatusCode.Forbidden
-                                ) {
-                                    Server       = HTTPServiceName,
-                                    ContentType  = HTTPContentType.Text.PLAIN,
-                                    Content      = "The connection was refused.".ToUTF8Bytes()
-                                }.AsImmutable;
+                var calledOff  = verdict is CalledOffTCPValidation;
+
+                var refusal    = new HTTPResponse.Builder(
+                                     Timestamp.Now,
+                                     eventTrackingId,
+                                     TimeSpan.Zero,
+                                     new HTTPSource(),
+                                     LocalSocket,
+                                     RemoteSocket,
+                                     ConnectionType.Close,
+                                     calledOff
+                                         ? HTTPStatusCode.ServiceUnavailable
+                                         : HTTPStatusCode.Forbidden
+                                 ) {
+                                     Server       = HTTPServiceName,
+                                     ContentType  = HTTPContentType.Text.PLAIN,
+                                     Content      = (calledOff
+                                                         ? "The WebSocket upgrade was called off."
+                                                         : "The connection was refused.").ToUTF8Bytes()
+                                 }.AsImmutable;
+
+                // Written with a deadline of its own, and not with the token of
+                // the hand-over: where that was cancelled - which is what calls a
+                // validation off - an answer written with it is never written at
+                // all. Three seconds, as for every write on a WebSocket
+                // connection; for a few dozen bytes on a socket that is not
+                // stuck, it is not waited for.
+                using var writeTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
 
                 try
                 {
 
                     // The whole message: with a body, EntirePDU is header, empty
                     // line and body.
-                    await NetworkStream.WriteAsync(forbidden.EntirePDU.ToUTF8Bytes(), CancellationToken);
-                    await NetworkStream.FlushAsync(CancellationToken);
+                    await NetworkStream.WriteAsync(refusal.EntirePDU.ToUTF8Bytes(), writeTimeout.Token);
+                    await NetworkStream.FlushAsync(writeTimeout.Token);
 
                 }
                 catch (Exception e)
@@ -2749,6 +2768,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// refusal of a handler before it included, whose reason was then lost
         /// to the exception's - and one that threw before it had returned a
         /// task kept every handler after it from being asked at all.
+        ///
+        /// A handler that throws only because its token was cancelled has not
+        /// failed: the connection was called off while it was being asked, by
+        /// the server going away or the hand-over being given up - the rule
+        /// CalledOff states for the validators and the authentication of the
+        /// handshake. That is no error to log, and its refusal says what it is,
+        /// so that a hand-over can answer it 503 rather than 403. A cancellation
+        /// of the handler's own, with that token untouched, is a failure like
+        /// any other.
         /// </remarks>
         /// <param name="Validator">The handler to ask.</param>
         /// <param name="Timestamp">The timestamp of the validation.</param>
@@ -2777,6 +2805,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                        ?? ConnectionFilterResponse.Rejected($"{nameof(OnValidateTCPConnection)} answered nothing.");
 
             }
+            catch (OperationCanceledException) when (CancellationToken.IsCancellationRequested)
+            {
+
+                Logger.LogDebug("Validating the TCP connection from {RemoteSocket} was called off.",
+                                Connection.RemoteSocket);
+
+                // Still no yes, so still a refusal - but one that says it was
+                // called off, rather than one a handler meant.
+                return new CalledOffTCPValidation();
+
+            }
             catch (Exception e)
             {
 
@@ -2792,6 +2831,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 return ConnectionFilterResponse.Rejected($"{nameof(OnValidateTCPConnection)} failed: {e.Message}");
 
             }
+
+        }
+
+        #endregion
+
+        #region (private class) CalledOffTCPValidation
+
+        /// <summary>
+        /// The refusal of a handler of OnValidateTCPConnection that was called
+        /// off while it was being asked - see AskTCPValidator.
+        /// </summary>
+        /// <remarks>
+        /// A type of its own, so that a hand-over can tell it from a refusal a
+        /// handler meant, and answer it 503 rather than 403. Told apart by its
+        /// type, and not by comparing it with an instance kept for the purpose:
+        /// comparing a ConnectionFilterResponse with one made for the comparison
+        /// is how OnValidateTCPConnection once refused nothing at all.
+        /// </remarks>
+        private sealed class CalledOffTCPValidation : ConnectionFilterResponse
+        {
+
+            public CalledOffTCPValidation()
+
+                : base(ConnectionFilterResult.Rejected,
+                       $"{nameof(AWebSocketServer.OnValidateTCPConnection)} was called off.")
+
+            { }
 
         }
 

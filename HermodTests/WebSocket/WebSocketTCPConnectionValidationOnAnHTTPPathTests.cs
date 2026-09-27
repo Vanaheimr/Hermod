@@ -22,6 +22,7 @@ using System.Net.Sockets;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 
@@ -284,6 +285,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
+        #region AValidationCalledOffIsAnswered503()
+
+        /// <summary>
+        /// A handler that throws because the hand-over was called off while it
+        /// waited is answered 503, not now - and one whose own lookup was
+        /// cancelled is refused 403, as a handler that failed.
+        /// </summary>
+        /// <remarks>
+        /// The rule the validators and the authentication of the handshake
+        /// follow: only the token a handler is given says that a cancellation is
+        /// no failure of its own. And the answer to a hand-over that was called
+        /// off is written all the same - with a deadline of its own, because the
+        /// token of the hand-over is the one that was cancelled.
+        /// </remarks>
+        [Test]
+        public async Task AValidationCalledOffIsAnswered503()
+        {
+
+            var calledOff  = await AnswerToAHandOver(async (timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) => {
+                                                         await Task.Delay(Timeout.Infinite, cancellationToken);
+                                                         return ConnectionFilterResponse.Accepted();
+                                                     },
+                                                     CallOff: true);
+
+            // A lookup of its own that timed out, while nobody called off the hand-over.
+            var itsOwn     = await AnswerToAHandOver((timestamp, webSocketServer, connection, eventTrackingId, cancellationToken)
+                                                         => Task.FromCanceled<ConnectionFilterResponse>(new CancellationToken(canceled: true)),
+                                                     CallOff: false);
+
+            Assert.Multiple(() => {
+                Assert.That(calledOff.Answer,  Does.StartWith("HTTP/1.1 503"),  calledOff.Answer);
+                Assert.That(calledOff.Reason,  Does.Contain("called off"));
+                Assert.That(itsOwn.Answer,     Does.StartWith("HTTP/1.1 403"),  itsOwn.Answer);
+                Assert.That(itsOwn.Reason,     Does.Contain("failed"));
+            });
+
+        }
+
+        #endregion
+
 
         #region (private) ConnectToTheLentPath()
 
@@ -304,6 +345,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             await client.GetStream().WriteAsync(UpgradeRequest("/lent"));
 
             return client;
+
+        }
+
+        #endregion
+
+        #region (private static) AnswerToAHandOver(Validator, CallOff)
+
+        /// <summary>
+        /// Hand a connection of the test's own over to a WebSocket server of its
+        /// own, along with its TCP connection, and return what the client was
+        /// answered and why the server said it refused.
+        /// </summary>
+        /// <param name="Validator">The one handler of OnValidateTCPConnection.</param>
+        /// <param name="CallOff">Whether to call the hand-over off once the handler is being asked.</param>
+        private static async Task<(String Answer, String Reason)> AnswerToAHandOver(OnValidateTCPConnectionDelegate  Validator,
+                                                                                    Boolean                          CallOff)
+        {
+
+            var lentServer  = new WebSocketMirrorServer(
+                                  RequireAuthentication:  false,
+                                  AutoStart:              false
+                              );
+
+            var asked       = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var refusal     = new TaskCompletionSource<String>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            lentServer.OnValidateTCPConnection += (timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) => {
+                asked.TrySetResult();
+                return Validator(timestamp, webSocketServer, connection, eventTrackingId, cancellationToken);
+            };
+
+            lentServer.OnNewTCPConnectionRejected += (tcpServer, timestamp, eventTrackingId, remoteSocket, connectionId, reason) => {
+                refusal.TrySetResult(reason.FirstText());
+                return Task.CompletedTask;
+            };
+
+            var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+
+            using var client      = new TcpClient();
+            await client.ConnectAsync(System.Net.IPAddress.Loopback, ((IPEndPoint) listener.LocalEndpoint).Port);
+
+            using var accepted    = await listener.AcceptTcpClientAsync();
+            listener.Stop();
+
+            using var connection  = new TCPConnection(lentServer, accepted);
+            using var handOverCTS = new CancellationTokenSource();
+
+            var handOver          = lentServer.AcceptUpgradedConnectionAsync(
+                                        NetworkStream:      accepted.GetStream(),
+                                        LocalSocket:        connection.LocalSocket,
+                                        RemoteSocket:       connection.RemoteSocket,
+                                        RequestBytes:       UpgradeRequest("/"),
+                                        TCPConnection:      connection,
+                                        CancellationToken:  handOverCTS.Token
+                                    );
+
+            if (CallOff)
+            {
+                await asked.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                handOverCTS.Cancel();
+            }
+
+            var answer  = await ReadHeader(client.GetStream());
+            var reason  = await refusal.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            await handOver.WaitAsync(TimeSpan.FromSeconds(5));
+            await lentServer.Shutdown(Wait: true);
+
+            return (answer, reason);
 
         }
 

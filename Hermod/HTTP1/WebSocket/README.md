@@ -180,8 +180,10 @@ about the TCP connection the HTTP server accepted - after that server's TLS and
 after the request that asked for the upgrade, rather than before them as on a
 port of its own. The verdict is the same either way: the first refusal among
 all answers, and a handler that throws has refused. A refused client is answered
-`403 Forbidden`, since it has sent a handshake and is waiting for an answer; why
-it was refused goes to `OnNewTCPConnectionRejected`, not to the client. What
+`403 Forbidden`, since it has sent a handshake and is waiting for an answer - or
+`503` where a handler was called off while it was being asked, as for the
+handshake's own validators; why it was refused goes to
+`OnNewTCPConnectionRejected`, not to the client. What
 belongs to a listener stays with the one that listens: a lent server's own TLS
 settings and `MaxClientConnections` are never used, the HTTP server's are.
 
