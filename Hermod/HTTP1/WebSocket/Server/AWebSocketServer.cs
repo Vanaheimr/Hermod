@@ -2543,6 +2543,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Validate a new TCP connection via the WebSocket server's legacy validation event.
         /// </summary>
+        /// <remarks>
+        /// The first refusal among all answers is the verdict, and a handler
+        /// that throws has refused: a filter that could not decide whether a
+        /// connection may come in has not said that it may.
+        /// </remarks>
         public override async Task<ConnectionFilterResponse> ValidateConnection(DateTimeOffset     Timestamp,
                                                                                 ITCPServer         Server,
                                                                                 TCPConnection      Connection,
@@ -2550,42 +2555,98 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                 CancellationToken  CancellationToken)
         {
 
-            var validatedTCPConnections = Array.Empty<ConnectionFilterResponse>();
-
             // Not InvokeAllAsync, and for the same reason as
             // OnValidateWebSocketConnection above: what comes back decides
             // whether the connection is accepted, and an invoker that returns
             // Task and swallows exceptions cannot carry a refusal.
             var onValidateTCPConnection = OnValidateTCPConnection;
-            if (onValidateTCPConnection is not null)
+            if (onValidateTCPConnection is null)
+                return ConnectionFilterResponse.Accepted();
+
+            // Each handler is asked on its own, and one that fails has refused
+            // in its own place in the line. Asked all together, the first to
+            // throw failed Task.WhenAll, and its failure became the verdict -
+            // over the reason of a handler before it that had refused in so
+            // many words.
+            var responses = await Task.WhenAll(
+                                      onValidateTCPConnection.GetInvocationList().
+                                          OfType<OnValidateTCPConnectionDelegate>().
+                                          Select(validator => AskTCPConnectionValidator(
+                                                                  validator,
+                                                                  Timestamp,
+                                                                  Connection,
+                                                                  EventTrackingId,
+                                                                  CancellationToken
+                                                              )).
+                                          ToArray()
+                                  ).ConfigureAwait(false);
+
+            // The first refusal, and not the first answer - as for
+            // OnValidateWebSocketConnection, and for the same reason: a
+            // handler that says yes does not outvote one after it that
+            // says no. And a refusal is what an answer's Result says it
+            // is. This used to compare the first answer with a Rejected()
+            // made for the comparison, and ConnectionFilterResponse is a
+            // class that does not say what makes two of them equal - so
+            // that asked whether the answer was the very object just made,
+            // which it never was, and every connection was let in,
+            // whatever its handlers had said.
+            return responses.FirstOrDefault(response => response.Result == ConnectionFilterResult.Rejected)
+                       ?? ConnectionFilterResponse.Accepted();
+
+        }
+
+        #endregion
+
+        #region (private) AskTCPConnectionValidator(Validator, Timestamp, Connection, EventTrackingId, CancellationToken)
+
+        /// <summary>
+        /// Ask one handler of OnValidateTCPConnection about a new TCP connection.
+        /// A handler that throws, or that answers nothing, has refused it.
+        /// </summary>
+        /// <param name="Validator">The handler to ask.</param>
+        /// <param name="Timestamp">The timestamp of the validation.</param>
+        /// <param name="Connection">The TCP connection to validate.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A cancellation token to cancel the validation.</param>
+        private async Task<ConnectionFilterResponse> AskTCPConnectionValidator(OnValidateTCPConnectionDelegate  Validator,
+                                                                               DateTimeOffset                   Timestamp,
+                                                                               TCPConnection                    Connection,
+                                                                               EventTracking_Id                 EventTrackingId,
+                                                                               CancellationToken                CancellationToken)
+        {
+
+            try
             {
-                try
-                {
 
-                    validatedTCPConnections = await Task.WhenAll(
-                                                        onValidateTCPConnection.GetInvocationList().
-                                                            OfType<OnValidateTCPConnectionDelegate>().
-                                                            Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                                           Timestamp,
-                                                                                           this,
-                                                                                           Connection.TCPClient,
-                                                                                           EventTrackingId,
-                                                                                           CancellationToken
-                                                                                       )).
-                                                            ToArray()
-                                                    );
+                ConnectionFilterResponse? response = await Validator.Invoke(
+                                                               Timestamp,
+                                                               this,
+                                                               Connection.TCPClient,
+                                                               EventTrackingId,
+                                                               CancellationToken
+                                                           ).ConfigureAwait(false);
 
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnValidateTCPConnection));
-                }
+                // The delegate does not allow a null answer, and nothing
+                // prevents one. It is no yes either.
+                return response ?? ConnectionFilterResponse.Rejected($"{nameof(OnValidateTCPConnection)} gave no answer.");
+
             }
+            catch (Exception e)
+            {
 
-            return validatedTCPConnections.Length > 0 &&
-                   validatedTCPConnections.First() == ConnectionFilterResponse.Rejected()
-                       ? validatedTCPConnections.First()
-                       : ConnectionFilterResponse.Accepted();
+                Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnValidateTCPConnection));
+
+                // Refused, and not waved through. This used to log the exception
+                // and let the connection in - the very thing the comment in
+                // ValidateConnection warns of. A handler that throws has not
+                // said that the connection may come in, and a filter that lets
+                // in whatever it failed to look at is no filter. What went wrong
+                // goes into the reason, because the logger is optional and the
+                // event raised for the refusal may be all there is.
+                return ConnectionFilterResponse.Rejected($"{nameof(OnValidateTCPConnection)} failed: {e.Message}");
+
+            }
 
         }
 
