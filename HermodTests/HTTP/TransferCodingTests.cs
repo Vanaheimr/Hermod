@@ -256,6 +256,139 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region The client refuses it, and does not keep the connection
+
+        /// <summary>
+        /// The client has always refused a response whose Transfer-Encoding is
+        /// not a single final chunked - TryValidateResponseFraming reads the
+        /// raw header lines and says so plainly. What it also did was keep the
+        /// connection.
+        ///
+        /// That is a desync, and a quiet one. The response was refused BECAUSE
+        /// its body's end could not be worked out, so the body was never
+        /// consumed; whatever of it is still in the socket becomes the first
+        /// octets of the next response read on that connection. Before the fix
+        /// a second request on the same client came back as "Invalid HTTP
+        /// response status line", because what it read was "5\r\nhello".
+        ///
+        /// It only shows when the body arrives in a LATER TCP segment than the
+        /// head, which is why this test flushes the two separately. Send them
+        /// together and the leftovers land in the client's own buffer and are
+        /// dropped with it - the connection then looks perfectly reusable, and
+        /// the test would pass against the defect.
+        /// </summary>
+        [Test]
+        public async Task Client_Does_Not_Reuse_A_Connection_After_Refusing_A_Response()
+        {
+
+            using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+
+            var requestLines = new List<String>();
+            var serverTask   = Task.Run(async () => {
+
+                // Connection 1: the unframeable response, head and body in
+                // separate writes, and the connection left open.
+                using (var first = await listener.AcceptTcpClientAsync())
+                {
+
+                    await using var stream = first.GetStream();
+
+                    requestLines.Add(await ReadRequestLine(stream));
+
+                    await Write(stream, "HTTP/1.1 200 OK\r\n" +
+                                        "Transfer-Encoding: chunked\r\n" +
+                                        "Transfer-Encoding: chunked\r\n\r\n");
+
+                    await Task.Delay(400);
+
+                    await Write(stream, "5\r\nhello\r\n0\r\n\r\n");
+
+                    // Connection 2 is what a correct client opens next. Waiting
+                    // for it here is the assertion: against the defect nothing
+                    // arrives, because the client reuses connection 1.
+                    using var second = await listener.AcceptTcpClientAsync();
+                    await using var secondStream = second.GetStream();
+
+                    requestLines.Add(await ReadRequestLine(secondStream));
+
+                    await Write(secondStream, "HTTP/1.1 204 No Content\r\n\r\n");
+
+                }
+
+            });
+
+            using var httpClient = new HTTPClient(
+                                       URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
+                                       MaxNumberOfRetries: 1
+                                   );
+
+            var refused = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
+
+            Assert.Multiple(() => {
+                Assert.That(refused.HTTPStatusCode,        Is.EqualTo(HTTPStatusCode.ClientError));
+                Assert.That(refused.HTTPBodyAsUTF8String,  Does.Contain("Transfer-Encoding"));
+                Assert.That(httpClient.IsHTTPConnected,    Is.False, "the connection was kept after a framing refusal");
+            });
+
+            var second = await httpClient.GET(HTTPPath.Parse("/second"), RequestTimeout: TimeSpan.FromSeconds(5));
+
+            await serverTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.Multiple(() => {
+
+                // A clean 204, which is only possible on a connection that does
+                // not still hold the previous body.
+                Assert.That(second.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.NoContent), second.EntirePDU);
+
+                Assert.That(requestLines, Is.EqualTo(new[] {
+                                              "GET / HTTP/1.1",
+                                              "GET /second HTTP/1.1"
+                                          }));
+
+            });
+
+        }
+
+        #endregion
+
+
+        #region (private static) ReadRequestLine(Stream) / Write(Stream, Text)
+
+        private static async Task<String> ReadRequestLine(NetworkStream Stream)
+        {
+
+            var buffer = new Byte[4096];
+            var length = 0;
+
+            while (length < buffer.Length)
+            {
+
+                var bytesRead = await Stream.ReadAsync(buffer.AsMemory(length));
+
+                if (bytesRead == 0)
+                    break;
+
+                length += bytesRead;
+
+                if (Encoding.ASCII.GetString(buffer, 0, length).Contains("\r\n\r\n", StringComparison.Ordinal))
+                    break;
+
+            }
+
+            return Encoding.ASCII.GetString(buffer, 0, length).Split("\r\n")[0];
+
+        }
+
+        private static async Task Write(NetworkStream  Stream,
+                                        String         Text)
+        {
+            await Stream.WriteAsync(Encoding.ASCII.GetBytes(Text));
+            await Stream.FlushAsync();
+        }
+
+        #endregion
+
     }
 
 }

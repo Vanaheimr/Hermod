@@ -1128,6 +1128,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     bufferOwner?.Dispose();
 
+                                    // The connection cannot be reused after this,
+                                    // and saying so is the whole point of the line.
+                                    //
+                                    // We have refused the response BECAUSE we could
+                                    // not work out where its body ends - so we did
+                                    // not consume it, and we cannot. Whatever of it
+                                    // is still in the socket becomes the first
+                                    // octets of the next response read here: a
+                                    // second request on this connection came back
+                                    // as "Invalid HTTP response status line",
+                                    // because what it read was "5\r\nhello".
+                                    //
+                                    // It only shows when the body arrives in a
+                                    // later TCP segment than the head. Send both at
+                                    // once and the leftovers land in this client's
+                                    // own buffer and are dropped with it, which is
+                                    // why the connection looked reusable and why
+                                    // nothing here had caught it. Found by A6 while
+                                    // checking the client half of H-29.
+                                    IsHTTPConnected = false;
+
                                     // This client refusing the server's framing,
                                     // reported as the server refusing the
                                     // client's request. The server said no such
