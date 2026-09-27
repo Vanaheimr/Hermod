@@ -2240,6 +2240,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         framingError = "The final request transfer coding must be chunked.";
                     }
+
+                    // Stricter than RFC 9112 requires, and deliberately so, which
+                    // is why it is a check of its own with its own message rather
+                    // than another clause above.
+                    //
+                    // Section 6.1 forbids a SENDER to apply the chunked coding more
+                    // than once and states no matching recipient rule, and item 4
+                    // of Section 6.3 does not fire because chunked IS the final
+                    // coding here. So this is a choice, not a requirement. It is
+                    // made because no conforming client can produce the message,
+                    // because Go's net/http (501) and Node's node:http (400) both
+                    // refuse it, and because a recipient that accepts it disagrees
+                    // about where the body ends with every recipient that does not
+                    // - which is the whole of what request smuggling is. Found by
+                    // the A6 differential; filed as H-29.
+                    else if (transferCodings.Count(coding => coding.Equals("chunked", StringComparison.OrdinalIgnoreCase)) > 1)
+                    {
+                        framingError = "The chunked transfer coding must not be applied more than once.";
+                    }
                 }
 
                 if (framingError is not null)
