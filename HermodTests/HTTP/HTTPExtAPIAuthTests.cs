@@ -535,6 +535,169 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region BasicAuth_TheRightPasswordIsVerifiedOnceAndNotRationedAgain()
+
+        /// <summary>
+        /// A client that knows the password and sends it with every request is
+        /// not somebody guessing it: its credentials are verified once and
+        /// remembered, and the ration is left to the guesses.
+        /// </summary>
+        /// <remarks>
+        /// Before, every request with Basic Auth was verified again and drew on
+        /// the ration of the sign-in route, so the eleventh in a minute came back
+        /// 401 with the right password - measured against an application on this
+        /// API: 200 ten times, then 401, then one 200 every six seconds. Fifteen
+        /// here, and every one of them gets through.
+        ///
+        /// And the guesses are still rationed, as BasicAuth_IsRationedLikeTheSignInRoute
+        /// says: once they have spent the ration, the right password in a form
+        /// that was never verified - the e-mail address for the username - is
+        /// refused like any guess, while the credentials that were verified go
+        /// on being believed.
+        /// </remarks>
+        [Test]
+        public async Task BasicAuth_TheRightPasswordIsVerifiedOnceAndNotRationedAgain()
+        {
+
+            var (server, api, client, directory) = await StartAsync();
+
+            try
+            {
+
+                await api.CreateUserIfNotExists(
+                          User_Id.Parse("frank"),
+                          I18NString.Create("Frank"),
+                          SimpleEMailAddress.Parse("frank@example.test"),
+                          Password:                  "Correct-Horse-8",
+                          IsAuthenticated:           true,
+                          AcceptedEULA:              DateTimeOffset.UtcNow.AddDays(-1),
+                          SkipNewUserEMail:          true,
+                          SkipNewUserNotifications:  true,
+                          SkipDefaultNotifications:  true
+                      );
+
+                async Task<HttpStatusCode> WithBasicAuth(String Username, String Password)
+                {
+
+                    using var request = new HttpRequestMessage(HttpMethod.Get, "accounts/auth/me");
+
+                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                                                        "Basic",
+                                                        Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Username}:{Password}"))
+                                                    );
+
+                    using var response = await client.SendAsync(request);
+
+                    return response.StatusCode;
+
+                }
+
+                for (var request = 1; request <= 15; request++)
+                    Assert.That(await WithBasicAuth("frank", "Correct-Horse-8"),
+                                Is.EqualTo(HttpStatusCode.OK),
+                                $"request {request} with the right password");
+
+                for (var attempt = 1; attempt <= 10; attempt++)
+                    Assert.That(await WithBasicAuth("frank", "Wrong-Horse-" + attempt),
+                                Is.EqualTo(HttpStatusCode.Unauthorized),
+                                $"guess {attempt}");
+
+                var byEMail = await WithBasicAuth("frank@example.test", "Correct-Horse-8");
+                var byName  = await WithBasicAuth("frank",              "Correct-Horse-8");
+
+                Assert.Multiple(() => {
+
+                    Assert.That(byEMail,
+                                Is.EqualTo(HttpStatusCode.Unauthorized),
+                                "the right password, but never verified in this form: rationed like a guess, and the guesses spent the ration");
+
+                    Assert.That(byName,
+                                Is.EqualTo(HttpStatusCode.OK),
+                                "while what was verified goes on being believed");
+
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region BasicAuth_ARememberedPasswordGoesWithAPasswordChange()
+
+        /// <summary>
+        /// Credentials that were verified are believed only for as long as the
+        /// password they were verified against is the account's: after a change
+        /// the old password is refused at once, not when it would have been
+        /// forgotten anyway.
+        /// </summary>
+        [Test]
+        public async Task BasicAuth_ARememberedPasswordGoesWithAPasswordChange()
+        {
+
+            var (server, api, client, directory) = await StartAsync();
+
+            try
+            {
+
+                var created = await api.CreateUserIfNotExists(
+                                        User_Id.Parse("grace"),
+                                        I18NString.Create("Grace"),
+                                        SimpleEMailAddress.Parse("grace@example.test"),
+                                        Password:                  "Correct-Horse-9",
+                                        IsAuthenticated:           true,
+                                        AcceptedEULA:              DateTimeOffset.UtcNow.AddDays(-1),
+                                        SkipNewUserEMail:          true,
+                                        SkipNewUserNotifications:  true,
+                                        SkipDefaultNotifications:  true
+                                    );
+
+                Assert.That(created, Is.Not.Null);
+
+                async Task<HttpStatusCode> WithBasicAuth(String Password)
+                {
+
+                    using var request = new HttpRequestMessage(HttpMethod.Get, "accounts/auth/me");
+
+                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                                                        "Basic",
+                                                        Convert.ToBase64String(Encoding.UTF8.GetBytes($"grace:{Password}"))
+                                                    );
+
+                    using var response = await client.SendAsync(request);
+
+                    return response.StatusCode;
+
+                }
+
+                Assert.That(await WithBasicAuth("Correct-Horse-9"),  Is.EqualTo(HttpStatusCode.OK),  "verified, and remembered from now on");
+
+                var changed = await api.ChangePassword(created!, "Staple-Battery-9", CurrentPassword: "Correct-Horse-9");
+
+                Assert.That(changed.Result, Is.EqualTo(CommandResult.Success), changed.Description.FirstText());
+
+                var withTheOld = await WithBasicAuth("Correct-Horse-9");
+                var withTheNew = await WithBasicAuth("Staple-Battery-9");
+
+                Assert.Multiple(() => {
+                    Assert.That(withTheOld,  Is.EqualTo(HttpStatusCode.Unauthorized),  "the old password, remembered a moment ago, is let go of with the change");
+                    Assert.That(withTheNew,  Is.EqualTo(HttpStatusCode.OK),            "and the new one is verified");
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
         #region AUserCreatedInCode_IsEnabledAndCanSignIn()
 
         /// <summary>

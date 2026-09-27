@@ -3709,6 +3709,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Request.Authorization is HTTPBasicAuthentication basicAuth)
             {
 
+                // Credentials verified a moment ago are their user again without
+                // a hash and without the ration - see HTTPExtAPI.BasicAuth.cs.
+                // Only verified ones are remembered, so a guess never is: it
+                // goes on below, rationed and verified exactly as before.
+                var rememberedAs = BasicAuthKeyOf(basicAuth);
+
+                if (TryRememberedBasicAuth(rememberedAs, out var rememberedUser))
+                {
+                    User = rememberedUser;
+                    return true;
+                }
+
                 // Rationed like the sign-in route, and for the same reason it is
                 // rationed there. This path is reached from TryGetSignedInUser,
                 // which every guarded route calls, so an "Authorization: Basic"
@@ -3735,6 +3747,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var possibleUsers = new HashSet<IUser>();
                 var validUsers    = new HashSet<IUser>();
+                var verifiedWith  = new Dictionary<User_Id, SecurePassword>();
 
                 if (User_Id.TryParse   (basicAuth.Username, out var userId) &&
                     users.  TryGetValue(userId,             out var user))
@@ -3763,6 +3776,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             loginPassword.VerifyPassword(basicAuth.Password))
                         {
                             validUsers.Add(possibleUser);
+                            verifiedWith[possibleUser.Id] = loginPassword.Password;
                         }
                     }
                 }
@@ -3777,8 +3791,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     validUser.AcceptedEULA.HasValue &&
                     validUser.AcceptedEULA.Value < Timestamp.Now)
                 {
+
+                    // Against the password it was verified against, not the
+                    // account's password read again now: a change in between
+                    // would otherwise make the old one good for a while.
+                    RememberBasicAuth(rememberedAs, validUser, verifiedWith[validUser.Id]);
+
                     User = validUser;
                     return true;
+
                 }
 
                 #endregion
