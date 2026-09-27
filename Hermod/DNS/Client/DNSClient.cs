@@ -539,6 +539,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var effectiveTimeout = Timeout ?? QueryTimeout;
 
+            // Resolved once, and used both for the query that goes out and for the
+            // answers this method builds itself. RFC 1035 §4.1.1 makes RD a request the
+            // querier makes and the responder copies back, so the field records what
+            // the caller asked for - the one thing about the exchange this code knows
+            // for certain, being the thing that was asked. Three sites below wrote a
+            // literal instead, so a caller that switched recursion off was told it had
+            // asked for it.
+            var recursionAsked   = RecursionDesired ?? this.RecursionDesired ?? true;
+
             // Taken once, because SetDNSServers may exchange them while this
             // query runs: one list for the whole query is what makes "the
             // servers it started with" a true statement rather than a hope.
@@ -558,7 +567,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            QueryId:                0,
                            IsAuthoritativeAnswer:  false,
                            IsTruncated:            false,
-                           RecursionDesired:       true,
+                           RecursionDesired:       recursionAsked,
                            RecursionAvailable:     false,
                            ResponseCode:           DNSResponseCodes.NameError,
                            Answers:                [],
@@ -713,7 +722,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            QueryId:                0,
                            IsAuthoritativeAnswer:  false,
                            IsTruncated:            false,
-                           RecursionDesired:       true,
+                           RecursionDesired:       recursionAsked,
                            RecursionAvailable:     false,
                            ResponseCode:           DNSResponseCodes.NameError,
                            Answers:                [],
@@ -735,7 +744,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
                                UDPPayloadSize,
-                               RecursionDesired ?? this.RecursionDesired ?? true,
+                               recursionAsked,
                                EDNSOptions.Count > 0 ? EDNSOptions : null,
                                [.. resourceRecordTypes]
                            );
@@ -1088,7 +1097,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                 QueryId:                0,
                                                 IsAuthoritativeAnswer:  false,
                                                 IsTruncated:            false,
-                                                RecursionDesired:       true,
+                                                RecursionDesired:       recursionAsked,
                                                 RecursionAvailable:     false,
                                                 ResponseCode:           DNSResponseCodes.NameError,
                                                 Answers:                [],

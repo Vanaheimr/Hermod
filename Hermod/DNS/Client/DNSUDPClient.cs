@@ -254,6 +254,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var effectiveTimeout  = Timeout ?? QueryTimeout;
             var stopwatch         = Stopwatch.StartNew();
 
+            // As in DNSClient: resolved once, for the query that goes out and for the
+            // answers built here without one. The two sites below wrote opposite
+            // literals - true for an empty name, false for a socket the host refused -
+            // so a single file disagreed with itself about what the caller had asked,
+            // and neither consulted the parameter that says.
+            var recursionAsked    = RecursionDesired ?? this.RecursionDesired ?? true;
+
             #region Initial checks
 
             if (DNSServiceName.IsNullOrEmpty())
@@ -265,7 +272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            QueryId:                0,
                            IsAuthoritativeAnswer:  false,
                            IsTruncated:            false,
-                           RecursionDesired:       true,
+                           RecursionDesired:       recursionAsked,
                            RecursionAvailable:     false,
                            ResponseCode:           DNSResponseCodes.NameError,
                            Answers:                [],
@@ -288,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
                                UDPPayloadSize,
-                               RecursionDesired ?? this.RecursionDesired ?? true,
+                               recursionAsked,
                                this.DnssecOK,
                                EDNSOptions.Count > 0 ? EDNSOptions : null,
                                [.. resourceRecordTypes]
@@ -472,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            QueryId:                dnsQuery.TransactionId,
                            IsAuthoritativeAnswer:  false,
                            IsTruncated:            false,
-                           RecursionDesired:       false,
+                           RecursionDesired:       recursionAsked,
                            RecursionAvailable:     false,
                            ResponseCode:           DNSResponseCodes.ServerFailure,
                            Answers:                [],
