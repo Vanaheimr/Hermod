@@ -30854,8 +30854,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         /// <summary>
         /// Run the OnAdded or OnUpdated delegate that the caller of a user
-        /// method handed in, and wait for it; one that fails is reported to
-        /// HandleErrors.
+        /// method handed in, and wait for it; one that fails, or is cancelled,
+        /// is reported to HandleErrors.
         /// </summary>
         /// <remarks>
         /// These delegates return a Task, and the user methods called them and
@@ -30912,6 +30912,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <b>Every delegate of a multicast delegate</b>, one after another,
         /// each in its own try/catch - and not only the last one, which is all
         /// that awaiting the call itself would wait for.
+        ///
+        /// <b>A cancellation is a failure, too.</b> InvokeAllAsync keeps quiet
+        /// about an OperationCanceledException, because the handlers of an
+        /// event are handed the token of a connection, and when that is
+        /// cancelled, the connection is shutting down. These delegates are
+        /// handed no token at all: a cancellation is their own - most likely a
+        /// request of theirs that timed out, which ends in a
+        /// TaskCanceledException - and without a report nobody would see it.
         /// </remarks>
         private Task RunCallback<TDelegate>(TDelegate?                                           Callback,
                                             Func<TDelegate, Task>                                Invocation,
@@ -30921,7 +30929,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             where TDelegate : Delegate
 
             => Callback.InvokeAllAsync(
-                   Invocation,
+                   async callback => {
+                       try
+                       {
+                           await Invocation(callback);
+                       }
+                       // The one failure InvokeAllAsync would not report; see above.
+                       catch (OperationCanceledException canceled)
+                       {
+                           await HandleErrors($"{Command}.{CallbackName}", canceled);
+                       }
+                   },
                    (exception, callbackName) => HandleErrors($"{Command}.{callbackName}", exception),
                    CallbackName
                );

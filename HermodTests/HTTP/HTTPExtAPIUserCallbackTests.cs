@@ -226,6 +226,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region A_Delegate_That_Is_Cancelled_Is_Reported_As_Well()
+
+        /// <summary>
+        /// A delegate that ends in an OperationCanceledException - as an HTTP
+        /// request that timed out does - is reported to HandleErrors like any
+        /// other failure, and AddUser says the user was added.
+        /// </summary>
+        /// <remarks>
+        /// InvokeAllAsync keeps quiet about a cancellation, because the handlers
+        /// of an event are handed the token of a connection, and when that is
+        /// cancelled, the connection is shutting down. The delegates of the user
+        /// methods are handed no token: a cancellation is their own, and nobody
+        /// would have seen it.
+        /// </remarks>
+        [Test]
+        public async Task A_Delegate_That_Is_Cancelled_Is_Reported_As_Well()
+        {
+
+            var api    = await StartAPI();
+
+            var added  = await api.AddUser(
+                                   NewUser("alice"),
+                                   SkipDefaultNotifications:  true,
+                                   SkipNewUserEMail:          true,
+                                   SkipNewUserNotifications:  true,
+                                   OnAdded:                   async (timestamp, user, eventTrackingId, currentUserId) => {
+                                                                  await Task.Yield();
+                                                                  throw new TaskCanceledException("This delegate timed out.");
+                                                              }
+                               );
+
+            Assert.Multiple(() => {
+
+                Assert.That(added.Result,  Is.EqualTo(CommandResult.Success),
+                            "AddUser reported the cancellation of its delegate as its own.");
+
+                Assert.That(api.Errors,    Is.EqualTo(new[] { "addUser.OnAdded: This delegate timed out." }),
+                            "The cancellation of the delegate was not reported, or not as the one of AddUser.");
+
+            });
+
+        }
+
+        #endregion
+
 
         #region CreateUser_Has_Stored_The_Password_When_It_Returns(Creation)
 
