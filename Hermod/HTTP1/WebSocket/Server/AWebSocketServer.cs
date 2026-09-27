@@ -2738,41 +2738,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Send an OnWebSocketFrameSent event
         /// </summary>
-        protected async Task SendOnWebSocketFrameSent(DateTimeOffset             Timestamp,
-                                                      WebSocketServerConnection  Connection,
-                                                      EventTracking_Id           EventTrackingId,
-                                                      WebSocketFrame             Frame,
-                                                      CancellationToken          CancellationToken)
-        {
+        /// <remarks>
+        /// Raised through InvokeAllAsync, like the events next to it in
+        /// SendWebSocketFrame, and no longer by calling the event itself. A
+        /// multicast delegate that returns a Task hands back the task of its
+        /// last subscriber, and only that one. The subscribers before it were
+        /// started and never waited for: the send returned while they were
+        /// still at work, and what they threw afterwards nobody ever saw. And a
+        /// subscriber that threw before it had a task to return ended the call
+        /// there, so that the subscribers behind it were never called at all.
+        ///
+        /// <b>Without the ten seconds</b> the call used to be given, and not ten
+        /// seconds per subscriber either. WaitAsync does not stop a subscriber;
+        /// it only stops waiting for it - after ten seconds, or the moment the
+        /// sender's token is cancelled. A subscriber given up on went on running,
+        /// unobserved, alongside the subscribers of the next frame, and with a
+        /// token whose owner was done with it: for a keep-alive ping that is the
+        /// connection loop's own, cancelled when the connection ends, which is
+        /// exactly when the wait gave up. A bound per subscriber would do the
+        /// same, one subscriber at a time.
+        ///
+        /// Nor did the bound spare the sender much. The events raised right
+        /// after this one, from the same send - OnTextMessageSent,
+        /// OnBinaryMessageSent, OnPingMessageSent and the rest - have no such
+        /// bound. OnTextMessageSent and OnBinaryMessageSent had the same ten
+        /// seconds once, and lost them when they moved to a shared invoker;
+        /// this event was left behind. A subscriber that hangs there has held
+        /// up the send all along. A subscriber that is slow makes the send slow,
+        /// which is where it shows, and one that must not take long has the
+        /// token to stop itself with.
+        /// </remarks>
+        protected Task SendOnWebSocketFrameSent(DateTimeOffset             Timestamp,
+                                                WebSocketServerConnection  Connection,
+                                                EventTracking_Id           EventTrackingId,
+                                                WebSocketFrame             Frame,
+                                                CancellationToken          CancellationToken)
 
-            try
-            {
-
-                var OnWebSocketFrameSentLocal = OnWebSocketFrameSent;
-                if (OnWebSocketFrameSentLocal is not null)
-                {
-
-                    var responseTask = OnWebSocketFrameSentLocal(Timestamp,
-                                                                 this,
-                                                                 Connection,
-                                                                 EventTrackingId,
-                                                                 Frame,
-                                                                 CancellationToken);
-
-                    await responseTask.WaitAsync(
-                              TimeSpan.FromSeconds(10),
-                              CancellationToken
-                          );
-
-                }
-
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnWebSocketFrameSent));
-            }
-
-        }
+            => OnWebSocketFrameSent.InvokeAllAsync(
+                   handler => handler(
+                                  Timestamp,
+                                  this,
+                                  Connection,
+                                  EventTrackingId,
+                                  Frame,
+                                  CancellationToken
+                              ),
+                   Logger
+               );
 
         #endregion
 
