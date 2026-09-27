@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System.Net;
-using System.Net.Sockets;
-
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -158,10 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public async Task ADoHClientThatNeverConnected_StillNamesItsResolver()
         {
 
-            var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-            listener.Start();
-            var closedPort = ((IPEndPoint) listener.LocalEndpoint).Port;
-            listener.Stop();
+            using var closedPort = new ClosedPort();
 
             using var client = new DNSHTTPSClient(
                                    URL.Parse($"https://localhost:{closedPort}/dns-query"),

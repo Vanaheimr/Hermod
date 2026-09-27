@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System.Net;
-using System.Net.Sockets;
-
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -49,25 +46,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
     public class IPVersionPreferenceTests
     {
 
-        #region (private static) ClosedPort()
-
-        /// <summary>
-        /// A TCP port nobody is listening on.
-        /// </summary>
-        private static UInt16 ClosedPort()
-        {
-
-            var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-            listener.Start();
-            var port = (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port;
-            listener.Stop();
-
-            return port;
-
-        }
-
-        #endregion
-
         #region IPv6Only_DoesNotFallBackToIPv4()
 
         /// <summary>
@@ -79,8 +57,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
         public async Task IPv6Only_DoesNotFallBackToIPv4()
         {
 
+            using var port   = new ClosedPort();
+
             using var client = new TCPClient(
-                                   URL.Parse($"tcp://127.0.0.1:{ClosedPort()}"),
+                                   URL.Parse($"tcp://127.0.0.1:{port}"),
                                    PreferIPv4: IPVersionPreference.IPv6Only
                                );
 
@@ -115,8 +95,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
         public async Task IPv4Only_IsNotACoinToss()
         {
 
+            using var port   = new ClosedPort();
+
             using var client = new TCPClient(
-                                   URL.Parse($"tcp://dns.example:{ClosedPort()}"),
+                                   URL.Parse($"tcp://dns.example:{port}"),
                                    PreferIPv4:      IPVersionPreference.IPv4Only,
                                    ConnectTimeout:  TimeSpan.FromSeconds(2)
                                );

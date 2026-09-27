@@ -525,10 +525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task ARefusedConnection_IsReportedAsSuchOverTLSToo()
         {
 
-            var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-            listener.Start();
-            var closedPort = ((IPEndPoint) listener.LocalEndpoint).Port;
-            listener.Stop();
+            using var closedPort   = new ClosedPort();
 
             using var httpClient   = new HTTPClient(
                                          URL.Parse($"http://127.0.0.1:{closedPort}"),

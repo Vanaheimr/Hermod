@@ -199,10 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public async Task AnUnreachableDoHResolver_IsNotQuotedAsHavingAnswered()
         {
 
-            var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-            listener.Start();
-            var closedPort = ((IPEndPoint) listener.LocalEndpoint).Port;
-            listener.Stop();
+            using var closedPort = new ClosedPort();
 
             var url = URL.Parse($"https://127.0.0.1:{closedPort}/dns-query");
 
