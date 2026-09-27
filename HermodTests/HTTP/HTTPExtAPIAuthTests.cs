@@ -20,6 +20,7 @@
 using System.Net;
 using System.Text;
 using System.Net.Http.Headers;
+using System.Reflection;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -184,6 +185,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                    password     = Password,
                    displayName  = DisplayName
                });
+
+        /// <summary>
+        /// An account the sign-in form lets in: the form wants it to be in an
+        /// organization, which auth/login does not ask.
+        /// </summary>
+        private static async Task AUserWhoSignsInAtTheForm(HTTPExtAPI  API,
+                                                           String      Username,
+                                                           String      Password)
+        {
+
+            var user = await API.CreateUserIfNotExists(
+                                 User_Id.Parse(Username),
+                                 I18NString.Create(Username),
+                                 SimpleEMailAddress.Parse($"{Username}@example.test"),
+                                 Password:                  Password,
+                                 IsAuthenticated:           true,
+                                 AcceptedEULA:              DateTimeOffset.UtcNow.AddDays(-1),
+                                 SkipNewUserEMail:          true,
+                                 SkipNewUserNotifications:  true,
+                                 SkipDefaultNotifications:  true
+                             ) ?? throw new InvalidOperationException($"'{Username}' was not created!");
+
+            var team = await API.CreateOrganizationIfNotExists(Organization_Id.Parse("form-team"), I18NString.Create("Form Team"))
+                           ?? throw new InvalidOperationException("The organization was not created!");
+
+            Assert.That((await API.AddUserToOrganization(user, User2OrganizationEdgeLabel.IsMember, team)).IsSuccess,  Is.True);
+
+        }
+
+        /// <summary>
+        /// One sign-in at the form, as a browser posts it: form-urlencoded, with
+        /// the fields "login" and "password". The form is one of the URL
+        /// templates, so the API has to be started with them.
+        /// </summary>
+        private static async Task<HttpStatusCode> AtTheForm(HttpClient  Client,
+                                                            String      Login,
+                                                            String      Password)
+        {
+
+            using var response = await Client.PostAsync("accounts/login",
+                                                         new FormUrlEncodedContent([
+                                                             new KeyValuePair<String, String>("login",     Login),
+                                                             new KeyValuePair<String, String>("password",  Password)
+                                                         ]));
+
+            return response.StatusCode;
+
+        }
 
         #endregion
 
@@ -692,6 +741,156 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             finally
             {
                 await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region SignInForm_IsRationedLikeTheSignInRoute()
+
+        /// <summary>
+        /// The form a browser posts its sign-in to - ~/login, form-urlencoded -
+        /// verified every password it was sent, as fast as they came, while
+        /// auth/login next door counted every attempt.
+        /// </summary>
+        /// <remarks>
+        /// Measured against a charging station on this API, whose web interface
+        /// signs in at this form: fifteen wrong passwords in three seconds, each
+        /// one verified and answered "Invalid password!" - and still verified
+        /// after auth/login had begun to answer 429.
+        ///
+        /// As for Basic Auth, what this asserts is behaviour and not a
+        /// stopwatch: once the ration is spent, the RIGHT password is refused
+        /// too. Before, it signed in.
+        /// </remarks>
+        [Test]
+        public async Task SignInForm_IsRationedLikeTheSignInRoute()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "judy", "Correct-Horse-11");
+
+                for (var attempt = 1; attempt <= 10; attempt++)
+                    Assert.That(await AtTheForm(client, "judy", "Wrong-Horse-" + attempt),
+                                Is.EqualTo(HttpStatusCode.Unauthorized),
+                                $"attempt {attempt}");
+
+                Assert.That(await AtTheForm(client, "judy", "Correct-Horse-11"),
+                            Is.EqualTo(HttpStatusCode.TooManyRequests),
+                            "and once the ration is spent the right password does not get through either - which is what proves no hash was computed");
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region SignInForm_AndTheJSONSignIn_ShareOneRation()
+
+        /// <summary>
+        /// Guessing a password is guessing a password, whichever door it comes
+        /// through: the form and auth/login draw on one ration, so that two doors
+        /// with ten attempts each are not twenty.
+        /// </summary>
+        [Test]
+        public async Task SignInForm_AndTheJSONSignIn_ShareOneRation()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "kate", "Correct-Horse-12");
+
+                var browser = new Browser(client);
+
+                for (var attempt = 1; attempt <= 5; attempt++)
+                {
+
+                    Assert.That(await AtTheForm(client, "kate", "Wrong-Horse-" + attempt),
+                                Is.EqualTo(HttpStatusCode.Unauthorized),
+                                $"guess {attempt} at the form");
+
+                    Assert.That((await browser.Call(HttpMethod.Post, "accounts/auth/login", new { login = "kate", password = "Wrong-Horse-" + attempt })).Status,
+                                Is.EqualTo(HttpStatusCode.Unauthorized),
+                                $"guess {attempt} at auth/login");
+
+                }
+
+                var atTheForm  = await AtTheForm(client, "kate", "Correct-Horse-12");
+                var atTheJSON  = (await browser.Call(HttpMethod.Post, "accounts/auth/login", new { login = "kate", password = "Correct-Horse-12" })).Status;
+
+                Assert.Multiple(() => {
+                    Assert.That(atTheForm,  Is.EqualTo(HttpStatusCode.TooManyRequests),  "the form, after ten guesses between the two doors");
+                    Assert.That(atTheJSON,  Is.EqualTo(HttpStatusCode.TooManyRequests),  "and auth/login, after the same ten");
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region SignInForm_VerifiesOnlyInItsTurn()
+
+        /// <summary>
+        /// How many passwords are verified at the same time is one ceiling for
+        /// every route together, and the form verifies in its turn as auth/login
+        /// does: a sign-in that gets no turn in time is told the server is busy,
+        /// rather than making it busier.
+        /// </summary>
+        /// <remarks>
+        /// Every turn is taken here, as by sign-ins in the middle of their
+        /// hashes. The form used to verify regardless; it waits now for as long
+        /// as auth/login waits, and then answers 503.
+        /// </remarks>
+        [Test]
+        public async Task SignInForm_VerifiesOnlyInItsTurn()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            var verifiers  = typeof(HTTPExtAPI).GetField("passwordVerifiers", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(api) as SemaphoreSlim
+                                 ?? throw new InvalidOperationException("The ceiling of password verifications is not where this test looks for it!");
+            var taken      = 0;
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "liam", "Correct-Horse-13");
+
+                while (verifiers.Wait(0))
+                    taken++;
+
+                Assert.That(taken, Is.EqualTo(HTTPExtAPI.DefaultPasswordVerifiers));
+
+                Assert.That(await AtTheForm(client, "liam", "Correct-Horse-13"),
+                            Is.EqualTo(HttpStatusCode.ServiceUnavailable),
+                            "no turn came in time, so nothing was verified");
+
+            }
+            finally
+            {
+
+                if (taken > 0)
+                    verifiers.Release(taken);
+
+                await StopAsync(server, client, directory);
+
             }
 
         }

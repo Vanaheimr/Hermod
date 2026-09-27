@@ -5072,6 +5072,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
+                    #region Rationed like auth/login
+
+                    // This is the sign-in a browser's form posts to, and it
+                    // verified every password it was sent, as fast as they came,
+                    // while auth/login next door counted every attempt - so the
+                    // careful limiters there were sidestepped by posting a form
+                    // instead of JSON. The same bucket as auth/login and Basic
+                    // Auth, not one of its own: guessing a password is guessing a
+                    // password, whichever door it comes through. And before the
+                    // account is looked up, because an unknown login is answered
+                    // differently from a wrong password.
+                    if (CheckPasswordRateLimit(Request, "auth/login", loginIPRateLimiter, login, loginAccountRateLimiter) is { } limited)
+                        return limited.AsImmutable;
+
+                    #endregion
+
                     #region Check login or e-mail address and password(s)
 
                     var possibleUsers = new HashSet<IUser>();
@@ -5114,13 +5130,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var validUsers = new HashSet<IUser>();
 
-                    foreach (var possibleUser in possibleUsers)
+                    // In its turn, as at auth/login: how many passwords are
+                    // verified at the same time is one ceiling for every route.
+                    if (await WaitForAPasswordVerifier(Request) is { } busy)
+                        return busy.AsImmutable;
+
+                    try
                     {
-                        if (loginPasswords.TryGetValue(possibleUser.Id, out var _loginPassword) &&
-                            _loginPassword.VerifyPassword(password))
+                        foreach (var possibleUser in possibleUsers)
                         {
-                            validUsers.Add(possibleUser);
+                            if (loginPasswords.TryGetValue(possibleUser.Id, out var _loginPassword) &&
+                                _loginPassword.VerifyPassword(password))
+                            {
+                                validUsers.Add(possibleUser);
+                            }
                         }
+                    }
+                    finally
+                    {
+                        ReleaseAPasswordVerifier();
                     }
 
                     if (validUsers.Count == 0)
