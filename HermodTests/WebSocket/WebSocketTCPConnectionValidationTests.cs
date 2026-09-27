@@ -221,6 +221,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
+        #region (private static) Fail(Asynchronously)
+
+        /// <summary>
+        /// A handler of OnValidateTCPConnection that throws - before it has
+        /// returned a task at all, or through the task it returned.
+        /// </summary>
+        /// <param name="Asynchronously">Whether the handler fails in the task it returned, rather than before returning one.</param>
+        private static OnValidateTCPConnectionDelegate Fail(Boolean Asynchronously)
+
+            => Asynchronously
+
+                   ? async (timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) => {
+                         await Task.Yield();
+                         throw new InvalidOperationException("The allow-list could not be read.");
+                     }
+
+                   : (timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) =>
+                         throw new InvalidOperationException("The allow-list could not be read.");
+
+        #endregion
+
 
         #region AHandlerThatSaysNoRefusesTheConnection()
 
@@ -257,22 +278,99 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AHandlerThatFailsRefusesTheConnection(Boolean Asynchronously)
         {
 
-            OnValidateTCPConnectionDelegate fails = Asynchronously
-
-                ? async (timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) => {
-                      await Task.Yield();
-                      throw new InvalidOperationException("The allow-list could not be read.");
-                  }
-
-                : (timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) =>
-                      throw new InvalidOperationException("The allow-list could not be read.");
-
-            await StartServer(fails);
+            await StartServer(Fail(Asynchronously));
 
             var httpResponse = await Connect();
 
             Assert.That(httpResponse.HTTPStatusCode,  Is.Not.EqualTo(HTTPStatusCode.SwitchingProtocols),  "The connection was let in.");
             Assert.That(await Refusal(),              Does.Contain("The allow-list could not be read."));
+
+        }
+
+        #endregion
+
+        #region AHandlerThatFailsDoesNotOutvoteANoBeforeIt(Asynchronously)
+
+        /// <summary>
+        /// The first refusal is the verdict even where a handler after it fails:
+        /// the connection is refused for the reason of the handler that said no,
+        /// and not for the exception of the one after it.
+        /// </summary>
+        /// <remarks>
+        /// Every handler used to be awaited inside one try, so a handler that
+        /// threw replaced every answer - the no before it included - with a
+        /// refusal of its own. The connection was refused all the same, but not
+        /// for the first reason.
+        /// </remarks>
+        /// <param name="Asynchronously">Whether the failing handler fails in the task it returned, rather than before returning one.</param>
+        [TestCase(false, TestName = "AHandlerThatFailsDoesNotOutvoteANoBeforeIt(before it answers)")]
+        [TestCase(true,  TestName = "AHandlerThatFailsDoesNotOutvoteANoBeforeIt(while it answers)")]
+        public async Task AHandlerThatFailsDoesNotOutvoteANoBeforeIt(Boolean Asynchronously)
+        {
+
+            await StartServer(Answer(ConnectionFilterResponse.Rejected("Not from this network.")),
+                              Fail(Asynchronously));
+
+            var httpResponse = await Connect();
+
+            Assert.That(httpResponse.HTTPStatusCode,  Is.Not.EqualTo(HTTPStatusCode.SwitchingProtocols),  "The connection was let in.");
+            Assert.That(await Refusal(),              Is.EqualTo("Not from this network."));
+
+        }
+
+        #endregion
+
+        #region AHandlerThatFailsDoesNotKeepTheOthersFromBeingAsked()
+
+        /// <summary>
+        /// A handler that throws before it has even returned a task does not
+        /// keep the handlers after it from being asked.
+        /// </summary>
+        /// <remarks>
+        /// Its refusal is still the verdict, since it is the first. But a handler
+        /// may be there for more than its answer - to count, or to log whoever
+        /// knocks - and used not to be asked at all once a handler before it had
+        /// thrown.
+        /// </remarks>
+        [Test]
+        public async Task AHandlerThatFailsDoesNotKeepTheOthersFromBeingAsked()
+        {
+
+            var asked = 0;
+
+            await StartServer(Fail(Asynchronously: false),
+                              (timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) => {
+                                  Interlocked.Increment(ref asked);
+                                  return Task.FromResult(ConnectionFilterResponse.Accepted());
+                              });
+
+            var httpResponse = await Connect();
+
+            Assert.That(httpResponse.HTTPStatusCode,  Is.Not.EqualTo(HTTPStatusCode.SwitchingProtocols),  "The connection was let in.");
+            Assert.That(await Refusal(),              Does.Contain("The allow-list could not be read."));
+            Assert.That(Volatile.Read(ref asked),     Is.EqualTo(1),                                       "The handler after the one that failed was not asked.");
+
+        }
+
+        #endregion
+
+        #region AHandlerThatAnswersNothingRefusesTheConnection()
+
+        /// <summary>
+        /// A handler whose task gives back no answer at all has not said yes
+        /// either: the connection is refused, and the reason says why.
+        /// </summary>
+        [Test]
+        public async Task AHandlerThatAnswersNothingRefusesTheConnection()
+        {
+
+            await StartServer((timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) =>
+                                  Task.FromResult<ConnectionFilterResponse>(null!));
+
+            var httpResponse = await Connect();
+
+            Assert.That(httpResponse.HTTPStatusCode,  Is.Not.EqualTo(HTTPStatusCode.SwitchingProtocols),  "The connection was let in.");
+            Assert.That(await Refusal(),              Does.Contain("answered nothing"));
 
         }
 

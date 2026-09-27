@@ -1220,7 +1220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// its handlers of OnValidateTCPConnection are refusing through.
         /// </remarks>
         /// <param name="Timestamp">The timestamp of the refusal.</param>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="EventTrackingId">A unique event tracking identification for correlating this request with other events.</param>
         /// <param name="RemoteSocket">The remote socket of the refused connection.</param>
         /// <param name="ConnectionId">The internal connection identification.</param>
         /// <param name="Reason">Why the connection was refused.</param>

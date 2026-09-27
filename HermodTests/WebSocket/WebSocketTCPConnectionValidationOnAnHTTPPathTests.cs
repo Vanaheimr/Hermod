@@ -199,6 +199,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// connection cannot look, then - and that is a refusal, for the reason
         /// a handler that fails is one. Even a handler that would have said yes
         /// cannot say it unasked, which is why the one here would have.
+        ///
+        /// A refused connection has its stream closed, as its answer says it
+        /// will, and as a connection that was let in has when its loop ends:
+        /// the stream and no more, since the socket belongs to whoever opened
+        /// it - here, the test.
         /// </remarks>
         /// <param name="HandlersAreWaiting">Whether OnValidateTCPConnection has a handler.</param>
         [TestCase(true,  TestName = "AConnectionHandedOverWithoutItsTCPConnection(is refused where handlers are waiting to be asked)")]
@@ -233,8 +238,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             using var accepted  = await listener.AcceptTcpClientAsync();
             listener.Stop();
 
+            var handedOver      = accepted.GetStream();
+
             var handOver        = lentServer.AcceptUpgradedConnectionAsync(
-                                      NetworkStream:  accepted.GetStream(),
+                                      NetworkStream:  handedOver,
                                       LocalSocket:    IPSocket.FromIPEndPoint((IPEndPoint) accepted.Client.LocalEndPoint!),
                                       RemoteSocket:   IPSocket.FromIPEndPoint((IPEndPoint) accepted.Client.RemoteEndPoint!),
                                       RequestBytes:   UpgradeRequest("/")
@@ -250,9 +257,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 var reason = await refusal.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
                 Assert.Multiple(() => {
-                    Assert.That(answer,  Does.StartWith("HTTP/1.1 403"),                        answer);
-                    Assert.That(asked,   Is.Zero,                                               "A handler was asked about a connection there was nothing to show of.");
-                    Assert.That(reason,  Does.Contain(nameof(AWebSocketServer.OnValidateTCPConnection)));
+                    Assert.That(answer,              Does.StartWith("HTTP/1.1 403"),                        answer);
+                    Assert.That(asked,               Is.Zero,                                               "A handler was asked about a connection there was nothing to show of.");
+                    Assert.That(reason,              Does.Contain(nameof(AWebSocketServer.OnValidateTCPConnection)));
+                    Assert.That(handedOver.CanRead,  Is.False,                                              "The stream of the refused connection was left open, although its answer said it would be closed.");
                 });
 
             }
