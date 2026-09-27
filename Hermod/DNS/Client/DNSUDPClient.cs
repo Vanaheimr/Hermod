@@ -274,11 +274,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            IsTruncated:            false,
                            RecursionDesired:       recursionAsked,
                            RecursionAvailable:     false,
-                           ResponseCode:           DNSResponseCodes.NameError,
+                           ResponseCode:           DNSResponseCodes.ServerFailure,
                            Answers:                [],
                            Authorities:            [],
                            AdditionalRecords:      [],
-                           IsValid:                true,
+                           IsValid:                false,
                            IsTimeout:              false,
                            Timeout:                effectiveTimeout,
                            Runtime:                stopwatch.Elapsed
@@ -485,7 +485,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            Answers:                [],
                            Authorities:            [],
                            AdditionalRecords:      [],
-                           IsValid:                true,
+                           IsValid:                false,
                            IsTimeout:              false,
                            Timeout:                effectiveTimeout,
                            Runtime:                stopwatch.Elapsed
