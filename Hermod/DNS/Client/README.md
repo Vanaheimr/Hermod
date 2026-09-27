@@ -37,6 +37,33 @@ concerns:
   `(DomainName, RecordType)` to avoid redundant queries for missing record types
 - **Automatic CNAME following** (see below)
 - **EDNS0 options** are forwarded to all transport clients
+- **One certificate check** for every name server reached over TLS or HTTPS
+  (see below)
+
+
+## Certificates of Encrypted Name Servers
+
+`DNSClient.RemoteCertificateValidator` is asked at every TLS handshake with a
+name server reached over TLS or HTTPS, with the `DNSServerConfig` it is about,
+the certificate it showed, the chain the machine built and the policy errors
+found - one delegate, `DNSServerCertificateValidationHandler`, for every
+encrypted transport, because whoever holds the resolver wants to judge the
+server and not whichever transport client happened to be talking to it.
+
+```csharp
+resolver.RemoteCertificateValidator = (server, certificate, chain, errors) =>
+    IsOneOfOurs(server, certificate)
+        ? TLSValidationResult.Success()
+        : TLSValidationResult.Failed("Not the name server this resolver is held to.");
+```
+
+It is read at the handshake, not when a transport client is made, so a check
+set on a resolver in use is the one its next handshake goes by. Without one
+the machine judges, as TLS does where nobody asks: a certificate with no policy
+error is believed, one with any is not. A connection is kept open between
+queries and not asked about again; `CloseConnection(server)` closes it, so
+that the next query makes a new one and is judged by the check in effect then
+- for whoever just changed what that server is held to.
 
 
 ## CNAME / DNAME Chasing
