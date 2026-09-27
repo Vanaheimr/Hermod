@@ -529,12 +529,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="RecursionDesired">Whether to set the Recursion Desired flag in the DNS query. If not specified, the client's default RecursionDesired setting will be used (default: true).</param>
         /// <param name="ForceUpdate">Whether to force an upstream DNS query and update the DNS cache with the response. Default: false.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel the query.</param>
-        public async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
-                                         IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                         TimeSpan?                            Timeout             = null,
-                                         Boolean?                             RecursionDesired    = null,
-                                         Boolean?                             ForceUpdate         = false,
-                                         CancellationToken                    CancellationToken   = default)
+        public Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
+                                   IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                   TimeSpan?                            Timeout             = null,
+                                   Boolean?                             RecursionDesired    = null,
+                                   Boolean?                             ForceUpdate         = false,
+                                   CancellationToken                    CancellationToken   = default)
+
+            => Query(DNSServiceName,
+                     ResourceRecordTypes,
+                     Timeout,
+                     RecursionDesired,
+                     ForceUpdate,
+                     ChainVisited:  null,
+                     HopsLeft:      MaxCNAMEFollows,
+                     CancellationToken);
+
+        #endregion
+
+        #region (private) Query (DNSServiceName, ResourceRecordTypes, ..., ChainVisited, HopsLeft, ...)
+
+        /// <summary>
+        /// The body of <see cref="Query(DNSServiceName, IEnumerable{DNSResourceRecordTypes}, TimeSpan?, Boolean?, Boolean?, CancellationToken)"/>,
+        /// carrying the state of an alias chain being followed.
+        /// </summary>
+        /// <param name="ChainVisited">
+        /// The names this chain has already asked about, or null to start one. Following
+        /// an alias is a fresh call of this method, so a set created here would be
+        /// created again at every hop and could never hold more than the two names one
+        /// hop knows about — which is why a self-referential alias was caught and two
+        /// aliases pointing at each other were not.
+        /// </param>
+        /// <param name="HopsLeft">
+        /// How much further the chain may be followed. RFC 1035 §7.1: "The amount of work
+        /// which a resolver will do in response to a client request must be limited to
+        /// guard against errors in the database, such as circular CNAME references", by a
+        /// counter "decremented whenever the resolver performs any action ... If the
+        /// counter passes zero, the request is terminated". Counted across the descent
+        /// rather than within one call, which is the difference that makes it a bound.
+        /// </param>
+        private async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
+                                          IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                          TimeSpan?                            Timeout,
+                                          Boolean?                             RecursionDesired,
+                                          Boolean?                             ForceUpdate,
+                                          HashSet<String>?                     ChainVisited,
+                                          Int32                                HopsLeft,
+                                          CancellationToken                    CancellationToken)
         {
 
             var effectiveTimeout = Timeout ?? QueryTimeout;
@@ -968,11 +1009,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         var allAnswers        = new List<IDNSResourceRecord>(firstResponse.Answers);
                         var currentResponse   = firstResponse;
                         var currentName       = DNSServiceName.ToString();
-                        var visited           = new HashSet<String>(StringComparer.OrdinalIgnoreCase) {
-                                                    currentName
-                                                };
 
-                        for (var hop = 0; hop < MaxCNAMEFollows; hop++)
+                        // The chain's, not this call's. A set made here is made again at
+                        // every hop, and a chain is what has to be remembered.
+                        var visited           = ChainVisited ?? new HashSet<String>(StringComparer.OrdinalIgnoreCase);
+
+                        visited.Add(currentName);
+
+                        // Each iteration hands the rest of the chain to another call, so
+                        // this loop can only spend what is left of the budget.
+                        for (var hop = 0; hop < HopsLeft; hop++)
                         {
 
                             // First check for CNAME
@@ -1026,12 +1072,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                             currentName = cnameTarget;
 
+                            // The set and the remaining budget travel with the hop. Without
+                            // them this call is where the bound stopped applying: RFC 1034
+                            // §5.2.2 asks for "alias loops ... caught and an error condition
+                            // passed back to the client", and a two-name cycle was followed
+                            // for as long as the peer was willing to answer.
                             var followUpResponse = await Query(
                                                              DNSServiceName.Parse(cnameTarget),
                                                              resourceRecordTypes,
                                                              Timeout,
                                                              RecursionDesired,
                                                              ForceUpdate,
+                                                             ChainVisited:  visited,
+                                                             HopsLeft:      HopsLeft - hop - 1,
                                                              CancellationToken
                                                          ).ConfigureAwait(false);
 
