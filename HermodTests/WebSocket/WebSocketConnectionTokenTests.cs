@@ -270,8 +270,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             }
 
             // The client is done once the server has answered its close frame,
-            // and the server's loop a moment after that.
-            SpinWait.SpinUntil(() => Volatile.Read(ref ended) >= Count, TimeSpan.FromSeconds(10));
+            // and the server's loop a moment after that. Asserted rather than
+            // merely waited for: a loop that is still running holds on to its
+            // connection, and the check for what is left behind would report it
+            // as a leak it is not.
+            var allEnded = SpinWait.SpinUntil(() => Volatile.Read(ref ended) >= Count, TimeSpan.FromSeconds(10));
+
+            Assert.That(allEnded, Is.True, $"Only {Volatile.Read(ref ended)} of {Count} connection loops had ended after ten seconds.");
 
             return [.. sources];
 
