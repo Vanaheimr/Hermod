@@ -2615,8 +2615,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// there, so that the subscribers behind it were never called at all.
         ///
         /// <b>Without the ten seconds</b> the call used to be given, and not ten
-        /// seconds a subscriber either. WaitAsync does not stop a subscriber; it
-        /// only stops waiting for it - after ten seconds, or the moment the
+        /// seconds per subscriber either. WaitAsync does not stop a subscriber;
+        /// it only stops waiting for it - after ten seconds, or the moment the
         /// sender's token is cancelled. A subscriber given up on went on running,
         /// unobserved, alongside the subscribers of the next frame, and with a
         /// token whose owner was done with it: for a keep-alive ping that is the
