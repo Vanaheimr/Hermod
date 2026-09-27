@@ -41,6 +41,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// A delegate called whenever a new TCP connection was accepted and needs to be accepted
     /// or rejected based on TCP information. This acts like a simple firewall.
     /// </summary>
+    /// <remarks>
+    /// A WebSocket server on a port of its own calls it right after accepting a
+    /// connection and its TLS handshake, before a byte of HTTP is read. A server
+    /// lent to an HTTP path accepts nothing, and calls it when the HTTP server
+    /// hands a connection over - after the HTTP server's TLS and the request that
+    /// asked for the upgrade - with the HTTP server's own TcpClient.
+    /// </remarks>
     /// <param name="Timestamp">The timestamp of the new TCP connection.</param>
     /// <param name="Server">The WebSocket server.</param>
     /// <param name="Connection">The TCP connection.</param>

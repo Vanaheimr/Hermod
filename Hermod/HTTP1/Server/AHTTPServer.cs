@@ -621,7 +621,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             messageCount               = Connection.KeepAliveMessageCount;
                         }
 
-                        request.KeepAliveMessageCount = messageCount;
+                        request.KeepAliveMessageCount  = messageCount;
+
+                        // For whoever the connection is handed to after an
+                        // upgrade: a WebSocket server lent to a path asks about
+                        // it what it would have asked about a connection it had
+                        // accepted itself. See WebSocketUpgrade.
+                        request.TCPConnection          = Connection;
 
                         if (request.HTTPMethod    == HTTPMethod.OPTIONS &&
                             request.RequestTarget == "*")

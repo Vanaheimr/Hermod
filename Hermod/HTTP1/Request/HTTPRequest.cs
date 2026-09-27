@@ -29,6 +29,7 @@ using System.Globalization;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.MIME;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
 #endregion
 
@@ -1203,6 +1204,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => $"{HTTPMethod} {FakeURLPrefix}{Path}{QueryString} {ProtocolName}/{ProtocolVersion}\r\n{ConstructedHTTPHeader}";
 
         public Stream?                                                 NetworkStream           { get; internal set; }
+
+        /// <summary>
+        /// The TCP connection this request arrived on, where the server that
+        /// read it has one.
+        /// </summary>
+        /// <remarks>
+        /// For whoever a connection is handed to after an upgrade - see
+        /// WebSocketUpgrade - so that a WebSocket server lent to a path can ask
+        /// about the connection what it would have asked about one it had
+        /// accepted itself. Null where the stream did not come from a TCP
+        /// server of this library's own, such as the HTTP/1.1 fallback of DNS
+        /// over HTTP/2.
+        /// </remarks>
+        internal TCPConnection?                                        TCPConnection           { get; set; }
+
         public Func<HTTPRequest, ChunkedTransferEncodingStream, Task>  ChunkWorker             { get; set; } = (request, stream) => Task.CompletedTask;
 
         /// <summary>

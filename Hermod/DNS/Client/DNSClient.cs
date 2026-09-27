@@ -18,7 +18,9 @@
 #region Usings
 
 using System.Diagnostics;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Net.NetworkInformation;
 using System.Collections.Concurrent;
 
@@ -178,6 +180,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Default: 1 (1 initial attempt + 1 retry = 2 total attempts per server).
         /// </summary>
         public Byte                           MaxRetries          { get; set; } = 1;
+
+        /// <summary>
+        /// What a name server reached over TLS or HTTPS is asked about its
+        /// certificate at every handshake, with the server it is about - or
+        /// null for the machine's own judgement: a certificate is believed
+        /// where its chain ends at a root this machine trusts and it is issued
+        /// for the address the server is dialled at, and refused otherwise.
+        /// </summary>
+        /// <remarks>
+        /// Asked when a handshake happens rather than when a transport client is
+        /// made, so that one set after the first query is the one the next
+        /// handshake goes by; a connection kept open from before is not asked
+        /// again until it is made again. Unencrypted transports have nothing to
+        /// ask.
+        /// </remarks>
+        public DNSServerCertificateValidationHandler?  RemoteCertificateValidator    { get; set; }
 
         #endregion
 
@@ -367,25 +385,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             currentDNSServers = newServers;
 
             foreach (var goneServer in oldServers.Where(server => !newServers.Contains(server)))
-            {
-                if (transportClients.TryRemove(goneServer, out var transportClient))
-                {
-                    try
-                    {
-                        (transportClient as IDisposable)?.Dispose();
-                    }
-                    catch (Exception e)
-                    {
-                        logger.LogDebug(
-                            "Closing the pooled connection to the DNS server '{DNSServer}' failed: {Message}",
-                            goneServer,
-                            e.Message
-                        );
-                    }
-                }
-            }
+                CloseConnection(goneServer);
 
             DNSCache.RemoveAll();
+
+        }
+
+
+        /// <summary>
+        /// Close the pooled connection to the given DNS server, where there is
+        /// one, so that the next query to it makes a new connection - and a new
+        /// handshake, judged by whatever <see cref="RemoteCertificateValidator"/>
+        /// says by then.
+        /// </summary>
+        /// <remarks>
+        /// For whoever changed what a server is held to: a connection kept open
+        /// from before was judged by what it was held to before, and would go on
+        /// being used on the strength of that until it closed by itself.
+        /// </remarks>
+        /// <param name="DNSServer">The DNS server.</param>
+        /// <returns>Whether there was a connection to close.</returns>
+        public Boolean CloseConnection(DNSServerConfig DNSServer)
+        {
+
+            if (!transportClients.TryRemove(DNSServer, out var transportClient))
+                return false;
+
+            try
+            {
+                (transportClient as IDisposable)?.Dispose();
+            }
+            catch (Exception e)
+            {
+                logger.LogDebug(
+                    "Closing the pooled connection to the DNS server '{DNSServer}' failed: {Message}",
+                    DNSServer,
+                    e.Message
+                );
+            }
+
+            return true;
 
         }
 
@@ -1111,6 +1150,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (private) ValidateServerCertificate(DNSServer, Certificate, Chain, PolicyErrors)
+
+        /// <summary>
+        /// What the given name server's certificate comes to: what
+        /// <see cref="RemoteCertificateValidator"/> says, where somebody set
+        /// one, and otherwise what the machine says.
+        /// </summary>
+        /// <remarks>
+        /// The machine's answer is the one TLS gives where nobody asks - see
+        /// <see cref="TLSValidationExtensions.AskTheOS"/>: a certificate with no
+        /// policy error is believed, and one with any is not - so a client
+        /// nobody gave a check behaves as it did before there was one to give.
+        /// </remarks>
+        private TLSValidationResult ValidateServerCertificate(DNSServerConfig    DNSServer,
+                                                              X509Certificate2?  Certificate,
+                                                              X509Chain?         Chain,
+                                                              SslPolicyErrors    PolicyErrors)
+
+            => RemoteCertificateValidator is DNSServerCertificateValidationHandler validator
+                   ? validator(DNSServer, Certificate, Chain, PolicyErrors)
+                   : TLSValidationExtensions.AskTheOS(this, Certificate, Chain, DNSServer, PolicyErrors);
+
+        #endregion
+
         #region (private) GetOrCreateTransportClient(DNSServer, Timeout)
 
         /// <summary>
@@ -1149,8 +1212,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSTLSClient(
                             ipAddress,
                             DNSServer.Port,
-                            QueryTimeout:   Timeout,
-                            LoggerFactory:  loggerFactory
+                            QueryTimeout:                Timeout,
+                            RemoteCertificateValidator:  (sender, certificate, chain, client, policyErrors) => ValidateServerCertificate(DNSServer, certificate, chain, policyErrors),
+                            LoggerFactory:               loggerFactory
                         )
                     ),
 
@@ -1159,9 +1223,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSHTTPSClient(
                             ipAddress,
                             DNSServer.Port,
-                            Mode:           DNSHTTPSMode.POST,
-                            QueryTimeout:   Timeout,
-                            LoggerFactory:  loggerFactory
+                            Mode:                        DNSHTTPSMode.POST,
+                            QueryTimeout:                Timeout,
+                            RemoteCertificateValidator:  (sender, certificate, chain, client, policyErrors) => ValidateServerCertificate(DNSServer, certificate, chain, policyErrors),
+                            LoggerFactory:               loggerFactory
                         )
                     ),
 
@@ -1170,9 +1235,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSHTTPSClient(
                             ipAddress,
                             DNSServer.Port,
-                            Mode:           DNSHTTPSMode.JSON,
-                            QueryTimeout:   Timeout,
-                            LoggerFactory:  loggerFactory
+                            Mode:                        DNSHTTPSMode.JSON,
+                            QueryTimeout:                Timeout,
+                            RemoteCertificateValidator:  (sender, certificate, chain, client, policyErrors) => ValidateServerCertificate(DNSServer, certificate, chain, policyErrors),
+                            LoggerFactory:               loggerFactory
                         )
                     ),
 
@@ -1181,9 +1247,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         new DNSHTTPSClient(
                             ipAddress,
                             DNSServer.Port,
-                            Mode:           DNSHTTPSMode.GET,
-                            QueryTimeout:   Timeout,
-                            LoggerFactory:  loggerFactory
+                            Mode:                        DNSHTTPSMode.GET,
+                            QueryTimeout:                Timeout,
+                            RemoteCertificateValidator:  (sender, certificate, chain, client, policyErrors) => ValidateServerCertificate(DNSServer, certificate, chain, policyErrors),
+                            LoggerFactory:               loggerFactory
                         )
                     ),
 
