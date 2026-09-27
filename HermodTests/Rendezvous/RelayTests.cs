@@ -270,17 +270,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
 
             await using var host = RendezvousTestHost.Create();
 
-            var freePorts = TestNet.GetFreePorts(2);
+            using var first   = new ClosedPort();
+            using var second  = new ClosedPort();
 
-            host.ExecuteOk($"ConnectPorts([{freePorts[0]}, {freePorts[1]}])");
+            TestNet.HandOver(first, second);
+
+            host.ExecuteOk($"ConnectPorts([{first}, {second}])");
 
             var session = host.Session;
 
-            host.ExecuteOk($"DisconnectPorts({freePorts[0]}, {freePorts[1]})");
+            host.ExecuteOk($"DisconnectPorts({first}, {second})");
             await session.Completion.WaitAsync(TestNet.Timeout);
 
-            // The very same ports can be used again.
-            var response = host.Execute($"ConnectPorts([{freePorts[0]}, {freePorts[1]}])");
+            // Taken back for the moment in between, which they could not be,
+            // had the rendezvous not released them...
+            first. TakeBack();
+            second.TakeBack();
+
+            TestNet.HandOver(first, second);
+
+            // ...and the very same ports can be used again.
+            var response = host.Execute($"ConnectPorts([{first}, {second}])");
 
             Assert.That(response.IsSuccess, Is.True, response.ToProtocolLine());
 

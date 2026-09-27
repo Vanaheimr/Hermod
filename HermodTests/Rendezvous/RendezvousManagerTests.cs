@@ -67,13 +67,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
 
             await using var host = RendezvousTestHost.Create();
 
-            var freePorts  = TestNet.GetFreePorts(2);
-            var response   = host.ExecuteOk($"ConnectPorts([{freePorts[0]}, {freePorts[1]}])");
+            using var first   = new ClosedPort();
+            using var second  = new ClosedPort();
 
-            Assert.That(response.Text, Is.EqualTo($"ConnectPorts([{freePorts[0]}, {freePorts[1]}], Balanced)"));
+            TestNet.HandOver(first, second);
 
-            using var alice = await TestNet.ConnectAsync(freePorts[0]);
-            using var bob   = await TestNet.ConnectAsync(freePorts[1]);
+            var response      = host.ExecuteOk($"ConnectPorts([{first}, {second}])");
+
+            Assert.That(response.Text, Is.EqualTo($"ConnectPorts([{first}, {second}], Balanced)"));
+
+            using var alice = await TestNet.ConnectAsync(first. Number);
+            using var bob   = await TestNet.ConnectAsync(second.Number);
 
         }
 
@@ -83,13 +87,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
 
             await using var host = RendezvousTestHost.Create();
 
-            var fixedPort  = TestNet.GetFreePorts(1)[0];
-            var response   = host.ExecuteOk($"ConnectPorts([{fixedPort}, ?])");
-            var ports      = TestNet.ParsePorts(response);
+            using var fixedPort  = new ClosedPort();
+
+            TestNet.HandOver(fixedPort);
+
+            var response         = host.ExecuteOk($"ConnectPorts([{fixedPort}, ?])");
+            var ports            = TestNet.ParsePorts(response);
 
             Assert.Multiple(() => {
-                Assert.That(ports[0], Is.EqualTo(fixedPort), "The fixed port must keep its position within the list!");
-                Assert.That(ports[1], Is.Not.EqualTo(fixedPort));
+                Assert.That(ports[0], Is.EqualTo(fixedPort.Number), "The fixed port must keep its position within the list!");
+                Assert.That(ports[1], Is.Not.EqualTo(fixedPort.Number));
             });
 
         }
@@ -167,20 +174,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
 
             await using var host = RendezvousTestHost.Create();
 
-            var freePort  = TestNet.GetFreePorts(1)[0];
-            var occupied  = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            using var port  = new ClosedPort();
+            var occupied    = new TcpListener(System.Net.IPAddress.Loopback, 0);
             occupied.Start();
 
             try
             {
 
                 var occupiedPort  = (UInt16) ((IPEndPoint) occupied.LocalEndpoint).Port;
-                var response      = host.Execute($"ConnectPorts([{freePort}, {occupiedPort}])");
+
+                TestNet.HandOver(port);
+
+                var response      = host.Execute($"ConnectPorts([{port}, {occupiedPort}])");
 
                 Assert.Multiple(() => {
-                    Assert.That(response.Code,                 Is.EqualTo(ResponseCode.PortInUse));
-                    Assert.That(host.Manager.Count,            Is.Zero);
-                    Assert.That(TestNet.IsPortFree(freePort),  Is.True, "The already bound TCP port must be released again!");
+                    Assert.That(response.Code,          Is.EqualTo(ResponseCode.PortInUse));
+                    Assert.That(host.Manager.Count,     Is.Zero);
+                    Assert.That(() => port.TakeBack(),  Throws.Nothing, "The already bound TCP port must be released again!");
                 });
 
             }
