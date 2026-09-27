@@ -417,14 +417,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => GetHeaderField(HTTPResponseHeaderField.TransferEncoding);
 
         /// <summary>
-        /// Whether this HTTP PDU uses chunked transfer encoding.
+        /// The transfer codings this message declares, in order, with the
+        /// optional whitespace stripped. Empty when the field is absent.
         /// </summary>
-       public Boolean IsChunkedTransferEncoding
+        public String[] TransferCodings
 
-           => TransferEncoding is not null &&
-               TransferEncoding.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                              .LastOrDefault()
-                              ?.Equals("chunked", StringComparison.OrdinalIgnoreCase) == true;
+            => TransferEncoding is null
+                   ? []
+                   : TransferEncoding.Split(
+                         ",",
+                         StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+                     );
+
+        /// <summary>
+        /// Whether this HTTP PDU uses chunked transfer encoding: the chunked
+        /// coding is the final one, and it is applied exactly once.
+        ///
+        /// "Exactly once" is not pedantry, and it is not what this used to
+        /// test. RFC 9112 Section 6.1: "A sender MUST NOT apply the chunked
+        /// transfer coding more than once to a message body (i.e., chunking
+        /// an already chunked message is not allowed)." Looking only at the
+        /// last coding accepted "chunked, chunked" - and, via RFC 9110
+        /// Section 5.3, two Transfer-Encoding field lines each saying
+        /// chunked - as ordinary chunked, de-chunking once and handing on a
+        /// body the next hop may de-chunk again. Two recipients that read
+        /// those bytes differently is the definition of a request-smuggling
+        /// gadget, and no conforming sender can produce them, so refusing
+        /// costs nothing.
+        ///
+        /// The last-coding test itself is right and stays: RFC 9112 Section
+        /// 6.3 item 4 frames a body by chunked only when chunked is final.
+        /// </summary>
+        public Boolean IsChunkedTransferEncoding
+        {
+            get
+            {
+
+                var codings = TransferCodings;
+
+                return codings.Length > 0 &&
+                       codings[^1].Equals("chunked", StringComparison.OrdinalIgnoreCase) &&
+                       codings.Count(coding => coding.Equals("chunked", StringComparison.OrdinalIgnoreCase)) == 1;
+
+            }
+        }
+
+        /// <summary>
+        /// Whether a Transfer-Encoding is present that no body can be framed
+        /// from here: chunked absent, not final, or applied more than once.
+        ///
+        /// This is not the same as <see cref="IsChunkedTransferEncoding"/>
+        /// being false, and the difference decides behaviour. "No transfer
+        /// coding" means the body is framed by Content-Length or by the
+        /// connection closing. "A transfer coding I cannot use" means the
+        /// message boundary cannot be determined from the fields at all, and
+        /// RFC 9112 Section 6.3 item 4 says what to do about it: a server
+        /// MUST answer 400 and close, a client reads until the connection is
+        /// closed. Treating the second case as the first is how chunk
+        /// framing ends up being read as body octets - or, worse, left in
+        /// the stream for whatever is read next.
+        /// </summary>
+        public Boolean HasUnframeableTransferEncoding
+
+            => TransferEncoding is not null &&
+              !IsChunkedTransferEncoding;
 
         #endregion
 
@@ -1155,6 +1211,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (!headerFields.ContainsKey(key))
                             headerFields.TryAdd(key, keyValuePair[1].Trim());
+
+                        // Transfer-Encoding is combined into one comma-separated
+                        // value rather than kept as separate lines, which is what
+                        // RFC 9110 Section 5.3 says repeated field lines mean, and
+                        // what HTTPRequest.TryParse already did on the server's own
+                        // parse path.
+                        //
+                        // Leaving it in the String[] made the field VANISH rather
+                        // than merely be awkward: GetHeaderField<String> cannot cast
+                        // a String[] to a String and returns null, so a response
+                        // carrying "Transfer-Encoding: chunked" twice was read as
+                        // declaring no transfer coding at all - and its chunk framing
+                        // was then either taken for body octets or left in the stream
+                        // for the next read on that connection.
+                        else if (key.Equals(HTTPHeaderField.TransferEncoding.Name, StringComparison.OrdinalIgnoreCase))
+                            headerFields[key] = headerFields[key] switch {
+                                                    String   text   => $"{text}, {keyValuePair[1].Trim()}",
+                                                    String[] values => $"{String.Join(", ", values)}, {keyValuePair[1].Trim()}",
+                                                    _               => keyValuePair[1].Trim()
+                                                };
 
                         else
                         {
