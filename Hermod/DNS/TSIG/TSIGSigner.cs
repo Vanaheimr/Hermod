@@ -234,16 +234,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="SignedRequest">The request that failed.</param>
         /// <param name="Error">The TSIG error code to report.</param>
         /// <param name="Key">The key to sign the reply with, or null when the failure was that no such key exists.</param>
+        /// <param name="ServerTime">
+        /// The server's current time in Unix seconds, written into Other Data for a
+        /// BADTIME refusal. The current time when omitted; a parameter so that a
+        /// test can state the skew it is asserting instead of arranging it.
+        /// </param>
         /// <remarks>
+        /// <para>
         /// The reply echoes the header and question and carries a TSIG with the
-        /// error code and an empty MAC. It is unsigned when the failure was
-        /// BADKEY or BADSIG: there is no shared secret to sign with, and §5.2
-        /// says so explicitly — a MAC computed with a key the peer does not hold
-        /// would be noise.
+        /// error code. Whether it also carries a MAC is the whole distinction RFC
+        /// 8945 draws between the two kinds of refusal, and they are required to
+        /// differ.
+        /// </para>
+        /// <para>
+        /// §5.3.2, for a failure of the key or the MAC: "the server SHOULD send back
+        /// an unsigned error message (MAC Size == 0 and empty MAC). It MUST NOT send
+        /// back a signed error message." There is no shared secret to sign with, and
+        /// a MAC computed with a key the peer does not hold would be noise.
+        /// </para>
+        /// <para>
+        /// §5.2.3, for BADTIME, requires the opposite and three things with it: "A
+        /// response indicating a BADTIME error MUST be signed by the same key as the
+        /// request. It MUST include the client's current time in the Time Signed
+        /// field, the server's current time (an unsigned 48-bit integer) in the Other
+        /// Data field, and 6 in the Other Len field." The Fudge is the one the client
+        /// sent.
+        /// </para>
+        /// <para>
+        /// Both halves matter and for different reasons. The time is what lets a
+        /// sender tell a wrong clock from a wrong key and correct it — without it
+        /// every retry fails the same way. The signature is what stops the refusal
+        /// being forgeable: an unsigned BADTIME lets anyone who can put a packet on
+        /// the wire abandon a signed exchange without holding the key, which is the
+        /// class of attack TSIG exists to close.
+        /// </para>
         /// </remarks>
         public static Byte[]? BuildErrorResponse(Byte[]    SignedRequest,
                                                  UInt16    Error,
-                                                 TSIGKey?  Key   = null)
+                                                 TSIGKey?  Key          = null,
+                                                 UInt64?   ServerTime   = null)
         {
 
             if (SignedRequest.Length < 12)
@@ -269,17 +298,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 BinaryPrimitives.WriteUInt16BigEndian(response.AsSpan(8,  2), 0);
                 BinaryPrimitives.WriteUInt16BigEndian(response.AsSpan(10, 2), 0);
 
-                var errorKey  = Key ?? new TSIGKey(DomainName.ParseLenient(tsig.DomainName.ToString()),
-                                                   [],
-                                                   tsig.AlgorithmName);
+                var errorKey   = Key ?? new TSIGKey(DomainName.ParseLenient(tsig.DomainName.ToString()),
+                                                    [],
+                                                    tsig.AlgorithmName);
 
-                var record    = BuildTSIGRecord(errorKey,
-                                                tsig.TimeSigned,
-                                                tsig.Fudge,
-                                                MAC:         [],
-                                                OriginalID:  tsig.OriginalID,
-                                                Error:       Error,
-                                                OtherData:   []);
+                // §5.2.3: BADTIME carries the server's time as an unsigned 48-bit
+                // integer, and is signed. Everything else carries neither, per §5.3.2.
+                // A BADTIME with no key to sign with cannot be told from a BADKEY, so
+                // it falls back to the unsigned form rather than emitting a refusal
+                // that claims a signature it does not have.
+                var signable   = Error == BADTIME && Key is not null;
+
+                Byte[] otherData  = signable
+                                     ? SixOctetTime(ServerTime ?? (UInt64) DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+                                     : [];
+
+                // The MAC covers the response as it stands here — ARCOUNT still
+                // excludes the TSIG record, which is appended below — with the
+                // request's own MAC folded in, because this is a response (§4.3.1).
+                Byte[] mac        = signable
+                                     ? ComputeMAC(response,
+                                                  errorKey,
+                                                  tsig.TimeSigned,
+                                                  tsig.Fudge,
+                                                  Error,
+                                                  otherData,
+                                                  RequestMAC:  tsig.MAC)
+                                     : [];
+
+                var record     = BuildTSIGRecord(errorKey,
+                                                 tsig.TimeSigned,
+                                                 tsig.Fudge,
+                                                 MAC:         mac,
+                                                 OriginalID:  tsig.OriginalID,
+                                                 Error:       Error,
+                                                 OtherData:   otherData);
 
                 var result    = new Byte[response.Length + record.Length];
                 Buffer.BlockCopy(response, 0, result, 0,               response.Length);
@@ -443,6 +496,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+
+        #region (private static) SixOctetTime(UnixSeconds)
+
+        /// <summary>
+        /// A Unix timestamp as the unsigned 48-bit integer RFC 8945 §5.2.3 asks for in
+        /// the Other Data of a BADTIME refusal: six octets, most significant first,
+        /// the same layout the Time Signed field already uses.
+        /// </summary>
+        private static Byte[] SixOctetTime(UInt64 UnixSeconds)
+
+            => [ (Byte) ((UnixSeconds >> 40) & 0xFF),
+                 (Byte) ((UnixSeconds >> 32) & 0xFF),
+                 (Byte) ((UnixSeconds >> 24) & 0xFF),
+                 (Byte) ((UnixSeconds >> 16) & 0xFF),
+                 (Byte) ((UnixSeconds >>  8) & 0xFF),
+                 (Byte) ( UnixSeconds        & 0xFF) ];
+
+        #endregion
 
         #region (private static) BuildTSIGRecord (Key, TimeSigned, Fudge, MAC, OriginalID, Error, OtherData)
 
