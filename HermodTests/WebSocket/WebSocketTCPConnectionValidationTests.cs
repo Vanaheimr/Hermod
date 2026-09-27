@@ -221,14 +221,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
-        #region (private static) Fail(Asynchronously)
+        #region (private static) Fails(Asynchronously)
 
         /// <summary>
         /// A handler of OnValidateTCPConnection that throws - before it has
         /// returned a task at all, or through the task it returned.
         /// </summary>
         /// <param name="Asynchronously">Whether the handler fails in the task it returned, rather than before returning one.</param>
-        private static OnValidateTCPConnectionDelegate Fail(Boolean Asynchronously)
+        private static OnValidateTCPConnectionDelegate Fails(Boolean Asynchronously)
 
             => Asynchronously
 
@@ -278,43 +278,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task AHandlerThatFailsRefusesTheConnection(Boolean Asynchronously)
         {
 
-            await StartServer(Fail(Asynchronously));
+            await StartServer(Fails(Asynchronously));
 
             var httpResponse = await Connect();
 
             Assert.That(httpResponse.HTTPStatusCode,  Is.Not.EqualTo(HTTPStatusCode.SwitchingProtocols),  "The connection was let in.");
             Assert.That(await Refusal(),              Does.Contain("The allow-list could not be read."));
-
-        }
-
-        #endregion
-
-        #region AHandlerThatFailsDoesNotOutvoteANoBeforeIt(Asynchronously)
-
-        /// <summary>
-        /// The first refusal is the verdict even where a handler after it fails:
-        /// the connection is refused for the reason of the handler that said no,
-        /// and not for the exception of the one after it.
-        /// </summary>
-        /// <remarks>
-        /// Every handler used to be awaited inside one try, so a handler that
-        /// threw replaced every answer - the no before it included - with a
-        /// refusal of its own. The connection was refused all the same, but not
-        /// for the first reason.
-        /// </remarks>
-        /// <param name="Asynchronously">Whether the failing handler fails in the task it returned, rather than before returning one.</param>
-        [TestCase(false, TestName = "AHandlerThatFailsDoesNotOutvoteANoBeforeIt(before it answers)")]
-        [TestCase(true,  TestName = "AHandlerThatFailsDoesNotOutvoteANoBeforeIt(while it answers)")]
-        public async Task AHandlerThatFailsDoesNotOutvoteANoBeforeIt(Boolean Asynchronously)
-        {
-
-            await StartServer(Answer(ConnectionFilterResponse.Rejected("Not from this network.")),
-                              Fail(Asynchronously));
-
-            var httpResponse = await Connect();
-
-            Assert.That(httpResponse.HTTPStatusCode,  Is.Not.EqualTo(HTTPStatusCode.SwitchingProtocols),  "The connection was let in.");
-            Assert.That(await Refusal(),              Is.EqualTo("Not from this network."));
 
         }
 
@@ -338,7 +307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var asked = 0;
 
-            await StartServer(Fail(Asynchronously: false),
+            await StartServer(Fails(Asynchronously: false),
                               (timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) => {
                                   Interlocked.Increment(ref asked);
                                   return Task.FromResult(ConnectionFilterResponse.Accepted());
@@ -357,20 +326,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         #region AHandlerThatAnswersNothingRefusesTheConnection()
 
         /// <summary>
-        /// A handler whose task gives back no answer at all has not said yes
-        /// either: the connection is refused, and the reason says why.
+        /// A handler that answers null - which its delegate does not allow, and
+        /// nothing prevents - has not said that the connection may come in
+        /// either, and the reason says that it said nothing.
         /// </summary>
         [Test]
         public async Task AHandlerThatAnswersNothingRefusesTheConnection()
         {
 
-            await StartServer((timestamp, webSocketServer, connection, eventTrackingId, cancellationToken) =>
-                                  Task.FromResult<ConnectionFilterResponse>(null!));
+            await StartServer(Answer(null!));
 
             var httpResponse = await Connect();
 
             Assert.That(httpResponse.HTTPStatusCode,  Is.Not.EqualTo(HTTPStatusCode.SwitchingProtocols),  "The connection was let in.");
-            Assert.That(await Refusal(),              Does.Contain("answered nothing"));
+            Assert.That(await Refusal(),              Is.EqualTo("OnValidateTCPConnection gave no answer."));
 
         }
 
@@ -388,6 +357,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             await StartServer(Answer(ConnectionFilterResponse.Accepted()),
                               Answer(ConnectionFilterResponse.Rejected("Not from this network.")));
+
+            var httpResponse = await Connect();
+
+            Assert.That(httpResponse.HTTPStatusCode,  Is.Not.EqualTo(HTTPStatusCode.SwitchingProtocols),  "The connection was let in.");
+            Assert.That(await Refusal(),              Is.EqualTo("Not from this network."));
+
+        }
+
+        #endregion
+
+        #region ANoIsNotOutvotedByAFailureAfterIt(Asynchronously)
+
+        /// <summary>
+        /// A handler that fails has refused in its own place in the line, and
+        /// not over the handlers before it: the refusal acted on is still the
+        /// first one, and so is its reason.
+        /// </summary>
+        /// <remarks>
+        /// The handlers were asked all together, and one that threw failed the
+        /// lot of them: its failure became the verdict, over the reason of a
+        /// handler before it that had refused in so many words.
+        /// </remarks>
+        /// <param name="Asynchronously">Whether the failing handler fails in the task it returned, rather than before returning one.</param>
+        [TestCase(false, TestName = "ANoIsNotOutvotedByAFailureAfterIt(before it answers)")]
+        [TestCase(true,  TestName = "ANoIsNotOutvotedByAFailureAfterIt(while it answers)")]
+        public async Task ANoIsNotOutvotedByAFailureAfterIt(Boolean Asynchronously)
+        {
+
+            await StartServer(Answer(ConnectionFilterResponse.Rejected("Not from this network.")),
+                              Fails(Asynchronously));
 
             var httpResponse = await Connect();
 
