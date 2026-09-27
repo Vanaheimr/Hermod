@@ -621,14 +621,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             /// Take the lock on the database files, which every HTTPExtAPI of
             /// the process shares, and let go of it after the given time.
             /// </summary>
+            /// <remarks>
+            /// Taken before the first await, so that it is held by the time
+            /// this returns. Let go of in a finally, on whatever thread the
+            /// delay ends on - not on one a scheduler or a synchronization
+            /// context of the test runner hands out - so that nothing can keep
+            /// a lock held that every other test needs as well.
+            /// </remarks>
             /// <returns>Done once the lock is free again.</returns>
-            public static Task HoldTheDatabaseFileLock(TimeSpan Duration)
+            public static async Task HoldTheDatabaseFileLock(TimeSpan Duration)
             {
 
                 LogFileSemaphore.Wait();
 
-                return Task.Delay(Duration).
-                            ContinueWith(_ => LogFileSemaphore.Release());
+                try
+                {
+                    await Task.Delay(Duration).ConfigureAwait(false);
+                }
+                finally
+                {
+                    LogFileSemaphore.Release();
+                }
 
             }
 
