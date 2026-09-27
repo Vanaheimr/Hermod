@@ -15017,14 +15017,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 CurrentUserId
             );
 
-            var OnUserAddedLocal = OnUserAdded;
-            if (OnUserAddedLocal is not null)
-                await OnUserAddedLocal.Invoke(
+            await LogEvent(
+                      OnUserAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
                           now,
                           User,
                           eventTrackingId,
                           CurrentUserId
-                      );
+                      )
+                  );
 
             // The new-user e-mail carries a password reset token, so that the user
             // can set the first password. Without the e-mail the token would only
@@ -15533,14 +15534,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             eventTrackingId,
                             CurrentUserId);
 
-            var OnUserAddedLocal = OnUserAdded;
-            if (OnUserAddedLocal is not null)
-                await OnUserAddedLocal.Invoke(
+            await LogEvent(
+                      OnUserAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
                           now,
                           User,
                           eventTrackingId,
                           CurrentUserId
-                      );
+                      )
+                  );
 
             // The new-user e-mail carries a password reset token, so that the user
             // can set the first password. Without the e-mail the token would only
@@ -16123,14 +16125,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     CurrentUserId
                 );
 
-                var OnUserAddedLocal = OnUserAdded;
-                if (OnUserAddedLocal is not null)
-                    await OnUserAddedLocal.Invoke(
-                        now,
-                        User,
-                        eventTrackingId,
-                        CurrentUserId
-                    );
+                await LogEvent(
+                          OnUserAdded,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              now,
+                              User,
+                              eventTrackingId,
+                              CurrentUserId
+                          )
+                      );
 
                 // The new-user e-mail carries a password reset token, so that the user
                 // can set the first password. Without the e-mail the token would only
@@ -16189,15 +16192,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 CurrentUserId
             );
 
-            var OnUserUpdatedLocal = OnUserUpdated;
-            if (OnUserUpdatedLocal is not null)
-                await OnUserUpdatedLocal.Invoke(
-                          Timestamp.Now,
+            await LogEvent(
+                      OnUserUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
                           User,
                           oldUser,
                           eventTrackingId,
                           CurrentUserId
-                      );
+                      )
+                  );
 
             if (!SkipUserUpdatedNotifications)
                 await SendNotifications(
@@ -16528,15 +16532,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 CurrentUserId
             );
 
-            var OnUserUpdatedLocal = OnUserUpdated;
-            if (OnUserUpdatedLocal is not null)
-                await OnUserUpdatedLocal.Invoke(
+            await LogEvent(
+                      OnUserUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
                           now,
                           NewUser,
                           OldUser,
                           eventTrackingId,
                           CurrentUserId
-                      );
+                      )
+                  );
 
             if (!SkipUserUpdatedNotifications)
                 await SendNotifications(
@@ -16724,15 +16729,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 CurrentUserId
             );
 
-            var OnUserUpdatedLocal = OnUserUpdated;
-            if (OnUserUpdatedLocal is not null)
-                await OnUserUpdatedLocal.Invoke(
+            await LogEvent(
+                      OnUserUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
                           now,
                           updatedUser,
                           User,
                           eventTrackingId,
                           CurrentUserId
-                      );
+                      )
+                  );
 
             if (!SkipUserUpdatedNotifications)
                 await SendNotifications(
@@ -17358,14 +17364,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnDeleted?.Invoke(User,
                               eventTrackingId);
 
-            var OnUserDeletedLocal = OnUserDeleted;
-            if (OnUserDeletedLocal is not null)
-                await OnUserDeletedLocal.Invoke(
-                          Timestamp.Now,
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnUserDeleted,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
                           User,
                           eventTrackingId,
                           CurrentUserId
-                      );
+                      )
+                  );
 
             if (!SkipUserDeletedNotifications)
                 await SendNotifications(
@@ -18869,12 +18877,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnAdded?.Invoke(APIKey,
                             eventTrackingId);
 
-            var OnAPIKeyAddedLocal = OnAPIKeyAdded;
-            if (OnAPIKeyAddedLocal is not null)
-                await OnAPIKeyAddedLocal.Invoke(Timestamp.Now,
-                                                APIKey,
-                                                eventTrackingId,
-                                                CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnAPIKeyAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          APIKey,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(APIKey,
                                     addAPIKey_MessageType,
@@ -19016,12 +19028,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnAdded?.Invoke(APIKey,
                             eventTrackingId);
 
-            var OnAPIKeyAddedLocal = OnAPIKeyAdded;
-            if (OnAPIKeyAddedLocal is not null)
-                await OnAPIKeyAddedLocal.Invoke(Timestamp.Now,
-                                                APIKey,
-                                                eventTrackingId,
-                                                CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnAPIKeyAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          APIKey,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(APIKey,
                                     addAPIKeyIfNotExists_MessageType,
@@ -19158,6 +19174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             apiKeys.TryAdd(APIKey.Id, APIKey);
+            var now = Timestamp.Now;
 
 
             if (OldAPIKey is not null)
@@ -19166,13 +19183,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 OnUpdated?.Invoke(APIKey,
                                   eventTrackingId);
 
-                var OnAPIKeyUpdatedLocal = OnAPIKeyUpdated;
-                if (OnAPIKeyUpdatedLocal is not null)
-                    await OnAPIKeyUpdatedLocal.Invoke(Timestamp.Now,
-                                                      APIKey,
-                                                      OldAPIKey,
-                                                      eventTrackingId,
-                                                      CurrentUserId);
+                await LogEvent(
+                          OnAPIKeyUpdated,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              now,
+                              APIKey,
+                              OldAPIKey,
+                              eventTrackingId,
+                              CurrentUserId
+                          )
+                      );
 
                 await SendNotifications(APIKey,
                                         updateAPIKey_MessageType,
@@ -19193,12 +19213,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnAdded?.Invoke(APIKey,
                             eventTrackingId);
 
-            var OnAPIKeyAddedLocal = OnAPIKeyAdded;
-            if (OnAPIKeyAddedLocal is not null)
-                await OnAPIKeyAddedLocal.Invoke(Timestamp.Now,
-                                                APIKey,
-                                                eventTrackingId,
-                                                CurrentUserId);
+            await LogEvent(
+                      OnAPIKeyAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          APIKey,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(APIKey,
                                     addAPIKey_MessageType,
@@ -19357,13 +19380,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnUpdated?.Invoke(APIKey,
                               eventTrackingId);
 
-            var OnAPIKeyUpdatedLocal = OnAPIKeyUpdated;
-            if (OnAPIKeyUpdatedLocal is not null)
-                await OnAPIKeyUpdatedLocal.Invoke(Timestamp.Now,
-                                                APIKey,
-                                                OldAPIKey,
-                                                eventTrackingId,
-                                                CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnAPIKeyUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          APIKey,
+                          OldAPIKey,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(APIKey,
                                     updateAPIKey_MessageType,
@@ -19514,13 +19541,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnUpdated?.Invoke(updatedAPIKey,
                               eventTrackingId);
 
-            var OnAPIKeyUpdatedLocal = OnAPIKeyUpdated;
-            if (OnAPIKeyUpdatedLocal is not null)
-                await OnAPIKeyUpdatedLocal.Invoke(Timestamp.Now,
-                                                  updatedAPIKey,
-                                                  APIKey,
-                                                  eventTrackingId,
-                                                  CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnAPIKeyUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          updatedAPIKey,
+                          APIKey,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(updatedAPIKey,
                                     updateAPIKey_MessageType,
@@ -19673,12 +19704,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnRemoved?.Invoke(APIKey,
                               eventTrackingId);
 
-            var OnAPIKeyRemovedLocal = OnAPIKeyRemoved;
-            if (OnAPIKeyRemovedLocal is not null)
-                await OnAPIKeyRemovedLocal.Invoke(Timestamp.Now,
-                                                  APIKey,
-                                                  eventTrackingId,
-                                                  CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnAPIKeyRemoved,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          APIKey,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(APIKey,
                                     removeAPIKey_MessageType,
@@ -20821,12 +20856,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnAdded?.Invoke(UserGroup,
                             eventTrackingId);
 
-            var OnUserGroupAddedLocal = OnUserGroupAdded;
-            if (OnUserGroupAddedLocal is not null)
-                await OnUserGroupAddedLocal.Invoke(Timestamp.Now,
-                                                   UserGroup,
-                                                   eventTrackingId,
-                                                   CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnUserGroupAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          UserGroup,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(UserGroup,
                                     addUserGroup_MessageType,
@@ -20985,12 +21024,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnAdded?.Invoke(UserGroup,
                             eventTrackingId);
 
-            var OnUserGroupAddedLocal = OnUserGroupAdded;
-            if (OnUserGroupAddedLocal is not null)
-                await OnUserGroupAddedLocal.Invoke(Timestamp.Now,
-                                                   UserGroup,
-                                                   eventTrackingId,
-                                                   CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnUserGroupAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          UserGroup,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(UserGroup,
                                     addUserGroupIfNotExists_MessageType,
@@ -21147,6 +21190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             userGroups.TryAdd(UserGroup.Id, UserGroup);
+            var now = Timestamp.Now;
 
             if (OldUserGroup is null)
             {
@@ -21154,12 +21198,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 OnAdded?.Invoke(UserGroup,
                                 eventTrackingId);
 
-                var OnUserGroupAddedLocal = OnUserGroupAdded;
-                if (OnUserGroupAddedLocal is not null)
-                    await OnUserGroupAddedLocal.Invoke(Timestamp.Now,
-                                                       UserGroup,
-                                                       eventTrackingId,
-                                                       CurrentUserId);
+                await LogEvent(
+                          OnUserGroupAdded,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              now,
+                              UserGroup,
+                              eventTrackingId,
+                              CurrentUserId
+                          )
+                      );
 
                 await SendNotifications(UserGroup,
                                         addUserGroup_MessageType,
@@ -21180,13 +21227,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnUpdated?.Invoke(UserGroup,
                               eventTrackingId);
 
-            var OnUserGroupUpdatedLocal = OnUserGroupUpdated;
-            if (OnUserGroupUpdatedLocal is not null)
-                await OnUserGroupUpdatedLocal.Invoke(Timestamp.Now,
-                                                     UserGroup,
-                                                     OldUserGroup,
-                                                     eventTrackingId,
-                                                     CurrentUserId);
+            await LogEvent(
+                      OnUserGroupUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          UserGroup,
+                          OldUserGroup,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(UserGroup,
                                     updateUserGroup_MessageType,
@@ -21351,13 +21401,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnUpdated?.Invoke(UserGroup,
                               eventTrackingId);
 
-            var OnUserGroupUpdatedLocal = OnUserGroupUpdated;
-            if (OnUserGroupUpdatedLocal is not null)
-                await OnUserGroupUpdatedLocal.Invoke(Timestamp.Now,
-                                                     UserGroup,
-                                                     OldUserGroup,
-                                                     eventTrackingId,
-                                                     CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnUserGroupUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          UserGroup,
+                          OldUserGroup,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(UserGroup,
                                     updateUserGroup_MessageType,
@@ -21510,13 +21564,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnUpdated?.Invoke(updatedUserGroup,
                               eventTrackingId);
 
-            var OnUserGroupUpdatedLocal = OnUserGroupUpdated;
-            if (OnUserGroupUpdatedLocal is not null)
-                await OnUserGroupUpdatedLocal.Invoke(Timestamp.Now,
-                                                     updatedUserGroup,
-                                                     UserGroup,
-                                                     eventTrackingId,
-                                                     CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnUserGroupUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          updatedUserGroup,
+                          UserGroup,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(updatedUserGroup,
                                     updateUserGroup_MessageType,
@@ -21724,12 +21782,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnDeleted?.Invoke(UserGroup,
                               eventTrackingId);
 
-            var OnUserGroupDeletedLocal = OnUserGroupDeleted;
-            if (OnUserGroupDeletedLocal is not null)
-                await OnUserGroupDeletedLocal.Invoke(Timestamp.Now,
-                                                     UserGroup,
-                                                     eventTrackingId,
-                                                     CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnUserGroupDeleted,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          UserGroup,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(UserGroup,
                                     parentUserGroups,
@@ -23587,12 +23649,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             notificationMessages.Add(NotificationMessage.Id, NotificationMessage);
 
 
-            var OnNotificationMessageAddedLocal = OnNotificationMessageAdded;
-            if (OnNotificationMessageAddedLocal is not null)
-                await OnNotificationMessageAddedLocal.Invoke(Timestamp.Now,
-                                                             NotificationMessage,
-                                                             eventTrackingId,
-                                                             CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnNotificationMessageAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          NotificationMessage,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(NotificationMessage,
                                     addUser_MessageType,
@@ -23700,12 +23766,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             notificationMessages.Add(NotificationMessage.Id, NotificationMessage);
 
-            var OnNotificationMessageAddedLocal = OnNotificationMessageAdded;
-            if (OnNotificationMessageAddedLocal is not null)
-                await OnNotificationMessageAddedLocal.Invoke(Timestamp.Now,
-                                                      NotificationMessage,
-                                                      eventTrackingId,
-                                                      CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnNotificationMessageAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          NotificationMessage,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(NotificationMessage,
                                     addNotificationMessageIfNotExists_MessageType,
@@ -23821,13 +23891,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (OldNotificationMessage is not null)
             {
 
-                var OnNotificationMessageUpdatedLocal = OnNotificationMessageUpdated;
-                if (OnNotificationMessageUpdatedLocal is not null)
-                    await OnNotificationMessageUpdatedLocal.Invoke(Timestamp.Now,
-                                                            NotificationMessage,
-                                                            OldNotificationMessage,
-                                                            eventTrackingId,
-                                                            CurrentUserId);
+                var now = Timestamp.Now;
+                await LogEvent(
+                          OnNotificationMessageUpdated,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              now,
+                              NotificationMessage,
+                              OldNotificationMessage,
+                              eventTrackingId,
+                              CurrentUserId
+                          )
+                      );
 
                 await SendNotifications(NotificationMessage,
                                         updateNotificationMessage_MessageType,
@@ -23842,12 +23916,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             else
             {
 
-                var OnNotificationMessageAddedLocal = OnNotificationMessageAdded;
-                if (OnNotificationMessageAddedLocal is not null)
-                    await OnNotificationMessageAddedLocal.Invoke(Timestamp.Now,
-                                                          NotificationMessage,
-                                                          eventTrackingId,
-                                                          CurrentUserId);
+                var now = Timestamp.Now;
+                await LogEvent(
+                          OnNotificationMessageAdded,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              now,
+                              NotificationMessage,
+                              eventTrackingId,
+                              CurrentUserId
+                          )
+                      );
 
                 await SendNotifications(NotificationMessage,
                                         addNotificationMessage_MessageType,
@@ -23979,13 +24057,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             NotificationMessage.CopyAllLinkedDataFromBase(OldNotificationMessage);
 
 
-            var OnNotificationMessageUpdatedLocal = OnNotificationMessageUpdated;
-            if (OnNotificationMessageUpdatedLocal is not null)
-                await OnNotificationMessageUpdatedLocal.Invoke(Timestamp.Now,
-                                                        NotificationMessage,
-                                                        OldNotificationMessage,
-                                                        eventTrackingId,
-                                                        CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnNotificationMessageUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          NotificationMessage,
+                          OldNotificationMessage,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(NotificationMessage,
                                     updateNotificationMessage_MessageType,
@@ -24093,13 +24175,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             NewNotificationMessage.CopyAllLinkedDataFromBase(OldNotificationMessage);
 
 
-            var OnNotificationMessageUpdatedLocal = OnNotificationMessageUpdated;
-            if (OnNotificationMessageUpdatedLocal is not null)
-                await OnNotificationMessageUpdatedLocal.Invoke(Timestamp.Now,
-                                                        NewNotificationMessage,
-                                                        OldNotificationMessage,
-                                                        eventTrackingId,
-                                                        CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnNotificationMessageUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          NewNotificationMessage,
+                          OldNotificationMessage,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(NewNotificationMessage,
                                     updateNotificationMessage_MessageType,
@@ -24283,12 +24369,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 notificationMessages.Remove(NotificationMessage.Id);
 
 
-                var OnNotificationMessageRemovedLocal = OnNotificationMessageRemoved;
-                if (OnNotificationMessageRemovedLocal is not null)
-                    await OnNotificationMessageRemovedLocal.Invoke(Timestamp.Now,
-                                                            NotificationMessage,
-                                                            eventTrackingId,
-                                                            CurrentUserId);
+                var now = Timestamp.Now;
+                await LogEvent(
+                          OnNotificationMessageRemoved,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              now,
+                              NotificationMessage,
+                              eventTrackingId,
+                              CurrentUserId
+                          )
+                      );
 
                 await SendNotifications(NotificationMessage,
                                         removeNotificationMessage_MessageType,
@@ -25148,12 +25238,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnAdded?.Invoke(Organization,
                             eventTrackingId);
 
-            var OnOrganizationAddedLocal = OnOrganizationAdded;
-            if (OnOrganizationAddedLocal is not null)
-                await OnOrganizationAddedLocal.Invoke(Timestamp.Now,
-                                                      Organization,
-                                                      eventTrackingId,
-                                                      CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnOrganizationAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          Organization,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(Organization,
                                     addOrganization_MessageType,
@@ -25376,12 +25470,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnAdded?.Invoke(Organization,
                             eventTrackingId);
 
-            var OnOrganizationAddedLocal = OnOrganizationAdded;
-            if (OnOrganizationAddedLocal is not null)
-                await OnOrganizationAddedLocal.Invoke(Timestamp.Now,
-                                                      Organization,
-                                                      eventTrackingId,
-                                                      CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnOrganizationAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          Organization,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(Organization,
                                     addOrganizationIfNotExists_MessageType,
@@ -25604,6 +25702,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             organizations.TryAdd(Organization.Id, Organization);
+            var now = Timestamp.Now;
 
             if (OldOrganization is null)
             {
@@ -25611,12 +25710,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 OnAdded?.Invoke(Organization,
                                 eventTrackingId);
 
-                var OnOrganizationAddedLocal = OnOrganizationAdded;
-                if (OnOrganizationAddedLocal is not null)
-                    await OnOrganizationAddedLocal.Invoke(Timestamp.Now,
-                                                          Organization,
-                                                          eventTrackingId,
-                                                          CurrentUserId);
+                await LogEvent(
+                          OnOrganizationAdded,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              now,
+                              Organization,
+                              eventTrackingId,
+                              CurrentUserId
+                          )
+                      );
 
                 await SendNotifications(Organization,
                                         addOrganization_MessageType,
@@ -25637,13 +25739,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnUpdated?.Invoke(Organization,
                               eventTrackingId);
 
-            var OnOrganizationUpdatedLocal = OnOrganizationUpdated;
-            if (OnOrganizationUpdatedLocal is not null)
-                await OnOrganizationUpdatedLocal.Invoke(Timestamp.Now,
-                                                        Organization,
-                                                        OldOrganization,
-                                                        eventTrackingId,
-                                                        CurrentUserId);
+            await LogEvent(
+                      OnOrganizationUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          Organization,
+                          OldOrganization,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(Organization,
                                     updateOrganization_MessageType,
@@ -25937,13 +26042,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnUpdated?.Invoke(Organization,
                               eventTrackingId);
 
-            var OnOrganizationUpdatedLocal = OnOrganizationUpdated;
-            if (OnOrganizationUpdatedLocal is not null)
-                await OnOrganizationUpdatedLocal.Invoke(Timestamp.Now,
-                                                        Organization,
-                                                        OldOrganization,
-                                                        eventTrackingId,
-                                                        CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnOrganizationUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          Organization,
+                          OldOrganization,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(Organization,
                                     updateOrganization_MessageType,
@@ -26089,13 +26198,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnUpdated?.Invoke(updatedOrganization,
                               eventTrackingId);
 
-            var OnOrganizationUpdatedLocal = OnOrganizationUpdated;
-            if (OnOrganizationUpdatedLocal is not null)
-                await OnOrganizationUpdatedLocal.Invoke(Timestamp.Now,
-                                                        updatedOrganization,
-                                                        Organization,
-                                                        eventTrackingId,
-                                                        CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnOrganizationUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          updatedOrganization,
+                          Organization,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(updatedOrganization,
                                     updateOrganization_MessageType,
@@ -26307,12 +26420,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OnDeleted?.Invoke(Organization,
                               eventTrackingId);
 
-            var OnOrganizationDeletedLocal = OnOrganizationDeleted;
-            if (OnOrganizationDeletedLocal is not null)
-                await OnOrganizationDeletedLocal.Invoke(Timestamp.Now,
-                                                        Organization,
-                                                        eventTrackingId,
-                                                        CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnOrganizationDeleted,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          Organization,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(Organization,
                                     parentOrganizations,
@@ -27275,12 +27392,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             organizationGroups.TryAdd(OrganizationGroup.Id, OrganizationGroup);
 
 
-            var OnOrganizationGroupAddedLocal = OnOrganizationGroupAdded;
-            if (OnOrganizationGroupAddedLocal is not null)
-                await OnOrganizationGroupAddedLocal.Invoke(Timestamp.Now,
-                                                           OrganizationGroup,
-                                                           eventTrackingId,
-                                                           CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnOrganizationGroupAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          OrganizationGroup,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(OrganizationGroup,
                                     addUser_MessageType,
@@ -27388,12 +27509,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             organizationGroups.TryAdd(OrganizationGroup.Id, OrganizationGroup);
 
-            var OnOrganizationGroupAddedLocal = OnOrganizationGroupAdded;
-            if (OnOrganizationGroupAddedLocal is not null)
-                await OnOrganizationGroupAddedLocal.Invoke(Timestamp.Now,
-                                                           OrganizationGroup,
-                                                           eventTrackingId,
-                                                           CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnOrganizationGroupAdded,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          OrganizationGroup,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(OrganizationGroup,
                                     addOrganizationGroupIfNotExists_MessageType,
@@ -27509,13 +27634,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (OldOrganizationGroup is not null)
             {
 
-                var OnOrganizationGroupUpdatedLocal = OnOrganizationGroupUpdated;
-                if (OnOrganizationGroupUpdatedLocal is not null)
-                    await OnOrganizationGroupUpdatedLocal.Invoke(Timestamp.Now,
-                                                                 OrganizationGroup,
-                                                                 OldOrganizationGroup,
-                                                                 eventTrackingId,
-                                                                 CurrentUserId);
+                var now = Timestamp.Now;
+                await LogEvent(
+                          OnOrganizationGroupUpdated,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              now,
+                              OrganizationGroup,
+                              OldOrganizationGroup,
+                              eventTrackingId,
+                              CurrentUserId
+                          )
+                      );
 
                 await SendNotifications(OrganizationGroup,
                                         updateOrganizationGroup_MessageType,
@@ -27530,12 +27659,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             else
             {
 
-                var OnOrganizationGroupAddedLocal = OnOrganizationGroupAdded;
-                if (OnOrganizationGroupAddedLocal is not null)
-                    await OnOrganizationGroupAddedLocal.Invoke(Timestamp.Now,
-                                                               OrganizationGroup,
-                                                               eventTrackingId,
-                                                               CurrentUserId);
+                var now = Timestamp.Now;
+                await LogEvent(
+                          OnOrganizationGroupAdded,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              now,
+                              OrganizationGroup,
+                              eventTrackingId,
+                              CurrentUserId
+                          )
+                      );
 
                 await SendNotifications(OrganizationGroup,
                                         addOrganizationGroup_MessageType,
@@ -27667,13 +27800,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OrganizationGroup.CopyAllLinkedDataFromBase(OldOrganizationGroup);
 
 
-            var OnOrganizationGroupUpdatedLocal = OnOrganizationGroupUpdated;
-            if (OnOrganizationGroupUpdatedLocal is not null)
-                await OnOrganizationGroupUpdatedLocal.Invoke(Timestamp.Now,
-                                                             OrganizationGroup,
-                                                             OldOrganizationGroup,
-                                                             eventTrackingId,
-                                                             CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnOrganizationGroupUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          OrganizationGroup,
+                          OldOrganizationGroup,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(OrganizationGroup,
                                     updateOrganizationGroup_MessageType,
@@ -27781,13 +27918,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             NewOrganizationGroup.CopyAllLinkedDataFromBase(OldOrganizationGroup);
 
 
-            var OnOrganizationGroupUpdatedLocal = OnOrganizationGroupUpdated;
-            if (OnOrganizationGroupUpdatedLocal is not null)
-                await OnOrganizationGroupUpdatedLocal.Invoke(Timestamp.Now,
-                                                             NewOrganizationGroup,
-                                                             OldOrganizationGroup,
-                                                             eventTrackingId,
-                                                             CurrentUserId);
+            var now = Timestamp.Now;
+            await LogEvent(
+                      OnOrganizationGroupUpdated,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          now,
+                          NewOrganizationGroup,
+                          OldOrganizationGroup,
+                          eventTrackingId,
+                          CurrentUserId
+                      )
+                  );
 
             await SendNotifications(NewOrganizationGroup,
                                     updateOrganizationGroup_MessageType,
@@ -27929,12 +28070,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 organizationGroups.TryRemove(OrganizationGroup.Id, out _);
 
 
-                var OnOrganizationGroupRemovedLocal = OnOrganizationGroupRemoved;
-                if (OnOrganizationGroupRemovedLocal is not null)
-                    await OnOrganizationGroupRemovedLocal.Invoke(Timestamp.Now,
-                                                                 OrganizationGroup,
-                                                                 eventTrackingId,
-                                                                 CurrentUserId);
+                var now = Timestamp.Now;
+                await LogEvent(
+                          OnOrganizationGroupRemoved,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              now,
+                              OrganizationGroup,
+                              eventTrackingId,
+                              CurrentUserId
+                          )
+                      );
 
                 await SendNotifications(OrganizationGroup,
                                         removeOrganizationGroup_MessageType,
@@ -30785,6 +30930,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (private)  LogEvent     (Logger, LogHandler, ...)
 
+        /// <summary>
+        /// Raise one of the events of this API: every subscriber is called and
+        /// waited for, one after another, and one that fails is reported to
+        /// HandleErrors.
+        /// </summary>
+        /// <remarks>
+        /// The events about users, API keys, user groups, notification
+        /// messages, organizations and organization groups were raised by
+        /// calling them and awaiting what came back. A multicast delegate that
+        /// returns a Task returns the task of its last subscriber, and only
+        /// that one: the subscribers before it were started and never waited
+        /// for, and what they threw afterwards nobody saw. One that threw
+        /// before it had a task to return ended the call there, and the
+        /// subscribers behind it were never called at all.
+        ///
+        /// <b>What a subscriber throws does not reach whoever made the
+        /// change</b> - AddUser, UpdateOrganization and the rest. Each of these
+        /// events is raised once the change is in the database file and in
+        /// memory: it tells of a change, it cannot stop one, and nothing is
+        /// undone when a subscriber fails. Let through, the failure became the
+        /// answer about a change that had been made all the same - AddUser
+        /// reported an error for a user who stayed, and a second try was told
+        /// that the user already exists - and it skipped whatever the method
+        /// does after the event: the sign-up e-mail of a new user, the
+        /// notifications. Nor was there a rule to keep. Whether a failure got
+        /// through depended on where its subscriber stood in the list, and on
+        /// whether it threw before or after its first await. A subscriber
+        /// whose failure has to have consequences has to see to them itself.
+        ///
+        /// <b>Reported to HandleErrors</b>, which writes to DebugX unless an
+        /// application overrides it, as the other failures of this API do.
+        /// There is no ILogger to hand over instead: the constructor takes a
+        /// LoggerFactory, and does nothing with it.
+        ///
+        /// <b>The arguments are worked out before the call</b>, the timestamp
+        /// above all. The lambda handed in runs once for every subscriber, so
+        /// a Timestamp.Now inside it would tell each subscriber the time of its
+        /// own turn - later behind a slow one - and not the time of the change.
+        /// </remarks>
         private Task LogEvent<TDelegate>(TDelegate?                                         Logger,
                                          Func<TDelegate, Task>                              LogHandler,
                                          [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
