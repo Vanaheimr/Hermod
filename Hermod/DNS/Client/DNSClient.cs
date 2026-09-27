@@ -541,8 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                      Timeout,
                      RecursionDesired,
                      ForceUpdate,
-                     ChainVisited:  null,
-                     HopsLeft:      MaxCNAMEFollows,
+                     Chase:  null,
                      CancellationToken);
 
         #endregion
@@ -553,28 +552,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The body of <see cref="Query(DNSServiceName, IEnumerable{DNSResourceRecordTypes}, TimeSpan?, Boolean?, Boolean?, CancellationToken)"/>,
         /// carrying the state of an alias chain being followed.
         /// </summary>
-        /// <param name="ChainVisited">
-        /// The names this chain has already asked about, or null to start one. Following
-        /// an alias is a fresh call of this method, so a set created here would be
-        /// created again at every hop and could never hold more than the two names one
-        /// hop knows about — which is why a self-referential alias was caught and two
+        /// <param name="Chase">
+        /// The alias chase this call is part of, or null to begin one. Following an alias
+        /// is a fresh call of this method, so neither the set of names already asked
+        /// about nor what is left of the budget can live in a local: a set created here
+        /// is created again at every hop and could never hold more than the two names one
+        /// hop knows about, which is why a self-referential alias was caught and two
         /// aliases pointing at each other were not.
-        /// </param>
-        /// <param name="HopsLeft">
-        /// How much further the chain may be followed. RFC 1035 §7.1: "The amount of work
-        /// which a resolver will do in response to a client request must be limited to
-        /// guard against errors in the database, such as circular CNAME references", by a
-        /// counter "decremented whenever the resolver performs any action ... If the
-        /// counter passes zero, the request is terminated". Counted across the descent
-        /// rather than within one call, which is the difference that makes it a bound.
         /// </param>
         private async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                           IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                           TimeSpan?                            Timeout,
                                           Boolean?                             RecursionDesired,
                                           Boolean?                             ForceUpdate,
-                                          HashSet<String>?                     ChainVisited,
-                                          Int32                                HopsLeft,
+                                          AliasChase?                          Chase,
                                           CancellationToken                    CancellationToken)
         {
 
@@ -1010,15 +1001,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         var currentResponse   = firstResponse;
                         var currentName       = DNSServiceName.ToString();
 
-                        // The chain's, not this call's. A set made here is made again at
-                        // every hop, and a chain is what has to be remembered.
-                        var visited           = ChainVisited ?? new HashSet<String>(StringComparer.OrdinalIgnoreCase);
+                        // The chain's, not this call's. Anything made here is made again
+                        // at every hop, and a chain is what has to be remembered.
+                        var chase             = Chase ?? new AliasChase(MaxCNAMEFollows);
 
-                        visited.Add(currentName);
+                        chase.Visited.Add(currentName);
 
-                        // Each iteration hands the rest of the chain to another call, so
-                        // this loop can only spend what is left of the budget.
-                        for (var hop = 0; hop < HopsLeft; hop++)
+                        // One counter for the descent, spent by whichever call takes the
+                        // hop. Handing a budget down by value bounds the recursion without
+                        // bounding the work: each call would get its own allowance, and a
+                        // chain of eight names would cost 2^8 queries rather than eight.
+                        while (chase.HopsLeft > 0)
                         {
 
                             // First check for CNAME
@@ -1067,24 +1060,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                             }
 
-                            if (cnameTarget is null || !visited.Add(cnameTarget))
+                            if (cnameTarget is null || !chase.Visited.Add(cnameTarget))
                                 break;   // No CNAME/DNAME or loop detected
 
+                            chase.HopsLeft--;
                             currentName = cnameTarget;
 
-                            // The set and the remaining budget travel with the hop. Without
-                            // them this call is where the bound stopped applying: RFC 1034
-                            // §5.2.2 asks for "alias loops ... caught and an error condition
-                            // passed back to the client", and a two-name cycle was followed
-                            // for as long as the peer was willing to answer.
+                            // The chase travels with the hop. Without it this call is where
+                            // the bound stopped applying: RFC 1034 §5.2.2 asks for "alias
+                            // loops ... caught and an error condition passed back to the
+                            // client", and a two-name cycle was followed for as long as the
+                            // peer was willing to answer.
                             var followUpResponse = await Query(
                                                              DNSServiceName.Parse(cnameTarget),
                                                              resourceRecordTypes,
                                                              Timeout,
                                                              RecursionDesired,
                                                              ForceUpdate,
-                                                             ChainVisited:  visited,
-                                                             HopsLeft:      HopsLeft - hop - 1,
+                                                             Chase:  chase,
                                                              CancellationToken
                                                          ).ConfigureAwait(false);
 
@@ -1233,6 +1226,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => RemoteCertificateValidator is DNSServerCertificateValidationHandler validator
                    ? validator(DNSServer, Certificate, Chain, PolicyErrors)
                    : TLSValidationExtensions.AskTheOS(this, Certificate, Chain, DNSServer, PolicyErrors);
+
+        #endregion
+
+        #region (private class) AliasChase
+
+        /// <summary>
+        /// What one client request's alias chase has spent, shared by every call in the
+        /// descent.
+        /// </summary>
+        /// <remarks>
+        /// RFC 1035 §7.1: "The amount of work which a resolver will do in response to a
+        /// client request must be limited to guard against errors in the database, such
+        /// as circular CNAME references, and operational problems", by a counter that is
+        /// "decremented whenever the resolver performs any action ... If the counter
+        /// passes zero, the request is terminated with a temporary error."
+        /// <para>
+        /// One counter, decremented by whoever acts — which is why this is an object and
+        /// not two parameters. A budget passed down by value gives every call in the
+        /// descent its own allowance instead, so the recursion terminates while the work
+        /// grows as 2^n in the length of the chain.
+        /// </para>
+        /// </remarks>
+        private sealed class AliasChase(Int32 Budget)
+        {
+
+            /// <summary>The names this request has already asked about.</summary>
+            public HashSet<String>  Visited    { get; } = new (StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>How many more hops the whole descent may take.</summary>
+            public Int32            HopsLeft   { get; set; } = Budget;
+
+        }
 
         #endregion
 
