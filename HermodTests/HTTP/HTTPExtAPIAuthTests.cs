@@ -234,6 +234,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
+        /// <summary>
+        /// One sign-in through AUTH ~/users/{UserId}, the other door among the
+        /// URL templates: the login in the path, the password in a JSON body.
+        /// </summary>
+        private static async Task<(HttpStatusCode Status, String Text)> AtAuthUsers(HttpClient  Client,
+                                                                                   String      Login,
+                                                                                   String      Password)
+        {
+
+            using var request  = new HttpRequestMessage(new HttpMethod("AUTH"), $"accounts/users/{Uri.EscapeDataString(Login)}") {
+                                     Content = new StringContent(JsonConvert.SerializeObject(new { password = Password }), Encoding.UTF8, "application/json")
+                                 };
+
+            using var response = await Client.SendAsync(request);
+
+            return (response.StatusCode, await response.Content.ReadAsStringAsync());
+
+        }
+
+        /// <summary>
+        /// Every turn at verifying a password taken, as by sign-ins in the middle
+        /// of their hashes: the number taken, to give back.
+        /// </summary>
+        private static Int32 TakeEveryTurn(HTTPExtAPI API, out SemaphoreSlim Verifiers)
+        {
+
+            Verifiers  = typeof(HTTPExtAPI).GetField("passwordVerifiers", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(API) as SemaphoreSlim
+                             ?? throw new InvalidOperationException("The ceiling of password verifications is not where this test looks for it!");
+
+            var taken  = 0;
+
+            while (Verifiers.Wait(0))
+                taken++;
+
+            return taken;
+
+        }
+
         #endregion
 
 
@@ -888,6 +926,94 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 if (taken > 0)
                     verifiers.Release(taken);
+
+                await StopAsync(server, client, directory);
+
+            }
+
+        }
+
+        #endregion
+
+        #region AuthUsers_IsRationedLikeTheSignInRoute()
+
+        /// <summary>
+        /// AUTH ~/users/{UserId} is a sign-in as well - the login in the path,
+        /// the password in a JSON body, a session at the end - and it verified
+        /// every password it was sent, as fast as they came, as the form did.
+        /// </summary>
+        /// <remarks>
+        /// Once the ration is spent, the right password is refused too. Before,
+        /// it signed in.
+        /// </remarks>
+        [Test]
+        public async Task AuthUsers_IsRationedLikeTheSignInRoute()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "nina", "Correct-Horse-15");
+
+                for (var attempt = 1; attempt <= 10; attempt++)
+                    Assert.That((await AtAuthUsers(client, "nina", "Wrong-Horse-" + attempt)).Status,
+                                Is.Not.EqualTo(HttpStatusCode.TooManyRequests).And.Not.EqualTo(HttpStatusCode.Created),
+                                $"attempt {attempt}");
+
+                var right = await AtAuthUsers(client, "nina", "Correct-Horse-15");
+
+                Assert.That(right.Status,
+                            Is.EqualTo(HttpStatusCode.TooManyRequests),
+                            "and once the ration is spent the right password does not get through either: " + right.Text);
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region AuthUsers_VerifiesOnlyInItsTurn()
+
+        /// <summary>
+        /// AUTH ~/users/{UserId} verifies in its turn, under the one ceiling of
+        /// password verifications, as the form and auth/login do.
+        /// </summary>
+        [Test]
+        public async Task AuthUsers_VerifiesOnlyInItsTurn()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            SemaphoreSlim? verifiers = null;
+            var taken = 0;
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "olga", "Correct-Horse-16");
+
+                taken = TakeEveryTurn(api, out verifiers);
+
+                Assert.That(taken, Is.EqualTo(HTTPExtAPI.DefaultPasswordVerifiers));
+
+                var answer = await AtAuthUsers(client, "olga", "Correct-Horse-16");
+
+                Assert.That(answer.Status,
+                            Is.EqualTo(HttpStatusCode.ServiceUnavailable),
+                            "no turn came in time, so nothing was verified: " + answer.Text);
+
+            }
+            finally
+            {
+
+                if (taken > 0)
+                    verifiers!.Release(taken);
 
                 await StopAsync(server, client, directory);
 
