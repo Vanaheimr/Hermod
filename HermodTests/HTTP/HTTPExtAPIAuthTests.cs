@@ -21,6 +21,7 @@ using System.Net;
 using System.Text;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Diagnostics;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -231,6 +232,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                          ]));
 
             return response.StatusCode;
+
+        }
+
+        /// <summary>
+        /// The same sign-in at the form, and what the answer said.
+        /// </summary>
+        private static async Task<(HttpStatusCode Status, String Text)> AnswerAtTheForm(HttpClient  Client,
+                                                                                       String      Login,
+                                                                                       String      Password)
+        {
+
+            using var response = await Client.PostAsync("accounts/login",
+                                                         new FormUrlEncodedContent([
+                                                             new KeyValuePair<String, String>("login",     Login),
+                                                             new KeyValuePair<String, String>("password",  Password)
+                                                         ]));
+
+            return (response.StatusCode, await response.Content.ReadAsStringAsync());
 
         }
 
@@ -1007,6 +1026,261 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(answer.Status,
                             Is.EqualTo(HttpStatusCode.ServiceUnavailable),
                             "no turn came in time, so nothing was verified: " + answer.Text);
+
+            }
+            finally
+            {
+
+                if (taken > 0)
+                    verifiers!.Release(taken);
+
+                await StopAsync(server, client, directory);
+
+            }
+
+        }
+
+        #endregion
+
+        #region SignInForm_AnswersAnUnknownLoginAsAWrongPassword() / AuthUsers_AnswersAnUnknownLoginAsAWrongPassword()
+
+        /// <summary>
+        /// Whether an account exists is not told to somebody who does not know
+        /// its password: at the form, a login nobody has is answered as a wrong
+        /// password is, word for word.
+        /// </summary>
+        /// <remarks>
+        /// The form answered 404 "Unknown login!" for the one and 401 "Invalid
+        /// password!" for the other. auth/login has said one sentence for both
+        /// all along.
+        /// </remarks>
+        [Test]
+        public async Task SignInForm_AnswersAnUnknownLoginAsAWrongPassword()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "paul", "Correct-Horse-17");
+
+                var unknown  = await AnswerAtTheForm(client, "nobody-here", "Wrong-Horse-1");
+                var wrong    = await AnswerAtTheForm(client, "paul",        "Wrong-Horse-1");
+
+                Assert.Multiple(() => {
+                    Assert.That(unknown.Status,  Is.EqualTo(HttpStatusCode.Unauthorized));
+                    Assert.That(unknown.Status,  Is.EqualTo(wrong.Status),  "the same status");
+                    Assert.That(unknown.Text,    Is.EqualTo(wrong.Text),    "and the same words");
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        /// <summary>
+        /// The same at AUTH ~/users/{UserId}, which answered 404 for both and
+        /// said "Unknown login!" for the one and "Invalid password!" for the
+        /// other.
+        /// </summary>
+        [Test]
+        public async Task AuthUsers_AnswersAnUnknownLoginAsAWrongPassword()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "quinn", "Correct-Horse-18");
+
+                var unknown  = await AtAuthUsers(client, "nobody-here", "Wrong-Horse-1");
+                var wrong    = await AtAuthUsers(client, "quinn",       "Wrong-Horse-1");
+
+                Assert.Multiple(() => {
+                    Assert.That(unknown.Status,  Is.EqualTo(wrong.Status),  "the same status");
+                    Assert.That(unknown.Text,    Is.EqualTo(wrong.Text),    "and the same words");
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region SignInForm_TakesAsLongOverAnUnknownLogin() / AuthUsers_TakesAsLongOverAnUnknownLogin()
+
+        /// <summary>
+        /// How long an answer takes over a login nobody has, against how long
+        /// it takes over a wrong password: the quickest of three of each, after
+        /// one of each to warm up - eight attempts, within the ration of ten.
+        /// </summary>
+        private static async Task<(TimeSpan Unknown, TimeSpan Wrong)> Timed(Func<String, String, Task> SignIn,
+                                                                           String                     Known)
+        {
+
+            await SignIn(Known,         "Wrong-Horse-0");
+            await SignIn("nobody-here", "Wrong-Horse-0");
+
+            var unknown  = new List<TimeSpan>();
+            var wrong    = new List<TimeSpan>();
+            var watch    = new Stopwatch();
+
+            for (var attempt = 1; attempt <= 3; attempt++)
+            {
+
+                watch.Restart();
+                await SignIn(Known, "Wrong-Horse-" + attempt);
+                wrong.Add(watch.Elapsed);
+
+                watch.Restart();
+                await SignIn("nobody-here", "Wrong-Horse-" + attempt);
+                unknown.Add(watch.Elapsed);
+
+            }
+
+            return (unknown.Min(), wrong.Min());
+
+        }
+
+        /// <summary>
+        /// A login nobody has costs the hash a wrong password costs, so that the
+        /// time the answer takes does not tell the one from the other.
+        /// </summary>
+        /// <remarks>
+        /// The one assertion about sign-ins here that is a stopwatch, because
+        /// time is what it is about - and so a generous one. A hash is 600 000
+        /// rounds of PBKDF2, tens of milliseconds at the least, and an answer
+        /// without one takes about one: an unknown login has to take at least a
+        /// quarter of what a wrong password takes, which it cannot without the
+        /// hash and does with it, on any machine these tests run on.
+        /// </remarks>
+        [Test]
+        public async Task SignInForm_TakesAsLongOverAnUnknownLogin()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "rosa", "Correct-Horse-19");
+
+                var (unknown, wrong) = await Timed((login, password) => AtTheForm(client, login, password), "rosa");
+
+                Assert.That(unknown, Is.GreaterThanOrEqualTo(wrong / 4),
+                            $"an unknown login took {unknown.TotalMilliseconds:F1} ms, a wrong password {wrong.TotalMilliseconds:F1} ms");
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        /// <summary>
+        /// The same at AUTH ~/users/{UserId}.
+        /// </summary>
+        [Test]
+        public async Task AuthUsers_TakesAsLongOverAnUnknownLogin()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "sven", "Correct-Horse-20");
+
+                var (unknown, wrong) = await Timed((login, password) => AtAuthUsers(client, login, password), "sven");
+
+                Assert.That(unknown, Is.GreaterThanOrEqualTo(wrong / 4),
+                            $"an unknown login took {unknown.TotalMilliseconds:F1} ms, a wrong password {wrong.TotalMilliseconds:F1} ms");
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region SignInForm_VerifiesAnUnknownLoginInItsTurn() / AuthUsers_VerifiesAnUnknownLoginInItsTurn()
+
+        /// <summary>
+        /// A login nobody has is verified against a password nobody has, in its
+        /// turn like any other, so that the time an answer takes does not say
+        /// whether the account exists either.
+        /// </summary>
+        /// <remarks>
+        /// Behaviour and not a stopwatch, as for the ceiling itself: with every
+        /// turn taken, an unknown login waits and is told the server is busy,
+        /// as a known one is. It used to be answered at once, without a hash.
+        /// </remarks>
+        [Test]
+        public async Task SignInForm_VerifiesAnUnknownLoginInItsTurn()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            SemaphoreSlim? verifiers = null;
+            var taken = 0;
+
+            try
+            {
+
+                taken = TakeEveryTurn(api, out verifiers);
+
+                Assert.That(await AtTheForm(client, "nobody-here", "Wrong-Horse-1"),
+                            Is.EqualTo(HttpStatusCode.ServiceUnavailable),
+                            "an unknown login waited for a turn, as a known one does");
+
+            }
+            finally
+            {
+
+                if (taken > 0)
+                    verifiers!.Release(taken);
+
+                await StopAsync(server, client, directory);
+
+            }
+
+        }
+
+        /// <summary>
+        /// The same at AUTH ~/users/{UserId}.
+        /// </summary>
+        [Test]
+        public async Task AuthUsers_VerifiesAnUnknownLoginInItsTurn()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            SemaphoreSlim? verifiers = null;
+            var taken = 0;
+
+            try
+            {
+
+                taken = TakeEveryTurn(api, out verifiers);
+
+                var answer = await AtAuthUsers(client, "nobody-here", "Wrong-Horse-1");
+
+                Assert.That(answer.Status,
+                            Is.EqualTo(HttpStatusCode.ServiceUnavailable),
+                            "an unknown login waited for a turn, as a known one does: " + answer.Text);
 
             }
             finally

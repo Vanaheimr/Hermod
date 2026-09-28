@@ -5112,22 +5112,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         }
                     }
 
-                    if (possibleUsers.Count == 0)
-                        return
-                            new HTTPResponse.Builder(Request) {
-                                HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                Server          = HTTPServer?.HTTPServerName,
-                                ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                Content         = new JObject(
-                                                      new JProperty("@context",     SignInOutContext),
-                                                      new JProperty("property",     "login"),
-                                                      new JProperty("description",  "Unknown login!")
-                                                  ).ToString().ToUTF8Bytes(),
-                                CacheControl    = "private",
-                                Connection      = ConnectionType.KeepAlive
-                            }.AsImmutable;
-
-
                     var validUsers = new HashSet<IUser>();
 
                     // In its turn, as at auth/login: how many passwords are
@@ -5137,6 +5121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     try
                     {
+
                         foreach (var possibleUser in possibleUsers)
                         {
                             if (loginPasswords.TryGetValue(possibleUser.Id, out var _loginPassword) &&
@@ -5145,12 +5130,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 validUsers.Add(possibleUser);
                             }
                         }
+
+                        // A login nobody has costs the hash a wrong password costs,
+                        // as at auth/login, so that the time the answer takes does
+                        // not say whether the account exists.
+                        if (possibleUsers.Count == 0)
+                            unknownLoginPassword.Verify(password);
+
                     }
                     finally
                     {
                         ReleaseAPasswordVerifier();
                     }
 
+                    // One answer for a login nobody has and for a wrong password,
+                    // word for word, as auth/login gives: whether an account
+                    // exists is not told to somebody who does not know its
+                    // password. It was 404 "Unknown login!" for the one.
                     if (validUsers.Count == 0)
                         return
                             new HTTPResponse.Builder(Request) {
@@ -5160,7 +5156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
                                                       new JProperty("property",     "login"),
-                                                      new JProperty("description",  "Invalid password!")
+                                                      new JProperty("description",  "Unknown login or wrong password.")
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
                                 Connection      = ConnectionType.KeepAlive
@@ -7205,21 +7201,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         }
                     }
 
-                    if (possibleUsers.Count == 0)
-                        return new HTTPResponse.Builder(request) {
-                                   HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                   Server          = HTTPServer?.HTTPServerName,
-                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                   Content         = JSONObject.Create(
-                                                         new JProperty("@context",     SignInOutContext),
-                                                         new JProperty("property",     "login"),
-                                                         new JProperty("description",  "Unknown login!")
-                                                     ).ToString().ToUTF8Bytes(),
-                                   CacheControl    = "private",
-                                   Connection      = ConnectionType.KeepAlive
-                               }.AsImmutable;
-
-
                     var validUsers = new HashSet<IUser>();
 
                     // In its turn, as at auth/login and at the form: how many
@@ -7230,6 +7211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     try
                     {
+
                         foreach (var possibleUser in possibleUsers)
                         {
                             if (loginPasswords.TryGetValue(possibleUser.Id, out loginPassword) &&
@@ -7238,12 +7220,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 validUsers.Add(possibleUser);
                             }
                         }
+
+                        // A login nobody has costs the hash a wrong password costs,
+                        // so that the time the answer takes does not say whether
+                        // the account exists.
+                        if (possibleUsers.Count == 0)
+                            unknownLoginPassword.Verify(password);
+
                     }
                     finally
                     {
                         ReleaseAPasswordVerifier();
                     }
 
+                    // One answer for a login nobody has and for a wrong password,
+                    // word for word - the 404 this door has always given for a
+                    // wrong password, so that nothing that asks it has to learn a
+                    // new status. It said "Unknown login!" for the one.
                     if (validUsers.Count == 0)
                         return new HTTPResponse.Builder(request) {
                                 HTTPStatusCode  = HTTPStatusCode.NotFound,
@@ -7252,7 +7245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 Content         = JSONObject.Create(
                                                       new JProperty("@context",     SignInOutContext),
                                                       new JProperty("property",     "login"),
-                                                      new JProperty("description",  "Invalid password!")
+                                                      new JProperty("description",  "Unknown login or wrong password.")
                                                   ).ToString().ToUTF8Bytes(),
                                 CacheControl    = "private",
                                 Connection      = ConnectionType.KeepAlive
