@@ -346,6 +346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // Access-Control-Allow-Methods:  GET
             // Access-Control-Allow-Headers:  Authorization
             // WWWAuthenticate:               Basic realm="Access to the staging site"
+            // Content-Length:                0
             // Connection:                    close
 
             Assert.That(response.Contains("HTTP/1.1 401 Unauthorized"), Is.True, response);
@@ -354,7 +355,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
             Assert.That(httpResponse.WWWAuthenticate.ToString().Trim(), Is.EqualTo(@"Basic realm=""Access to the staging site"", charset=""UTF-8"""));
-            Assert.That(httpResponse.ContentLength, Is.Null);
+
+            // A response without a body says so - see BodilessResponseTests.
+            Assert.That(httpResponse.ContentLength, Is.EqualTo(0));
 
         }
 
