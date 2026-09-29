@@ -409,6 +409,13 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   others on; anything else ends the connection at once with `GOAWAY
   INTERNAL_ERROR`, rather than leave it taking requests whose bodies nothing
   would send.
+- A write on a reset stream — a response body, a streamed chunk or its end, a
+  tunnel write — fails at once with an `OperationCanceledException` carrying the
+  stream's own token (the handler's), whether it was queued before the reset or
+  comes after it, rather than wait for the connection to end; so does a write
+  after both sides have ended the stream. A handler that fails on a reset stream
+  gets no 500 either. The `CancellationToken` a write is given ends its wait,
+  not the write.
 - Closed-stream pruning; graceful shutdown (GOAWAY to every active connection).
 
 ### Parser fuzzing

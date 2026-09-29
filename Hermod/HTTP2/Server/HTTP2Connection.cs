@@ -1934,18 +1934,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Queue Data (and, if EndStream, a pending End-Stream marker) on
         /// Stream's outbound queue for <see cref="DataWriterLoopAsync"/> to send,
         /// and wake the loop so it notices without waiting for an unrelated
-        /// window/priority change. Returns once the data has actually been sent,
-        /// the stream was reset (<see cref="HTTP2Stream.Reset"/> drains the
-        /// queue), or the connection is tearing down (observes this connection's
-        /// own cancellation token) — mirroring the old direct-send loop this
-        /// replaced, which likewise only returned once bytes were actually on
-        /// the wire or the send was abandoned.
+        /// window/priority change. Returns once the data has actually been sent
+        /// — mirroring the old direct-send loop this replaced, which likewise
+        /// only returned once bytes were actually on the wire or the send was
+        /// abandoned.
+        ///
+        /// It is abandoned once the stream is closed, whether before this call
+        /// or while the data waits (<see cref="HTTP2OutboundQueue.AbandonAll"/>),
+        /// and the returned task is canceled then, at once: for a reset, with the
+        /// stream's own <see cref="HTTP2Stream.CancellationToken"/>, the token its
+        /// handler was given — as the rest of the connection treats a reset, the
+        /// write ends the handler as the handler's own check of that token would.
+        /// The task is canceled as well once the connection is tearing down (this
+        /// connection's own token), and once <paramref name="CancellationToken"/>,
+        /// the caller's, is. That one ends only the wait: the data stays queued,
+        /// and still goes out in order.
         /// </summary>
-        internal Task EnqueueOutboundAsync(HTTP2Stream Stream, byte[] Data, bool EndStream, List<(string Name, string Value)>? Trailers = null)
+        internal Task EnqueueOutboundAsync(HTTP2Stream Stream, byte[] Data, bool EndStream, List<(string Name, string Value)>? Trailers = null, CancellationToken CancellationToken = default)
         {
+
             var completion = Stream.OutboundQueue.EnqueueAsync(Data, EndStream, Trailers);
+
             SignalWriterWakeup();
-            return completion.WaitAsync(cancellationToken);
+
+            // One wait per token rather than one on a linked token: the
+            // cancellation then carries the token that fired, and the caller can
+            // tell its own from the connection's.
+            var sent = completion.WaitAsync(cancellationToken);
+
+            return CancellationToken.CanBeCanceled
+                       ? sent.WaitAsync(CancellationToken)
+                       : sent;
+
         }
 
         /// <summary>
@@ -2396,6 +2416,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 {
                     HTTP2EventSource.Log.HandlerFailed((int) Stream.StreamId, "streaming", ex.Message);
 
+                    // A reset stream is answered no more: nobody reads a 500 there,
+                    // its body could not be written, and an RST_STREAM of ours
+                    // would reset the stream a second time.
+                    if (Stream.WasReset)
+                        return;
+
                     // Only send a 500 if nothing has gone out yet — once headers (or
                     // body) are on the wire, the only honest signal left is RST_STREAM.
                     if (!response.HeadersSent)
@@ -2604,6 +2630,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             catch (Exception ex)
             {
                 HTTP2EventSource.Log.HandlerFailed((int) Stream.StreamId, "request", ex.Message);
+
+                // Not on a reset stream either, for the reason above: a handler
+                // that failed after the reset is reported, and that is all.
+                if (Stream.WasReset)
+                    return;
 
                 // Send a 500 Internal Server Error
                 var errorHeaders = new List<(string, string)>
@@ -2933,15 +2964,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Queue a chunk of tunnel data for the writer loop to send as DATA
         /// frame(s) on Stream — same queue, same priority-aware send order as an
         /// ordinary response body (<see cref="SendResponseAsync"/>); a tunnel
-        /// write is not privileged over a normal response's bytes.
+        /// write is not privileged over a normal response's bytes. So it fails
+        /// alike on a reset or closed stream, and CancellationToken, once
+        /// cancelled, keeps a chunk from being queued, or ends the wait for one
+        /// already queued (see <see cref="EnqueueOutboundAsync"/>).
         /// </summary>
         internal Task SendTunnelDataAsync(HTTP2Stream Stream, byte[] Data, CancellationToken CancellationToken)
         {
 
+            if (CancellationToken.IsCancellationRequested)
+                return Task.FromCanceled(CancellationToken);
+
             if (Data.Length == 0)
                 return Task.CompletedTask;
 
-            return EnqueueOutboundAsync(Stream, Data, EndStream: false);
+            return EnqueueOutboundAsync(Stream, Data, EndStream: false, CancellationToken: CancellationToken);
 
         }
 
@@ -2952,7 +2989,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// loop closes the stream locally once it actually sends that frame
         /// (same as it does for any other End-Stream marker); this method's own
         /// job is just to queue it and swallow the (best-effort) failure if the
-        /// peer or the connection is already gone.
+        /// peer or the connection is already gone — on a reset tunnel, at once.
         /// </summary>
         private async Task CompleteTunnelAsync(HTTP2Stream Stream)
         {

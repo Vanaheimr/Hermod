@@ -88,16 +88,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 throw new InvalidOperationException("WriteHeadersAsync must be called before WriteAsync");
             if (completed)
                 throw new InvalidOperationException("The response has already been completed");
+            if (CancellationToken.IsCancellationRequested)
+                return Task.FromCanceled(CancellationToken);
             if (Data.Length == 0)
                 return Task.CompletedTask;
 
-            return connection.EnqueueOutboundAsync(stream, Data, EndStream: false);
+            return connection.EnqueueOutboundAsync(stream, Data, EndStream: false, CancellationToken: CancellationToken);
         }
 
         public async Task CompleteAsync(IEnumerable<(string Name, string Value)>? Trailers = null, CancellationToken CancellationToken = default)
         {
             if (completed)
                 return;
+
+            // Before anything is done, so that a response not ended yet can still
+            // be ended — by the handler, or once it returns (EnsureCompletedAsync).
+            CancellationToken.ThrowIfCancellationRequested();
 
             // A handler that produced nothing still needs a valid response.
             if (!headersSent)
@@ -110,10 +116,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (trailerList is { Count: > 0 })
             {
                 HTTP2Connection.ValidateOutboundTrailers(stream.StreamId, trailerList);
-                await connection.EnqueueOutboundAsync(stream, [], EndStream: true, trailerList);
+                await connection.EnqueueOutboundAsync(stream, [], EndStream: true, trailerList, CancellationToken);
             }
             else
-                await connection.EnqueueOutboundAsync(stream, [], EndStream: true);
+                await connection.EnqueueOutboundAsync(stream, [], EndStream: true, CancellationToken: CancellationToken);
         }
 
         /// <summary>

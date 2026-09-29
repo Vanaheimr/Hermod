@@ -47,13 +47,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Send one response-body chunk as DATA frame(s). Awaiting the returned task
         /// waits until the chunk has actually been handed to the wire (backpressure).
+        /// Once the chunk never can be, because the stream was reset, the task fails
+        /// with an <see cref="OperationCanceledException"/> carrying the handler's
+        /// own token — at once, for a write that comes after the reset.
+        /// <paramref name="CancellationToken"/> ends the wait, not the write: a
+        /// chunk already queued still goes out, in order.
         /// </summary>
         Task WriteAsync(byte[] Data, CancellationToken CancellationToken = default);
 
         /// <summary>
         /// End the response. With trailers, they are sent as a trailing HEADERS
         /// block carrying END_STREAM (RFC 9113, Section 8.1); without, the stream is
-        /// simply ended. Idempotent — a second call is a no-op.
+        /// simply ended. Idempotent — a second call is a no-op. Waits, fails on a
+        /// reset stream and observes <paramref name="CancellationToken"/> as
+        /// <see cref="WriteAsync"/> does.
         /// </summary>
         Task CompleteAsync(IEnumerable<(string Name, string Value)>? Trailers = null, CancellationToken CancellationToken = default);
 

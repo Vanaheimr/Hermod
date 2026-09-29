@@ -31,8 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     ///
     /// Single-consumer (the writer loop) / multi-producer (response and tunnel
     /// tasks) — only <see cref="TakeChunk"/> and <see cref="AbandonAll"/> ever
-    /// remove items, and both only ever run on the writer loop's own thread of
-    /// execution, so they never race each other.
+    /// remove items: the one on the writer loop, the other on whichever task
+    /// closes the stream (the read loop, for an RST_STREAM). Every member takes
+    /// the same gate, so neither races the other, nor a producer.
     ///
     /// Public only because it's exposed as the type of <see cref="HTTP2Stream.OutboundQueue"/>;
     /// there's no reason for anything outside this assembly to construct or call
@@ -43,6 +44,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         private readonly object                   gate  = new();
         private readonly Queue<HTTP2OutboundItem>  items = new();
+
+        /// <summary>
+        /// Set once the queue is abandoned (see <see cref="AbandonAll"/>): the
+        /// token every item queued then, or later, is canceled with.
+        /// </summary>
+        private CancellationToken?                 abandonedWith;
 
         /// <summary>
         /// True if at least one item is queued (possibly just a zero-length end-of-stream marker).
@@ -77,9 +84,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Queue Data (and, if EndStream, a pending End-Stream marker) for the
         /// writer loop to send. Returns a task that completes once this exact
-        /// item has been fully handed to the wire, or abandoned (see
-        /// <see cref="AbandonAll"/>) — callers that want write-completion
-        /// backpressure (e.g. a slow tunnel peer) should await it.
+        /// item has been fully handed to the wire — callers that want
+        /// write-completion backpressure (e.g. a slow tunnel peer) should await
+        /// it — or is canceled once it never will be (see <see cref="AbandonAll"/>):
+        /// at once, if the queue is abandoned already.
         /// </summary>
         public Task EnqueueAsync(byte[] Data, bool EndStream, List<(string Name, string Value)>? Trailers = null)
         {
@@ -92,7 +100,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             };
 
             lock (gate)
-                items.Enqueue(item);
+            {
+
+                // Under the gate AbandonAll takes as well: an item gets in before
+                // the queue is abandoned, and is abandoned with the rest, or finds
+                // it abandoned here. None is left queued on a stream that will
+                // send nothing more.
+                if (abandonedWith is { } cancellationToken)
+                    item.Completion.TrySetCanceled(cancellationToken);
+                else
+                    items.Enqueue(item);
+
+            }
 
             return item.Completion.Task;
 
@@ -135,17 +154,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
-        /// Drop everything still queued and unblock any producer awaiting
-        /// <see cref="EnqueueAsync"/> — called when the stream is reset, so a
-        /// producer isn't left waiting forever for bytes that will now never be
-        /// sent.
+        /// Drop everything still queued, and whatever is queued from now on —
+        /// called once the stream is closed, by a reset or by both sides ending
+        /// it. The writer loop sends nothing on a closed stream, so a producer
+        /// awaiting <see cref="EnqueueAsync"/> would otherwise wait for bytes that
+        /// will never be sent, until the whole connection ends. Its task is
+        /// canceled instead, with <paramref name="CancellationToken"/>: for a
+        /// reset, the stream's own. A later call keeps the first token.
         /// </summary>
-        public void AbandonAll()
+        public void AbandonAll(CancellationToken CancellationToken = default)
         {
             lock (gate)
             {
+
+                abandonedWith ??= CancellationToken;
+
                 while (items.Count > 0)
-                    items.Dequeue().Completion.TrySetResult();
+                    items.Dequeue().Completion.TrySetCanceled(abandonedWith.Value);
+
             }
         }
 

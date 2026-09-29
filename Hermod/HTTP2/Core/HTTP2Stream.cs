@@ -215,6 +215,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public void CloseRemote()
         {
 
+            bool closed;
+
             lock (stateLock)
             {
                 State = State switch {
@@ -224,7 +226,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                                             HTTP2ErrorCode.STREAM_CLOSED, StreamId,
                                                             $"Cannot close remote on stream {StreamId} in state {State}")
                 };
+                closed = State == HTTP2StreamState.Closed;
             }
+
+            if (closed)
+                AbandonOutboundOnClose();
 
         }
 
@@ -233,6 +239,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public void CloseLocal()
         {
+
+            bool closed;
 
             lock (stateLock)
             {
@@ -243,7 +251,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                                              HTTP2ErrorCode.STREAM_CLOSED, StreamId,
                                                              $"Cannot close local on stream {StreamId} in state {State}")
                 };
+                closed = State == HTTP2StreamState.Closed;
             }
+
+            if (closed)
+                AbandonOutboundOnClose();
 
         }
 
@@ -271,7 +283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     case HTTP2StreamState.HalfClosedRemote:
                         State = HTTP2StreamState.Closed;
-                        return true;
+                        break;
 
                     default:
                         return false;
@@ -280,7 +292,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             }
 
+            AbandonOutboundOnClose();
+
+            return true;
+
         }
+
+        /// <summary>
+        /// Once both sides have ended this stream it is closed, and the writer
+        /// loop's picker skips it: whatever is still queued on it, or is queued
+        /// later, would never be sent, and its producer would wait for the whole
+        /// connection to end. Only a write after the end of our own side can be
+        /// in that position, but it is released at once all the same — outside
+        /// <see cref="stateLock"/>, as <see cref="Reset"/> releases its producers.
+        /// A close is no reset: the stream's own token stays as it is.
+        /// </summary>
+        private void AbandonOutboundOnClose()
+
+            => OutboundQueue.AbandonAll();
 
         /// <summary>
         /// True once this stream was closed by an RST_STREAM (sent or received),
@@ -315,8 +344,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // Unblock a producer possibly awaiting HTTP2OutboundQueue.EnqueueAsync
             // for bytes that will now never be sent — the writer loop's picker
             // skips Closed streams, so without this the data would sit queued
-            // forever and the producer would never come back.
-            OutboundQueue.AbandonAll();
+            // forever and the producer would never come back. The queue refuses
+            // later writes at once as well, and every one of them fails with this
+            // stream's token: the handler's, so a write on a reset stream ends
+            // the handler as the handler's own check of its token would.
+            OutboundQueue.AbandonAll(requestCancellation.Token);
         }
 
         #endregion
