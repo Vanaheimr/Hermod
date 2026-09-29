@@ -2697,11 +2697,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// CloseLocal, unless the stream was already reset (RST_STREAM) in the
-        /// meantime — the response task and the read loop run concurrently.
+        /// meantime — the response task and the writer loop run concurrently with
+        /// the read loop, which may handle a reset between any test of the state
+        /// and the transition. So TryCloseLocal tests and transitions in one step,
+        /// under the stream's lock, and only when that fails is the stream asked
+        /// why: a reset stream is left alone; in any other state our END_STREAM
+        /// went out twice, which is a bug, and CloseLocal still throws for it.
         /// </summary>
         private static void CloseLocalIfNotReset(HTTP2Stream Stream)
         {
-            if (Stream.State != HTTP2StreamState.Closed)
+            if (!Stream.TryCloseLocal() && !Stream.WasReset)
                 Stream.CloseLocal();
         }
 
