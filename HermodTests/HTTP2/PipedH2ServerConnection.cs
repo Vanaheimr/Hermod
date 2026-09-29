@@ -38,7 +38,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// stream, right after it wrote the frame that ends its side, and a reset of
     /// that stream — see <see cref="ResetBeforeHalfCloseAsync"/>. Likewise the
     /// read loop's handling of a DATA frame, and a reset made on another task —
-    /// see <see cref="HoldDataAfterStateCheckAsync"/>.
+    /// see <see cref="HoldDataAfterStateCheckAsync"/> and
+    /// <see cref="ResetAfterStateCheckAsync"/> — and a frame the server has
+    /// decided to send, and a reset that comes before it goes out — see
+    /// <see cref="HoldWritesAsync"/>.
     ///
     /// Every write of the server completes here synchronously, so the thread that
     /// wrote the frame ending a stream goes on from that write to the half-close
@@ -593,6 +596,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
+        /// Send a DATA frame, and reset its stream while the read loop holds that
+        /// frame past its check of the stream's state, as
+        /// <see cref="HoldDataAfterStateCheckAsync"/> holds it: completely, before
+        /// the read loop counts the frame's bytes. The stream is reset as every
+        /// reset the server makes resets it, <see cref="HTTP2Stream.Reset"/>
+        /// followed by the connection's return of the window of what the stream's
+        /// reader left unread, both under the receive-window lock the read loop
+        /// waits for. No RST_STREAM goes out. Then the lock is let go.
+        /// </summary>
+        public async Task ResetAfterStateCheckAsync(HTTP2Frame Data)
+        {
+
+            await PingAsync();
+
+            var stream = ServerStream(Data.StreamId);
+
+            using var holder = MonitorHolder.Hold(ReceiveWindowLockOf(Connection));
+
+            await SendAsync(Data);
+
+            await WaitUntilReaderBlockedAsync();
+
+            holder.LetGo(UnderLock: () => {
+
+                stream.Reset();
+
+                // It takes the lock held here, re-entered, and for less than half
+                // the connection window it sends nothing: done when it returns.
+                ((Task) typeof(HTTP2Connection).GetMethod("ReturnUnreadWindowAsync", BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                                Invoke(Connection, [stream])!).GetAwaiter().GetResult();
+
+            });
+
+        }
+
+        /// <summary>
         /// The monitor the connection's receive windows are counted under.
         /// </summary>
         private static Object ReceiveWindowLockOf(HTTP2Connection Connection)
@@ -619,6 +658,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                 await Task.Delay(1);
 
+            }
+
+        }
+
+        /// <summary>
+        /// Hold the connection's write lock until the returned handle is disposed:
+        /// every frame the server sends meanwhile waits for the lock, and the
+        /// waits end in the order they began. So a frame the server has decided
+        /// to send can be kept from the wire while the test changes what it was
+        /// decided on. Nothing the test waits for may have to be sent meanwhile,
+        /// not even the answer to a ping.
+        /// </summary>
+        public async Task<IDisposable> HoldWritesAsync()
+        {
+
+            var writeLock = WriteLockOf(Connection);
+
+            if (!await writeLock.WaitAsync(StepTimeout))
+                throw new TimeoutException("The connection's write lock could not be taken");
+
+            return new HeldWrites(writeLock);
+
+        }
+
+        /// <summary>
+        /// The semaphore the connection's writes are made under.
+        /// </summary>
+        private static SemaphoreSlim WriteLockOf(HTTP2Connection Connection)
+
+            => (SemaphoreSlim) typeof(HTTP2Connection).GetField("writeLock", BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                                       GetValue(Connection)!;
+
+        /// <summary>
+        /// Lets go of the write lock once, when disposed.
+        /// </summary>
+        private sealed class HeldWrites(SemaphoreSlim WriteLock) : IDisposable
+        {
+
+            private Int32 released;
+
+            public void Dispose()
+            {
+                if (Interlocked.Exchange(ref released, 1) == 0)
+                    WriteLock.Release();
             }
 
         }

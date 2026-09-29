@@ -59,6 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // deliberately withheld on receipt (HandleDataAsync) and is returned
                 // only now, as the handler actually consumes them — so an unread body
                 // leaves the peer's window depleted instead of buffering unbounded.
+                // After a reset, nothing: the reset has returned it already.
                 await connection.ReplenishConsumedAsync(stream, chunk.Length);
                 return chunk;
             }

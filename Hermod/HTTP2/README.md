@@ -431,6 +431,16 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   window given back to the connection at once, as for DATA on a closed stream
   (§6.9). The read loop used to write it into the channel the reset had
   completed, and that failure ended the whole connection.
+- The window of streamed-body and tunnel DATA still unread when its stream is
+  reset — by the client's `RST_STREAM`, a stream error, a failing handler or the
+  writer loop — is given back to the connection once the reset is handled. It is
+  withheld until the handler reads the bytes, and a handler that honours its
+  token, or has failed, never does: a whole window's worth left unread used to
+  close the connection's window for good. The bytes stay readable, in order, but
+  reading them gives nothing back a second time. A stream-level `WINDOW_UPDATE`
+  goes out only while the client may still send DATA on the stream, checked again
+  under the write lock: never once the client has ended its side, and never
+  after the stream's `RST_STREAM`.
 - Closed-stream pruning; graceful shutdown (GOAWAY to every active connection).
 
 ### Parser fuzzing

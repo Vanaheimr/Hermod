@@ -50,6 +50,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public Int64              PendingRecvUpdate { get; set; }
 
         /// <summary>
+        /// DATA bytes waiting in <see cref="RequestBodyChannel"/> or
+        /// <see cref="TunnelInbound"/> for the handler to read them, whose receive
+        /// window the server withholds until it does. A reset returns the
+        /// connection's share of that window all at once (see
+        /// <see cref="UnreadWindowReturned"/>). Kept by the server's connection,
+        /// under the lock of its receive windows.
+        /// </summary>
+        internal Int64            UnreadRecvBytes   { get; set; }
+
+        /// <summary>
+        /// True once a reset has returned the connection window of every byte in
+        /// <see cref="UnreadRecvBytes"/>. Those bytes stay readable, but reading
+        /// them returns nothing a second time, and DATA that arrives afterwards
+        /// has its window returned at once. Kept like <see cref="UnreadRecvBytes"/>.
+        /// </summary>
+        internal bool             UnreadWindowReturned { get; set; }
+
+        /// <summary>
         /// Tracks whether END_STREAM was set on the HEADERS frame
         /// while waiting for CONTINUATION frames to complete the header block.
         /// </summary>
@@ -107,6 +125,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// HandleDataAsync / ReplenishConsumedAsync), so the peer can never have
         /// more than a window's worth in flight, and a slow consumer simply leaves
         /// the peer's window depleted rather than growing this queue without bound.
+        /// A reset returns the connection's share of the window for what is still
+        /// unread at once (see <see cref="UnreadRecvBytes"/>): after a reset, nobody
+        /// has to read it.
         /// </summary>
         public Channel<byte[]>?    TunnelInbound   { get; set; }
 
@@ -126,6 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <see cref="IHTTP2RequestStream.ReadAsync"/>. Completed at END_STREAM, or,
         /// if the stream is reset first, with an <see cref="OperationCanceledException"/>
         /// that carries its <see cref="CancellationToken"/> (see <see cref="Reset"/>).
+        /// Flow-controlled like <see cref="TunnelInbound"/>.
         /// </summary>
         public Channel<byte[]>?    RequestBodyChannel { get; set; }
 

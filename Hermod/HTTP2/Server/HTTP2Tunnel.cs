@@ -58,7 +58,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             {
                 // Consumption-driven backpressure: the window for these bytes was
                 // deliberately withheld on receipt (HandleDataAsync) and is returned
-                // only now, as the tunnel consumer actually takes them.
+                // only now, as the tunnel consumer actually takes them. After a
+                // reset, nothing: the reset has returned it already.
                 await connection.ReplenishConsumedAsync(stream, chunk.Length);
                 return chunk;
             }

@@ -645,6 +645,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         }
 
+        /// <summary>
+        /// Send a stream-level WINDOW_UPDATE, if the peer may still send DATA on the
+        /// stream once the write lock is ours — see <see cref="MayStillSendData"/>.
+        /// The window may have been counted up while it could, and the stream reset
+        /// since, with its RST_STREAM on the wire already: a reset of ours happens
+        /// (<see cref="HTTP2Stream.Reset"/>) before its RST_STREAM takes the write
+        /// lock. So the WINDOW_UPDATE goes out before the RST_STREAM, or not at all
+        /// — never on a closed stream, which gets nothing but PRIORITY (RFC 9113,
+        /// Section 5.1).
+        /// </summary>
+        private async Task SendStreamWindowUpdateAsync(HTTP2Stream Stream, UInt32 Increment)
+        {
+
+            var bytes = HTTP2Frame.CreateWindowUpdate(Stream.StreamId, Increment).Serialize();
+
+            await writeLock.WaitAsync(cancellationToken);
+
+            try
+            {
+
+                if (!MayStillSendData(Stream))
+                    return;
+
+                await transportStream.WriteAsync(bytes, cancellationToken);
+                await transportStream.FlushAsync(cancellationToken);
+
+            }
+            finally
+            {
+                writeLock.Release();
+            }
+
+        }
+
+        /// <summary>
+        /// Whether the peer may still send DATA on the stream: while it is open,
+        /// or closed on our side only. Once the peer has ended its side, or the
+        /// stream is closed or reset, its receive window matters no more (RFC 9113,
+        /// Section 5.1): a stream-level WINDOW_UPDATE would tell the peer nothing,
+        /// and once the stream is closed, it must not be sent at all.
+        /// </summary>
+        private static bool MayStillSendData(HTTP2Stream Stream)
+
+            => Stream.State is HTTP2StreamState.Open
+                            or HTTP2StreamState.HalfClosedLocal;
+
         #endregion
 
 
@@ -687,7 +733,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         case HTTP2FrameType.DATA:            await HandleDataAsync(frame);          break;
                         case HTTP2FrameType.WINDOW_UPDATE:   HandleWindowUpdate(frame);             break;
                         case HTTP2FrameType.PING:            await HandlePingAsync(frame);          break;
-                        case HTTP2FrameType.RST_STREAM:      HandleRstStream(frame);                break;
+                        case HTTP2FrameType.RST_STREAM:      await HandleRstStreamAsync(frame);     break;
                         case HTTP2FrameType.GOAWAY:          HandleGoAway(frame);                   break;
                         case HTTP2FrameType.PRIORITY:        HandlePriority(frame);                 break;
                         case HTTP2FrameType.PRIORITY_UPDATE: HandlePriorityUpdate(frame);           break;
@@ -721,11 +767,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
                 catch (HTTP2StreamException ex)
                 {
-                    HTTP2EventSource.Log.StreamError((int) ex.StreamId, ex.ErrorCode.ToString(), ex.Message);
-                    await SendFrameAsync(HTTP2Frame.CreateRstStream(ex.StreamId, ex.ErrorCode));
 
+                    HTTP2EventSource.Log.StreamError((int) ex.StreamId, ex.ErrorCode.ToString(), ex.Message);
+
+                    // Reset first, then the RST_STREAM, as every other reset here
+                    // does: a WINDOW_UPDATE for the stream, due on another task,
+                    // must find it closed once the RST_STREAM is out (see
+                    // SendStreamWindowUpdateAsync).
                     var stream = streamManager.TryGetStream(ex.StreamId);
                     stream?.Reset();
+
+                    await SendFrameAsync(HTTP2Frame.CreateRstStream(ex.StreamId, ex.ErrorCode));
+
+                    if (stream is not null)
+                        await ReturnUnreadWindowAsync(stream);
+
                 }
 
             }
@@ -1711,21 +1767,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // window depleted, so the peer is forced to stop sending — and because
             // the window is thus never replenished ahead of consumption, the inbound
             // channel can hold at most a window's worth (per-stream + connection)
-            // regardless of how fast the peer sends. A buffered request has no such
-            // consumer (the whole body is handed over at END_STREAM), so it is
-            // replenished on receipt and bounded instead by maxRequestBodySize.
+            // regardless of how fast the peer sends. Once the stream is reset, what
+            // is still unread has its connection window returned all at once
+            // (ReturnUnreadWindowAsync). A buffered request has no such consumer (the
+            // whole body is handed over at END_STREAM), so it is replenished on
+            // receipt and bounded instead by maxRequestBodySize.
             if (stream.IsConnectTunnel)
             {
-                // TryWrite, as for a streaming request's body below: the channel is
-                // unbounded, so a write fails only on a completed channel, and past
-                // the state check above that means a reset, made on another task, a
-                // tunnel handler's or the writer loop's, between that check and this
-                // write. WriteAsync would then throw ChannelClosedException into this
-                // loop, and the connection would end with GOAWAY INTERNAL_ERROR.
-                // Nobody will read the chunk now: it is dropped, and its window given
-                // back to the connection at once.
-                if (dataLength > 0 && !stream.TunnelInbound!.Writer.TryWrite(payload.ToArray()))
-                    await ReplenishReceiveWindowsAsync(null, dataLength);
+                if (dataLength > 0)
+                    await HandToReaderAsync(stream, stream.TunnelInbound!, payload.ToArray());
 
                 // The discarded padding is returned now; the data the channel took
                 // waits for the tunnel consumer (Section 6.1 padding still owed
@@ -1738,17 +1788,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // buffering); track the running length for the content-length check.
                 stream.ReceivedBodyLength += dataLength;
 
-                // TryWrite: the channel is unbounded, so a write fails only on a
-                // completed channel, and past the state check above that means a
-                // reset. HTTP2Stream.Reset completes the channel, and a reset made on
-                // another task, a handler's or the writer loop's, can land between
-                // that check and this write. WriteAsync would then throw the reset's
-                // OperationCanceledException into this loop, and end the connection.
-                // Nobody will read the chunk now: it is dropped, and its window given
-                // back to the connection at once, as for DATA on a closed stream
-                // (Section 6.9).
-                if (dataLength > 0 && !stream.RequestBodyChannel!.Writer.TryWrite(payload.ToArray()))
-                    await ReplenishReceiveWindowsAsync(null, dataLength);
+                if (dataLength > 0)
+                    await HandToReaderAsync(stream, stream.RequestBodyChannel!, payload.ToArray());
 
                 await ReplenishReceiveWindowsAsync(stream, paddingOverhead);
             }
@@ -1813,7 +1854,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// window sends none at all). <paramref name="Stream"/> is null for DATA on
         /// a closed/unknown stream (RFC 9113, Section 6.9 still requires connection-
         /// window accounting there), in which case only the connection window is
-        /// returned.
+        /// returned — as it is for a stream the peer can send no more DATA on
+        /// (<see cref="MayStillSendData"/>).
         /// </summary>
         private async Task ReplenishReceiveWindowsAsync(HTTP2Stream? Stream, int DataLength)
         {
@@ -1827,12 +1869,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // are updated here to reflect what we're about to grant; the frames go
             // out below, after the lock is released.
             UInt32 streamInc = 0, connInc = 0;
-            var    streamId  = Stream?.StreamId ?? 0;
 
             lock (recvLock)
             {
 
-                if (Stream is not null)
+                // The stream's own window only while the peer may still send DATA
+                // on it — and SendStreamWindowUpdateAsync asks again once the write
+                // lock is its own: the stream may have been reset meanwhile.
+                if (Stream is not null && MayStillSendData(Stream))
                 {
                     Stream.PendingRecvUpdate += DataLength;
                     if (Stream.PendingRecvUpdate >= localSettings.InitialWindowSize / 2)
@@ -1854,7 +1898,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
 
             if (streamInc > 0)
-                await SendFrameAsync(HTTP2Frame.CreateWindowUpdate(streamId, streamInc));
+                await SendStreamWindowUpdateAsync(Stream!, streamInc);
             if (connInc > 0)
                 await SendFrameAsync(HTTP2Frame.CreateWindowUpdate(0, connInc));
 
@@ -1866,10 +1910,138 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// signal that drives consumption-based backpressure. Called from handler
         /// tasks (via <see cref="HTTP2RequestStream"/> / <see cref="HTTP2Tunnel"/>),
         /// so it runs concurrently with the read loop's decrement; both go through
-        /// the recvLock-guarded <see cref="ReplenishReceiveWindowsAsync"/>.
+        /// the recvLock-guarded <see cref="ReplenishReceiveWindowsAsync"/>. Bytes a
+        /// handler reads after a reset return nothing: the reset has returned their
+        /// window already (<see cref="ReturnUnreadWindowAsync"/>).
         /// </summary>
         internal Task ReplenishConsumedAsync(HTTP2Stream Stream, int Count)
-            => ReplenishReceiveWindowsAsync(Stream, Count);
+
+            => TryReleaseWithheldWindow(Stream, Count)
+                   ? ReplenishReceiveWindowsAsync(Stream, Count)
+                   : Task.CompletedTask;
+
+        /// <summary>
+        /// Hand a chunk of DATA to the handler that reads the stream, a streaming
+        /// request's body or a tunnel, and withhold its window until the handler
+        /// reads it (<see cref="ReplenishConsumedAsync"/>).
+        ///
+        /// TryWrite: the channel is unbounded, so a write fails only on a completed
+        /// channel, and past HandleDataAsync's state check that means a reset.
+        /// HTTP2Stream.Reset completes the channel, and a reset made on another
+        /// task, a handler's or the writer loop's, can land between that check and
+        /// this write. WriteAsync would then throw into the read loop — the reset's
+        /// OperationCanceledException for a body, ChannelClosedException for a
+        /// tunnel — and end the connection. Nobody will read the chunk now: it is
+        /// dropped, and its window given back to the connection at once, as for
+        /// DATA on a closed stream (Section 6.9) — unless the reset has given it
+        /// back already, with the rest of what was unread
+        /// (<see cref="ReturnUnreadWindowAsync"/>). A chunk that comes once that is
+        /// done is dropped without being withheld at all.
+        /// </summary>
+        private async Task HandToReaderAsync(HTTP2Stream Stream, Channel<byte[]> Channel, byte[] Chunk)
+        {
+
+            if (TryWithholdWindow(Stream, Chunk.Length))
+            {
+
+                if (Channel.Writer.TryWrite(Chunk))
+                    return;
+
+                if (!TryReleaseWithheldWindow(Stream, Chunk.Length))
+                    return;
+
+            }
+
+            await ReplenishReceiveWindowsAsync(null, Chunk.Length);
+
+        }
+
+        /// <summary>
+        /// Count bytes about to be handed to the stream's reader as unread, so that
+        /// their window is withheld until they are read — or return false once a
+        /// reset has returned the window of what was unread: from then on, nothing
+        /// is withheld on the stream.
+        /// </summary>
+        private bool TryWithholdWindow(HTTP2Stream Stream, int Count)
+        {
+
+            lock (recvLock)
+            {
+
+                if (Stream.UnreadWindowReturned)
+                    return false;
+
+                Stream.UnreadRecvBytes += Count;
+
+                return true;
+
+            }
+
+        }
+
+        /// <summary>
+        /// Take bytes that were read, or dropped, off the stream's unread count, and
+        /// return true when their window is still to be given back — false when a
+        /// reset has given it back already, with the rest of what was unread. Under
+        /// the same lock as that reset's count, so that whichever comes first, the
+        /// window of each byte is given back once.
+        /// </summary>
+        private bool TryReleaseWithheldWindow(HTTP2Stream Stream, int Count)
+        {
+
+            lock (recvLock)
+            {
+
+                if (Stream.UnreadWindowReturned)
+                    return false;
+
+                Stream.UnreadRecvBytes -= Count;
+
+                return true;
+
+            }
+
+        }
+
+        /// <summary>
+        /// Give back the connection window of every DATA byte still unread on a
+        /// stream that was reset. That window is withheld until the handler reads
+        /// the bytes, and after a reset a handler that honours its token, or has
+        /// failed, never does: the connection lost that much of its window for
+        /// good, and with a whole window's worth unread, every later upload on it
+        /// stalled. The bytes stay readable, in order, as before, but a read of
+        /// them gives nothing back a second time (<see cref="ReplenishConsumedAsync"/>),
+        /// and a chunk that arrives afterwards is dropped, its window given back at
+        /// once (<see cref="HandToReaderAsync"/>). Only the connection's window: the
+        /// stream's matters no more.
+        ///
+        /// Called once a reset is made, after its RST_STREAM, sent or received — not
+        /// from HTTP2Stream.Reset, which the client shares, which cannot await the
+        /// WINDOW_UPDATE this may send, and which the connection's teardown calls
+        /// where nothing can be sent any more. Called again, it gives back nothing.
+        /// </summary>
+        private Task ReturnUnreadWindowAsync(HTTP2Stream Stream)
+        {
+
+            Int64 unread;
+
+            lock (recvLock)
+            {
+
+                if (Stream.UnreadWindowReturned)
+                    return Task.CompletedTask;
+
+                Stream.UnreadWindowReturned  = true;
+                unread                       = Stream.UnreadRecvBytes;
+                Stream.UnreadRecvBytes       = 0;
+
+            }
+
+            // No more than the stream's receive window: at most 2^31-1 bytes
+            // (RFC 9113, Section 6.9.1).
+            return ReplenishReceiveWindowsAsync(null, (int) unread);
+
+        }
 
         #endregion
 
@@ -2140,11 +2312,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         // stream is reset with INTERNAL_ERROR, not with the code the
                         // exception carries; the log keeps both code and message.
                         // Reset also releases the stream's producers and frees its
-                        // slot under MAX_CONCURRENT_STREAMS.
+                        // slot under MAX_CONCURRENT_STREAMS, and what its handler
+                        // left unread gives its window back.
                         HTTP2EventSource.Log.StreamError((int) ex.StreamId, ex.ErrorCode.ToString(), ex.Message);
 
                         stream.Reset();
                         await SendFrameAsync(HTTP2Frame.CreateRstStream(stream.StreamId, HTTP2ErrorCode.INTERNAL_ERROR));
+                        await ReturnUnreadWindowAsync(stream);
 
                     }
 
@@ -2290,7 +2464,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region RST_STREAM (Section 6.4)
 
-        private void HandleRstStream(HTTP2Frame Frame)
+        private async Task HandleRstStreamAsync(HTTP2Frame Frame)
         {
 
             if (Frame.StreamId == 0)
@@ -2312,6 +2486,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // Wake a response task possibly waiting for window space on this
                 // stream, so it can notice the reset and abort.
                 SignalWriterWakeup();
+
+                // An upload the peer cancels leaves unread what arrived: give its
+                // window back, or every later upload on the connection stalls.
+                await ReturnUnreadWindowAsync(stream);
 
                 CheckRapidReset();
             }
@@ -2453,6 +2631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     HTTP2EventSource.Log.StreamError((int) ex.StreamId, ex.ErrorCode.ToString(), ex.Message);
                     Stream.Reset();
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(ex.StreamId, ex.ErrorCode)); } catch { }
+                    try { await ReturnUnreadWindowAsync(Stream); } catch { }
                 }
                 catch (Exception ex)
                 {
@@ -2480,6 +2659,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     Stream.Reset();
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(Stream.StreamId, HTTP2ErrorCode.INTERNAL_ERROR)); } catch { }
+                    try { await ReturnUnreadWindowAsync(Stream); } catch { }
                 }
 
             }, CancellationToken.None);
@@ -2901,12 +3081,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     HTTP2EventSource.Log.StreamError((int) ex.StreamId, ex.ErrorCode.ToString(), ex.Message);
                     Stream.Reset();
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(ex.StreamId, ex.ErrorCode)); } catch { }
+                    try { await ReturnUnreadWindowAsync(Stream); } catch { }
                 }
                 catch (Exception ex)
                 {
                     HTTP2EventSource.Log.HandlerFailed((int) Stream.StreamId, "CONNECT", ex.Message);
                     Stream.Reset();
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(Stream.StreamId, HTTP2ErrorCode.INTERNAL_ERROR)); } catch { }
+                    try { await ReturnUnreadWindowAsync(Stream); } catch { }
                 }
 
             }, CancellationToken.None);
