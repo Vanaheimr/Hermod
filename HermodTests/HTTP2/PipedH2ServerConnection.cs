@@ -41,7 +41,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// see <see cref="HoldDataAfterStateCheckAsync"/> and
     /// <see cref="ResetAfterStateCheckAsync"/> — and a frame the server has
     /// decided to send, and a reset that comes before it goes out — see
-    /// <see cref="HoldWritesAsync"/>.
+    /// <see cref="HoldWritesAsync"/>. And a chunk the writer loop has taken, and
+    /// a reset whose RST_STREAM goes out before it — see
+    /// <see cref="HoldTakenDataAsync"/>.
     ///
     /// Every write of the server completes here synchronously, so the thread that
     /// wrote the frame ending a stream goes on from that write to the half-close
@@ -796,6 +798,287 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         }
 
+        /// <summary>
+        /// The stream whose next DATA frame, once the server has written it, runs
+        /// the action on the thread that wrote it, before the write returns — see
+        /// <see cref="HoldTakenDataAsync"/>.
+        /// </summary>
+        private (UInt32 StreamId, Action<Thread> Then)? dataWritten;
+
+        /// <summary>
+        /// Let the writer loop take the second of two chunks queued on a stream,
+        /// and hold it between its take of the chunk and its wait for the
+        /// connection's write lock until the returned handle lets it go on: the
+        /// moment a reset made on another task, the read loop's or a handler's,
+        /// may land on any real connection, and send its RST_STREAM ahead of the
+        /// DATA. The write lock is free meanwhile, so that RST_STREAM does go out,
+        /// and the test may read it.
+        ///
+        /// After it has taken a chunk, the writer loop enters the connection's
+        /// flow-control lock once more, to give back what it reserved of the send
+        /// windows beyond the chunk, and that is where the chunk is held: the
+        /// second chunk must be smaller than what the loop reserves, as much of
+        /// both windows as one frame may carry. But the loop enters that lock to
+        /// pick a stream as well, right before the take, and a lock held in
+        /// advance would hold the loop there. So the loop is walked into place
+        /// with the locks of two streams' queues, each held on a thread of its own:
+        /// - <paramref name="Write"/> queues both chunks while the test holds the
+        ///   connection's writes, and returns once they are queued: the second is
+        ///   queued before the first goes out.
+        /// - As the writer loop writes the first chunk, the lock of the queue of
+        ///   <paramref name="ScannedAfter"/>, an open stream with nothing queued
+        ///   that the loop scans after this one, is taken before the write
+        ///   returns. The loop goes on from the write, on that thread, to its next
+        ///   pick. It finds the second chunk on this stream, and then waits for the
+        ///   other stream's queue, holding the flow-control lock.
+        /// - This stream's queue lock is taken, and the other's let go. The loop
+        ///   picks this stream, lets go of the flow-control lock, and has to wait
+        ///   for this stream's queue to take the chunk.
+        /// - The flow-control lock is taken, and this stream's queue let go. The
+        ///   loop takes the chunk, and waits for the flow-control lock, to give
+        ///   back what it reserved beyond the chunk.
+        /// </summary>
+        public async Task<HeldTakenData> HoldTakenDataAsync(UInt32 StreamId, UInt32 ScannedAfter, Func<Task> Write)
+        {
+
+            // Everything sent before has been handled: both streams are open.
+            await PingAsync();
+
+            var stream     = ServerStream(StreamId);
+            var neighbour  = ServerStream(ScannedAfter);
+            var scanned    = StreamManager.GetSendableStreams().Select(sendable => sendable.StreamId).ToList();
+
+            if (scanned.IndexOf(StreamId) < 0 || scanned.IndexOf(ScannedAfter) < scanned.IndexOf(StreamId))
+                throw new InvalidOperationException($"The writer loop does not scan stream {ScannedAfter} after stream {StreamId}, but {String.Join(", ", scanned)}");
+
+            // The holder is taken on the writer's thread, and a failure to take it
+            // goes to the test: the server's write itself must not fail.
+            var firstWritten = new TaskCompletionSource<(Thread Writer, MonitorHolder Neighbour)>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            lock (sync)
+                dataWritten = (StreamId, writer => {
+
+                                  try
+                                  {
+                                      firstWritten.TrySetResult((writer, MonitorHolder.Hold(QueueLockOf(neighbour))));
+                                  }
+                                  catch (Exception e)
+                                  {
+                                      firstWritten.TrySetException(e);
+                                  }
+
+                              });
+
+            Thread         writer;
+            MonitorHolder  neighbourQueue;
+
+            try
+            {
+
+                using (await HoldWritesAsync())
+                    await Write();
+
+                (writer, neighbourQueue) = await firstWritten.Task.WaitAsync(StepTimeout);
+
+            }
+            catch
+            {
+                // A holder taken after all must not keep the loop from the end of
+                // the connection.
+                _ = firstWritten.Task.ContinueWith(written => written.Result.Neighbour.Dispose(), TaskContinuationOptions.OnlyOnRanToCompletion);
+                throw;
+            }
+            finally
+            {
+                lock (sync)
+                    dataWritten = null;
+            }
+
+            MonitorHolder? streamQueue  = null;
+            MonitorHolder? flow         = null;
+
+            try
+            {
+
+                await WaitUntilPickBlockedAsync(writer, "at the queue of the stream it scans after this one");
+
+                streamQueue = MonitorHolder.Hold(QueueLockOf(stream));
+
+                neighbourQueue.LetGo();
+
+                // Entered once the loop has picked this stream and let go of the
+                // lock, which it does not want again before it has taken the chunk.
+                flow = MonitorHolder.Hold(FlowLockOf(Connection));
+
+                streamQueue.LetGo();
+
+                // Once the chunk is off the queue, the loop can wait for nothing
+                // but the flow-control lock.
+                await WaitUntilAsync(() => !stream.OutboundQueue.HasPending && IsBlocked(writer),
+                                     "the writer loop has taken the chunk, and waits to give back what it reserved beyond it");
+
+                return new HeldTakenData(this, stream, writer, flow, QueueLockOf(neighbour));
+
+            }
+            catch
+            {
+                neighbourQueue.Dispose();
+                streamQueue?.Dispose();
+                flow?.Dispose();
+                throw;
+            }
+
+        }
+
+        /// <summary>
+        /// The server has written a DATA frame on this stream, on this thread.
+        /// </summary>
+        private void DataWrittenBy(UInt32 StreamId, Thread Writer)
+        {
+
+            Action<Thread>? then = null;
+
+            lock (sync)
+            {
+                if (dataWritten is { } armed && armed.StreamId == StreamId)
+                {
+                    then         = armed.Then;
+                    dataWritten  = null;
+                }
+            }
+
+            then?.Invoke(Writer);
+
+        }
+
+        /// <summary>
+        /// Wait until the writer loop waits for the lock of a stream's queue in the
+        /// midst of a pick: its thread is blocked, and the flow-control lock that
+        /// it picks under is held.
+        /// </summary>
+        private Task WaitUntilPickBlockedAsync(Thread Writer, String Where)
+
+            => WaitUntilAsync(() => IsBlocked(Writer) && IsHeld(FlowLockOf(Connection)),
+                              $"the writer loop waits {Where}");
+
+        /// <summary>
+        /// Wait until the condition holds, or fail once the step timeout is over.
+        /// </summary>
+        private static async Task WaitUntilAsync(Func<Boolean> Condition, String What)
+        {
+
+            var waited = Stopwatch.StartNew();
+
+            while (!Condition())
+            {
+
+                if (waited.Elapsed > StepTimeout)
+                    throw new TimeoutException($"Timed out waiting until {What}");
+
+                await Task.Delay(1);
+
+            }
+
+        }
+
+        /// <summary>
+        /// Whether the thread is blocked — see <see cref="WaitUntilBlockedAsync"/>.
+        /// </summary>
+        private static Boolean IsBlocked(Thread Writer)
+
+            => (Writer.ThreadState & System.Threading.ThreadState.WaitSleepJoin) != 0;
+
+        /// <summary>
+        /// Whether another thread holds the monitor: it cannot be entered at once.
+        /// </summary>
+        private static Boolean IsHeld(Object Gate)
+        {
+
+            if (!Monitor.TryEnter(Gate))
+                return true;
+
+            Monitor.Exit(Gate);
+
+            return false;
+
+        }
+
+        /// <summary>
+        /// The monitor the connection's send windows are counted under, and that
+        /// its writer loop picks the next stream to send from under.
+        /// </summary>
+        private static Object FlowLockOf(HTTP2Connection Connection)
+
+            => typeof(HTTP2Connection).GetField("flowLock", BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                       GetValue(Connection)!;
+
+        /// <summary>
+        /// The monitor a stream's outbound queue is kept under: the writer loop
+        /// takes it to see what is queued, and to take a chunk.
+        /// </summary>
+        private static Object QueueLockOf(HTTP2Stream Stream)
+
+            => typeof(HTTP2OutboundQueue).GetField("gate", BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                          GetValue(Stream.OutboundQueue)!;
+
+        /// <summary>
+        /// A chunk the writer loop has taken, and is held from going on with — see
+        /// <see cref="HoldTakenDataAsync"/>. Disposed, it lets the loop go on.
+        /// </summary>
+        public sealed class HeldTakenData : IDisposable
+        {
+
+            private readonly PipedH2ServerConnection  peer;
+            private readonly HTTP2Stream              stream;
+            private readonly Thread                   writer;
+            private readonly MonitorHolder            flow;
+            private readonly Object                   neighbourQueue;
+
+            internal HeldTakenData(PipedH2ServerConnection  Peer,
+                                   HTTP2Stream              Stream,
+                                   Thread                   Writer,
+                                   MonitorHolder            Flow,
+                                   Object                   NeighbourQueue)
+            {
+                this.peer            = Peer;
+                this.stream          = Stream;
+                this.writer          = Writer;
+                this.flow            = Flow;
+                this.neighbourQueue  = NeighbourQueue;
+            }
+
+            /// <summary>
+            /// Let the writer loop go on with the chunk, and return once it is done
+            /// with it, whether it wrote it or not. The loop's next pick is held as
+            /// its first one was, at the queue of the stream it scans after this
+            /// one, and let go once the loop waits there, past the chunk: whatever
+            /// it wrote of it is with the client then. The loop must go on on the
+            /// same thread, so nothing may hold the connection's writes meanwhile.
+            /// </summary>
+            public async Task LetGoAsync()
+            {
+
+                var served = stream.LastServedSequence;
+
+                using var neighbour = MonitorHolder.Hold(neighbourQueue);
+
+                flow.LetGo();
+
+                // The loop counts the chunk as served once it has given back what
+                // it reserved beyond it, right before it goes on to the write lock.
+                await WaitUntilAsync(() => stream.LastServedSequence != served && IsBlocked(writer) && IsHeld(FlowLockOf(peer.Connection)),
+                                     "the writer loop is done with the chunk, and waits at its next pick");
+
+                neighbour.LetGo();
+
+            }
+
+            public void Dispose()
+
+                => flow.Dispose();
+
+        }
+
         #endregion
 
 
@@ -886,8 +1169,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                 // The connection writes one whole frame at a time, so a write
                 // that starts between frames starts with a frame header.
-                if (frame is null && headerFill == 0 && Buffer.Length >= HTTP2Frame.HeaderSize &&
-                    Peer.WriteFailureFor(HTTP2Frame.ParseHeader(Buffer.Span[..HTTP2Frame.HeaderSize])) is { } failure)
+                var starts = frame is null && headerFill == 0 && Buffer.Length >= HTTP2Frame.HeaderSize
+                                 ? HTTP2Frame.ParseHeader(Buffer.Span[..HTTP2Frame.HeaderSize])
+                                 : null;
+
+                if (starts is not null && Peer.WriteFailureFor(starts) is { } failure)
                     return ValueTask.FromException(failure);
 
                 var ended = StreamsEndedBy(Buffer.Span);
@@ -903,6 +1189,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                 foreach (var streamId in ended)
                     Peer.EndOfStreamWrittenBy(streamId, Thread.CurrentThread);
+
+                if (starts?.Type == HTTP2FrameType.DATA)
+                    Peer.DataWrittenBy(starts.StreamId, Thread.CurrentThread);
 
                 return ValueTask.CompletedTask;
 
