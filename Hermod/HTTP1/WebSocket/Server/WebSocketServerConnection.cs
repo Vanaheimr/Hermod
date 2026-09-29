@@ -91,7 +91,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         /// <summary>
         /// Completed once the answer to the upgrade request - the 101 Switching
-        /// Protocols - has been sent.
+        /// Protocols - has been sent, or once the connection is closed without
+        /// one. Which of the two, <see cref="switchedProtocols"/> says.
         /// </summary>
         /// <remarks>
         /// No frame may go out before that answer: the peer would read it as part
@@ -101,6 +102,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// waits here for the answer to go first.
         /// </remarks>
         private readonly  TaskCompletionSource                   upgradeAnswered        = new (TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>
+        /// Whether the 101 Switching Protocols has actually gone out - and with
+        /// it, whether a frame may.
+        /// </summary>
+        /// <remarks>
+        /// upgradeAnswered alone cannot tell. Close() completes it as well, so
+        /// that a frame waiting for a 101 that is not coming any more stops
+        /// waiting - and then that frame went out, 101 or not, and so did the
+        /// close frame Close() had been given a status for. A connection that was
+        /// refused, or that never asked, or whose server was shut down while it
+        /// asked, was sent four octets of WebSocket in the middle of the HTTP its
+        /// client was reading: 88 02 03 EA, a close with 1002, after a refusal or
+        /// in the place of an answer.
+        ///
+        /// Set only once the 101 has been sent, and nothing else sets it. Until
+        /// then no frame goes out, however it is sent.
+        /// </remarks>
+        private volatile  Boolean                                switchedProtocols;
 
         private           UInt64                                 messagesReceivedCounter;
         private           UInt64                                 messagesSentCounter;
@@ -627,6 +647,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
             }
 
+            // Answered, but not necessarily with a 101: Close() ends the wait as
+            // well. On a connection that was never upgraded a frame is not sent
+            // at all - see switchedProtocols.
+            if (!switchedProtocols)
+                return SentStatus.Error;
+
             if (WebSocketFrame.IsFinal)
                 Interlocked.Increment(ref messagesSentCounter);
 
@@ -645,9 +671,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The 101 Switching Protocols has been sent: frames may follow it now.
         /// </summary>
+        /// <remarks>
+        /// Only for a 101 that has gone out - not for one that could not be
+        /// sent, and not for any other answer. See switchedProtocols, which is
+        /// set first, so that a frame the answer lets go finds it set.
+        /// </remarks>
         internal void UpgradeAnswered()
-
-            => upgradeAnswered.TrySetResult();
+        {
+            switchedProtocols = true;
+            upgradeAnswered.TrySetResult();
+        }
 
         #endregion
 
@@ -752,8 +785,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         /// <summary>
         /// Close this web socket connection.
-        /// When a status code or reason is given, a HTTP WebSocket close frame will be sent.
+        /// When a status code or reason is given, a HTTP WebSocket close frame will be sent -
+        /// on a connection whose 101 Switching Protocols has gone out.
         /// </summary>
+        /// <remarks>
+        /// Before its 101 the client reads HTTP, and a close frame is four octets
+        /// of garbage in it, after a refusal or where the answer should have
+        /// been. A connection that was never upgraded is closed without one,
+        /// whatever it is closed with.
+        /// </remarks>
         /// <param name="StatusCode">An optional closing status code for the HTTP WebSocket close frame.</param>
         /// <param name="Reason">An optional closing reason for the HTTP WebSocket close frame.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
@@ -774,7 +814,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             try
             {
-                if (StatusCode.HasValue || Reason is not null)
+
+                // Not before a 101 has gone out, see switchedProtocols.
+                if ((StatusCode.HasValue || Reason is not null) &&
+                    switchedProtocols)
                 {
 
                     // Closing must never block forever, even when a
