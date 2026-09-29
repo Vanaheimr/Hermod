@@ -724,7 +724,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                            CancellationToken
                                        );
 
-                    await stream.CompleteRequestAsync(CancellationToken: CancellationToken);
+                    // Ending the request fails if the server has reset the stream
+                    // already, and the response side says what that means: it fails
+                    // there too, unless the reset was RST_STREAM NO_ERROR after a
+                    // complete response (RFC 9113, Section 8.1). That response
+                    // stands, and a client must not discard it over such a reset.
+                    try
+                    {
+                        await stream.CompleteRequestAsync(CancellationToken: CancellationToken);
+                    }
+                    catch (HTTP2StreamException)
+                    { }
 
                     var head = await stream.GetResponseAsync(CancellationToken);
                     status   = head.Status;
@@ -1329,6 +1339,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             catch
             {
                 // The write fails only as the connection ends, and every stream with it.
+                // The end fails as well once the server has reset the stream, which
+                // then needs nothing more (EndTunnelAsync).
             }
         }
 
@@ -1375,6 +1387,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Send tunnel bytes as flow-controlled DATA frames (never END_STREAM).
+        ///
+        /// Nothing goes out on a stream the server has reset (RFC 9113, Section
+        /// 5.1: a closed stream carries no frame but PRIORITY). The write fails
+        /// then, as the response side of the stream does and as the request's
+        /// trailers do (<see cref="EndRequestWithTrailersAsync"/>): with an
+        /// <see cref="HTTP2StreamException"/> that carries the reset's error code.
+        /// At once, if the reset came first; when the write wakes, if it was
+        /// waiting for window; and once it has the write lock, if the reset was
+        /// handled while a frame of it waited for the lock
+        /// (<see cref="SendDataAsync"/>). Frames that went out before stay out. It
+        /// used to return as if it had sent everything, and a caller writing an
+        /// upload the server no longer wanted went on producing it for nothing.
         /// </summary>
         internal async Task SendTunnelDataAsync(HTTP2Stream Stream, byte[] Data, CancellationToken CancellationToken)
         {
@@ -1387,14 +1411,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             while (offset < Data.Length)
             {
+
                 var chunkSize = await ReserveSendWindowAsync(Stream, Math.Min(Data.Length - offset, maxPayload));
 
-                if (chunkSize == 0)
-                    return;   // stream reset — abandon
+                // Zero: the stream is closed. Not sent: it closed while the frame
+                // waited for the write lock.
+                if (chunkSize == 0 ||
+                    !await SendDataAsync(Stream, Data[offset..(offset + chunkSize)], EndStream: false))
+                {
+                    ThrowIfReset(Stream);
+                    return;
+                }
 
-                var chunk = Data[offset..(offset + chunkSize)];
-                await SendFrameAsync(HTTP2Frame.CreateData(Stream.StreamId, chunk, EndStream: false));
                 offset += chunkSize;
+
             }
 
         }
@@ -1408,14 +1438,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             => SendTunnelDataAsync(Stream, Data, CancellationToken);
 
         /// <summary>
-        /// End our side of the tunnel with a zero-length END_STREAM DATA frame.
+        /// End our side of the stream with a zero-length END_STREAM DATA frame: of
+        /// a tunnel (<see cref="HTTP2ClientTunnel.CloseAsync"/>), or of a streamed
+        /// request without trailers (<see cref="HTTP2ClientStream.CompleteRequestAsync"/>).
+        ///
+        /// On a stream the server has reset nothing is sent, and the call fails as
+        /// a write there does (<see cref="SendTunnelDataAsync"/>), and as ending the
+        /// request with trailers does: with an <see cref="HTTP2StreamException"/>
+        /// that carries the reset's error code. At once, if the reset came first,
+        /// or else once the write lock is ours, if the reset was handled while the
+        /// frame waited for it (<see cref="SendDataAsync"/>). That holds after a
+        /// complete response as well, which a server may follow with RST_STREAM
+        /// NO_ERROR to stop the rest of an upload (RFC 9113, Section 8.1). Its
+        /// response stands all the same: <see cref="DownloadAsync"/>, which ends
+        /// its request right after the HEADERS, reads the response regardless.
+        ///
+        /// Best-effort otherwise, as it has always been: a write that fails means
+        /// the connection is ending, and every exchange on it fails with the
+        /// reason.
         /// </summary>
         internal async Task EndTunnelAsync(HTTP2Stream Stream)
         {
-            try { await SendFrameAsync(HTTP2Frame.CreateData(Stream.StreamId, [], EndStream: true)); }
+
+            // At once, as a write on a reset stream fails, rather than after a wait
+            // for the write lock, which another request's start may hold.
+            ThrowIfReset(Stream);
+
+            var sent = false;
+
+            try { sent = await SendDataAsync(Stream, [], EndStream: true); }
             catch { /* best-effort */ }
 
+            // Not sent: the stream was reset while the frame waited for the lock,
+            // it had ended on both sides already, or the write failed.
+            if (!sent)
+                ThrowIfReset(Stream);
+
             CloseLocalIfOpen(Stream);
+
         }
 
         /// <summary>
@@ -1494,10 +1554,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
-        /// Refuse a header block on a stream the server has reset, as the response
-        /// side of that stream fails: with an <see cref="HTTP2StreamException"/>
-        /// that carries the reset's error code. Every reset of a client stream is
-        /// the server's (see <see cref="HandleRstStream"/>), and keeps its code.
+        /// Refuse a header block or DATA on a stream the server has reset, as the
+        /// response side of that stream fails: with an
+        /// <see cref="HTTP2StreamException"/> that carries the reset's error code,
+        /// which the stream keeps (see <see cref="HandleRstStream"/>). The client
+        /// resets streams of its own only where nobody gets to write on them: a
+        /// stream a GOAWAY caught before its HEADERS went out
+        /// (<see cref="RegisterExchange"/>), and a CONNECT the server rejected
+        /// (<see cref="EndRejectedTunnelAsync"/>).
         /// </summary>
         private static void ThrowIfReset(HTTP2Stream Stream)
         {
@@ -1510,6 +1574,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #region Sending helpers (body + header block)
 
+        /// <summary>
+        /// Send a buffered request's body as flow-controlled DATA frames, the last
+        /// one with END_STREAM. On a stream the server has reset, the rest of the
+        /// body stays unsent, as a write's does (<see cref="SendTunnelDataAsync"/>),
+        /// but quietly: the reset has decided the exchange already
+        /// (<see cref="HandleRstStream"/>), as a failure, as a retry of a refused
+        /// request on a new stream, which sends the body there, or, after a
+        /// complete response, as that response. A failure from here would reach
+        /// the exchange's Completion (<see cref="SendBodyThenCloseAsync"/>), which
+        /// a retry has taken over: it would fail the retry, and change nothing
+        /// else.
+        /// </summary>
         private async Task SendBodyAsync(HTTP2Stream Stream, byte[] Body)
         {
 
@@ -1518,17 +1594,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             while (offset < Body.Length)
             {
+
                 var chunkSize = await ReserveSendWindowAsync(Stream, Math.Min(Body.Length - offset, maxPayload));
 
                 if (chunkSize == 0)
                     return;   // Stream reset by peer — abandon
 
                 var isLast = offset + chunkSize >= Body.Length;
-                var chunk  = Body[offset..(offset + chunkSize)];
 
-                await SendFrameAsync(HTTP2Frame.CreateData(Stream.StreamId, chunk, EndStream: isLast));
+                // Abandoned as well if the reset was handled while the frame
+                // waited for the write lock.
+                if (!await SendDataAsync(Stream, Body[offset..(offset + chunkSize)], EndStream: isLast))
+                    return;
 
                 offset += chunkSize;
+
             }
 
         }
@@ -2560,6 +2640,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 await transportStream.FlushAsync(cancellationToken);
             }
             finally { writeLock.Release(); }
+        }
+
+        /// <summary>
+        /// Send a DATA frame of a request body or a tunnel, unless its stream is
+        /// closed by the time the write lock is ours. The read loop handles the
+        /// server's RST_STREAM without that lock, so a stream that was open when
+        /// the frame took its window may be reset once the frame could go out,
+        /// and a closed stream gets nothing but PRIORITY (RFC 9113, Section 5.1).
+        /// A reset handled after this check still lets the frame out, as it lets
+        /// out a trailer block (<see cref="EndRequestWithTrailersAsync"/>): the
+        /// server must take frames that crossed its RST_STREAM (Sections 5.1 and
+        /// 6.4). Returns whether the frame went out.
+        ///
+        /// A frame that did not go out spent none of the flow-control window
+        /// <see cref="ReserveSendWindowAsync"/> took for its payload. It goes back
+        /// to the stream and, what matters, to the connection: the server counts
+        /// only DATA it gets, and a connection window short of every frame kept
+        /// off the wire would, frame by frame, stall every upload on the
+        /// connection. A write waiting for window on another stream may go on.
+        /// </summary>
+        private async Task<Boolean> SendDataAsync(HTTP2Stream Stream, Byte[] Payload, Boolean EndStream)
+        {
+
+            var bytes = HTTP2Frame.CreateData(Stream.StreamId, Payload, EndStream).Serialize();
+
+            await writeLock.WaitAsync(cancellationToken);
+
+            try
+            {
+
+                if (Stream.State == HTTP2StreamState.Closed)
+                {
+
+                    if (Payload.Length > 0)
+                    {
+
+                        lock (flowLock)
+                        {
+                            Stream.SendWindow                  += Payload.Length;
+                            streamManager.ConnectionSendWindow += Payload.Length;
+                        }
+
+                        SignalWindowChange();
+
+                    }
+
+                    return false;
+
+                }
+
+                await transportStream.WriteAsync(bytes, cancellationToken);
+                await transportStream.FlushAsync(cancellationToken);
+
+                return true;
+
+            }
+            finally
+            {
+                writeLock.Release();
+            }
+
         }
 
         private static ReadOnlySpan<byte> StripPadding(HTTP2Frame Frame, ReadOnlySpan<byte> Payload)

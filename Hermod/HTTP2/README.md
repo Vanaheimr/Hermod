@@ -938,11 +938,26 @@ that prints, which is roughly what the library used to hardcode.
   holds for a reset after a complete response too, which is how a server may stop
   the rest of an upload it no longer needs (`RST_STREAM NO_ERROR`, §8.1). The
   client used to ignore such a reset. It now closes the stream: the rest of the
-  upload stays unsent, a write waiting for window returns, and the stream no
+  upload stays unsent, a write waiting for window ends, and the stream no
   longer counts against `MAX_CONCURRENT_STREAMS`; the response stands. Whether to
   send the trailers is decided under the lock that orders request HEADERS,
   before they are HPACK-encoded: a block encoded and then dropped would leave the
   server's decoder a step behind for the rest of the connection.
+- **No DATA on a reset stream** either (§5.1): a write (`WriteAsync` of an
+  `HTTP2ClientStream` or an `HTTP2ClientTunnel`), the end of a request without
+  trailers or of a tunnel (`CompleteRequestAsync()`, `CloseAsync()`) and a
+  buffered request's body send nothing once the server has reset the stream. The
+  calls fail as the trailers do, with an `HTTP2StreamException` carrying the
+  reset's error code: at once, or once the write lock is theirs. Whether to send
+  is decided under that lock, right before the write, since the read loop handles
+  `RST_STREAM` without it. The end used to go out on the reset stream regardless,
+  and so did a write that had taken its window before the reset; both reported
+  success, as did a write that met the reset and sent nothing. A frame kept off
+  the wire gives its send window back to the connection. A buffered body stops
+  quietly: the reset has decided its exchange already, as a failure, a retry on
+  a new stream, or a complete response that stands. `DownloadAsync` reads such a
+  response even when ending its request meets the `RST_STREAM NO_ERROR` that
+  followed it.
 - **gRPC** runs over the stack (unary, server-streaming, client-streaming, bidi)
   with `grpc-status` in trailers — verified against the real `Grpc.Net.Client`,
   with **zero gRPC-specific production code**.

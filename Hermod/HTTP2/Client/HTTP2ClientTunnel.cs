@@ -68,12 +68,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Send a chunk of bytes to the peer as flow-controlled DATA frame(s).
+        ///
+        /// Nothing more goes out on a tunnel the server has reset, and the task
+        /// fails then with an <see cref="HTTP2StreamException"/> that carries the
+        /// reset's error code. <see cref="ReadAsync"/> returns null after a reset
+        /// as after an orderly end; this is where the two differ.
         /// </summary>
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken)
             => connection.SendTunnelDataAsync(stream, Data, CancellationToken);
 
         /// <summary>
-        /// End our side of the tunnel (a zero-length END_STREAM DATA frame).
+        /// End our side of the tunnel (a zero-length END_STREAM DATA frame). On a
+        /// tunnel the server has reset nothing is sent, and the task fails as
+        /// <see cref="WriteAsync"/> does.
         /// </summary>
         public Task CloseAsync()
             => connection.EndTunnelAsync(stream);

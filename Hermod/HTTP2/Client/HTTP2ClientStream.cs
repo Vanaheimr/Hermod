@@ -67,6 +67,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Send a chunk of request body as flow-controlled DATA frame(s) — never END_STREAM.
+        ///
+        /// Nothing more goes out on a stream the server has reset, and the task
+        /// fails then, as the response side of a reset stream does, with an
+        /// <see cref="HTTP2StreamException"/> that carries the reset's error code:
+        /// before the response, or after a complete one, which a server may follow
+        /// with RST_STREAM NO_ERROR to stop the rest of an upload it no longer
+        /// needs (RFC 9113, Section 8.1). That response stands.
         /// </summary>
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken = default)
             => connection.SendStreamDataAsync(stream, Data, CancellationToken);
@@ -82,12 +89,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// lowercase; a list that breaks either rule throws rather than reaching the
         /// wire, since the peer would be entitled to reset the stream over it.
         ///
-        /// Nor do trailers go out on a stream the server has reset: before its
-        /// response, or after a complete one, as RFC 9113, Section 8.1 lets a
-        /// server stop the rest of an upload it no longer needs (with NO_ERROR).
-        /// The task fails then, as the response side of a reset stream does, with
-        /// an <see cref="HTTP2StreamException"/> that carries the reset's error
-        /// code.
+        /// Nor does anything go out on a stream the server has reset, trailers or
+        /// the END_STREAM DATA frame: before its response, or after a complete
+        /// one, as RFC 9113, Section 8.1 lets a server stop the rest of an upload
+        /// it no longer needs (with NO_ERROR). The task fails then, as the
+        /// response side of a reset stream does and as <see cref="WriteAsync"/>
+        /// does, with an <see cref="HTTP2StreamException"/> that carries the
+        /// reset's error code. A response that was complete stands.
         /// </summary>
         public Task CompleteRequestAsync(IEnumerable<(string Name, string Value)>? Trailers = null,
                                          CancellationToken                          CancellationToken = default)

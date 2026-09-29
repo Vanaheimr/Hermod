@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     ///
     /// A reset after a complete response now closes the stream as any other
     /// reset does. So the rest of the upload stays unsent as well, a write
-    /// waiting for window returns, and the stream no longer counts against the
+    /// waiting for window ends, and the stream no longer counts against the
     /// server's MAX_CONCURRENT_STREAMS.
     /// </summary>
     [TestFixture]
@@ -461,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// The usual shape of an early answer: the server stops reading the
         /// upload, so the client's write runs out of stream window and waits for
         /// more; then the server answers in full and resets the stream with
-        /// NO_ERROR. The waiting write returns, and nothing more of it goes out.
+        /// NO_ERROR. The waiting write ends, and nothing more of it goes out.
         /// </summary>
         [Test]
         public async Task ResetAfterACompleteResponse_EndsAWriteWaitingForWindow()
