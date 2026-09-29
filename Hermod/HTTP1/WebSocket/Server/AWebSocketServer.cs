@@ -1962,6 +1962,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #endregion
 
+                                                        #region An answer that is not a 101 closes the connection - and says so
+
+                                                        // Only a 101 keeps the connection open, and then not for HTTP. Any other
+                                                        // answer is the last thing said on it. This loop reads one request, and it
+                                                        // has nobody to hand the connection on to who could read another: for a
+                                                        // WebSocket on an HTTP path that would be the HTTP server, and the HTTP
+                                                        // server closes the connection once this server is done with it. A client
+                                                        // that kept the connection for its next request - to another of that
+                                                        // server's paths, as like as not - would have been answered by this
+                                                        // handshake instead.
+                                                        //
+                                                        // Every refusal of this server's own says Connection: close, and so does
+                                                        // every validator that knows to. One that does not - a 401 that challenges
+                                                        // the client to authenticate, say - used to be taken for an upgrade: the
+                                                        // connection was announced as a new WebSocket connection, and the client's
+                                                        // next request, read as a frame, drew a close frame. It is sent saying close
+                                                        // now, and the connection is closed after it. RFC 9112 asks as much of a
+                                                        // server that does not keep a connection for another request, in every
+                                                        // response but a 1xx (section 9.3), and of one that means to close it
+                                                        // (section 9.6). The rest of the answer stays as its validator made it.
+                                                        if (httpResponse.HTTPStatusCode != HTTPStatusCode.SwitchingProtocols &&
+                                                           !httpResponse.IsConnectionClose)
+                                                        {
+                                                            httpResponse = SayingClose(httpResponse);
+                                                        }
+
+                                                        #endregion
+
                                                         #region Send OnWebSocketConnectionAccepted event
 
                                                         // Before the 101 goes out, not after it. A peer that has read the 101
@@ -1990,10 +2018,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         var success = await webSocketConnection.Send($"{httpResponse.EntirePDU}\r\n\r\n".ToUTF8Bytes());
 
-                                                        // Only a 101 opens the connection for frames. An answer that is not one
-                                                        // - a challenge to authenticate, say - leaves it waiting for the next.
-                                                        if (httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols)
+                                                        // Only a 101 that went out opens the connection for frames. Any other
+                                                        // answer is the last thing said on it, see above, and so is a 101 that
+                                                        // could not be sent.
+                                                        if (success == SentStatus.Success &&
+                                                            httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols)
+                                                        {
                                                             webSocketConnection.UpgradeAnswered();
+                                                        }
 
                                                         await LogEvent(
                                                                   OnHTTPResponse,
@@ -2008,12 +2040,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #endregion
 
+                                                        // Upgraded where a 101 went out that does not say close, and nowhere
+                                                        // else. Everything that did not say close used to count as an upgrade.
                                                         if (success != SentStatus.Success ||
-                                                            httpResponse.Connection == ConnectionType.Close)
+                                                            httpResponse.HTTPStatusCode != HTTPStatusCode.SwitchingProtocols ||
+                                                            httpResponse.IsConnectionClose)
                                                         {
-                                                            await webSocketConnection.Close(
-                                                                      WebSocketFrame.ClosingStatusCode.ProtocolError
-                                                                  );
+
+                                                            // With a close frame only after a 101 that went out. Before one the
+                                                            // client reads HTTP, and a close frame after a refusal - or where an
+                                                            // answer could not be sent - is four octets of garbage in it.
+                                                            if (success == SentStatus.Success &&
+                                                                httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols)
+                                                            {
+                                                                await webSocketConnection.Close(
+                                                                          WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                                      );
+                                                            }
+
+                                                            else
+                                                                await webSocketConnection.Close();
+
                                                         }
 
                                                         else
@@ -2558,9 +2605,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             webSocketConnection.RemoteSocket
                                                         );
 
-                                                        await webSocketConnection.Close(
-                                                                  WebSocketFrame.ClosingStatusCode.ProtocolError
-                                                              );
+                                                        // Without a close frame. Only a connection that still speaks HTTP gets
+                                                        // here - on an upgraded one the octets are read as frames above - and
+                                                        // whatever its client sent, a HEAD or a TLS handshake on the plain port,
+                                                        // a close frame is the one thing it certainly cannot read.
+                                                        await webSocketConnection.Close();
 
                                                     }
 
@@ -2568,9 +2617,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 }
 
-                                                await webSocketConnection.Close(
-                                                          WebSocketFrame.ClosingStatusCode.ProtocolError
-                                                      );
+                                                // However the loop ended - and without a close frame where no 101 has
+                                                // gone out: a client that hung up before it asked, a read that failed, a
+                                                // server that is shutting down. IsStillHTTP is false only after a 101 was
+                                                // sent, as every other answer closes the connection above, and a
+                                                // connection that was closed there is not closed again here.
+                                                if (IsStillHTTP)
+                                                    await webSocketConnection.Close();
+
+                                                else
+                                                    await webSocketConnection.Close(
+                                                              WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                          );
 
                                                 webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
 
@@ -2762,6 +2820,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #region (private static) SayingClose(Response)
+
+        /// <summary>
+        /// The given answer, saying that the connection closes after it.
+        /// </summary>
+        /// <remarks>
+        /// For an answer to an upgrade that is not a 101 and does not say close
+        /// itself - see RunConnectionAsync, where any answer but a 101 is the
+        /// last thing said on its connection.
+        ///
+        /// Everything else about the answer stays as its validator made it,
+        /// field for field and with its body. Only what would contradict the
+        /// close goes: a "keep-alive" among the connection options, and the
+        /// Keep-Alive field that belongs to it. Every other connection option
+        /// stays - an "Upgrade" in particular, which RFC 9110, section 7.8, asks
+        /// of every message that carries an Upgrade field, as a 426 Upgrade
+        /// Required does.
+        /// </remarks>
+        /// <param name="Response">An answer that is not a 101, and does not say close.</param>
+        private static HTTPResponse SayingClose(HTTPResponse Response)
+        {
+
+            var headerLines        = new List<String> { Response.FirstPDULine };
+            var connectionOptions  = new List<String>();
+
+            foreach (var line in Response.RawHTTPHeader.Split('\n').Skip(1))
+            {
+
+                var headerLine  = line.TrimEnd('\r');
+                var colon       = headerLine.IndexOf(':');
+                var fieldName   = colon > 0
+                                      ? headerLine[..colon].Trim()
+                                      : String.Empty;
+
+                if (fieldName.Equals("Connection", StringComparison.OrdinalIgnoreCase))
+                    connectionOptions.AddRange(
+                        headerLine[(colon + 1)..].
+                            Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).
+                            Where(option => !option.Equals("keep-alive", StringComparison.OrdinalIgnoreCase))
+                    );
+
+                else if (!fieldName.Equals("Keep-Alive", StringComparison.OrdinalIgnoreCase) &&
+                         headerLine.Length > 0)
+                    headerLines.Add(headerLine);
+
+            }
+
+            connectionOptions.Add("close");
+            headerLines.Add($"Connection: {String.Join(", ", connectionOptions)}");
+
+            return new HTTPResponse(
+                       Response.Timestamp,
+                       Response.HTTPSource,
+                       Response.LocalSocket,
+                       Response.RemoteSocket,
+                       String.Join("\r\n", headerLines),
+                       Response.HTTPRequest,
+                       Response.HTTPBody,
+                       SubprotocolResponse:  Response.SubprotocolResponse,
+                       EventTrackingId:      Response.EventTrackingId,
+                       Runtime:              Response.Runtime,
+                       CancellationToken:    Response.CancellationToken
+                   );
+
+        }
+
+        #endregion
+
         #region ValidateConnection(Timestamp, Server, Connection, EventTrackingId, CancellationToken)
 
         /// <summary>
@@ -2941,6 +3067,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// it is given a status or a reason, and this used to give it neither,
         /// so every client found out from a connection that broke rather than
         /// from the server.
+        ///
+        /// Every connection that has been upgraded, that is. The server lists a
+        /// connection from the moment it accepts it, and one still waiting for
+        /// its answer is closed without a close frame: its client reads HTTP,
+        /// and Close() sends none before a 101.
         ///
         /// All at once rather than one after another: a close frame is a send,
         /// a send can hang, and each close gives up on it after

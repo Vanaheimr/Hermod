@@ -39,6 +39,13 @@ Implemented (both server and client, unless noted):
   `Sec-WebSocket-Key` (Base64, 16 bytes) → `400 Bad Request`;
   `Sec-WebSocket-Version` ≠ 13 → `426 Upgrade Required` with
   `Sec-WebSocket-Version: 13`.
+- A refused upgrade is the last thing said on its connection: every answer but
+  a 101 says `Connection: close` (one from an `OnValidateWebSocketConnection`
+  handler that does not is sent saying it, without its `keep-alive`), and the
+  connection is closed after it. No frame goes out on a connection whose 101
+  has not, a close frame least of all: not after a refusal, not after a first
+  request that is not a `GET`, not to a client that hangs up before it asks,
+  and not to one still waiting for its answer when the server is shut down.
 - Client handshake validation (RFC 6455 Section 4.1): HTTP status 101, the
   `Sec-WebSocket-Accept` hash, the `Upgrade: websocket` / `Connection: Upgrade`
   tokens, and rejection of any unsolicited extension or subprotocol in the
