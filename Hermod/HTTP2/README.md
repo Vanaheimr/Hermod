@@ -419,6 +419,15 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   after both sides have ended the stream. A handler that fails on a reset stream
   gets no 500 either. The `CancellationToken` a write is given ends its wait,
   not the write.
+- Nor does a reset stream get a header block (§5.1): a response's HEADERS,
+  streamed or buffered, an interim 1xx, the 200 the server writes for a
+  streaming handler that returns without headers, a 421/425 refusal, a CONNECT
+  answer and trailers are not sent, and the header write fails as a body write
+  there does, with the stream's own token. A handler that answers a reset stream
+  is reported cancelled, and an accepted tunnel whose answer could not go out is
+  not run. Whether to send is decided under the connection's write lock, right
+  before the header list is HPACK-encoded: a block encoded and then dropped
+  would leave the client's decoder a step behind for the rest of the connection.
 - A read of a streamed request body on a reset stream fails likewise, with an
   `OperationCanceledException` carrying the stream's own token, whether the
   handler passed that token or not: a read waiting when the reset comes, and

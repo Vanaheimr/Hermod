@@ -34,13 +34,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// carrying <c>Link</c> preload hints — before the final response. May be
         /// called any number of times, but only before <see cref="WriteHeadersAsync"/>;
         /// each is a HEADERS block that does not end the stream (RFC 9110, Section
-        /// 15.2). <paramref name="Status"/> must be in the 1xx range.
+        /// 15.2). <paramref name="Status"/> must be in the 1xx range. Fails on a
+        /// reset stream as <see cref="WriteHeadersAsync"/> does.
         /// </summary>
         Task WriteInterimResponseAsync(int Status, IEnumerable<(string Name, string Value)> Headers, CancellationToken CancellationToken = default);
 
         /// <summary>
         /// Send the response header fields (must include <c>:status</c>). Call once,
-        /// before any <see cref="WriteAsync"/>. Does not end the stream.
+        /// before any <see cref="WriteAsync"/>. Does not end the stream. On a stream
+        /// that was reset, nothing is sent, and the task fails with an
+        /// <see cref="OperationCanceledException"/> carrying the handler's own token,
+        /// as <see cref="WriteAsync"/> does.
         /// </summary>
         Task WriteHeadersAsync(IEnumerable<(string Name, string Value)> Headers, CancellationToken CancellationToken = default);
 

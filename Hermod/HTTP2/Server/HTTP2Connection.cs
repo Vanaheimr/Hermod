@@ -1352,7 +1352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             {
                 var expect = Stream.RequestHeaders!.FirstOrDefault(h => h.Name == "expect").Value;
                 if (expect is not null && expect.Equals("100-continue", StringComparison.OrdinalIgnoreCase))
-                    await SendHeaderListAsync(Stream.StreamId, [(":status", "100")], EndStream: false);
+                    await SendHeaderListAsync(Stream, [(":status", "100")], EndStream: false);
             }
 
             // Streaming request path (a streaming handler is registered): dispatch
@@ -2426,8 +2426,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                             if (chunk.Length > 0)
                                 await SendFrameAsync(HTTP2Frame.CreateData(stream.StreamId, chunk, EndStream: false));
 
-                            await SendHeaderListAsync(stream.StreamId, trailers, EndStream: true);
-                            CloseLocalIfNotReset(stream);
+                            try
+                            {
+                                await SendHeaderListAsync(stream, trailers, EndStream: true);
+                                CloseLocalIfNotReset(stream);
+                            }
+                            catch (OperationCanceledException e) when (e.CancellationToken == stream.CancellationToken)
+                            {
+                                // The stream was reset once its trailers had been
+                                // taken off its queue: they stay unsent, as nothing
+                                // more goes out on a reset stream. No failure of this
+                                // loop's — the other streams' bodies go on.
+                            }
                         }
                         else
                         {
@@ -3028,7 +3038,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var hasBody      = ResponseBody is not null && ResponseBody.Length > 0;
             var endStream    = !hasBody;
 
-            await SendHeaderListAsync(Stream.StreamId, ResponseHeaders, endStream);
+            await SendHeaderListAsync(Stream, ResponseHeaders, endStream);
 
             if (endStream)
             {
@@ -3071,27 +3081,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// the order blocks are encoded in MUST equal the order they hit the wire —
         /// concurrent response tasks would otherwise encode in one order and write
         /// in another, desynchronizing the peer's decoder.
+        ///
+        /// Nothing is sent on a stream that was reset (RFC 9113, Section 5.1: a
+        /// closed stream carries no frame but PRIORITY). The write fails instead,
+        /// as a DATA write there does: with an OperationCanceledException that
+        /// carries the stream's own token, the one its handler was given. That is
+        /// decided before the list is encoded, never after: the encoder adds fields
+        /// to its dynamic table as it encodes, and a block encoded but not sent
+        /// would leave the peer's decoder a step behind, for every later header
+        /// block on the connection.
         /// </summary>
-        internal async Task SendHeaderListAsync(UInt32 StreamId, List<(string Name, string Value)> Headers, bool EndStream)
+        internal async Task SendHeaderListAsync(HTTP2Stream Stream, List<(string Name, string Value)> Headers, bool EndStream)
         {
+
+            // At once, as a DATA write on a reset stream fails, rather than after a
+            // wait for the lock; and with the stream's token even once the
+            // connection has ended, which cancels the connection's own token before
+            // it resets every stream still open on it.
+            ThrowIfReset(Stream);
 
             await writeLock.WaitAsync(cancellationToken);
 
             try
             {
+
+                // Again under the lock, right before the encoding, for a reset that
+                // came while this write waited for the lock. A reset the read loop
+                // has handled is seen here. One the peer has sent and the read loop
+                // has not handled yet cannot be, but the peer must be prepared for
+                // frames that crossed its RST_STREAM, and still decodes their
+                // header blocks (RFC 9113, Sections 5.1 and 6.4). A reset of our
+                // own is made before its RST_STREAM takes this lock (see
+                // SendStreamWindowUpdateAsync), so no HEADERS follows that.
+                ThrowIfReset(Stream);
+
                 var headerBlock  = hpackEncoder.EncodeHeaderBlock(Headers);
-                var headerFrames = BuildHeaderFrames(StreamId, headerBlock, EndStream);
+                var headerFrames = BuildHeaderFrames(Stream.StreamId, headerBlock, EndStream);
 
                 foreach (var frame in headerFrames)
                     await transportStream.WriteAsync(frame.Serialize(), cancellationToken);
 
                 await transportStream.FlushAsync(cancellationToken);
+
             }
             finally
             {
                 writeLock.Release();
             }
 
+        }
+
+        /// <summary>
+        /// Fail a write on a reset stream as a read of its request body fails (see
+        /// <see cref="HTTP2Stream.Reset"/>): with an OperationCanceledException that
+        /// carries the stream's own token.
+        /// </summary>
+        private static void ThrowIfReset(HTTP2Stream Stream)
+        {
+            if (Stream.WasReset)
+                throw new OperationCanceledException($"Stream {Stream.StreamId} was reset", Stream.CancellationToken);
         }
 
         /// <summary>
@@ -3275,6 +3323,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var result = await connectHandler(Stream.StreamId, Stream.RequestHeaders, Stream.CancellationToken);
             var accepted = result.StatusCode is >= 200 and < 300 && result.RunAsync is not null;
 
+            // On a stream reset meanwhile this fails with the stream's token, and
+            // an accepted tunnel is not run: its answer never reached the client.
             await SendConnectResponseAsync(Stream, result.StatusCode, result.ExtraHeaders, EndStream: !accepted);
 
             if (!accepted)
@@ -3314,7 +3364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             EnforceOutboundHeaderListSize(Stream.StreamId, headers);
 
-            await SendHeaderListAsync(Stream.StreamId, headers, EndStream);
+            await SendHeaderListAsync(Stream, headers, EndStream);
 
             if (EndStream)
                 CloseLocalIfNotReset(Stream);

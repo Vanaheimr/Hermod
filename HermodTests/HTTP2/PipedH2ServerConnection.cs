@@ -143,15 +143,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
 
-        #region StartAsync(RequestHandler, StreamingHandler = null, ConnectHandler = null)
+        #region StartAsync(RequestHandler, StreamingHandler = null, ConnectHandler = null, IsAuthorityServed = null)
 
         /// <summary>
         /// Start a server connection with these handlers, and return once the
-        /// client side has completed the connection preface.
+        /// client side has completed the connection preface. With
+        /// <paramref name="IsAuthorityServed"/>, the server answers a request for
+        /// an origin it refuses with 421.
         /// </summary>
         public static async Task<PipedH2ServerConnection> StartAsync(HTTP2RequestHandler     RequestHandler,
                                                                      HTTP2StreamingHandler?  StreamingHandler   = null,
-                                                                     HTTP2ConnectHandler?    ConnectHandler     = null)
+                                                                     HTTP2ConnectHandler?    ConnectHandler     = null,
+                                                                     Func<String, Boolean>?  IsAuthorityServed  = null)
         {
 
             var peer = new PipedH2ServerConnection();
@@ -160,7 +163,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                                   RequestHandler,
                                                   ConnectHandler:     ConnectHandler,
                                                   CancellationToken:  peer.cancellation.Token,
-                                                  StreamingHandler:   StreamingHandler);
+                                                  StreamingHandler:   StreamingHandler,
+                                                  IsAuthorityServed:  IsAuthorityServed);
 
             // On the thread pool, not the test's thread: the connection's loops
             // would otherwise capture NUnit's SynchronizationContext. Once the

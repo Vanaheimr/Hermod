@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             // An interim (1xx) response is a HEADERS block that does NOT end the
             // stream — the final response follows (RFC 9110, Section 15.2).
-            await connection.SendHeaderListAsync(stream.StreamId, list, EndStream: false);
+            await connection.SendHeaderListAsync(stream, list, EndStream: false);
         }
 
         public async Task WriteHeadersAsync(IEnumerable<(string Name, string Value)> Headers, CancellationToken CancellationToken = default)
@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             HTTP2Connection.ApplyResponsePriorityOverride(stream, list);
 
             headersSent = true;
-            await connection.SendHeaderListAsync(stream.StreamId, list, EndStream: false);
+            await connection.SendHeaderListAsync(stream, list, EndStream: false);
         }
 
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken = default)
