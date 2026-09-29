@@ -991,6 +991,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, Exchange.RequestToken);
 
+            HTTP2Stream stream;
+
             await requestStartLock.WaitAsync(linked.Token);
 
             try
@@ -1000,7 +1002,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // MAX_CONCURRENT_STREAMS limit is momentarily reached.
                 await WaitForStreamSlotAsync(linked.Token);
 
-                var stream = streamManager.CreateLocalStream();
+                stream = streamManager.CreateLocalStream();
                 stream.Open();
                 Exchange.Stream = stream;
 
@@ -1016,8 +1018,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 var headerBlock = hpackEncoder.EncodeHeaderBlock(Exchange.RequestHeaders);
                 await SendHeaderBlockAsync(stream.StreamId, headerBlock, EndStream: !Exchange.HasBody && !keepOpen);
 
+                // From the moment these HEADERS are on the wire the server may reset
+                // the stream, and the read loop may handle that before we get here.
+                // The stream is closed then, and the reset already dealt with on the
+                // exchange — a refusal retried or reported — so nothing is left to
+                // close, and throwing would replace that outcome with a state error.
                 if (!Exchange.HasBody && !keepOpen)
-                    stream.CloseLocal();
+                    CloseLocalIfOpen(stream);
 
             }
             finally
@@ -1025,10 +1032,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 requestStartLock.Release();
             }
 
+            // This attempt's stream, not Exchange.Stream: a refusal handled in the
+            // meantime has had its retry put a fresh stream there, which the retry
+            // sends its own body on.
             if (Exchange.HasBody)
-                _ = SendBodyThenCloseAsync(Exchange);
+                _ = SendBodyThenCloseAsync(Exchange, stream);
 
-            return Exchange.Stream!.StreamId;
+            return stream.StreamId;
 
         }
 
@@ -1076,14 +1086,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
-        /// Send the request body, then half-close our side. Runs concurrently with other streams.
+        /// Send the request body on <paramref name="Stream"/>, then half-close it. Runs concurrently with other streams.
         /// </summary>
-        private async Task SendBodyThenCloseAsync(ClientExchange Exchange)
+        private async Task SendBodyThenCloseAsync(ClientExchange Exchange, HTTP2Stream Stream)
         {
             try
             {
-                await SendBodyAsync(Exchange.Stream!, Exchange.RequestBody!);
-                CloseLocalIfOpen(Exchange.Stream!);
+                await SendBodyAsync(Stream, Exchange.RequestBody!);
+                CloseLocalIfOpen(Stream);
             }
             catch (Exception ex)
             {
@@ -2330,11 +2340,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             return Payload.Slice(1, Payload.Length - 1 - padLength);
         }
 
+        /// <summary>
+        /// Half-close our side unless the stream is no longer open on it — usually
+        /// because the read loop has handled an RST_STREAM in the meantime, which
+        /// may happen between any test of the state and the transition, and so
+        /// has to be one step (<see cref="HTTP2Stream.TryCloseLocal"/>).
+        /// </summary>
         private static void CloseLocalIfOpen(HTTP2Stream Stream)
-        {
-            if (Stream.State is HTTP2StreamState.Open or HTTP2StreamState.HalfClosedRemote)
-                Stream.CloseLocal();
-        }
+            => Stream.TryCloseLocal();
 
         private static void CloseRemoteIfOpen(HTTP2Stream Stream)
         {
