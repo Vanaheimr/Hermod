@@ -124,6 +124,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private int     continuationFrameCount;
         private bool    goawayReceived;
 
+        /// <summary>
+        /// The last-stream-id and error code of the latest GOAWAY, for the refusal
+        /// of every new stream after it (see <see cref="GoAwayRefusal"/>). Set
+        /// under <see cref="exchangesLock"/>, together with <see cref="goawayReceived"/>.
+        /// </summary>
+        private UInt32          goawayLastStreamId;
+        private HTTP2ErrorCode  goawayErrorCode;
+
         private readonly HTTP2ClientOptions options;
 
         /// <summary>
@@ -1007,8 +1015,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 stream.Open();
                 Exchange.Stream = stream;
 
-                lock (exchangesLock)
-                    exchanges[stream.StreamId] = Exchange;
+                RegisterExchange(Exchange);
 
                 // A streaming exchange keeps the request side open (HEADERS without
                 // END_STREAM) so the caller can write DATA chunks over time; the
@@ -1073,6 +1080,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// counts on, at both ends, until the body's END_STREAM. A gate that
         /// counted exchanges let the next request through, to fail in
         /// CreateLocalStream rather than wait.
+        ///
+        /// After a GOAWAY there is no slot to wait for: the server takes no new
+        /// stream, and the client must open none (RFC 9113, Section 6.8). The
+        /// request fails at once, and so does one waiting here when the GOAWAY
+        /// comes, as <see cref="HandleGoAway"/> wakes it.
         /// </summary>
         private async Task WaitForStreamSlotAsync(CancellationToken Token)
         {
@@ -1082,15 +1094,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 Task wait;
                 lock (exchangesLock)
                 {
+
+                    if (goawayReceived)
+                        throw GoAwayRefusal();
+
                     if (streamManager.ActiveStreamCount < streamManager.MaxConcurrentStreams)
                         return;
+
                     wait = streamSlotFreed.Task;
+
                 }
 
                 await wait.WaitAsync(Token);
 
             }
         }
+
+        /// <summary>
+        /// Register the exchange of a stream just opened. Under the lock under
+        /// which <see cref="HandleGoAway"/> takes note of a GOAWAY and collects
+        /// the exchanges it leaves unprocessed: a GOAWAY handled after the gate
+        /// had let this request through, but before the exchange was registered,
+        /// would neither have refused the stream nor failed the exchange, and the
+        /// request would have waited for an answer that never comes. Such a
+        /// stream has not reached the wire yet; it is closed again, and the
+        /// request refused as at the gate.
+        /// </summary>
+        private void RegisterExchange(ClientExchange Exchange)
+        {
+
+            HTTP2RequestNotProcessedException refusal;
+
+            lock (exchangesLock)
+            {
+
+                if (!goawayReceived)
+                {
+                    exchanges[Exchange.Stream.StreamId] = Exchange;
+                    return;
+                }
+
+                refusal = GoAwayRefusal();
+
+            }
+
+            Exchange.Stream.Reset();
+            SignalStreamSlotFreed();
+
+            throw refusal;
+
+        }
+
+        /// <summary>
+        /// The refusal of a new stream after a GOAWAY: an
+        /// <see cref="HTTP2RequestNotProcessedException"/>, as for a request the
+        /// GOAWAY leaves unprocessed, since this one was not even sent, and may be
+        /// sent again on another connection, as <see cref="HTTP2ClientPool"/>
+        /// does. Called under <see cref="exchangesLock"/>.
+        /// </summary>
+        private HTTP2RequestNotProcessedException GoAwayRefusal()
+
+            => new (goawayErrorCode,
+                    $"Server sent GOAWAY (lastStreamId={goawayLastStreamId}, {goawayErrorCode}) — no new streams, request not sent");
 
         /// <summary>
         /// Send the request body on <paramref name="Stream"/>, then half-close it. Runs concurrently with other streams.
@@ -1214,8 +1279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 stream.Open();
                 exchange.Stream = stream;
 
-                lock (exchangesLock)
-                    exchanges[stream.StreamId] = exchange;
+                RegisterExchange(exchange);
 
                 var block = hpackEncoder.EncodeHeaderBlock(headers);
                 await SendHeaderBlockAsync(stream.StreamId, block, EndStream: false);
@@ -2066,15 +2130,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var lastStreamId = BinaryPrimitives.ReadUInt32BigEndian(Frame.Payload.AsSpan(0, 4)) & 0x7FFFFFFFu;
             var code         = (HTTP2ErrorCode) BinaryPrimitives.ReadUInt32BigEndian(Frame.Payload.AsSpan(4, 4));
 
-            goawayReceived = true;
-            unusable.TrySetResult();   // the peer accepts no new streams — pool should route elsewhere
-
             // Streams above lastStreamId were definitely not processed (RFC 9113
             // §6.8) — fail them with the retry-safe exception so a caller (or a
-            // connection pool) can re-issue them on a new connection.
+            // connection pool) can re-issue them on a new connection. Noted under
+            // the lock that registers exchanges, so that every exchange is either
+            // among these or refused its stream (see RegisterExchange).
             List<ClientExchange> abandoned;
             lock (exchangesLock)
-                abandoned = exchanges.Where(kv => kv.Key > lastStreamId).Select(kv => kv.Value).ToList();
+            {
+                goawayLastStreamId  = lastStreamId;
+                goawayErrorCode     = code;
+                goawayReceived      = true;
+                abandoned           = exchanges.Where(kv => kv.Key > lastStreamId).Select(kv => kv.Value).ToList();
+            }
+
+            unusable.TrySetResult();   // the peer accepts no new streams — pool should route elsewhere
 
             foreach (var ex in abandoned)
             {
@@ -2083,6 +2153,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     new HTTP2RequestNotProcessedException(code,
                         $"Server sent GOAWAY (lastStreamId={lastStreamId}, {code}) — request not processed"));
             }
+
+            // A request waiting for a stream slot will get none on this
+            // connection: wake it, to be refused (see WaitForStreamSlotAsync).
+            SignalStreamSlotFreed();
+
         }
 
         /// <summary>

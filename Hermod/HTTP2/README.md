@@ -228,9 +228,10 @@ Console.WriteLine(conn.OriginSet is null ? "no ORIGIN frame" : String.Join(", ",
 
 Concurrent requests beyond the server's `MAX_CONCURRENT_STREAMS` queue (rather
 than fail), and a request the server provably never processed (a
-`REFUSED_STREAM` past the retry budget, or a stream above a `GOAWAY`'s
-last-stream-id) surfaces as `HTTP2RequestNotProcessedException` — a signal it's
-safe to retry on a fresh connection.
+`REFUSED_STREAM` past the retry budget, a stream above a `GOAWAY`'s
+last-stream-id, or a request started after a `GOAWAY`, which opens no new stream)
+surfaces as `HTTP2RequestNotProcessedException` — a signal it's safe to retry on
+a fresh connection.
 
 The client can also open CONNECT tunnels and WebSockets (RFC 9113 §8.5 / RFC
 8441 / RFC 6455), the mirror of the server's tunneling — both ends of the wire
@@ -943,7 +944,9 @@ that prints, which is roughly what the library used to hardcode.
 - **Robustness**: REFUSED_STREAM auto-retry, `MAX_CONCURRENT_STREAMS` gating
   (queue, don't fail), GOAWAY/exhaustion → retry-safe
   `HTTP2RequestNotProcessedException`, PING keepalive / dead-connection
-  detection, client-side flood bounds.
+  detection, client-side flood bounds. No new stream after a `GOAWAY` (§6.8): a
+  request started then, or waiting for a stream slot when it comes, fails at once
+  with `HTTP2RequestNotProcessedException`.
 - **Slots and windows follow the stream**: the `MAX_CONCURRENT_STREAMS` gate,
   and `AvailableStreamSlots` for the pool, count the streams that are open or
   half-closed (§5.1.2), as the stream allocator and the server do, not the

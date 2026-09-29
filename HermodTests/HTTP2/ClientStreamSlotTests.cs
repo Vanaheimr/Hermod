@@ -49,6 +49,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// server rejected, which nobody ended, and one whose END_STREAM from the
     /// server never reached its stream. Each held its slot for the rest of the
     /// connection.
+    ///
+    /// After a GOAWAY the server takes no new stream (RFC 9113, Section 6.8). A
+    /// request that would open one then, or that waits for a slot when the
+    /// GOAWAY comes, fails at once, not processed. It went out, or waited, for
+    /// an answer that never came.
     /// </summary>
     [TestFixture]
     public class ClientStreamSlotTests
@@ -630,6 +635,138 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Assert.Multiple(() => {
                 Assert.That(next.Result.Status,  Is.EqualTo(200),                                               "the next request's answer");
                 Assert.That(peer.Events,         Is.EqualTo(new[] { "HEADERS 1", "END_STREAM 1", "HEADERS 3" }), "the next request goes out on stream 3");
+            });
+
+            await connection.CloseAsync();
+
+        }
+
+        #endregion
+
+
+        #region Request_AfterGoAway_IsNotSent()
+
+        /// <summary>
+        /// After a GOAWAY the server takes no new streams, and the client must open
+        /// none (RFC 9113, Section 6.8). A request started then went out on a new
+        /// stream all the same, which the server ignores, and waited for an answer
+        /// that never came. It fails at once now, as a request the GOAWAY leaves
+        /// unprocessed does: with HTTP2RequestNotProcessedException, which says it
+        /// may be sent again on another connection.
+        /// </summary>
+        [Test]
+        public async Task Request_AfterGoAway_IsNotSent()
+        {
+
+            await using var peer = new Peer(MaxConcurrentStreams: 0,
+                                            GrantWindow:          true,
+                                            Answer:               async (peer, streamId) => {
+                                                                      if (streamId == 1)
+                                                                      {
+                                                                          await peer.RespondAsync(streamId, 200, Body: "ok");
+                                                                          await peer.SendAsync(HTTP2Frame.CreateGoAway(1, HTTP2ErrorCode.NO_ERROR));
+                                                                      }
+                                                                  });
+
+            var connection  = await peer.ConnectAsync();
+            var first       = await connection.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/first").WaitAsync(StepTimeout);
+
+            Assert.That(await H2.EventuallyAsync(() => !connection.IsUsable), Is.True, "the GOAWAY has been handled");
+
+            var next = connection.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/next");
+
+            Assert.That(await EndsInTime(next), Is.True, "the request fails at once, rather than wait for an answer that never comes");
+
+            Assert.Multiple(() => {
+                Assert.That(first.Status,                      Is.EqualTo(200),                                    "the stream the GOAWAY covers");
+                Assert.That(next.Exception?.GetBaseException(), Is.TypeOf<HTTP2RequestNotProcessedException>(),   "the request was not processed, and may be sent again elsewhere");
+                Assert.That(peer.Events,                       Is.EqualTo(new[] { "HEADERS 1" }),                  "no new stream after the GOAWAY");
+            });
+
+            await connection.CloseAsync();
+
+        }
+
+        #endregion
+
+        #region WaitingRequest_FailsAtGoAway()
+
+        /// <summary>
+        /// A request that waits for a stream slot when the GOAWAY comes can no more
+        /// be sent than one started after it. It waited on, and went out on a new
+        /// stream once the stream the GOAWAY covers had ended.
+        /// </summary>
+        [Test]
+        public async Task WaitingRequest_FailsAtGoAway()
+        {
+
+            await using var peer = new Peer(MaxConcurrentStreams: 1,
+                                            GrantWindow:          true,
+                                            Answer:               (peer, streamId) => Task.CompletedTask);
+
+            var connection  = await peer.ConnectAsync();
+            var first       = connection.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/first");
+
+            await peer.SeenAsync("HEADERS 1").WaitAsync(StepTimeout);
+
+            var next = connection.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/next");
+
+            AssertWaiting(next);
+
+            // The server finishes the stream it has, and takes no new one.
+            await peer.SendAsync(HTTP2Frame.CreateGoAway(1, HTTP2ErrorCode.NO_ERROR));
+
+            Assert.That(await EndsInTime(next), Is.True, "the waiting request fails at the GOAWAY");
+
+            await peer.RespondAsync(1, 200, Body: "ok");
+
+            var response = await first.WaitAsync(StepTimeout);
+
+            Assert.Multiple(() => {
+                Assert.That(next.Exception?.GetBaseException(), Is.TypeOf<HTTP2RequestNotProcessedException>(),   "the request was not processed, and may be sent again elsewhere");
+                Assert.That(response.Status,                   Is.EqualTo(200),                                    "the stream the GOAWAY covers still ends as usual");
+                Assert.That(peer.Events,                       Is.EqualTo(new[] { "HEADERS 1" }),                  "no new stream after the GOAWAY");
+            });
+
+            await connection.CloseAsync();
+
+        }
+
+        #endregion
+
+        #region Request_AfterGoAwayLeftTheOnlySlotUnprocessed_IsNotSent()
+
+        /// <summary>
+        /// A GOAWAY that leaves the only request unprocessed ends its exchange,
+        /// while its stream stays half-closed, and counts, as the server sends
+        /// nothing more on it. Since stream slots follow the stream, a request
+        /// started then waited for that slot until the connection closed; before,
+        /// it failed at once, but as "Maximum concurrent streams (1) exceeded".
+        /// It now fails as any request after a GOAWAY does.
+        /// </summary>
+        [Test]
+        public async Task Request_AfterGoAwayLeftTheOnlySlotUnprocessed_IsNotSent()
+        {
+
+            await using var peer = new Peer(MaxConcurrentStreams: 1,
+                                            GrantWindow:          true,
+                                            Answer:               (peer, streamId) => streamId == 1
+                                                                                          ? peer.SendAsync(HTTP2Frame.CreateGoAway(0, HTTP2ErrorCode.NO_ERROR))
+                                                                                          : Task.CompletedTask);
+
+            var connection = await peer.ConnectAsync();
+
+            Assert.That(async () => await connection.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/first").WaitAsync(StepTimeout),
+                        Throws.TypeOf<HTTP2RequestNotProcessedException>(),
+                        "the GOAWAY leaves the first request unprocessed");
+
+            var next = connection.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/next");
+
+            Assert.That(await EndsInTime(next), Is.True, "the request fails at once, rather than wait for a slot until the connection closes");
+
+            Assert.Multiple(() => {
+                Assert.That(next.Exception?.GetBaseException(), Is.TypeOf<HTTP2RequestNotProcessedException>(),   "the request was not processed, and may be sent again elsewhere");
+                Assert.That(peer.Events,                       Is.EqualTo(new[] { "HEADERS 1" }),                  "no new stream after the GOAWAY");
             });
 
             await connection.CloseAsync();
