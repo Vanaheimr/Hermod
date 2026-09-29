@@ -916,7 +916,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     await Task.WhenAll(listenerTasks);
 
                 },
-                cts.Token,
+                // Not cts.Token, although that is what stops this loop: the
+                // loop asks cts itself before every accept, and a cancellation
+                // there is the graceful stop that Stop() waits for. Handed to
+                // StartNew, the token decided something else as well - whether
+                // the loop ran at all. A Stop() that came before the new thread
+                // had got going, as when a server is started and disposed at
+                // once on a busy machine, cancelled the task before its first
+                // line: OnTCPServerStarted was never raised, Unwrap() passed
+                // the cancellation on, and Stop() threw TaskCanceledException
+                // from its await instead of stopping. Without the token the
+                // loop always runs, and one that finds cts cancelled ends at
+                // once.
+                CancellationToken.None,
                 TaskCreationOptions.LongRunning,
                 TaskScheduler.Default).Unwrap();
 
