@@ -1281,7 +1281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 if (decoded.First(h => h.Name == ":method").Value == "CONNECT")
                     Stream.IsConnectTunnel = true;
 
-                // RFC 9113, Section 8.1.2.6: a declared content-length must later
+                // RFC 9113, Section 8.1.1: a declared content-length must later
                 // equal the summed DATA payload length. Parse it now; a
                 // syntactically invalid or self-conflicting value is itself a
                 // malformed request (a CONNECT tunnel has no such body semantics).
@@ -1309,6 +1309,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         "Trailing HEADERS frame must set END_STREAM");
 
                 ValidateTrailerHeaders(Stream.StreamId, decoded);
+
+                // Trailers end the body, so it is here, and not at a DATA frame
+                // with END_STREAM, that a declared content-length is compared
+                // with it: on the streaming path as on the buffered one. Before
+                // the trailers are stored, so that a malformed request passes
+                // none to its handler.
+                CheckContentLength(Stream);
+
                 Stream.Trailers = decoded;
 
             }
@@ -1366,7 +1374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 if (isInitialHeaders)
                 {
                     // A declared content-length with an immediate END_STREAM (no
-                    // body) is malformed — reject before dispatching (Section 8.1.2.6).
+                    // body) is malformed — reject before dispatching (Section 8.1.1).
                     if (EndStream && Stream.ExpectedContentLength is > 0)
                         throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, Stream.StreamId,
                             $"content-length {Stream.ExpectedContentLength} declared but no request body sent");
@@ -1394,8 +1402,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
 
                 // Reached on the initial HEADERS (if END_STREAM: a bodyless request)
-                // or on a later trailers block (which HandleHeaders requires to set
-                // END_STREAM) — either way the peer's side is done, so end the body.
+                // or on a later trailers block (which the check above requires to
+                // set END_STREAM) — either way the peer's side is done, so end the body.
                 if (EndStream)
                 {
                     Stream.CloseRemote();
@@ -1408,9 +1416,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             if (EndStream)
             {
-                // No DATA frames will follow, so the body length is 0 — a non-zero
-                // declared content-length is a malformed request (Section 8.1.2.6).
-                if (Stream.ExpectedContentLength is > 0)
+                // Ended by its initial header block, a request has no body: no DATA
+                // frames will follow, so a non-zero declared content-length makes
+                // it malformed (Section 8.1.1). Ended by trailers, it may have
+                // one, and the trailers' branch above has compared its length.
+                if (isInitialHeaders && Stream.ExpectedContentLength is > 0)
                     throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, Stream.StreamId,
                         $"content-length {Stream.ExpectedContentLength} declared but no request body sent");
 
@@ -1433,7 +1443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
-        /// Parse the request's <c>content-length</c> (RFC 9113, Section 8.1.2.6).
+        /// Parse the request's <c>content-length</c> (RFC 9113, Section 8.1.1).
         /// Returns the declared length, or null when absent. A syntactically
         /// invalid value, a negative value, or multiple content-length fields with
         /// differing values make the request malformed — a stream error.
@@ -1464,6 +1474,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
 
             return result;
+
+        }
+
+        /// <summary>
+        /// RFC 9113, Section 8.1.1: a declared content-length MUST equal the
+        /// summed DATA payload length, else the request is malformed. Checked
+        /// where the body ends: at a DATA frame with END_STREAM, or at trailers.
+        /// (A CONNECT tunnel is exempt — it has no body semantics.)
+        /// </summary>
+        private static void CheckContentLength(HTTP2Stream Stream)
+        {
+
+            if (Stream.IsConnectTunnel || Stream.ExpectedContentLength is not { } expected)
+                return;
+
+            var received = Stream.IsStreamingRequest
+                               ? Stream.ReceivedBodyLength
+                               : Stream.RequestBody?.Length ?? 0;
+
+            if (received != expected)
+                throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, Stream.StreamId,
+                    $"content-length {expected} does not match body length {received}");
 
         }
 
@@ -1955,19 +1987,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (Frame.EndStream)
             {
 
-                // RFC 9113, Section 8.1.2.6: a declared content-length MUST equal
-                // the summed DATA payload length, else the request is malformed.
-                // (A CONNECT tunnel is exempt — it has no body semantics.)
-                if (!stream.IsConnectTunnel && stream.ExpectedContentLength is { } expected)
-                {
-                    var received = stream.IsStreamingRequest
-                                       ? stream.ReceivedBodyLength
-                                       : stream.RequestBody?.Length ?? 0;
-
-                    if (received != expected)
-                        throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, Frame.StreamId,
-                            $"content-length {expected} does not match body length {received}");
-                }
+                // The body ends with this frame, so its length is compared with a
+                // declared content-length now, as it is where trailers end a body
+                // (see CompleteHeaders).
+                CheckContentLength(stream);
 
                 stream.CloseRemote();
 

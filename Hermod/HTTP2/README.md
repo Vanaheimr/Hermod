@@ -357,7 +357,11 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   names, connection-specific header rejection, `te: trailers` only — malformed
   requests are stream errors, not connection errors.
 - Trailers (§8.1) and implicit stream closure (§5.1.1).
-- `content-length` vs. DATA-length enforcement (§8.1.2.6).
+- `content-length` vs. DATA-length enforcement (§8.1.1), wherever the body
+  ends: at its last DATA frame, or at trailers — buffered and streamed alike. A
+  buffered upload that declared its length and ended with trailers used to be
+  reset with `PROTOCOL_ERROR`, as if it had sent no body at all; and trailers
+  let a body of another length through.
 - Cleartext **h2c** (prior knowledge, RFC 9113 §3.3) — server and client. (The
   RFC 7540 `Upgrade: h2c` negotiation was removed in RFC 9113 and is
   deliberately not implemented.)
