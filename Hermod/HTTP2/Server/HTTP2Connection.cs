@@ -2154,9 +2154,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// signal that drives consumption-based backpressure. Called from handler
         /// tasks (via <see cref="HTTP2RequestStream"/> / <see cref="HTTP2Tunnel"/>),
         /// so it runs concurrently with the read loop's decrement; both go through
-        /// the recvLock-guarded <see cref="ReplenishReceiveWindowsAsync"/>. Bytes a
-        /// handler reads after a reset return nothing: the reset has returned their
-        /// window already (<see cref="ReturnUnreadWindowAsync"/>).
+        /// the recvLock-guarded <see cref="ReplenishReceiveWindowsAsync"/>. Bytes
+        /// read once nothing was to read them any more return nothing: after a
+        /// reset, or by a task a handler left behind when it ended, their window
+        /// was returned then already (<see cref="ReturnUnreadWindowAsync"/>).
         /// </summary>
         internal Task ReplenishConsumedAsync(HTTP2Stream Stream, int Count)
 
@@ -2170,17 +2171,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// reads it (<see cref="ReplenishConsumedAsync"/>).
         ///
         /// TryWrite: the channel is unbounded, so a write fails only on a completed
-        /// channel, and past HandleDataAsync's state check that means a reset.
-        /// HTTP2Stream.Reset completes the channel, and a reset made on another
-        /// task, a handler's or the writer loop's, can land between that check and
-        /// this write. WriteAsync would then throw into the read loop — the reset's
-        /// OperationCanceledException for a body, ChannelClosedException for a
-        /// tunnel — and end the connection. Nobody will read the chunk now: it is
-        /// dropped, and its window given back to the connection at once, as for
-        /// DATA on a closed stream (Section 6.9) — unless the reset has given it
-        /// back already, with the rest of what was unread
+        /// channel, and past HandleDataAsync's state check that means a reset, or
+        /// the end of the stream's handler (<see cref="EndReadingAsync"/>). Both
+        /// complete the channel, on another task, a handler's or the writer loop's,
+        /// and can land between that check and this write. WriteAsync would then
+        /// throw into the read loop — the reset's OperationCanceledException for a
+        /// body, ChannelClosedException for a tunnel — and end the connection.
+        /// Nobody will read the chunk now: it is dropped, and its window given back
+        /// to the connection at once, as for DATA on a closed stream (Section 6.9)
+        /// — unless it was given back already, with the rest of what was unread
         /// (<see cref="ReturnUnreadWindowAsync"/>). A chunk that comes once that is
-        /// done is dropped without being withheld at all.
+        /// done is dropped without being withheld at all, and never written: the
+        /// channel would grow with every chunk, as their windows are given back.
         /// </summary>
         private async Task HandToReaderAsync(HTTP2Stream Stream, Channel<byte[]> Channel, byte[] Chunk)
         {
@@ -2202,9 +2204,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Count bytes about to be handed to the stream's reader as unread, so that
-        /// their window is withheld until they are read — or return false once a
-        /// reset has returned the window of what was unread: from then on, nothing
-        /// is withheld on the stream.
+        /// their window is withheld until they are read — or return false once the
+        /// window of what was unread has been returned, after a reset or at the end
+        /// of the stream's handler: from then on, nothing is withheld on the stream.
         /// </summary>
         private bool TryWithholdWindow(HTTP2Stream Stream, int Count)
         {
@@ -2225,10 +2227,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Take bytes that were read, or dropped, off the stream's unread count, and
-        /// return true when their window is still to be given back — false when a
-        /// reset has given it back already, with the rest of what was unread. Under
-        /// the same lock as that reset's count, so that whichever comes first, the
-        /// window of each byte is given back once.
+        /// return true when their window is still to be given back — false when it
+        /// was given back already, with the rest of what was unread, after a reset
+        /// or at the end of the stream's handler. Under the same lock as that
+        /// return's count, so that whichever comes first, the window of each byte
+        /// is given back once.
         /// </summary>
         private bool TryReleaseWithheldWindow(HTTP2Stream Stream, int Count)
         {
@@ -2249,20 +2252,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Give back the connection window of every DATA byte still unread on a
-        /// stream that was reset. That window is withheld until the handler reads
-        /// the bytes, and after a reset a handler that honours its token, or has
-        /// failed, never does: the connection lost that much of its window for
-        /// good, and with a whole window's worth unread, every later upload on it
-        /// stalled. The bytes stay readable, in order, as before, but a read of
+        /// stream that nothing will read any more: one that was reset, or whose
+        /// handler has ended, or none was started (<see cref="EndReadingAsync"/>).
+        /// That window is withheld until the handler reads the bytes, and after a
+        /// reset a handler that honours its token, or has failed, never does, nor
+        /// does one that has ended: the connection lost that much of its window
+        /// for good, and with a whole window's worth unread, every later upload on
+        /// it stalled. The bytes stay readable, in order, as before, but a read of
         /// them gives nothing back a second time (<see cref="ReplenishConsumedAsync"/>),
         /// and a chunk that arrives afterwards is dropped, its window given back at
         /// once (<see cref="HandToReaderAsync"/>). Only the connection's window: the
         /// stream's matters no more.
         ///
-        /// Called once a reset is made, after its RST_STREAM, sent or received — not
-        /// from HTTP2Stream.Reset, which the client shares, which cannot await the
-        /// WINDOW_UPDATE this may send, and which the connection's teardown calls
-        /// where nothing can be sent any more. Called again, it gives back nothing.
+        /// Called once a reset is made, after its RST_STREAM, sent or received, and
+        /// at the end of the reading — not from HTTP2Stream.Reset, which the client
+        /// shares, which cannot await the WINDOW_UPDATE this may send, and which the
+        /// connection's teardown calls where nothing can be sent any more. Called
+        /// again, it gives back nothing.
         /// </summary>
         private Task ReturnUnreadWindowAsync(HTTP2Stream Stream)
         {
@@ -2284,6 +2290,95 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // No more than the stream's receive window: at most 2^31-1 bytes
             // (RFC 9113, Section 6.9.1).
             return ReplenishReceiveWindowsAsync(null, (int) unread);
+
+        }
+
+        /// <summary>
+        /// Nothing reads what the client sends on this stream any more: its handler
+        /// has ended — returned, failed or cancelled — or none was started, for a
+        /// streaming request refused with 421 or 425, or a CONNECT that was refused.
+        /// A reset gives back the window of what was left unread
+        /// (<see cref="ReturnUnreadWindowAsync"/>), but a stream can end without one:
+        /// the handler answers before the upload is over, and returns. What it left
+        /// unread, and every chunk that came after, withheld its window for good,
+        /// and with a whole window's worth, every later upload on the connection
+        /// stalled. So the same is done here: the window of what is unread is given
+        /// back now, once, and nothing is withheld on the stream any more.
+        ///
+        /// The channel is completed first: nothing is added to it any more, and a
+        /// read that comes after what is in it ends. A body's with a failure, as a
+        /// reset completes it: completed without one, once the client ends its
+        /// side, it would pass the body off as whole, although chunks were dropped
+        /// since — to a task the handler left behind to read it, say. A body the
+        /// client has ended already stays whole: TryComplete leaves a completed
+        /// channel as it is. Not with an OperationCanceledException: the stream's
+        /// token has not been cancelled, unless a reset follows. A tunnel's channel
+        /// ends, as a reset ends it.
+        ///
+        /// Then the client is asked to stop sending, once the response is complete
+        /// (<see cref="StopUnreadUploadAsync"/>). Called only once whatever else is
+        /// to become of the stream has become of it: a handler that fails is
+        /// answered with a 500, or a reset of its own, first.
+        ///
+        /// Best-effort, as a reset's return is: only the end of the connection can
+        /// fail what this sends, and nothing needs its window after that. Called
+        /// again, it does nothing more.
+        /// </summary>
+        private async Task EndReadingAsync(HTTP2Stream Stream)
+        {
+
+            Stream.RequestBodyChannel?.Writer.TryComplete(new InvalidOperationException($"Nothing reads the request body of stream {Stream.StreamId} any more"));
+            Stream.TunnelInbound?.     Writer.TryComplete();
+
+            try
+            {
+                await ReturnUnreadWindowAsync(Stream);
+                await StopUnreadUploadAsync(Stream);
+            }
+            catch
+            {
+                // The connection is ending — nothing left to give back.
+            }
+
+        }
+
+        /// <summary>
+        /// Ask the client to stop sending what nothing reads, with RST_STREAM
+        /// NO_ERROR: once the response is complete, its END_STREAM on the wire,
+        /// while the client's side of the stream is still open, and once nothing
+        /// reads what it sends there any more (<see cref="EndReadingAsync"/>). RFC
+        /// 9113, Section 8.1 allows a server exactly that, and has the client keep
+        /// the response. Without it, the client goes on sending into chunks that
+        /// are dropped: their connection window is given back, but not the stream's,
+        /// which drains until the upload hangs, and the stream counts as open
+        /// until the connection ends.
+        ///
+        /// The two come on two tasks, in either order: the end of the reading, and
+        /// the writer loop's END_STREAM, after which it calls this for the stream.
+        /// Each marks its own, and then looks for the other's — the end of the
+        /// reading under recvLock, the END_STREAM in the stream's state, under the
+        /// stream's lock — so whichever comes second finds both. The stream is
+        /// reset only from half-closed (local), tested and changed under the
+        /// stream's lock (<see cref="HTTP2Stream.TryResetHalfClosedLocal"/>). So one
+        /// RST_STREAM goes out at most; none once the client has ended its side as
+        /// well, or the stream was reset otherwise; and none before the END_STREAM,
+        /// which half-closed (local) comes after. Reset first, then the RST_STREAM,
+        /// as every other reset here (see SendStreamWindowUpdateAsync).
+        /// </summary>
+        private async Task StopUnreadUploadAsync(HTTP2Stream Stream)
+        {
+
+            bool nothingReads;
+
+            // Set after a reset as well, but then the stream is closed, and is not
+            // reset again below.
+            lock (recvLock)
+                nothingReads = Stream.UnreadWindowReturned;
+
+            if (!nothingReads || !Stream.TryResetHalfClosedLocal())
+                return;
+
+            await SendFrameAsync(HTTP2Frame.CreateRstStream(Stream.StreamId, HTTP2ErrorCode.NO_ERROR));
 
         }
 
@@ -2567,6 +2662,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                             if (endStream)
                                 CloseLocalIfNotReset(stream);
                         }
+
+                        // Our side has ended, its END_STREAM on the wire. If nothing
+                        // reads what the client may still send, a body or a tunnel,
+                        // ask it to stop.
+                        if (endStream && (stream.IsStreamingRequest || stream.IsConnectTunnel))
+                            await StopUnreadUploadAsync(stream);
 
                     }
                     catch (OperationCanceledException e) when (e.CancellationToken == stream.CancellationToken)
@@ -2898,6 +2999,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// handler that returns without ending the response auto-completes; one that
         /// throws before sending headers falls back to a 500, or otherwise resets
         /// the stream (a partial response can't be turned into an error status).
+        /// Once the handler has ended, nothing reads the request body any more
+        /// (<see cref="EndReadingAsync"/>).
         /// </summary>
         private void StartStreamingHandler(HTTP2Stream Stream)
         {
@@ -2916,8 +3019,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 try
                 {
+
                     await streamingHandler!(request, response, Stream.CancellationToken);
+
+                    // Returned: nothing reads the body any more. Before the response
+                    // is ended, which may wait for the client's window as long as the
+                    // client likes; the reading is over all the same.
+                    await EndReadingAsync(Stream);
+
                     await response.EnsureCompletedAsync();
+
                 }
                 catch (OperationCanceledException)
                 {
@@ -2958,6 +3069,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(Stream.StreamId, HTTP2ErrorCode.INTERNAL_ERROR)); } catch { }
                     try { await ReturnUnreadWindowAsync(Stream); } catch { }
                 }
+                finally
+                {
+                    // Failed or cancelled, the handler reads nothing more either. Only
+                    // now, once a failure is answered: with a 500, a response like any
+                    // other, or with a reset, which asks the client to stop sending in
+                    // its own way. Called here first, the end of the reading would let
+                    // a complete response be followed by RST_STREAM NO_ERROR, and a
+                    // handler that failed after it with INTERNAL_ERROR as well.
+                    await EndReadingAsync(Stream);
+                }
 
             }, CancellationToken.None);
 
@@ -2984,11 +3105,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// The fire-and-forget form, for the streaming path where the decision is
         /// made inside the frame read loop: the read loop must not block on a
-        /// response's flow control.
+        /// response's flow control. No handler is started, so nothing reads the
+        /// request body, from the start (<see cref="EndReadingAsync"/>).
         /// </summary>
         private void StartMisdirectedRequestResponse(HTTP2Stream Stream)
 
             => _ = Task.Run(async () => {
+                       await EndReadingAsync(Stream);
                        try
                        {
                            await SendMisdirectedRequestAsync(Stream);
@@ -3028,11 +3151,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// The fire-and-forget form, for the streaming path — the frame read loop
-        /// must not block on a response's flow control.
+        /// must not block on a response's flow control. No handler is started, so
+        /// nothing reads the request body, from the start
+        /// (<see cref="EndReadingAsync"/>).
         /// </summary>
         private void StartTooEarlyResponse(HTTP2Stream Stream)
 
             => _ = Task.Run(async () => {
+                       await EndReadingAsync(Stream);
                        try
                        {
                            await SendTooEarlyAsync(Stream);
@@ -3402,7 +3528,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Run the connect handler on its own task, mirroring StartRequestHandler
         /// — a tunnel (especially a WebSocket one) can be open indefinitely, so it
-        /// must never block the frame read loop from servicing other streams.
+        /// must never block the frame read loop from servicing other streams. Once
+        /// the tunnel is refused, or its handler has ended, nothing reads what the
+        /// client sends on it any more (<see cref="EndReadingAsync"/>).
         /// </summary>
         private void StartConnectHandler(HTTP2Stream Stream)
         {
@@ -3431,6 +3559,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     Stream.Reset();
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(Stream.StreamId, HTTP2ErrorCode.INTERNAL_ERROR)); } catch { }
                     try { await ReturnUnreadWindowAsync(Stream); } catch { }
+                }
+                finally
+                {
+                    // Refused, run to its end, or failed: nothing reads the tunnel any
+                    // more. After a failure's reset, for the reason StartStreamingHandler
+                    // gives; a tunnel that ran to its end has come here already.
+                    await EndReadingAsync(Stream);
                 }
 
             }, CancellationToken.None);
@@ -3491,7 +3626,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             try
             {
+
                 await result.RunAsync!(tunnel, Stream.CancellationToken);
+
+                // Run to its end: nothing reads the tunnel any more. Before our side
+                // is ended below, which waits behind the tunnel's last bytes for the
+                // client's window. Not after a failure: StartConnectHandler resets
+                // the stream for it, once our side has ended, and only then ends the
+                // reading, which would otherwise have the writer loop's END_STREAM
+                // followed by RST_STREAM NO_ERROR first.
+                await EndReadingAsync(Stream);
+
             }
             finally
             {

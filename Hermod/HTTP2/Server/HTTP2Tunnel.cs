@@ -47,7 +47,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Read the next chunk the peer sent. Returns null once the peer has
         /// ended its side of the tunnel — END_STREAM on a DATA frame, or the
-        /// stream was reset.
+        /// stream was reset — and once the tunnel's handler has returned: what
+        /// the peer sends after that is dropped.
         /// </summary>
         public async Task<byte[]?> ReadAsync(CancellationToken CancellationToken)
         {
@@ -59,7 +60,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // Consumption-driven backpressure: the window for these bytes was
                 // deliberately withheld on receipt (HandleDataAsync) and is returned
                 // only now, as the tunnel consumer actually takes them. After a
-                // reset, nothing: the reset has returned it already.
+                // reset, or the handler's end, nothing: that has returned it
+                // already.
                 await connection.ReplenishConsumedAsync(stream, chunk.Length);
                 return chunk;
             }

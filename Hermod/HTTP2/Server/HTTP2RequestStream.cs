@@ -52,14 +52,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             // After a reset this throws, once the chunks that did arrive are read:
             // HTTP2Stream.Reset completes the channel with an
-            // OperationCanceledException that carries the stream's token.
+            // OperationCanceledException that carries the stream's token. So it
+            // does once the handler has ended, with an InvalidOperationException
+            // (HTTP2Connection.EndReadingAsync).
             if (await reader.WaitToReadAsync(CancellationToken) && reader.TryRead(out var chunk))
             {
                 // Consumption-driven backpressure: the window for these bytes was
                 // deliberately withheld on receipt (HandleDataAsync) and is returned
                 // only now, as the handler actually consumes them — so an unread body
                 // leaves the peer's window depleted instead of buffering unbounded.
-                // After a reset, nothing: the reset has returned it already.
+                // After a reset, or the handler's end, nothing: that has returned it
+                // already.
                 await connection.ReplenishConsumedAsync(stream, chunk.Length);
                 return chunk;
             }

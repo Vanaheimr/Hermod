@@ -100,61 +100,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             using var events = new HTTP2Events();
 
+            var returnNow = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
             await using var peer = await PipedH2ServerConnection.StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 
                 StreamingHandler: async (request, response, cancellationToken) => {
+
                     await response.WriteHeadersAsync([(":status", "200")]);
                     await response.WriteAsync(Encoding.ASCII.GetBytes(request.Headers.First(header => header.Name == ":path").Value.TrimStart('/')));
                     await response.CompleteAsync();
+
+                    // Stream 1's handler stays: once it has returned, nothing reads
+                    // what the client may still send, and the server stops the
+                    // client's side with RST_STREAM NO_ERROR (RFC 9113, Section 8.1).
+                    if (request.Headers.First(header => header.Name == ":path").Value == "/first")
+                        await returnNow.Task;
+
                 });
 
-            // The client leaves its side of stream 1 open, so once the server has
-            // ended its own, the stream is half-closed, and still one the writer
-            // loop sends on.
-            await peer.RequestAsync(1, "/first", EndStream: false);
-
-            var first = await peer.TryResponseAsync(1, PipedH2ServerConnection.StepTimeout);
-
-            Assert.That(first?.Body, Is.EqualTo("first"), "the response on stream 1");
-
-            // Held on to: once reset, stream 1 is pruned when stream 3 opens.
-            var stream1 = peer.ServerStream(1);
-
-            // The second END_STREAM, queued as a response queues its last.
-            await peer.Connection.EnqueueOutboundAsync(stream1, [], EndStream: true).WaitAsync(PipedH2ServerConnection.StepTimeout);
-
-            await peer.RequestAsync(3, "/second");
-
-            var second = await peer.TryResponseAsync(3, PipedH2ServerConnection.StepTimeout);
-
-            Assert.That(second, Is.Not.Null, "the response on stream 3 never ended: the writer loop had stopped");
-
-            Assert.Multiple(() =>
+            try
             {
 
-                Assert.That(second!.Status, Is.EqualTo("200"),    "status of the response on stream 3");
-                Assert.That(second. Body,   Is.EqualTo("second"), "body of the response on stream 3");
+                // The client leaves its side of stream 1 open, so once the server has
+                // ended its own, the stream is half-closed, and still one the writer
+                // loop sends on.
+                await peer.RequestAsync(1, "/first", EndStream: false);
 
-                Assert.That(peer.FramesOn(1).Select(frame => frame.ToString()),
-                            Is.EqualTo(new[] {
-                                "HEADERS :status 200",
-                                "DATA \"first\"",
-                                "DATA \"\" END_STREAM",
-                                "DATA \"\" END_STREAM",
-                                "RST_STREAM INTERNAL_ERROR"
-                            }),
-                            "what the server sent on stream 1");
+                var first = await peer.TryResponseAsync(1, PipedH2ServerConnection.StepTimeout);
 
-                Assert.That(stream1.WasReset,       Is.True,  "stream 1 reset, and so no longer counted as open");
-                Assert.That(peer.Ended.IsCompleted, Is.False, "the connection ended");
+                Assert.That(first?.Body, Is.EqualTo("first"), "the response on stream 1");
 
-                Assert.That(events.Named("StreamError"),
-                            Has.Some.StartsWith("1 STREAM_CLOSED Cannot close local on stream 1 "),
-                            "the error logged with the code and message it was thrown with");
+                // Held on to: once reset, stream 1 is pruned when stream 3 opens.
+                var stream1 = peer.ServerStream(1);
 
-            });
+                // The second END_STREAM, queued as a response queues its last.
+                await peer.Connection.EnqueueOutboundAsync(stream1, [], EndStream: true).WaitAsync(PipedH2ServerConnection.StepTimeout);
+
+                await peer.RequestAsync(3, "/second");
+
+                var second = await peer.TryResponseAsync(3, PipedH2ServerConnection.StepTimeout);
+
+                Assert.That(second, Is.Not.Null, "the response on stream 3 never ended: the writer loop had stopped");
+
+                Assert.Multiple(() =>
+                {
+
+                    Assert.That(second!.Status, Is.EqualTo("200"),    "status of the response on stream 3");
+                    Assert.That(second. Body,   Is.EqualTo("second"), "body of the response on stream 3");
+
+                    Assert.That(peer.FramesOn(1).Select(frame => frame.ToString()),
+                                Is.EqualTo(new[] {
+                                    "HEADERS :status 200",
+                                    "DATA \"first\"",
+                                    "DATA \"\" END_STREAM",
+                                    "DATA \"\" END_STREAM",
+                                    "RST_STREAM INTERNAL_ERROR"
+                                }),
+                                "what the server sent on stream 1");
+
+                    Assert.That(stream1.WasReset,       Is.True,  "stream 1 reset, and so no longer counted as open");
+                    Assert.That(peer.Ended.IsCompleted, Is.False, "the connection ended");
+
+                    Assert.That(events.Named("StreamError"),
+                                Has.Some.StartsWith("1 STREAM_CLOSED Cannot close local on stream 1 "),
+                                "the error logged with the code and message it was thrown with");
+
+                });
+
+            }
+            finally
+            {
+                returnNow.TrySetResult();
+            }
 
         }
 

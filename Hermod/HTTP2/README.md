@@ -465,6 +465,18 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   goes out only while the client may still send DATA on the stream, checked again
   under the write lock: never once the client has ended its side, and never
   after the stream's `RST_STREAM`.
+- So is it once nothing reads the stream any more, without a reset: its handler
+  has returned, or failed and been answered with a 500, a tunnel's handler has
+  returned, or none was started — a streamed request refused with 421 or 425, a
+  CONNECT refused. A handler that answered early and returned used to leave what
+  it had not read, and all the client sent after, holding the connection's
+  window for good. From then on, DATA on the stream is dropped and its window
+  given back at once, and the body channel ends with an
+  `InvalidOperationException` (a tunnel's simply ends), so a read left behind
+  cannot pass a body cut short off as whole. Once the response is complete while
+  the client may still send, the server asks it to stop with `RST_STREAM
+  NO_ERROR` (§8.1), whichever comes second: the end of the reading, or the
+  `END_STREAM` the writer loop sends.
 - What the client sent before it read the server's own `RST_STREAM` — DATA,
   trailers and their CONTINUATION frames, still in flight when a handler failed
   or the read loop found a stream error — is minimally processed and discarded

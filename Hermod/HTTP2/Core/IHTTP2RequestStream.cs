@@ -34,6 +34,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// request first. It is expected to send response headers (once), then any
     /// number of body chunks, then complete — optionally with trailers. Returning
     /// without completing auto-completes the response; throwing resets the stream.
+    /// The request body is read only until the handler returns or throws: the
+    /// window of what it left unread is given back then, and what the client
+    /// sends after that is dropped. Once the response is complete, a client still
+    /// sending is asked to stop, with RST_STREAM NO_ERROR (RFC 9113, Section 8.1).
     /// </summary>
     public delegate Task HTTP2StreamingHandler(
         IHTTP2RequestStream  Request,
@@ -62,7 +66,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <see cref="OperationCanceledException"/> that carries the stream's own
         /// token, the handler's: once the chunks that did arrive have been read, or
         /// at once when that token is the one passed here. The end of the
-        /// connection resets every stream still open on it.
+        /// connection resets every stream still open on it. Once the handler has
+        /// ended, the body is no longer taken in, and the rest the client sends is
+        /// dropped: a read after that, by a task the handler left behind, gets the
+        /// chunks that had arrived, and then fails with an
+        /// <see cref="InvalidOperationException"/> — unless the client had ended
+        /// the body by then.
         /// </summary>
         ValueTask<byte[]?> ReadAsync(CancellationToken CancellationToken = default);
 

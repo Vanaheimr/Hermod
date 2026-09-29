@@ -52,18 +52,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// DATA bytes waiting in <see cref="RequestBodyChannel"/> or
         /// <see cref="TunnelInbound"/> for the handler to read them, whose receive
-        /// window the server withholds until it does. A reset returns the
-        /// connection's share of that window all at once (see
+        /// window the server withholds until it does. Once nothing will read them —
+        /// the stream was reset, or its handler has ended, or none was started —
+        /// the connection's share of that window is returned all at once (see
         /// <see cref="UnreadWindowReturned"/>). Kept by the server's connection,
         /// under the lock of its receive windows.
         /// </summary>
         internal Int64            UnreadRecvBytes   { get; set; }
 
         /// <summary>
-        /// True once a reset has returned the connection window of every byte in
-        /// <see cref="UnreadRecvBytes"/>. Those bytes stay readable, but reading
-        /// them returns nothing a second time, and DATA that arrives afterwards
-        /// has its window returned at once. Kept like <see cref="UnreadRecvBytes"/>.
+        /// True once the connection window of every byte in
+        /// <see cref="UnreadRecvBytes"/> has been returned, because nothing will
+        /// read them: after a reset, and once the stream's handler has ended, or
+        /// none was started. Reading them returns nothing a second time, and
+        /// nothing is withheld on the stream any more: DATA that arrives afterwards
+        /// is dropped, and its window returned at once. Kept like
+        /// <see cref="UnreadRecvBytes"/>.
         /// </summary>
         internal bool             UnreadWindowReturned { get; set; }
 
@@ -125,9 +129,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// HandleDataAsync / ReplenishConsumedAsync), so the peer can never have
         /// more than a window's worth in flight, and a slow consumer simply leaves
         /// the peer's window depleted rather than growing this queue without bound.
-        /// A reset returns the connection's share of the window for what is still
-        /// unread at once (see <see cref="UnreadRecvBytes"/>): after a reset, nobody
-        /// has to read it.
+        /// A reset, or the end of the tunnel's handler, returns the connection's
+        /// share of the window for what is still unread at once (see
+        /// <see cref="UnreadRecvBytes"/>): after either, nobody has to read it. The
+        /// handler's end completes the channel as a reset does.
         /// </summary>
         public Channel<byte[]>?    TunnelInbound   { get; set; }
 
@@ -146,8 +151,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// read loop as DATA arrives and read by the handler via
         /// <see cref="IHTTP2RequestStream.ReadAsync"/>. Completed at END_STREAM, or,
         /// if the stream is reset first, with an <see cref="OperationCanceledException"/>
-        /// that carries its <see cref="CancellationToken"/> (see <see cref="Reset"/>).
-        /// Flow-controlled like <see cref="TunnelInbound"/>.
+        /// that carries its <see cref="CancellationToken"/> (see <see cref="Reset"/>),
+        /// or, if its handler ends first, with an <see cref="InvalidOperationException"/>:
+        /// nothing is added once nothing reads it. Flow-controlled like
+        /// <see cref="TunnelInbound"/>.
         /// </summary>
         public Channel<byte[]>?    RequestBodyChannel { get; set; }
 
@@ -318,6 +325,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
 
             AbandonOutboundOnClose();
+
+            return true;
+
+        }
+
+        /// <summary>
+        /// Reset this stream as <see cref="Reset()"/> does, but only while our side
+        /// has ended and the peer's has not — half-closed (local) — and return
+        /// whether it was reset. Checked and changed under one lock, as in
+        /// <see cref="TryCloseLocal"/>: the read loop may handle the peer's
+        /// END_STREAM at any moment, and a stream both sides have ended is closed,
+        /// and gets no RST_STREAM. For a server that has sent a complete response
+        /// and asks the client to stop sending a request nothing reads, with
+        /// RST_STREAM NO_ERROR (RFC 9113, Section 8.1). What the client sent before
+        /// it read that is discarded, as after any reset of ours while it could
+        /// still send (<see cref="DiscardsPeerFrames"/>).
+        /// </summary>
+        public bool TryResetHalfClosedLocal()
+        {
+
+            lock (stateLock)
+            {
+
+                if (State != HTTP2StreamState.HalfClosedLocal)
+                    return false;
+
+                DiscardsPeerFrames  = true;
+                State               = HTTP2StreamState.Closed;
+                WasReset            = true;
+
+            }
+
+            // Outside the lock, as always: Reset finds the stream closed and reset
+            // already, and releases what a reset releases.
+            Reset();
 
             return true;
 
