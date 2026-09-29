@@ -29,9 +29,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// abstraction shared with the client, can reuse the exact same seam.
     ///
     /// CancellationToken is cancelled if the peer sends RST_STREAM for this specific
-    /// stream while the handler is still running — a long-running handler should
-    /// observe it (e.g. pass it to any awaited I/O) instead of running to completion
-    /// for a client that already walked away.
+    /// stream while the handler is still running, or the connection ends meanwhile
+    /// — a long-running handler should observe it (e.g. pass it to any awaited I/O)
+    /// instead of running to completion for a client that already walked away.
     /// </summary>
     public delegate Task<(List<(string Name, string Value)> ResponseHeaders, byte[]? ResponseBody)>
         HTTP2RequestHandler(

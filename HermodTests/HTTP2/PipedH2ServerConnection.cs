@@ -312,6 +312,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
+        /// Close the client's end, as a client that goes away without a word: the
+        /// server reads the end of its stream, and ends the connection.
+        /// </summary>
+        public ValueTask DisconnectAsync()
+
+            => clientToServer.Writer.CompleteAsync();
+
+        /// <summary>
         /// Every frame read so far on this stream, in order.
         /// </summary>
         public List<ReceivedFrame> FramesOn(UInt32 StreamId)

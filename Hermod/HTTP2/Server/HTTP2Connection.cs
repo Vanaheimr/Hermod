@@ -353,6 +353,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     try { await writerTask; }
                     catch (Exception ex) { HTTP2EventSource.Log.ConnectionError("WRITER_LOOP", ex.ToString()); }
                 }
+
+                // The connection is gone, and with it every stream still open on
+                // it: reset them all (every stream not closed yet), as the peer's
+                // RST_STREAM would. Their handlers were given the stream's token,
+                // not this connection's, so the cancellation above does not reach
+                // them. Without this, a handler waiting for request-body data, even
+                // with its own token, or for a tunnel's next chunk, waited for good,
+                // and one that checks its token ran on. The reset cancels that token,
+                // fails body reads with it, ends tunnel reads and releases writers,
+                // and it sends nothing.
+                foreach (var stream in streamManager.GetSendableStreams())
+                {
+                    try
+                    {
+                        stream.Reset();
+                    }
+                    catch (Exception ex)
+                    {
+                        // A callback on the handler's token threw out of Cancel().
+                        // The other streams still have to be released.
+                        HTTP2EventSource.Log.HandlerFailed((int) stream.StreamId, "cancellation", ex.Message);
+                    }
+                }
             }
 
         }

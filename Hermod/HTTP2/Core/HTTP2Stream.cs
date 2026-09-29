@@ -161,7 +161,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public long                LastServedSequence  { get; set; } = -1;
 
         /// <summary>
-        /// Cancelled when the stream is forcibly closed (<see cref="Reset"/>), so a
+        /// Cancelled when the stream is forcibly closed (<see cref="Reset"/>) — by an
+        /// RST_STREAM, sent or received, or by the end of its connection — so a
         /// running <c>HTTP2RequestHandler</c> invocation for this stream can be
         /// told to stop instead of running to completion for a peer that already
         /// walked away. Never disposed — its lifetime is tied to this stream

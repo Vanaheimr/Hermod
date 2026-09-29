@@ -61,7 +61,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// short makes the read fail instead of returning <c>null</c>, with an
         /// <see cref="OperationCanceledException"/> that carries the stream's own
         /// token, the handler's: once the chunks that did arrive have been read, or
-        /// at once when that token is the one passed here.
+        /// at once when that token is the one passed here. The end of the
+        /// connection resets every stream still open on it.
         /// </summary>
         ValueTask<byte[]?> ReadAsync(CancellationToken CancellationToken = default);
 
