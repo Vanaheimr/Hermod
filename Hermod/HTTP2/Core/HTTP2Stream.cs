@@ -350,11 +350,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// while it was open, or closed on our side only. What the peer sent
         /// before it read our RST_STREAM is still to come, and RFC 9113, Section
         /// 5.1 has it minimally processed and then discarded, not answered. False
-        /// after the peer's own reset (<see cref="ResetByPeer"/>), and after ours
+        /// after the peer's own reset (<see cref="ResetByPeer()"/>), and after ours
         /// once the peer had ended its side: it has nothing left to send then,
         /// and a frame it sends all the same is an error.
         /// </summary>
         public bool DiscardsPeerFrames { get; private set; }
+
+        /// <summary>
+        /// The error code of the peer's RST_STREAM that closed this stream, as
+        /// <see cref="ResetByPeer(HTTP2ErrorCode)"/> keeps it; null before that,
+        /// and after a reset that was not given one. The client passes it, so
+        /// that a header block it refuses on the reset stream says why, as the
+        /// response side of the stream does. Read under the lock of the
+        /// transitions, under which the reset sets it.
+        /// </summary>
+        public HTTP2ErrorCode? PeerResetCode
+        {
+            get
+            {
+                lock (stateLock)
+                    return peerResetCode;
+            }
+        }
+
+        private HTTP2ErrorCode? peerResetCode;
 
         /// <summary>
         /// Forcibly close: we send RST_STREAM, or the connection ends.
@@ -371,7 +390,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             => Reset(ByPeer: true);
 
-        private void Reset(bool ByPeer)
+        /// <summary>
+        /// Forcibly close, as the peer's RST_STREAM does, and keep the error code
+        /// it carried (see <see cref="PeerResetCode"/>). Everything else is as for
+        /// <see cref="Reset()"/>.
+        /// </summary>
+        public void ResetByPeer(HTTP2ErrorCode ErrorCode)
+
+            => Reset(ByPeer: true, ErrorCode);
+
+        private void Reset(bool ByPeer, HTTP2ErrorCode? PeerErrorCode = null)
         {
             lock (stateLock)
             {
@@ -380,6 +408,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // the one the reset ends.
                 if (!ByPeer && State is (HTTP2StreamState.Open or HTTP2StreamState.HalfClosedLocal))
                     DiscardsPeerFrames = true;
+
+                // The first code stays: a later reset changes nothing on a stream
+                // that is closed already.
+                peerResetCode ??= PeerErrorCode;
 
                 State    = HTTP2StreamState.Closed;
                 WasReset = true;

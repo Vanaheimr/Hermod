@@ -1331,6 +1331,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Unlike <see cref="EndTunnelAsync"/> this is not best-effort: a caller that
         /// asked to send trailers and got no exception is entitled to assume they
         /// went out.
+        ///
+        /// Nothing is sent on a stream the server has reset (RFC 9113, Section 5.1:
+        /// a closed stream carries no frame but PRIORITY), whether the reset came
+        /// before the response or after a complete one (Section 8.1). The call fails
+        /// instead, as the response side of the stream does: with an
+        /// <see cref="HTTP2StreamException"/> that carries the reset's error code.
+        /// That is decided under <c>requestStartLock</c>, right before the encoding,
+        /// never after: the encoder adds the trailer fields to its dynamic table as
+        /// it encodes them, and a block encoded but not sent would leave the
+        /// server's decoder a step behind, for every later header block on the
+        /// connection.
         /// </summary>
         internal async Task EndRequestWithTrailersAsync(HTTP2Stream                       Stream,
                                                         List<(String Name, String Value)> Trailers,
@@ -1347,13 +1358,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     $"The request trailer list ({trailerListSize} bytes uncompressed) exceeds the peer's " +
                     $"advertised MAX_HEADER_LIST_SIZE ({remoteSettings.MaxHeaderListSize} bytes)");
 
+            // At once, as the response side of a reset stream fails, rather than
+            // after a wait for the lock, which another request's start may hold.
+            ThrowIfReset(Stream);
+
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, CancellationToken);
 
             await requestStartLock.WaitAsync(linked.Token);
             try
             {
+
+                // Again under the lock, right before the encoding, for a reset the
+                // read loop handled while this waited for it. A block encoded once
+                // this check has passed is sent, even if a reset is handled before
+                // it gets the write lock: the server must take frames that crossed
+                // its RST_STREAM, and still decodes their header blocks (RFC 9113,
+                // Sections 5.1 and 6.4).
+                ThrowIfReset(Stream);
+
                 var headerBlock = hpackEncoder.EncodeHeaderBlock(Trailers);
                 await SendHeaderBlockAsync(Stream.StreamId, headerBlock, EndStream: true);
+
             }
             finally
             {
@@ -1362,6 +1387,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             CloseLocalIfOpen(Stream);
 
+        }
+
+        /// <summary>
+        /// Refuse a header block on a stream the server has reset, as the response
+        /// side of that stream fails: with an <see cref="HTTP2StreamException"/>
+        /// that carries the reset's error code. Every reset of a client stream is
+        /// the server's (see <see cref="HandleRstStream"/>), and keeps its code.
+        /// </summary>
+        private static void ThrowIfReset(HTTP2Stream Stream)
+        {
+            if (Stream.PeerResetCode is { } errorCode)
+                throw new HTTP2StreamException(errorCode, Stream.StreamId, $"Stream reset by server: {errorCode}");
         }
 
         #endregion
@@ -1876,10 +1913,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         {
             var exchange = GetExchange(Frame.StreamId);
             if (exchange is null)
+            {
+                ResetAfterResponse(Frame);
                 return;
+            }
 
             var code = (HTTP2ErrorCode) BinaryPrimitives.ReadUInt32BigEndian(Frame.Payload);
-            exchange.Stream.ResetByPeer();
+            exchange.Stream.ResetByPeer(code);
             RemoveExchange(Frame.StreamId);
 
             // A tunnel exchange has no buffered-response Completion to fail and is
@@ -1927,6 +1967,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
 
             SignalWindowChange();
+        }
+
+        /// <summary>
+        /// An RST_STREAM for a stream that has no exchange any more, mostly because
+        /// its response is complete. Our side of the stream may still be open all
+        /// the same — a streamed request the caller has not ended, or a request
+        /// body still being sent — and RFC 9113, Section 8.1 lets a server that
+        /// has answered in full ask for the rest of the request not to be sent,
+        /// with RST_STREAM NO_ERROR. The response stands: a client must not
+        /// discard it over such a reset. But the stream is closed now, and nothing
+        /// more of ours goes out on it (Section 5.1), so it is reset here as it
+        /// would be with its exchange. A stream closed on both sides already stays
+        /// as it is, and so does a stream we never opened.
+        /// </summary>
+        private void ResetAfterResponse(HTTP2Frame Frame)
+        {
+
+            var stream = streamManager.TryGetStream(Frame.StreamId);
+
+            if (stream is null || stream.State == HTTP2StreamState.Closed)
+                return;
+
+            stream.ResetByPeer((HTTP2ErrorCode) BinaryPrimitives.ReadUInt32BigEndian(Frame.Payload));
+
+            // A body waiting for send window on this stream gives up.
+            SignalWindowChange();
+
         }
 
         private void HandleGoAway(HTTP2Frame Frame)

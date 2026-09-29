@@ -81,6 +81,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Trailers must carry no pseudo-header fields and their names must be
         /// lowercase; a list that breaks either rule throws rather than reaching the
         /// wire, since the peer would be entitled to reset the stream over it.
+        ///
+        /// Nor do trailers go out on a stream the server has reset: before its
+        /// response, or after a complete one, as RFC 9113, Section 8.1 lets a
+        /// server stop the rest of an upload it no longer needs (with NO_ERROR).
+        /// The task fails then, as the response side of a reset stream does, with
+        /// an <see cref="HTTP2StreamException"/> that carries the reset's error
+        /// code.
         /// </summary>
         public Task CompleteRequestAsync(IEnumerable<(string Name, string Value)>? Trailers = null,
                                          CancellationToken                          CancellationToken = default)

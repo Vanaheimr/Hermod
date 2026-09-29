@@ -104,9 +104,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
-        /// The next HEADERS frame the client sent, skipping everything else.
+        /// The next HEADERS frame the client sent, skipping everything else —
+        /// into <paramref name="Skipped"/>, if given.
         /// </summary>
-        public async Task<HTTP2Frame> NextHeadersAsync()
+        public async Task<HTTP2Frame> NextHeadersAsync(ICollection<HTTP2Frame>? Skipped = null)
         {
 
             using var timeout = new CancellationTokenSource(StepTimeout);
@@ -126,6 +127,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                 if (frame.Type == HTTP2FrameType.HEADERS)
                     return frame;
+
+                Skipped?.Add(frame);
 
             }
 

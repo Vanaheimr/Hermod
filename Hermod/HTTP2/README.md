@@ -903,6 +903,17 @@ that prints, which is roughly what the library used to hardcode.
   Encoding happens under the same lock that orders request HEADERS: the HPACK
   dynamic table is stateful, so a trailer block encoded between another request's
   encode and its write would desynchronize the peer's decoder.
+- **No trailers on a reset stream** (§5.1): `CompleteRequestAsync(Trailers)` on
+  a stream the server has reset sends nothing and fails as the response side
+  does, with an `HTTP2StreamException` carrying the reset's error code. That
+  holds for a reset after a complete response too, which is how a server may stop
+  the rest of an upload it no longer needs (`RST_STREAM NO_ERROR`, §8.1). The
+  client used to ignore such a reset. It now closes the stream: the rest of the
+  upload stays unsent, a write waiting for window returns, and the stream no
+  longer counts against `MAX_CONCURRENT_STREAMS`; the response stands. Whether to
+  send the trailers is decided under the lock that orders request HEADERS,
+  before they are HPACK-encoded: a block encoded and then dropped would leave the
+  server's decoder a step behind for the rest of the connection.
 - **gRPC** runs over the stack (unary, server-streaming, client-streaming, bidi)
   with `grpc-status` in trailers — verified against the real `Grpc.Net.Client`,
   with **zero gRPC-specific production code**.
