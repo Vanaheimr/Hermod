@@ -1958,7 +1958,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         webSocketConnection.HTTPResponse = httpResponse;
 
-                                                        var success = await webSocketConnection.Send($"{httpResponse.EntirePDU}\r\n\r\n".ToUTF8Bytes());
+                                                        var success = await webSocketConnection.Send(OnTheWire(httpResponse));
 
                                                         // Only a 101 opens the connection for frames. An answer that is not one
                                                         // - a challenge to authenticate, say - leaves it waiting for the next.
@@ -1981,9 +1981,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         if (success != SentStatus.Success ||
                                                             httpResponse.Connection == ConnectionType.Close)
                                                         {
-                                                            await webSocketConnection.Close(
-                                                                      WebSocketFrame.ClosingStatusCode.ProtocolError
-                                                                  );
+
+                                                            // A close frame only where there is a WebSocket to close:
+                                                            // after a 101 that went out. Before one, the client is
+                                                            // still reading HTTP, and a frame is octets after the
+                                                            // answer - and where the answer has no Content-Length, it
+                                                            // is the close that ends its body, so a close frame,
+                                                            // 88 02 03 EA, was the body of the refusal. What ends a
+                                                            // refusal is the close of the connection, and nothing else.
+                                                            if (success == SentStatus.Success &&
+                                                                httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols)
+                                                                await webSocketConnection.Close(
+                                                                          WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                                      );
+
+                                                            else
+                                                                await webSocketConnection.Close();
+
                                                         }
 
                                                         else
@@ -2729,6 +2743,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    ContentType     = HTTPContentType.Text.PLAIN,
                    Content         = "The WebSocket upgrade was called off.".ToUTF8Bytes()
                }.AsImmutable;
+
+        #endregion
+
+        #region (private static) OnTheWire(Response)
+
+        /// <summary>
+        /// The answer to an upgrade request as it goes on the wire: the header,
+        /// the empty line that ends it, and the body as the octets it is.
+        /// </summary>
+        /// <remarks>
+        /// Not EntirePDU with an empty line of its own after it, which is what it
+        /// was. With a body, EntirePDU already ends in the empty line and the
+        /// body, so four octets followed every answer that had one, and its
+        /// Content-Length did not count them. And EntirePDU is a string: a body
+        /// that is not UTF-8 went out with every invalid sequence replaced, and
+        /// no longer as long as its Content-Length said.
+        ///
+        /// A 101 has no body, and goes out octet for octet as it did.
+        /// </remarks>
+        /// <param name="Response">The answer to the upgrade request.</param>
+        private static Byte[] OnTheWire(HTTPResponse Response)
+
+            => [ .. $"{Response.RawHTTPHeader.Trim()}\r\n\r\n".ToUTF8Bytes(),
+                 .. Response.HTTPBody ?? [] ];
 
         #endregion
 
