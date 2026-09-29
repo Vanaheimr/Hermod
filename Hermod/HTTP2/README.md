@@ -426,6 +426,11 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   for a chunk that never comes. It never returns `null`, which would pass a
   truncated upload off as a whole one; a body the client ended before its reset
   still reads whole.
+- DATA that reaches a streamed request body or a tunnel just as another task
+  resets its stream — a failing handler, or the writer loop — is dropped, and its
+  window given back to the connection at once, as for DATA on a closed stream
+  (§6.9). The read loop used to write it into the channel the reset had
+  completed, and that failure ended the whole connection.
 - Closed-stream pruning; graceful shutdown (GOAWAY to every active connection).
 
 ### Parser fuzzing

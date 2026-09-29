@@ -1716,11 +1716,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // replenished on receipt and bounded instead by maxRequestBodySize.
             if (stream.IsConnectTunnel)
             {
-                if (dataLength > 0)
-                    await stream.TunnelInbound!.Writer.WriteAsync(payload.ToArray(), cancellationToken);
+                // TryWrite, as for a streaming request's body below: the channel is
+                // unbounded, so a write fails only on a completed channel, and past
+                // the state check above that means a reset, made on another task, a
+                // tunnel handler's or the writer loop's, between that check and this
+                // write. WriteAsync would then throw ChannelClosedException into this
+                // loop, and the connection would end with GOAWAY INTERNAL_ERROR.
+                // Nobody will read the chunk now: it is dropped, and its window given
+                // back to the connection at once.
+                if (dataLength > 0 && !stream.TunnelInbound!.Writer.TryWrite(payload.ToArray()))
+                    await ReplenishReceiveWindowsAsync(null, dataLength);
 
-                // Only the discarded padding is returned now; the data waits for the
-                // tunnel consumer (Section 6.1 padding still owed regardless).
+                // The discarded padding is returned now; the data the channel took
+                // waits for the tunnel consumer (Section 6.1 padding still owed
+                // regardless).
                 await ReplenishReceiveWindowsAsync(stream, paddingOverhead);
             }
             else if (stream.IsStreamingRequest)

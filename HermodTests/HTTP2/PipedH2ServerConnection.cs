@@ -140,20 +140,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
 
-        #region StartAsync(RequestHandler, StreamingHandler = null)
+        #region StartAsync(RequestHandler, StreamingHandler = null, ConnectHandler = null)
 
         /// <summary>
         /// Start a server connection with these handlers, and return once the
         /// client side has completed the connection preface.
         /// </summary>
         public static async Task<PipedH2ServerConnection> StartAsync(HTTP2RequestHandler     RequestHandler,
-                                                                     HTTP2StreamingHandler?  StreamingHandler   = null)
+                                                                     HTTP2StreamingHandler?  StreamingHandler   = null,
+                                                                     HTTP2ConnectHandler?    ConnectHandler     = null)
         {
 
             var peer = new PipedH2ServerConnection();
 
             peer.connection = new HTTP2Connection(peer.Server,
                                                   RequestHandler,
+                                                  ConnectHandler:     ConnectHandler,
                                                   CancellationToken:  peer.cancellation.Token,
                                                   StreamingHandler:   StreamingHandler);
 
@@ -229,6 +231,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                                   EndHeaders: true));
 
         /// <summary>
+        /// Send a CONNECT for a tunnel to <paramref name="Authority"/>, a host and
+        /// port (RFC 9113, Section 8.5). It leaves the client's side open, as a
+        /// tunnel's stays until one side ends it.
+        /// </summary>
+        public Task RequestTunnelAsync(UInt32 StreamId, String Authority)
+
+            => SendAsync(HTTP2Frame.CreateHeaders(StreamId,
+                                                  encoder.EncodeHeaderBlock([(":method",    "CONNECT"),
+                                                                             (":authority", Authority)]),
+                                                  EndStream:  false,
+                                                  EndHeaders: true));
+
+        /// <summary>
         /// Ping the server and read up to its answer. The read loop handles one
         /// frame at a time, so once the answer is read, the server has handled
         /// every frame sent before the ping, and everything it wrote before
@@ -294,6 +309,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             return new Response(blocks[0].Headers!,
                                 body,
                                 blocks.Count > 1 ? blocks[^1].Headers : null);
+
+        }
+
+        /// <summary>
+        /// Read on until the server resets the stream, past any end of its side
+        /// it sent first, and return the error code of its RST_STREAM.
+        /// </summary>
+        public async Task<HTTP2ErrorCode> ReadToResetAsync(UInt32 StreamId)
+        {
+
+            while (true)
+            {
+
+                var frame = (await NextFrameAsync()).Frame;
+
+                if (frame.StreamId == StreamId && frame.Type == HTTP2FrameType.RST_STREAM)
+                    return (HTTP2ErrorCode) BinaryPrimitives.ReadUInt32BigEndian(frame.Payload);
+
+            }
 
         }
 
