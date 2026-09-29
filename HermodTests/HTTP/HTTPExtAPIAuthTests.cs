@@ -123,8 +123,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region (private) StartAsync()
 
-        private static async Task<(HTTPServer Server, HTTPExtAPI API, HttpClient Client, String Directory)> StartAsync(Boolean                            WithTemplates   = false,
-                                                                                                                       SelfSignUpAPI.OnSignedUpDelegate?  OnSignedUp      = null)
+        private static async Task<(HTTPServer Server, HTTPExtAPI API, HttpClient Client, String Directory)> StartAsync(Boolean                            WithTemplates         = false,
+                                                                                                                       SelfSignUpAPI.OnSignedUpDelegate?  OnSignedUp            = null,
+                                                                                                                       PasswordQualityCheckDelegate?      PasswordQualityCheck  = null)
         {
 
             var directory  = Path.Combine(Path.GetTempPath(), $"hermod-auth-{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
@@ -137,6 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                  SkipURLTemplates:      !WithTemplates,
                                  DisableNotifications:  true,
                                  LoggingPath:           directory,
+                                 PasswordQualityCheck:  PasswordQualityCheck,
                                  MinUserIdLength:       3,
                                  MinUserNameLength:     1,
                                  HTTPCookiePath:        "/",
@@ -1104,6 +1106,342 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.Multiple(() => {
                     Assert.That(unknown.Status,  Is.EqualTo(wrong.Status),  "the same status");
                     Assert.That(unknown.Text,    Is.EqualTo(wrong.Text),    "and the same words");
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region SignInForm_AnswersAShortPasswordAsAWrongPassword() / AuthUsers_AnswersAShortPasswordAsAWrongPassword()
+
+        /// <summary>
+        /// The quality of a password is a rule for choosing one, not for
+        /// checking one: at the form, a wrong password below the bar is
+        /// answered as any other wrong password is, word for word.
+        /// </summary>
+        /// <remarks>
+        /// Measured on a running node, whose web interface signs in at this
+        /// form: the wrong password "not-it" was answered 400 "The password
+        /// does not match the password quality criteria!", before the ration
+        /// and before any hash, where auth/login answered it 401 "Unknown
+        /// login or wrong password.". Whoever mistyped a short password was
+        /// told something about password quality that was not true of theirs.
+        /// </remarks>
+        [Test]
+        public async Task SignInForm_AnswersAShortPasswordAsAWrongPassword()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "tina", "Correct-Horse-21");
+
+                Assert.That(api.PasswordQualityCheck("not-it"),  Is.LessThan(1.0f),  "below the bar");
+
+                var belowTheBar  = await AnswerAtTheForm(client, "tina", "not-it");
+                var wrong        = await AnswerAtTheForm(client, "tina", "Wrong-Horse-1");
+
+                Assert.Multiple(() => {
+                    Assert.That(belowTheBar.Status,  Is.EqualTo(HttpStatusCode.Unauthorized),  belowTheBar.Text);
+                    Assert.That(belowTheBar.Status,  Is.EqualTo(wrong.Status),                 "the same status");
+                    Assert.That(belowTheBar.Text,    Is.EqualTo(wrong.Text),                   "and the same words");
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        /// <summary>
+        /// The same at AUTH ~/users/{UserId}, which gave the same 400 in the
+        /// same words.
+        /// </summary>
+        [Test]
+        public async Task AuthUsers_AnswersAShortPasswordAsAWrongPassword()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "uwe", "Correct-Horse-22");
+
+                Assert.That(api.PasswordQualityCheck("not-it"),  Is.LessThan(1.0f),  "below the bar");
+
+                var belowTheBar  = await AtAuthUsers(client, "uwe", "not-it");
+                var wrong        = await AtAuthUsers(client, "uwe", "Wrong-Horse-1");
+
+                Assert.Multiple(() => {
+                    Assert.That(belowTheBar.Status,  Is.EqualTo(wrong.Status),  "the same status");
+                    Assert.That(belowTheBar.Text,    Is.EqualTo(wrong.Text),    "and the same words");
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region SignInForm_AnswersAShortLoginAsAWrongPassword() / AuthUsers_AnswersAShortLoginAsAWrongPassword()
+
+        /// <summary>
+        /// Nor is the length of a login a rule for checking one: at the form, a
+        /// login shorter than MinUserIdLength is answered as a wrong password
+        /// is, word for word.
+        /// </summary>
+        /// <remarks>
+        /// The form answered 400 "The login is too short!" at once. An account
+        /// made before MinUserIdLength was raised could no longer sign in at
+        /// the form, while auth/login let it in.
+        /// </remarks>
+        [Test]
+        public async Task SignInForm_AnswersAShortLoginAsAWrongPassword()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "vera", "Correct-Horse-23");
+
+                Assert.That("ab".Length,  Is.LessThan(api.MinUserIdLength),  "too short");
+
+                var tooShort  = await AnswerAtTheForm(client, "ab",   "Wrong-Horse-1");
+                var wrong     = await AnswerAtTheForm(client, "vera", "Wrong-Horse-1");
+
+                Assert.Multiple(() => {
+                    Assert.That(tooShort.Status,  Is.EqualTo(HttpStatusCode.Unauthorized),  tooShort.Text);
+                    Assert.That(tooShort.Status,  Is.EqualTo(wrong.Status),                 "the same status");
+                    Assert.That(tooShort.Text,    Is.EqualTo(wrong.Text),                   "and the same words");
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        /// <summary>
+        /// The same at AUTH ~/users/{UserId}, which gave the same 400 in the
+        /// same words.
+        /// </summary>
+        [Test]
+        public async Task AuthUsers_AnswersAShortLoginAsAWrongPassword()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "walt", "Correct-Horse-24");
+
+                Assert.That("ab".Length,  Is.LessThan(api.MinUserIdLength),  "too short");
+
+                var tooShort  = await AtAuthUsers(client, "ab",   "Wrong-Horse-1");
+                var wrong     = await AtAuthUsers(client, "walt", "Wrong-Horse-1");
+
+                Assert.Multiple(() => {
+                    Assert.That(tooShort.Status,  Is.EqualTo(wrong.Status),  "the same status");
+                    Assert.That(tooShort.Text,    Is.EqualTo(wrong.Text),    "and the same words");
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region SignInForm_VerifiesAShortLoginAndAShortPasswordInTheirTurn() / AuthUsers_VerifiesAShortLoginAndAShortPasswordInTheirTurn()
+
+        /// <summary>
+        /// A login too short and a password below the bar are verified in
+        /// their turn like any other, not answered on sight in the right
+        /// words: an answer that comes sooner says what the words do not.
+        /// </summary>
+        /// <remarks>
+        /// With every turn taken, both wait and are told the server is busy,
+        /// as any other sign-in is. Both used to be answered 400 at once. The
+        /// two are asked side by side, so that their two waits are one.
+        /// </remarks>
+        [Test]
+        public async Task SignInForm_VerifiesAShortLoginAndAShortPasswordInTheirTurn()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            SemaphoreSlim? verifiers = null;
+            var taken = 0;
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "xena", "Correct-Horse-25");
+
+                taken = TakeEveryTurn(api, out verifiers);
+
+                var answers = await Task.WhenAll(
+                                        AtTheForm(client, "ab",   "Wrong-Horse-1"),
+                                        AtTheForm(client, "xena", "not-it")
+                                    );
+
+                Assert.Multiple(() => {
+                    Assert.That(answers[0],  Is.EqualTo(HttpStatusCode.ServiceUnavailable),  "a login too short waited for a turn");
+                    Assert.That(answers[1],  Is.EqualTo(HttpStatusCode.ServiceUnavailable),  "and so did a password below the bar");
+                });
+
+            }
+            finally
+            {
+
+                if (taken > 0)
+                    verifiers!.Release(taken);
+
+                await StopAsync(server, client, directory);
+
+            }
+
+        }
+
+        /// <summary>
+        /// The same at AUTH ~/users/{UserId}.
+        /// </summary>
+        [Test]
+        public async Task AuthUsers_VerifiesAShortLoginAndAShortPasswordInTheirTurn()
+        {
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates: true);
+
+            SemaphoreSlim? verifiers = null;
+            var taken = 0;
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "yuri", "Correct-Horse-26");
+
+                taken = TakeEveryTurn(api, out verifiers);
+
+                var answers = await Task.WhenAll(
+                                        AtAuthUsers(client, "ab",   "Wrong-Horse-1"),
+                                        AtAuthUsers(client, "yuri", "not-it")
+                                    );
+
+                Assert.Multiple(() => {
+                    Assert.That(answers[0].Status,  Is.EqualTo(HttpStatusCode.ServiceUnavailable),  "a login too short waited for a turn: "  + answers[0].Text);
+                    Assert.That(answers[1].Status,  Is.EqualTo(HttpStatusCode.ServiceUnavailable),  "and so did a password below the bar: "  + answers[1].Text);
+                });
+
+            }
+            finally
+            {
+
+                if (taken > 0)
+                    verifiers!.Release(taken);
+
+                await StopAsync(server, client, directory);
+
+            }
+
+        }
+
+        #endregion
+
+        #region SignInForm_LetsInAPasswordBelowARaisedBar() / AuthUsers_LetsInAPasswordBelowARaisedBar()
+
+        /// <summary>
+        /// A password that met the bar when it was chosen still opens its
+        /// account after the bar has been raised: the bar is for choosing the
+        /// next one.
+        /// </summary>
+        /// <remarks>
+        /// The form refused such a password with 400 before it verified it,
+        /// while auth/login let the same account in. The bar is raised here
+        /// while the API runs, through the delegate it was given, which comes
+        /// to the same as starting it again with a stricter one.
+        /// </remarks>
+        [Test]
+        public async Task SignInForm_LetsInAPasswordBelowARaisedBar()
+        {
+
+            var bar = 8;
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates:         true,
+                                                                    PasswordQualityCheck:  password => password.Length >= bar ? 1f : 0f);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "zack", "Correct-Horse-27");
+
+                bar = 20;
+
+                Assert.That(api.PasswordQualityCheck("Correct-Horse-27"),  Is.LessThan(1.0f),  "below the bar now");
+
+                var answer = await AnswerAtTheForm(client, "zack", "Correct-Horse-27");
+
+                Assert.Multiple(() => {
+                    Assert.That(answer.Status,                                     Is.EqualTo(HttpStatusCode.Created),  answer.Text);
+                    Assert.That(api.Sessions.CountForUser(User_Id.Parse("zack")),  Is.EqualTo(1),                       "signed in");
+                });
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        /// <summary>
+        /// The same at AUTH ~/users/{UserId}.
+        /// </summary>
+        [Test]
+        public async Task AuthUsers_LetsInAPasswordBelowARaisedBar()
+        {
+
+            var bar = 8;
+
+            var (server, api, client, directory) = await StartAsync(WithTemplates:         true,
+                                                                    PasswordQualityCheck:  password => password.Length >= bar ? 1f : 0f);
+
+            try
+            {
+
+                await AUserWhoSignsInAtTheForm(api, "zora", "Correct-Horse-28");
+
+                bar = 20;
+
+                Assert.That(api.PasswordQualityCheck("Correct-Horse-28"),  Is.LessThan(1.0f),  "below the bar now");
+
+                var answer = await AtAuthUsers(client, "zora", "Correct-Horse-28");
+
+                Assert.Multiple(() => {
+                    Assert.That(answer.Status,                                     Is.EqualTo(HttpStatusCode.Created),  answer.Text);
+                    Assert.That(api.Sessions.CountForUser(User_Id.Parse("zora")),  Is.EqualTo(1),                       "signed in");
                 });
 
             }

@@ -14,10 +14,15 @@ public sealed class HTTPServerListenerMatrixTests
     [Test]
     public async Task Fixed_Port_Composite_Any_Must_Accept_IPv4_And_IPv6()
     {
-        var server = CreateServer(HermodIPAddress.Any, ReserveDualStackPort());
+        using var port = new ClosedPort();
+        var server = CreateServer(HermodIPAddress.Any, port);
 
         try
         {
+            // [::] in dual mode, where Windows lets no other socket be bound
+            // next to the server.
+            port.HandOver(ForIPv6Any: true);
+
             await server.Start();
             await AssertAccepts(server, AddressFamily.InterNetwork);
 
@@ -33,10 +38,13 @@ public sealed class HTTPServerListenerMatrixTests
     [Test]
     public async Task Fixed_Port_Composite_Localhost_Must_Accept_IPv4_And_IPv6()
     {
-        var server = CreateServer(HermodIPAddress.Localhost, ReserveDualStackPort());
+        using var port = new ClosedPort();
+        var server = CreateServer(HermodIPAddress.Localhost, port);
 
         try
         {
+            port.HandOver();
+
             await server.Start();
             await AssertAccepts(server, AddressFamily.InterNetwork);
 
@@ -55,10 +63,15 @@ public sealed class HTTPServerListenerMatrixTests
         if (!Socket.OSSupportsIPv6)
             Assert.Ignore("IPv6 is not available on this host.");
 
-        var server = CreateServer(IPv6Address.Any, ReserveDualStackPort());
+        using var port = new ClosedPort();
+        var server = CreateServer(IPv6Address.Any, port);
 
         try
         {
+            // [::] without dual mode, which Windows is taken to refuse next to
+            // what holds the port as well - see ClosedPort.
+            port.HandOver(ForIPv6Any: true);
+
             await server.Start();
             await AssertAccepts(server, AddressFamily.InterNetworkV6);
         }
@@ -71,10 +84,13 @@ public sealed class HTTPServerListenerMatrixTests
     [Test]
     public async Task Fixed_Port_Pure_IPv4_Localhost_Must_Accept_IPv4()
     {
-        var server = CreateServer(IPv4Address.Localhost, ReserveIPv4Port());
+        using var port = new ClosedPort();
+        var server = CreateServer(IPv4Address.Localhost, port);
 
         try
         {
+            port.HandOver();
+
             await server.Start();
             await AssertAccepts(server, AddressFamily.InterNetwork);
         }
@@ -107,10 +123,13 @@ public sealed class HTTPServerListenerMatrixTests
     [Test]
     public async Task Fixed_Port_Pure_IPv4_Any_Must_Accept_IPv4()
     {
-        var server = CreateServer(IPv4Address.Any, ReserveIPv4Port());
+        using var port = new ClosedPort();
+        var server = CreateServer(IPv4Address.Any, port);
 
         try
         {
+            port.HandOver();
+
             await server.Start();
             await AssertAccepts(server, AddressFamily.InterNetwork);
         }
@@ -120,12 +139,16 @@ public sealed class HTTPServerListenerMatrixTests
         }
     }
 
+    // A fixed port, as these tests are about, held by the test until the
+    // server binds it in Start() - rather than one that was free a moment
+    // before, and with other test runs on the same machine was now and then
+    // given to one of them in between. See ClosedPort.
     private static HTTPServer CreateServer(IIPAddress ipAddress,
-                                           Int32      port)
+                                           ClosedPort port)
 
         => new (
                IPAddress: ipAddress,
-               TCPPort:   IPPort.Parse(port),
+               TCPPort:   port.Number,
                AutoStart: false
            );
 
@@ -141,40 +164,6 @@ public sealed class HTTPServerListenerMatrixTests
 
         await client.ConnectAsync(address, server.TCPPort.ToInt32(), cancellation.Token);
         Assert.That(client.Connected, Is.True);
-    }
-
-    private static Int32 ReserveIPv4Port()
-    {
-        var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-        listener.Start();
-
-        try
-        {
-            return ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
-        }
-        finally
-        {
-            listener.Stop();
-        }
-    }
-
-    private static Int32 ReserveDualStackPort()
-    {
-        if (!Socket.OSSupportsIPv6)
-            return ReserveIPv4Port();
-
-        var listener = new TcpListener(System.Net.IPAddress.IPv6Any, 0);
-        listener.Server.DualMode = true;
-        listener.Start();
-
-        try
-        {
-            return ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
-        }
-        finally
-        {
-            listener.Stop();
-        }
     }
 
     private static async Task StopIgnoringServerTaskFailure(HTTPServer server)

@@ -1285,6 +1285,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     TransferEncoding = null;
 
                 }
+
+                // RFC 9112, Section 6.3: a response that states neither a
+                // Content-Length nor a Transfer-Encoding has a body that ends
+                // when the connection does. A handler that built no body - a
+                // redirect, a 401 or a 404 without a text - meant an empty one,
+                // but on a connection kept alive its client waited for the rest
+                // of that body until the server gave the connection up, thirty
+                // seconds later. A response without a body says so now.
+                //
+                // Not where no length is the right answer:
+                //  - a 304 and the answer to a HEAD carry no body, and their
+                //    Content-Length is that of the representation they speak
+                //    of (RFC 9110, Section 8.6) - which 0 would misstate;
+                //  - an event stream is written by its worker after the header
+                //    and ends with the connection by design, see
+                //    HTTPAPI.MapEventSource and AHTTPServer's SSE worker;
+                //  - a Transfer-Encoding frames the body itself, and a
+                //    Content-Length must not stand next to one (RFC 9112,
+                //    Section 6.2);
+                //  - a ContentStream that cannot tell its length is a body all
+                //    the same.
+                else if (Content                 is null                             &&
+                         ContentStream           is null                             &&
+                         ContentLength           is null                             &&
+                         TransferEncoding.IsNullOrEmpty()                            &&
+                         HTTPStatusCode?.Code    != 304                              &&
+                         HTTPRequest?.HTTPMethod != HTTPMethod.HEAD                  &&
+                         ContentType             != HTTPContentType.Text.EVENTSTREAM)
+                {
+                    ContentLength = 0;
+                }
+
             }
 
             #endregion

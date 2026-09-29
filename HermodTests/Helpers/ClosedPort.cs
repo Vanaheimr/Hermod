@@ -73,6 +73,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
     /// now and then: Windows hands ports out one after another, to every
     /// process alike, and a process that binds that often goes round all of
     /// them in seconds.
+    ///
+    /// Not every server binds next to that socket on Windows. One on [::] in
+    /// dual mode - as HTTPServer binds on HermodIPAddress.Any - is refused the
+    /// port while that socket is on it. The IPv4 half of such a bind is not
+    /// what stands in the way, since a server on 0.0.0.0 is not refused, and so
+    /// one on [::] without dual mode is taken to be refused as well. One on
+    /// 127.0.0.1 or [::1] is not, and by what Windows documents, neither is one
+    /// that binds 127.0.0.1 with SO_EXCLUSIVEADDRUSE, as the rendezvous manager
+    /// does: a bind with that option to a specific address succeeds next to a
+    /// socket that holds the wildcard address without it. A server on [::] is
+    /// handed the port for [::], and the port is then let go of right before
+    /// the server binds it, on every platform but Linux: it is anybody's for
+    /// that moment alone, and for a process binding port 0 to be given it,
+    /// Windows would have to come round to this very port within it. On Linux,
+    /// where .NET sets SO_REUSEADDR on every socket it binds and a socket that
+    /// does not listen keeps no other from listening, a server on [::] binds
+    /// next to the socket like any other, and the port stays held.
     /// </remarks>
     public sealed class ClosedPort : IDisposable
     {
@@ -85,7 +102,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
         private Socket?  holder;
 
         /// <summary>
-        /// The socket that keeps the port bound, while it is handed over.
+        /// The socket that keeps the port bound, while it is handed over - for
+        /// [::] on Linux alone.
         /// </summary>
         private Socket?  anchor;
 
@@ -117,18 +135,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
         #endregion
 
 
-        #region HandOver()
+        #region HandOver(ForIPv6Any = false)
 
         /// <summary>
-        /// Hand the port over to a server of the test's own, which may bind it on
-        /// 127.0.0.1 and [::1] from now on.
+        /// Hand the port over to a server of the test's own, which may bind it
+        /// from now on - on 127.0.0.1, [::1] and 0.0.0.0, and, handed over for
+        /// [::], on [::] as well.
         /// </summary>
         /// <remarks>
         /// So may anybody who asks for this very port by its number - but nobody
-        /// is given it who asks for any free port.
+        /// is given it who asks for any free port, except, anywhere but on Linux,
+        /// while a server it was handed over to for [::] has not bound it yet.
         /// </remarks>
+        /// <param name="ForIPv6Any">Whether the server binds the port on [::], in dual mode or not, which Windows refuses next to what keeps the port held otherwise. Anywhere but on Linux, the port is let go of then, and so is best handed over right before that server binds it.</param>
         /// <exception cref="InvalidOperationException">The port could not be kept bound.</exception>
-        public void HandOver()
+        public void HandOver(Boolean ForIPv6Any = false)
         {
 
             if (holder is null)
@@ -136,6 +157,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 
             holder.Dispose();
             holder = null;
+
+            // Windows refuses a server on [::] the port for as long as the
+            // anchor is on it. Linux does not, and elsewhere it is not known -
+            // see the remarks on this class.
+            if (ForIPv6Any && !OperatingSystem.IsLinux())
+                return;
 
             // At once, with nothing to wait for in between.
             try

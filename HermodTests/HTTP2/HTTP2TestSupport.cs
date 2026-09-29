@@ -34,13 +34,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 {
 
     /// <summary>
-    /// Shared helpers for the in-process HTTP/2 integration tests: a free-port
-    /// allocator, a self-signed certificate factory (server or client EKU with
-    /// localhost SANs), a .NET <see cref="HttpClient"/> pinned to HTTP/2 that
-    /// trusts our self-signed cert, and a probe that waits until a loopback port
-    /// is accepting. These mirror the boilerplate that each stand-alone harness
-    /// used to carry, so the ported fixtures stay thin.
+    /// Shared helpers for the in-process HTTP/2 integration tests: a self-signed
+    /// certificate factory (server or client EKU with localhost SANs), a .NET
+    /// <see cref="HttpClient"/> pinned to HTTP/2 that trusts our self-signed
+    /// cert, and a probe that waits until a loopback port is accepting. These
+    /// mirror the boilerplate that each stand-alone harness used to carry, so
+    /// the ported fixtures stay thin.
     /// </summary>
+    /// <remarks>
+    /// There is no free-port allocator among them: a port found free and let go
+    /// of again was now and then given to another test run on the same machine
+    /// before the server could bind it. A server takes port 0 and says which it
+    /// got, or the test holds the port with a ClosedPort until the server binds
+    /// it.
+    /// </remarks>
     internal static class H2
     {
 
@@ -48,20 +55,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// Accept any server certificate (self-signed test certs).
         /// </summary>
         public static readonly RemoteCertificateValidationCallback AcceptAnyServerCert = (_, _, _, _) => true;
-
-        /// <summary>
-        /// Grab a currently-free ephemeral loopback TCP port. There is a small
-        /// TOCTOU window before the server rebinds it, which is acceptable for a
-        /// local, sequential test run.
-        /// </summary>
-        public static Int32 FreePort()
-        {
-            var l = new TcpListener(System.Net.IPAddress.Loopback, 0);
-            l.Start();
-            var port = ((IPEndPoint) l.LocalEndpoint).Port;
-            l.Stop();
-            return port;
-        }
 
         /// <summary>
         /// A self-signed certificate for <paramref name="CN"/> with localhost /

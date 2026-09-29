@@ -1598,6 +1598,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             break;
                                                         }
 
+                                                        // The handshake is parsed once its header has ended, and not
+                                                        // before. A read returns what has arrived, and that need not be
+                                                        // all that was sent: a slow link, a TLS record boundary or a
+                                                        // proxy passing on what it has can split a request anywhere.
+                                                        // Parsed from its first part, a request was refused for the
+                                                        // header fields still on their way - "The 'Connection: Upgrade'
+                                                        // header is missing!" - or did not parse at all. So what has
+                                                        // arrived is kept, and read on to, until the empty line that
+                                                        // ends the header is in.
+                                                        //
+                                                        // Bounded as reading was before: the size check above sees all
+                                                        // that is kept, and every read in the meantime ends at the
+                                                        // handshake deadline, which runs from the start of the
+                                                        // connection and does not move. And only a request that can
+                                                        // still become a "GET " is waited for; anything else is turned
+                                                        // away below, at once, as it always was.
+                                                        if (IsStillHTTP)
+                                                        {
+
+                                                            if (IsAnUnfinishedGET(bytes))
+                                                            {
+                                                                bytesLeftOver  = bytes;
+                                                                bytes          = [];
+                                                                continue;
+                                                            }
+
+                                                            bytesLeftOver = [];
+
+                                                        }
+
                                                         httpMethod = IsStillHTTP && bytes.Length >= 4
                                                                          ? Encoding.UTF8.GetString(bytes, 0, 4)
                                                                          : String.Empty;
@@ -3176,6 +3206,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 Bytes = [];
                 return false;
             }
+        }
+
+        #endregion
+
+        #region (private static) IsAnUnfinishedGET(Bytes)
+
+        /// <summary>
+        /// Whether the given bytes are the beginning of a GET request whose
+        /// header has not ended yet: a request to read on for.
+        /// </summary>
+        /// <remarks>
+        /// A header ends with an empty line - a line feed, then another, with or
+        /// without a carriage return between the two. Not only CRLF CRLF:
+        /// HTTPRequest.TryParse takes a bare line feed for the end of a line, as
+        /// RFC 9112 section 2.2 lets a recipient do, and a request that ends its
+        /// lines that way was answered when it arrived in one read. Waiting for
+        /// a CRLF CRLF that never comes would leave it to time out instead.
+        ///
+        /// What can no longer become "GET " is not a request to wait for. The
+        /// loop turns it away as soon as it has been read, as it always has,
+        /// rather than holding the connection open until the deadline.
+        /// </remarks>
+        /// <param name="Bytes">What has arrived of the request so far.</param>
+        private static Boolean IsAnUnfinishedGET(ReadOnlySpan<Byte> Bytes)
+        {
+
+            var get    = "GET "u8;
+            var soFar  = Math.Min(Bytes.Length, get.Length);
+
+            if (!get.StartsWith(Bytes[..soFar]))
+                return false;
+
+            return Bytes.IndexOf("\n\n"u8)   < 0 &&
+                   Bytes.IndexOf("\n\r\n"u8) < 0;
+
         }
 
         #endregion

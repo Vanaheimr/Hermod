@@ -24,6 +24,7 @@ using System.Text;
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
+using org.GraphDefined.Vanaheimr.Hermod.Tests;
 
 #endregion
 
@@ -70,15 +71,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             return (listener, port);
         }
 
-        private static Int32 FreePort()
-        {
-            var l = new TcpListener(IPAddress.Loopback, 0);
-            l.Start();
-            var p = ((IPEndPoint) l.LocalEndpoint).Port;
-            l.Stop();
-            return p;
-        }
-
 
         #region RemoteForward_ReachesClientSideService_ThroughServerListener
 
@@ -88,7 +80,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         {
 
             var (echo, echoPort) = StartEchoServer(CancellationToken);   // the client-side target service
-            var bindPort         = FreePort();                            // where the server should listen
+
+            // Where the server should listen: a port chosen in advance, as the
+            // policy names it, and held by the test until the server binds it -
+            // rather than one that was free a moment before, and with other test
+            // runs on the same machine was now and then given to one of them.
+            using var bindPort   = new ClosedPort();
 
             try
             {
@@ -122,13 +119,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 await serverReady.Task.WaitAsync(CancellationToken);
 
+                // The server binds 127.0.0.1 when it is asked to forward, next to
+                // what keeps the port held while it is handed over.
+                bindPort.HandOver();
+
                 // ssh -R bindPort:127.0.0.1:echoPort — the server listens, we relay to our local echo service.
                 await using var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(
-                                              clientMux, "127.0.0.1", (UInt16) bindPort, "127.0.0.1", (UInt16) echoPort, CancellationToken);
+                                              clientMux, "127.0.0.1", bindPort.Number.ToUInt16(), "127.0.0.1", (UInt16) echoPort, CancellationToken);
 
                 // An external client connects to the SERVER's forwarded port and must reach our echo service.
                 using var external = new TcpClient();
-                await external.ConnectAsync(IPAddress.Loopback, bindPort, CancellationToken);
+                await external.ConnectAsync(IPAddress.Loopback, bindPort.Number.ToInt32(), CancellationToken);
                 var stream  = external.GetStream();
                 var payload = Encoding.UTF8.GetBytes("through the reverse tunnel");
                 await stream.WriteAsync(payload, CancellationToken);

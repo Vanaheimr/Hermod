@@ -4996,25 +4996,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     login = HTTPTools.URLDecode(login);
 
-                    if (login.Length < MinUserIdLength)
-                    {
-
-                        return
-                            new HTTPResponse.Builder(Request) {
-                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                Server          = HTTPServer?.HTTPServerName,
-                                ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                Content         = new JObject(
-                                                      new JProperty("@context",     SignInOutContext),
-                                                      new JProperty("statusCode",   400),
-                                                      new JProperty("property",     "login"),
-                                                      new JProperty("description",  "The login is too short!")
-                                                  ).ToString().ToUTF8Bytes(),
-                                CacheControl    = "private",
-                                Connection      = ConnectionType.KeepAlive
-                            }.AsImmutable;
-
-                    }
+                    // How long it is, is not asked here: MinUserIdLength is a rule
+                    // for choosing a login, not for checking one, and an account
+                    // made before it was raised has to be able to sign in, as it
+                    // can at auth/login. A login too short goes through the ration
+                    // and the verifier like any other, and one that nobody has is
+                    // answered as a wrong password is. It was 400 "The login is
+                    // too short!", at once.
 
                     #endregion
 
@@ -5043,25 +5031,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     password = HTTPTools.URLDecode(password);
 
-                    if (PasswordQualityCheck(password) < 1.0)
-                    {
-
-                        return
-                            new HTTPResponse.Builder(Request) {
-                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                Server          = HTTPServer?.HTTPServerName,
-                                ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                Content         = new JObject(
-                                                      new JProperty("@context",     SignInOutContext),
-                                                      new JProperty("statusCode",   400),
-                                                      new JProperty("property",     "password"),
-                                                      new JProperty("description",  "The password does not match the password quality criteria!")
-                                                 ).ToString().ToUTF8Bytes(),
-                                CacheControl    = "private",
-                                Connection      = ConnectionType.KeepAlive
-                            }.AsImmutable;
-
-                    }
+                    // Nor how good it is: PasswordQualityCheck is a rule for
+                    // choosing a password, kept where one is set, and a password
+                    // chosen under a lower bar still opens its account, as it does
+                    // at auth/login. A wrong one below the bar is answered as any
+                    // wrong password is. It was 400 "The password does not match
+                    // the password quality criteria!", before the ration and
+                    // before any hash - said to whoever mistyped a short password.
 
                     #endregion
 
@@ -7106,20 +7082,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    Connection      = ConnectionType.KeepAlive
                                }.AsImmutable;
 
-                    if (login.Length < MinUserIdLength)
-                        return new HTTPResponse.Builder(request) {
-                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                   Server          = HTTPServer?.HTTPServerName,
-                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                   Content         = JSONObject.Create(
-                                                         new JProperty("@context",     SignInOutContext),
-                                                         new JProperty("statusCode",   400),
-                                                         new JProperty("property",     "user identification"),
-                                                         new JProperty("description",  "The login is too short!")
-                                                     ).ToUTF8Bytes(),
-                                   CacheControl    = "private",
-                                   Connection      = ConnectionType.KeepAlive
-                               }.AsImmutable;
+                    // How long it is, is not asked, as at the form: a login too
+                    // short goes through the ration and the verifier like any
+                    // other, and one that nobody has is answered as a wrong
+                    // password is. It was 400 "The login is too short!", at once.
 
                     json["username"] = login;
 
@@ -7144,24 +7110,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    Connection      = ConnectionType.KeepAlive
                                }.AsImmutable;
 
-                    var passwordQuality = PasswordQualityCheck(password);
-
-                    if (passwordQuality < 1.0)
-                        return new HTTPResponse.Builder(request) {
-                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                   Server          = HTTPServer?.HTTPServerName,
-                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                   Content         = JSONObject.Create(
-                                                         new JProperty("@context",     SignInOutContext),
-                                                         new JProperty("statusCode",   400),
-                                                         new JProperty("property",     "password"),
-                                                         new JProperty("description",  "The password does not match the password quality criteria!")
-                                                     ).ToString().ToUTF8Bytes(),
-                                   CacheControl    = "private",
-                                   Connection      = ConnectionType.KeepAlive
-                               }.AsImmutable;
-
-                    json["passwordQuality"] = passwordQuality;
+                    // How good it is, is noted and not judged, as at the form: a
+                    // password below the bar goes through the ration and the
+                    // verifier like any other, and a wrong one is answered as a
+                    // wrong password is. It was 400 "The password does not match
+                    // the password quality criteria!", before any hash.
+                    json["passwordQuality"] = PasswordQualityCheck(password);
 
                     #endregion
 
