@@ -248,6 +248,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
+        /// Transition when we send END_STREAM, if our side is still open — and
+        /// return false instead of throwing when it is not. Checked and changed
+        /// under one lock, because the usual reason it is not open is a reset that
+        /// raced the END_STREAM: once the frame is on the wire the peer may answer
+        /// it with RST_STREAM, and the read loop may handle that before the sender
+        /// gets round to this transition. Testing <see cref="State"/> first and
+        /// then calling <see cref="CloseLocal"/> leaves that gap open.
+        /// </summary>
+        public bool TryCloseLocal()
+        {
+
+            lock (stateLock)
+            {
+
+                switch (State)
+                {
+
+                    case HTTP2StreamState.Open:
+                        State = HTTP2StreamState.HalfClosedLocal;
+                        return true;
+
+                    case HTTP2StreamState.HalfClosedRemote:
+                        State = HTTP2StreamState.Closed;
+                        return true;
+
+                    default:
+                        return false;
+
+                }
+
+            }
+
+        }
+
+        /// <summary>
         /// True once this stream was closed by an RST_STREAM (sent or received),
         /// as opposed to a clean END_STREAM close. RFC 9113, Section 5.1 treats a
         /// later frame differently in the two cases: after RST_STREAM it's a stream

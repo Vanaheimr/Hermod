@@ -31,7 +31,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
     /// <summary>
     /// Client robustness against a misbehaving raw mock server: REFUSED_STREAM
-    /// auto-retry, MAX_CONCURRENT_STREAMS gating, GOAWAY retry-safe failure, and
+    /// auto-retry (also when the refusal overtakes the client's half-close),
+    /// MAX_CONCURRENT_STREAMS gating, GOAWAY retry-safe failure, and
     /// keepalive-based dead-connection detection. In-process.
     /// </summary>
     [TestFixture]
@@ -94,6 +95,135 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                         Throws.TypeOf<HTTP2RequestNotProcessedException>(),
                         "persistent refusal throws HTTP2RequestNotProcessedException");
             await conn.CloseAsync();
+        }
+
+        #endregion
+
+        #region RefusedStream_HandledBeforeHalfClose_NotProcessed(MaxRetries)
+
+        /// <summary>
+        /// Once a request's HEADERS with END_STREAM are on the wire, nothing orders
+        /// the client's half-close of that stream against the read loop handling
+        /// the server's refusal of it. The refusal usually comes second; under load
+        /// it now and then came first, and RefusedStream_PastRetryBudget_NotProcessed
+        /// failed with "Cannot close local on stream 1 in state Closed". Here the
+        /// transport holds the client inside every HEADERS write until the refusal
+        /// has been handled, so the refusal always comes first.
+        /// </summary>
+        [TestCase(0)]
+        [TestCase(2)]
+        public async Task RefusedStream_HandledBeforeHalfClose_NotProcessed(Int32 MaxRetries)
+        {
+
+            await using var transport = new HoldingH2Transport(HoldHeadersOf: streamId => true);
+
+            var conn     = await transport.ConnectAsync(new HTTP2ClientOptions { MaxRefusedStreamRetries = MaxRetries });
+            var request  = conn.SendRequestAsync(HTTPMethod.GET, URIScheme.http, "localhost", "/");
+            var refused  = new List<UInt32>();
+
+            for (var attempt = 0; attempt <= MaxRetries; attempt++)
+            {
+                var headers = await transport.NextHeadersAsync();
+                refused.Add(headers.StreamId);
+                await transport.RefuseAsync(headers.StreamId);
+                transport.Release(headers.StreamId);
+            }
+
+            Assert.That(async () => await request.WaitAsync(HoldingH2Transport.StepTimeout),
+                        Throws.TypeOf<HTTP2RequestNotProcessedException>(),
+                        "a refusal handled before the half-close still throws HTTP2RequestNotProcessedException");
+
+            Assert.That(refused, Is.EqualTo(Enumerable.Range(0, MaxRetries + 1).Select(attempt => (UInt32) (2 * attempt + 1))),
+                        "one fresh stream per attempt, and no attempt past the retry budget");
+
+            await conn.CloseAsync();
+
+        }
+
+        #endregion
+
+        #region RefusedStream_HandledBeforeHalfClose_RetrySucceeds()
+
+        /// <summary>
+        /// The same order, with the retry served: a refusal that overtook the
+        /// half-close is retried like any other, and the retry's response is the
+        /// request's.
+        /// </summary>
+        [Test]
+        public async Task RefusedStream_HandledBeforeHalfClose_RetrySucceeds()
+        {
+
+            await using var transport = new HoldingH2Transport(HoldHeadersOf: streamId => streamId == 1);
+
+            var conn     = await transport.ConnectAsync(new HTTP2ClientOptions { MaxRefusedStreamRetries = 2 });
+            var request  = conn.SendRequestAsync(HTTPMethod.GET, URIScheme.http, "localhost", "/");
+
+            var first    = await transport.NextHeadersAsync();
+            await transport.RefuseAsync(first.StreamId);
+            transport.Release(first.StreamId);
+
+            var retry    = await transport.NextHeadersAsync();
+            await transport.RespondAsync(retry.StreamId, "ok");
+
+            var response = await request.WaitAsync(HoldingH2Transport.StepTimeout);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(first.StreamId,                          Is.EqualTo(1u),   "server refused stream 1");
+                Assert.That(retry.StreamId,                          Is.EqualTo(3u),   "retry served on stream 3");
+                Assert.That(response.Status,                         Is.EqualTo(200),  "request succeeds despite the refusal");
+                Assert.That(Encoding.ASCII.GetString(response.Body), Is.EqualTo("ok"), "response body");
+            });
+
+            await conn.CloseAsync();
+
+        }
+
+        #endregion
+
+        #region RefusedStream_HandledBeforeRetryHalfClose_NotProcessed()
+
+        /// <summary>
+        /// A retry meets the same race: the read loop issues it, and its HEADERS
+        /// can be refused before it half-closes them — whereupon its state error
+        /// went to the request in place of the refusals that followed. The first
+        /// attempt here is half-closed before its refusal is sent, so only the
+        /// retries meet the race.
+        /// </summary>
+        [Test]
+        public async Task RefusedStream_HandledBeforeRetryHalfClose_NotProcessed()
+        {
+
+            await using var transport = new HoldingH2Transport(HoldHeadersOf: streamId => streamId > 1);
+
+            var conn     = await transport.ConnectAsync(new HTTP2ClientOptions { MaxRefusedStreamRetries = 2 });
+
+            // StartRequestAsync returns once the first attempt is on the wire and
+            // half-closed, so its refusal strictly follows the half-close.
+            var handle   = await conn.StartRequestAsync(HTTPMethod.GET, URIScheme.http, "localhost", "/").
+                                      WaitAsync(HoldingH2Transport.StepTimeout);
+
+            var first    = await transport.NextHeadersAsync();
+            await transport.RefuseAsync(first.StreamId);
+
+            var retries  = new List<UInt32>();
+
+            for (var retry = 1; retry <= 2; retry++)
+            {
+                var headers = await transport.NextHeadersAsync();
+                retries.Add(headers.StreamId);
+                await transport.RefuseAsync(headers.StreamId);
+                transport.Release(headers.StreamId);
+            }
+
+            Assert.That(async () => await handle.Response.WaitAsync(HoldingH2Transport.StepTimeout),
+                        Throws.TypeOf<HTTP2RequestNotProcessedException>(),
+                        "a retry's refusal handled before its half-close still throws HTTP2RequestNotProcessedException");
+
+            Assert.That(retries, Is.EqualTo(new[] { 3u, 5u }), "both retries were refused");
+
+            await conn.CloseAsync();
+
         }
 
         #endregion
