@@ -404,6 +404,11 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   table the block travels on. The client refuses a request before allocating its
   stream, so nothing declined consumes a stream ID.
 - Per-stream `RST_STREAM` cancellation (a `CancellationToken` into the handler).
+- A failing DATA writer loop is contained like the read loop: a stream error
+  resets that one stream (`RST_STREAM INTERNAL_ERROR`) and the loop serves the
+  others on; anything else ends the connection at once with `GOAWAY
+  INTERNAL_ERROR`, rather than leave it taking requests whose bodies nothing
+  would send.
 - Closed-stream pruning; graceful shutdown (GOAWAY to every active connection).
 
 ### Parser fuzzing

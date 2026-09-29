@@ -19,6 +19,7 @@
 
 using System.Text;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Reflection;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -72,10 +73,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private Task?             running;
         private MemoryStream?     headerBlock;
 
+        private (UInt32 StreamId, Exception Failure)?  dataWriteFailure;
+
         /// <summary>
         /// The stream the <see cref="HTTP2Connection"/> runs on.
         /// </summary>
         private Stream            Server          { get; }
+
+        /// <summary>
+        /// The server's connection.
+        /// </summary>
+        public HTTP2Connection    Connection
+            => connection!;
+
+        /// <summary>
+        /// Completes once the connection has ended by itself, or by the test's
+        /// end, and the server has closed its end.
+        /// </summary>
+        public Task               Ended
+            => running!;
 
 
         /// <summary>
@@ -88,7 +104,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                 => Frame.Type + (Headers is null ? "" : " " + String.Join(", ", Headers.Select(header => header.Name + " " + header.Value))) +
                                  (Frame.Type == HTTP2FrameType.DATA ? $" \"{Encoding.ASCII.GetString(Frame.Payload)}\"" : "") +
-                                 (Frame.Type is HTTP2FrameType.DATA or HTTP2FrameType.HEADERS && Frame.EndStream ? " END_STREAM" : "");
+                                 (Frame.Type is HTTP2FrameType.DATA or HTTP2FrameType.HEADERS && Frame.EndStream ? " END_STREAM" : "") +
+                                 (Frame.Type == HTTP2FrameType.RST_STREAM ? $" {(HTTP2ErrorCode) BinaryPrimitives.ReadUInt32BigEndian(Frame.Payload)}" : "") +
+                                 (Frame.Type == HTTP2FrameType.GOAWAY     ? $" {(HTTP2ErrorCode) BinaryPrimitives.ReadUInt32BigEndian(Frame.Payload.AsSpan(4))}" +
+                                                                            $" last {BinaryPrimitives.ReadUInt32BigEndian(Frame.Payload) & 0x7FFFFFFF}" : "");
 
         }
 
@@ -131,8 +150,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                                   StreamingHandler:   StreamingHandler);
 
             // On the thread pool, not the test's thread: the connection's loops
-            // would otherwise capture NUnit's SynchronizationContext.
-            peer.running = Task.Run(peer.connection.RunAsync);
+            // would otherwise capture NUnit's SynchronizationContext. Once the
+            // connection has ended, the server closes its end, as a server
+            // closes the socket then, and the client reads the end of the stream.
+            peer.running = Task.Run(async () => {
+
+                               try
+                               {
+                                   await peer.connection.RunAsync();
+                               }
+                               finally
+                               {
+                                   await peer.serverToClient.Writer.CompleteAsync();
+                               }
+
+                           });
 
             await peer.toServer.WriteAsync(H2Raw.Preface);
             await peer.SendAsync(HTTP2Frame.CreateSettings());
@@ -175,16 +207,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
-        /// Send a GET for <paramref name="Path"/> that ends the stream.
+        /// Send a GET for <paramref name="Path"/> that ends the stream, or,
+        /// unless <paramref name="EndStream"/>, leaves the client's side open.
         /// </summary>
-        public Task RequestAsync(UInt32 StreamId, String Path)
+        public Task RequestAsync(UInt32 StreamId, String Path, Boolean EndStream = true)
 
             => SendAsync(HTTP2Frame.CreateHeaders(StreamId,
                                                   encoder.EncodeHeaderBlock([(":method",    "GET"),
                                                                              (":scheme",    "http"),
                                                                              (":authority", "localhost"),
                                                                              (":path",      Path)]),
-                                                  EndStream:  true,
+                                                  EndStream:  EndStream,
                                                   EndHeaders: true));
 
         /// <summary>
@@ -254,6 +287,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                 body,
                                 blocks.Count > 1 ? blocks[^1].Headers : null);
 
+        }
+
+        /// <summary>
+        /// Read on until the server has closed its end of the connection.
+        /// </summary>
+        public async Task ReadToEndAsync()
+        {
+            try
+            {
+                while (true)
+                    await NextFrameAsync();
+            }
+            catch (EndOfStreamException)
+            { }
         }
 
         /// <summary>
@@ -342,7 +389,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// <summary>
         /// The server's own stream object for this stream ID.
         /// </summary>
-        private HTTP2Stream ServerStream(UInt32 StreamId)
+        public HTTP2Stream ServerStream(UInt32 StreamId)
         {
 
             var streamManager = (HTTP2StreamManager) typeof(HTTP2Connection).
@@ -443,6 +490,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         #endregion
 
 
+        #region Failing a write
+
+        /// <summary>
+        /// Fail the server's next write of a DATA frame on this stream with
+        /// <paramref name="Failure"/>, as a broken transport would, and write
+        /// none of it. The writes after it go through again.
+        /// </summary>
+        public void FailNextDataWrite(UInt32 StreamId, Exception Failure)
+        {
+            lock (sync)
+                dataWriteFailure = (StreamId, Failure);
+        }
+
+        /// <summary>
+        /// The failure armed for a write of this frame, if any — only once.
+        /// </summary>
+        private Exception? WriteFailureFor(HTTP2Frame Frame)
+        {
+
+            lock (sync)
+            {
+
+                if (dataWriteFailure is not { } armed ||
+                    Frame.Type     != HTTP2FrameType.DATA ||
+                    Frame.StreamId != armed.StreamId)
+                    return null;
+
+                dataWriteFailure = null;
+
+                return armed.Failure;
+
+            }
+
+        }
+
+        #endregion
+
+
         #region Server side
 
         private void EndOfStreamWrittenBy(UInt32 StreamId, Thread Writer)
@@ -481,6 +566,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             public override ValueTask WriteAsync(ReadOnlyMemory<Byte> Buffer, CancellationToken CancellationToken = default)
             {
+
+                // The connection writes one whole frame at a time, so a write
+                // that starts between frames starts with a frame header.
+                if (frame is null && headerFill == 0 && Buffer.Length >= HTTP2Frame.HeaderSize &&
+                    Peer.WriteFailureFor(HTTP2Frame.ParseHeader(Buffer.Span[..HTTP2Frame.HeaderSize])) is { } failure)
+                    return ValueTask.FromException(failure);
 
                 var ended = StreamsEndedBy(Buffer.Span);
 

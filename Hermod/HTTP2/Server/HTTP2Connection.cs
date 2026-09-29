@@ -346,11 +346,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 if (writerTask is not null)
                 {
-                    // DataWriterLoopAsync only ever throws OperationCanceledException
-                    // by design (its own try/catch swallows that internally) — but if
-                    // something unexpected ever slips through, log it instead of
-                    // silently discarding it, consistent with every other error path
-                    // in this class.
+                    // DataWriterLoopAsync handles its own failures, at once, and
+                    // ends without throwing (see there) — but if its teardown
+                    // itself ever throws, log that instead of silently discarding
+                    // it, consistent with every other error path in this class.
                     try { await writerTask; }
                     catch (Exception ex) { HTTP2EventSource.Log.ConnectionError("WRITER_LOOP", ex.ToString()); }
                 }
@@ -1962,6 +1961,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Runs for the connection's whole lifetime, started in RunAsync
         /// alongside FrameLoopAsync (a slow/blocked writer must never stop the
         /// read loop from servicing other frames, and vice versa).
+        ///
+        /// Nothing but the connection's cancellation may end it early, since
+        /// every body on the connection goes out through it. Its failures are
+        /// handled the way the read loop's are: a stream error resets that one
+        /// stream and the loop goes on; anything else ends the connection at
+        /// once, with GOAWAY INTERNAL_ERROR.
         /// </summary>
         private async Task DataWriterLoopAsync()
         {
@@ -2038,33 +2043,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     stream.LastServedSequence = Interlocked.Increment(ref writerSequence);
 
-                    if (trailers is not null)
+                    try
                     {
-                        // A response with trailers: the last DATA (if any) must NOT
-                        // carry END_STREAM — the trailing HEADERS block does (RFC
-                        // 9113, Section 8.1). Both go out here, in order, with the
-                        // trailers HPACK-encoded under the write lock.
-                        if (chunk.Length > 0)
-                            await SendFrameAsync(HTTP2Frame.CreateData(stream.StreamId, chunk, EndStream: false));
 
-                        await SendHeaderListAsync(stream.StreamId, trailers, EndStream: true);
-                        CloseLocalIfNotReset(stream);
-                    }
-                    else
-                    {
-                        if (chunk.Length > 0 || endStream)
-                            await SendFrameAsync(HTTP2Frame.CreateData(stream.StreamId, chunk, EndStream: endStream));
+                        if (trailers is not null)
+                        {
+                            // A response with trailers: the last DATA (if any) must NOT
+                            // carry END_STREAM — the trailing HEADERS block does (RFC
+                            // 9113, Section 8.1). Both go out here, in order, with the
+                            // trailers HPACK-encoded under the write lock.
+                            if (chunk.Length > 0)
+                                await SendFrameAsync(HTTP2Frame.CreateData(stream.StreamId, chunk, EndStream: false));
 
-                        if (endStream)
+                            await SendHeaderListAsync(stream.StreamId, trailers, EndStream: true);
                             CloseLocalIfNotReset(stream);
+                        }
+                        else
+                        {
+                            if (chunk.Length > 0 || endStream)
+                                await SendFrameAsync(HTTP2Frame.CreateData(stream.StreamId, chunk, EndStream: endStream));
+
+                            if (endStream)
+                                CloseLocalIfNotReset(stream);
+                        }
+
+                    }
+                    catch (HTTP2StreamException ex)
+                    {
+
+                        // A stream error is confined to its stream (RFC 9113, Section
+                        // 5.4.2), and must not end the loop that sends every other
+                        // stream's body. This loop reads nothing from the peer, so
+                        // the error is ours — an END_STREAM sent twice, say — and the
+                        // stream is reset with INTERNAL_ERROR, not with the code the
+                        // exception carries; the log keeps both code and message.
+                        // Reset also releases the stream's producers and frees its
+                        // slot under MAX_CONCURRENT_STREAMS.
+                        HTTP2EventSource.Log.StreamError((int) ex.StreamId, ex.ErrorCode.ToString(), ex.Message);
+
+                        stream.Reset();
+                        await SendFrameAsync(HTTP2Frame.CreateRstStream(stream.StreamId, HTTP2ErrorCode.INTERNAL_ERROR));
+
                     }
 
                 }
 
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 // Connection shutting down — normal.
+            }
+            catch (Exception ex)
+            {
+
+                // Anything else leaves the connection without its writer, while the
+                // read loop would go on accepting requests: their HEADERS would
+                // still go out, sent by their own tasks, but no body ever would,
+                // and their streams would stay open until the connection ended. So
+                // end it now: GOAWAY for the peer, then the cancellation that stops
+                // the read loop. Write-only, as in EnforceSettingsAckTimeoutAsync —
+                // the read loop is still the transport's reader, and a drain here
+                // would race it.
+                HTTP2EventSource.Log.ConnectionError("WRITER_LOOP", ex.ToString());
+
+                if (!goawaySent)
+                {
+                    goawaySent = true;
+                    try
+                    {
+                        await SendFrameAsync(HTTP2Frame.CreateGoAway(
+                            streamManager.LastPeerStreamId, HTTP2ErrorCode.INTERNAL_ERROR,
+                            "Internal server error"));
+                    }
+                    catch { /* best-effort — the transport may be what failed */ }
+                }
+
+                connectionCts.Cancel();
+
             }
 
         }
