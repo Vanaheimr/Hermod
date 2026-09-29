@@ -1705,8 +1705,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // Hand the body chunk to the streaming handler as it arrives (no
                 // buffering); track the running length for the content-length check.
                 stream.ReceivedBodyLength += dataLength;
-                if (dataLength > 0)
-                    await stream.RequestBodyChannel!.Writer.WriteAsync(payload.ToArray(), cancellationToken);
+
+                // TryWrite: the channel is unbounded, so a write fails only on a
+                // completed channel, and past the state check above that means a
+                // reset. HTTP2Stream.Reset completes the channel, and a reset made on
+                // another task, a handler's or the writer loop's, can land between
+                // that check and this write. WriteAsync would then throw the reset's
+                // OperationCanceledException into this loop, and end the connection.
+                // Nobody will read the chunk now: it is dropped, and its window given
+                // back to the connection at once, as for DATA on a closed stream
+                // (Section 6.9).
+                if (dataLength > 0 && !stream.RequestBodyChannel!.Writer.TryWrite(payload.ToArray()))
+                    await ReplenishReceiveWindowsAsync(null, dataLength);
 
                 await ReplenishReceiveWindowsAsync(stream, paddingOverhead);
             }

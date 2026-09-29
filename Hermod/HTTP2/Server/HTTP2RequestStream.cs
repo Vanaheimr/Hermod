@@ -50,6 +50,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         {
             var reader = stream.RequestBodyChannel!.Reader;
 
+            // After a reset this throws, once the chunks that did arrive are read:
+            // HTTP2Stream.Reset completes the channel with an
+            // OperationCanceledException that carries the stream's token.
             if (await reader.WaitToReadAsync(CancellationToken) && reader.TryRead(out var chunk))
             {
                 // Consumption-driven backpressure: the window for these bytes was

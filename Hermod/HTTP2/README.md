@@ -416,6 +416,13 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   after both sides have ended the stream. A handler that fails on a reset stream
   gets no 500 either. The `CancellationToken` a write is given ends its wait,
   not the write.
+- A read of a streamed request body on a reset stream fails likewise, with an
+  `OperationCanceledException` carrying the stream's own token, whether the
+  handler passed that token or not: a read waiting when the reset comes, and
+  every read after it once the chunks that did arrive are read, rather than wait
+  for a chunk that never comes. It never returns `null`, which would pass a
+  truncated upload off as a whole one; a body the client ended before its reset
+  still reads whole.
 - Closed-stream pruning; graceful shutdown (GOAWAY to every active connection).
 
 ### Parser fuzzing

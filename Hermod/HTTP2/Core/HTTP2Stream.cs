@@ -123,7 +123,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Inbound request-body chunks for a streaming request, written by the frame
         /// read loop as DATA arrives and read by the handler via
-        /// <see cref="IHTTP2RequestStream.ReadAsync"/>. Completed at END_STREAM.
+        /// <see cref="IHTTP2RequestStream.ReadAsync"/>. Completed at END_STREAM, or,
+        /// if the stream is reset first, with an <see cref="OperationCanceledException"/>
+        /// that carries its <see cref="CancellationToken"/> (see <see cref="Reset"/>).
         /// </summary>
         public Channel<byte[]>?    RequestBodyChannel { get; set; }
 
@@ -340,6 +342,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // without this, a reset mid-tunnel would leave it awaiting forever
             // (the cancellation token covers *sending*, not this channel read).
             TunnelInbound?.Writer.TryComplete();
+
+            // Likewise a streaming handler possibly waiting in
+            // HTTP2RequestStream.ReadAsync — the token covers that read only if the
+            // handler passes it — and fail every read it makes from now on, once
+            // the chunks that did arrive are read: with this stream's token, the
+            // handler's, as a write on a reset stream fails. Not completed without
+            // an error, as the tunnel's channel is: a body read to its end is a
+            // whole one, and a truncated upload must not look like one. A body the
+            // peer had already ended stays whole; TryComplete leaves a completed
+            // channel as it is.
+            RequestBodyChannel?.Writer.TryComplete(new OperationCanceledException($"Stream {StreamId} was reset", requestCancellation.Token));
 
             // Unblock a producer possibly awaiting HTTP2OutboundQueue.EnqueueAsync
             // for bytes that will now never be sent — the writer loop's picker

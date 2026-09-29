@@ -36,7 +36,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// test plays by hand, frame by frame. It puts in order two things that
     /// otherwise only the thread scheduler orders: the server's half-close of a
     /// stream, right after it wrote the frame that ends its side, and a reset of
-    /// that stream — see <see cref="ResetBeforeHalfCloseAsync"/>.
+    /// that stream — see <see cref="ResetBeforeHalfCloseAsync"/>. Likewise the
+    /// read loop's handling of a DATA frame, and a reset made on another task —
+    /// see <see cref="HoldDataAfterStateCheckAsync"/>.
     ///
     /// Every write of the server completes here synchronously, so the thread that
     /// wrote the frame ending a stream goes on from that write to the half-close
@@ -74,6 +76,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private MemoryStream?     headerBlock;
 
         private (UInt32 StreamId, Exception Failure)?  dataWriteFailure;
+
+        /// <summary>
+        /// The thread that last read from the client — see
+        /// <see cref="HoldDataAfterStateCheckAsync"/>.
+        /// </summary>
+        private volatile Thread?  lastReader;
 
         /// <summary>
         /// The stream the <see cref="HTTP2Connection"/> runs on.
@@ -390,14 +398,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// The server's own stream object for this stream ID.
         /// </summary>
         public HTTP2Stream ServerStream(UInt32 StreamId)
+
+            => StreamManager.TryGetStream(StreamId)
+                   ?? throw new InvalidOperationException($"The server has no stream {StreamId}");
+
+        /// <summary>
+        /// The server connection's streams and its connection-level windows.
+        /// </summary>
+        private HTTP2StreamManager StreamManager
+
+            => (HTTP2StreamManager) typeof(HTTP2Connection).
+                                        GetField("streamManager", BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                        GetValue(connection)!;
+
+        /// <summary>
+        /// The bytes of DATA the connection has taken in and neither given back to
+        /// the client's window nor set aside to give back with a later
+        /// WINDOW_UPDATE: bytes it holds for a reader that has not read them yet.
+        /// Read while the connection is quiet, after a ping.
+        /// </summary>
+        public Int64 ConnectionWindowHeldBack()
         {
 
-            var streamManager = (HTTP2StreamManager) typeof(HTTP2Connection).
-                                                         GetField("streamManager", BindingFlags.NonPublic | BindingFlags.Instance)!.
-                                                         GetValue(connection)!;
+            var target  = (Int64) typeof(HTTP2Connection).GetField("ConnectionRecvWindowTarget",  BindingFlags.NonPublic | BindingFlags.Static)!.
+                                                          GetValue(null)!;
 
-            return streamManager.TryGetStream(StreamId)
-                       ?? throw new InvalidOperationException($"The server has no stream {StreamId}");
+            var owed    = (Int64) typeof(HTTP2Connection).GetField("connectionPendingRecvUpdate", BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                                          GetValue(connection)!;
+
+            return target - StreamManager.ConnectionRecvWindow - owed;
 
         }
 
@@ -487,6 +516,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         }
 
+        /// <summary>
+        /// Send a DATA frame, and run <paramref name="Meanwhile"/> while the read
+        /// loop holds that frame between its check of the stream's state and
+        /// anything it does with the frame's bytes: the moment a reset made on
+        /// another task, a handler's or the writer loop's, may land on any real
+        /// connection.
+        ///
+        /// The connection's receive-window lock, which the read loop takes right
+        /// after that check, is held on a thread of its own. The frame's payload
+        /// is read at once, as soon as its header is in, so the thread that reads
+        /// it goes on from that read to the lock, and has to wait there. With that
+        /// thread seen waiting, Meanwhile runs; then the lock is let go. Nothing
+        /// else may take the lock meanwhile: a handler reading its body, say,
+        /// would wait there as well.
+        /// </summary>
+        public async Task HoldDataAfterStateCheckAsync(HTTP2Frame Data, Func<Task> Meanwhile)
+        {
+
+            // Everything sent before has been handled, and the read loop waits for
+            // the next frame: no earlier frame can be the one that waits.
+            await PingAsync();
+
+            using var holder = MonitorHolder.Hold(ReceiveWindowLockOf(Connection));
+
+            await SendAsync(Data);
+
+            await WaitUntilReaderBlockedAsync();
+
+            await Meanwhile();
+
+            holder.LetGo();
+
+        }
+
+        /// <summary>
+        /// The monitor the connection's receive windows are counted under.
+        /// </summary>
+        private static Object ReceiveWindowLockOf(HTTP2Connection Connection)
+
+            => typeof(HTTP2Connection).GetField("recvLock", BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                       GetValue(Connection)!;
+
+        /// <summary>
+        /// Wait until the thread that last read from the client is blocked, as
+        /// <see cref="WaitUntilBlockedAsync"/> waits for a writer.
+        /// </summary>
+        private async Task WaitUntilReaderBlockedAsync()
+        {
+
+            var waited = Stopwatch.StartNew();
+
+            // Looked up anew each time: the read that completes the frame may come
+            // after the wait has begun.
+            while (lastReader is not { } reader || (reader.ThreadState & System.Threading.ThreadState.WaitSleepJoin) == 0)
+            {
+
+                if (waited.Elapsed > StepTimeout)
+                    throw new TimeoutException($"The read loop never blocked after reading the frame; its thread is {lastReader?.ThreadState}");
+
+                await Task.Delay(1);
+
+            }
+
+        }
+
         #endregion
 
 
@@ -562,7 +656,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             private          UInt32?     blockEndsStream;
 
             public override ValueTask<Int32> ReadAsync(Memory<Byte> Buffer, CancellationToken CancellationToken = default)
-                => fromClient.ReadAsync(Buffer, CancellationToken);
+            {
+
+                // A read of bytes already sent completes at once, on this thread,
+                // and the read loop goes on here to the frame it completes.
+                Peer.lastReader = Thread.CurrentThread;
+
+                return fromClient.ReadAsync(Buffer, CancellationToken);
+
+            }
 
             public override ValueTask WriteAsync(ReadOnlyMemory<Byte> Buffer, CancellationToken CancellationToken = default)
             {

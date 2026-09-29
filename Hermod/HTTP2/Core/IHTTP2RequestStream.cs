@@ -57,7 +57,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Read the next request-body chunk, in order, as it arrives. Returns
         /// <c>null</c> once the peer has ended the request body (END_STREAM) — after
-        /// which <see cref="Trailers"/> is populated.
+        /// which <see cref="Trailers"/> is populated. A reset that cuts the body
+        /// short makes the read fail instead of returning <c>null</c>, with an
+        /// <see cref="OperationCanceledException"/> that carries the stream's own
+        /// token, the handler's: once the chunks that did arrive have been read, or
+        /// at once when that token is the one passed here.
         /// </summary>
         ValueTask<byte[]?> ReadAsync(CancellationToken CancellationToken = default);
 
