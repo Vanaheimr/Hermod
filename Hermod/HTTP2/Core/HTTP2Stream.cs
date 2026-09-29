@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// The value of the request's <c>content-length</c> header field, if it
-        /// declared one. Used to enforce RFC 9113, Section 8.1.2.6: the declared
+        /// declared one. Used to enforce RFC 9113, Section 8.1.1: the declared
         /// length MUST equal the sum of the DATA frame payload lengths, else the
         /// request is malformed. Null when no (valid) content-length was sent.
         /// </summary>
@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Running total of DATA payload bytes received on this stream — used to
-        /// validate <see cref="ExpectedContentLength"/> (RFC 9113, Section 8.1.2.6)
+        /// validate <see cref="ExpectedContentLength"/> (RFC 9113, Section 8.1.1)
         /// on the streaming path, where there is no buffered <see cref="RequestBody"/>
         /// whose length could be checked instead.
         /// </summary>
