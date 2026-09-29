@@ -310,9 +310,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                     bodyRead.TrySetResult((chunks, end, cancellationToken));
 
-                    // No answer on a reset stream.
-                    cancellationToken.ThrowIfCancellationRequested();
-
                 });
 
             try
@@ -377,9 +374,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                     var (chunks, end) = await ReadToEndAsync(request);
 
                     bodyRead.TrySetResult((chunks, end, cancellationToken));
-
-                    // No answer on a reset stream.
-                    cancellationToken.ThrowIfCancellationRequested();
 
                 });
 
