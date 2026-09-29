@@ -57,8 +57,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public    static readonly  TimeSpan                                   DefaultSendTimeout            = TimeSpan.FromSeconds(30);
         public const               UInt32                                     DefaultMaxClientConnections   = 8192;
 
-        private          readonly  TcpListener?                               tcpListenerIPv6;
-        private          readonly  TcpListener?                               tcpListenerIPv4;
+        /// <summary>
+        /// The listeners, one for each socket this server's address needs. Not
+        /// readonly, because Start() makes them again for a server that was
+        /// stopped - see there.
+        /// </summary>
+        private                    TcpListener?                               tcpListenerIPv6;
+        private                    TcpListener?                               tcpListenerIPv4;
+
+        /// <summary>
+        /// Whether the operating system chose this server's port rather than
+        /// whoever made it - which decides what Start() does when that port is
+        /// taken by the time it binds it again.
+        /// </summary>
+        private          readonly  Boolean                                    portChosenBySystem;
+
+        /// <summary>
+        /// Whether Stop() has let go of the listeners, so that Start() has to
+        /// make them again.
+        /// </summary>
+        private                    Boolean                                    listenersStopped;
+
         private          readonly  TCPEchoLoggingDelegate?                    loggingHandler;
         /// <summary>
         /// What stops the accept loop. Not readonly, because a server that was
@@ -121,6 +140,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// fails with AddressAlreadyInUse - rarely, and more often on Linux,
         /// where the ephemeral range cycles faster. Letting the server keep the
         /// socket it was given closes the window instead of narrowing it.
+        ///
+        /// A server that is stopped and started again keeps its port - unless
+        /// somebody else took it in between and it was the system's choice to
+        /// begin with. Then the system chooses again, and this says so.
         /// </remarks>
         public IPPort       TCPPort           { get; private set; }
 
@@ -372,139 +395,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                );
 
             // Whether the port is the operating system's choice rather than the
-            // caller's. Noted before the IPv6 block below overwrites TCPPort
-            // with what it was given: afterwards "is it zero" answers a
-            // different question than "was it zero".
-            var portChosenBySystem           = this.TCPPort.IsZero;
+            // caller's. Noted before MakeListeners() overwrites TCPPort with
+            // what it was given: afterwards "is it zero" answers a different
+            // question than "was it zero" - and Start() needs the answer to
+            // the second, for a port that was taken while the server was
+            // stopped.
+            this.portChosenBySystem          = this.TCPPort.IsZero;
 
-            // How often to ask for another one when the number the IPv6 socket
-            // was given turns out to be taken on IPv4. Small, because each
-            // attempt is a bind and the collision is uncommon; more than one,
-            // because the whole point is that a single attempt is not reliable.
-            const Int32 portAttempts         = 16;
-
-            for (var attempt = 1; ; attempt++)
-            {
-
-                #region Listen on IPv6 or dual mode, ...
-
-                if (this.IPAddress.IsIPv6)
-                {
-
-                    this.tcpListenerIPv6     = new TcpListener(
-                                                   this.IPAddress.ToDotNet(),
-                                                   portChosenBySystem ? (UInt16) 0 : this.TCPPort.ToUInt16()
-                                               );
-
-                    // Dual mode on ANY address!
-                    if (this.IPAddress.IsAny && this.IPAddress.IsIPv4)
-                        tcpListenerIPv6.Server.DualMode = true;
-
-                    if (portChosenBySystem)
-                        tcpListenerIPv6.Start((Int32) this.MaxClientConnections);
-
-                    // When the TCP port was == 0, then IPv6 will choose a random port!
-                    var localEndpoint        = tcpListenerIPv6?.LocalEndpoint as IPEndPoint ?? throw new Exception("The TCP listener's local endpoint is not an IPEndPoint!");
-                    this.TCPPort             = IPPort.Parse(localEndpoint.Port);
-
-                }
-
-                #endregion
-
-                // Only the two-socket case can disagree with itself, and only
-                // when the number came from the system. Everything else is
-                // settled by the block above.
-                if (!portChosenBySystem ||
-                    !(this.IPAddress.IsIPv4 && this.IPAddress.IsLocalhost))
-                    break;
-
-                // The number the IPv6 socket was given says nothing about IPv4.
-                // They are separate spaces: an outgoing connection from this
-                // machine may already hold 127.0.0.1 on that very port while
-                // [::1] was free, which is how a server "asking for any free
-                // port" ends up demanding one that is taken. Binding it here
-                // rather than in Start() is not enough on its own - it only
-                // moves the failure earlier - so a number that does not work
-                // for both is dropped and another asked for.
-                try
-                {
-
-                    this.tcpListenerIPv4     = new TcpListener(
-                                                   IPv4Address.Localhost,
-                                                   this.TCPPort.ToUInt16()
-                                               );
-
-                    tcpListenerIPv4.Start((Int32) this.MaxClientConnections);
-
-                    break;
-
-                }
-                catch (SocketException e) when (e.SocketErrorCode == SocketError.AddressAlreadyInUse &&
-                                                attempt < portAttempts)
-                {
-
-                    // Both go, and the IPv6 one especially: holding it would
-                    // keep the operating system from ever offering that number
-                    // again, so the next attempt would walk up the ephemeral
-                    // range one socket at a time.
-                    try { tcpListenerIPv4?.Stop(); } catch { }
-                    try { tcpListenerIPv6?.Stop(); } catch { }
-
-                    this.tcpListenerIPv4     = null;
-                    this.tcpListenerIPv6     = null;
-                    this.TCPPort             = IPPort.Zero;
-
-                }
-
-            }
-
-            #region ..., or listening on ::1 and 127.0.0.1 as this will require two sockets!
-
-            // When port == 0, then IPv6 will choose a random port, and IPv4 will try to bind to the same port!
-            //
-            // Already done for the case where the port came from the system -
-            // the loop above had to bind it there, because agreeing on a number
-            // that works for both sockets is exactly what it retries. What is
-            // left here is the caller who named a port: nothing to agree about,
-            // and the bind stays in Start() as it always did.
-            if (this.IPAddress.IsIPv4 && this.IPAddress.IsLocalhost && tcpListenerIPv4 is null)
-            {
-
-                this.tcpListenerIPv4         = new TcpListener(
-                                                   IPv4Address.Localhost,
-                                                   this.TCPPort.ToUInt16()
-                                               );
-
-            }
-
-            #endregion
-
-            #region Or just listen on IPv4 (not localhost! && not dual mode ANY!)
-
-            if (this.IPAddress.IsIPv4      &&
-               !this.IPAddress.IsIPv6      &&
-               !this.IPAddress.IsLocalhost)
-            {
-
-                this.tcpListenerIPv4         = new TcpListener(
-                                                   this.IPAddress.ToDotNet(),
-                                                   this.TCPPort.ToUInt16()
-                                               );
-
-                // When the TCP port is still == 0, then IPv4 will choose a random port!
-                if (this.TCPPort.IsZero)
-                {
-
-                    tcpListenerIPv4.Start((Int32) this.MaxClientConnections);
-
-                    var localEndpoint        = tcpListenerIPv4?.LocalEndpoint as IPEndPoint ?? throw new Exception("The TCP listener's local endpoint is not an IPEndPoint!");
-                    this.TCPPort             = IPPort.Parse(localEndpoint.Port);
-
-                }
-
-            }
-
-            #endregion
+            MakeListeners();
 
 
             this.IPSocket                    = new IPSocket(
@@ -657,6 +555,173 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+        #region (private) MakeListeners()
+
+        /// <summary>
+        /// Make the listeners this server's IP address needs, at its TCP port -
+        /// and when that port is 0, bind them there and then, so that the port
+        /// the operating system chooses is one that every one of them can have.
+        /// </summary>
+        /// <remarks>
+        /// The constructor's work, and Start()'s once more for a server that was
+        /// stopped - see there.
+        /// </remarks>
+        private void MakeListeners()
+        {
+
+            // Whether the operating system is to choose the port, here and now:
+            // for a server that asked for port 0, when it is made, and for one
+            // whose port was taken while it was stopped. Noted before the IPv6
+            // block below overwrites TCPPort with what it was given: afterwards
+            // "is it zero" answers a different question than "was it zero".
+            var choosing                     = this.TCPPort.IsZero;
+
+            // The listeners there were, if any: stopped already, when a server
+            // that was stopped is started again, or one of them bound and the
+            // other not, when that failed and the port is chosen anew. Of no
+            // use either way - and below, a listener that is there is one that
+            // was bound in here.
+            tcpListenerIPv6?.Stop();
+            tcpListenerIPv4?.Stop();
+
+            this.tcpListenerIPv6             = null;
+            this.tcpListenerIPv4             = null;
+
+            // How often to ask for another one when the number the IPv6 socket
+            // was given turns out to be taken on IPv4. Small, because each
+            // attempt is a bind and the collision is uncommon; more than one,
+            // because the whole point is that a single attempt is not reliable.
+            const Int32 portAttempts         = 16;
+
+            for (var attempt = 1; ; attempt++)
+            {
+
+                #region Listen on IPv6 or dual mode, ...
+
+                if (this.IPAddress.IsIPv6)
+                {
+
+                    this.tcpListenerIPv6     = new TcpListener(
+                                                   this.IPAddress.ToDotNet(),
+                                                   choosing ? (UInt16) 0 : this.TCPPort.ToUInt16()
+                                               );
+
+                    // Dual mode on ANY address!
+                    if (this.IPAddress.IsAny && this.IPAddress.IsIPv4)
+                        tcpListenerIPv6.Server.DualMode = true;
+
+                    if (choosing)
+                        tcpListenerIPv6.Start((Int32) this.MaxClientConnections);
+
+                    // When the TCP port was == 0, then IPv6 will choose a random port!
+                    var localEndpoint        = tcpListenerIPv6?.LocalEndpoint as IPEndPoint ?? throw new Exception("The TCP listener's local endpoint is not an IPEndPoint!");
+                    this.TCPPort             = IPPort.Parse(localEndpoint.Port);
+
+                }
+
+                #endregion
+
+                // Only the two-socket case can disagree with itself, and only
+                // when the number came from the system. Everything else is
+                // settled by the block above.
+                if (!choosing ||
+                    !(this.IPAddress.IsIPv4 && this.IPAddress.IsLocalhost))
+                    break;
+
+                // The number the IPv6 socket was given says nothing about IPv4.
+                // They are separate spaces: an outgoing connection from this
+                // machine may already hold 127.0.0.1 on that very port while
+                // [::1] was free, which is how a server "asking for any free
+                // port" ends up demanding one that is taken. Binding it here
+                // rather than in Start() is not enough on its own - it only
+                // moves the failure earlier - so a number that does not work
+                // for both is dropped and another asked for.
+                try
+                {
+
+                    this.tcpListenerIPv4     = new TcpListener(
+                                                   IPv4Address.Localhost,
+                                                   this.TCPPort.ToUInt16()
+                                               );
+
+                    tcpListenerIPv4.Start((Int32) this.MaxClientConnections);
+
+                    break;
+
+                }
+                catch (SocketException e) when (e.SocketErrorCode == SocketError.AddressAlreadyInUse &&
+                                                attempt < portAttempts)
+                {
+
+                    // Both go, and the IPv6 one especially: holding it would
+                    // keep the operating system from ever offering that number
+                    // again, so the next attempt would walk up the ephemeral
+                    // range one socket at a time.
+                    try { tcpListenerIPv4?.Stop(); } catch { }
+                    try { tcpListenerIPv6?.Stop(); } catch { }
+
+                    this.tcpListenerIPv4     = null;
+                    this.tcpListenerIPv6     = null;
+                    this.TCPPort             = IPPort.Zero;
+
+                }
+
+            }
+
+            #region ..., or listening on ::1 and 127.0.0.1 as this will require two sockets!
+
+            // When port == 0, then IPv6 will choose a random port, and IPv4 will try to bind to the same port!
+            //
+            // Already done for the case where the port came from the system -
+            // the loop above had to bind it there, because agreeing on a number
+            // that works for both sockets is exactly what it retries. What is
+            // left here is a port that was named - by the caller, or by the
+            // server itself, started again on the port it had: nothing to
+            // agree about, and the bind stays in Start() as it always did.
+            if (this.IPAddress.IsIPv4 && this.IPAddress.IsLocalhost && tcpListenerIPv4 is null)
+            {
+
+                this.tcpListenerIPv4         = new TcpListener(
+                                                   IPv4Address.Localhost,
+                                                   this.TCPPort.ToUInt16()
+                                               );
+
+            }
+
+            #endregion
+
+            #region Or just listen on IPv4 (not localhost! && not dual mode ANY!)
+
+            if (this.IPAddress.IsIPv4      &&
+               !this.IPAddress.IsIPv6      &&
+               !this.IPAddress.IsLocalhost)
+            {
+
+                this.tcpListenerIPv4         = new TcpListener(
+                                                   this.IPAddress.ToDotNet(),
+                                                   this.TCPPort.ToUInt16()
+                                               );
+
+                // When the TCP port is still == 0, then IPv4 will choose a random port!
+                if (this.TCPPort.IsZero)
+                {
+
+                    tcpListenerIPv4.Start((Int32) this.MaxClientConnections);
+
+                    var localEndpoint        = tcpListenerIPv4?.LocalEndpoint as IPEndPoint ?? throw new Exception("The TCP listener's local endpoint is not an IPEndPoint!");
+                    this.TCPPort             = IPPort.Parse(localEndpoint.Port);
+
+                }
+
+            }
+
+            #endregion
+
+        }
+
+        #endregion
+
+
         #region (private) Log(Message)
 
         private Task Log(String Message)
@@ -712,17 +777,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             try
             {
 
-                if (IPAddress.IsIPv6)
+                #region ...and listens where it listened before
+
+                // Stop() stops the listeners, and a TcpListener that is started
+                // again binds a new socket to the endpoint it was made with -
+                // nothing that was set on the old socket comes along. That is
+                // not where this server was. For a port of the system's
+                // choosing, the endpoint of the listener that chose it says
+                // port 0: the dual-stack default came back on two ports, a new
+                // one for [::1] and the old one for 127.0.0.1, and TCPPort
+                // below named the IPv6 one. A listener on [::] came back
+                // without dual mode, and took IPv4 connections no more.
+                //
+                // So they are made again, the way the constructor made them, at
+                // the port this server names: the one it had, where whoever was
+                // told it will look for it.
+                if (listenersStopped)
+                    MakeListeners();
+
+                try
                 {
-                    if (tcpListenerIPv6 is null)
-                        throw new InvalidOperationException("Cannot start TCP Server on IPv6, because the IPv6 listener is null!");
-                    tcpListenerIPv6.Start((Int32) MaxClientConnections);
+
+                    if (IPAddress.IsIPv6)
+                    {
+                        if (tcpListenerIPv6 is null)
+                            throw new InvalidOperationException("Cannot start TCP Server on IPv6, because the IPv6 listener is null!");
+                        tcpListenerIPv6.Start((Int32) MaxClientConnections);
+                    }
+
+                    if (IPAddress.IsIPv4 && tcpListenerIPv4 is not null)
+                    {
+                        tcpListenerIPv4.Start((Int32) MaxClientConnections);
+                    }
+
+                }
+                catch (SocketException e) when (e.SocketErrorCode == SocketError.AddressAlreadyInUse &&
+                                                portChosenBySystem)
+                {
+
+                    // Somebody else took the port while this server was
+                    // stopped. It was the system's choice to begin with, so
+                    // another does as well - chosen the way the constructor
+                    // chose it, for both sockets together, and bound in doing
+                    // so.
+                    TCPPort = IPPort.Zero;
+                    MakeListeners();
+
                 }
 
-                if (IPAddress.IsIPv4 && tcpListenerIPv4 is not null)
-                {
-                    tcpListenerIPv4.Start((Int32) MaxClientConnections);
-                }
+                listenersStopped = false;
+
+                #endregion
 
                 // Port 0 means "whichever is free", and the choice is only made
                 // here, by the operating system, at the moment of the bind. Read
@@ -1167,6 +1272,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             cts.Cancel();
             tcpListenerIPv6?.Stop();
             tcpListenerIPv4?.Stop();
+
+            // Started again, they would bind sockets of their own making -
+            // Start() makes them anew instead, see there.
+            listenersStopped = true;
 
             if (serverTask is not null)
                 await serverTask;
