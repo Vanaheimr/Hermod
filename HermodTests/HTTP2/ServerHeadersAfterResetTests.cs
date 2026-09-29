@@ -155,6 +155,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
+        /// Wait until the writer loop has taken what was queued on the stream, to
+        /// write it once the write lock is its own.
+        /// </summary>
+        private static async Task WaitUntilTakenAsync(HTTP2Stream Stream)
+        {
+
+            var waited = Stopwatch.StartNew();
+
+            while (Stream.OutboundQueue.HasPending)
+            {
+
+                if (waited.Elapsed > PipedH2ServerConnection.StepTimeout)
+                    throw new TimeoutException($"What was queued on stream {Stream.StreamId} was never taken");
+
+                await Task.Delay(1);
+
+            }
+
+        }
+
+        /// <summary>
         /// Events of the stack's EventSource while this listener lives.
         /// </summary>
         private sealed class HTTP2Events : EventListener
@@ -743,9 +764,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// A streaming handler ends its response with trailers, and the writer
         /// loop takes them off the stream's queue, to send them as the response's
         /// last HEADERS block, just as the client resets the stream. The trailers
-        /// went out on the reset stream. Now they stay unsent, and the writer
-        /// loop, which every stream's body goes through, serves on: the failed
-        /// header write is no failure of the connection's.
+        /// went out on the reset stream. Now they stay unsent, the handler's
+        /// CompleteAsync fails with the stream's token, and the writer loop, which
+        /// every stream's body goes through, serves on: the failed header write
+        /// is no failure of the connection's.
         /// </summary>
         [Test]
         public async Task TrailersTakenAtReset_NotSent_ConnectionServesOn()
@@ -755,7 +777,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var headersSent  = new TaskCompletionSource(Async);
             var complete     = new TaskCompletionSource(Async);
-            var completed    = new TaskCompletionSource(Async);
+            var completing   = new TaskCompletionSource<(Task Completion, CancellationToken HandlerToken)>(Async);
 
             await using var peer = await PipedH2ServerConnection.StartAsync(
 
@@ -774,10 +796,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                     headersSent.TrySetResult();
                     await complete.Task;
 
-                    // Returns once the writer loop has taken the trailers.
-                    await response.CompleteAsync([Late]);
+                    // Queued at once. It completes once the trailers go out, and
+                    // fails once they never will.
+                    var completion = response.CompleteAsync([Late]);
 
-                    completed.TrySetResult();
+                    completing.TrySetResult((completion, cancellationToken));
+
+                    await completion;
 
                 });
 
@@ -789,17 +814,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                 var stream = peer.ServerStream(StreamId);
 
+                (Task Completion, CancellationToken HandlerToken) completion;
+
                 using (await peer.HoldWritesAsync())
                 {
 
                     complete.TrySetResult();
 
-                    await completed.Task.WaitAsync(PipedH2ServerConnection.StepTimeout);
+                    completion = await completing.Task.WaitAsync(PipedH2ServerConnection.StepTimeout);
+
+                    await WaitUntilTakenAsync(stream);
 
                     await peer.SendAsync(HTTP2Frame.CreateRstStream(StreamId, HTTP2ErrorCode.CANCEL));
                     await WaitUntilResetAsync(stream);
 
                 }
+
+                var (ended, failure) = await EndOf(completion.Completion);
 
                 // The writer loop goes on from the trailers to the next response's
                 // body, so by the end of that response, the trailers would have
@@ -814,6 +845,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                     Assert.That(GoAways(peer),            Is.Empty,                                    "how the server ended the connection");
 
                     Assert.That(SentOn(peer, StreamId),   Is.EqualTo(new[] { "HEADERS :status 200" }), "what the server sent on the reset stream");
+
+                    Assert.That(ended,                    Is.True,                                     "the handler's CompleteAsync returned");
+                    Assert.That(failure,                  Is.InstanceOf<OperationCanceledException>(), "how the handler's CompleteAsync ended, its trailers unsent");
+                    Assert.That(TokenOf(failure),         Is.EqualTo(completion.HandlerToken),         "the token it carries: the handler's, the stream's own");
 
                     Assert.That(other?.Status,            Is.EqualTo("200"),                           "status of the next response");
                     Assert.That(other?.Headers,           Does.Contain(Late),                          "the field the next response repeats");

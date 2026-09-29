@@ -432,6 +432,14 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   not run. Whether to send is decided under the connection's write lock, right
   before the header list is HPACK-encoded: a block encoded and then dropped
   would leave the client's decoder a step behind for the rest of the connection.
+- Nor does DATA the writer loop has already taken for a stream go out once the
+  stream is reset: whether to send it is decided under the write lock too, so it
+  goes out before the stream's `RST_STREAM` or not at all, and the send window
+  taken for it goes back to the connection. A write — a response body, a
+  streamed chunk or its end, a tunnel write or a tunnel's end — returns once its
+  last frame is the next to go out, no longer as soon as the writer loop takes
+  it off the queue: a handler that failed right after its last write could get
+  its `RST_STREAM` out first, and that DATA followed on the closed stream.
 - A read of a streamed request body on a reset stream fails likewise, with an
   `OperationCanceledException` carrying the stream's own token, whether the
   handler passed that token or not: a read waiting when the reset comes, and

@@ -69,13 +69,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
-        /// Send a chunk of data to the peer as DATA frame(s) on this stream. Once
-        /// the stream is reset or closed, this fails with an
-        /// <see cref="OperationCanceledException"/> — at once, for a write that
-        /// comes after — and after a reset it carries the stream's own token, the
-        /// one the tunnel's handler was given. <paramref name="CancellationToken"/>
-        /// ends the wait, not the write: a chunk already queued still goes out,
-        /// in order.
+        /// Send a chunk of data to the peer as DATA frame(s) on this stream. It
+        /// returns once the chunk is the next to go out: whatever follows on the
+        /// stream, the RST_STREAM the server sends if the handler then fails
+        /// included, goes out behind it. Once the stream is reset or closed, this
+        /// fails with an <see cref="OperationCanceledException"/> — at once, for a
+        /// write that comes after — and after a reset it carries the stream's own
+        /// token, the one the tunnel's handler was given.
+        /// <paramref name="CancellationToken"/> ends the wait, not the write: a
+        /// chunk already queued still goes out, in order.
         /// </summary>
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken)
             => connection.SendTunnelDataAsync(stream, Data, CancellationToken);

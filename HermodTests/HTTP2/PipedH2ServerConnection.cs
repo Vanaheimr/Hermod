@@ -523,6 +523,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
+        /// The bytes of DATA the connection may still send before the client
+        /// grants more, as the connection counts them: less what it has sent, and
+        /// less what its writer loop has taken off a stream's queue to send. Read
+        /// while the connection is quiet, after a ping.
+        /// </summary>
+        public Int64 ConnectionSendWindow()
+
+            => StreamManager.ConnectionSendWindow;
+
+        /// <summary>
         /// Complete once the server has written the frame that ends its side of
         /// this stream, naming the thread that wrote it. Watch before the server
         /// can get there.

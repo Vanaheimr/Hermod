@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// Writes on a stream that is reset, or closed. The server queues every body
     /// it sends, streamed or not, every end of a stream and every tunnel write on
     /// the stream's outbound queue, for the connection's DATA writer loop to send,
-    /// and the writer waits until its bytes are taken. The loop sends nothing on
+    /// and the writer waits until its bytes go out. The loop sends nothing on
     /// a closed stream, and a reset released only what was queued at that moment:
     /// a write that came after it waited until the connection ended. So when a
     /// client cancelled a download with RST_STREAM CANCEL, a handler that wrote

@@ -50,10 +50,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Send one response-body chunk as DATA frame(s). Awaiting the returned task
-        /// waits until the chunk has actually been handed to the wire (backpressure).
-        /// Once the chunk never can be, because the stream was reset, the task fails
-        /// with an <see cref="OperationCanceledException"/> carrying the handler's
-        /// own token — at once, for a write that comes after the reset.
+        /// waits until the chunk has actually been handed to the wire (backpressure):
+        /// whatever follows on the stream, the RST_STREAM the server sends if the
+        /// handler then fails included, goes out behind it. Once the chunk never
+        /// can be, because the stream was reset, the task fails with an
+        /// <see cref="OperationCanceledException"/> carrying the handler's own
+        /// token — at once, for a write that comes after the reset.
         /// <paramref name="CancellationToken"/> ends the wait, not the write: a
         /// chunk already queued still goes out, in order.
         /// </summary>

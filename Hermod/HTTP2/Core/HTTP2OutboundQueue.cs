@@ -33,7 +33,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// tasks) — only <see cref="TakeChunk"/> and <see cref="AbandonAll"/> ever
     /// remove items: the one on the writer loop, the other on whichever task
     /// closes the stream (the read loop, for an RST_STREAM). Every member takes
-    /// the same gate, so neither races the other, nor a producer.
+    /// the same gate, so neither races the other, nor a producer. An item that
+    /// <see cref="TakeChunk"/> has removed is the writer loop's to complete, or
+    /// cancel: <see cref="AbandonAll"/> no longer sees it.
     ///
     /// Public only because it's exposed as the type of <see cref="HTTP2Stream.OutboundQueue"/>;
     /// there's no reason for anything outside this assembly to construct or call
@@ -84,10 +86,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Queue Data (and, if EndStream, a pending End-Stream marker) for the
         /// writer loop to send. Returns a task that completes once this exact
-        /// item has been fully handed to the wire — callers that want
-        /// write-completion backpressure (e.g. a slow tunnel peer) should await
-        /// it — or is canceled once it never will be (see <see cref="AbandonAll"/>):
-        /// at once, if the queue is abandoned already.
+        /// item's last frame is sure to go out next (see <see cref="TakeChunk"/>) —
+        /// callers that want write-completion backpressure (e.g. a slow tunnel
+        /// peer) should await it — or is canceled once it never will: while
+        /// still queued (see <see cref="AbandonAll"/>), at once if the queue is
+        /// abandoned already, and by the writer loop, for a chunk it has taken but
+        /// not written.
         /// </summary>
         public Task EnqueueAsync(byte[] Data, bool EndStream, List<(string Name, string Value)>? Trailers = null)
         {
@@ -119,10 +123,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Called only by the writer loop. Takes up to MaxBytes from the head
-        /// item; if that exhausts the item, it is dequeued and its Completion is
-        /// signalled. Returns null if nothing is queued.
+        /// item; if that exhausts the item, it is dequeued, and its Completion is
+        /// handed to the writer loop with the chunk, to complete once the chunk's
+        /// last frame is sure to go out next, or to cancel if it never will.
+        /// Completed here, as the chunk was taken, it told the producer its write
+        /// was done while the chunk still waited for the connection's write lock:
+        /// a producer that went on to reset the stream — a handler failing right
+        /// after its last write — could get its RST_STREAM out first, and the DATA
+        /// followed it onto the closed stream. Returns null if nothing is queued.
         /// </summary>
-        public (byte[] Chunk, bool EndStream, List<(string Name, string Value)>? Trailers)? TakeChunk(int MaxBytes)
+        public (byte[] Chunk, bool EndStream, List<(string Name, string Value)>? Trailers, TaskCompletionSource? Completion)? TakeChunk(int MaxBytes)
         {
 
             lock (gate)
@@ -142,12 +152,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 item.Offset += take;
 
                 if (item.Offset < item.Data.Length)
-                    return (chunk, false, null);
+                    return (chunk, false, null, null);
 
                 items.Dequeue();
-                item.Completion.TrySetResult();
 
-                return (chunk, item.EndStream, item.Trailers);
+                return (chunk, item.EndStream, item.Trailers, item.Completion);
 
             }
 
@@ -160,7 +169,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// awaiting <see cref="EnqueueAsync"/> would otherwise wait for bytes that
         /// will never be sent, until the whole connection ends. Its task is
         /// canceled instead, with <paramref name="CancellationToken"/>: for a
-        /// reset, the stream's own. A later call keeps the first token.
+        /// reset, the stream's own. A later call keeps the first token. An item
+        /// whose last chunk the writer loop has taken is queued no more: the
+        /// writer loop completes its task, or cancels it with the stream's token
+        /// if the reset keeps that chunk from going out.
         /// </summary>
         public void AbandonAll(CancellationToken CancellationToken = default)
         {

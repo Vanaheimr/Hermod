@@ -285,12 +285,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                     Assert.That(answers,                          Is.True,                                    "the connection, once the client's DATA on the reset stream came in");
                     Assert.That(GoAways(peer),                    Is.Empty,                                   "how the server ended the connection");
 
-                    // In any order: the writer loop takes the END_STREAM that ends
-                    // the server's side before it writes it, and the handler's
-                    // task, told it is taken, may write its RST_STREAM first.
-                    Assert.That(SentOn(peer, 1),                  Is.EquivalentTo(new[] { "HEADERS :status 200",
-                                                                                          "DATA \"\" END_STREAM",
-                                                                                          "RST_STREAM INTERNAL_ERROR" }),
+                    // In this order: the handler's task resets the stream only once
+                    // the END_STREAM that ends the server's side is written (see
+                    // ServerDataAfterResetTests).
+                    Assert.That(SentOn(peer, 1),                  Is.EqualTo(new[] { "HEADERS :status 200",
+                                                                                     "DATA \"\" END_STREAM",
+                                                                                     "RST_STREAM INTERNAL_ERROR" }),
                                                                   "what the server sent on the reset stream");
 
                     Assert.That(peer.ConnectionWindowHeldBack(),  Is.EqualTo(0),                              "connection window held back for the discarded DATA");
