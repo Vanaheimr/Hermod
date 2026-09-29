@@ -51,16 +51,12 @@ public class SunSpecModbusTLSTests
 
         await new ModbusPKI().BuildPKI(pkiDirectory);
 
-        // Held by the test until the frontend binds it - see ClosedPort.
-        using var port         = new ClosedPort();
-        var listenPort         = port.Number.ToInt32();
-
         using var meter        = new SunSpecMeterDevice("meter-test-001",     SunSpecMeterMode.ImportOnly);
         using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         using var frontend     = new ModbusTlsFrontend(
                                      new ModbusTlsFrontendOptions(
                                          NetIPAddress.Loopback,
-                                         listenPort,
+                                         0,  // any free port - the frontend says which
                                          Path.Combine(pkiDirectory, "server.pfx"),
                                          "demo",
                                          Path.Combine(pkiDirectory, "issuing-clients-ca.crt"),
@@ -73,12 +69,8 @@ public class SunSpecModbusTLSTests
                                      new NUnitLogger<ModbusTlsFrontend>()
                                  );
 
-        // The frontend binds 127.0.0.1 as RunAsync() begins, next to what
-        // keeps the port held while it is handed over.
-        port.HandOver();
-
         var frontendTask = frontend.RunAsync(frontendCts.Token);
-        await WaitForListenerAsync(listenPort, frontendCts.Token);
+        var listenPort   = await ListenPortOf(frontend);
 
         await ReadAndAssertEnergyMeterAsync(
                   listenPort,
@@ -115,16 +107,12 @@ public class SunSpecModbusTLSTests
         const String sniRootA = "meter-a.sunspec.test";
         const String sniRootB = "meter-b.sunspec.test";
 
-        // Held by the test until the frontend binds it - see ClosedPort.
-        using var port         = new ClosedPort();
-        var listenPort         = port.Number.ToInt32();
-
         using var meter        = new SunSpecMeterDevice("meter-test-sni-001", SunSpecMeterMode.ImportOnly);
         using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         using var frontend     = new ModbusTlsFrontend(
                                      new ModbusTlsFrontendOptions(
                                          NetIPAddress.Loopback,
-                                         listenPort,
+                                         0,  // any free port - the frontend says which
                                          Path.Combine(rootA, "server.pfx"),
                                          "demo",
                                          Path.Combine(rootA, "issuing-clients-ca.crt"),
@@ -151,12 +139,8 @@ public class SunSpecModbusTLSTests
                                      new NUnitLogger<ModbusTlsFrontend>()
                                  );
 
-        // The frontend binds 127.0.0.1 as RunAsync() begins, next to what
-        // keeps the port held while it is handed over.
-        port.HandOver();
-
         var frontendTask = frontend.RunAsync(frontendCts.Token);
-        await WaitForListenerAsync(listenPort, frontendCts.Token);
+        var listenPort   = await ListenPortOf(frontend);
 
         await ReadAndAssertEnergyMeterAsync(
                   listenPort,
@@ -367,27 +351,69 @@ public class SunSpecModbusTLSTests
 
     #endregion
 
+    #region Hermod_ModbusTLSFrontend_SaysWhyItCouldNotBind_Test()
 
-    private static async Task WaitForListenerAsync(Int32 listenPort, CancellationToken ct)
+    /// <summary>
+    /// A frontend whose port is taken says so through BoundEndPoint, with the
+    /// error its bind failed with - rather than leaving whoever waits for it
+    /// to poll a port that something else answers.
+    /// </summary>
+    [Test]
+    public async Task Hermod_ModbusTLSFrontend_SaysWhyItCouldNotBind_Test()
     {
 
-        for (var i = 0; i < 50; i++)
-        {
-            try
-            {
-                using var tcpClient = new TcpClient();
-                await tcpClient.ConnectAsync(NetIPAddress.Loopback, listenPort, ct);
-                return;
-            }
-            catch when (!ct.IsCancellationRequested)
-            {
-                await Task.Delay(50, ct);
-            }
-        }
+        var pkiDirectory = Path.Combine(
+                               TestContext.CurrentContext.WorkDirectory,
+                               "SunSpecModbusTLS",
+                               Guid.NewGuid().ToString("N")
+                           );
 
-        Assert.Fail($"The SunSpec Modbus/TLS listener on 127.0.0.1:{listenPort} did not become reachable.");
+        await new ModbusPKI().BuildPKI(pkiDirectory);
+
+        // Listening for as long as the test runs, so that the port is taken
+        // when the frontend comes to bind it.
+        using var occupied     = new TcpListener(NetIPAddress.Loopback, 0);
+        occupied.Start();
+
+        using var meter        = new SunSpecMeterDevice("meter-test-taken-port", SunSpecMeterMode.ImportOnly);
+        using var frontend     = new ModbusTlsFrontend(
+                                     new ModbusTlsFrontendOptions(
+                                         NetIPAddress.Loopback,
+                                         ((System.Net.IPEndPoint) occupied.LocalEndpoint).Port,
+                                         Path.Combine(pkiDirectory, "server.pfx"),
+                                         "demo",
+                                         Path.Combine(pkiDirectory, "issuing-clients-ca.crt"),
+                                         TimeSpan.FromSeconds(5),
+                                         TimeSpan.FromSeconds(5),
+                                         TimeSpan.FromSeconds(5)
+                                     ),
+                                     new SunSpecBackendFactory(meter),
+                                     new AuthorizationPolicy(meter),
+                                     new NUnitLogger<ModbusTlsFrontend>()
+                                 );
+
+        var frontendTask       = frontend.RunAsync();
+
+        Assert.That(async () => await frontend.BoundEndPoint.WaitAsync(TimeSpan.FromSeconds(5)),
+                    Throws.InstanceOf<SocketException>().
+                           With.Property(nameof(SocketException.SocketErrorCode)).EqualTo(SocketError.AddressAlreadyInUse),
+                    "BoundEndPoint did not say why the frontend could not bind.");
+
+        Assert.That(async () => await frontendTask,
+                    Throws.InstanceOf<SocketException>(),
+                    "RunAsync() did not fail with the bind.");
 
     }
+
+    #endregion
+
+
+    /// <summary>
+    /// The port the frontend was given for port 0 - known once it has bound
+    /// its listener, which is also when a client may connect.
+    /// </summary>
+    private static async Task<Int32> ListenPortOf(ModbusTlsFrontend Frontend)
+        => (await Frontend.BoundEndPoint.WaitAsync(TimeSpan.FromSeconds(5))).Port;
 
     private static async Task ReadAndAssertEnergyMeterAsync(Int32              listenPort,
                                                             String?            TLSHostname,
@@ -531,26 +557,22 @@ public class SunSpecModbusTLSTests
 
     /// <summary>
     /// A simulated SunSpec energy meter behind Hermod's Modbus/TLS frontend, on
-    /// a loopback port the test holds and with a PKI of its own - and every
-    /// request the frontend saw, as it saw it.
+    /// a loopback port of the operating system's choosing and with a PKI of its
+    /// own - and every request the frontend saw, as it saw it.
     /// </summary>
-    /// <remarks>
-    /// The frontend takes port 0, but does not say which port it was given.
-    /// The port is chosen in advance, then, and held until the frontend binds
-    /// it - see ClosedPort - rather than one that was free a moment before, and
-    /// with other test runs on the same machine was now and then given to one
-    /// of them in between.
-    /// </remarks>
     private sealed class SunSpecMeterServer : IAsyncDisposable
     {
 
         private readonly ModbusTlsFrontend        frontend;
         private readonly CancellationTokenSource  frontendCts;
         private readonly Task                     frontendTask;
-        private readonly ClosedPort               port;
 
         public String                              PKIDirectory    { get; }
-        public Int32                               ListenPort      { get; }
+
+        /// <summary>
+        /// The port the frontend was given, once StartAsync() has returned.
+        /// </summary>
+        public Int32                               ListenPort      { get; private set; }
 
         /// <summary>
         /// Every Modbus request the frontend saw, refused ones included.
@@ -558,22 +580,15 @@ public class SunSpecModbusTLSTests
         public ConcurrentQueue<ModbusRequestInfo>  Requests        { get; } = new();
 
         private SunSpecMeterServer(String                   PKIDirectory,
-                                   ClosedPort               Port,
                                    ModbusTlsFrontend        Frontend,
                                    CancellationTokenSource  FrontendCts)
         {
 
             this.PKIDirectory  = PKIDirectory;
-            this.ListenPort    = Port.Number.ToInt32();
-            this.port          = Port;
             this.frontend      = Frontend;
             this.frontendCts   = FrontendCts;
 
             frontend.OnModbusRequest += Requests.Enqueue;
-
-            // The frontend binds 127.0.0.1 as RunAsync() begins, next to what
-            // keeps the port held while it is handed over.
-            port.HandOver();
 
             this.frontendTask  = frontend.RunAsync(frontendCts.Token);
 
@@ -590,7 +605,6 @@ public class SunSpecModbusTLSTests
 
             await new ModbusPKI().BuildPKI(pkiDirectory);
 
-            var port          = new ClosedPort();
             var server        = default(SunSpecMeterServer);
 
             try
@@ -598,11 +612,10 @@ public class SunSpecModbusTLSTests
 
                 server        = new SunSpecMeterServer(
                                     pkiDirectory,
-                                    port,
                                     new ModbusTlsFrontend(
                                         new ModbusTlsFrontendOptions(
                                             NetIPAddress.Loopback,
-                                            port.Number.ToInt32(),
+                                            0,  // any free port - the frontend says which
                                             Path.Combine(pkiDirectory, "server.pfx"),
                                             "demo",
                                             Path.Combine(pkiDirectory, "issuing-clients-ca.crt"),
@@ -617,7 +630,7 @@ public class SunSpecModbusTLSTests
                                     new CancellationTokenSource(TimeSpan.FromSeconds(20))
                                 );
 
-                await WaitForListenerAsync(server.ListenPort, server.frontendCts.Token);
+                server.ListenPort = await ListenPortOf(server.frontend);
 
                 return server;
 
@@ -625,10 +638,10 @@ public class SunSpecModbusTLSTests
             catch
             {
 
-                // A server that did not start is stopped again, and its port let
-                // go of - which otherwise stays held until its socket is
-                // finalized. The test is told what went wrong in the first place,
-                // not what stopping a half-started server has to say.
+                // A server that did not start is stopped again, rather than left
+                // listening until its token runs out. The test is told what went
+                // wrong in the first place, not what stopping a half-started
+                // server has to say.
                 if (server is not null)
                 {
                     try
@@ -638,8 +651,6 @@ public class SunSpecModbusTLSTests
                     catch
                     { }
                 }
-
-                port.Dispose();
 
                 throw;
 
@@ -712,8 +723,6 @@ public class SunSpecModbusTLSTests
                 // Even when the frontend failed, which the wait above reports.
                 frontend.Dispose();
                 frontendCts.Dispose();
-
-                port.Dispose();
 
             }
 

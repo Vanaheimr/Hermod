@@ -62,6 +62,26 @@ public sealed class ModbusTlsFrontend : IDisposable
 
     private long                               _connectionCounter;
 
+    // Completed once RunAsync() has bound the listener - see BoundEndPoint.
+    private readonly TaskCompletionSource<System.Net.IPEndPoint> _boundEndPoint =
+        new (TaskCreationOptions.RunContinuationsAsynchronously);
+
+    /// <summary>
+    /// The endpoint the listener actually bound - completed once
+    /// <see cref="RunAsync"/> has bound it, or faulted with whatever prevented
+    /// that.
+    /// </summary>
+    /// <remarks>
+    /// The options name the port to bind, which is not the port that gets
+    /// bound when they name port 0. Without somewhere to read the answer, a
+    /// caller that wants any free port has to find one itself, let go of it
+    /// and hope it is still free a moment later - a race it can neither win
+    /// nor notice, because whatever took the port in between answers its
+    /// probe. Reported for the first run of the frontend.
+    /// </remarks>
+    public Task<System.Net.IPEndPoint> BoundEndPoint
+        => _boundEndPoint.Task;
+
     /// <summary>
     /// Raised once per Modbus request, refused ones included.
     /// </summary>
@@ -117,9 +137,24 @@ public sealed class ModbusTlsFrontend : IDisposable
 
         var ct = linked.Token;
 
-        _listener.Start();
+        try
+        {
+            _listener.Start();
+        }
+        catch (Exception e)
+        {
+            // Whoever waits for the endpoint learns why it will not come,
+            // rather than polling a port that something else may answer.
+            _boundEndPoint.TrySetException(e);
+            throw;
+        }
+
+        var boundEndPoint = (System.Net.IPEndPoint) _listener.LocalEndpoint;
+
+        _boundEndPoint.TrySetResult(boundEndPoint);
+
         _logger.LogInformation("mbaps frontend listening on {Endpoint} (TLS-only, mutual auth)",
-            $"{_opts.ListenAddress}:{_opts.ListenPort}");
+            boundEndPoint);
         var startupChain = ServerCertificateFor(null);
 
         _logger.LogInformation("server cert: {Subject}", startupChain.Certificate.Subject);
