@@ -1481,7 +1481,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// RFC 9113, Section 8.1.1: a declared content-length MUST equal the
         /// summed DATA payload length, else the request is malformed. Checked
         /// where the body ends: at a DATA frame with END_STREAM, or at trailers.
-        /// (A CONNECT tunnel is exempt — it has no body semantics.)
+        /// A body longer than declared does not get there: HandleDataAsync resets
+        /// its stream at the DATA frame that takes it past. (A CONNECT tunnel is
+        /// exempt — it has no body semantics.)
         /// </summary>
         private static void CheckContentLength(HTTP2Stream Stream)
         {
@@ -1489,15 +1491,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (Stream.IsConnectTunnel || Stream.ExpectedContentLength is not { } expected)
                 return;
 
-            var received = Stream.IsStreamingRequest
-                               ? Stream.ReceivedBodyLength
-                               : Stream.RequestBody?.Length ?? 0;
+            var received = BodyLengthSoFar(Stream);
 
             if (received != expected)
                 throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, Stream.StreamId,
                     $"content-length {expected} does not match body length {received}");
 
         }
+
+        /// <summary>
+        /// The DATA payload a request's body has taken in so far: handed to its
+        /// streaming handler, or buffered. What a declared content-length is
+        /// compared with (RFC 9113, Section 8.1.1).
+        /// </summary>
+        private static long BodyLengthSoFar(HTTP2Stream Stream)
+
+            => Stream.IsStreamingRequest
+                   ? Stream.ReceivedBodyLength
+                   : Stream.RequestBody?.Length ?? 0;
 
         /// <summary>
         /// Pseudo-header fields defined for HTTP/2 requests (RFC 9113, Section
@@ -1928,6 +1939,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // it — so its window is returned immediately. The DATA bytes proper are
             // returned differently per path (below).
             var paddingOverhead = flowLength - dataLength;
+
+            // RFC 9113, Section 8.1.1: DATA that add up to more than a declared
+            // content-length make the request malformed, and that is certain at
+            // the frame that takes them past it: no later frame brings the sum
+            // back. So the stream is reset here, before any of this frame reaches
+            // a streaming handler or the buffered body — a streaming handler used
+            // to read every byte past the declared length, and a buffered body was
+            // taken in up to maxRequestBodySize, only to be refused where it ended.
+            // CheckContentLength, where the body ends, is left with one cut short.
+            // The frame is counted against both windows above, and its connection
+            // window given back now, as for the other stream errors here (Section
+            // 6.9); what the handler left unread of the DATA before it, the reset
+            // gives back (see FrameLoopAsync).
+            if (!stream.IsConnectTunnel && stream.ExpectedContentLength is { } declared)
+            {
+
+                var received = BodyLengthSoFar(stream) + dataLength;
+
+                if (received > declared)
+                {
+                    await ReplenishReceiveWindowsAsync(null, flowLength);
+                    throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, Frame.StreamId,
+                        $"content-length {declared} exceeded: {received} bytes of DATA received");
+                }
+
+            }
 
             // A CONNECT tunnel and a streaming request have an incremental consumer
             // (the handler's tunnel/body ReadAsync), so their flow-control window is

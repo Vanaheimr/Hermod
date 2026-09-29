@@ -30,7 +30,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// The length a request declares with content-length, compared with the DATA
     /// it sends (RFC 9113, Section 8.1.1) where its body ends: at a DATA frame
     /// with END_STREAM, or at trailers, a header block with END_STREAM after the
-    /// DATA (Section 8.1). Every test here runs for each way a body can end.
+    /// DATA (Section 8.1). Every test here runs for each way a body can end. A
+    /// body longer than declared does not get there: it is reset at the DATA
+    /// frame that takes it past the declared length (see
+    /// <see cref="ServerContentLengthExceededTests"/>), here its first, "hello ".
     ///
     /// Trailers were the odd one out. A buffered upload, one that no streaming
     /// handler takes, that declared its length and ended with trailers was reset
@@ -203,9 +206,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                    BodyRead.TrySetResult((chunks, end, [.. request.Trailers], cancellationToken));
 
-                   // No answer on a reset stream.
-                   cancellationToken.ThrowIfCancellationRequested();
-
                    await response.WriteHeadersAsync([(":status", "200")]);
                    await response.WriteAsync(ASCII(String.Concat(chunks)));
 
@@ -265,6 +265,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// however the body ends. Ended by trailers, one that declared no body at
         /// all was dispatched: nothing compared the length there. Any other length
         /// was reset only because the check for a request without a body fired.
+        /// Declared 0 or 5 bytes, the body is longer, and is reset at its first
+        /// DATA frame now; what the client sends after it is discarded.
         /// </summary>
         [Test]
         public async Task BufferedUpload_WrongLength_IsReset([Values("0", "5", "20")] String   ContentLength,
@@ -353,12 +355,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         /// <summary>
         /// A streamed upload whose body is of another length than it declared is
-        /// malformed as well: the server resets it with PROTOCOL_ERROR. Its handler
-        /// reads the chunks that arrived, and then its read fails with the stream's
-        /// token, as on any stream reset while its body was open; it does not end
-        /// with null, which says the body is whole. Ended by trailers, it did:
-        /// nothing compared the length there, and the handler answered a malformed
-        /// request.
+        /// malformed as well: the server resets it with PROTOCOL_ERROR, and its
+        /// handler's read fails with the stream's token, as on any stream reset
+        /// while its body was open; it does not end with null, which says the body
+        /// is whole. Ended by trailers, it did: nothing compared the length there,
+        /// and the handler answered a malformed request. Declared 20 bytes, the
+        /// body is cut short: it is reset where it ends, and the handler reads the
+        /// chunks that arrived first. Declared 0 or 5, the body is longer, and is
+        /// reset at its first DATA frame, which takes it past already: the handler
+        /// reads none of it, where it used to read every byte past the declared
+        /// length.
         /// </summary>
         [Test]
         public async Task StreamedUpload_WrongLength_ReadFails([Values("0", "5", "20")] String   ContentLength,
@@ -382,10 +388,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var (chunks, end, _, handlerToken) = await bodyRead.Task;
 
+            // The body is 11 bytes: 20 declared bytes cut it short, and 0 or 5 are
+            // past already at its first DATA frame, "hello ".
+            var cutShort = Int32.Parse(ContentLength) > Int32.Parse(BodyLength);
+
             Assert.Multiple(() =>
             {
 
-                Assert.That(chunks,            Is.EqualTo(new[] { "hello ", "world" }),      "what the handler read of the body");
+                Assert.That(chunks,            Is.EqualTo(cutShort ? new[] { "hello ", "world" } : []),  "what the handler read of the body: what arrived of one cut short, and nothing of one past its declared length");
                 Assert.That(end,               Is.InstanceOf<OperationCanceledException>(),  "how the body ended: null would say it was whole");
                 Assert.That(TokenOf(end),      Is.EqualTo(handlerToken),                    "the token it carries: the handler's, the stream's own");
 
