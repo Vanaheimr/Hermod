@@ -72,10 +72,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
             // them it takes to meet the race once.
             var timeBox    = TimeSpan.FromSeconds(3);
 
-            // IPv4 alone: one listener, bound at every start to a port of the
-            // system's choosing. The dual-stack default binds its IPv4 socket
-            // at every start to the port it was given in the constructor, and
-            // that port is free for anybody between one round and the next.
+            // IPv4 alone: one listener is all this race needs, and every start
+            // binds it again - at the port it had, or at another of the
+            // system's choosing if somebody took that one between one round
+            // and the next.
             var server     = new TCPEchoTestServer(
                                  IPAddress:  IPv4Address.Localhost,
                                  TCPPort:    IPPort.Parse(0)
