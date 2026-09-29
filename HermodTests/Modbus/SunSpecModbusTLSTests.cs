@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Net;
 using System.Net.Sockets;
 using System.Collections.Concurrent;
 using System.Security.Authentication;
@@ -52,7 +51,9 @@ public class SunSpecModbusTLSTests
 
         await new ModbusPKI().BuildPKI(pkiDirectory);
 
-        var listenPort = GetFreeTcpPort();
+        // Held by the test until the frontend binds it - see ClosedPort.
+        using var port         = new ClosedPort();
+        var listenPort         = port.Number.ToInt32();
 
         using var meter        = new SunSpecMeterDevice("meter-test-001",     SunSpecMeterMode.ImportOnly);
         using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
@@ -71,6 +72,10 @@ public class SunSpecModbusTLSTests
                                      new AuthorizationPolicy(meter),
                                      new NUnitLogger<ModbusTlsFrontend>()
                                  );
+
+        // The frontend binds 127.0.0.1 as RunAsync() begins, next to what
+        // keeps the port held while it is handed over.
+        port.HandOver();
 
         var frontendTask = frontend.RunAsync(frontendCts.Token);
         await WaitForListenerAsync(listenPort, frontendCts.Token);
@@ -110,7 +115,9 @@ public class SunSpecModbusTLSTests
         const String sniRootA = "meter-a.sunspec.test";
         const String sniRootB = "meter-b.sunspec.test";
 
-        var listenPort = GetFreeTcpPort();
+        // Held by the test until the frontend binds it - see ClosedPort.
+        using var port         = new ClosedPort();
+        var listenPort         = port.Number.ToInt32();
 
         using var meter        = new SunSpecMeterDevice("meter-test-sni-001", SunSpecMeterMode.ImportOnly);
         using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
@@ -143,6 +150,10 @@ public class SunSpecModbusTLSTests
                                      new AuthorizationPolicy(meter),
                                      new NUnitLogger<ModbusTlsFrontend>()
                                  );
+
+        // The frontend binds 127.0.0.1 as RunAsync() begins, next to what
+        // keeps the port held while it is handed over.
+        port.HandOver();
 
         var frontendTask = frontend.RunAsync(frontendCts.Token);
         await WaitForListenerAsync(listenPort, frontendCts.Token);
@@ -357,17 +368,6 @@ public class SunSpecModbusTLSTests
     #endregion
 
 
-    private static Int32 GetFreeTcpPort()
-    {
-
-        var listener = new TcpListener(NetIPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint) listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-
-    }
-
     private static async Task WaitForListenerAsync(Int32 listenPort, CancellationToken ct)
     {
 
@@ -531,15 +531,23 @@ public class SunSpecModbusTLSTests
 
     /// <summary>
     /// A simulated SunSpec energy meter behind Hermod's Modbus/TLS frontend, on
-    /// a free loopback port and with a PKI of its own - and every request the
-    /// frontend saw, as it saw it.
+    /// a loopback port the test holds and with a PKI of its own - and every
+    /// request the frontend saw, as it saw it.
     /// </summary>
+    /// <remarks>
+    /// The frontend takes port 0, but does not say which port it was given.
+    /// The port is chosen in advance, then, and held until the frontend binds
+    /// it - see ClosedPort - rather than one that was free a moment before, and
+    /// with other test runs on the same machine was now and then given to one
+    /// of them in between.
+    /// </remarks>
     private sealed class SunSpecMeterServer : IAsyncDisposable
     {
 
         private readonly ModbusTlsFrontend        frontend;
         private readonly CancellationTokenSource  frontendCts;
         private readonly Task                     frontendTask;
+        private readonly ClosedPort               port;
 
         public String                              PKIDirectory    { get; }
         public Int32                               ListenPort      { get; }
@@ -550,17 +558,22 @@ public class SunSpecModbusTLSTests
         public ConcurrentQueue<ModbusRequestInfo>  Requests        { get; } = new();
 
         private SunSpecMeterServer(String                   PKIDirectory,
-                                   Int32                    ListenPort,
+                                   ClosedPort               Port,
                                    ModbusTlsFrontend        Frontend,
                                    CancellationTokenSource  FrontendCts)
         {
 
             this.PKIDirectory  = PKIDirectory;
-            this.ListenPort    = ListenPort;
+            this.ListenPort    = Port.Number.ToInt32();
+            this.port          = Port;
             this.frontend      = Frontend;
             this.frontendCts   = FrontendCts;
 
             frontend.OnModbusRequest += Requests.Enqueue;
+
+            // The frontend binds 127.0.0.1 as RunAsync() begins, next to what
+            // keeps the port held while it is handed over.
+            port.HandOver();
 
             this.frontendTask  = frontend.RunAsync(frontendCts.Token);
 
@@ -577,15 +590,19 @@ public class SunSpecModbusTLSTests
 
             await new ModbusPKI().BuildPKI(pkiDirectory);
 
-            var listenPort    = GetFreeTcpPort();
+            var port          = new ClosedPort();
+            var server        = default(SunSpecMeterServer);
 
-            var server        = new SunSpecMeterServer(
+            try
+            {
+
+                server        = new SunSpecMeterServer(
                                     pkiDirectory,
-                                    listenPort,
+                                    port,
                                     new ModbusTlsFrontend(
                                         new ModbusTlsFrontendOptions(
                                             NetIPAddress.Loopback,
-                                            listenPort,
+                                            port.Number.ToInt32(),
                                             Path.Combine(pkiDirectory, "server.pfx"),
                                             "demo",
                                             Path.Combine(pkiDirectory, "issuing-clients-ca.crt"),
@@ -600,9 +617,33 @@ public class SunSpecModbusTLSTests
                                     new CancellationTokenSource(TimeSpan.FromSeconds(20))
                                 );
 
-            await WaitForListenerAsync(listenPort, server.frontendCts.Token);
+                await WaitForListenerAsync(server.ListenPort, server.frontendCts.Token);
 
-            return server;
+                return server;
+
+            }
+            catch
+            {
+
+                // A server that did not start is stopped again, and its port let
+                // go of - which otherwise stays held until its socket is
+                // finalized. The test is told what went wrong in the first place,
+                // not what stopping a half-started server has to say.
+                if (server is not null)
+                {
+                    try
+                    {
+                        await server.DisposeAsync();
+                    }
+                    catch
+                    { }
+                }
+
+                port.Dispose();
+
+                throw;
+
+            }
 
         }
 
@@ -660,11 +701,21 @@ public class SunSpecModbusTLSTests
         public async ValueTask DisposeAsync()
         {
 
-            await frontendCts.CancelAsync();
-            await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+            try
+            {
+                await frontendCts.CancelAsync();
+                await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+            }
+            finally
+            {
 
-            frontend.Dispose();
-            frontendCts.Dispose();
+                // Even when the frontend failed, which the wait above reports.
+                frontend.Dispose();
+                frontendCts.Dispose();
+
+                port.Dispose();
+
+            }
 
         }
 

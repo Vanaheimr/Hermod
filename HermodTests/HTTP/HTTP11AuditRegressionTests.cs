@@ -1305,13 +1305,16 @@ public sealed class HTTP11AuditRegressionTests
     [Test]
     public async Task Fixed_Port_Any_Listener_Must_Be_Constructible()
     {
-        var port = ReserveFreePort();
+        // A port chosen in advance, as this test is about a fixed one - port 0
+        // takes another way through the constructor. The test holds it until
+        // the server binds it, which with a fixed port happens in Start().
+        using var port = new ClosedPort();
         HTTPServer? server = null;
 
         Assert.That(
             () => server = new HTTPServer(
                                IPAddress:  HermodIPAddress.Any,
-                               TCPPort:    IPPort.Parse(port),
+                               TCPPort:    port.Number,
                                AutoStart:  false
                            ),
             Throws.Nothing
@@ -1321,6 +1324,10 @@ public sealed class HTTP11AuditRegressionTests
 
         try
         {
+            // The server binds [::] in dual mode, where Windows lets no other
+            // socket be bound next to it.
+            port.HandOver(ForIPv6Any: true);
+
             await server!.Start();
             Assert.That(server.IsRunning, Is.True);
         }
@@ -2193,21 +2200,6 @@ public sealed class HTTP11AuditRegressionTests
         await stream.WriteAsync(Encoding.ASCII.GetBytes(request), cancellation.Token);
 
         return await ReadSingleHTTPResponse(reader, cancellation.Token);
-    }
-
-    private static Int32 ReserveFreePort()
-    {
-        var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-        listener.Start();
-
-        try
-        {
-            return ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
-        }
-        finally
-        {
-            listener.Stop();
-        }
     }
 
 }

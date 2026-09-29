@@ -18,7 +18,6 @@
 #region Usings
 
 using System.Diagnostics;
-using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -42,46 +41,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
         public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
 
-        #region GetFreePorts(Count)
+        #region HandOver(Ports)
 
         /// <summary>
-        /// Return the given number of distinct TCP ports that were free a moment ago.
-        /// All of them are bound at the same time, so that the operating system
-        /// can not hand out the same port twice.
+        /// Hand the given TCP ports, held by the test, over to the rendezvous
+        /// manager - right before it binds them for a rendezvous on fixed ports.
         /// </summary>
-        /// <param name="Count">The number of TCP ports.</param>
-        public static IPPort[] GetFreePorts(Int32 Count)
+        /// <remarks>
+        /// The manager binds its ports on 127.0.0.1, and on Windows with
+        /// SO_EXCLUSIVEADDRUSE - which, as Windows documents, may be bound next
+        /// to a socket that holds the wildcard address without that option, as
+        /// the one that keeps a handed-over port does. So the ports stay held
+        /// until the manager binds them, on Windows as on Linux. See ClosedPort.
+        ///
+        /// Held by the test from the start, rather than found free a moment
+        /// before: with other test runs on the same machine, such a port was now
+        /// and then given to one of them before the manager could bind it.
+        /// </remarks>
+        /// <param name="Ports">The TCP ports.</param>
+        public static void HandOver(params ClosedPort[] Ports)
         {
-
-            var listeners  = new List<TcpListener>(Count);
-            var ports      = new IPPort[Count];
-
-            try
-            {
-
-                for (var i = 0; i < Count; i++)
-                {
-
-                    var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
-                    listener.Start();
-
-                    listeners.Add(listener);
-                    ports[i] = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
-
-                }
-
-            }
-            finally
-            {
-                foreach (var listener in listeners)
-                {
-                    listener.Stop();
-                    listener.Dispose();
-                }
-            }
-
-            return ports;
-
+            foreach (var port in Ports)
+                port.HandOver();
         }
 
         #endregion
@@ -89,7 +70,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
         #region IsPortFree(Port)
 
         /// <summary>
-        /// Whether the given TCP port can be bound again.
+        /// Whether the given TCP port can be bound again - a port the rendezvous
+        /// manager chose itself. One the test holds and handed over it takes
+        /// back instead, see ClosedPort.TakeBack().
         /// </summary>
         /// <param name="Port">A TCP port.</param>
         public static Boolean IsPortFree(IPPort Port)

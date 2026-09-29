@@ -41,13 +41,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
 
             await using var host = RendezvousTestHost.Create();
 
-            var freePorts  = TestNet.GetFreePorts(2);
+            using var first   = new ClosedPort();
+            using var second  = new ClosedPort();
+
+            TestNet.HandOver(first, second);
 
             var success    = host.Manager.TryConnectPorts(
                                  new ConnectPortsCommand(
                                      [
-                                         PortSpecification.Fixed(freePorts[0]),
-                                         PortSpecification.Fixed(freePorts[1])
+                                         PortSpecification.Fixed(first. Number),
+                                         PortSpecification.Fixed(second.Number)
                                      ],
                                      TransferProfile.Interactive
                                  ),
@@ -58,11 +61,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
             Assert.That(success, Is.True, response.ToProtocolLine());
 
             Assert.Multiple(() => {
-                Assert.That(session!.Ports,     Is.EqualTo(freePorts));
+                Assert.That(session!.Ports,     Is.EqualTo(new[] { first.Number, second.Number }));
                 Assert.That(session.Profile,   Is.EqualTo(TransferProfile.Interactive));
                 Assert.That(session.State,     Is.EqualTo(SessionState.Pending));
                 Assert.That(session.Id,        Is.Not.EqualTo(Guid.Empty));
-                Assert.That(response.Text,     Is.EqualTo($"ConnectPorts([{freePorts[0]}, {freePorts[1]}], Interactive)"));
+                Assert.That(response.Text,     Is.EqualTo($"ConnectPorts([{first}, {second}], Interactive)"));
                 Assert.That(host.Session,      Is.SameAs(session), "The manager must return the very same rendezvous!");
             });
 
@@ -231,25 +234,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
 
             await using var host = RendezvousTestHost.Create();
 
-            var freePort  = TestNet.GetFreePorts(1)[0];
+            using var port  = new ClosedPort();
 
-            var success   = host.Manager.TryConnectPorts(
-                                new ConnectPortsCommand(
-                                    [
-                                        PortSpecification.Fixed(freePort),
-                                        PortSpecification.Fixed(freePort)
-                                    ]
-                                ),
-                                out var session,
-                                out var response
-                            );
+            // Handed over as for any rendezvous, so that the manager could bind
+            // it - and taking it back shows whether it left a listener there.
+            TestNet.HandOver(port);
+
+            var success     = host.Manager.TryConnectPorts(
+                                  new ConnectPortsCommand(
+                                      [
+                                          PortSpecification.Fixed(port.Number),
+                                          PortSpecification.Fixed(port.Number)
+                                      ]
+                                  ),
+                                  out var session,
+                                  out var response
+                              );
 
             Assert.Multiple(() => {
-                Assert.That(success,                      Is.False);
-                Assert.That(session,                      Is.Null);
-                Assert.That(response.Code,                Is.EqualTo(ResponseCode.InvalidSyntax));
-                Assert.That(response.Text,                Does.Contain("Duplicate"));
-                Assert.That(TestNet.IsPortFree(freePort), Is.True, "A rejected request must not leave a listener behind!");
+                Assert.That(success,               Is.False);
+                Assert.That(session,               Is.Null);
+                Assert.That(response.Code,         Is.EqualTo(ResponseCode.InvalidSyntax));
+                Assert.That(response.Text,         Does.Contain("Duplicate"));
+                Assert.That(() => port.TakeBack(), Throws.Nothing, "A rejected request must not leave a listener behind!");
             });
 
         }
@@ -409,23 +416,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
 
             await using var host = RendezvousTestHost.Create();
 
-            var freePorts = TestNet.GetFreePorts(2);
+            using var first   = new ClosedPort();
+            using var second  = new ClosedPort();
+
+            TestNet.HandOver(first, second);
 
             // Once through the parser...
-            var viaText  = host.Manager.Execute($"ConnectPorts([{freePorts[0]}, {freePorts[1]}], Bulk)");
+            var viaText  = host.Manager.Execute($"ConnectPorts([{first}, {second}], Bulk)");
             var textPorts = TestNet.ParsePorts(viaText);
 
-            host.Manager.Execute($"DisconnectPorts({freePorts[0]}, {freePorts[1]})");
+            host.Manager.Execute($"DisconnectPorts({first}, {second})");
 
             await TestNet.WaitUntilAsync(() => host.Manager.Count == 0,
                                          "The rendezvous was not closed!");
+
+            // Held by the test again until the second rendezvous binds them.
+            first. TakeBack();
+            second.TakeBack();
+
+            TestNet.HandOver(first, second);
 
             // ...and once through the typed API.
             var success = host.Manager.TryConnectPorts(
                               new ConnectPortsCommand(
                                   [
-                                      PortSpecification.Fixed(freePorts[0]),
-                                      PortSpecification.Fixed(freePorts[1])
+                                      PortSpecification.Fixed(first. Number),
+                                      PortSpecification.Fixed(second.Number)
                                   ],
                                   TransferProfile.Bulk
                               ),

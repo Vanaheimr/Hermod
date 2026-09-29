@@ -152,6 +152,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 
         #endregion
 
+        #region HandedOverItTakesAServerOn(Where)
+
+        /// <summary>
+        /// Handed over, the port takes a server on each address a test starts
+        /// one on - on 127.0.0.1 with SO_EXCLUSIVEADDRUSE, as the rendezvous
+        /// manager binds on Windows, too - and a client reaches it. Taken back
+        /// once that server has stopped, a connection to it is refused again.
+        /// A server on [::] is handed the port for [::]; on Linux the port stays
+        /// held until the server binds it, whoever it is handed over to.
+        /// </summary>
+        [Test]
+        public async Task HandedOverItTakesAServerOn([Values("127.0.0.1", "127.0.0.1 with SO_EXCLUSIVEADDRUSE", "[::1]", "0.0.0.0", "[::] in dual mode", "[::]")] String Where)
+        {
+
+            var (family, address, dualMode, loopback) = Where switch {
+                                                            "[::1]"              => (AddressFamily.InterNetworkV6, System.Net.IPAddress.IPv6Loopback, false, System.Net.IPAddress.IPv6Loopback),
+                                                            "0.0.0.0"            => (AddressFamily.InterNetwork,   System.Net.IPAddress.Any,          false, System.Net.IPAddress.Loopback),
+                                                            "[::] in dual mode"  => (AddressFamily.InterNetworkV6, System.Net.IPAddress.IPv6Any,      true,  System.Net.IPAddress.Loopback),
+                                                            "[::]"               => (AddressFamily.InterNetworkV6, System.Net.IPAddress.IPv6Any,      false, System.Net.IPAddress.IPv6Loopback),
+                                                            _                    => (AddressFamily.InterNetwork,   System.Net.IPAddress.Loopback,     false, System.Net.IPAddress.Loopback)
+                                                        };
+
+            if (family == AddressFamily.InterNetworkV6 && !Socket.OSSupportsIPv6)
+                Assert.Ignore("There is no IPv6 here to bind to.");
+
+            using var port = new ClosedPort();
+
+            port.HandOver(ForIPv6Any: address.Equals(System.Net.IPAddress.IPv6Any));
+
+            if (OperatingSystem.IsLinux())
+                Assert.That(() => ListenWithoutSharing(port), Throws.InstanceOf<SocketException>(),
+                            "The port was let go of on Linux, where every server can be bound next to what holds it.");
+
+            using (var server = new Socket(family, SocketType.Stream, ProtocolType.Tcp))
+            {
+
+                if (family == AddressFamily.InterNetworkV6)
+                    server.DualMode = dualMode;
+
+                // As the rendezvous manager asks for it, on Windows alone: .NET
+                // has the option nowhere else.
+                if (Where.EndsWith("SO_EXCLUSIVEADDRUSE") && OperatingSystem.IsWindows())
+                    server.ExclusiveAddressUse = true;
+
+                server.Bind(new IPEndPoint(address, port.Number.ToInt32()));
+                server.Listen();
+
+                Assert.That(await Connect(loopback, port), Is.EqualTo(SocketError.Success), $"The server on {Where} was not reached.");
+
+            }
+
+            port.TakeBack();
+
+            Assert.That(await Connect(loopback, port), Is.EqualTo(SocketError.ConnectionRefused));
+
+        }
+
+        #endregion
+
 
         #region (private static) Connect(Address, Port)
 
@@ -174,6 +233,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
             {
                 return e.SocketErrorCode;
             }
+
+        }
+
+        #endregion
+
+        #region (private static) ListenWithoutSharing(Port)
+
+        /// <summary>
+        /// Listen on the port with a socket that does not share it: bound like
+        /// any other, and SO_REUSEADDR cleared before it listens - which on Linux
+        /// it cannot while another socket is bound to the port.
+        /// </summary>
+        private static void ListenWithoutSharing(ClosedPort Port)
+        {
+
+            using var socket = Socket.OSSupportsIPv6
+                                   ? new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp) { DualMode = true }
+                                   : new Socket(AddressFamily.InterNetwork,   SocketType.Stream, ProtocolType.Tcp);
+
+            socket.Bind(new IPEndPoint(Socket.OSSupportsIPv6
+                                           ? System.Net.IPAddress.IPv6Any
+                                           : System.Net.IPAddress.Any,
+                                       Port.Number.ToInt32()));
+
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
+            socket.Listen();
 
         }
 

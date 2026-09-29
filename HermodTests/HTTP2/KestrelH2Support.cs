@@ -39,52 +39,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     internal sealed class KestrelH2Server : IAsyncDisposable
     {
 
-        private readonly WebApplication app;
+        private readonly WebApplication  app;
+        private readonly ClosedPort      port;
 
         /// <summary>
         /// The ephemeral loopback port Kestrel is listening on.
         /// </summary>
-        public Int32 Port { get; }
+        public Int32 Port
+            => port.Number.ToInt32();
 
-        private KestrelH2Server(WebApplication App, Int32 Port)
+        private KestrelH2Server(WebApplication App, ClosedPort Port)
         {
             app       = App;
-            this.Port = Port;
+            port      = Port;
         }
 
         /// <summary>
-        /// Start Kestrel (HTTP/2 only) on a free loopback port — TLS with a fresh
-        /// self-signed cert unless <paramref name="Cleartext"/> (then h2c
-        /// prior-knowledge) — and map routes via <paramref name="Configure"/>.
+        /// Start Kestrel (HTTP/2 only) on a loopback port the test holds until
+        /// Kestrel binds it — TLS with a fresh self-signed cert unless
+        /// <paramref name="Cleartext"/> (then h2c prior-knowledge) — and map
+        /// routes via <paramref name="Configure"/>.
         /// </summary>
+        /// <remarks>
+        /// Kestrel could choose a port itself and say which, but only on one
+        /// address: ListenLocalhost, which binds 127.0.0.1 and [::1] alike, wants
+        /// a port given in advance. The tests dial "localhost", which resolves
+        /// to [::1] first, and a connection refused there costs two seconds on
+        /// Windows before 127.0.0.1 is tried. So the port is chosen in advance
+        /// after all, but held by the test from then on - see ClosedPort -
+        /// rather than one that was free a moment before, and with other test
+        /// runs on the same machine was now and then given to one of them
+        /// before Kestrel could bind it.
+        /// </remarks>
         public static async Task<KestrelH2Server> StartAsync(Action<WebApplication> Configure, Boolean Cleartext = false)
         {
 
-            var port    = H2.FreePort();
-            var builder = WebApplication.CreateBuilder();
-            builder.Logging.ClearProviders();
-            builder.WebHost.ConfigureKestrel(options =>
+            var port = new ClosedPort();
+
+            try
             {
-                options.ListenLocalhost(port, listen =>
+
+                var builder = WebApplication.CreateBuilder();
+                builder.Logging.ClearProviders();
+                builder.WebHost.ConfigureKestrel(options =>
                 {
-                    listen.Protocols = HttpProtocols.Http2;   // HTTP/2 only — forces our client to speak it
-                    if (!Cleartext)
-                        listen.UseHttps(H2.MakeCert());
+                    options.ListenLocalhost(port.Number.ToInt32(), listen =>
+                    {
+                        listen.Protocols = HttpProtocols.Http2;   // HTTP/2 only — forces our client to speak it
+                        if (!Cleartext)
+                            listen.UseHttps(H2.MakeCert());
+                    });
                 });
-            });
 
-            var app = builder.Build();
-            Configure(app);
-            await app.StartAsync();
+                var app = builder.Build();
+                Configure(app);
 
-            return new KestrelH2Server(app, port);
+                // Kestrel binds 127.0.0.1 and [::1], next to what keeps the
+                // port held while it is handed over.
+                port.HandOver();
+
+                await app.StartAsync();
+
+                return new KestrelH2Server(app, port);
+
+            }
+            catch
+            {
+                port.Dispose();
+                throw;
+            }
 
         }
 
         public async ValueTask DisposeAsync()
         {
+
             try { await app.StopAsync();    } catch { }
             try { await app.DisposeAsync(); } catch { }
+
+            port.Dispose();
+
         }
 
     }
