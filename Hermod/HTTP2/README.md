@@ -944,6 +944,15 @@ that prints, which is roughly what the library used to hardcode.
   (queue, don't fail), GOAWAY/exhaustion → retry-safe
   `HTTP2RequestNotProcessedException`, PING keepalive / dead-connection
   detection, client-side flood bounds.
+- **Slots and windows follow the stream**: the `MAX_CONCURRENT_STREAMS` gate,
+  and `AvailableStreamSlots` for the pool, count the streams that are open or
+  half-closed (§5.1.2), as the stream allocator and the server do, not the
+  requests still waiting for a response. A server may answer before the request
+  body is all sent (§8.1): the stream then keeps its slot until the body's
+  `END_STREAM` and still takes the server's `WINDOW_UPDATE`s, so the upload runs
+  to its end and the next request waits for the slot rather than fail. A rejected
+  CONNECT ends its stream (`END_STREAM`, or `RST_STREAM CANCEL` while the
+  rejection has a body to come), and a tunnel closes once both sides have ended.
 - **`HTTP2ClientPool`**: a single-origin pool that keeps N warm connections
   (default 4), routes to the least-loaded, transparently fails over
   not-processed requests, and self-heals dead connections in the background.

@@ -155,16 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
                             $"Stream ID {StreamId} is not greater than last peer stream ID {LastPeerStreamId}");
 
-                    var openCount = 0;
-                    foreach (var s in streams.Values)
-                    {
-                        if (s.State is HTTP2StreamState.Open
-                                    or HTTP2StreamState.HalfClosedLocal
-                                    or HTTP2StreamState.HalfClosedRemote)
-                            openCount++;
-                    }
-
-                    if (openCount >= MaxConcurrentStreams)
+                    if (CountActiveStreams() >= MaxConcurrentStreams)
                         throw new HTTP2StreamException(HTTP2ErrorCode.REFUSED_STREAM, StreamId,
                             $"Maximum concurrent streams ({MaxConcurrentStreams}) exceeded");
 
@@ -203,16 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
                         "Local stream IDs exhausted; open a new connection");
 
-                var openCount = 0;
-                foreach (var s in streams.Values)
-                {
-                    if (s.State is HTTP2StreamState.Open
-                                or HTTP2StreamState.HalfClosedLocal
-                                or HTTP2StreamState.HalfClosedRemote)
-                        openCount++;
-                }
-
-                if (openCount >= MaxConcurrentStreams)
+                if (CountActiveStreams() >= MaxConcurrentStreams)
                     throw new HTTP2StreamException(HTTP2ErrorCode.REFUSED_STREAM, next,
                         $"Maximum concurrent streams ({MaxConcurrentStreams}) exceeded");
 
@@ -223,6 +205,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 return stream;
 
             }
+
+        }
+
+        /// <summary>
+        /// The number of streams that count against MAX_CONCURRENT_STREAMS: those
+        /// that are open or half-closed (RFC 9113, Section 5.1.2). A request
+        /// stream whose response has ended while its body is still being sent is
+        /// among them: neither end may count it as closed before its sender has
+        /// ended it. A client waits for this to drop below the server's limit
+        /// before it opens a stream, as <see cref="CreateLocalStream"/> refuses
+        /// one before that.
+        /// </summary>
+        public Int32 ActiveStreamCount
+        {
+            get
+            {
+                lock (dictLock)
+                    return CountActiveStreams();
+            }
+        }
+
+        /// <summary>
+        /// Count the open and half-closed streams. The caller holds <see cref="dictLock"/>.
+        /// </summary>
+        private Int32 CountActiveStreams()
+        {
+
+            var count = 0;
+
+            foreach (var stream in streams.Values)
+            {
+                if (stream.State is HTTP2StreamState.Open
+                                 or HTTP2StreamState.HalfClosedLocal
+                                 or HTTP2StreamState.HalfClosedRemote)
+                    count++;
+            }
+
+            return count;
 
         }
 

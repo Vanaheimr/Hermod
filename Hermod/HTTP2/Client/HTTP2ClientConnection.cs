@@ -127,9 +127,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly HTTP2ClientOptions options;
 
         /// <summary>
-        /// Pulsed whenever an in-flight stream finishes, so a request waiting for a
-        /// free MAX_CONCURRENT_STREAMS slot can proceed (see the gate in
-        /// <see cref="IssueOnNewStreamAsync"/>).
+        /// Pulsed whenever a stream may have closed, so a request waiting for a
+        /// free MAX_CONCURRENT_STREAMS slot counts again (see
+        /// <see cref="WaitForStreamSlotAsync"/> and <see cref="SignalStreamSlotFreed"/>).
+        /// Guarded by <see cref="exchangesLock"/>.
         /// </summary>
         private TaskCompletionSource streamSlotFreed = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -294,22 +295,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public bool IsUsable => !goawayReceived && !cancellationToken.IsCancellationRequested;
 
         /// <summary>
-        /// Number of requests currently in flight on this connection.
+        /// Number of streams in flight on this connection: those open or
+        /// half-closed (RFC 9113, Section 5.1.2). Every request whose response
+        /// has not ended is among them, and so is every request whose body is
+        /// still being sent after its response has ended, and every open tunnel.
         /// </summary>
         public int ActiveStreamCount
-        {
-            get { lock (exchangesLock) return exchanges.Count; }
-        }
+            => streamManager.ActiveStreamCount;
 
         /// <summary>
         /// How many more streams may be opened before hitting the peer's advertised
         /// MAX_CONCURRENT_STREAMS — a pool prefers the connection with the most free
         /// slots (least loaded), and knows to open/await another when this is 0.
+        /// Counted as the gate in <see cref="WaitForStreamSlotAsync"/> counts.
         /// </summary>
         public int AvailableStreamSlots
-        {
-            get { lock (exchangesLock) return Math.Max(0, (int) streamManager.MaxConcurrentStreams - exchanges.Count); }
-        }
+            => Math.Max(0, (int) streamManager.MaxConcurrentStreams - streamManager.ActiveStreamCount);
 
         #endregion
 
@@ -1065,7 +1066,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
-        /// Wait until fewer than MAX_CONCURRENT_STREAMS outbound streams are in flight.
+        /// Wait until fewer than MAX_CONCURRENT_STREAMS outbound streams are in
+        /// flight: open or half-closed, as <see cref="HTTP2StreamManager.CreateLocalStream"/>
+        /// counts them. Streams, not exchanges: a response that ends before its
+        /// request body is all sent takes the exchange along, while the stream
+        /// counts on, at both ends, until the body's END_STREAM. A gate that
+        /// counted exchanges let the next request through, to fail in
+        /// CreateLocalStream rather than wait.
         /// </summary>
         private async Task WaitForStreamSlotAsync(CancellationToken Token)
         {
@@ -1075,7 +1082,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 Task wait;
                 lock (exchangesLock)
                 {
-                    if (exchanges.Count < streamManager.MaxConcurrentStreams)
+                    if (streamManager.ActiveStreamCount < streamManager.MaxConcurrentStreams)
                         return;
                     wait = streamSlotFreed.Task;
                 }
@@ -1226,6 +1233,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             return new HTTP2ClientTunnel(this, exchange.Stream, exchange.Headers ?? []);
 
+        }
+
+        /// <summary>
+        /// End our side of a CONNECT the server rejected. The rejection hands no
+        /// tunnel to anyone, so nobody else would end it, and the stream would
+        /// stay open at both ends and keep its MAX_CONCURRENT_STREAMS slot for the
+        /// rest of the connection. With END_STREAM when the rejection has ended
+        /// the server's side, else with RST_STREAM CANCEL, as nothing reads the
+        /// rest of the server's answer. The stream closes, and frees its slot,
+        /// once that frame is on the wire and not before: a request given the
+        /// slot earlier could have its HEADERS reach the server first, and be
+        /// refused there for want of it.
+        /// </summary>
+        private async Task EndRejectedTunnelAsync(HTTP2Stream Stream, Boolean AnswerEnded)
+        {
+            try
+            {
+
+                if (AnswerEnded)
+                    await EndTunnelAsync(Stream);
+
+                else
+                {
+                    await SendFrameAsync(HTTP2Frame.CreateRstStream(Stream.StreamId, HTTP2ErrorCode.CANCEL));
+                    Stream.Reset();
+                    SignalStreamSlotFreed();
+                }
+
+            }
+            catch
+            {
+                // The write fails only as the connection ends, and every stream with it.
+            }
         }
 
         /// <summary>
@@ -1659,9 +1699,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     }
                     else
                     {
-                        // Rejected (or immediately closed) — no tunnel.
+
+                        // Rejected (or immediately closed) — no tunnel. An
+                        // END_STREAM ends the server's side of the stream too, not
+                        // only the exchange: the stream counts until both have ended.
+                        if (EndStream)
+                            CloseRemoteIfOpen(Exchange.Stream);
+
                         Exchange.TunnelStatus.TrySetResult(status);
                         RemoveExchange(Exchange.Stream.StreamId);
+
+                        // A rejection leaves our side to us: OpenTunnelAsync throws
+                        // and hands the stream to nobody.
+                        if (status is < 200 or >= 300)
+                            _ = EndRejectedTunnelAsync(Exchange.Stream, AnswerEnded: EndStream);
+
                     }
 
                     return;
@@ -1765,6 +1817,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             {
                 if (exchange.Stream.IsConnectTunnel)
                 {
+                    // The server has ended its side of the tunnel, and the stream
+                    // closes once ours has ended too, whichever comes first.
+                    CloseRemoteIfOpen(exchange.Stream);
                     exchange.Stream.TunnelInbound!.Writer.TryComplete();
                     RemoveExchange(Frame.StreamId);
                 }
@@ -1831,10 +1886,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             else
             {
-                var exchange = GetExchange(Frame.StreamId);
-                if (exchange is not null)
+
+                // To the stream, not through its exchange: a request body may go on
+                // after its response has ended and taken the exchange along (RFC
+                // 9113, Section 8.1), and without the server's credit it stops for
+                // good once its send window has run out. A stream that is closed
+                // takes the credit harmlessly, or is no longer there to take it.
+                var stream = streamManager.TryGetStream(Frame.StreamId);
+                if (stream is not null)
                     lock (flowLock)
-                        exchange.Stream.SendWindow += increment;
+                        stream.SendWindow += increment;
+
             }
 
             SignalWindowChange();
@@ -1993,6 +2055,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             // A body waiting for send window on this stream gives up.
             SignalWindowChange();
+
+            // And its slot is free, which no removal of its exchange says any more.
+            SignalStreamSlotFreed();
 
         }
 
@@ -2234,16 +2299,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         private void RemoveExchange(UInt32 StreamId)
         {
+
+            lock (exchangesLock)
+                exchanges.Remove(StreamId);
+
+            // Its stream has mostly just closed: the response has ended a request
+            // that had ended, or a reset has ended both. One whose request body
+            // is still being sent closes later, and says so where it does (see
+            // CloseLocalIfOpen).
+            SignalStreamSlotFreed();
+
+        }
+
+        /// <summary>
+        /// Wake every request waiting at the MAX_CONCURRENT_STREAMS gate to count
+        /// again (see <see cref="WaitForStreamSlotAsync"/>): a stream may have
+        /// closed. Our side of a stream closes only once our last frame on it is
+        /// on the wire, so the request that takes its slot cannot overtake that
+        /// frame. Closed streams leave the stream manager here, as the server's
+        /// connection prunes its own: the gate counts through all the streams
+        /// the manager holds, which would otherwise be every stream of the
+        /// connection's life.
+        /// </summary>
+        private void SignalStreamSlotFreed()
+        {
+
+            streamManager.PruneClosedStreams();
+
             TaskCompletionSource freed;
+
             lock (exchangesLock)
             {
-                exchanges.Remove(StreamId);
-                // A stream slot just freed up — wake any request waiting on the
-                // MAX_CONCURRENT_STREAMS gate.
                 freed           = streamSlotFreed;
                 streamSlotFreed = new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
+
             freed.TrySetResult();
+
         }
 
         private void CompleteResponse(ClientExchange Exchange)
@@ -2412,9 +2504,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// because the read loop has handled an RST_STREAM in the meantime, which
         /// may happen between any test of the state and the transition, and so
         /// has to be one step (<see cref="HTTP2Stream.TryCloseLocal"/>).
+        ///
+        /// A stream whose other side the server has ended closes here, and frees
+        /// its slot: a request body sent on after its response, a streamed request
+        /// or a tunnel ended after the server's side. Their exchanges are gone by
+        /// then, and whoever waits for the slot learns of it from here.
         /// </summary>
-        private static void CloseLocalIfOpen(HTTP2Stream Stream)
-            => Stream.TryCloseLocal();
+        private void CloseLocalIfOpen(HTTP2Stream Stream)
+        {
+            if (Stream.TryCloseLocal() && Stream.State == HTTP2StreamState.Closed)
+                SignalStreamSlotFreed();
+        }
 
         private static void CloseRemoteIfOpen(HTTP2Stream Stream)
         {
