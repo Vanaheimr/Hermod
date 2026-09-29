@@ -231,10 +231,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         #region DataAfterATunnelHandlerResetTheTunnel_Discarded_ConnectionServesOn()
 
         /// <summary>
-        /// A tunnel's handler fails: the server ends its side of the tunnel and
-        /// resets the stream, "half-closed (local)" by then, while the client is
-        /// still sending into the tunnel. What the client sent before it read the
-        /// reset is discarded.
+        /// A tunnel's handler fails: the server resets the stream, with no
+        /// END_STREAM before it, while the client is still sending into the
+        /// tunnel. What the client sent before it read the reset is discarded.
         /// </summary>
         [Test]
         public async Task DataAfterATunnelHandlerResetTheTunnel_Discarded_ConnectionServesOn()
@@ -285,11 +284,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                     Assert.That(answers,                          Is.True,                                    "the connection, once the client's DATA on the reset stream came in");
                     Assert.That(GoAways(peer),                    Is.Empty,                                   "how the server ended the connection");
 
-                    // In this order: the handler's task resets the stream only once
-                    // the END_STREAM that ends the server's side is written (see
-                    // ServerDataAfterResetTests).
+                    // A failed tunnel is not ended first (see ServerHandlerFailureTests).
                     Assert.That(SentOn(peer, 1),                  Is.EqualTo(new[] { "HEADERS :status 200",
-                                                                                     "DATA \"\" END_STREAM",
                                                                                      "RST_STREAM INTERNAL_ERROR" }),
                                                                   "what the server sent on the reset stream");
 

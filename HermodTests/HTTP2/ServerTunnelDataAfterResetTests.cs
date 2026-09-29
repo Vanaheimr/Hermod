@@ -118,13 +118,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         #region TunnelHandlerFailsAsAChunkArrives_ChunkDropped_ConnectionServesOn()
 
         /// <summary>
-        /// A tunnel's handler fails once the tunnel is open, and the server ends
-        /// its side of the tunnel and then resets the stream, on the handler's
-        /// task. The read loop may be taking the client's next DATA frame on that
-        /// stream just then: past its check of the stream's state, but before it
-        /// hands the chunk to the tunnel's channel, which the reset has just
-        /// completed. The chunk is dropped, and its connection window given back,
-        /// as for DATA on a closed stream; the connection serves on.
+        /// A tunnel's handler fails once the tunnel is open, and the server resets
+        /// the stream on the handler's task, with no END_STREAM before it (see
+        /// ServerHandlerFailureTests). The read loop may be taking the client's
+        /// next DATA frame on that stream just then: past its check of the
+        /// stream's state, but before it hands the chunk to the tunnel's channel,
+        /// which the reset has just completed. The chunk is dropped, and its
+        /// connection window given back, as for DATA on a closed stream; the
+        /// connection serves on.
         /// </summary>
         [Test]
         public async Task TunnelHandlerFailsAsAChunkArrives_ChunkDropped_ConnectionServesOn()
@@ -185,7 +186,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                     Assert.That(peer.FramesOn(1).Select(frame => frame.ToString()),
                                 Is.EqualTo(new[] { "HEADERS :status 200",
-                                                   "DATA \"\" END_STREAM",
                                                    "RST_STREAM INTERNAL_ERROR" }),
                                 "what the server sent on the reset stream");
 

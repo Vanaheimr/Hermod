@@ -478,6 +478,22 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   the client may still send, the server asks it to stop with `RST_STREAM
   NO_ERROR` (§8.1), whichever comes second: the end of the reading, or the
   `END_STREAM` the writer loop sends.
+- A handler's cancellation of its own — an `OperationCanceledException` that is
+  neither its stream's reset nor the connection's end, a timeout of its own,
+  say — is a failure like any other: answered with a 500, or with `RST_STREAM
+  INTERNAL_ERROR` once the response has begun, and for a tunnel. It used to be
+  taken for a cancellation and only reported, and the stream stayed open,
+  unanswered, until the connection ended.
+- A streamed response the handler has completed stands, though the handler
+  fails after it: the failure is reported, and a client still sending is
+  stopped with `RST_STREAM NO_ERROR`. It used to be reset with `INTERNAL_ERROR`,
+  for which a client may discard a complete response (§8.1), and so was a
+  stream both sides had ended, where nothing but PRIORITY may go (§5.1).
+- A tunnel whose handler fails is reset with no `END_STREAM` before it: a
+  tunnel's error is an `RST_STREAM` (§8.5). It used to be ended cleanly first,
+  and reset on a closed stream once the client had ended its side too. Nor is
+  a tunnel reset a second time when its handler fails after the client's
+  `RST_STREAM` (§5.4.2).
 - What the client sent before it read the server's own `RST_STREAM` — DATA,
   trailers and their CONTINUATION frames, still in flight when a handler failed
   or the read loop found a stream error — is minimally processed and discarded

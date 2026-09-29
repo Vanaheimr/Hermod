@@ -2993,12 +2993,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
+        /// Whether an OperationCanceledException out of a handler's task is the
+        /// handler's cancellation: the stream's reset — the client's RST_STREAM,
+        /// or one of ours — or the connection's end, whose token is cancelled
+        /// before the teardown resets the streams still open (see
+        /// <see cref="RunAsync"/>). Nobody waits for an answer then. Any other is
+        /// a failure like any other — a timeout of the handler's own, say — and
+        /// is answered as one. Taken for a cancellation, it was only reported:
+        /// the stream got neither a response nor an RST_STREAM, and stayed open,
+        /// counted against MAX_CONCURRENT_STREAMS, until the connection ended.
+        /// </summary>
+        private bool IsCancelled(HTTP2Stream Stream)
+
+            => Stream.WasReset ||
+               cancellationToken.IsCancellationRequested;
+
+        /// <summary>
         /// Run a streaming request handler on its own task (mirroring
         /// <see cref="StartRequestHandler"/>): it reads the request body from a
         /// channel and writes the response incrementally, both concurrently. A
         /// handler that returns without ending the response auto-completes; one that
         /// throws before sending headers falls back to a 500, or otherwise resets
-        /// the stream (a partial response can't be turned into an error status).
+        /// the stream (a partial response can't be turned into an error status) —
+        /// unless it had completed its response, which stands. A cancellation of
+        /// the handler's own is such a failure too (<see cref="IsCancelled"/>).
         /// Once the handler has ended, nothing reads the request body any more
         /// (<see cref="EndReadingAsync"/>).
         /// </summary>
@@ -3030,7 +3048,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     await response.EnsureCompletedAsync();
 
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (IsCancelled(Stream))
                 {
                     HTTP2EventSource.Log.HandlerCancelled((int) Stream.StreamId, "streaming");
                 }
@@ -3043,12 +3061,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
                 catch (Exception ex)
                 {
+                    // Any other failure, a cancellation of the handler's own included.
                     HTTP2EventSource.Log.HandlerFailed((int) Stream.StreamId, "streaming", ex.Message);
 
                     // A reset stream is answered no more: nobody reads a 500 there,
                     // its body could not be written, and an RST_STREAM of ours
                     // would reset the stream a second time.
                     if (Stream.WasReset)
+                        return;
+
+                    // Nor is a response the handler completed: it stands. Its
+                    // END_STREAM is queued, to go out after all that was written
+                    // before it, and an RST_STREAM of ours would follow it — on a
+                    // stream both sides had ended, where RFC 9113, Section 5.1
+                    // allows nothing but PRIORITY, or, while the client still
+                    // sends, with a code for which a client may discard a complete
+                    // response (Section 8.1). The end of the reading below stops
+                    // the upload with NO_ERROR instead, as for a handler that
+                    // returns.
+                    if (response.Completed)
                         return;
 
                     // Only send a 500 if nothing has gone out yet — once headers (or
@@ -3074,9 +3105,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     // Failed or cancelled, the handler reads nothing more either. Only
                     // now, once a failure is answered: with a 500, a response like any
                     // other, or with a reset, which asks the client to stop sending in
-                    // its own way. Called here first, the end of the reading would let
-                    // a complete response be followed by RST_STREAM NO_ERROR, and a
-                    // handler that failed after it with INTERNAL_ERROR as well.
+                    // its own way. A complete response — the 500, or the handler's own,
+                    // which stands although the handler failed after it — asks with
+                    // RST_STREAM NO_ERROR, once its END_STREAM is out, if the client
+                    // is still sending then.
                     await EndReadingAsync(Stream);
                 }
 
@@ -3263,7 +3295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 HTTP2EventSource.Log.RequestHandled((int) Stream.StreamId, method?.ToString() ?? "?", path ?? "?", status);
 
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (IsCancelled(Stream))
             {
                 // The stream was reset (or the connection is shutting down) while
                 // the handler was running. The peer no longer wants a response —
@@ -3274,6 +3306,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             catch (Exception ex)
             {
+                // Any other failure, a cancellation of the handler's own included.
                 HTTP2EventSource.Log.HandlerFailed((int) Stream.StreamId, "request", ex.Message);
 
                 // Not on a reset stream either, for the reason above: a handler
@@ -3530,7 +3563,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// — a tunnel (especially a WebSocket one) can be open indefinitely, so it
         /// must never block the frame read loop from servicing other streams. Once
         /// the tunnel is refused, or its handler has ended, nothing reads what the
-        /// client sends on it any more (<see cref="EndReadingAsync"/>).
+        /// client sends on it any more (<see cref="EndReadingAsync"/>). A handler
+        /// that fails, deciding on the tunnel or running it, has the stream reset
+        /// with INTERNAL_ERROR, and a cancellation of its own is such a failure too
+        /// (<see cref="IsCancelled"/>).
         /// </summary>
         private void StartConnectHandler(HTTP2Stream Stream)
         {
@@ -3542,7 +3578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 {
                     await DispatchConnectAsync(Stream);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (IsCancelled(Stream))
                 {
                     HTTP2EventSource.Log.HandlerCancelled((int) Stream.StreamId, "CONNECT");
                 }
@@ -3555,7 +3591,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
                 catch (Exception ex)
                 {
+                    // Any other failure, a cancellation of the handler's own included.
                     HTTP2EventSource.Log.HandlerFailed((int) Stream.StreamId, "CONNECT", ex.Message);
+
+                    // A reset stream is reset no more, as in StartStreamingHandler:
+                    // after the client's RST_STREAM, one of ours would answer it,
+                    // which RFC 9113, Section 5.4.2 forbids.
+                    if (Stream.WasReset)
+                        return;
+
+                    // Our side of a tunnel that failed has not been ended (see
+                    // DispatchConnectAsync), so the stream is not closed, and the
+                    // reset may go out.
                     Stream.Reset();
                     try { await SendFrameAsync(HTTP2Frame.CreateRstStream(Stream.StreamId, HTTP2ErrorCode.INTERNAL_ERROR)); } catch { }
                     try { await ReturnUnreadWindowAsync(Stream); } catch { }
@@ -3563,8 +3610,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 finally
                 {
                     // Refused, run to its end, or failed: nothing reads the tunnel any
-                    // more. After a failure's reset, for the reason StartStreamingHandler
-                    // gives; a tunnel that ran to its end has come here already.
+                    // more. After a failure's reset, which asks the client to stop
+                    // sending in its own way; a tunnel that ran to its end has come
+                    // here already.
                     await EndReadingAsync(Stream);
                 }
 
@@ -3624,24 +3672,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             var tunnel = new HTTP2Tunnel(this, Stream);
 
-            try
-            {
+            await result.RunAsync!(tunnel, Stream.CancellationToken);
 
-                await result.RunAsync!(tunnel, Stream.CancellationToken);
+            // Run to its end: nothing reads the tunnel any more. Before our side
+            // is ended below, which waits behind the tunnel's last bytes for the
+            // client's window.
+            await EndReadingAsync(Stream);
 
-                // Run to its end: nothing reads the tunnel any more. Before our side
-                // is ended below, which waits behind the tunnel's last bytes for the
-                // client's window. Not after a failure: StartConnectHandler resets
-                // the stream for it, once our side has ended, and only then ends the
-                // reading, which would otherwise have the writer loop's END_STREAM
-                // followed by RST_STREAM NO_ERROR first.
-                await EndReadingAsync(Stream);
-
-            }
-            finally
-            {
-                await CompleteTunnelAsync(Stream);
-            }
+            // Only a tunnel that ran to its end has our side ended, with END_STREAM,
+            // a tunnel's TCP FIN (RFC 9113, Section 8.5). One whose handler failed
+            // is reset by StartConnectHandler, with no END_STREAM before it: an
+            // error in a tunnel is an RST_STREAM, as in TCP it is an RST. Ended
+            // first, the tunnel looked to the client as if it had ended cleanly,
+            // and once the client had ended its side too, the RST_STREAM went out
+            // on a closed stream, where Section 5.1 allows nothing but PRIORITY.
+            await CompleteTunnelAsync(Stream);
 
         }
 
@@ -3703,8 +3748,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// (same as it does for any other End-Stream marker); this method's own
         /// job is just to queue it, wait until it is out, and swallow the
         /// (best-effort) failure if the peer or the connection is already gone —
-        /// on a reset tunnel, at once. So when the handler has failed, its reset
-        /// (StartConnectHandler's catch) comes after that END_STREAM.
+        /// on a reset tunnel, at once. Not once RunAsync has failed: that tunnel
+        /// is reset instead (see DispatchConnectAsync).
         /// </summary>
         private async Task CompleteTunnelAsync(HTTP2Stream Stream)
         {

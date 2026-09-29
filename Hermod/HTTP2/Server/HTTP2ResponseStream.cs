@@ -48,7 +48,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         internal bool HeadersSent => headersSent;
 
         /// <summary>
-        /// Whether the response has been completed (END_STREAM sent).
+        /// Whether the response has been completed: its END_STREAM queued, to go
+        /// out after all that was written before it, unless the stream is reset
+        /// first. A handler that fails after that is not reset for it (see
+        /// HTTP2Connection.StartStreamingHandler).
         /// </summary>
         internal bool Completed   => completed;
 
@@ -109,15 +112,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (!headersSent)
                 await WriteHeadersAsync([(":status", "200")], CancellationToken);
 
-            completed = true;
-
             var trailerList = Trailers?.ToList();
 
             if (trailerList is { Count: > 0 })
-            {
                 HTTP2Connection.ValidateOutboundTrailers(stream.StreamId, trailerList);
+
+            // Only now, with the END_STREAM about to be queued: trailers that may
+            // not be sent leave the response to be ended yet, as a cancellation
+            // above does. Marked completed before, a response whose END_STREAM was
+            // never queued counted as complete: it was not ended for a handler
+            // that returned, and would have stood unended after one that failed.
+            completed = true;
+
+            if (trailerList is { Count: > 0 })
                 await connection.EnqueueOutboundAsync(stream, [], EndStream: true, trailerList, CancellationToken);
-            }
             else
                 await connection.EnqueueOutboundAsync(stream, [], EndStream: true, CancellationToken: CancellationToken);
         }

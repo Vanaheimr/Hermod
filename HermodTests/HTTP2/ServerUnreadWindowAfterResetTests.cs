@@ -1134,8 +1134,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         #region TunnelHandlerFailsWithDataUnread_WindowGivenBack()
 
         /// <summary>
-        /// A tunnel's handler fails with two chunks unread, and the server ends its
-        /// side of the tunnel and resets the stream on the handler's task. The
+        /// A tunnel's handler fails with two chunks unread, and the server resets
+        /// the stream on the handler's task, with no END_STREAM before it. The
         /// window of the two chunks is given back.
         /// </summary>
         [Test]
@@ -1187,7 +1187,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                     Assert.That(peer.FramesOn(1).Select(frame => frame.ToString()),
                                 Is.EqualTo(new[] { "HEADERS :status 200",
-                                                   "DATA \"\" END_STREAM",
                                                    "RST_STREAM INTERNAL_ERROR" }),
                                 "what the server sent on the reset stream");
 

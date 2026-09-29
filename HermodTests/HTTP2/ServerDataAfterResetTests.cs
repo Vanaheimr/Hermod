@@ -532,23 +532,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
-        #region TunnelHandlerFails_EndOfStreamOutBeforeTheReset()
+        #region TunnelHandlerFailsAfterItsLastWrite_DataOutBeforeTheReset()
 
         /// <summary>
-        /// A tunnel's handler fails, and on the handler's task the server ends its
-        /// side of the tunnel with an END_STREAM and then resets the stream. The
-        /// END_STREAM waits for the write lock, taken by the writer loop, and the
-        /// handler's task waits for it: it resets the stream only once the
-        /// END_STREAM is out. It used to be told the END_STREAM was out as soon as
-        /// the writer loop took it, and its RST_STREAM could go out first, the
-        /// END_STREAM after it, on the closed stream.
+        /// A tunnel's handler fails right after its last write, once that has
+        /// returned, and the server resets the stream on the handler's task, with
+        /// no END_STREAM before it (see ServerHandlerFailureTests). The chunk waits
+        /// for the write lock, taken by the writer loop, and the handler's write
+        /// waits for it: the stream is reset only once the chunk is out. The write
+        /// used to return as soon as the writer loop took the chunk, and the
+        /// handler's RST_STREAM could go out first, the chunk after it, on the
+        /// closed stream — as could the END_STREAM a failed tunnel was ended with,
+        /// back when it was ended before its reset.
         /// </summary>
         [Test]
-        public async Task TunnelHandlerFails_EndOfStreamOutBeforeTheReset()
+        public async Task TunnelHandlerFailsAfterItsLastWrite_DataOutBeforeTheReset()
         {
 
-            var tunnelOpen  = new TaskCompletionSource(Async);
-            var fail        = new TaskCompletionSource(Async);
+            var tunnelOpen   = new TaskCompletionSource(Async);
+            var writeLast    = new TaskCompletionSource(Async);
+            var lastWritten  = new TaskCompletionSource(Async);
 
             await using var peer = await PipedH2ServerConnection.StartAsync(
 
@@ -562,9 +565,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                         tunnelOpen.TrySetResult();
 
-                        await fail.Task;
+                        await writeLast.Task;
 
-                        throw new InvalidOperationException("The tunnel's handler failed on purpose");
+                        var write = tunnel.WriteAsync(ASCII("last words"), cancellationToken);
+
+                        lastWritten.TrySetResult();
+
+                        await write;
+
+                        throw new InvalidOperationException("The tunnel's handler failed on purpose, right after its last write");
 
                     }
 
@@ -583,7 +592,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 using (await peer.HoldWritesAsync())
                 {
 
-                    fail.TrySetResult();
+                    writeLast.TrySetResult();
+
+                    await lastWritten.Task.WaitAsync(PipedH2ServerConnection.StepTimeout);
+
+                    await UntilAsync(() => !stream.OutboundQueue.HasPending, "the writer loop has taken the chunk");
 
                     resetWhileHeld = await ResetWithinAsync(stream, ResetGrace);
 
@@ -596,11 +609,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.Multiple(() =>
                 {
 
-                    Assert.That(resetWhileHeld,    Is.False,                                   "the stream reset while the END_STREAM that ends the server's side waited for the write lock");
+                    Assert.That(resetWhileHeld,    Is.False,                                   "the stream reset while the handler's last chunk waited for the write lock");
                     Assert.That(resetCode,         Is.EqualTo(HTTP2ErrorCode.INTERNAL_ERROR),  "how the server reset the tunnel");
 
                     Assert.That(SentOn(peer, 1),   Is.EqualTo(new[] { "HEADERS :status 200",
-                                                                      "DATA \"\" END_STREAM",
+                                                                      "DATA \"last words\"",
                                                                       "RST_STREAM INTERNAL_ERROR" }),
                                                    "what the server sent on the tunnel");
 
@@ -611,7 +624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             }
             finally
             {
-                fail.TrySetResult();
+                writeLast.TrySetResult();
             }
 
         }
