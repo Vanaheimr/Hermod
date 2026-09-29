@@ -441,6 +441,17 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   goes out only while the client may still send DATA on the stream, checked again
   under the write lock: never once the client has ended its side, and never
   after the stream's `RST_STREAM`.
+- What the client sent before it read the server's own `RST_STREAM` — DATA,
+  trailers and their CONTINUATION frames, still in flight when a handler failed
+  or the read loop found a stream error — is minimally processed and discarded
+  (§5.1): DATA is still window-accounted and trailers still HPACK-decoded, but
+  nothing is answered. Each such frame used to draw another `RST_STREAM
+  STREAM_CLOSED`; trailers went undecoded, and the next request died with
+  `COMPRESSION_ERROR`; a split trailer block, or one on a stream pruned since,
+  ended the connection. The newest `MaxConcurrentStreams` such stream IDs are
+  kept past pruning. After the client's own `RST_STREAM`, or once it had ended
+  its side, a frame is still a stream error `STREAM_CLOSED` — a header block
+  decoded first.
 - Closed-stream pruning; graceful shutdown (GOAWAY to every active connection).
 
 ### Parser fuzzing

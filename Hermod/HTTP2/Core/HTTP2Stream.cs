@@ -340,19 +340,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// True once this stream was closed by an RST_STREAM (sent or received),
         /// as opposed to a clean END_STREAM close. RFC 9113, Section 5.1 treats a
         /// later frame differently in the two cases: after RST_STREAM it's a stream
-        /// error, after END_STREAM it's a connection error.
+        /// error, after END_STREAM it's a connection error — unless the RST_STREAM
+        /// was ours, see <see cref="DiscardsPeerFrames"/>.
         /// </summary>
         public bool WasReset { get; private set; }
 
         /// <summary>
-        /// Forcibly close (RST_STREAM received or sent).
+        /// True once we reset this stream while the peer could still send on it:
+        /// while it was open, or closed on our side only. What the peer sent
+        /// before it read our RST_STREAM is still to come, and RFC 9113, Section
+        /// 5.1 has it minimally processed and then discarded, not answered. False
+        /// after the peer's own reset (<see cref="ResetByPeer"/>), and after ours
+        /// once the peer had ended its side: it has nothing left to send then,
+        /// and a frame it sends all the same is an error.
+        /// </summary>
+        public bool DiscardsPeerFrames { get; private set; }
+
+        /// <summary>
+        /// Forcibly close: we send RST_STREAM, or the connection ends.
         /// </summary>
         public void Reset()
+
+            => Reset(ByPeer: false);
+
+        /// <summary>
+        /// Forcibly close, as the peer's RST_STREAM does. Everything else is as
+        /// for <see cref="Reset()"/>.
+        /// </summary>
+        public void ResetByPeer()
+
+            => Reset(ByPeer: true);
+
+        private void Reset(bool ByPeer)
         {
             lock (stateLock)
             {
+
+                // Under the lock of the transitions, so that the state tested is
+                // the one the reset ends.
+                if (!ByPeer && State is (HTTP2StreamState.Open or HTTP2StreamState.HalfClosedLocal))
+                    DiscardsPeerFrames = true;
+
                 State    = HTTP2StreamState.Closed;
                 WasReset = true;
+
             }
 
             // Outside the lock: Cancel() runs registered callbacks synchronously,

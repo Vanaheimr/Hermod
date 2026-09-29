@@ -168,6 +168,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private int         continuationFrameCount;
 
         /// <summary>
+        /// The header block of a HEADERS frame on a stream that was reset, while
+        /// CONTINUATION frames of it are still to come: kept only to be decoded
+        /// once complete, and then dropped, or answered with STREAM_CLOSED if
+        /// <see cref="discardedHeaderBlockAnswered"/>. Null otherwise.
+        /// </summary>
+        private MemoryStream?  discardedHeaderBlock;
+        private bool           discardedHeaderBlockAnswered;
+
+        /// <summary>
         /// Control frames that cost us work but make no request progress (non-ACK
         /// PING and SETTINGS). Reset whenever a HEADERS/DATA frame arrives. A
         /// sustained flood with no real requests is answered with ENHANCE_YOUR_CALM.
@@ -765,6 +774,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     }
 
                 }
+                catch (HTTP2StreamException ex) when (streamManager.DiscardsPeerFrames(ex.StreamId))
+                {
+                    // A stream error in a frame on a stream we reset while the peer
+                    // could still send on it: the peer sent the frame before it read
+                    // our RST_STREAM, and RFC 9113, Section 5.1 has it discarded (see
+                    // HandleDataAsync). That RST_STREAM is the stream's answer, and it
+                    // gets no other. Most such frames throw nothing; this is for one
+                    // that passed its handler's checks while the stream was still
+                    // open, and then met a reset of ours made on another task, a
+                    // handler's or the writer loop's: the END_STREAM of a DATA frame,
+                    // or of trailers, found the stream closed.
+                }
                 catch (HTTP2StreamException ex)
                 {
 
@@ -933,10 +954,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
                                                    "HEADERS frame must not be on stream 0");
 
+            var existingStream  = streamManager.TryGetStream(Frame.StreamId);
+
+            // Read once, and every decision below is taken on this one read: a
+            // reset of ours, made on another task, may land at any moment. One
+            // that lands after it finds the block taken as trailers and decoded;
+            // the end of the peer's side that trailers carry then finds the
+            // stream reset, and FrameLoopAsync discards what that throws.
+            var existingState   = existingStream?.State;
+
+            // A header block on a stream that was reset is decoded all the same,
+            // and only then dropped, or answered with a stream error of type
+            // STREAM_CLOSED: the HPACK dynamic table is connection-wide state
+            // (RFC 9113, Section 4.3, and see CompleteHeaders). The peer's encoder
+            // has put the block's fields into its table already, and every later
+            // block refers to the table past them.
+            //
+            // Dropped if we reset the stream while the peer could still send on
+            // it: the peer sent the block before it read our RST_STREAM, and
+            // Section 5.1 has such frames "minimally processed and then
+            // discarded". So also once the stream is pruned, as long as its ID is
+            // kept (see HTTP2StreamManager.DiscardsPeerFrames). Answered after the
+            // peer's own reset, and after ours of a stream whose peer had ended its
+            // side: the peer had nothing left to send there.
+            if (streamManager.DiscardsPeerFrames(Frame.StreamId))
+            {
+                StartDiscardedHeaderBlock(Frame, AnswerWithStreamClosed: false);
+                return;
+            }
+
+            if (existingStream is { WasReset: true } &&
+                existingState  is not (HTTP2StreamState.Open or HTTP2StreamState.HalfClosedLocal))
+            {
+                StartDiscardedHeaderBlock(Frame, AnswerWithStreamClosed: true);
+                return;
+            }
+
             // Real request traffic — reset the control-frame flood counter.
             unproductiveFrames = 0;
 
-            var existingStream = streamManager.TryGetStream(Frame.StreamId);
             var isTrailers     = existingStream is not null;
 
             HTTP2Stream stream;
@@ -948,21 +1004,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 // Trailers (RFC 9113, Section 8.1) are only legal while we're
                 // still expecting body/trailer data on this stream, i.e. the
-                // original HEADERS did not set END_STREAM.
-                if (stream.State is not (HTTP2StreamState.Open or HTTP2StreamState.HalfClosedLocal))
-                {
-                    // RFC 9113, Section 5.1: a HEADERS frame arriving after the
-                    // peer sent END_STREAM (clean close) is a *connection* error of
-                    // type STREAM_CLOSED; after an RST_STREAM close it's only a
-                    // *stream* error (a peer racing frames past a reset it hasn't
-                    // seen yet).
-                    if (stream.WasReset)
-                        throw new HTTP2StreamException(HTTP2ErrorCode.STREAM_CLOSED, Frame.StreamId,
-                            $"HEADERS received after RST_STREAM on stream {Frame.StreamId}");
-
+                // original HEADERS did not set END_STREAM. RFC 9113, Section 5.1:
+                // a HEADERS frame arriving after the peer sent END_STREAM (clean
+                // close) is a *connection* error of type STREAM_CLOSED; after an
+                // RST_STREAM close, see above.
+                if (existingState is not (HTTP2StreamState.Open or HTTP2StreamState.HalfClosedLocal))
                     throw new HTTP2ConnectionException(HTTP2ErrorCode.STREAM_CLOSED,
                         $"HEADERS received on closed stream {Frame.StreamId}");
-                }
 
                 // "Trailers MUST end the stream" is deliberately NOT checked here —
                 // see CompleteHeaders. Rejecting the frame at this point would skip
@@ -1040,7 +1088,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             stream.EndStreamPending  = Frame.EndStream;
             continuationFrameCount   = 0;
             stream.HeaderBuffer.Write(headerData);
-            EnforceHeaderBufferLimit(stream);
+            EnforceHeaderBufferLimit(stream.HeaderBuffer);
 
             if (Frame.EndHeaders)
             {
@@ -1051,6 +1099,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // More CONTINUATION frames are expected
                 continuationStreamId = Frame.StreamId;
             }
+
+        }
+
+        /// <summary>
+        /// Take in the header block of a HEADERS frame on a stream that was reset
+        /// (see HandleHeaders), to be decoded once it is complete, here or with its
+        /// last CONTINUATION frame, and then dropped — or answered with a stream
+        /// error of type STREAM_CLOSED. The block keeps to the limits of any other,
+        /// and is no request progress.
+        /// </summary>
+        private void StartDiscardedHeaderBlock(HTTP2Frame Frame, bool AnswerWithStreamClosed)
+        {
+
+            CountUnproductiveFrame();
+
+            // The frame's layout is checked as for any HEADERS frame, but not the
+            // priority it carries: there is no stream left to give it to.
+            var headerData = StripPadding(Frame, Frame.Payload.AsSpan());
+
+            if (Frame.HasPriority)
+            {
+                if (headerData.Length < 5)
+                    throw new HTTP2StreamException(HTTP2ErrorCode.FRAME_SIZE_ERROR, Frame.StreamId,
+                        "HEADERS with PRIORITY flag has insufficient data");
+
+                headerData = headerData[5..];
+            }
+
+            discardedHeaderBlock          = new MemoryStream();
+            discardedHeaderBlockAnswered  = AnswerWithStreamClosed;
+            continuationFrameCount        = 0;
+            discardedHeaderBlock.Write(headerData);
+            EnforceHeaderBufferLimit(discardedHeaderBlock);
+
+            if (Frame.EndHeaders)
+                EndDiscardedHeaderBlock(Frame.StreamId);
+            else
+                continuationStreamId = Frame.StreamId;
+
+        }
+
+        /// <summary>
+        /// Decode the discarded header block, now complete, and drop it — or answer
+        /// it, as it was taken in to be.
+        /// </summary>
+        private void EndDiscardedHeaderBlock(UInt32 StreamId)
+        {
+
+            var headerBlock  = discardedHeaderBlock!.ToArray();
+            var answered     = discardedHeaderBlockAnswered;
+
+            discardedHeaderBlock.Dispose();
+            discardedHeaderBlock          = null;
+            discardedHeaderBlockAnswered  = false;
+
+            hpackDecoder.DecodeHeaderBlock(headerBlock);
+
+            if (answered)
+                throw new HTTP2StreamException(HTTP2ErrorCode.STREAM_CLOSED, StreamId,
+                    $"HEADERS received after RST_STREAM on stream {StreamId}");
 
         }
 
@@ -1070,10 +1178,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
                     $"CONTINUATION stream ID {Frame.StreamId} doesn't match expected {continuationStreamId}");
 
-            var stream = streamManager.TryGetStream(Frame.StreamId)
-                ?? throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
-                       $"CONTINUATION for unknown stream {Frame.StreamId}");
-
             // Bound the number of fragments per header block: a peer that keeps
             // sending CONTINUATION frames (even empty ones) without END_HEADERS
             // would otherwise pin the connection and grow the buffer unbounded
@@ -1082,8 +1186,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 throw new HTTP2ConnectionException(HTTP2ErrorCode.ENHANCE_YOUR_CALM,
                     $"Too many CONTINUATION frames ({MaxContinuationFrames} max) for one header block");
 
+            // The rest of a header block on a stream that was reset — see
+            // StartDiscardedHeaderBlock. A pruned stream has no buffer of its own.
+            if (discardedHeaderBlock is not null)
+            {
+
+                discardedHeaderBlock.Write(Frame.Payload);
+                EnforceHeaderBufferLimit(discardedHeaderBlock);
+
+                if (Frame.EndHeaders)
+                {
+                    continuationStreamId = null;
+                    EndDiscardedHeaderBlock(Frame.StreamId);
+                }
+
+                return;
+
+            }
+
+            var stream = streamManager.TryGetStream(Frame.StreamId)
+                ?? throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
+                       $"CONTINUATION for unknown stream {Frame.StreamId}");
+
             stream.HeaderBuffer!.Write(Frame.Payload);
-            EnforceHeaderBufferLimit(stream);
+            EnforceHeaderBufferLimit(stream.HeaderBuffer);
 
             if (Frame.EndHeaders)
             {
@@ -1100,9 +1226,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// compressed buffered size; for a peer that respects the advertised limit
         /// on the uncompressed list, the compressed form never exceeds it.
         /// </summary>
-        private void EnforceHeaderBufferLimit(HTTP2Stream Stream)
+        private void EnforceHeaderBufferLimit(MemoryStream HeaderBuffer)
         {
-            if (Stream.HeaderBuffer!.Length > localSettings.MaxHeaderListSize)
+            if (HeaderBuffer.Length > localSettings.MaxHeaderListSize)
                 throw new HTTP2ConnectionException(HTTP2ErrorCode.ENHANCE_YOUR_CALM,
                     $"Header block exceeds MAX_HEADER_LIST_SIZE ({localSettings.MaxHeaderListSize} bytes)");
         }
@@ -1729,6 +1855,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // the accounting above: now that window is dutifully handed back,
                 // an endless closed-stream DATA spray would otherwise be free.
                 CountUnproductiveFrame();
+
+                // RFC 9113, Section 5.1: on a stream we reset while the peer could
+                // still send on it, what the peer sent before it read our RST_STREAM
+                // is "minimally processed and then discarded" — for DATA, the
+                // accounting above. Not answered: each such frame drew a second
+                // RST_STREAM, and an upload with a window's worth in flight when a
+                // handler failed drew one for every frame of it. So also once the
+                // stream is pruned, as long as its ID is kept (see
+                // HTTP2StreamManager.DiscardsPeerFrames).
+                if (streamManager.DiscardsPeerFrames(Frame.StreamId))
+                    return;
 
                 throw new HTTP2StreamException(HTTP2ErrorCode.STREAM_CLOSED, Frame.StreamId,
                     stream is null
@@ -2481,7 +2618,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (stream is not null)
             {
                 HTTP2EventSource.Log.StreamResetByPeer((int) Frame.StreamId, errorCode.ToString());
-                stream.Reset();
+                stream.ResetByPeer();
 
                 // Wake a response task possibly waiting for window space on this
                 // stream, so it can notice the reset and abort.

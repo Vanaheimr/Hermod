@@ -158,6 +158,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
+        #region Pruning_KeepsDiscardingWhatThePeerSendsOnStreamsWeReset()
+
+        /// <summary>
+        /// A stream we reset while the peer could still send on it, open or closed
+        /// on our side only, discards what the peer sends there (RFC 9113, Section
+        /// 5.1), and pruning does not end that: its ID is kept, for the newest
+        /// MaxConcurrentStreams such streams. A stream the peer reset, one we reset
+        /// once the peer had ended its side, and one closed by END_STREAM both ways
+        /// discard nothing, pruned or not.
+        /// </summary>
+        [Test]
+        public void Pruning_KeepsDiscardingWhatThePeerSendsOnStreamsWeReset()
+        {
+
+            var mgr = new HTTP2StreamManager();
+
+            foreach (var id in new UInt32[] { 1, 3, 5, 7, 9 })
+                mgr.GetOrCreateStream(id).Open();
+
+            mgr.TryGetStream(1)!.Reset();
+            mgr.TryGetStream(3)!.CloseLocal();   mgr.TryGetStream(3)!.Reset();
+            mgr.TryGetStream(5)!.ResetByPeer();
+            mgr.TryGetStream(7)!.CloseRemote();  mgr.TryGetStream(7)!.Reset();
+            mgr.TryGetStream(9)!.CloseRemote();  mgr.TryGetStream(9)!.CloseLocal();
+
+            Boolean[] Discarding()
+                => [.. new UInt32[] { 1, 3, 5, 7, 9 }.Select(mgr.DiscardsPeerFrames)];
+
+            var beforePruning = Discarding();
+
+            mgr.PruneClosedStreams();
+
+            var afterPruning  = Discarding();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(beforePruning,   Is.EqualTo(new[] { true, true, false, false, false }), "streams 1 to 9 discarding what the peer sends, before pruning");
+                Assert.That(DictCount(mgr),  Is.EqualTo(0),                                         "streams left after pruning");
+                Assert.That(afterPruning,    Is.EqualTo(beforePruning),                             "streams 1 to 9 discarding what the peer sends, after pruning");
+            });
+
+            // Two more streams reset while open, each pruned on its own: with room
+            // for two, the IDs of 1 and 3 are given up for theirs.
+            mgr.MaxConcurrentStreams = 2;
+
+            foreach (var id in new UInt32[] { 11, 13 })
+            {
+                mgr.GetOrCreateStream(id).Open();
+                mgr.TryGetStream(id)!.Reset();
+                mgr.PruneClosedStreams();
+            }
+
+            Assert.That(new UInt32[] { 1, 3, 11, 13 }.Select(mgr.DiscardsPeerFrames),
+                        Is.EqualTo(new[] { false, false, true, true }),
+                        "streams 1, 3, 11 and 13 discarding what the peer sends, with room for two");
+
+        }
+
+        #endregion
+
     }
 
 }

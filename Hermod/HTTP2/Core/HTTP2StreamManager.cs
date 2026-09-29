@@ -280,6 +280,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
+        /// The IDs of pruned streams whose peer frames are still discarded (see
+        /// <see cref="DiscardsPeerFrames"/>), and the order they were pruned in,
+        /// oldest first. Both guarded by <see cref="dictLock"/>.
+        /// </summary>
+        private readonly HashSet<UInt32>  prunedDiscarding       = [];
+        private readonly Queue<UInt32>    prunedDiscardingOrder  = new();
+
+        /// <summary>
+        /// Whether what the peer sends on this stream is discarded rather than
+        /// answered: we reset it while the peer could still send on it
+        /// (<see cref="HTTP2Stream.DiscardsPeerFrames"/>). Pruning does not end
+        /// that, as the peer may still be sending there when a later stream
+        /// opens, so a pruned stream's ID is kept for it. Only the IDs of the
+        /// newest <see cref="MaxConcurrentStreams"/> such streams are kept: the
+        /// peer believes no more streams open than that, and those it may still
+        /// be sending on are the ones whose RST_STREAM it has not read yet, which
+        /// it reads in the order we reset them. A stream whose ID is no longer
+        /// kept is answered as any other closed stream.
+        /// </summary>
+        public bool DiscardsPeerFrames(UInt32 StreamId)
+        {
+            lock (dictLock)
+                return streams.TryGetValue(StreamId, out var stream)
+                           ? stream.DiscardsPeerFrames
+                           : prunedDiscarding.Contains(StreamId);
+        }
+
+        /// <summary>
         /// Remove closed streams to avoid unbounded memory growth.
         /// Call periodically or after processing.
         /// </summary>
@@ -298,7 +326,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
 
                 foreach (var id in toRemove)
-                    streams.Remove(id);
+                {
+                    if (streams.Remove(id, out var stream) && stream.DiscardsPeerFrames && prunedDiscarding.Add(id))
+                        prunedDiscardingOrder.Enqueue(id);
+                }
+
+                while (prunedDiscardingOrder.Count > MaxConcurrentStreams)
+                    prunedDiscarding.Remove(prunedDiscardingOrder.Dequeue());
 
             }
 

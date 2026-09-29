@@ -1879,7 +1879,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 return;
 
             var code = (HTTP2ErrorCode) BinaryPrimitives.ReadUInt32BigEndian(Frame.Payload);
-            exchange.Stream.Reset();
+            exchange.Stream.ResetByPeer();
             RemoveExchange(Frame.StreamId);
 
             // A tunnel exchange has no buffered-response Completion to fail and is

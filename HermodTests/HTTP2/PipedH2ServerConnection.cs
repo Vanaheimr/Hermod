@@ -247,6 +247,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                                   EndHeaders: true));
 
         /// <summary>
+        /// Send a header block of these fields, a request's or trailers, encoded
+        /// as every other block the client sends here: in one HEADERS frame, or,
+        /// given <paramref name="FragmentSize"/>, split into a HEADERS frame and
+        /// CONTINUATION frames that carry at most that many bytes of it each.
+        /// </summary>
+        public async Task SendHeadersAsync(UInt32                             StreamId,
+                                           List<(String Name, String Value)>  Fields,
+                                           Boolean                            EndStream,
+                                           Int32?                             FragmentSize   = null)
+        {
+
+            var block  = encoder.EncodeHeaderBlock(Fields);
+            var size   = FragmentSize ?? Math.Max(block.Length, 1);
+
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(size, nameof(FragmentSize));
+
+            var first  = block[..Math.Min(size, block.Length)];
+
+            await SendAsync(HTTP2Frame.CreateHeaders(StreamId,
+                                                     first,
+                                                     EndStream:  EndStream,
+                                                     EndHeaders: first.Length == block.Length));
+
+            for (var offset = first.Length; offset < block.Length; offset += size)
+            {
+
+                var fragment = block[offset..Math.Min(offset + size, block.Length)];
+
+                await SendAsync(new HTTP2Frame {
+                                    Type      = HTTP2FrameType.CONTINUATION,
+                                    Flags     = offset + fragment.Length == block.Length
+                                                    ? HTTP2FrameFlags.END_HEADERS
+                                                    : HTTP2FrameFlags.NONE,
+                                    StreamId  = StreamId,
+                                    Length    = (UInt32) fragment.Length,
+                                    Payload   = fragment
+                                });
+
+            }
+
+        }
+
+        /// <summary>
         /// Ping the server and read up to its answer. The read loop handles one
         /// frame at a time, so once the answer is read, the server has handled
         /// every frame sent before the ping, and everything it wrote before
@@ -505,7 +548,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// writes the end of the stream comes on to the half-close and has to
         /// wait for that lock — past any test of the state made outside it. With
         /// the thread seen waiting, the stream is reset under the lock, as
-        /// <see cref="HTTP2Stream.Reset"/> is called by the read loop for an
+        /// <see cref="HTTP2Stream.ResetByPeer"/> is called by the read loop for an
         /// RST_STREAM. Then the lock is let go, and the half-close finds the
         /// stream reset.
         /// </summary>
@@ -528,7 +571,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             await WaitUntilBlockedAsync(writer);
 
-            holder.LetGo(UnderLock: stream.Reset);
+            holder.LetGo(UnderLock: stream.ResetByPeer);
 
         }
 
@@ -628,6 +671,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                                 Invoke(Connection, [stream])!).GetAwaiter().GetResult();
 
             });
+
+        }
+
+        /// <summary>
+        /// Send a header block that ends the client's side of a stream, with
+        /// <paramref name="Send"/>, and reset the stream while the read loop holds
+        /// that block between its check of the stream's state and the transition
+        /// that ends the client's side: the moment a reset made on another task,
+        /// a handler's or the writer loop's, may land on any real connection.
+        ///
+        /// The stream's state lock is held on a thread of its own. The thread that
+        /// reads the block goes on, past that check and the block's decoding, to
+        /// the transition, and has to wait for the lock there. With that thread
+        /// seen waiting, the stream is reset under the lock, as
+        /// <see cref="HTTP2Stream.Reset"/> is called for a reset of the server's
+        /// own, but without its RST_STREAM. Then the lock is let go.
+        /// </summary>
+        public async Task ResetBeforeRemoteCloseAsync(UInt32 StreamId, Func<Task> Send)
+        {
+
+            // Everything sent before has been handled, and the read loop waits for
+            // the next frame: no earlier frame can be the one that waits.
+            await PingAsync();
+
+            var stream = ServerStream(StreamId);
+
+            using var holder = MonitorHolder.Hold(StateLockOf(stream));
+
+            await Send();
+
+            await WaitUntilReaderBlockedAsync();
+
+            holder.LetGo(UnderLock: stream.Reset);
 
         }
 
