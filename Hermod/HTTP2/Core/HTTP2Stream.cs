@@ -460,11 +460,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             }
 
-            // Outside the lock: Cancel() runs registered callbacks synchronously,
-            // and a handler's callback re-entering this stream while stateLock is
-            // held would deadlock. Safe to call repeatedly (e.g. RST_STREAM sent
-            // by us and then also received from the peer) — Cancel() is idempotent.
-            requestCancellation.Cancel();
+            // The token is cancelled at once, and what is registered on it runs on
+            // the thread pool: not on this thread, which is the writer loop's for
+            // a write that failed, and the read loop's for the peer's RST_STREAM.
+            // Cancel() ran the callbacks here, and with them the continuation of
+            // every handler awaiting with this token: a tunnel's handler went on
+            // inside the writer loop's reset, down to the end of its reading, and
+            // waited there for the receive-window lock before the writer loop had
+            // sent its RST_STREAM (found by the CI of 470081d9). And a callback's
+            // exception ended up in whichever loop made the reset. Outside the
+            // lock all the same: a callback re-entering this stream must not find
+            // stateLock held. Safe to call repeatedly (e.g. RST_STREAM sent by us
+            // and then also received from the peer): CancelAsync is idempotent.
+            _ = requestCancellation.CancelAsync();
 
             // Unblock a tunnel handler possibly waiting in HTTP2Tunnel.ReadAsync —
             // without this, a reset mid-tunnel would leave it awaiting forever

@@ -414,7 +414,10 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 - Per-stream `RST_STREAM` cancellation (a `CancellationToken` into the handler).
   The end of a connection resets every stream still open on it, as the peer's
   `RST_STREAM` would: each handler's token fires, its reads and writes fail and
-  its tunnel reads end, rather than wait for a connection that is gone.
+  its tunnel reads end, rather than wait for a connection that is gone. The
+  token of a reset stream fires on the thread pool: a handler that goes on from
+  it never runs on the read loop or the writer loop, whichever made the reset,
+  and holds up no other stream.
 - A failing DATA writer loop is contained like the read loop: a stream error
   resets that one stream (`RST_STREAM INTERNAL_ERROR`) and the loop serves the
   others on; anything else ends the connection at once with `GOAWAY
