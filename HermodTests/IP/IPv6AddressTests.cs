@@ -334,6 +334,169 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 
         #endregion
 
+
+        #region ToString_Long_SpellsOutEveryGroup(Text, Expected)
+
+        /// <summary>
+        /// The long form spells out all eight groups with all four of their
+        /// digits, in lower case - "::1" and "::" included, which ToString()
+        /// writes as "[::1]" and "[::]" - and keeps the interface.
+        /// </summary>
+        [TestCase("2001:db8::1",         "2001:0db8:0000:0000:0000:0000:0000:0001")]
+        [TestCase("::1",                 "0000:0000:0000:0000:0000:0000:0000:0001")]
+        [TestCase("::",                  "0000:0000:0000:0000:0000:0000:0000:0000")]
+        [TestCase("2001:DB8::ABCD",      "2001:0db8:0000:0000:0000:0000:0000:abcd")]
+        [TestCase("::ffff:192.0.2.128",  "0000:0000:0000:0000:0000:ffff:c000:0280")]
+        [TestCase("fe80::1%eth0",        "fe80:0000:0000:0000:0000:0000:0000:0001%eth0")]
+        public void ToString_Long_SpellsOutEveryGroup(String Text, String Expected)
+        {
+
+            Assert.That(IPv6Address.Parse(Text).ToString(IPv6Format.Long), Is.EqualTo(Expected));
+
+        }
+
+        #endregion
+
+        #region ToString_Short_IsTheTextOfRFC5952(Text, Expected)
+
+        /// <summary>
+        /// The short form is the text RFC 5952 recommends, section by section.
+        /// </summary>
+        [TestCase("2001:0db8:0000:0000:0000:0000:0000:0001",  "2001:db8::1",           Description = "4.1: no leading zeros")]
+        [TestCase("2001:db8:0:0:0:0:2:1",                     "2001:db8::2:1",         Description = "4.2.1: :: as far as it goes")]
+        [TestCase("2001:db8:0:1:1:1:1:1",                     "2001:db8:0:1:1:1:1:1",  Description = "4.2.2: not for a single zero group")]
+        [TestCase("2001:0:0:1:0:0:0:1",                       "2001:0:0:1::1",         Description = "4.2.3: the longest run")]
+        [TestCase("2001:db8:0:0:1:0:0:1",                     "2001:db8::1:0:0:1",     Description = "4.2.3: the first of two equally long runs")]
+        [TestCase("0:0:1:0:0:0:0:0",                          "0:0:1::",               Description = "4.2.3: a longer run at the end")]
+        [TestCase("2001:DB8::ABCD",                           "2001:db8::abcd",        Description = "4.3: lower case")]
+        [TestCase("::ffff:192.0.2.128",                       "::ffff:192.0.2.128",    Description = "5: an IPv4-mapped address in dotted decimal")]
+        [TestCase("::",                                       "::",                    Description = "the unspecified address, bare")]
+        [TestCase("::1",                                      "::1",                   Description = "the loopback, bare")]
+        [TestCase("1::",                                      "1::",                   Description = "a run that ends the address")]
+        [TestCase("fe80::1%eth0",                             "fe80::1%eth0",          Description = "an address with its interface")]
+        [TestCase("2001:4860:4860:0:0:0:0:8888",              "2001:4860:4860::8888",  Description = "a name server a station showed in full")]
+        public void ToString_Short_IsTheTextOfRFC5952(String Text, String Expected)
+        {
+
+            Assert.That(IPv6Address.Parse(Text).ToString(IPv6Format.Short), Is.EqualTo(Expected));
+
+        }
+
+        #endregion
+
+        #region ToString_Short_WritesWhatDotNetWrites()
+
+        /// <summary>
+        /// .NET's own IPAddress writes RFC 5952's text too, and is a second
+        /// opinion on thousands of addresses with runs of zeros in every place.
+        /// Not where the first four groups are all zero: there .NET writes an
+        /// IPv4-compatible and an IPv4-translated address in dotted decimal as
+        /// well, and this only an IPv4-mapped one.
+        /// </summary>
+        [Test]
+        public void ToString_Short_WritesWhatDotNetWrites()
+        {
+
+            var random   = new Random(5952);
+            var bytes    = new Byte[16];
+            var compared = 0;
+
+            while (compared < 5000)
+            {
+
+                for (var group = 0; group < 8; group++)
+                {
+                    var value = random.Next(2) == 0 ? 0 : random.Next(1, 0x10000);
+                    bytes[2 * group]     = (Byte) (value >> 8);
+                    bytes[2 * group + 1] = (Byte)  value;
+                }
+
+                if (bytes.Take(8).All(one => one == 0))
+                    continue;
+
+                Assert.That(new IPv6Address(bytes).ToString(IPv6Format.Short),
+                            Is.EqualTo(new System.Net.IPAddress(bytes).ToString()));
+
+                compared++;
+
+            }
+
+        }
+
+        #endregion
+
+        #region ToString_ReadsBackAsTheSameAddress(Format)
+
+        /// <summary>
+        /// Either form is read back as the address it was written from, with
+        /// its interface.
+        /// </summary>
+        [Test]
+        public void ToString_ReadsBackAsTheSameAddress([Values] IPv6Format Format)
+        {
+
+            foreach (var text in new[] { "2001:db8::1", "::", "::1", "1::", "2001:0:0:1:0:0:0:1", "::ffff:192.0.2.128",
+                                         "fe80::1%eth0", "2001:db8:0:1:1:1:1:1", "ff02::1:ff00:1" })
+            {
+
+                var address  = IPv6Address.Parse(text);
+                var written  = address.ToString(Format);
+                var read     = IPv6Address.Parse(written);
+
+                Assert.That(read,              Is.EqualTo(address),              written);
+                Assert.That(read.InterfaceId,  Is.EqualTo(address.InterfaceId),  written);
+
+            }
+
+        }
+
+        #endregion
+
+        #region ToString_AsAnyIPAddress_TakesTheFormat()
+
+        /// <summary>
+        /// Asked as an IIPAddress, an IPv6 address writes the format it is
+        /// asked for, and an IPv4 address writes the one text it has.
+        /// </summary>
+        [Test]
+        public void ToString_AsAnyIPAddress_TakesTheFormat()
+        {
+
+            IIPAddress ipv6 = IPv6Address.Parse("2001:db8::1");
+            IIPAddress ipv4 = IPv4Address.Parse("10.0.0.1");
+
+            Assert.Multiple(() => {
+                Assert.That(ipv6.ToString(IPv6Format.Short),  Is.EqualTo("2001:db8::1"));
+                Assert.That(ipv6.ToString(IPv6Format.Long),   Is.EqualTo("2001:0db8:0000:0000:0000:0000:0000:0001"));
+                Assert.That(ipv4.ToString(IPv6Format.Short),  Is.EqualTo("10.0.0.1"));
+                Assert.That(ipv4.ToString(IPv6Format.Long),   Is.EqualTo("10.0.0.1"));
+            });
+
+        }
+
+        #endregion
+
+        #region ToString_KeepsItsForm()
+
+        /// <summary>
+        /// ToString() writes what it always wrote, which is kept elsewhere as a
+        /// name or a key: the long form, but "::" and "::1" in brackets.
+        /// </summary>
+        [Test]
+        public void ToString_KeepsItsForm()
+        {
+
+            Assert.Multiple(() => {
+                Assert.That(IPv6Address.Parse("2001:db8::1").ToString(),   Is.EqualTo(IPv6Address.Parse("2001:db8::1").ToString(IPv6Format.Long)));
+                Assert.That(IPv6Address.Parse("fe80::1%eth0").ToString(),  Is.EqualTo("fe80:0000:0000:0000:0000:0000:0000:0001%eth0"));
+                Assert.That(IPv6Address.Localhost.ToString(),              Is.EqualTo("[::1]"));
+                Assert.That(IPv6Address.Any.      ToString(),              Is.EqualTo("[::]"));
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

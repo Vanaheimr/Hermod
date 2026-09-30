@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Text;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -1028,6 +1029,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Returns a text representation of this object.
         /// </summary>
+        /// <remarks>
+        /// The form this has always had, and keeps, because what it wrote is
+        /// kept elsewhere - as a name, as a key: every group spelled out as
+        /// <see cref="IPv6Format.Long"/> does, except "::" and "::1", which come
+        /// in brackets, "[::]" and "[::1]". <see cref="ToString(IPv6Format)"/>
+        /// writes either form, and neither in brackets.
+        /// </remarks>
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
         {
@@ -1038,18 +1046,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (IsLocalhost)
                 return InterfaceId.IsNotNullOrEmpty() ? $"[::1%{InterfaceId}]" : "[::1]";
 
-            return String.Format(
-                       "{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}{8}",
-                       byte0. ToString("x2") + byte1. ToString("x2"),
-                       byte2. ToString("x2") + byte3. ToString("x2"),
-                       byte4. ToString("x2") + byte5. ToString("x2"),
-                       byte6. ToString("x2") + byte7. ToString("x2"),
-                       byte8. ToString("x2") + byte9. ToString("x2"),
-                       byte10.ToString("x2") + byte11.ToString("x2"),
-                       byte12.ToString("x2") + byte13.ToString("x2"),
-                       byte14.ToString("x2") + byte15.ToString("x2"),
-                       InterfaceId.IsNotNullOrEmpty() ? "%" + InterfaceId : ""
-                   );
+            return ToString(IPv6Format.Long);
+
+        }
+
+        #endregion
+
+        #region ToString(Format)
+
+        /// <summary>
+        /// This address as the given format writes it: every group spelled
+        /// out, or the short text of RFC 5952 - see <see cref="IPv6Format"/>.
+        /// Bare in either case, and with "%" and the interface where there is
+        /// one.
+        /// </summary>
+        /// <param name="Format">Long or short.</param>
+        public String ToString(IPv6Format Format)
+        {
+
+            var          bytes  = AsSpan;
+            Span<UInt16> groups = stackalloc UInt16[8];
+
+            for (var i = 0; i < 8; i++)
+                groups[i] = (UInt16) ((bytes[2 * i] << 8) | bytes[2 * i + 1]);
+
+            var zone = InterfaceId.IsNotNullOrEmpty() ? "%" + InterfaceId : "";
+            var text = new StringBuilder(39 + zone.Length);
+
+            if (Format == IPv6Format.Long)
+            {
+
+                for (var i = 0; i < 8; i++)
+                {
+
+                    if (i > 0)
+                        text.Append(':');
+
+                    text.Append(groups[i].ToString("x4", CultureInfo.InvariantCulture));
+
+                }
+
+                return text.Append(zone).ToString();
+
+            }
+
+            // RFC 5952, section 5: an IPv4-mapped address ends in its IPv4
+            // address - the one prefix of its kind this struct knows about.
+            if (MappedIPv4 is IPv4Address mapped)
+                return $"::ffff:{mapped}{zone}";
+
+            // Section 4.2: the longest run of zero groups, the first of equally
+            // long ones; a single zero group is no run to shorten.
+            var runStart   = -1;
+            var runLength  =  0;
+
+            for (var i = 0; i < 8; )
+            {
+
+                if (groups[i] != 0)
+                {
+                    i++;
+                    continue;
+                }
+
+                var start = i;
+
+                while (i < 8 && groups[i] == 0)
+                    i++;
+
+                if (i - start > runLength)
+                {
+                    runStart   = start;
+                    runLength  = i - start;
+                }
+
+            }
+
+            if (runLength < 2)
+                runStart = -1;
+
+            for (var i = 0; i < 8; i++)
+            {
+
+                if (i == runStart)
+                {
+                    text.Append("::");
+                    i += runLength - 1;
+                    continue;
+                }
+
+                if (text.Length > 0 && text[^1] != ':')
+                    text.Append(':');
+
+                // Section 4.1 and 4.3: no leading zeros, and lower case.
+                text.Append(groups[i].ToString("x", CultureInfo.InvariantCulture));
+
+            }
+
+            return text.Append(zone).ToString();
 
         }
 

@@ -105,6 +105,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         String   ToString();
 
+        /// <summary>
+        /// Return a text representation of this object, an IPv6 address in the
+        /// given format - see <see cref="IPv6Format"/>. An IPv4 address has one
+        /// text only, and that is what it returns whatever the format.
+        /// </summary>
+        /// <param name="Format">How an IPv6 address is written out.</param>
+        String   ToString(IPv6Format Format)
+            => ToString();
+
     }
 
 }
