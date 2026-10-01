@@ -117,11 +117,6 @@ public class SSEStreamStartTests
         // 7 s, as configured above - proof the value is the source's own and not a default.
         Assert.That(firstLine, Does.Contain("7000"));
 
-        // Ends the stream before the server is disposed of, which waits for it:
-        // a stream notices that its client has gone only when it next writes,
-        // and its next heartbeat is fifteen seconds away.
-        eventSource.Dispose();
-
     }
 
     #endregion

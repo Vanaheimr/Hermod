@@ -47,7 +47,6 @@ public class SSEProxyTests
 
     private HTTPServer?                     httpServer;
     private List<HTTPClient>                clients  = [];
-    private List<HTTPEventSource<JObject>>  sources  = [];
 
     #endregion
 
@@ -60,15 +59,9 @@ public class SSEProxyTests
         foreach (var client in clients)
             await client.DisposeAsync();
 
-        // A stream notices that its client has gone only when it next writes, and a server waits for
-        // its streams before it reports itself stopped - so each is given something to write.
-        foreach (var source in sources)
-            await source.SubmitEvent("goodbye", new JObject(), CancellationToken.None);
-
         clients.Clear();
-        sources.Clear();
 
-        // Bounded all the same: not stopping in time is not what any of these tests are about.
+        // Bounded: not stopping in time is not what any of these tests are about.
         if (httpServer is not null)
         {
             try
@@ -103,8 +96,6 @@ public class SSEProxyTests
                          LogfileName:                  null,
                          LogfileReloadSearchPattern:   null
                      );
-
-        sources.Add(source);
 
         return source;
 

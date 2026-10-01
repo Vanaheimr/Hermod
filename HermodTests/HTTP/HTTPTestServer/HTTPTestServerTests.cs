@@ -1208,11 +1208,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             }
 
-            // Ends the streams before the server is disposed of, which waits for
-            // them: a stream notices that its client has gone only when it next
-            // writes, and its next heartbeat is fifteen seconds away.
-            sse1.Dispose();
-
         }
 
         #endregion
@@ -1343,11 +1338,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(eventList.Count,  Is.EqualTo(3));
 
             }
-
-            // Ends the streams before the server is disposed of, which waits for
-            // them: a stream notices that its client has gone only when it next
-            // writes, and its next heartbeat is fifteen seconds away.
-            sse1.Dispose();
 
         }
 
@@ -1617,11 +1607,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(eventList2.Count,  Is.EqualTo(6));
             Assert.That(eventList3.Count,  Is.EqualTo(6));
             Assert.That(eventList4.Count,  Is.EqualTo(6));
-
-            // Ends the streams before the server is disposed of, which waits for
-            // them: a stream notices that its client has gone only when it next
-            // writes, and its next heartbeat is fifteen seconds away.
-            sse1.Dispose();
 
         }
 
