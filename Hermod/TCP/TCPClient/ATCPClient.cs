@@ -101,6 +101,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         private readonly          ILogger<ATCPClient>      logger;
         private readonly          ILoggerFactory           loggerFactory;
 
+        /// <summary>
+        /// Whether this client made its DNS client itself, and so is the one
+        /// to dispose of it. One that was handed in belongs to whoever handed
+        /// it in, and may be serving others as well.
+        /// </summary>
+        private readonly          Boolean                  ownsDNSClient;
+
         #endregion
 
         #region Properties
@@ -316,6 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.DisableLogging                 = DisableLogging         ?? false;
             this.logger                         = Logger                 ?? NullLogger<ATCPClient>.Instance;
             this.loggerFactory                  = LoggerFactory          ?? NullLoggerFactory.Instance;
+            this.ownsDNSClient                  = DNSClient is null;
             this.DNSClient                      = DNSClient              ?? new DNSClient(Logger: loggerFactory.CreateLogger<IDNSClient>());
 
             this.clientCancellationTokenSource      = new CancellationTokenSource();
@@ -1182,10 +1190,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public virtual async ValueTask DisposeAsync()
         {
+
             await Close();
             connectionCancellationTokenSource?.Dispose();
             clientCancellationTokenSource?.    Dispose();
+
+            // A DNS client of this client's own making used to outlive it. Its
+            // cache cleans up on a timer, and a running timer keeps what it
+            // calls alive: every client made and disposed of left a cache
+            // behind that ticked every ten seconds for the rest of the process.
+            if (ownsDNSClient && DNSClient is not null)
+                await DNSClient.DisposeAsync().ConfigureAwait(false);
+
             GC.SuppressFinalize(this);
+
         }
 
         public virtual void Dispose()

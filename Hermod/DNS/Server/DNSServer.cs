@@ -1467,11 +1467,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             tcpUnicastListener?.  Stop();
             tlsUnicastListener?.  Stop();
 
+            // Disposed of rather than only stopped: both are let go of below,
+            // and Start() makes new ones. A stopped TCP server runs its timers
+            // on, and they kept every listener of every start alive.
             if (httpsUnicastListener is not null)
             {
                 try
                 {
-                    await httpsUnicastListener.Stop().ConfigureAwait(false);
+                    await httpsUnicastListener.DisposeAsync().ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
@@ -1483,7 +1486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 try
                 {
-                    await http2UnicastListener.Stop().ConfigureAwait(false);
+                    await http2UnicastListener.DisposeAsync().ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
