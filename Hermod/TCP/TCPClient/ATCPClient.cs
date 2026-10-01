@@ -796,17 +796,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                   connectTokenSource.               Token
                                               );
 
-                    tcpClient               = new TcpClient {
+                    // This connect's TcpClient, which it works on from here on,
+                    // looking at the field only to see whether a close has taken
+                    // it away. Close() and CloseConnection() do that - set the
+                    // field to null, then close the socket - and may do so while
+                    // the connect is pending. The finally below used to read the
+                    // field to dispose of what was in it. Where that was null,
+                    // its NullReferenceException took the place of whatever the
+                    // connect had failed with, and "Error connecting ATCPClient:
+                    // Object reference not set to an instance of an object." was
+                    // all a caller got to read. Where a connect started right
+                    // after the close had put a client of its own there, that
+                    // one was disposed, and the new connect failed with it.
+                    var client              = new TcpClient {
                                                   ReceiveTimeout  = (Int32) ReceiveTimeout.TotalMilliseconds, // Only relevant for sync I/O!
                                                   SendTimeout     = (Int32) SendTimeout.   TotalMilliseconds, // Only relevant for sync I/O!
                                                   LingerState     = new LingerOption(true, 5),
                                                   NoDelay         = false
                                               };
 
-                    tcpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive,              true);
-                    tcpClient.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveInterval,     10);
-                    tcpClient.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveRetryCount,    3);
-                    tcpClient.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveTime,        600);
+                    tcpClient               = client;
+
+                    client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive,              true);
+                    client.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveInterval,     10);
+                    client.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveRetryCount,    3);
+                    client.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveTime,        600);
 
                     try
                     {
@@ -849,7 +863,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                             return TCPConnectionResult.Failed($"{nameof(ATCPClient)}: {IPVersionPreference} was asked for, and none of the resolved addresses is of that family!");
                         }
 
-                        var connectTask    = tcpClient.ConnectAsync(
+                        var connectTask    = client.ConnectAsync(
                                                  ResolvedIPAddress.ToDotNet(),
                                                  remotePort.Value. ToUInt16(),
                                                  linkedTokenSource.Token
@@ -867,6 +881,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         await connectTask;
 
                     }
+                    catch (Exception) when (!ReferenceEquals(tcpClient, client))
+                    {
+
+                        // Closed while the connect was pending. A close takes the
+                        // client out of the field before it closes the socket, so
+                        // by the time the connect fails, the field holds no client
+                        // or another connect's. Whatever the connect failed with -
+                        // the socket closed under it, or the client's token that
+                        // Close() cancels, depending on which comes first - the
+                        // close is what happened to it: no timeout, no refusal.
+                        //
+                        // Nothing the close has reset is touched again here, the
+                        // resolved addresses least of all: a connect started right
+                        // after the close may be using them by now. Cleared under
+                        // it, they failed that one with "The given enumeration must
+                        // not be null or empty!".
+                        return TCPConnectionResult.Failed("Closed while connecting!");
+
+                    }
                     catch (OperationCanceledException)
                     {
                         ResolvedIPAddresses.Clear();
@@ -875,24 +908,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     finally
                     {
                         // Clean up on failure
-                        if (!tcpClient.Connected)
-                            tcpClient.Dispose();
+                        if (!client.Connected)
+                            client.Dispose();
                     }
 
-                    if (!tcpClient.Connected)
+                    // Or closed right after the connect went through: a disposed
+                    // client hands out no socket to read the end points from.
+                    if (!ReferenceEquals(tcpClient, client))
+                        return TCPConnectionResult.Failed("Closed while connecting!");
+
+                    if (!client.Connected)
                     {
                         ResolvedIPAddresses.Clear();
                         return TCPConnectionResult.Failed($"Error connecting {nameof(ATCPClient)}");
                     }
 
-                    var localEndpoint = tcpClient.Client.LocalEndPoint;
+                    var localEndpoint = client.Client.LocalEndPoint;
                     if (localEndpoint is not null)
                     {
                         this.CurrentLocalEndPoint   = (localEndpoint as IPEndPoint)!;
                         this.LocalSocket            = IPSocket.FromIPEndPoint(localEndpoint)!.Value;
                     }
 
-                    var remoteEndpoint = tcpClient.Client.RemoteEndPoint;
+                    var remoteEndpoint = client.Client.RemoteEndPoint;
                     if (remoteEndpoint is not null)
                     {
                         this.CurrentRemoteEndPoint  = (remoteEndpoint as IPEndPoint)!;
