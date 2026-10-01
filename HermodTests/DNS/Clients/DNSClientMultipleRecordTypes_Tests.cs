@@ -190,8 +190,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public async Task TwoRecordTypes_AreAskedAsTwoQueries()
         {
 
-            using var server  = new SilentToMultiQuestionServer();
-            var       client  = ClientFor(server);
+            using var       server  = new SilentToMultiQuestionServer();
+            await using var client  = ClientFor(server);
 
             var answer        = await client.Query(
                                           DNSServiceName.Parse("two.example.test."),
@@ -223,8 +223,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public async Task OneRecordType_IsStillOneQuery()
         {
 
-            using var server  = new SilentToMultiQuestionServer();
-            var       client  = ClientFor(server);
+            using var       server  = new SilentToMultiQuestionServer();
+            await using var client  = ClientFor(server);
 
             var answer        = await client.Query(
                                           DNSServiceName.Parse("one.example.test."),
@@ -253,8 +253,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public async Task TheSameTypeTwice_IsOneQuery()
         {
 
-            using var server  = new SilentToMultiQuestionServer();
-            var       client  = ClientFor(server);
+            using var       server  = new SilentToMultiQuestionServer();
+            await using var client  = ClientFor(server);
 
             var answer        = await client.Query(
                                           DNSServiceName.Parse("twice.example.test."),
@@ -282,8 +282,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public async Task RepeatedRecords_AreNotShownTwice()
         {
 
-            using var server  = new SilentToMultiQuestionServer();
-            var       client  = ClientFor(server);
+            using var       server  = new SilentToMultiQuestionServer();
+            await using var client  = ClientFor(server);
 
             // This server answers both A and AAAA with a record of its own, so
             // nothing is shared and nothing may be dropped either: the count is

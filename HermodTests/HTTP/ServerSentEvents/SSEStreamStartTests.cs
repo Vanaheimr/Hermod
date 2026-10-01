@@ -58,7 +58,7 @@ public class SSEStreamStartTests
     public async Task EmptyEventSource_StillSendsTheRetryPreamble()
     {
 
-        var httpServer  = await HTTPServer.StartNew();
+        await using var httpServer  = await HTTPServer.StartNew();
         var httpAPI     = httpServer.AddHTTPAPI();
 
         var sourceId    = HTTPEventSource_Id.Parse("quiet");
@@ -80,6 +80,7 @@ public class SSEStreamStartTests
         // Deliberately no SubmitEvent: there is no history and no live event, which is the normal
         // state of an event source a client subscribes to before anything has happened.
         var client = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+        await using var connectedClient = client.Item1;
         Assert.That(client.Item1, Is.Not.Null);
 
         var httpResponse = await client.Item1!.SendRequest(
@@ -116,6 +117,11 @@ public class SSEStreamStartTests
         // 7 s, as configured above - proof the value is the source's own and not a default.
         Assert.That(firstLine, Does.Contain("7000"));
 
+        // Ends the stream before the server is disposed of, which waits for it:
+        // a stream notices that its client has gone only when it next writes,
+        // and its next heartbeat is fifteen seconds away.
+        eventSource.Dispose();
+
     }
 
     #endregion
@@ -126,7 +132,7 @@ public class SSEStreamStartTests
     public async Task ConcurrentSubmits_SerializeTheirOwnEventId()
     {
 
-        var httpServer  = await HTTPServer.StartNew();
+        await using var httpServer  = await HTTPServer.StartNew();
         var httpAPI     = httpServer.AddHTTPAPI();
 
         var eventSource = httpAPI.AddEventSource<JObject>(

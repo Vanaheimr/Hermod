@@ -155,10 +155,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             if (httpServer is not null)
-                await httpServer.Stop();
+                await httpServer.DisposeAsync();
+
+            // Never started, but made like any server, and running a server's
+            // timers until disposed of.
+            if (webSocketServer is not null)
+                await webSocketServer.DisposeAsync();
+
+            if (dismissingServer is not null)
+                await dismissingServer.DisposeAsync();
 
             httpServer       = null;
             webSocketServer  = null;
+            dismissingServer = null;
 
         }
 
@@ -246,6 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(await MirrorAsync("first"), Is.EqualTo("tsrif"));
 
             var (client, _) = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer!.TCPPort);
+            await using var connectedClient = client;
 
             var request  = client!.CreateRequest(HTTPMethod.PUT, HTTPPath.Parse("/upload"));
             request.Content = "0123456789".ToUTF8Bytes();
@@ -279,6 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             var (client, _) = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer!.TCPPort);
+            await using var connectedClient = client;
 
             var response = await client!.SendRequest(
                                      client.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/xmpp"))

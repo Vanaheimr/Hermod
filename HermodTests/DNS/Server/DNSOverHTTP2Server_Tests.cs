@@ -224,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -257,7 +257,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -297,7 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -349,7 +349,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -403,7 +403,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -479,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -542,7 +542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -720,8 +720,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
+
+        }
+
+        #endregion
+
+        #region DisposeAsync_LetsGoOfTheHTTP11Renderer()
+
+        /// <summary>
+        /// With a certificate, a server has a DNS-over-HTTPS server beside it,
+        /// which renders what ALPN hands to HTTP/1.1. Made like any TCP server,
+        /// it ran a TCP server's timers, and nothing let go of it: Stop() keeps
+        /// it for a start after, and there was nothing else.
+        /// </summary>
+        [Test]
+        public async Task DisposeAsync_LetsGoOfTheHTTP11Renderer()
+        {
+
+            using var certificate = CreateSelfSignedServerCertificate();
+
+            TimerCount.AssertNoneLeft(
+                await TimerCount.Of(
+                          () => new DNSOverHTTP2Server(
+                                    new AuthoritativeDNSRequestHandler(CreateTestZone()),
+                                    new DNSServerOptions { TLSServerCertificate = certificate },
+                                    IPv4Address.Localhost,
+                                    IPPort.Zero
+                                ),
+                          server => server.DisposeAsync()
+                      ),
+                "DoH/2 servers with an HTTP/1.1 renderer"
+            );
+
+        }
+
+        #endregion
+
+        #region DNSServer_Stop_LetsGoOfItsDoHListeners()
+
+        /// <summary>
+        /// Stop() let go of the listeners of a start, the next Start() makes
+        /// new ones, but the two DoH listeners were only stopped. A stopped TCP
+        /// server runs its timers on, and they kept the listeners of every
+        /// start alive: the HTTPS one, and the HTTP/2 one's renderer.
+        /// </summary>
+        [Test]
+        public async Task DNSServer_Stop_LetsGoOfItsDoHListeners()
+        {
+
+            using var certificate = CreateSelfSignedServerCertificate();
+
+            TimerCount.AssertNoneLeft(
+                await TimerCount.Of(
+                          async () => {
+
+                              var server = new DNSServer(
+                                               new AuthoritativeDNSRequestHandler(CreateTestZone()),
+                                               new DNSServerOptions {
+                                                   EnableUDPUnicast      = false,
+                                                   EnableUDPMulticast    = false,
+                                                   EnableTCPUnicast      = false,
+                                                   EnableHTTPSUnicast    = true,
+                                                   HTTPSUnicastSocket    = new IPSocket(IPv4Address.Localhost, IPPort.Zero),
+                                                   EnableHTTP2Unicast    = true,
+                                                   HTTP2UnicastSocket    = new IPSocket(IPv4Address.Localhost, IPPort.Zero),
+                                                   TLSServerCertificate  = certificate
+                                               }
+                                           );
+
+                              await server.Start();
+
+                              return server;
+
+                          },
+                          server => new ValueTask(server.Stop())
+                      ),
+                "DNS servers with both DoH listeners, started and stopped"
+            );
 
         }
 

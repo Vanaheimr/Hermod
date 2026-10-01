@@ -111,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                     Assert.That(response.HTTPBodyAsUTF8String ?? "",         Does.Not.Contain("Timeout of 60 seconds"),                   "the failure of the attempt is reported, not a synthetic timeout: " + response.HTTPBodyAsUTF8String);
                 });
 
-                await webSocketClient.Close();
+                await webSocketClient.DisposeAsync();
 
             }
             finally

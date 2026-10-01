@@ -53,6 +53,13 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         private                 Boolean              disposed;
 
+        /// <summary>
+        /// Whether this warden made its DNS client itself, and so is the one to
+        /// dispose of it. One that was handed in belongs to whoever handed it
+        /// in: a TCP server lends the warden its own, and goes on using it.
+        /// </summary>
+        private readonly        Boolean              ownsDNSClient;
+
         #endregion
 
         #region Properties
@@ -105,6 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
             this.Id                     = Id;
             this.InitialDelay           = InitialDelay ?? DefaultInitialDelay;
             this.CheckEvery             = CheckEvery   ?? DefaultCheckEvery;
+            this.ownsDNSClient          = DNSClient is null;
             this.DNSClient              = DNSClient    ?? new DNSClient();
 
             this.allWardenChecks        = [];
@@ -481,11 +489,9 @@ namespace org.GraphDefined.Vanaheimr.Warden
                     await Task.Run(() => mre.WaitOne()).ConfigureAwait(false);
                 }
 
-                // Dispose DNS client
-                if (DNSClient is IAsyncDisposable asyncDNSClient)
-                    await asyncDNSClient.DisposeAsync().ConfigureAwait(false);
-                else
-                    DNSClient?.Dispose();
+                // Dispose DNS client, where it is this warden's own
+                if (ownsDNSClient)
+                    await DNSClient.DisposeAsync().ConfigureAwait(false);
 
                 // Dispose semaphore
                 ServiceCheckLock?.Dispose();
@@ -511,13 +517,18 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             if (disposing)
             {
-                // Dispose managed resources
-                ServiceCheckTimer?.Dispose(new ManualResetEvent(true)); // Wait for callbacks to complete
-                ServiceCheckLock?. Dispose();
-            }
 
-            // No unmanaged resources to clean up in this case
-            // If DNSClient or allWardenChecks hold unmanaged resources, dispose them here
+                // Dispose managed resources. Waits for no running callback, as
+                // the event this used to be handed was set before it was handed.
+                ServiceCheckTimer?.Dispose();
+                ServiceCheckLock?. Dispose();
+
+                // The DNS client's cache cleans up on a timer of its own, which
+                // kept it running long after the warden was gone
+                if (ownsDNSClient)
+                    DNSClient.Dispose();
+
+            }
 
             disposed = true;
 

@@ -48,7 +48,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Shutdown()
         {
             if (server is not null)
+            {
                 await server.Shutdown(Wait: true);
+                await server.DisposeAsync();
+            }
             server = null;
         }
 
@@ -63,10 +66,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
             var port    = server.IPPort;
 
-            var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {
-                              MaxBackpressure        = 4,   // any real frame is larger
-                              BackpressureBehaviour  = WebSocketBackpressureBehaviour.DropMessage
-                          };
+            await using var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {
+                                          MaxBackpressure        = 4,   // any real frame is larger
+                                          BackpressureBehaviour  = WebSocketBackpressureBehaviour.DropMessage
+                                      };
 
             await client.Connect();
 
@@ -87,10 +90,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
             var port    = server.IPPort;
 
-            var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {
-                              MaxBackpressure        = 4,
-                              BackpressureBehaviour  = WebSocketBackpressureBehaviour.CloseConnection
-                          };
+            await using var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {
+                                          MaxBackpressure        = 4,
+                                          BackpressureBehaviour  = WebSocketBackpressureBehaviour.CloseConnection
+                                      };
 
             await client.Connect();
 
@@ -111,10 +114,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             server      = new WebSocketMirrorServer(HTTPPort: IPPort.Zero, RequireAuthentication: false, AutoStart: true);
             var port    = server.IPPort;
 
-            var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {
-                              MaxBackpressure        = 1024 * 1024,   // generous
-                              BackpressureBehaviour  = WebSocketBackpressureBehaviour.CloseConnection
-                          };
+            await using var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) {
+                                          MaxBackpressure        = 1024 * 1024,   // generous
+                                          BackpressureBehaviour  = WebSocketBackpressureBehaviour.CloseConnection
+                                      };
 
             await client.Connect();
 

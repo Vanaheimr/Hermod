@@ -396,7 +396,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
         [OneTimeTearDown]
         public async Task Shutdown_HTTPSServer()
         {
-            await httpsServer.Stop();
+            await httpsServer.DisposeAsync();
         }
 
         #endregion

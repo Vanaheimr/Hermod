@@ -73,16 +73,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             if (client is not null)
-                await client.Close();
+                await client.DisposeAsync();
 
             if (first is not null)
+            {
                 await first.Shutdown();
+                await first.DisposeAsync();
+            }
 
             if (lent is not null)
+            {
                 await lent.Shutdown();
+                await lent.DisposeAsync();
+            }
 
             if (httpServer is not null)
-                await httpServer.Stop();
+                await httpServer.DisposeAsync();
 
             client      = null;
             first       = null;
@@ -333,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(first.WebSocketConnections.Any(), Is.True,
                         "The client did not get connected to begin with.");
 
-            await first.Stop();
+            await first.DisposeAsync();
 
             first = null;
 

@@ -331,6 +331,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #region DisposeAsync()
+
+        /// <summary>
+        /// Dispose of the server, and of the client this proxy made for the
+        /// upstream server, whose ping and maintenance timers ran on after the
+        /// proxy was disposed of, and kept it alive.
+        /// </summary>
+        public override async ValueTask DisposeAsync()
+        {
+            await base.DisposeAsync();
+            await webSocketClient.DisposeAsync();
+        }
+
+        #endregion
+
 
     }
 

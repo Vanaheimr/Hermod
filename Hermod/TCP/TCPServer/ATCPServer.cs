@@ -115,6 +115,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected readonly         ILogger<ATCPServer>                        logger;
         protected readonly         ILoggerFactory                             loggerFactory;
 
+        /// <summary>
+        /// Whether this server made its DNS client itself, and so is the one
+        /// to dispose of it. One that was handed in belongs to whoever handed
+        /// it in, and may be serving others as well.
+        /// </summary>
+        private          readonly  Boolean                                    ownsDNSClient;
+
+        /// <summary>
+        /// Whether DisposeAsync() has run: a second call would cancel a token
+        /// source the first one disposed of, which throws.
+        /// </summary>
+        private                    Int32                                      disposed;
+
         #endregion
 
         #region Properties
@@ -425,6 +438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.CheckCertificateRevocation  = CheckCertificateRevocation  ?? false;
             this.loggerFactory               = LoggerFactory               ?? NullLoggerFactory.Instance;
             this.logger                      = loggerFactory.CreateLogger<ATCPServer>();  //NullLogger<ATCPServer>.Instance;
+            this.ownsDNSClient               = DNSClient is null;
             this.DNSClient                   = DNSClient                   ?? new DNSClient(Logger: loggerFactory.CreateLogger<IDNSClient>());
 
 
@@ -1501,13 +1515,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Dispose/Async()
 
-        public async ValueTask DisposeAsync()
+        public virtual async ValueTask DisposeAsync()
         {
+
+            if (Interlocked.Exchange(ref disposed, 1) == 1)
+                return;
+
             await Stop();
             maintenanceTimer?.Dispose();
             await Warden.DisposeAsync();
+
+            // The Warden is lent the DNS client and leaves it alone; it is this
+            // server's to dispose of where this server made it, and only there.
+            if (ownsDNSClient)
+                await DNSClient.DisposeAsync();
+
             cts.Dispose();
             GC.SuppressFinalize(this);
+
         }
 
         public void Dispose()

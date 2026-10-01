@@ -20,11 +20,11 @@ public sealed class HashImageTests
     public async Task HashImage_Must_Render_Fingerprint_As_SVG()
     {
 
-        var server = new HTTPServer(
-                         IPAddress: IPv4Address.Localhost,
-                         TCPPort:   IPPort.Zero,
-                         AutoStart: false
-                     );
+        await using var server = new HTTPServer(
+                                     IPAddress: IPv4Address.Localhost,
+                                     TCPPort:   IPPort.Zero,
+                                     AutoStart: false
+                                 );
 
         try
         {
@@ -65,11 +65,11 @@ public sealed class HashImageTests
     public async Task HashImage_With_URLEncoded_Separators_Must_Render_As_SVG()
     {
 
-        var server = new HTTPServer(
-                         IPAddress: IPv4Address.Localhost,
-                         TCPPort:   IPPort.Zero,
-                         AutoStart: false
-                     );
+        await using var server = new HTTPServer(
+                                     IPAddress: IPv4Address.Localhost,
+                                     TCPPort:   IPPort.Zero,
+                                     AutoStart: false
+                                 );
 
         try
         {
@@ -107,11 +107,11 @@ public sealed class HashImageTests
     public async Task HashImage_With_Different_Fingerprints_Must_Render_Different_Images()
     {
 
-        var server = new HTTPServer(
-                         IPAddress: IPv4Address.Localhost,
-                         TCPPort:   IPPort.Zero,
-                         AutoStart: false
-                     );
+        await using var server = new HTTPServer(
+                                     IPAddress: IPv4Address.Localhost,
+                                     TCPPort:   IPPort.Zero,
+                                     AutoStart: false
+                                 );
 
         try
         {
@@ -152,11 +152,11 @@ public sealed class HashImageTests
     public async Task HashImage_With_Invalid_Fingerprint_Must_Return_400()
     {
 
-        var server = new HTTPServer(
-                         IPAddress: IPv4Address.Localhost,
-                         TCPPort:   IPPort.Zero,
-                         AutoStart: false
-                     );
+        await using var server = new HTTPServer(
+                                     IPAddress: IPv4Address.Localhost,
+                                     TCPPort:   IPPort.Zero,
+                                     AutoStart: false
+                                 );
 
         try
         {

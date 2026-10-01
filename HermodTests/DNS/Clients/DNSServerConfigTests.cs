@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         public void TheSameServerOnThreeInterfaces_IsOneServerOfTheClient()
         {
 
-            var client = new DNSClient([
+            using var client = new DNSClient([
                              IPv6Address.From(System.Net.IPAddress.Parse("fec0:0:0:ffff::1%1")),
                              IPv6Address.From(System.Net.IPAddress.Parse("fec0:0:0:ffff::1%2")),
                              IPv6Address.From(System.Net.IPAddress.Parse("fec0:0:0:ffff::1%3"))

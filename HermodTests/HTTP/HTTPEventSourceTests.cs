@@ -62,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [TearDown]
         public async Task StopTheServer()
         {
-            await httpServer.Stop();
+            await httpServer.DisposeAsync();
         }
 
         #endregion

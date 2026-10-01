@@ -73,7 +73,7 @@ public class SSEProxyTests
         {
             try
             {
-                await httpServer.Stop().WaitAsync(TimeSpan.FromSeconds(5));
+                await httpServer.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
             }
             catch (TimeoutException)
             { }

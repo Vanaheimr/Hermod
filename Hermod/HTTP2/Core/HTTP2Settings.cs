@@ -23,6 +23,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// Both peers maintain their own settings; the "local" settings are what WE advertise
     /// and the "remote" settings are what the PEER advertised. Direction-neutral — used by
     /// both the server and the client connection.
+    ///
+    /// The defaults are our own values, not RFC 9113's initial ones (Section 6.5.2), and a
+    /// "remote" instance keeps them for each setting the peer has not stated. They agree for
+    /// HeaderTableSize and MaxFrameSize. MaxHeaderListSize keeps ours where the RFC sets no
+    /// limit, and the outbound header-list check relies on that. Our InitialWindowSize is not
+    /// the RFC's 65535, so the window arithmetic goes by
+    /// <see cref="HTTP2StreamManager.PeerInitialWindowSize"/> instead.
     /// </summary>
     public sealed class HTTP2Settings
     {

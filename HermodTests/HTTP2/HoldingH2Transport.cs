@@ -112,20 +112,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             using var timeout = new CancellationTokenSource(StepTimeout);
 
+            while (true)
+            {
+
+                var frame = await NextFrameAsync(timeout.Token)
+                                ?? throw new EndOfStreamException("The client closed before sending HEADERS");
+
+                if (frame.Type == HTTP2FrameType.HEADERS)
+                    return frame;
+
+                Skipped?.Add(frame);
+
+            }
+
+        }
+
+        /// <summary>
+        /// The next frame the client sent, of whatever type, or null once the
+        /// client's side has ended. Reads the connection preface first, the first
+        /// time.
+        /// </summary>
+        public async Task<HTTP2Frame?> NextFrameAsync(CancellationToken CancellationToken)
+        {
+
             if (!prefaceRead)
             {
-                if (!await H2Raw.ReadExactAsync(fromClient, new Byte[H2Raw.Preface.Length], timeout.Token))
+                if (!await H2Raw.ReadExactAsync(fromClient, new Byte[H2Raw.Preface.Length], CancellationToken))
                     throw new EndOfStreamException("The client closed before its connection preface");
                 prefaceRead = true;
             }
 
+            return await H2Raw.ReadFrameAsync(fromClient, CancellationToken);
+
+        }
+
+        /// <summary>
+        /// The next frame the client sent on <paramref name="StreamId"/>, skipping
+        /// those on other streams — into <paramref name="Skipped"/>, if given.
+        /// </summary>
+        public async Task<HTTP2Frame> NextFrameOnAsync(UInt32 StreamId, ICollection<HTTP2Frame>? Skipped = null)
+        {
+
+            using var timeout = new CancellationTokenSource(StepTimeout);
+
             while (true)
             {
 
-                var frame = await H2Raw.ReadFrameAsync(fromClient, timeout.Token)
-                                ?? throw new EndOfStreamException("The client closed before sending HEADERS");
+                var frame = await NextFrameAsync(timeout.Token)
+                                ?? throw new EndOfStreamException($"The client closed before sending on stream {StreamId}");
 
-                if (frame.Type == HTTP2FrameType.HEADERS)
+                if (frame.StreamId == StreamId)
                     return frame;
 
                 Skipped?.Add(frame);

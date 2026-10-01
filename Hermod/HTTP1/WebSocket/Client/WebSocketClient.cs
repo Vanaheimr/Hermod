@@ -2828,14 +2828,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region Dispose()
+        #region Dispose() / DisposeAsync()
 
         /// <summary>
         /// Dispose this object.
         /// </summary>
         public override void Dispose()
         {
-            Close().GetAwaiter().GetResult();
+            DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Dispose this object: close it as <see cref="Close"/> does, timers
+        /// included, and then let go of what every TCP client holds.
+        /// </summary>
+        /// <remarks>
+        /// The one inherited closed only the TCP connection, and its ping and
+        /// maintenance timers ran on. A running timer keeps what it calls
+        /// alive, so a client disposed of with <c>await using</c> never went
+        /// away. Dispose() did close it, but never got to the base, and the DNS
+        /// client the base had made stayed behind.
+        /// </remarks>
+        public override async ValueTask DisposeAsync()
+        {
+            await Close().ConfigureAwait(false);
+            await base.DisposeAsync().ConfigureAwait(false);
         }
 
         #endregion
