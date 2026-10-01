@@ -252,6 +252,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         case HTTP2FrameType.PUSH_PROMISE:
                             // We advertised ENABLE_PUSH=0; a server that pushes anyway is in error.
                             throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR, "Server push not enabled");
+                        case HTTP2FrameType.PRIORITY_UPDATE:
+                            // RFC 9218, Section 7.1: only a client sends PRIORITY_UPDATE —
+                            // a client that receives one must answer with a connection
+                            // error, whatever stream it names and whatever it carries.
+                            throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
+                                "PRIORITY_UPDATE received by client (servers must not send it)");
                         default:
                             // PRIORITY, unknown types — ignore (RFC 9113, Section 4.1).
                             break;
@@ -260,8 +266,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             catch (Exception ex)
             {
+
                 FailAllExchanges(ex);
                 settingsReceived.TrySetException(ex);
+
+                // RFC 9113, Section 5.4.1: an endpoint that ends a connection over
+                // an error it found should tell the peer first, with a GOAWAY that
+                // carries the error code (see SendGoAwayAsync). Other failures end
+                // the connection as before: a failed transport (an IOException)
+                // has no one to tell, and a cancellation means the connection is
+                // being closed already.
+                if (ex is HTTP2ConnectionException connectionError)
+                    await SendGoAwayAsync(connectionError.ErrorCode, connectionError.Message);
+
             }
             finally
             {
@@ -2805,6 +2822,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
 
             connectionCts.Cancel();
+
+        }
+
+        /// <summary>
+        /// How long a GOAWAY that ends the connection over an error may take, to
+        /// get the write lock and to be written (see <see cref="SendGoAwayAsync"/>).
+        /// </summary>
+        private static readonly TimeSpan GoAwayTimeout = TimeSpan.FromSeconds(1);
+
+        /// <summary>
+        /// Tell the server why the connection ends, when it ends over an error we
+        /// found (RFC 9113, Section 5.4.1): a GOAWAY with the error code and, as
+        /// debug data, what went wrong. Its last-stream-id is that of the last
+        /// stream the server opened: none, as we refuse server push.
+        ///
+        /// Best effort, and bounded. The read loop sends it before it cancels the
+        /// connection, so a write that holds the write lock and does not end — the
+        /// server no longer reads, say — would otherwise hold up the end of the
+        /// connection for good, and with it everything that waits for
+        /// <see cref="Closed"/> or <see cref="Unusable"/>, a pool among them. A
+        /// GOAWAY that has not got the lock and gone out within
+        /// <see cref="GoAwayTimeout"/>, on the options' TimeProvider, is given up.
+        ///
+        /// The write lock is not released: the GOAWAY is the last frame of the
+        /// connection, as Section 5.4.1 has the TCP connection closed after it,
+        /// and every write still waiting for the lock fails with the cancellation
+        /// that follows.
+        /// </summary>
+        private async Task SendGoAwayAsync(HTTP2ErrorCode ErrorCode, String? DebugMessage)
+        {
+
+            var bytes = HTTP2Frame.CreateGoAway(streamManager.LastPeerStreamId, ErrorCode, DebugMessage).Serialize();
+
+            using var timeout = new CancellationTokenSource(GoAwayTimeout, options.TimeProvider);
+            using var bounded = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+
+            try
+            {
+                await writeLock.WaitAsync(bounded.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            try
+            {
+                await transportStream.WriteAsync(bytes, bounded.Token);
+                await transportStream.FlushAsync(bounded.Token);
+            }
+            catch
+            {
+                // Best effort: the connection ends either way.
+            }
 
         }
 
