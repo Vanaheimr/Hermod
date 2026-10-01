@@ -20,10 +20,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
     /// <summary>
     /// Which stream's queued DATA goes on the wire next (RFC 9218): the one
-    /// decision a connection's single DATA writer loop makes over and over —
-    /// <see cref="HTTP2Connection"/>'s, for response bodies and tunnel bytes, by
-    /// the priority the client signalled. Apart from the connection, so that
-    /// another writer loop can order its streams alike.
+    /// decision a connection's single DATA writer loop makes over and over. The
+    /// server's (<see cref="HTTP2Connection"/>) sends response bodies and tunnel
+    /// bytes by it, the client's (<see cref="HTTP2ClientConnection"/>) request
+    /// bodies and tunnel bytes, so that both directions of a connection order
+    /// their streams alike, by the priority the client signalled.
     /// </summary>
     internal static class HTTP2SendOrder
     {

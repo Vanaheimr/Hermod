@@ -168,10 +168,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// RFC 9218 priority (urgency + incremental). Set from the request's
-        /// "priority" header field if present (default otherwise), and
-        /// updatable afterwards via a PRIORITY_UPDATE frame or a "priority"
-        /// response header — read by the connection's writer loop to decide send
-        /// order among concurrent streams.
+        /// "priority" header field if present (default otherwise) — on the
+        /// server from what the client asked, on the client from what it asks —
+        /// and updatable afterwards: on the server via a PRIORITY_UPDATE frame or
+        /// a "priority" response header, on the client via
+        /// <see cref="HTTP2ClientConnection.UpdatePriorityAsync"/>, which sends
+        /// that PRIORITY_UPDATE. Read by the connection's writer loop to decide
+        /// send order among concurrent streams (<see cref="HTTP2SendOrder"/>).
         /// </summary>
         public HTTP2Priority       Priority        { get; set; } = HTTP2Priority.Default;
 
@@ -418,11 +421,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private HTTP2ErrorCode? peerResetCode;
 
         /// <summary>
+        /// The error code of our own RST_STREAM that closed this stream, as
+        /// <see cref="Reset(HTTP2ErrorCode)"/> keeps it; null before that, after a
+        /// reset of ours that was not given one, and after a reset that came
+        /// second: the peer's was first then, and <see cref="PeerResetCode"/>
+        /// says why. The client passes it, as it passes the peer's, so that a
+        /// write on a stream it has reset itself — its DATA writer loop, for a
+        /// failure of its own on that stream — fails with the code its
+        /// RST_STREAM carried. Read under the lock of the transitions, under
+        /// which the reset sets it.
+        /// </summary>
+        public HTTP2ErrorCode? OwnResetCode
+        {
+            get
+            {
+                lock (stateLock)
+                    return ownResetCode;
+            }
+        }
+
+        private HTTP2ErrorCode? ownResetCode;
+
+        /// <summary>
         /// Forcibly close: we send RST_STREAM, or the connection ends.
         /// </summary>
         public void Reset()
 
             => Reset(ByPeer: false);
+
+        /// <summary>
+        /// Forcibly close with an RST_STREAM of ours, and keep the error code it
+        /// carries (see <see cref="OwnResetCode"/>). Everything else is as for
+        /// <see cref="Reset()"/>.
+        /// </summary>
+        public void Reset(HTTP2ErrorCode ErrorCode)
+
+            => Reset(ByPeer: false, ErrorCode);
 
         /// <summary>
         /// Forcibly close, as the peer's RST_STREAM does. Everything else is as
@@ -441,7 +475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             => Reset(ByPeer: true, ErrorCode);
 
-        private void Reset(bool ByPeer, HTTP2ErrorCode? PeerErrorCode = null)
+        private void Reset(bool ByPeer, HTTP2ErrorCode? ErrorCode = null)
         {
             lock (stateLock)
             {
@@ -452,8 +486,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     DiscardsPeerFrames = true;
 
                 // The first code stays: a later reset changes nothing on a stream
-                // that is closed already.
-                peerResetCode ??= PeerErrorCode;
+                // that is closed already. Ours is kept only if it is the first
+                // reset, so that a stream reset by both sides is not said to have
+                // been reset by us when the peer's came first.
+                if (ByPeer)
+                    peerResetCode ??= ErrorCode;
+
+                else if (!WasReset)
+                    ownResetCode = ErrorCode;
 
                 State    = HTTP2StreamState.Closed;
                 WasReset = true;

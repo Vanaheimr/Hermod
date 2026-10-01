@@ -23,8 +23,8 @@ explicitly out of scope](#explicitly-out-of-scope) are all below.
 > closure, per-stream RST_STREAM cancellation, graceful `GOAWAY` shutdown, a
 > table-driven Huffman decoder *and* encoder, a full HPACK encoder (static +
 > dynamic table + Huffman), CONNECT + extended CONNECT (RFC 8441) +
-> WebSocket (RFC 6455) tunneling, RFC 9218 priority-aware response
-> scheduling, streaming request/response bodies with response trailers
+> WebSocket (RFC 6455) tunneling, RFC 9218 priority-aware response (and
+> client upload) scheduling, streaming request/response bodies with response trailers
 > (gRPC-style, verified against .NET `HttpClient` — and a real gRPC service
 > interop-tested against `Grpc.Net.Client`), 1xx interim responses
 > (`Expect: 100-continue`, 103 Early Hints), an RFC 9110 semantics
@@ -264,6 +264,25 @@ await conn.UpdatePriorityAsync(h.StreamId, new HTTP2Priority(0, false));   // PR
 var slow = await h.Response;
 ```
 
+The client sends its own DATA by the same priorities: one writer loop per
+connection sends every request body and tunnel write, a DATA frame at a time,
+by the priority each stream asked the server for. Several WebSockets over one
+connection — real-time messages on one, a log upload on another — each open
+with their own, and a message on the urgent one overtakes what the upload still
+has queued, in both directions:
+
+```csharp
+var ocpp = await conn.OpenWebSocketAsync("csms.example", "https", "/ocpp/CS01",
+    Priority: new HTTP2Priority(0, false));                          // real-time
+var logs = await conn.OpenWebSocketAsync("csms.example", "https", "/logs/CS01",
+    Priority: new HTTP2Priority(6, true));                           // background
+
+_ = logs.SendBinaryAsync(logFile, CancellationToken.None);           // a mebibyte or two
+await ocpp.SendTextAsync(heartbeat, CancellationToken.None);         // goes first
+
+await logs.UpdatePriorityAsync(new HTTP2Priority(1, false));          // the backend now waits for it
+```
+
 For full-duplex request/response streaming — the enabler for client-streaming and
 bidirectional gRPC — `StartStreamingRequestAsync` returns a handle whose request
 body is written incrementally while the response is read incrementally, both at
@@ -314,7 +333,7 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 | **9113** | HTTP/2 | ✅ Complete | Framing, streams, flow control, settings, GOAWAY, §9.2 TLS profile, §9.1.1 authority checking. h2spec 146/146. |
 | **7541** | HPACK: Header Compression | ✅ Complete | Full decoder **and** encoder (static + dynamic table + Huffman both ways). |
 | **7301** | TLS ALPN | ✅ | `h2` negotiation in the TLS handshake. |
-| **9218** | Extensible Prioritization Scheme | ✅ | `priority` header, `PRIORITY_UPDATE`, `SETTINGS_NO_RFC7540_PRIORITIES`; priority-aware writer. Both roles emit + the server acts on it. |
+| **9218** | Extensible Prioritization Scheme | ✅ | `priority` header, `PRIORITY_UPDATE`, `SETTINGS_NO_RFC7540_PRIORITIES`; priority-aware writer on both roles. Both roles emit; the server sends its responses by it, the client its own request bodies and tunnel bytes. |
 | **8441** | Bootstrapping WebSockets with HTTP/2 | ✅ | Extended CONNECT, `:protocol`, `SETTINGS_ENABLE_CONNECT_PROTOCOL`. |
 | **8336** | The ORIGIN HTTP/2 Frame | ✅ | Server announces its Origin Set; client parses it (ignored on stream ≠ 0 and over h2c). |
 | **7838** | HTTP Alternative Services | ✅ | ALTSVC frame both directions + the `Alt-Svc` field-value grammar; client records alternatives, does not act on them (no HTTP/3 endpoint to act on yet). |
@@ -855,8 +874,20 @@ that prints, which is roughly what the library used to hardcode.
 - The `priority` request/response header (urgency + incremental) and
   `PRIORITY_UPDATE` frame — parsed leniently (bad hint → default, not an error).
 - A **priority-aware multiplexed writer**: a single per-connection writer loop
-  schedules DATA by urgency → non-incremental-first → round-robin fairness.
-- Client emits the signals too (`Priority` param, `UpdatePriorityAsync`).
+  schedules DATA by urgency → non-incremental-first → round-robin fairness
+  (`HTTP2SendOrder`, shared by both roles).
+- Client emits the signals too (`Priority` param on requests, streamed requests,
+  tunnels and WebSockets; `UpdatePriorityAsync` on the connection, a tunnel or
+  a `WebSocketConnection`), and **sends its own DATA by them**: a writer loop of
+  its own, the mirror of the server's, sends every request body, tunnel write
+  and END_STREAM on DATA by the priority the stream's request asked the server
+  for — the `Priority`, a `priority` field among the caller's headers, or a later
+  `UpdatePriorityAsync`. A message on an urgent stream waits for the DATA frame
+  being written, not for what a bulk upload on another stream still has queued.
+  RFC 9218 orders the server's sending; that the client orders its own by the
+  same signal is this stack's choice. The writer loop orders what it hands to
+  the transport, no more: bytes already in the TLS and TCP send buffers go out
+  first, whatever their stream.
 
 ### CONNECT & tunneling
 
@@ -864,6 +895,12 @@ that prints, which is roughly what the library used to hardcode.
 - Extended CONNECT (RFC 8441) — `:protocol` + mandatory `:scheme`/`:path`.
 - `HTTP2Tunnel` (server) / `HTTP2ClientTunnel` (client): a raw, flow-controlled,
   transport-agnostic byte tunnel behind the `IHTTP2Tunnel` interface.
+- A tunnel, and a WebSocket over one, is prioritized like any other stream
+  (RFC 9218 §11: the scheduling guidance applies to the frames of a CONNECT
+  stream): `OpenTunnelAsync`/`OpenWebSocketAsync(…, Priority:)` send the
+  `priority` field with the CONNECT, `HTTP2ClientTunnel.UpdatePriorityAsync` and
+  `WebSocketConnection.UpdatePriorityAsync` change it later, and both ends' writer
+  loops send the tunnel's bytes by it.
 
 ### WebSocket (RFC 6455 + RFC 7692)
 
@@ -951,16 +988,28 @@ that prints, which is roughly what the library used to hardcode.
   trailers or of a tunnel (`CompleteRequestAsync()`, `CloseAsync()`) and a
   buffered request's body send nothing once the server has reset the stream. The
   calls fail as the trailers do, with an `HTTP2StreamException` carrying the
-  reset's error code: at once, or once the write lock is theirs. Whether to send
-  is decided under that lock, right before the write, since the read loop handles
-  `RST_STREAM` without it. The end used to go out on the reset stream regardless,
-  and so did a write that had taken its window before the reset; both reported
-  success, as did a write that met the reset and sent nothing. A frame kept off
-  the wire gives its send window back to the connection. A buffered body stops
-  quietly: the reset has decided its exchange already, as a failure, a retry on
-  a new stream, or a complete response that stands. `DownloadAsync` reads such a
-  response even when ending its request meets the `RST_STREAM NO_ERROR` that
-  followed it.
+  reset's error code: at once, when the reset comes while they wait in the
+  stream's queue, or once the writer loop has the write lock for them. Whether
+  to send is decided under that lock, right before the write, since the read
+  loop handles `RST_STREAM` without it. The end used to go out on the reset
+  stream regardless, and so did a write that had taken its window before the
+  reset; both reported success, as did a write that met the reset and sent
+  nothing. A frame kept off the wire gives its send window back to the
+  connection. A buffered body stops quietly: the reset has decided its exchange
+  already, as a failure, a retry on a new stream, or a complete response that
+  stands. `DownloadAsync` reads such a response even when ending its request
+  meets the `RST_STREAM NO_ERROR` that followed it.
+- **Nothing after our own end** (§5.1): a second `CompleteRequestAsync()` or
+  `CloseAsync()` sends nothing and returns, and a write or trailers after the end
+  fail at once with an `InvalidOperationException`. A second END_STREAM, and a
+  write after the end, used to go out onto the stream half-closed (local).
+- **Writes are queued** for the connection's writer loop (see Prioritization).
+  A write returns once its last frame is the next to go out; the end of a
+  request — on DATA or as trailers — goes out behind every write before it. The
+  `CancellationToken` a write is given ends its wait, not the write: what it
+  queued still goes out, in order. It used to be ignored, and trailers went out
+  ahead of a write still waiting for window, whose DATA then followed the
+  END_STREAM.
 - **gRPC** runs over the stack (unary, server-streaming, client-streaming, bidi)
   with `grpc-status` in trailers — verified against the real `Grpc.Net.Client`,
   with **zero gRPC-specific production code**.
@@ -974,13 +1023,20 @@ that prints, which is roughly what the library used to hardcode.
 ### Client features
 
 - Full client-side multiplexing; flow-control receive replenishment; priority
-  signaling.
+  signaling, and a priority-aware DATA writer loop for what the client sends
+  (see Prioritization).
 - **Robustness**: REFUSED_STREAM auto-retry, `MAX_CONCURRENT_STREAMS` gating
   (queue, don't fail), GOAWAY/exhaustion → retry-safe
   `HTTP2RequestNotProcessedException`, PING keepalive / dead-connection
   detection, client-side flood bounds. No new stream after a `GOAWAY` (§6.8): a
   request started then, or waiting for a stream slot when it comes, fails at once
   with `HTTP2RequestNotProcessedException`.
+- **The writer loop's failures are contained** as the server's are: a stream
+  error — DATA after our own END_STREAM, from a write racing the end of its
+  request — resets that one stream (`RST_STREAM INTERNAL_ERROR`; its writes and
+  its response side fail with that code) and the loop serves the others on;
+  anything else ends the connection at once with `GOAWAY INTERNAL_ERROR`, and
+  every request on it fails with the reason.
 - **Slots and windows follow the stream**: the `MAX_CONCURRENT_STREAMS` gate,
   and `AvailableStreamSlots` for the pool, count the streams that are open or
   half-closed (§5.1.2), as the stream allocator and the server do, not the

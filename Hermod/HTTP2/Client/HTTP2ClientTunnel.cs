@@ -67,20 +67,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
-        /// Send a chunk of bytes to the peer as flow-controlled DATA frame(s).
+        /// The tunnel's RFC 9218 priority: the one it was opened with
+        /// (<see cref="HTTP2ClientConnection.OpenTunnelAsync"/>), or the last one
+        /// <see cref="UpdatePriorityAsync"/> set. The connection's writer loop sends
+        /// what is written to the tunnel by it, among the DATA of the connection's
+        /// other streams.
+        /// </summary>
+        public HTTP2Priority Priority
+            => stream.Priority;
+
+        /// <summary>
+        /// Reprioritize the tunnel: what is still queued, and what is written from
+        /// now on, goes out by the new priority, and the server is told with a
+        /// PRIORITY_UPDATE frame, for what it sends back (RFC 9218, Section 7.1) —
+        /// see <see cref="HTTP2ClientConnection.UpdatePriorityAsync"/>.
+        /// </summary>
+        public Task UpdatePriorityAsync(HTTP2Priority Priority, CancellationToken CancellationToken = default)
+            => connection.UpdatePriorityAsync(stream.StreamId, Priority, CancellationToken);
+
+        /// <summary>
+        /// Send a chunk of bytes to the peer as flow-controlled DATA frame(s): the
+        /// connection's writer loop sends them by the tunnel's
+        /// <see cref="Priority"/>, between the DATA of its other streams. Returns
+        /// once the last frame of them is the next to go out.
         ///
         /// Nothing more goes out on a tunnel the server has reset, and the task
         /// fails then with an <see cref="HTTP2StreamException"/> that carries the
         /// reset's error code. <see cref="ReadAsync"/> returns null after a reset
-        /// as after an orderly end; this is where the two differ.
+        /// as after an orderly end; this is where the two differ. Once the tunnel
+        /// is closed on our side (<see cref="CloseAsync"/>), a write fails with an
+        /// <see cref="InvalidOperationException"/>. <paramref name="CancellationToken"/>
+        /// ends the wait, not the write: a chunk already queued still goes out, in
+        /// order.
         /// </summary>
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken)
             => connection.SendTunnelDataAsync(stream, Data, CancellationToken);
 
         /// <summary>
-        /// End our side of the tunnel (a zero-length END_STREAM DATA frame). On a
-        /// tunnel the server has reset nothing is sent, and the task fails as
-        /// <see cref="WriteAsync"/> does.
+        /// End our side of the tunnel (a zero-length END_STREAM DATA frame, behind
+        /// what was written before it). On a tunnel the server has reset nothing
+        /// is sent, and the task fails as <see cref="WriteAsync"/> does. A second
+        /// close sends nothing.
         /// </summary>
         public Task CloseAsync()
             => connection.EndTunnelAsync(stream);

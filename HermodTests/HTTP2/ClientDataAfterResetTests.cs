@@ -555,6 +555,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await SentUntilHeadersOfAsync(transport, decoder, upload.StreamId);
 
             var writing     = upload.WriteAsync(ASCII("more than ten bytes"));
+
+            // What the stream has window for goes out first: the writer loop sends
+            // it, on a thread of its own, and the rest waits for more window.
+            var first       = await transport.NextFrameOnAsync(upload.StreamId);
             var waited      = !writing.IsCompleted;
 
             await transport.SendAsync(HTTP2Frame.CreateRstStream(upload.StreamId, HTTP2ErrorCode.CANCEL));
@@ -568,13 +572,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Assert.Multiple(() =>
             {
 
+                Assert.That($"{first.StreamId} {first.Type} \"{Encoding.ASCII.GetString(first.Payload ?? [])}\"",
+                                                Is.EqualTo($"{upload.StreamId} DATA \"more than \""),               "what the write sent: the ten bytes it had window for");
+
                 Assert.That(waited,             Is.True,                                                            "the write waited for window");
 
                 Assert.That(ended,              Is.True,                                                            "the write returned while the connection was open");
                 Assert.That(Describe(failure),  Is.EqualTo(ResetFailure(upload.StreamId, HTTP2ErrorCode.CANCEL)),  "how the write failed");
 
-                Assert.That(sent,               Is.EqualTo(new[] { $"{upload.StreamId} DATA \"more than \"", Request(upload.StreamId + 2, "POST", "/next") }),
-                                                                                                                    "what the client sent from the write on, up to the next request's HEADERS: the ten bytes it had window for");
+                Assert.That(sent,               Is.EqualTo(new[] { Request(upload.StreamId + 2, "POST", "/next") }),
+                                                                                                                    "what the client sent after those ten bytes, up to the next request's HEADERS");
 
             });
 
@@ -587,14 +594,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         #region WriteWaitingForTheWriteLock_ResetMeanwhile_NotSent()
 
         /// <summary>
-        /// A write has taken its window and waits for the connection's write lock,
-        /// which another request's start holds: the test holds it in the write of
-        /// its HEADERS. Meanwhile the read loop handles the server's RST_STREAM.
-        /// Once the write gets the lock, it finds the stream reset: its DATA stays
-        /// unsent, the write fails with the reset's error code, and the window it
-        /// took is the connection's again. A check made only while it took the
-        /// window let the DATA through onto the reset stream, and the write
-        /// returned as if all was well.
+        /// The writer loop has taken a write's window and waits with its DATA for
+        /// the connection's write lock, which another request's start holds: the
+        /// test holds it in the write of its HEADERS. Meanwhile the read loop
+        /// handles the server's RST_STREAM. Once the writer loop gets the lock, it
+        /// finds the stream reset: the DATA stays unsent, the write fails with the
+        /// reset's error code, and the window taken for it is the connection's
+        /// again. A check made only while the window was taken let the DATA
+        /// through onto the reset stream, and the write returned as if all was
+        /// well.
         /// </summary>
         [Test]
         public async Task WriteWaitingForTheWriteLock_ResetMeanwhile_NotSent()
@@ -613,8 +621,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await SentUntilHeadersOfAsync(transport, decoder, 3);
 
             var writing     = upload.WriteAsync(ASCII("after the reset"));
+
+            // The writer loop takes the write's window on a thread of its own, and
+            // then waits for the write lock.
+            var taken       = await SendWindowReachesAsync(connection, InitialConnectionWindow - 15);
             var waited      = !writing.IsCompleted;
-            var taken       = ConnectionSendWindow(connection);
 
             await transport.SendAsync(HTTP2Frame.CreateRstStream(upload.StreamId, HTTP2ErrorCode.CANCEL));
 
@@ -631,7 +642,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             {
 
                 Assert.That(waited,             Is.True,                                                            "the write waited for the other request's start");
-                Assert.That(taken,              Is.EqualTo(InitialConnectionWindow - 15),                           "the connection's send window while the write waited: less its 15 bytes");
+                Assert.That(taken,              Is.True,                                                            "the write's window taken: the connection's send window went down by its 15 bytes");
                 Assert.That(otherStarted,       Is.True,                                                            "the other request started");
 
                 Assert.That(ended,              Is.True,                                                            "the write returned while the connection was open");
@@ -654,16 +665,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         /// <summary>
         /// One upload has taken all of the connection's send window but 15 bytes.
-        /// A second upload takes those, and waits for the write lock, which a third
-        /// request's start holds; the server resets the second upload meanwhile.
-        /// Then the first upload writes again, and waits for window. Once the
-        /// second upload's frame gets the lock, its 15 bytes stay unsent, and
-        /// their window goes back to the connection. The first upload's write gets
-        /// it, and its 10 bytes go out. Had the window not come back, or come back
-        /// without a word to the write that waits for it, that write would have
+        /// The writer loop takes those for a second upload, and waits with its
+        /// frame for the write lock, which a third request's start holds; the
+        /// server resets the second upload meanwhile. Then the first upload writes
+        /// again, and waits for window. Once the writer loop gets the lock for the
+        /// second upload's frame, its 15 bytes stay unsent, and their window goes
+        /// back to the connection. The first upload's write gets it, and its 10
+        /// bytes go out. Had the window not come back, that write would have
         /// waited for good: the server grants window for DATA it gets, and it
         /// never got those 15 bytes. The reset is handled before that write
-        /// waits, so that its own wake-up cannot stand in for that word.
+        /// waits, so that nothing but the window given back can let it go on.
         /// </summary>
         [Test]
         public async Task WindowOfAFrameKeptOffTheWire_GoesToAWriteWaitingForIt()
@@ -688,7 +699,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var firstSent   = await reading;
 
             var dropped     = second.WriteAsync(ASCII("after the reset"));
-            var taken       = ConnectionSendWindow(connection);
+
+            // The writer loop takes the last 15 bytes of window for it, on a
+            // thread of its own, and then waits for the write lock.
+            var taken       = await SendWindowReachesAsync(connection, 0);
 
             await transport.SendAsync(HTTP2Frame.CreateRstStream(second.StreamId, HTTP2ErrorCode.CANCEL));
 
@@ -714,7 +728,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                                                          $"{first.StreamId} DATA (16368 bytes)",
                                                                          Request(5, "POST", "/other") }),                  "what the client sent of the first upload, up to the other request's HEADERS");
 
-                Assert.That(taken,                    Is.EqualTo(0),                                                        "the connection's send window, once the second upload took its 15 bytes");
+                Assert.That(taken,                    Is.True,                                                              "the second upload's frame took the last 15 bytes of the connection's send window");
                 Assert.That(waited,                   Is.True,                                                              "the first upload's write waited for window");
                 Assert.That(otherStarted,             Is.True,                                                              "the other request started");
 

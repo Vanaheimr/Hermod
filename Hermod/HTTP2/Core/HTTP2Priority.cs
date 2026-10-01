@@ -23,9 +23,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// urgency/incremental pair carried by a "priority" header field or a
     /// PRIORITY_UPDATE frame. Urgency ranges 0 (most urgent) to 7 (least),
     /// default 3; incremental defaults to false ("send as a single unit").
-    /// Read by <see cref="HTTP2Connection"/>'s writer loop to decide which
-    /// stream's queued bytes go on the wire next when several are ready at once
-    /// (see <see cref="HTTP2SendOrder"/>).
+    /// Read by the DATA writer loop of either role — <see cref="HTTP2Connection"/>'s
+    /// for response bodies, <see cref="HTTP2ClientConnection"/>'s for request
+    /// bodies and tunnel bytes — to decide which stream's queued bytes go on the
+    /// wire next when several are ready at once (see <see cref="HTTP2SendOrder"/>).
     /// </summary>
     public readonly record struct HTTP2Priority(byte Urgency, bool Incremental)
     {
@@ -47,8 +48,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Parse an RFC 9218 Priority Field Value — a Structured Fields
         /// Dictionary (RFC 8941) with two recognized keys, "u" (urgency, integer
         /// 0-7, default 3) and "i" (incremental, boolean, default false). Used
-        /// both for the request's own "priority" header field (Section 4) and
-        /// for a PRIORITY_UPDATE frame's payload (Section 7.1), which share the
+        /// for the "priority" header field of a request (Section 4), by the server
+        /// for what it is asked and by the client for what it asks, and for a
+        /// PRIORITY_UPDATE frame's payload (Section 7.1), which share the
         /// identical value grammar.
         ///
         /// Deliberately lenient (Section 4): a parse failure, an unknown key, or
@@ -94,6 +96,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
 
             return new HTTP2Priority(urgency, incremental);
+
+        }
+
+        /// <summary>
+        /// The priority a header list asks for: its "priority" field, parsed as
+        /// <see cref="Parse"/> does, or <see cref="Default"/> without one (RFC 9218,
+        /// Section 4: a request without the field has the default priority).
+        /// </summary>
+        public static HTTP2Priority Of(IEnumerable<(string Name, string Value)> Headers)
+        {
+
+            foreach (var (name, value) in Headers)
+                if (name == "priority")
+                    return Parse(value);
+
+            return Default;
 
         }
     }
