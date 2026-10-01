@@ -1041,6 +1041,17 @@ that prints, which is roughly what the library used to hardcode.
   `CancelAsync()`: whatever waited with it goes on on the thread pool, not inside
   the loop that ended the connection, and the connection's end, which a pool
   waits for, waits for none of it.
+- **The end of a connection resets every stream still open on it**, as a server
+  connection's end does, however it ends: the server goes away, the keepalive
+  gets no answer, `CloseAsync`, or a failed writer loop. An accepted CONNECT
+  tunnel's `ReadAsync` returns `null`, as after the server's `RST_STREAM`, and so
+  does a client WebSocket's `ReceiveAsync`, where both used to wait for good on a
+  connection that was gone — an OCPP charging station never learned that it had
+  lost its backend. Requests still waiting for their answer fail as before, and
+  a write still queued then, or made after, fails with an
+  `OperationCanceledException`, as before: the end of a connection is no reset
+  with an error code, which a write would report as an `HTTP2StreamException`.
+  The reset sends nothing, and an ended connection counts no stream as active.
 - **Slots and windows follow the stream**: the `MAX_CONCURRENT_STREAMS` gate,
   and `AvailableStreamSlots` for the pool, count the streams that are open or
   half-closed (§5.1.2), as the stream allocator and the server do, not the

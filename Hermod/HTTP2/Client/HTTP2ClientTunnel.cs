@@ -54,7 +54,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public IReadOnlyList<(string Name, string Value)> ResponseHeaders { get; }
 
         /// <summary>
-        /// Read the next chunk the peer sent, or null once the tunnel ends (END_STREAM / reset).
+        /// Read the next chunk the peer sent, or null once the tunnel ends: at
+        /// the server's END_STREAM or RST_STREAM, or at the end of the
+        /// connection, however it ends — the server goes away, the keepalive
+        /// gets no answer, the client closes it, or its writer loop fails.
         /// </summary>
         public async Task<byte[]?> ReadAsync(CancellationToken CancellationToken)
         {
@@ -99,6 +102,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <see cref="InvalidOperationException"/>. <paramref name="CancellationToken"/>
         /// ends the wait, not the write: a chunk already queued still goes out, in
         /// order.
+        ///
+        /// A tunnel still open when the connection ends reads its end there too
+        /// (<see cref="ReadAsync"/> returns null), and a write fails then with an
+        /// <see cref="OperationCanceledException"/> whose token is not the
+        /// caller's: one still waiting, for window or for its turn, and every one
+        /// after.
         /// </summary>
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken)
             => connection.SendTunnelDataAsync(stream, Data, CancellationToken);
@@ -107,7 +116,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// End our side of the tunnel (a zero-length END_STREAM DATA frame, behind
         /// what was written before it). On a tunnel the server has reset nothing
         /// is sent, and the task fails as <see cref="WriteAsync"/> does. A second
-        /// close sends nothing.
+        /// close sends nothing, and returns; so does a close on a connection that
+        /// has ended, or that ends while the close waits.
         /// </summary>
         public Task CloseAsync()
             => connection.EndTunnelAsync(stream);

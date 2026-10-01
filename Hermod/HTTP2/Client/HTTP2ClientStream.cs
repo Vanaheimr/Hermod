@@ -81,6 +81,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// with an <see cref="InvalidOperationException"/>.
         /// <paramref name="CancellationToken"/> ends the wait, not the write: a
         /// chunk already queued still goes out, in order.
+        ///
+        /// On a stream still open when the connection ends, a write still
+        /// waiting then, and every one after, fails with an
+        /// <see cref="OperationCanceledException"/> whose token is not the
+        /// caller's, as a tunnel's does (<see cref="HTTP2ClientTunnel.WriteAsync"/>).
         /// </summary>
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken = default)
             => connection.SendStreamDataAsync(stream, Data, CancellationToken);
