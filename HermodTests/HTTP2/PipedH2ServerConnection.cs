@@ -145,28 +145,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
 
-        #region StartAsync(RequestHandler, StreamingHandler = null, ConnectHandler = null, IsAuthorityServed = null)
+        #region StartAsync(RequestHandler, StreamingHandler = null, ConnectHandler = null, IsAuthorityServed = null, ConnectionWindowSize = null)
 
         /// <summary>
         /// Start a server connection with these handlers, and return once the
         /// client side has completed the connection preface. With
         /// <paramref name="IsAuthorityServed"/>, the server answers a request for
-        /// an origin it refuses with 421.
+        /// an origin it refuses with 421. With <paramref name="ConnectionWindowSize"/>,
+        /// it grants the client that connection window instead of its default.
         /// </summary>
         public static async Task<PipedH2ServerConnection> StartAsync(HTTP2RequestHandler     RequestHandler,
-                                                                     HTTP2StreamingHandler?  StreamingHandler   = null,
-                                                                     HTTP2ConnectHandler?    ConnectHandler     = null,
-                                                                     Func<String, Boolean>?  IsAuthorityServed  = null)
+                                                                     HTTP2StreamingHandler?  StreamingHandler      = null,
+                                                                     HTTP2ConnectHandler?    ConnectHandler        = null,
+                                                                     Func<String, Boolean>?  IsAuthorityServed     = null,
+                                                                     Int32?                  ConnectionWindowSize  = null)
         {
 
             var peer = new PipedH2ServerConnection();
 
             peer.connection = new HTTP2Connection(peer.Server,
                                                   RequestHandler,
-                                                  ConnectHandler:     ConnectHandler,
-                                                  CancellationToken:  peer.cancellation.Token,
-                                                  StreamingHandler:   StreamingHandler,
-                                                  IsAuthorityServed:  IsAuthorityServed);
+                                                  ConnectHandler:        ConnectHandler,
+                                                  CancellationToken:     peer.cancellation.Token,
+                                                  StreamingHandler:      StreamingHandler,
+                                                  IsAuthorityServed:     IsAuthorityServed,
+                                                  ConnectionWindowSize:  ConnectionWindowSize ?? HTTP2FlowControl.DefaultConnectionWindowSize);
 
             // On the thread pool, not the test's thread: the connection's loops
             // would otherwise capture NUnit's SynchronizationContext. Once the
@@ -514,8 +517,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public Int64 ConnectionWindowHeldBack()
         {
 
-            var target  = (Int64) typeof(HTTP2Connection).GetField("ConnectionRecvWindowTarget",  BindingFlags.NonPublic | BindingFlags.Static)!.
-                                                          GetValue(null)!;
+            var target  = (Int32) typeof(HTTP2Connection).GetField("connectionWindowSize",        BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                                          GetValue(connection)!;
 
             var owed    = (Int64) typeof(HTTP2Connection).GetField("connectionPendingRecvUpdate", BindingFlags.NonPublic | BindingFlags.Instance)!.
                                                           GetValue(connection)!;

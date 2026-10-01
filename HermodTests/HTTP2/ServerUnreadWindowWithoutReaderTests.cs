@@ -63,9 +63,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         /// <summary>
         /// The server's receive windows: the connection's, which it raises to
-        /// 1 MiB at once, and each stream's, its INITIAL_WINDOW_SIZE of 1 MiB.
+        /// 1 MiB at once here (see <see cref="StartAsync"/>), and each stream's,
+        /// its INITIAL_WINDOW_SIZE of 1 MiB.
         /// </summary>
         private const Int64 Window = 1024 * 1024;
+
+        /// <summary>
+        /// Start a server connection that grants the client a connection window of
+        /// one stream window, <see cref="Window"/>, as it did by default before
+        /// that became four: one stream can take all of it then, and window that
+        /// is not given back stops every later upload on the connection — which
+        /// the tests here look for.
+        /// </summary>
+        private static Task<PipedH2ServerConnection> StartAsync(HTTP2RequestHandler     RequestHandler,
+                                                                HTTP2StreamingHandler?  StreamingHandler   = null,
+                                                                HTTP2ConnectHandler?    ConnectHandler     = null,
+                                                                Func<String, Boolean>?  IsAuthorityServed  = null)
+
+            => PipedH2ServerConnection.StartAsync(RequestHandler,
+                                                  StreamingHandler:      StreamingHandler,
+                                                  ConnectHandler:        ConnectHandler,
+                                                  IsAuthorityServed:     IsAuthorityServed,
+                                                  ConnectionWindowSize:  (Int32) Window);
 
         /// <summary>
         /// The client's receive windows, RFC 9113's default: the client here never
@@ -352,7 +371,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task HandlerAnswersEarly_UploadAfterwards_WindowGivenBack()
         {
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 
@@ -430,7 +449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var answered   = new TaskCompletionSource(Async);
             var returnNow  = new TaskCompletionSource(Async);
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 
@@ -553,7 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var written = new TaskCompletionSource<Task>(Async);
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 
@@ -661,7 +680,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var returnNow = new TaskCompletionSource(Async);
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 
@@ -747,7 +766,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var fail = new TaskCompletionSource(Async);
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 
@@ -823,7 +842,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var handlerRan = false;
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 
@@ -895,7 +914,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var handlerRan = false;
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 
@@ -965,7 +984,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var decide = new TaskCompletionSource(Async);
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 Other,
 
@@ -1042,7 +1061,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var tunnelOpen  = new TaskCompletionSource(Async);
             var returnNow   = new TaskCompletionSource(Async);
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 Other,
 
@@ -1134,7 +1153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var written = new TaskCompletionSource<Task>(Async);
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 Other,
 
@@ -1220,7 +1239,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var readOn     = new TaskCompletionSource(Async);
             var lateRead   = new TaskCompletionSource<(Int32 Chunks, Int64 Bytes, Exception? End)>(Async);
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 
@@ -1319,7 +1338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var written    = new TaskCompletionSource<Task>(Async);
             var lateRead   = new TaskCompletionSource<(Int32 Chunks, Int64 Bytes, Exception? End)>(Async);
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 
@@ -1413,7 +1432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var readNow = new TaskCompletionSource(Async);
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 
@@ -1484,7 +1503,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var started    = new TaskCompletionSource(Async);
             var returnNow  = new TaskCompletionSource(Async);
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(
+            await using var peer = await StartAsync(
 
                 (streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
 

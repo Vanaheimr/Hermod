@@ -140,6 +140,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public int      MaxRedirects            { get; init; }
 
         /// <summary>
+        /// The connection-level receive window granted to the server: at least
+        /// RFC 9113's 65 535 octets, four stream windows (4 MiB) by default, as on
+        /// the server (see <see cref="HTTP2FlowControl"/>).
+        ///
+        /// The client gives back the window of what it receives at once, whether
+        /// the application has read it or not. So this bounds what the server can
+        /// have in flight on the connection, across all streams — how much flows
+        /// per round trip — and not what the client holds for a tunnel or a
+        /// streamed response the application does not read: that it buffers.
+        /// </summary>
+        public Int32    ConnectionWindowSize
+        {
+            get => connectionWindowSize;
+            init => connectionWindowSize = HTTP2FlowControl.CheckConnectionWindowSize(value, nameof(ConnectionWindowSize));
+        }
+
+        private readonly Int32 connectionWindowSize = HTTP2FlowControl.DefaultConnectionWindowSize;
+
+        /// <summary>
         /// The default options.
         /// </summary>
         public static readonly HTTP2ClientOptions Default = new();

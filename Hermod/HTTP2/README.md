@@ -219,6 +219,10 @@ var conn = await HTTP2Client.ConnectAsync("localhost", 8443,
         AutomaticDecompression   = true,                      // ask for br/gzip/deflate, decode transparently
         MaxDecodedBodySize       = 16 * 1024 * 1024,          // and refuse a decompression bomb
         Credentials              = HTTPClientCredentials.UserNameAndPassword("alice", "secret"),
+
+        // What the server may have in flight on the connection, all streams
+        // together; four stream windows by default (see "Window sizes" below).
+        ConnectionWindowSize     = 4 * 1024 * 1024,
     });
 
 // If the server announced one, its Origin Set (RFC 8336) is here — null until an
@@ -389,13 +393,101 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 - Per-stream and connection-level windows; signal-based send-window reservation
   (no polling).
 - **WINDOW_UPDATE batching** (replenish once per half-window, not per DATA
-  frame) + larger default windows (1 MiB stream + connection).
+  frame) + larger default windows: 1 MiB per stream, 4 MiB per connection
+  (`ConnectionWindowSize`, configurable on both roles — see
+  [below](#window-sizes-memory-against-throughput)).
 - **Consumption-driven backpressure**: for streaming/tunnel bodies the receive
   window is returned only as the *application* reads, so a slow consumer forces
   the peer to stop — the window *is* the memory bound.
+- **A stalled stream does not stop the others.** All streams of a connection
+  draw on its window, and a stream whose handler does not read keeps the window
+  of what it was sent. With a connection window no larger than a stream's —
+  1 MiB each, as before — one such stream took all of it, and the client could
+  send DATA on no other stream of the connection: with an OCPP WebSocket and a
+  log-file WebSocket over one connection (RFC 8441), a log file written away
+  slowly held up the OCPP channel. The connection window is now four stream
+  windows: up to three streams can stall with their whole window taken, and
+  the others still share a stream window's worth.
+- **What is owed is given back in time.** The server returns the connection
+  window of what has been read once half of the window is owed — or once the
+  client has no more of it left than that, checked at every read and every DATA
+  frame. It used to wait for the half alone, which never comes while unread
+  streams hold more than half of the window: the streams that were read waited
+  for good, though most of what they had been sent was read. (Go's
+  `x/net/http2` uses the same test, `inflow.add`; Chromium instead returns what
+  is owed at the next read once 5 s have passed since its last update.)
+- The **client** returns the window of what it receives on receipt, read or
+  not: a tunnel or a streamed response the application does not read cannot
+  stall the other streams of the connection — but nothing bounds what the
+  client buffers for it, either.
 - Bounded buffered request body (`MaxRequestBodySize`, default 16 MiB).
 - Padding counted against flow control (§6.1); closed-stream DATA still
   window-accounted (§6.9); cookie-crumb reassembly (§8.2.3).
+
+### Window sizes: memory against throughput
+
+The two windows bound different things, and whatever one gains, another loses
+(`HTTP2FlowControl` says the same in code):
+
+- **Memory.** The server returns the window of a streamed body or of tunnel
+  bytes only once the handler has read them, so the connection window is the
+  most one connection can be made to hold for handlers that do not read — by a
+  stalled log writer, or by a client that opens streams to slow handlers on
+  purpose. 4 MiB per connection, where it used to be 1 MiB: ten thousand
+  charging stations, each with four stalled channels, could pin about 40 GiB
+  instead of about 10 GiB. A connection with a single stalled stream still pins
+  no more than that stream's window, 1 MiB.
+- **Throughput.** Per round trip, a stream carries at most its window, and all
+  streams of a connection together at most the connection window. At 100 ms
+  round-trip time: 10 MiB/s for a stream (1 MiB), 40 MiB/s for all streams of a
+  connection together (4 MiB, where it was 10 MiB/s).
+- **Isolation.** Each stalled stream takes up to a stream window of the
+  connection's; what is left, the others share. At or below one stream window,
+  a single stalled stream stops all others again.
+
+`ConnectionWindowSize` moves along that line, on the server
+(`HTTP2Server(…, ConnectionWindowSize: …)`) and on the client
+(`HTTP2ClientOptions.ConnectionWindowSize`): at least RFC 9113's 65 535 octets —
+a connection window can be raised, not lowered — and at most 2³¹ − 1. The stream
+window stays at 1 MiB. On the client, which returns the window on receipt, it
+bounds only how much can be in flight, not what is buffered.
+
+```csharp
+// Many connections, memory for one stalled channel each: two stream windows.
+var server = new HTTP2Server(IPAddress.Any, 8443, certificate, MyRequestHandler,
+                             ConnectionWindowSize: 2 * HTTP2FlowControl.StreamWindowSize);
+
+// Several large downloads at a time over a long round trip:
+var conn = await HTTP2Client.ConnectAsync("example.com", 443,
+                                          Options: new HTTP2ClientOptions { ConnectionWindowSize = 16 * 1024 * 1024 });
+```
+
+What others grant their peer by default, looked up in their sources on
+2026-10-01:
+
+| Implementation | Role | Stream window | Connection window | Connection window returned |
+|---|---|---|---|---|
+| **Hermod** | server, client | 1 MiB | 4 MiB, configurable | server: as the handler reads; client: on receipt |
+| Chrome — Chromium `net/` ([`http_network_session.cc`](https://github.com/chromium/chromium/blob/ac463d9560ba0dca5c6ade6f48fd64b2942754a5/net/http/http_network_session.cc#L47-L49)) | client | 6 MiB | 15 MiB | as the consumer reads: once more than half is owed, or 5 s after the last update ([`spdy_session.cc`](https://github.com/chromium/chromium/blob/ac463d9560ba0dca5c6ade6f48fd64b2942754a5/net/spdy/spdy_session.cc#L3355-L3395)) |
+| Go `golang.org/x/net/http2` v0.59.0, `Server` ([`config.go`](https://github.com/golang/net/blob/v0.59.0/http2/config.go#L100-L114)) | server | 1 MiB | 1 MiB | as the handler reads ([`server.go`](https://github.com/golang/net/blob/v0.59.0/http2/server.go#L2396-L2404)) — one stream can take all of it |
+| Go `golang.org/x/net/http2` v0.59.0, `Transport` ([`transport.go`](https://github.com/golang/net/blob/v0.59.0/http2/transport.go#L42-L49)) | client | 4 MiB | 1 GiB + 65 535 | as the body is read; from 4 KiB owed on, or once owed ≥ left ([`flow.go`](https://github.com/golang/net/blob/v0.59.0/http2/flow.go#L33-L53)) |
+| nghttp2 v1.70.0, library ([`nghttp2.h`](https://github.com/nghttp2/nghttp2/blob/v1.70.0/lib/includes/nghttp2/nghttp2.h#L224-L237)) | both | 65 535 | 65 535 | on receipt by default, once half is owed ([`nghttp2_helper.c`](https://github.com/nghttp2/nghttp2/blob/v1.70.0/lib/nghttp2_helper.c#L248-L251)) |
+| nghttpx v1.70.0, frontend ([`shrpx.cc`](https://github.com/nghttp2/nghttp2/blob/v1.70.0/src/shrpx.cc#L1704-L1709)) | server (proxy) | 65 535 | 65 535 | as forwarded (`nghttp2_session_consume`) — one stream can take all of it |
+| nghttpx v1.70.0, backend ([`shrpx.cc`](https://github.com/nghttp2/nghttp2/blob/v1.70.0/src/shrpx.cc#L1741-L1742)) | client (proxy) | 65 535 | 2³¹ − 1 | as forwarded |
+| Kestrel, ASP.NET Core 10 ([`Http2Limits.cs`](https://github.com/dotnet/aspnetcore/blob/78e514743d906ef9e6dd48afe9f40544a230186d/src/Servers/Kestrel/Core/src/Http2Limits.cs#L19-L20)) | server | 768 KiB | 1 MiB | as the application reads ([`StreamInputFlowControl.cs`](https://github.com/dotnet/aspnetcore/blob/477666aeb0d813bda0d9d35cbd04514c7438a6a5/src/Servers/Kestrel/Core/src/Internal/Http2/FlowControl/StreamInputFlowControl.cs#L61-L77)) |
+| `SocketsHttpHandler`, .NET 10 ([`Http2Connection.cs`](https://github.com/dotnet/runtime/blob/8a7187feef73b1fbea664903f1a95db5c4cba449/src/libraries/System.Net.Http/src/System/Net/Http/SocketsHttpHandler/Http2Connection.cs#L99-L102)) | client | 64 KiB, scaled with the round trip up to 16 MiB | 64 MiB | on receipt |
+| Envoy v1.39.1 ([`protocol.proto`](https://github.com/envoyproxy/envoy/blob/v1.39.1/api/envoy/config/core/v3/protocol.proto#L612-L631)) | proxy | 16 MiB — 64 KiB for an edge proxy ([`edge.rst`](https://github.com/envoyproxy/envoy/blob/v1.39.1/docs/root/configuration/best_practices/edge.rst#L24-L25)) | 24 MiB — 1 MiB for an edge proxy | |
+
+The nghttp client takes the library's defaults; h2load, the benchmark, grants
+2³⁰ − 1 for both. Two camps: servers, which hold what they are sent for many
+peers, keep the connection window small and close to a stream's — Go and
+nghttpx equal to it, with the stall described above; Kestrel gives a stream
+three quarters of it, "able to use most (3/4ths) of the connection window by
+itself", as its source says, which leaves the rest a quarter. Clients, which
+decide themselves how many streams they open, make it large — 2.5 stream
+windows for Chrome, 256 for Go, four or more for .NET. Hermod takes four on
+both roles: one stalled stream per connection costs the server what it did
+before, and the most a connection can be made to hold is four times that.
 
 ### Stream management & hardening (RFC 9113 §5)
 
@@ -1020,7 +1112,8 @@ they're common in the wild:
 | CONTINUATION flood (CVE-2024-27316) | Bounded header buffer + per-block CONTINUATION cap (both roles) |
 | PING / SETTINGS / PRIORITY_UPDATE floods | Unproductive-frame counting |
 | Slowloris (trickle / withhold) | Handshake / preface / idle / in-progress / SETTINGS-ACK timeouts |
-| Memory exhaustion by fast producer | Consumption-driven backpressure + bounded buffered body |
+| Memory exhaustion by fast producer | Consumption-driven backpressure (at most `ConnectionWindowSize` held per connection) + bounded buffered body |
+| One stalled stream holding up the connection | Connection window four stream windows; owed window returned once the peer has no more left |
 | Stream-ID exhaustion | Proactive GOAWAY + `REFUSED_STREAM` |
 | Oversized header lists | Inbound + outbound `MAX_HEADER_LIST_SIZE`, both roles |
 | Range amplification | `MaxRanges` cap on a byte-range set |

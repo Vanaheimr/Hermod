@@ -101,9 +101,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Connection-level receive window we raise to at startup (above RFC 9113's
         /// 65535 default) via an initial WINDOW_UPDATE, so large multiplexed
-        /// transfers aren't throttled by the small default connection window.
+        /// transfers aren't throttled by the small default connection window. A
+        /// multiple of the stream window, so that one stream whose reader has
+        /// stalled cannot take all of it (see <see cref="HTTP2FlowControl"/>).
         /// </summary>
-        private const long   ConnectionRecvWindowTarget = 1024 * 1024;   // 1 MiB
+        private readonly Int32  connectionWindowSize;
 
         /// <summary>
         /// Bytes consumed connection-wide since our last connection-level
@@ -266,6 +268,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// connection only ever uses the <see cref="Stream"/> base API, so it is
         /// oblivious to which transport it runs on.
         /// </param>
+        /// <param name="ConnectionWindowSize">
+        /// The connection-level receive window granted to the client: at least
+        /// RFC 9113's 65 535 octets, four stream windows (4 MiB) by default. It
+        /// bounds what the connection holds for handlers that have not read yet,
+        /// and above a stream window it keeps one stalled stream from stopping
+        /// all others (see <see cref="HTTP2FlowControl"/>).
+        /// </param>
         public HTTP2Connection(
             Stream               TransportStream,
             HTTP2RequestHandler  RequestHandler,
@@ -278,8 +287,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             Func<string, bool>?  IsAuthorityServed  = null,
             string[]?            OriginSet          = null,
             (string Origin, string FieldValue)[]? AlternativeServices = null,
-            Func<List<(string Name, string Value)>, bool>? AcceptEarlyData = null)
+            Func<List<(string Name, string Value)>, bool>? AcceptEarlyData = null,
+            Int32                ConnectionWindowSize = HTTP2FlowControl.DefaultConnectionWindowSize)
         {
+            this.connectionWindowSize = HTTP2FlowControl.CheckConnectionWindowSize(ConnectionWindowSize, nameof(ConnectionWindowSize));
             this.isAuthorityServed   = IsAuthorityServed;
             this.originSet           = OriginSet;
             this.alternativeServices = AlternativeServices;
@@ -446,7 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // SETTINGS_INITIAL_WINDOW_SIZE only governs stream windows; the
             // connection window starts at the fixed 65535 default. Raise it with an
             // initial WINDOW_UPDATE so large multiplexed transfers aren't throttled.
-            var connectionBump = ConnectionRecvWindowTarget - streamManager.ConnectionRecvWindow;
+            var connectionBump = connectionWindowSize - streamManager.ConnectionRecvWindow;
             if (connectionBump > 0)
             {
                 await SendFrameAsync(HTTP2Frame.CreateWindowUpdate(0, (UInt32) connectionBump));
@@ -2032,7 +2043,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 // The discarded padding is returned now; the data the channel took
                 // waits for the tunnel consumer (Section 6.1 padding still owed
-                // regardless).
+                // regardless). Without padding too: the connection window owed for
+                // what was read goes back, should this DATA have left the client
+                // no more than that (see ReplenishReceiveWindowsAsync).
                 await ReplenishReceiveWindowsAsync(stream, paddingOverhead);
             }
             else if (stream.IsStreamingRequest)
@@ -2044,6 +2057,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 if (dataLength > 0)
                     await HandToReaderAsync(stream, stream.RequestBodyChannel!, payload.ToArray());
 
+                // As for a tunnel: the padding, and what is owed, if due.
                 await ReplenishReceiveWindowsAsync(stream, paddingOverhead);
             }
             else
@@ -2100,12 +2114,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// window accounting there), in which case only the connection window is
         /// returned — as it is for a stream the peer can send no more DATA on
         /// (<see cref="MayStillSendData"/>).
+        ///
+        /// The connection's window is given back as well once the peer has no
+        /// more of it left than is owed. All streams draw on it, and one whose
+        /// handler does not read keeps the window of what it was sent: while
+        /// such streams held more than half of it, half of it never came to be
+        /// owed, so the window of what the others' handlers read was not given
+        /// back — the peer could send them nothing more, and they waited for good.
+        /// DATA that nobody reads can leave the peer that short as well as DATA
+        /// that is read, so this is called for every DATA frame, with nothing
+        /// owed anew (<paramref name="DataLength"/> 0) for one whose bytes went to
+        /// a reader.
         /// </summary>
         private async Task ReplenishReceiveWindowsAsync(HTTP2Stream? Stream, int DataLength)
         {
-
-            if (DataLength <= 0)
-                return;
 
             // Decide what (if anything) to emit and apply the local window bookkeeping
             // under recvLock — but do NOT send while holding it (SendFrameAsync is
@@ -2119,8 +2141,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 // The stream's own window only while the peer may still send DATA
                 // on it — and SendStreamWindowUpdateAsync asks again once the write
-                // lock is its own: the stream may have been reset meanwhile.
-                if (Stream is not null && MayStillSendData(Stream))
+                // lock is its own: the stream may have been reset meanwhile. And
+                // only for what is owed anew: unread DATA on a stream holds up no
+                // reader but the stream's own, which gives its window back by
+                // reading it, so there is nothing to check for it here.
+                if (DataLength > 0 && Stream is not null && MayStillSendData(Stream))
                 {
                     Stream.PendingRecvUpdate += DataLength;
                     if (Stream.PendingRecvUpdate >= localSettings.InitialWindowSize / 2)
@@ -2131,8 +2156,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     }
                 }
 
+                // The connection's once half of it is owed, or once the peer has no
+                // more of it left than that: what it has left is the window that is
+                // neither owed nor taken by DATA still unread.
                 connectionPendingRecvUpdate += DataLength;
-                if (connectionPendingRecvUpdate >= ConnectionRecvWindowTarget / 2)
+                if (connectionPendingRecvUpdate > 0 &&
+                   (connectionPendingRecvUpdate >= connectionWindowSize / 2 ||
+                    connectionPendingRecvUpdate >= streamManager.ConnectionRecvWindow))
                 {
                     connInc                             = (UInt32) connectionPendingRecvUpdate;
                     streamManager.ConnectionRecvWindow += connInc;

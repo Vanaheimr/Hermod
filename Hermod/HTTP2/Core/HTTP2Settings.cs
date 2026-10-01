@@ -31,8 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public UInt32  MaxConcurrentStreams { get; set; } = 100;
         // A larger-than-default receive window (RFC 9113 default is 65535). Combined
         // with batched WINDOW_UPDATEs, this lets a large transfer flow with only
-        // occasional flow-control frames instead of one per DATA frame.
-        public UInt32  InitialWindowSize    { get; set; } = 1024 * 1024;   // 1 MiB
+        // occasional flow-control frames instead of one per DATA frame. The
+        // connection window is a multiple of it (see HTTP2FlowControl).
+        public UInt32  InitialWindowSize    { get; set; } = HTTP2FlowControl.StreamWindowSize;   // 1 MiB
         public UInt32  MaxFrameSize         { get; set; } = 16384;   // 2^14
         public UInt32  MaxHeaderListSize    { get; set; } = 8192;
     }
