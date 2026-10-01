@@ -14,9 +14,7 @@
 
 ## TCP EchoTest Server Usage
 ```
-    var echoServer  = EchoTestServer.StartNew(8080);
-    var echoClient  = await EchoTestClient.ConnectNew(8080);
+    var echoServer  = await TCPEchoTestServer.StartNew(TCPPort: IPPort.Parse(8080));
 
-    var t1 = await echoClient.SendText("Hello from client 1.1!");
-    var t2 = await echoClient.SendBinary(Encoding.UTF8.GetBytes("Hello from client 1.2!"));
+    // Sends back whatever a client sends, until the client closes its side.
 ```
