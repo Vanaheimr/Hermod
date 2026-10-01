@@ -1088,6 +1088,11 @@ that prints, which is roughly what the library used to hardcode.
   to its end and the next request waits for the slot rather than fail. A rejected
   CONNECT ends its stream (`END_STREAM`, or `RST_STREAM CANCEL` while the
   rejection has a body to come), and a tunnel closes once both sides have ended.
+- **What waits on the server fails with the connection error**: a request in
+  flight, a tunnel being opened and `StartAsync` fail with the
+  `HTTP2ConnectionException` the connection ended over. They used to fail with
+  "A task was canceled.": the read loop fails them with the error and then
+  cancels the connection, and the cancellation reached their waits first.
 - **`HTTP2ClientPool`**: a single-origin pool that keeps N warm connections
   (default 4), routes to the least-loaded, transparently fails over
   not-processed requests, and self-heals dead connections in the background.

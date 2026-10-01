@@ -219,7 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (options.KeepAliveInterval > TimeSpan.Zero)
                 _ = Task.Run(KeepAliveLoopAsync);
 
-            await settingsReceived.Task.WaitAsync(cancellationToken);
+            await WaitForOutcomeAsync(settingsReceived.Task, cancellationToken);
 
         }
 
@@ -1187,7 +1187,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private async Task<HTTP2Response> AwaitResponseAsync(ClientExchange Exchange)
         {
             using var reqCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, Exchange.RequestToken);
-            return await Exchange.Completion.Task.WaitAsync(reqCts.Token);
+            return await WaitForOutcomeAsync(Exchange.Completion.Task, reqCts.Token);
+        }
+
+        /// <summary>
+        /// Wait for an outcome the read loop decides — a response, a tunnel's
+        /// status, the server's SETTINGS — unless <paramref name="CancellationToken"/>,
+        /// which includes the connection's, is cancelled first. First as in
+        /// decided first: when the connection ends over an error, the read loop
+        /// fails what waits with that error and only then cancels the connection,
+        /// but the cancellation reaches the wait at once, while the outcome runs
+        /// its continuations asynchronously. A request in flight when the server
+        /// broke the protocol failed with "A task was canceled." that way, not
+        /// with the connection error.
+        /// </summary>
+        private static async Task<T> WaitForOutcomeAsync<T>(Task<T> Outcome, CancellationToken CancellationToken)
+        {
+            try
+            {
+                return await Outcome.WaitAsync(CancellationToken);
+            }
+            catch (OperationCanceledException) when (Outcome.IsCompleted)
+            {
+                return await Outcome;
+            }
+        }
+
+        /// <inheritdoc cref="WaitForOutcomeAsync{T}(Task{T}, CancellationToken)"/>
+        private static async Task WaitForOutcomeAsync(Task Outcome, CancellationToken CancellationToken)
+        {
+            try
+            {
+                await Outcome.WaitAsync(CancellationToken);
+            }
+            catch (OperationCanceledException) when (Outcome.IsCompleted)
+            {
+                await Outcome;
+            }
         }
 
         /// <summary>
@@ -1295,7 +1331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 requestStartLock.Release();
             }
 
-            var status = await exchange.TunnelStatus.Task.WaitAsync(linked.Token);
+            var status = await WaitForOutcomeAsync(exchange.TunnelStatus.Task, linked.Token);
 
             if (status is < 200 or >= 300)
                 throw new HTTP2StreamException(HTTP2ErrorCode.REFUSED_STREAM, exchange.Stream.StreamId,

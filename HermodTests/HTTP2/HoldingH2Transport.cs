@@ -225,6 +225,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
+        /// Send the last frame the client is to read: one it must answer with a
+        /// connection error. Returns once the frame is on its way, not once the
+        /// read loop has handled it as <see cref="SendAsync"/> does — a loop that
+        /// ends over it never starts the read that would tell. Whether it ended,
+        /// the test learns from <see cref="HTTP2ClientConnection.Closed"/>.
+        /// </summary>
+        public async Task SendLastAsync(HTTP2Frame Frame)
+        {
+
+            var bytes = Frame.Serialize();
+
+            // Counted all the same, so that a SendAsync after it, where the
+            // client read on after all, waits for its own frame.
+            lock (sync)
+                sent += bytes.Length;
+
+            await toClient.WriteAsync(bytes);
+
+        }
+
+        /// <summary>
         /// Let the client return from the write of the HEADERS of this stream.
         ///
         /// A write the read loop started — a retry — carries on inline, on the
