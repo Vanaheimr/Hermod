@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// <summary>
         /// The bytes of DATA the client sends on the stream, read until there are
         /// <paramref name="Expected"/> of them, or until the client sends nothing
-        /// more within the step timeout.
+        /// more there within the step timeout.
         /// </summary>
         private static async Task<Int64> DataSentAsync(HoldingH2Transport  Transport,
                                                        UInt32              StreamId,
@@ -120,9 +120,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 while (sent < Expected)
                 {
 
-                    var frame = await Transport.NextFrameAsync();
+                    var frame = await Transport.NextFrameOnAsync(StreamId);
 
-                    if (frame.Type == HTTP2FrameType.DATA && frame.StreamId == StreamId)
+                    if (frame.Type == HTTP2FrameType.DATA)
                         sent += frame.Payload.Length;
 
                 }
