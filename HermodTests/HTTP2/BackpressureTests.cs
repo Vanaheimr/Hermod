@@ -101,26 +101,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Assert.That(windowUpdatesWhileGated, Is.EqualTo(0),
                         "no WINDOW_UPDATE while the handler has consumed nothing (backpressure holds)");
 
-            // Phase 2: open the gate -> handler drains -> window credited back, then 200.
+            // Phase 2: open the gate -> handler drains -> the stream's window is
+            // credited back as it reads, once half of it is read, while the upload
+            // is still open: once it has ended, the client may send no more on the
+            // stream, and its window is not given back. (The connection's comes
+            // only once half of its four stream windows is owed, or the client has
+            // no more of it left than that: not for 544 KiB.) Then end it -> 200.
             gate.SetResult();
+
+            Int64 credited = 0;
+            while (credited < HalfWindow)
+            {
+                var f = await H2Raw.ReadFrameAsync(ssl, cts.Token);
+                if (f is null) break;
+                if (f.Type == HTTP2FrameType.WINDOW_UPDATE && f.StreamId == 1)
+                    credited += BinaryPrimitives.ReadUInt32BigEndian(f.Payload) & 0x7FFFFFFFu;
+            }
+
             await ssl.WriteAsync(HTTP2Frame.CreateData(1, [], EndStream: true).Serialize(), cts.Token);
             await ssl.FlushAsync(cts.Token);
 
-            Int64   credited = 0;
-            String? status   = null;
+            String? status = null;
             while (status is null)
             {
                 var f = await H2Raw.ReadFrameAsync(ssl, cts.Token);
                 if (f is null) break;
-                if (f.Type == HTTP2FrameType.WINDOW_UPDATE)
-                    credited += BinaryPrimitives.ReadUInt32BigEndian(f.Payload) & 0x7FFFFFFFu;
-                else if (f.Type == HTTP2FrameType.HEADERS)
+                if (f.Type == HTTP2FrameType.HEADERS)
                     status = new HPACKDecoder().DecodeHeaderBlock(f.Payload).FirstOrDefault(h => h.Name == ":status").Value;
             }
 
             Assert.Multiple(() =>
             {
-                Assert.That(credited, Is.GreaterThanOrEqualTo(HalfWindow), "window credited back once the handler consumes the body");
+                Assert.That(credited, Is.GreaterThanOrEqualTo(HalfWindow), "the stream's window credited back once the handler consumes the body");
                 Assert.That(status,   Is.EqualTo("200"),                  "streaming request completes");
             });
 

@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     public class RfcPolishTests
     {
 
-        private const Int32 HalfWindow = 1_048_576 / 2;   // half the advertised 1 MiB initial window
+        private const Int32 HalfWindow = 1_048_576 / 2;   // half the 1 MiB stream window, and of the connection window here
 
         #region Server
 
@@ -57,9 +57,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         private TestH2Server srv = null!;
 
+        // A connection window of one stream window, as it was by default before
+        // that became four: the flow-control tests here count the WINDOW_UPDATE
+        // that comes once half of it, 512 KiB, is owed — as much as one stream's
+        // DATA can be. Half of the default's, 2 MiB, would be more than that.
         [OneTimeSetUp]
         public async Task StartServer()
-            => srv = await TestH2Server.StartAsync(Handler);
+            => srv = await TestH2Server.StartAsync(Handler, ConnectionWindowSize: 2 * HalfWindow);
 
         [OneTimeTearDown]
         public async Task StopServer()

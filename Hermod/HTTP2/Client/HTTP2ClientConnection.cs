@@ -92,11 +92,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private TaskCompletionSource windowChanged = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         /// <summary>
-        /// Connection-level receive window we raise to at startup (above the 65535 default).
-        /// </summary>
-        private const long ConnectionRecvWindowTarget = 1024 * 1024;   // 1 MiB
-
-        /// <summary>
         /// Bytes consumed connection-wide since our last connection-level WINDOW_UPDATE (batched replenish).
         /// </summary>
         private long connectionPendingRecvUpdate;
@@ -210,8 +205,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             streamManager.LocalInitialWindowSize = localSettings.InitialWindowSize;
 
             // Raise the connection-level receive window above its 65535 default so
-            // large responses aren't throttled (INITIAL_WINDOW_SIZE is stream-only).
-            var connectionBump = ConnectionRecvWindowTarget - streamManager.ConnectionRecvWindow;
+            // large responses aren't throttled (INITIAL_WINDOW_SIZE is stream-only),
+            // to HTTP2ClientOptions.ConnectionWindowSize.
+            var connectionBump = options.ConnectionWindowSize - streamManager.ConnectionRecvWindow;
             if (connectionBump > 0)
             {
                 await SendFrameAsync(HTTP2Frame.CreateWindowUpdate(0, (UInt32) connectionBump));
@@ -1960,6 +1956,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             // Replenish flow control — batched, not one WINDOW_UPDATE per DATA
             // frame, and for the full payload incl. padding (Section 6.1).
+            //
+            // On receipt, not once the application has read it, as the server
+            // does: a tunnel or a streamed response nobody reads keeps no window
+            // from the other streams of the connection, and none of them waits
+            // for its reader. Nor does the window bound what such a stream holds:
+            // the client buffers whatever the server sends it.
             await ReplenishReceiveWindowsAsync(exchange?.Stream, flowLength);
 
             if (Frame.EndStream && exchange is not null)
@@ -2004,8 +2006,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
             }
 
+            // Half of the connection window is always owed in time: nothing here
+            // waits for a reader (see HandleDataAsync), so no stream's unread bytes
+            // can keep it from coming due, as they can on the server.
             connectionPendingRecvUpdate += DataLength;
-            if (connectionPendingRecvUpdate >= ConnectionRecvWindowTarget / 2)
+            if (connectionPendingRecvUpdate >= options.ConnectionWindowSize / 2)
             {
                 await SendFrameAsync(HTTP2Frame.CreateWindowUpdate(0, (UInt32) connectionPendingRecvUpdate));
                 connectionPendingRecvUpdate = 0;
