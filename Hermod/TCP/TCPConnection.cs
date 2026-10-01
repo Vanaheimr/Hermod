@@ -560,13 +560,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             if (timeout > TimeSpan.Zero)
             {
 
+                // The delay gets a token of its own, cancelled as soon as the
+                // race is decided. A handshake that won used to leave the delay
+                // pending, and its timer with it, for the whole timeout: one
+                // timer per TLS connection, 30 seconds each at a server's
+                // default.
+                //
+                // That token is linked to the caller's, and made where the delay
+                // used to take the caller's: after the handshake has started. A
+                // token source runs the callbacks of a cancellation newest first,
+                // so a cancellation still ends the delay before the handshake,
+                // and still comes out as the TimeoutException below. With
+                // Task.WaitAsync(timeout, CancellationToken) it would come out
+                // as an OperationCanceledException.
+                using var delayCancellation = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
                 var completedTask = await Task.WhenAny(
                                               authenticateTask,
                                               Task.Delay(
                                                   timeout,
-                                                  CancellationToken
+                                                  delayCancellation.Token
                                               )
                                           ).ConfigureAwait(false);
+
+                delayCancellation.Cancel();
 
                 if (completedTask != authenticateTask)
                 {

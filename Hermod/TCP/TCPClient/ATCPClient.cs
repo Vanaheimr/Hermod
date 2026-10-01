@@ -877,12 +877,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                  linkedTokenSource.Token
                                              ).AsTask();
 
+                        // The delay gets a token of its own, cancelled as soon as
+                        // the race is decided. A connect that went through, or
+                        // failed, used to leave the delay pending, and its timer
+                        // with it, for the whole ConnectTimeout. The token is
+                        // linked to no other, just as the delay took none before.
+                        using var waitCancellation = new CancellationTokenSource();
+
                         var waitTask       = Task.Delay(
                                                  ConnectTimeout,
-                                                 CancellationToken.None
+                                                 waitCancellation.Token
                                              );
 
-                        if (await Task.WhenAny(connectTask, waitTask ) == waitTask)
+                        var timedOut       = await Task.WhenAny(connectTask, waitTask) == waitTask;
+
+                        waitCancellation.Cancel();
+
+                        if (timedOut)
                             connectTokenSource.Cancel();
 
                         // Await to throw if failed
