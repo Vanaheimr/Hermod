@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             Client.Dispose();
-            await Server.Stop();
+            await Server.DisposeAsync();
 
             if (Directory.Exists(DataDirectory))
                 Directory.Delete(DataDirectory, recursive: true);

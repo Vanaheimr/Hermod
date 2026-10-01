@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Client setup and connect
 
-            var webSocketClient  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{HTTPPort}"));
+            await using var webSocketClient  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{HTTPPort}"));
 
             #region OnTextMessageReceived
 
@@ -360,10 +360,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-            var webSocketClient  = new WebSocketClient(
-                                       URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
-                                       SecWebSocketProtocols: ["ocpp1.6"]
-                                   );
+            await using var webSocketClient  = new WebSocketClient(
+                                                   URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
+                                                   SecWebSocketProtocols: ["ocpp1.6"]
+                                               );
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;
@@ -557,10 +557,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-            var webSocketClient  = new WebSocketClient(
-                                       URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
-                                       SecWebSocketProtocols: ["ocpp1.6"]
-                                   );
+            await using var webSocketClient  = new WebSocketClient(
+                                                   URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
+                                                   SecWebSocketProtocols: ["ocpp1.6"]
+                                               );
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;
@@ -756,10 +756,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-            var webSocketClient  = new WebSocketClient(
-                                       URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
-                                       SecWebSocketProtocols: ["ocpp1.6"]
-                                   );
+            await using var webSocketClient  = new WebSocketClient(
+                                                   URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
+                                                   SecWebSocketProtocols: ["ocpp1.6"]
+                                               );
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;
@@ -953,10 +953,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-            var webSocketClient  = new WebSocketClient(
-                                       URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
-                                       HTTPAuthentication:  HTTPBasicAuthentication.Create("username", "password")
-                                   );
+            await using var webSocketClient  = new WebSocketClient(
+                                                   URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
+                                                   HTTPAuthentication:  HTTPBasicAuthentication.Create("username", "password")
+                                               );
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;
@@ -1167,10 +1167,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-            var webSocketClient  = new WebSocketClient(
-                                       URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
-                                       HTTPAuthentication:  HTTPBasicAuthentication.Create("username", "password")
-                                   );
+            await using var webSocketClient  = new WebSocketClient(
+                                                   URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
+                                                   HTTPAuthentication:  HTTPBasicAuthentication.Create("username", "password")
+                                               );
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;
@@ -1382,10 +1382,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-            var webSocketClient  = new WebSocketClient(
-                                       URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
-                                       HTTPAuthentication:  HTTPBasicAuthentication.Create("nameOfUser", "passphrase")
-                                   );
+            await using var webSocketClient  = new WebSocketClient(
+                                                   URL.Parse($"ws://127.0.0.1:{HTTPPort}"),
+                                                   HTTPAuthentication:  HTTPBasicAuthentication.Create("nameOfUser", "passphrase")
+                                               );
 
             var response1        = await webSocketClient.Connect();
             var httpResponse     = response1.Item2;

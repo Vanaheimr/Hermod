@@ -132,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
             await cts.CancelAsync();
             try { await sender; } catch { }
-            await server.Stop();
+            await server.DisposeAsync();
 
             // The connection really was alive throughout — otherwise a
             // "closed" reading would simply have been correct and this test

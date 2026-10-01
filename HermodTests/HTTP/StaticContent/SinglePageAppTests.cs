@@ -102,7 +102,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
             }
 
         }
@@ -142,7 +143,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
             }
 
         }
@@ -173,7 +175,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
             }
 
         }
@@ -228,7 +231,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
             }
 
         }
@@ -280,7 +284,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
             }
 
         }
@@ -329,7 +334,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
             }
 
         }
@@ -396,7 +402,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
             }
 
         }
@@ -430,7 +437,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
             }
 
         }

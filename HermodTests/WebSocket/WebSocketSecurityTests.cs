@@ -33,10 +33,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         private static async Task<HTTPResponse> Connect(WebSocketServer     server,
                                                         IHTTPAuthentication? authentication = null)
         {
-            var client = new WebSocketClient(
-                             URL.Parse($"ws://127.0.0.1:{server.IPPort}"),
-                             HTTPAuthentication: authentication
-                         );
+            await using var client = new WebSocketClient(
+                                         URL.Parse($"ws://127.0.0.1:{server.IPPort}"),
+                                         HTTPAuthentication: authentication
+                                     );
 
             try
             {
@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         [Test]
         public async Task AuthenticationIsRequiredByDefault()
         {
-            var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            await using var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
 
             try
             {
@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         [Test]
         public async Task BasicAuthenticationVerifiesStoredPassword()
         {
-            var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            await using var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
             server.AddOrUpdateHTTPBasicAuth("alice", "correct-password");
 
             try
@@ -103,9 +103,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         [Test]
         public async Task AnonymousModeRemainsAvailableWhenExplicitlySelected()
         {
-            var server = new WebSocketServer(HTTPPort: IPPort.Zero,
-                                             RequireAuthentication: false,
-                                             AutoStart: true);
+            await using var server = new WebSocketServer(HTTPPort: IPPort.Zero,
+                                                         RequireAuthentication: false,
+                                                         AutoStart: true);
 
             try
             {
@@ -120,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         [Test]
         public async Task RawTOTPIsAcceptedOnlyWithMatchingConfiguration()
         {
-            var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            await using var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
             var secret = "abcdefghijklmnop";
             server.ClientTOTPConfig["station"] = new TOTPConfig(secret, UseTLSExporterMaterial: false);
 
@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         [Test]
         public async Task AWrongTOTPIsRefused()
         {
-            var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            await using var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
             var secret = "abcdefghijklmnop";
             server.ClientTOTPConfig["station"] = new TOTPConfig(secret, UseTLSExporterMaterial: false);
 
@@ -177,9 +177,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         [Test]
         public async Task AnAnonymousConnectionHasNoLogin()
         {
-            var server = new WebSocketServer(HTTPPort: IPPort.Zero,
-                                             RequireAuthentication: false,
-                                             AutoStart: true);
+            await using var server = new WebSocketServer(HTTPPort: IPPort.Zero,
+                                                         RequireAuthentication: false,
+                                                         AutoStart: true);
             var logins = AcceptedLogins(server);
 
             try
@@ -200,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         [Test]
         public async Task AnAuthenticatedConnectionCarriesItsLogin()
         {
-            var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            await using var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
             server.AddOrUpdateHTTPBasicAuth("alice", "correct-password");
             var logins = AcceptedLogins(server);
 
@@ -221,7 +221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         [Test]
         public async Task AnOverrideKnowsClientsOfItsOwnAndAsksTheBaseForTheRest()
         {
-            var server = new StationServer();
+            await using var server = new StationServer();
             server.Stations["cs01"] = "station-secret";
             server.AddOrUpdateHTTPBasicAuth("alice", "correct-password");
             var logins = AcceptedLogins(server);
@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         [Test]
         public async Task AnOverrideThatThrowsRefusesWithAServerError()
         {
-            var server = new ThrowingServer();
+            await using var server = new ThrowingServer();
             server.AddOrUpdateHTTPBasicAuth("alice", "correct-password");
 
             try
@@ -269,8 +269,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         [Test]
         public void InboundMessagesHaveFiniteDefaults()
         {
-            var server = new WebSocketServer(HTTPPort: IPPort.Zero);
-            var client = new WebSocketClient(URL.Parse("ws://127.0.0.1:12345"));
+            using var server = new WebSocketServer(HTTPPort: IPPort.Zero);
+            using var client = new WebSocketClient(URL.Parse("ws://127.0.0.1:12345"));
 
             Assert.That(server.MaxTextMessageSizeIn,   Is.EqualTo(WebSocketFrame.DefaultMaxPayloadSize));
             Assert.That(server.MaxBinaryMessageSizeIn, Is.EqualTo(WebSocketFrame.DefaultMaxPayloadSize));
@@ -281,13 +281,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         [Test]
         public async Task FragmentedMessageExceedingConfiguredLimitIsClosed()
         {
-            var server = new WebSocketServer(HTTPPort: IPPort.Zero,
-                                             RequireAuthentication: false,
-                                             AutoStart: true) {
-                             MaxTextMessageSizeIn = 5
-                         };
+            await using var server = new WebSocketServer(HTTPPort: IPPort.Zero,
+                                                         RequireAuthentication: false,
+                                                         AutoStart: true) {
+                                         MaxTextMessageSizeIn = 5
+                                     };
 
-            var client = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{server.IPPort}"));
+            await using var client = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{server.IPPort}"));
             var close  = new TaskCompletionSource<WebSocketFrame.ClosingStatusCode>(
                              TaskCreationOptions.RunContinuationsAsynchronously
                          );
@@ -357,16 +357,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
             // 4096 times the same letter compresses to a few bytes: far under the
             // limit on the wire, far over it once inflated.
-            var server = new WebSocketServer(HTTPPort: IPPort.Zero,
-                                             RequireAuthentication: false,
-                                             AutoStart: true) {
-                             EnablePerMessageDeflate  = true,
-                             MaxTextMessageSizeIn     = 100
-                         };
+            await using var server = new WebSocketServer(HTTPPort: IPPort.Zero,
+                                                         RequireAuthentication: false,
+                                                         AutoStart: true) {
+                                         EnablePerMessageDeflate  = true,
+                                         MaxTextMessageSizeIn     = 100
+                                     };
 
-            var client = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{server.IPPort}")) {
-                             EnablePerMessageDeflate  = true
-                         };
+            await using var client = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{server.IPPort}")) {
+                                         EnablePerMessageDeflate  = true
+                                     };
 
             var close  = new TaskCompletionSource<WebSocketFrame.ClosingStatusCode>(
                              TaskCreationOptions.RunContinuationsAsynchronously
@@ -402,13 +402,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
             // The mirror sends back what it gets, as many bytes as it got: six out
             // are six in, and it is the client's limit that is asked, not the server's.
-            var server = new WebSocketMirrorServer(HTTPPort: IPPort.Zero,
-                                                   RequireAuthentication: false,
-                                                   AutoStart: true);
+            await using var server = new WebSocketMirrorServer(HTTPPort: IPPort.Zero,
+                                                               RequireAuthentication: false,
+                                                               AutoStart: true);
 
-            var client = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{server.IPPort}")) {
-                             MaxBinaryMessageSizeIn  = 5
-                         };
+            await using var client = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{server.IPPort}")) {
+                                         MaxBinaryMessageSizeIn  = 5
+                                     };
 
             var close  = new TaskCompletionSource<WebSocketFrame.ClosingStatusCode>(
                              TaskCreationOptions.RunContinuationsAsynchronously

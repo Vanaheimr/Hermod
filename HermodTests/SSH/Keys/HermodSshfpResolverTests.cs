@@ -72,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         {
 
             var hostKey   = SshKeyGenerator.Generate(KeyType);
-            var dnsClient = new DNSClient();
+            await using var dnsClient = new DNSClient();
             const String host = "sshfp-resolver-test.example.";
 
             Publish(dnsClient, host, hostKey);
@@ -111,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             var hostKey   = SshHostKey.GenerateEd25519();
             var other     = SshHostKey.GenerateEd25519();
-            var dnsClient = new DNSClient();
+            await using var dnsClient = new DNSClient();
             const String host = "sshfp-verifier-test.example.";
 
             Publish(dnsClient, host, hostKey);
@@ -140,7 +140,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         public async Task Resolver_UnknownHost_IsEmpty(CancellationToken CancellationToken)
         {
 
-            var resolver = new HermodSshfpResolver(new DNSClient(), QueryTimeout: TimeSpan.FromMilliseconds(250));
+            using var dnsClient = new DNSClient();
+            var resolver = new HermodSshfpResolver(dnsClient, QueryTimeout: TimeSpan.FromMilliseconds(250));
 
             var result = await resolver.QueryAsync("no-such-host.invalid.", CancellationToken);
 
@@ -157,7 +158,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         [CancelAfter(20000)]
         public async Task Resolver_MalformedHostname_IsEmpty(CancellationToken CancellationToken)
         {
-            var resolver = new HermodSshfpResolver(new DNSClient(), QueryTimeout: TimeSpan.FromMilliseconds(250));
+            using var dnsClient = new DNSClient();
+            var resolver = new HermodSshfpResolver(dnsClient, QueryTimeout: TimeSpan.FromMilliseconds(250));
             var result   = await resolver.QueryAsync("", CancellationToken);
             Assert.That(result.Records, Is.Empty);
         }
