@@ -48,10 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             lock (e.subscribers)
             {
-                e.subscribers.Add(
-                    (timestamp, api, request, response, cancellationToken)
-                        => callback(timestamp, api, request, response, cancellationToken)
-                );
+                e.subscribers.Add(callback);
             }
 
             return e;
