@@ -112,12 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             using var timeout = new CancellationTokenSource(StepTimeout);
 
-            if (!prefaceRead)
-            {
-                if (!await H2Raw.ReadExactAsync(fromClient, new Byte[H2Raw.Preface.Length], timeout.Token))
-                    throw new EndOfStreamException("The client closed before its connection preface");
-                prefaceRead = true;
-            }
+            await ReadPrefaceAsync(timeout.Token);
 
             while (true)
             {
@@ -131,6 +126,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Skipped?.Add(frame);
 
             }
+
+        }
+
+        /// <summary>
+        /// The next frame the client sent, whatever its type. Read while the
+        /// client writes more than the pipe holds, it lets the writes go on.
+        /// </summary>
+        public async Task<HTTP2Frame> NextFrameAsync()
+        {
+
+            using var timeout = new CancellationTokenSource(StepTimeout);
+
+            await ReadPrefaceAsync(timeout.Token);
+
+            return await H2Raw.ReadFrameAsync(fromClient, timeout.Token)
+                       ?? throw new EndOfStreamException("The client closed the connection");
+
+        }
+
+        /// <summary>
+        /// Read the client's connection preface, unless it has been read already.
+        /// </summary>
+        private async Task ReadPrefaceAsync(CancellationToken CancellationToken)
+        {
+
+            if (prefaceRead)
+                return;
+
+            if (!await H2Raw.ReadExactAsync(fromClient, new Byte[H2Raw.Preface.Length], CancellationToken))
+                throw new EndOfStreamException("The client closed before its connection preface");
+
+            prefaceRead = true;
 
         }
 

@@ -388,6 +388,12 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 
 - Per-stream and connection-level windows; signal-based send-window reservation
   (no polling).
+- A peer's `SETTINGS_INITIAL_WINDOW_SIZE` moves the send window of every open
+  stream by the difference from its previous value (§6.9.2), which until the
+  peer first states it is the RFC's 65 535 (§6.5.2), not our own default. A
+  peer that left the setting out of its first SETTINGS and stated it later,
+  while a stream was open, used to stall that stream: grpc-go does so in both
+  roles, from its BDP estimator.
 - **WINDOW_UPDATE batching** (replenish once per half-window, not per DATA
   frame) + larger default windows (1 MiB stream + connection).
 - **Consumption-driven backpressure**: for streaming/tunnel bodies the receive
