@@ -24,6 +24,7 @@ using System.Net.Sockets;
 using System.Net.Security;
 using System.Collections.Concurrent;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 using Microsoft.Extensions.Logging;
@@ -511,6 +512,257 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             certificateContextCache.TryAdd(cacheKey, context);
 
             return context;
+
+        }
+
+        #endregion
+
+        #region (internal static) WarmUpCertificateContexts()
+
+        /// <summary>
+        /// How often this process has built the throwaway context - at most
+        /// once, which is the whole point of it. Here so that a test can say so
+        /// rather than a comment claiming it.
+        /// </summary>
+        internal static Int32 CertificateContextWarmUps
+            => certificateContextWarmUps;
+
+        private static Int32 certificateContextWarmUps;
+
+        /// <summary>
+        /// Built on whichever thread asks first, and everybody after that is
+        /// given the answer.
+        /// <see cref="LazyThreadSafetyMode.ExecutionAndPublication"/> rather
+        /// than the default: two servers starting at once must not each spend
+        /// the half second, and the cost is the process's, so the second one
+        /// would buy nothing with it.
+        /// </summary>
+        private static readonly Lazy<Boolean>  certificateContextsWarmedUp  = new (
+                                                                                 BuildThrowawayCertificateContext,
+                                                                                 LazyThreadSafetyMode.ExecutionAndPublication
+                                                                             );
+
+        /// <summary>
+        /// Pay what the first TLS certificate context of this process costs now,
+        /// so that the first TLS connection does not.
+        /// </summary>
+        /// <returns>
+        /// Whether a context was built. False costs nothing but the warmth: the
+        /// first connection then pays as it did before.
+        /// </returns>
+        /// <remarks>
+        /// <b>Two costs, both once per process, neither of them this
+        /// certificate's.</b> Measured on a Windows 11 box, .NET 10, one process
+        /// per sample, building contexts for freshly minted certificates:
+        ///
+        /// <list type="bullet">
+        ///   <item>
+        ///     a <em>cold chain engine</em> - paid by the first
+        ///     <see cref="SslStreamCertificateContext"/> built in the process
+        ///     whatever certificate it is for. Native
+        ///     Crypt32.CertGetCertificateChain under X509Chain.Build, plus the
+        ///     managed X509 code around it. 62 - 109 ms of CPU.
+        ///   </item>
+        ///   <item>
+        ///     a <em>first unresolvable issuer</em> - paid by the first chain
+        ///     whose issuer is in none of this machine's stores, which is every
+        ///     certificate from a private authority: all of the ones the tests
+        ///     mint, and plenty in the field. Waiting rather than work, and not
+        ///     a download whatever the waiting looks like - none of the
+        ///     certificates involved carries an authority-information-access
+        ///     extension, so there is no URL for the platform to go to. It is
+        ///     the machine's own stores being searched, and on Windows opened
+        ///     for writing. A further 13 - 20 ms.
+        ///   </item>
+        /// </list>
+        ///
+        /// Both are then gone: a second, never-seen-before certificate costs
+        /// 1 - 3 ms, and so does a second one from a different unknown root.
+        ///
+        /// <b>Both figures are a property of this machine as much as of this
+        /// code, the second one especially.</b> The same probes a few hours
+        /// earlier, against the same code, read 0.55 - 0.73 s of CPU for the
+        /// first and 0.35 - 5.2 s of wall clock for the second. What changed in
+        /// between is that 3,825 certificates which earlier test runs had left
+        /// behind were deleted from CurrentUser\CA, taking it from 3,970 entries
+        /// to about 200. Opening a registry certificate store costs time in
+        /// proportion to what is in it, and a chain that cannot be completed is
+        /// precisely what sends the platform to those stores.
+        ///
+        /// So the saving is not a constant. On a machine whose stores have grown
+        /// - and they grow on their own, which is what
+        /// ServerCertificateChainTests.UniqueName is about - it is seconds; on a
+        /// tidy one it is the tens of milliseconds above. Worth having either
+        /// way, and worth measuring again rather than believing these numbers,
+        /// because the next machine will not be this one.
+        ///
+        /// <b>Why a made-up certificate rather than this server's own.</b> A
+        /// server does not know at start which certificate it will present.
+        /// <see cref="ITCPServer.ServerCertificateChainSelector"/> and the
+        /// narrower ServerCertificateSelector are asked per connection and take
+        /// the <see cref="TcpClient"/> as an argument, because an SNI-driven
+        /// server may legitimately answer differently for different clients.
+        /// There is no client at start, and calling consumer code with a
+        /// stand-in for one is a contract this cannot keep. So a server with a
+        /// genuinely dynamic selector cannot be warmed <em>for its
+        /// certificate</em> - and does not need to be, because what is expensive
+        /// belongs to the process and not to the certificate.
+        ///
+        /// <b>What this leaves on the first connection.</b> Its own
+        /// <see cref="SslStreamCertificateContext"/>, at 1 - 3 ms. Nothing is
+        /// put into <see cref="certificateContextCache"/> here: that is keyed by
+        /// certificate, and this one is thrown away.
+        ///
+        /// <b>Why the throwaway certificate has an issuer that is nowhere.</b>
+        /// Because only that shape warms both costs, which was worth measuring
+        /// rather than assuming. A self-signed chain is complete at the leaf, so
+        /// it never sends the platform looking for an issuer it has no copy of:
+        /// with a self-signed throwaway the CPU moves to the warm-up as
+        /// intended and the first real certificate still pays the lookup, at
+        /// 15 - 22 ms. With a leaf signed by a root that is neither installed
+        /// nor sent along, the warm-up pays both and the first real certificate
+        /// costs 1.3 - 2.1 ms.
+        ///
+        /// That gap was seconds rather than milliseconds before this machine's
+        /// CA store was emptied of the certificates earlier test runs had left
+        /// in it - the self-signed shape left the first real certificate waiting
+        /// 0.14 - 5.2 s. Which is the honest case for this shape: it buys little
+        /// on a tidy machine and a great deal on one that has been worked on,
+        /// and a server cannot tell in advance which it is running on.
+        ///
+        /// <b>What that costs a server it does not help.</b> Where the
+        /// certificate chains to a root this machine already has - a publicly
+        /// trusted one, with its intermediates sent along - the lookup would
+        /// never have happened, and the warm-up now makes it happen once at
+        /// start. That half of the warm-up is wasted for such a server - tens
+        /// of milliseconds here, and seconds on a machine with a grown store -
+        /// though the chain-engine half is one it pays for anyway. It is the
+        /// default because the servers built on this one are mostly not of that
+        /// kind, private authorities and device CAs being the common case here,
+        /// and because guessing wrong is asymmetric: a server that needed it and
+        /// did not get it makes a client wait, and one that got it and did not
+        /// need it waits for nothing on its own time.
+        /// </remarks>
+        internal static Boolean WarmUpCertificateContexts()
+
+            => certificateContextsWarmedUp.Value;
+
+        #endregion
+
+        #region (private static) BuildThrowawayCertificateContext()
+
+        /// <summary>
+        /// Build a context for a certificate invented on the spot and dropped
+        /// again, purely so that what is behind it is warm.
+        /// </summary>
+        private static Boolean BuildThrowawayCertificateContext()
+        {
+
+            Interlocked.Increment(ref certificateContextWarmUps);
+
+            // The second shape is a fallback rather than an addition: it warms
+            // the chain engine but not the issuer lookup, and it is only reached
+            // if a platform refuses to make a context for a chain it cannot
+            // complete. This one does not refuse - measured, not assumed - but
+            // one that did would otherwise leave the whole cost on the first
+            // connection rather than the smaller half of it.
+            return TryBuildThrowawayContext(UnreachableIssuer: true) ||
+                   TryBuildThrowawayContext(UnreachableIssuer: false);
+
+        }
+
+        /// <summary>
+        /// Mint a throwaway certificate and build its context.
+        /// </summary>
+        /// <param name="UnreachableIssuer">
+        /// Whether to sign it with a root that is neither installed on this
+        /// machine nor sent along with it, so that building its chain makes the
+        /// platform look for an issuer it will not find - the wait that the
+        /// first real certificate would otherwise be the one to pay.
+        /// </param>
+        private static Boolean TryBuildThrowawayContext(Boolean UnreachableIssuer)
+        {
+
+            // Nothing beyond basic constraints: this certificate is never shown
+            // to anybody, and what is being warmed is the chain machinery
+            // rather than anything that inspects a server certificate's fitness.
+            //
+            // P-256 and not RSA because the key is generated while a server is
+            // starting: an ECDSA key costs about a millisecond, a 2048-bit RSA
+            // key a good deal more than the build it would be hiding.
+            //
+            // Names that no certificate has used before, for the reason written
+            // up on ServerCertificateChainTests.UniqueName: Windows resolves an
+            // issuer by name, and a name reused by certificate after certificate
+            // with a different key each time is how a machine's chain engine
+            // gets to the point of refusing to build anything. Nothing here is
+            // handed to SslStreamCertificateContext as an intermediate, which is
+            // what gets installed, so there should be nothing to accumulate -
+            // and a unique name costs a Guid, so it is not worth being right
+            // about.
+            try
+            {
+
+                var       now          = Timestamp.Now;
+                var       unique       = Guid.NewGuid().ToString("N")[..8];
+
+                using var leafKey      = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+                var       leafRequest  = new CertificateRequest(
+                                             $"CN=Hermod TLS warm-up {unique}",
+                                             leafKey,
+                                             HashAlgorithmName.SHA256
+                                         );
+
+                leafRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, false));
+
+                if (!UnreachableIssuer)
+                {
+
+                    using var selfSigned = leafRequest.CreateSelfSigned(
+                                               now.AddHours(-1),
+                                               now.AddHours( 1)
+                                           );
+
+                    return new ServerCertificateChain(selfSigned).TryCreateContext(out _, out _);
+
+                }
+
+                using var issuerKey      = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+                var       issuerRequest  = new CertificateRequest(
+                                               $"CN=Hermod TLS warm-up issuer {unique}",
+                                               issuerKey,
+                                               HashAlgorithmName.SHA256
+                                           );
+
+                issuerRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+
+                using var issuer         = issuerRequest.CreateSelfSigned(
+                                               now.AddHours(-1),
+                                               now.AddHours( 1)
+                                           );
+
+                using var signed         = leafRequest.Create(
+                                               issuer,
+                                               now.AddHours(-1),
+                                               now.AddHours( 1),
+                                               Guid.NewGuid().ToByteArray()
+                                           );
+
+                // The chain is given the leaf alone. Handing it the issuer would
+                // complete it, and a chain that completes is the one case that
+                // does not warm the lookup.
+                using var leaf           = signed.CopyWithPrivateKey(leafKey);
+
+                return new ServerCertificateChain(leaf).TryCreateContext(out _, out _);
+
+            }
+            catch
+            {
+                // Best effort by construction. There is nothing to report and
+                // nobody waiting for it: a warm-up that fails leaves the first
+                // connection paying what it would have paid anyway.
+                return false;
+            }
 
         }
 

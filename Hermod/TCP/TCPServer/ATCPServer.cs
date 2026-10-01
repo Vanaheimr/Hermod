@@ -807,6 +807,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             #endregion
 
+            #region A started server is a warm server
+
+            // The first TLS certificate context built in a process costs
+            // 62 - 109 ms of CPU and, where the certificate comes from an
+            // authority this machine does not know, 13 - 20 ms of waiting
+            // besides - and without this it is the first client's own handshake
+            // that pays all of it. Those two figures were 0.55 - 0.73 s and
+            // 0.35 - 5.2 s on the same machine before 3,825 leftover test
+            // certificates were cleared out of its CA store, so what this is
+            // worth depends on the machine rather than on the code. See
+            // TCPConnection.WarmUpCertificateContexts() for the measurements
+            // and for why a certificate made up on the spot is enough to take
+            // them.
+            //
+            // Asked only of a server that may do TLS as it starts. A plain TCP
+            // server has no handshake to make faster, and this is not free. A server given a ServerCertificateChainSelector after
+            // Start() - the property is settable, and a chain is something that
+            // is renewed under a running server - is not covered, and warms on
+            // its first connection as it always did.
+            //
+            // On the thread pool, and nothing waits for it. Start() is awaited
+            // by whoever is about to take connections, so holding it for the
+            // half second would move the delay rather than remove it. A client
+            // that arrives first simply builds the context itself: this fills a
+            // cache early, it is not a step the handshake waits on.
+            if (ServerCertificateSelector      is not null ||
+                ServerCertificateChainSelector is not null)
+            {
+                _ = Task.Run(TCPConnection.WarmUpCertificateContexts);
+            }
+
+            #endregion
+
             try
             {
 
