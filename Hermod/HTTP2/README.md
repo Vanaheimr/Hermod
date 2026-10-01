@@ -1030,7 +1030,13 @@ that prints, which is roughly what the library used to hardcode.
   `HTTP2RequestNotProcessedException`, PING keepalive / dead-connection
   detection, client-side flood bounds. No new stream after a `GOAWAY` (§6.8): a
   request started then, or waiting for a stream slot when it comes, fails at once
-  with `HTTP2RequestNotProcessedException`.
+  with `HTTP2RequestNotProcessedException`. A stream the `GOAWAY` leaves
+  unprocessed, above its last-stream-id, is closed at once, as though it had
+  never been opened, sending nothing: its request fails as before, a request body
+  still being sent there stops rather than go out to a server that ignores it, a
+  write fails with an `OperationCanceledException`, and an accepted tunnel — only
+  a server that breaks §6.8 leaves one above its last-stream-id — reads its end,
+  `null`, rather than wait until the whole connection ends.
 - **The writer loop's failures are contained** as the server's are: a stream
   error — DATA after our own END_STREAM, from a write racing the end of its
   request — resets that one stream (`RST_STREAM INTERNAL_ERROR`; its writes and
