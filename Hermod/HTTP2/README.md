@@ -1036,7 +1036,11 @@ that prints, which is roughly what the library used to hardcode.
   request — resets that one stream (`RST_STREAM INTERNAL_ERROR`; its writes and
   its response side fail with that code) and the loop serves the others on;
   anything else ends the connection at once with `GOAWAY INTERNAL_ERROR`, and
-  every request on it fails with the reason.
+  every request on it fails with the reason. The connection's own loops — the
+  read loop, the writer loop, the keepalive — cancel its token with
+  `CancelAsync()`: whatever waited with it goes on on the thread pool, not inside
+  the loop that ended the connection, and the connection's end, which a pool
+  waits for, waits for none of it.
 - **Slots and windows follow the stream**: the `MAX_CONCURRENT_STREAMS` gate,
   and `AvailableStreamSlots` for the pool, count the streams that are open or
   half-closed (§5.1.2), as the stream allocator and the server do, not the

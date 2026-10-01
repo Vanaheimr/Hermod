@@ -293,6 +293,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 dataWriteFailure = (StreamId, Failure);
         }
 
+        /// <summary>
+        /// Go away as a server that closes the connection does: the client's next
+        /// read finds the end of the stream.
+        /// </summary>
+        public ValueTask EndServerSideAsync()
+
+            => serverToClient.Writer.CompleteAsync();
+
         #endregion
 
 

@@ -290,9 +290,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             finally
             {
-                connectionCts.Cancel();
+
+                // The token is cancelled at once, but what waits with it goes on
+                // on the thread pool, not here: Cancel() ran the continuation of
+                // every caller awaiting with it on this loop's thread — a write
+                // waiting for the writer loop, say, and whatever its caller did
+                // next — and the end of the connection, which a pool waits for,
+                // waited for them (see HTTP2Stream.Reset, where 513797ae made the
+                // same change for a stream's token). The writer loop ends with it
+                // as well, on its own; nothing here waits for it.
+                _ = connectionCts.CancelAsync();
+
                 unusable.TrySetResult();   // no new streams from here on
                 closed.TrySetResult();     // wake any pool watcher awaiting this connection's death
+
             }
         }
 
@@ -2235,7 +2246,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     {
                         FailAllExchanges(new HTTP2ConnectionException(HTTP2ErrorCode.NO_ERROR,
                             "Keepalive PING not acknowledged — connection is unresponsive"));
-                        connectionCts.Cancel();
+
+                        // On the thread pool, as at the end of the read loop (see
+                        // RunAsync): not the callers' continuations on this loop.
+                        _ = connectionCts.CancelAsync();
+
                         return;
                     }
                     finally
