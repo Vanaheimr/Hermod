@@ -635,11 +635,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// of 64 KiB — which the application does not read. The OCPP channel next
         /// to it still echoes.
         ///
-        /// The client gives back the window of what it receives at once, read or
-        /// not, so an unread channel keeps no window from the others; what nobody
-        /// reads, it buffers. Should it ever give back only what is read, as the
-        /// server does, its connection window has to be larger than a stream's for
-        /// this to hold.
+        /// The client gives back a stream's window only as the application reads
+        /// it, so the log channel takes its whole stream window, and can take no
+        /// more; the connection's it gives back on receipt, read or not, so an
+        /// unread channel keeps no window from the others. Should it ever give
+        /// back the connection's only as it is read, too, as the server does, its
+        /// connection window has to be larger than a stream's for this to hold.
         /// </summary>
         [Test]
         public async Task Client_UnreadWebSocket_OCPPWebSocketStillFlows()

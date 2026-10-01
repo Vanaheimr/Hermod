@@ -48,9 +48,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// by the connection window (4 MiB in 100 ms: 40 MiB/s). The README compares
     /// this with what other implementations chose.
     ///
-    /// The client gives back the window of what it receives at once, read or
-    /// not: there the windows bound only what the server can have in flight, not
-    /// what the client holds for an application that does not read.
+    /// The client gives back the stream window of tunnel bytes and of a
+    /// streamed response only as the application reads them, too, so a stream
+    /// window bounds what it holds for an application that does not read. The
+    /// connection window it gives back on receipt, read or not: it bounds only
+    /// what the server can have in flight, and no stream the application has not
+    /// read yet can keep window from the one it reads now.
     /// </summary>
     public static class HTTP2FlowControl
     {
