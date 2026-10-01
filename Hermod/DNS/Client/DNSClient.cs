@@ -960,7 +960,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 while (allDNSServerRequests.Count > 0);
 
                 // Cancel remaining in-flight requests
-                await raceCTS.CancelAsync();
+                await raceCTS.CancelAsync().ConfigureAwait(false);
 
             }
 

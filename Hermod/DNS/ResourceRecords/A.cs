@@ -229,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var read    = await RDataStream.ReadAsync(
                                     memory,
                                     CancellationToken
-                                );
+                                ).ConfigureAwait(false);
 
             if (read != 4)
                 throw new InvalidDataException("Invalid A RData length!");

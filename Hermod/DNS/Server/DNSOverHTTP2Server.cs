@@ -283,7 +283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              ServeHTTP11ViaALPN
                          );
 
-            await server.Start();
+            await server.Start().ConfigureAwait(false);
 
             return server;
 
@@ -494,7 +494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   result.DNSRequest,
                                   CancellationToken
                               )
-                          );
+                          ).ConfigureAwait(false);
 
                 if (result.DNSResponse is not null)
                     await LogEvent(
@@ -505,7 +505,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   result.DNSResponse,
                                   CancellationToken
                               )
-                          );
+                          ).ConfigureAwait(false);
 
                 return Render(result, method == HTTPMethod.HEAD);
 

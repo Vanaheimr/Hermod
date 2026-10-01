@@ -455,15 +455,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               this,
                               IPSocket.FromIPEndPoint(listener.Client.LocalEndPoint) ?? localSocket,
                               CancellationToken
-                          ),
+                          ).ConfigureAwait(false),
                           nameof(OnDNSUDPUnicastListenerStarted)
-                      );
+                      ).ConfigureAwait(false);
 
                 loops.Add(ReceiveUDPUnicastAsync(listener, localSocket, CancellationToken));
 
             }
 
-            await Task.WhenAll(loops);
+            await Task.WhenAll(loops).ConfigureAwait(false);
 
         }
 
@@ -487,7 +487,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 try
                 {
 
-                    var dnsPacket = await udpUnicastListener.ReceiveAsync(CancellationToken);
+                    var dnsPacket = await udpUnicastListener.ReceiveAsync(CancellationToken).ConfigureAwait(false);
 
                     if (!pipeline.AcceptSignedRequest(dnsPacket.Buffer, out var udpBody, out var tsigContext, out var tsigError))
                     {
@@ -497,7 +497,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       new ReadOnlyMemory<Byte>(tsigError),
                                       dnsPacket.RemoteEndPoint,
                                       CancellationToken
-                                  );
+                                  ).ConfigureAwait(false);
 
                         continue;
 
@@ -529,7 +529,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       new ReadOnlyMemory<Byte>(formatError),
                                       dnsPacket.RemoteEndPoint,
                                       CancellationToken
-                                  );
+                                  ).ConfigureAwait(false);
 
                         continue;
 
@@ -543,9 +543,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             "UDP Unicast",
                             dnsRequest,
                             CancellationToken
-                        ),
+                        ).ConfigureAwait(false),
                         nameof(OnDNSRequestReceived)
-                    );
+                    ).ConfigureAwait(false);
 
                     var dnsResponse = await ProcessDNSRequest(dnsRequest, CancellationToken).
                                             ConfigureAwait(false);
@@ -556,7 +556,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   new ReadOnlyMemory<Byte>(DNSMessagePipeline.SignIfRequested(pipeline.SerializeDatagramResponse(dnsResponse, dnsRequest), tsigContext)),
                                   dnsResponse.RemoteSocket.ToIPEndPoint(),
                                   CancellationToken
-                              );
+                              ).ConfigureAwait(false);
 
                         await LogEvent(
                                   OnDNSResponseSent,
@@ -566,9 +566,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       "UDP Unicast",
                                       dnsResponse,
                                       CancellationToken
-                                  ),
+                                  ).ConfigureAwait(false),
                                   nameof(OnDNSResponseSent)
-                              );
+                              ).ConfigureAwait(false);
 
                     }
 
@@ -611,9 +611,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                           ActiveUDPMulticastSocket ?? localSocket,
                           Options.MulticastGroupAddress,
                           CancellationToken
-                      ),
+                      ).ConfigureAwait(false),
                       nameof(OnDNSUDPMulticastListenerStarted)
-                  );
+                  ).ConfigureAwait(false);
 
 
             while (!CancellationToken.IsCancellationRequested)
@@ -621,7 +621,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 try
                 {
 
-                    var dnsPacket   = await udpMulticastListener.ReceiveAsync(CancellationToken);
+                    var dnsPacket   = await udpMulticastListener.ReceiveAsync(CancellationToken).ConfigureAwait(false);
 
                     var dnsRequest  = DNSPacket.Parse(
                                           ActiveUDPMulticastSocket ?? localSocket,
@@ -637,9 +637,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             "UDP Multicast",
                             dnsRequest,
                             CancellationToken
-                        ),
+                        ).ConfigureAwait(false),
                         nameof(OnDNSRequestReceived)
-                    );
+                    ).ConfigureAwait(false);
 
                     var dnsResponse = await ProcessDNSRequest(dnsRequest, CancellationToken).
                                             ConfigureAwait(false);
@@ -651,7 +651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   new ReadOnlyMemory<Byte>(pipeline.SerializeDatagramResponse(dnsResponse, dnsRequest)),
                                   dnsResponse.RemoteSocket.ToIPEndPoint(),
                                   CancellationToken
-                              );
+                              ).ConfigureAwait(false);
 
                         await LogEvent(
                                   OnDNSResponseSent,
@@ -661,9 +661,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       "UDP Multicast",
                                       dnsResponse,
                                       CancellationToken
-                                  ),
+                                  ).ConfigureAwait(false),
                                   nameof(OnDNSResponseSent)
-                              );
+                              ).ConfigureAwait(false);
 
                     }
 
@@ -749,15 +749,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                           this,
                           IPSocket.FromIPEndPoint(tcpListener.LocalEndpoint) ?? localSocket,
                           CancellationToken
-                      ),
+                      ).ConfigureAwait(false),
                       nameof(OnDNSTCPUnicastListenerStarted)
-                  );
+                  ).ConfigureAwait(false);
 
                 loops.Add(AcceptTCPUnicastAsync(tcpListener, localSocket, CancellationToken));
 
             }
 
-            await Task.WhenAll(loops);
+            await Task.WhenAll(loops).ConfigureAwait(false);
 
         }
 
@@ -786,7 +786,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     try
                     {
 
-                        var tcpClient = await tcpListener.AcceptTcpClientAsync(CancellationToken);
+                        var tcpClient = await tcpListener.AcceptTcpClientAsync(CancellationToken).ConfigureAwait(false);
 
                         logger.LogDebug(
                             "New TCP connection from {RemoteEndPoint} accepted on {LocalSocket}",
@@ -912,16 +912,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               this,
                               ActiveTLSUnicastSocket ?? localSocket,
                               CancellationToken
-                          ),
+                          ).ConfigureAwait(false),
                           nameof(OnDNSTLSUnicastListenerStarted)
-                      );
+                      ).ConfigureAwait(false);
 
                     while (!CancellationToken.IsCancellationRequested)
                     {
                         try
                         {
 
-                            var tcpClient = await tlsListener.AcceptTcpClientAsync(CancellationToken);
+                            var tcpClient = await tlsListener.AcceptTcpClientAsync(CancellationToken).ConfigureAwait(false);
 
                             logger.LogDebug(
                                 "New TLS connection from {RemoteEndPoint} accepted on {LocalSocket}",
@@ -981,12 +981,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     var remoteSocket = IPSocket.FromIPEndPoint(TCPClient.Client.RemoteEndPoint) ?? IPSocket.Zero;
 
-                    await using var sslStream = new SslStream(
-                                                    TCPClient.GetStream(),
-                                                    leaveInnerStreamOpen: false,
-                                                    Options.TLSClientCertificateValidator
-                                                );
-
+                    var sslStream = new SslStream(
+                                        TCPClient.GetStream(),
+                                        leaveInnerStreamOpen: false,
+                                        Options.TLSClientCertificateValidator
+                                    );
+                    await using var sslStreamScope = sslStream.ConfigureAwait(false);
                     var authenticationOptions = new SslServerAuthenticationOptions {
                         ServerCertificate              = Options.TLSServerCertificate,
                         ClientCertificateRequired       = Options.TLSClientCertificateRequired,
@@ -1073,9 +1073,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         if (tsigError is not null)
                         {
-                            await Stream.WriteAsync(new Byte[] { (Byte) (tsigError.Length >> 8), (Byte) tsigError.Length }, CancellationToken);
-                            await Stream.WriteAsync(tsigError, CancellationToken);
-                            await Stream.FlushAsync(CancellationToken);
+                            await Stream.WriteAsync(new Byte[] { (Byte) (tsigError.Length >> 8), (Byte) tsigError.Length }, CancellationToken).ConfigureAwait(false);
+                            await Stream.WriteAsync(tsigError, CancellationToken).ConfigureAwait(false);
+                            await Stream.FlushAsync(CancellationToken).ConfigureAwait(false);
                         }
 
                         continue;
@@ -1096,9 +1096,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             ServerType,
                             dnsRequest,
                             CancellationToken
-                        ),
+                        ).ConfigureAwait(false),
                         nameof(OnDNSRequestReceived)
-                    );
+                    ).ConfigureAwait(false);
 
                     var dnsResponse = await ProcessDNSRequest(dnsRequest, CancellationToken).
                                             ConfigureAwait(false);
@@ -1110,8 +1110,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         Stream.WriteUInt16BE((UInt16) responseBytes.Length);
 
-                        await Stream.WriteAsync(responseBytes, 0, responseBytes.Length, CancellationToken);
-                        await Stream.FlushAsync(CancellationToken);
+                        await Stream.WriteAsync(responseBytes, 0, responseBytes.Length, CancellationToken).ConfigureAwait(false);
+                        await Stream.FlushAsync(CancellationToken).ConfigureAwait(false);
 
                         await LogEvent(
                             OnDNSResponseSent,
@@ -1121,9 +1121,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 ServerType,
                                 dnsResponse,
                                 CancellationToken
-                            ),
+                            ).ConfigureAwait(false),
                             nameof(OnDNSResponseSent)
-                        );
+                        ).ConfigureAwait(false);
 
                     }
 
@@ -1258,9 +1258,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               localSocket,
                               dohServer.DNSQueryPath,
                               CancellationToken
-                          ),
+                          ).ConfigureAwait(false),
                           nameof(OnDNSHTTPSUnicastListenerStarted)
-                      );
+                      ).ConfigureAwait(false);
 
             }
             catch (Exception e)
@@ -1344,9 +1344,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               localSocket,
                               doh2Server.DNSQueryPath,
                               CancellationToken
-                          ),
+                          ).ConfigureAwait(false),
                           nameof(OnDNSHTTP2UnicastListenerStarted)
-                      );
+                      ).ConfigureAwait(false);
 
             }
             catch (Exception e)
@@ -1426,9 +1426,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                           Timestamp.Now,
                           this,
                           cancellationTokenSource?.Token ?? CancellationToken.None
-                      ),
+                      ).ConfigureAwait(false),
                       nameof(OnDNSServerStarted)
-                  );
+                  ).ConfigureAwait(false);
 
         }
 
@@ -1449,9 +1449,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                           Timestamp.Now,
                           this,
                           cancellationTokenSource.Token
-                      ),
+                      ).ConfigureAwait(false),
                       nameof(OnDNSServerStopped)
-                  );
+                  ).ConfigureAwait(false);
 
             cancellationTokenSource?.Cancel();
 

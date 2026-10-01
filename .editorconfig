@@ -1,0 +1,16 @@
+# Analyzer settings for this repository.
+root = true
+
+# CA2007 - every await in the DNS library says which context it resumes on.
+#
+# Library code that resumes on the caller's synchronization context can
+# deadlock a caller that blocks on the result, in a UI application or in
+# classic ASP.NET. The convention here is ConfigureAwait(false) and most awaits
+# already followed it; the rule makes the rest say so, and keeps it that way.
+# It accepts ConfigureAwait(true) just as readily: what it enforces is that the
+# choice is made, not which one.
+#
+# Scoped to DNS, the part of the library a conformance suite measures. The
+# rest of the library would raise it about fifteen hundred times.
+[Hermod/DNS/**.cs]
+dotnet_diagnostic.CA2007.severity = warning

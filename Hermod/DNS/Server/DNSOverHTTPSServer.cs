@@ -276,7 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              LoggerFactory:  LoggerFactory
                          );
 
-            await server.Start();
+            await server.Start().ConfigureAwait(false);
 
             return server;
 
@@ -336,7 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   result.DNSRequest,
                                   CancellationToken
                               )
-                          );
+                          ).ConfigureAwait(false);
 
                 var builder = new HTTPResponse.Builder(Request) {
                                   HTTPStatusCode  = result.StatusCode,
@@ -362,7 +362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   result.DNSResponse,
                                   CancellationToken
                               )
-                          );
+                          ).ConfigureAwait(false);
 
                 return builder.AsImmutable;
 
