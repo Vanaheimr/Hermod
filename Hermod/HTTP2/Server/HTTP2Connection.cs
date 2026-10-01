@@ -950,7 +950,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                         lock (flowLock)
                         {
-                            var delta = (Int64) value - (Int64) remoteSettings.InitialWindowSize;
+                            // The difference from the value the open streams were
+                            // given: the RFC's 65535 until the peer first states
+                            // this setting (RFC 9113, Section 6.5.2), not
+                            // remoteSettings', which starts out with what we
+                            // advertise ourselves.
+                            var delta = (Int64) value - streamManager.PeerInitialWindowSize;
                             remoteSettings.InitialWindowSize = value;
 
                             // Adjust existing streams (RFC 9113, Section 6.9.2)
