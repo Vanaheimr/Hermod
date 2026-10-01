@@ -29,7 +29,8 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 {
 
-    public abstract class ANotificationSender
+    public abstract class ANotificationSender : IDisposable,
+                                                IAsyncDisposable
     {
 
         #region Data
@@ -42,6 +43,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         protected readonly     SemaphoreSlim  SendNotificationsLock           = new (1, 1);
         protected readonly     Timer          SendNotificationsTimer;
+
+        /// <summary>
+        /// Whether this sender made its DNS client itself, and so is the one
+        /// to dispose of it. One that was handed in belongs to whoever handed
+        /// it in, and may be serving others as well.
+        /// </summary>
+        private   readonly     Boolean        ownsDNSClient;
 
         #endregion
 
@@ -110,6 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                                 );
 
             this.LatestNotificationTimestamp  = DateTimeOffset.MinValue;
+            this.ownsDNSClient                = DNSClient is null;
             this.DNSClient                    = DNSClient ?? new DNSClient();
 
         }
@@ -188,6 +197,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
 
         public abstract Task SendNotifications(IEnumerable<JObject> JSONData);
+
+
+        #region Dispose/Async()
+
+        /// <summary>
+        /// Stop the timer, once a callback that is running has returned, and
+        /// dispose of the DNS client where this sender made it. The timer calls
+        /// an instance method, so it kept the sender alive, and ticking, for as
+        /// long as the process ran. A DNS client that was handed in is left to
+        /// whoever handed it in.
+        /// </summary>
+        public virtual async ValueTask DisposeAsync()
+        {
+
+            await SendNotificationsTimer.DisposeAsync().ConfigureAwait(false);
+
+            if (ownsDNSClient)
+                await DNSClient.DisposeAsync().ConfigureAwait(false);
+
+            GC.SuppressFinalize(this);
+
+        }
+
+        /// <summary>
+        /// Stop the timer, without waiting for a callback that is running, and
+        /// dispose of the DNS client where this sender made it.
+        /// </summary>
+        public virtual void Dispose()
+        {
+
+            SendNotificationsTimer.Dispose();
+
+            if (ownsDNSClient)
+                DNSClient.Dispose();
+
+            GC.SuppressFinalize(this);
+
+        }
+
+        #endregion
 
 
     }
