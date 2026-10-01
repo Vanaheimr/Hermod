@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
 
         protected readonly     SemaphoreSlim  SendNotificationsLock           = new (1, 1);
-        protected readonly     Timer          SendNotificationsTimer;
+        protected readonly     ITimer         SendNotificationsTimer;
 
         /// <summary>
         /// Whether this sender made its DNS client itself, and so is the one
@@ -100,7 +100,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                       Boolean            DisableSendNotifications   = false,
                                       PgpPublicKeyRing?  PublicKeyRing              = null,
                                       PgpSecretKeyRing?  SecretKeyRing              = null,
-                                      IDNSClient?         DNSClient                  = null)
+                                      IDNSClient?         DNSClient                  = null,
+                                      TimeProvider?      TimeProvider               = null)
         {
 
             this.HTTPExtAPI                   = HTTPExtAPI;
@@ -110,11 +111,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                                     ? SendNotificationsEvery.Value. TotalSeconds
                                                     : DefaultSendNotificationsEvery.TotalSeconds);
 
-            this.SendNotificationsTimer       = new Timer(
+            // The schedule is kept in whole seconds. Handed to the timer as it
+            // was, a UInt32, it took the overload that counts milliseconds: 31
+            // seconds came to 31 milliseconds, about 32 callbacks a second on
+            // the thread pool for as long as the sender lived.
+            this.SendNotificationsTimer       = (TimeProvider ?? System.TimeProvider.System).CreateTimer(
                                                     SendNotifications,
                                                     null,
-                                                    sendNotificationsEvery,
-                                                    sendNotificationsEvery
+                                                    FlushNotificationsEvery,
+                                                    FlushNotificationsEvery
                                                 );
 
             this.LatestNotificationTimestamp  = DateTimeOffset.MinValue;
