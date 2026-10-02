@@ -65,7 +65,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             if (server is not null)
+            {
                 await server.Shutdown(Wait: true);
+                await server.DisposeAsync();
+            }
 
             server = null;
 
@@ -267,7 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             };
 
             var order         = new ConcurrentQueue<String>();
-            var client        = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
+            await using var client        = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
 
             client.OnWebSocketConnectionAccepted += async (timestamp, webSocketClient, connection, httpResponse, ct) => {
                 // Long enough for a frame that was read regardless to be handled.

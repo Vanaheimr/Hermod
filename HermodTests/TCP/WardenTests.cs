@@ -154,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
                 }
             }
 
-            await server.Stop();
+            await server.DisposeAsync();
 
             Assert.Multiple(() => {
 

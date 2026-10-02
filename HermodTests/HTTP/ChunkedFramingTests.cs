@@ -237,7 +237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Shutdown()
         {
             if (httpServer is not null)
-                await httpServer.Stop();
+                await httpServer.DisposeAsync();
         }
 
         #endregion

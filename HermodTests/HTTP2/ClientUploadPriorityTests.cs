@@ -155,8 +155,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         /// <summary>
         /// Let go of a task the test no longer waits for — the rest of a bulk
-        /// upload, which fails once the connection is closed — so that its
-        /// failure goes unobserved by nobody.
+        /// upload, which fails once the connection is closed — and still observe
+        /// its failure, so that none goes unobserved.
         /// </summary>
         private static async Task ObserveAsync(Task Task)
         {

@@ -103,11 +103,11 @@ public sealed class HTTPServerListenerMatrixTests
     [Test]
     public async Task Ephemeral_Port_Pure_IPv4_Any_Must_Accept_IPv4()
     {
-        var server = new HTTPServer(
-                         IPAddress: IPv4Address.Any,
-                         TCPPort:   IPPort.Zero,
-                         AutoStart: false
-                     );
+        await using var server = new HTTPServer(
+                                     IPAddress: IPv4Address.Any,
+                                     TCPPort:   IPPort.Zero,
+                                     AutoStart: false
+                                 );
 
         try
         {
@@ -170,7 +170,7 @@ public sealed class HTTPServerListenerMatrixTests
     {
         try
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
         catch
         {

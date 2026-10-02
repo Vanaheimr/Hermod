@@ -305,40 +305,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPServer(
-                                 TCPPort:                      IPPort.Zero,
-                                 ServerCertificateSelector:    (tcpServer, tcpClient) => {
-                                                                   return serverCertificate2!;
-                                                               },
-                                 ClientCertificateValidator:   (sender,
-                                                                clientCertificate,
-                                                                clientCertificateChain,
-                                                                tlsServer,
-                                                                policyErrors) => {
+            await using var httpServer = new HTTPServer(
+                                             TCPPort:                      IPPort.Zero,
+                                             ServerCertificateSelector:    (tcpServer, tcpClient) => {
+                                                                               return serverCertificate2!;
+                                                                           },
+                                             ClientCertificateValidator:   (sender,
+                                                                            clientCertificate,
+                                                                            clientCertificateChain,
+                                                                            tlsServer,
+                                                                            policyErrors) => {
 
-                                                                    if (clientCertificate is null)
-                                                                         return TLSValidationResult.Failed("The client certificate must not be null!");
+                                                                                if (clientCertificate is null)
+                                                                                     return TLSValidationResult.Failed("The client certificate must not be null!");
 
-                                                                    var chainReport = PKIFactory.ValidateClientChain(
-                                                                                          clientCertificate,
-                                                                                          clientCACertificate2!,
-                                                                                          rootCACertificate2!
-                                                                                      );
+                                                                                var chainReport = PKIFactory.ValidateClientChain(
+                                                                                                      clientCertificate,
+                                                                                                      clientCACertificate2!,
+                                                                                                      rootCACertificate2!
+                                                                                                  );
 
-                                                                    return TLSValidationResult.From(
-                                                                               chainReport.IsValid,
-                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                           );
+                                                                                return TLSValidationResult.From(
+                                                                                           chainReport.IsValid,
+                                                                                           chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                       );
 
-                                                               },
-                                 LocalCertificateSelector:     (sender,
-                                                                targetHost,
-                                                                localCertificates,
-                                                                remoteCertificate,
-                                                                acceptableIssuers) => {
-                                                                    return serverCertificate2!;
-                                                               }
-                             );
+                                                                           },
+                                             LocalCertificateSelector:     (sender,
+                                                                            targetHost,
+                                                                            localCertificates,
+                                                                            remoteCertificate,
+                                                                            acceptableIssuers) => {
+                                                                                return serverCertificate2!;
+                                                                           }
+                                         );
 
             var httpAPI = httpServer.AddHTTPAPI();
 
@@ -368,39 +368,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #endregion
 
-            var httpClient1  = new HTTPClient(
-                                   URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
-                                   RemoteCertificateValidator:   (sender,
-                                                                  serverCertificate,
-                                                                  serverCertificateChain,
-                                                                  httpClient,
-                                                                  policyErrors) => {
+            await using var httpClient1  = new HTTPClient(
+                                               URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
+                                               RemoteCertificateValidator:   (sender,
+                                                                              serverCertificate,
+                                                                              serverCertificateChain,
+                                                                              httpClient,
+                                                                              policyErrors) => {
 
-                                                                      if (serverCertificate is null)
-                                                                          return TLSValidationResult.Failed("The server certificate must not be null!");
+                                                                                  if (serverCertificate is null)
+                                                                                      return TLSValidationResult.Failed("The server certificate must not be null!");
 
-                                                                      var chainReport = PKIFactory.ValidateServerChain(
-                                                                                            serverCertificate,
-                                                                                            serverCACertificate2!,
-                                                                                            rootCACertificate2!
-                                                                                        );
+                                                                                  var chainReport = PKIFactory.ValidateServerChain(
+                                                                                                        serverCertificate,
+                                                                                                        serverCACertificate2!,
+                                                                                                        rootCACertificate2!
+                                                                                                    );
 
-                                                                      var SANs = serverCertificate.DecodeSubjectAlternativeNames();
+                                                                                  var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                      return TLSValidationResult.From(
-                                                                                 chainReport.IsValid,
-                                                                                 chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                             );
+                                                                                  return TLSValidationResult.From(
+                                                                                             chainReport.IsValid,
+                                                                                             chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                         );
 
-                                                                 },
-                                   LocalCertificateSelector:    (sender,
-                                                                 targetHost,
-                                                                 localCertificates,
-                                                                 remoteCertificate,
-                                                                 acceptableIssuers) => {
-                                                                     return clientCertificate2!;
-                                                                 }
-                               );
+                                                                             },
+                                               LocalCertificateSelector:    (sender,
+                                                                             targetHost,
+                                                                             localCertificates,
+                                                                             remoteCertificate,
+                                                                             acceptableIssuers) => {
+                                                                                 return clientCertificate2!;
+                                                                             }
+                                           );
 
             var response1    = await httpClient1.GET(HTTPPath.Root);
             var data1        = response1.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
@@ -652,40 +652,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPServer(
-                                 TCPPort:                      IPPort.Zero,
-                                 ServerCertificateSelector:    (tcpServer, tcpClient) => {
-                                                                   return serverCertificate2!;
-                                                               },
-                                 ClientCertificateValidator:   (sender,
-                                                                clientCertificate,
-                                                                clientCertificateChain,
-                                                                tlsServer,
-                                                                policyErrors) => {
+            await using var httpServer = new HTTPServer(
+                                             TCPPort:                      IPPort.Zero,
+                                             ServerCertificateSelector:    (tcpServer, tcpClient) => {
+                                                                               return serverCertificate2!;
+                                                                           },
+                                             ClientCertificateValidator:   (sender,
+                                                                            clientCertificate,
+                                                                            clientCertificateChain,
+                                                                            tlsServer,
+                                                                            policyErrors) => {
 
-                                                                    if (clientCertificate is null)
-                                                                         return TLSValidationResult.Failed("The client certificate must not be null!");
+                                                                                if (clientCertificate is null)
+                                                                                     return TLSValidationResult.Failed("The client certificate must not be null!");
 
-                                                                    var chainReport = PKIFactory.ValidateClientChain(
-                                                                                          clientCertificate,
-                                                                                          clientCACertificate2!,
-                                                                                          rootCACertificate2!
-                                                                                      );
+                                                                                var chainReport = PKIFactory.ValidateClientChain(
+                                                                                                      clientCertificate,
+                                                                                                      clientCACertificate2!,
+                                                                                                      rootCACertificate2!
+                                                                                                  );
 
-                                                                    return TLSValidationResult.From(
-                                                                               chainReport.IsValid,
-                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                           );
+                                                                                return TLSValidationResult.From(
+                                                                                           chainReport.IsValid,
+                                                                                           chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                       );
 
-                                                               },
-                                 LocalCertificateSelector:     (sender,
-                                                                targetHost,
-                                                                localCertificates,
-                                                                remoteCertificate,
-                                                                acceptableIssuers) => {
-                                                                    return serverCertificate2!;
-                                                               }
-                             );
+                                                                           },
+                                             LocalCertificateSelector:     (sender,
+                                                                            targetHost,
+                                                                            localCertificates,
+                                                                            remoteCertificate,
+                                                                            acceptableIssuers) => {
+                                                                                return serverCertificate2!;
+                                                                           }
+                                         );
 
             var httpAPI = httpServer.AddHTTPAPI();
 
@@ -715,33 +715,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #endregion
 
-            var httpClient1  = new HTTPClient(
-                                   URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
-                                   RemoteCertificateValidator:   (sender,
-                                                                  serverCertificate,
-                                                                  serverCertificateChain,
-                                                                  httpClient,
-                                                                  policyErrors) => {
+            await using var httpClient1  = new HTTPClient(
+                                               URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
+                                               RemoteCertificateValidator:   (sender,
+                                                                              serverCertificate,
+                                                                              serverCertificateChain,
+                                                                              httpClient,
+                                                                              policyErrors) => {
 
-                                                                      if (serverCertificate is null)
-                                                                          return TLSValidationResult.Failed("The server certificate must not be null!");
+                                                                                  if (serverCertificate is null)
+                                                                                      return TLSValidationResult.Failed("The server certificate must not be null!");
 
-                                                                      var chainReport = PKIFactory.ValidateServerChain(
-                                                                                            serverCertificate,
-                                                                                            serverCACertificate2!,
-                                                                                            rootCACertificate2!
-                                                                                        );
+                                                                                  var chainReport = PKIFactory.ValidateServerChain(
+                                                                                                        serverCertificate,
+                                                                                                        serverCACertificate2!,
+                                                                                                        rootCACertificate2!
+                                                                                                    );
 
-                                                                      var SANs = serverCertificate.DecodeSubjectAlternativeNames();
+                                                                                  var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                      return TLSValidationResult.From(
-                                                                                 chainReport.IsValid,
-                                                                                 chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                             );
+                                                                                  return TLSValidationResult.From(
+                                                                                             chainReport.IsValid,
+                                                                                             chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                         );
 
-                                                                 },
-                                   ClientCertificates:           [ clientCertificate2! ]
-                               );
+                                                                             },
+                                               ClientCertificates:           [ clientCertificate2! ]
+                                           );
 
             var response1    = await httpClient1.GET(HTTPPath.Root);
             var data1        = response1.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
@@ -993,52 +993,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPServer(
-                                 TCPPort:                      IPPort.Zero,
-                                 ServerCertificateSelector:    (tcpServer, tcpClient) => {
-                                                                   return serverCertificate2!;
-                                                               },
-                                 ClientCertificateValidator:   (sender,
-                                                                clientCertificate,
-                                                                clientCertificateChain,
-                                                                tlsServer,
-                                                                policyErrors) => {
+            await using var httpServer = new HTTPServer(
+                                             TCPPort:                      IPPort.Zero,
+                                             ServerCertificateSelector:    (tcpServer, tcpClient) => {
+                                                                               return serverCertificate2!;
+                                                                           },
+                                             ClientCertificateValidator:   (sender,
+                                                                            clientCertificate,
+                                                                            clientCertificateChain,
+                                                                            tlsServer,
+                                                                            policyErrors) => {
 
-                                                                    if (clientCertificate is null)
-                                                                         return TLSValidationResult.Failed("The client certificate must not be null!");
+                                                                                if (clientCertificate is null)
+                                                                                     return TLSValidationResult.Failed("The client certificate must not be null!");
 
-                                                                    if (clientCertificateChain is null)
-                                                                         return TLSValidationResult.Failed("The client certificate chain must not be null!");
+                                                                                if (clientCertificateChain is null)
+                                                                                     return TLSValidationResult.Failed("The client certificate chain must not be null!");
 
-                                                                    if (clientCertificateChain.ChainElements.Count != 2)
-                                                                         return TLSValidationResult.Failed("The client certificate chain must contain exactly 2 elements!");
+                                                                                if (clientCertificateChain.ChainElements.Count != 2)
+                                                                                     return TLSValidationResult.Failed("The client certificate chain must contain exactly 2 elements!");
 
-                                                                    var c1  = clientCertificateChain.ChainElements[0].Certificate;
-                                                                    var cn1 = c1.SubjectName.ToMap().CommonName;
+                                                                                var c1  = clientCertificateChain.ChainElements[0].Certificate;
+                                                                                var cn1 = c1.SubjectName.ToMap().CommonName;
 
-                                                                    var c2  = clientCertificateChain.ChainElements[1].Certificate;
-                                                                    var cn2 = c2.SubjectName.ToMap().CommonName;
+                                                                                var c2  = clientCertificateChain.ChainElements[1].Certificate;
+                                                                                var cn2 = c2.SubjectName.ToMap().CommonName;
 
-                                                                    var chainReport = PKIFactory.ValidateClientChain(
-                                                                                          c1,
-                                                                                          c2,
-                                                                                          rootCACertificate2!
-                                                                                      );
+                                                                                var chainReport = PKIFactory.ValidateClientChain(
+                                                                                                      c1,
+                                                                                                      c2,
+                                                                                                      rootCACertificate2!
+                                                                                                  );
 
-                                                                    return TLSValidationResult.From(
-                                                                               chainReport.IsValid,
-                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                           );
+                                                                                return TLSValidationResult.From(
+                                                                                           chainReport.IsValid,
+                                                                                           chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                       );
 
-                                                               },
-                                 LocalCertificateSelector:     (sender,
-                                                                targetHost,
-                                                                localCertificates,
-                                                                remoteCertificate,
-                                                                acceptableIssuers) => {
-                                                                    return serverCertificate2!;
-                                                               }
-                             );
+                                                                           },
+                                             LocalCertificateSelector:     (sender,
+                                                                            targetHost,
+                                                                            localCertificates,
+                                                                            remoteCertificate,
+                                                                            acceptableIssuers) => {
+                                                                                return serverCertificate2!;
+                                                                           }
+                                         );
 
             var httpAPI = httpServer.AddHTTPAPI();
 
@@ -1068,37 +1068,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #endregion
 
-            var httpClient1  = new HTTPClient(
-                                   URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
-                                   RemoteCertificateValidator:   (sender,
-                                                                  serverCertificate,
-                                                                  serverCertificateChain,
-                                                                  httpClient,
-                                                                  policyErrors) => {
+            await using var httpClient1  = new HTTPClient(
+                                               URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
+                                               RemoteCertificateValidator:   (sender,
+                                                                              serverCertificate,
+                                                                              serverCertificateChain,
+                                                                              httpClient,
+                                                                              policyErrors) => {
 
-                                                                      if (serverCertificate is null)
-                                                                          return TLSValidationResult.Failed("The server certificate must not be null!");
+                                                                                  if (serverCertificate is null)
+                                                                                      return TLSValidationResult.Failed("The server certificate must not be null!");
 
-                                                                      var chainReport = PKIFactory.ValidateServerChain(
-                                                                                            serverCertificate,
-                                                                                            serverCACertificate2!,
-                                                                                            rootCACertificate2!
-                                                                                        );
+                                                                                  var chainReport = PKIFactory.ValidateServerChain(
+                                                                                                        serverCertificate,
+                                                                                                        serverCACertificate2!,
+                                                                                                        rootCACertificate2!
+                                                                                                    );
 
-                                                                      var SANs = serverCertificate.DecodeSubjectAlternativeNames();
+                                                                                  var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                      return TLSValidationResult.From(
-                                                                                 chainReport.IsValid,
-                                                                                 chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                             );
+                                                                                  return TLSValidationResult.From(
+                                                                                             chainReport.IsValid,
+                                                                                             chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                         );
 
-                                                                 },
-                                   ClientCertificates:           [ clientCertificate2! ],
-                                   ClientCertificateContext:     dotSec.SslStreamCertificateContext.Create(
-                                                                     clientCertificate2!,
-                                                                     new dotX509.X509Certificate2Collection(clientCACertificate2!)
-                                                                 )
-                               );
+                                                                             },
+                                               ClientCertificates:           [ clientCertificate2! ],
+                                               ClientCertificateContext:     dotSec.SslStreamCertificateContext.Create(
+                                                                                 clientCertificate2!,
+                                                                                 new dotX509.X509Certificate2Collection(clientCACertificate2!)
+                                                                             )
+                                           );
 
             var response1    = await httpClient1.GET(HTTPPath.Root);
             var data1        = response1.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
@@ -1350,52 +1350,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPServer(
-                                 TCPPort:                      IPPort.Zero,
-                                 ServerCertificateSelector:    (tcpServer, tcpClient) => {
-                                                                   return serverCertificate2!;
-                                                               },
-                                 ClientCertificateValidator:   (sender,
-                                                                clientCertificate,
-                                                                clientCertificateChain,
-                                                                tlsServer,
-                                                                policyErrors) => {
+            await using var httpServer = new HTTPServer(
+                                             TCPPort:                      IPPort.Zero,
+                                             ServerCertificateSelector:    (tcpServer, tcpClient) => {
+                                                                               return serverCertificate2!;
+                                                                           },
+                                             ClientCertificateValidator:   (sender,
+                                                                            clientCertificate,
+                                                                            clientCertificateChain,
+                                                                            tlsServer,
+                                                                            policyErrors) => {
 
-                                                                    if (clientCertificate is null)
-                                                                         return TLSValidationResult.Failed("The client certificate must not be null!");
+                                                                                if (clientCertificate is null)
+                                                                                     return TLSValidationResult.Failed("The client certificate must not be null!");
 
-                                                                    if (clientCertificateChain is null)
-                                                                         return TLSValidationResult.Failed("The client certificate chain must not be null!");
+                                                                                if (clientCertificateChain is null)
+                                                                                     return TLSValidationResult.Failed("The client certificate chain must not be null!");
 
-                                                                    if (clientCertificateChain.ChainElements.Count != 2)
-                                                                         return TLSValidationResult.Failed("The client certificate chain must contain exactly 2 elements!");
+                                                                                if (clientCertificateChain.ChainElements.Count != 2)
+                                                                                     return TLSValidationResult.Failed("The client certificate chain must contain exactly 2 elements!");
 
-                                                                    var c1  = clientCertificateChain.ChainElements[0].Certificate;
-                                                                    var cn1 = c1.SubjectName.ToMap().CommonName;
+                                                                                var c1  = clientCertificateChain.ChainElements[0].Certificate;
+                                                                                var cn1 = c1.SubjectName.ToMap().CommonName;
 
-                                                                    var c2  = clientCertificateChain.ChainElements[1].Certificate;
-                                                                    var cn2 = c2.SubjectName.ToMap().CommonName;
+                                                                                var c2  = clientCertificateChain.ChainElements[1].Certificate;
+                                                                                var cn2 = c2.SubjectName.ToMap().CommonName;
 
-                                                                    var chainReport = PKIFactory.ValidateClientChain(
-                                                                                          c1,
-                                                                                          c2,
-                                                                                          rootCACertificate2!
-                                                                                      );
+                                                                                var chainReport = PKIFactory.ValidateClientChain(
+                                                                                                      c1,
+                                                                                                      c2,
+                                                                                                      rootCACertificate2!
+                                                                                                  );
 
-                                                                    return TLSValidationResult.From(
-                                                                               chainReport.IsValid,
-                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                           );
+                                                                                return TLSValidationResult.From(
+                                                                                           chainReport.IsValid,
+                                                                                           chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                       );
 
-                                                               },
-                                 LocalCertificateSelector:     (sender,
-                                                                targetHost,
-                                                                localCertificates,
-                                                                remoteCertificate,
-                                                                acceptableIssuers) => {
-                                                                    return serverCertificate2!;
-                                                               }
-                             );
+                                                                           },
+                                             LocalCertificateSelector:     (sender,
+                                                                            targetHost,
+                                                                            localCertificates,
+                                                                            remoteCertificate,
+                                                                            acceptableIssuers) => {
+                                                                                return serverCertificate2!;
+                                                                           }
+                                         );
 
             var httpAPI = httpServer.AddHTTPAPI();
 
@@ -1425,36 +1425,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #endregion
 
-            var httpClient1  = new HTTPClient(
-                                   URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
-                                   RemoteCertificateValidator:   (sender,
-                                                                  serverCertificate,
-                                                                  serverCertificateChain,
-                                                                  httpClient,
-                                                                  policyErrors) => {
+            await using var httpClient1  = new HTTPClient(
+                                               URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
+                                               RemoteCertificateValidator:   (sender,
+                                                                              serverCertificate,
+                                                                              serverCertificateChain,
+                                                                              httpClient,
+                                                                              policyErrors) => {
 
-                                                                      if (serverCertificate is null)
-                                                                          return TLSValidationResult.Failed("The server certificate must not be null!");
+                                                                                  if (serverCertificate is null)
+                                                                                      return TLSValidationResult.Failed("The server certificate must not be null!");
 
-                                                                      var chainReport = PKIFactory.ValidateServerChain(
-                                                                                            serverCertificate,
-                                                                                            serverCACertificate2!,
-                                                                                            rootCACertificate2!
-                                                                                        );
+                                                                                  var chainReport = PKIFactory.ValidateServerChain(
+                                                                                                        serverCertificate,
+                                                                                                        serverCACertificate2!,
+                                                                                                        rootCACertificate2!
+                                                                                                    );
 
-                                                                      var SANs = serverCertificate.DecodeSubjectAlternativeNames();
+                                                                                  var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                      return TLSValidationResult.From(
-                                                                                 chainReport.IsValid,
-                                                                                 chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                             );
+                                                                                  return TLSValidationResult.From(
+                                                                                             chainReport.IsValid,
+                                                                                             chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                         );
 
-                                                                 },
-                                   ClientCertificateChain:       [
-                                                                     clientCertificate2!,
-                                                                     clientCACertificate2!
-                                                                 ]
-                               );
+                                                                             },
+                                               ClientCertificateChain:       [
+                                                                                 clientCertificate2!,
+                                                                                 clientCACertificate2!
+                                                                             ]
+                                           );
 
             var response1    = await httpClient1.GET(HTTPPath.Root);
             var data1        = response1.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
@@ -1707,40 +1707,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPServer(
-                                 TCPPort:                      IPPort.Zero,
-                                 ServerCertificateSelector:    (tcpServer, tcpClient) => {
-                                                                   return serverCertificate2!;
-                                                               },
-                                 ClientCertificateValidator:   (sender,
-                                                                clientCertificate,
-                                                                clientCertificateChain,
-                                                                tlsServer,
-                                                                policyErrors) => {
+            await using var httpServer = new HTTPServer(
+                                             TCPPort:                      IPPort.Zero,
+                                             ServerCertificateSelector:    (tcpServer, tcpClient) => {
+                                                                               return serverCertificate2!;
+                                                                           },
+                                             ClientCertificateValidator:   (sender,
+                                                                            clientCertificate,
+                                                                            clientCertificateChain,
+                                                                            tlsServer,
+                                                                            policyErrors) => {
 
-                                                                    if (clientCertificate is null)
-                                                                         return TLSValidationResult.Failed("The client certificate must not be null!");
+                                                                                if (clientCertificate is null)
+                                                                                     return TLSValidationResult.Failed("The client certificate must not be null!");
 
-                                                                    var chainReport = PKIFactory.ValidateClientChain(
-                                                                                          clientCertificate,
-                                                                                          clientCACertificate2!,
-                                                                                          rootCACertificate2!
-                                                                                      );
+                                                                                var chainReport = PKIFactory.ValidateClientChain(
+                                                                                                      clientCertificate,
+                                                                                                      clientCACertificate2!,
+                                                                                                      rootCACertificate2!
+                                                                                                  );
 
-                                                                    return TLSValidationResult.From(
-                                                                               chainReport.IsValid,
-                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                           );
+                                                                                return TLSValidationResult.From(
+                                                                                           chainReport.IsValid,
+                                                                                           chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                       );
 
-                                                               },
-                                 LocalCertificateSelector:     (sender,
-                                                                targetHost,
-                                                                localCertificates,
-                                                                remoteCertificate,
-                                                                acceptableIssuers) => {
-                                                                    return serverCertificate2!;
-                                                               }
-                             );
+                                                                           },
+                                             LocalCertificateSelector:     (sender,
+                                                                            targetHost,
+                                                                            localCertificates,
+                                                                            remoteCertificate,
+                                                                            acceptableIssuers) => {
+                                                                                return serverCertificate2!;
+                                                                           }
+                                         );
 
             var httpAPI = httpServer.AddHTTPAPI();
 
@@ -1770,33 +1770,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #endregion
 
-            var httpClient1  = new HTTPClient(
-                                   URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
-                                   RemoteCertificateValidator:   (sender,
-                                                                  serverCertificate,
-                                                                  serverCertificateChain,
-                                                                  httpClient,
-                                                                  policyErrors) => {
+            await using var httpClient1  = new HTTPClient(
+                                               URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
+                                               RemoteCertificateValidator:   (sender,
+                                                                              serverCertificate,
+                                                                              serverCertificateChain,
+                                                                              httpClient,
+                                                                              policyErrors) => {
 
-                                                                     if (serverCertificate is null)
-                                                                         return TLSValidationResult.Failed("The server certificate must not be null!");
+                                                                                 if (serverCertificate is null)
+                                                                                     return TLSValidationResult.Failed("The server certificate must not be null!");
 
-                                                                     var chainReport = PKIFactory.ValidateServerChain(
-                                                                                           serverCertificate,
-                                                                                           serverCACertificate2!,
-                                                                                           rootCACertificate2!
-                                                                                       );
+                                                                                 var chainReport = PKIFactory.ValidateServerChain(
+                                                                                                       serverCertificate,
+                                                                                                       serverCACertificate2!,
+                                                                                                       rootCACertificate2!
+                                                                                                   );
 
-                                                                     var SANs = serverCertificate.DecodeSubjectAlternativeNames();
+                                                                                 var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                     return TLSValidationResult.From(
-                                                                                chainReport.IsValid,
-                                                                                chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                            );
+                                                                                 return TLSValidationResult.From(
+                                                                                            chainReport.IsValid,
+                                                                                            chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                        );
 
-                                                                  },
-                                   MaxNumberOfRetries:            1
-                               );
+                                                                              },
+                                               MaxNumberOfRetries:            1
+                                           );
 
             var response1    = await httpClient1.GET(HTTPPath.Root);
             var data1        = response1.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
@@ -2059,40 +2059,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #region Setup HTTP Server
 
-            var httpServer = new HTTPServer(
-                                 TCPPort:                      IPPort.Zero,
-                                 ServerCertificateSelector:    (tcpServer, tcpClient) => {
-                                                                   return serverCertificate2!;
-                                                               },
-                                 ClientCertificateValidator:   (sender,
-                                                                clientCertificate,
-                                                                clientCertificateChain,
-                                                                tlsServer,
-                                                                policyErrors) => {
+            await using var httpServer = new HTTPServer(
+                                             TCPPort:                      IPPort.Zero,
+                                             ServerCertificateSelector:    (tcpServer, tcpClient) => {
+                                                                               return serverCertificate2!;
+                                                                           },
+                                             ClientCertificateValidator:   (sender,
+                                                                            clientCertificate,
+                                                                            clientCertificateChain,
+                                                                            tlsServer,
+                                                                            policyErrors) => {
 
-                                                                    if (clientCertificate is null)
-                                                                        return TLSValidationResult.Success("The client certificate is null, anyway we proceed... :)");
+                                                                                if (clientCertificate is null)
+                                                                                    return TLSValidationResult.Success("The client certificate is null, anyway we proceed... :)");
 
-                                                                    var chainReport = PKIFactory.ValidateClientChain(
-                                                                                          clientCertificate,
-                                                                                          clientCACertificate2!,
-                                                                                          rootCACertificate2!
-                                                                                      );
+                                                                                var chainReport = PKIFactory.ValidateClientChain(
+                                                                                                      clientCertificate,
+                                                                                                      clientCACertificate2!,
+                                                                                                      rootCACertificate2!
+                                                                                                  );
 
-                                                                    return TLSValidationResult.From(
-                                                                               chainReport.IsValid,
-                                                                               chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                           );
+                                                                                return TLSValidationResult.From(
+                                                                                           chainReport.IsValid,
+                                                                                           chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                       );
 
-                                                               },
-                                 LocalCertificateSelector:     (sender,
-                                                                targetHost,
-                                                                localCertificates,
-                                                                remoteCertificate,
-                                                                acceptableIssuers) => {
-                                                                    return serverCertificate2!;
-                                                               }
-                             );
+                                                                           },
+                                             LocalCertificateSelector:     (sender,
+                                                                            targetHost,
+                                                                            localCertificates,
+                                                                            remoteCertificate,
+                                                                            acceptableIssuers) => {
+                                                                                return serverCertificate2!;
+                                                                           }
+                                         );
 
             var httpAPI = httpServer.AddHTTPAPI();
 
@@ -2122,33 +2122,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             #endregion
 
-            var httpClient1  = new HTTPClient(
-                                   URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
-                                   RemoteCertificateValidator:   (sender,
-                                                                  serverCertificate,
-                                                                  serverCertificateChain,
-                                                                  httpClient,
-                                                                  policyErrors) => {
+            await using var httpClient1  = new HTTPClient(
+                                               URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
+                                               RemoteCertificateValidator:   (sender,
+                                                                              serverCertificate,
+                                                                              serverCertificateChain,
+                                                                              httpClient,
+                                                                              policyErrors) => {
 
-                                                                     if (serverCertificate is null)
-                                                                         return TLSValidationResult.Failed("The server certificate must not be null!");
+                                                                                 if (serverCertificate is null)
+                                                                                     return TLSValidationResult.Failed("The server certificate must not be null!");
 
-                                                                     var chainReport = PKIFactory.ValidateServerChain(
-                                                                                           serverCertificate,
-                                                                                           serverCACertificate2!,
-                                                                                           rootCACertificate2!
-                                                                                       );
+                                                                                 var chainReport = PKIFactory.ValidateServerChain(
+                                                                                                       serverCertificate,
+                                                                                                       serverCACertificate2!,
+                                                                                                       rootCACertificate2!
+                                                                                                   );
 
-                                                                     var SANs = serverCertificate.DecodeSubjectAlternativeNames();
+                                                                                 var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                     return TLSValidationResult.From(
-                                                                                chainReport.IsValid,
-                                                                                chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                            );
+                                                                                 return TLSValidationResult.From(
+                                                                                            chainReport.IsValid,
+                                                                                            chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                        );
 
-                                                                 },
-                                   TLSProtocols:                  ClientTLSProtocols
-                               );
+                                                                             },
+                                               TLSProtocols:                  ClientTLSProtocols
+                                           );
 
             var httpClient1Log = new List<String>();
             String Client1Log() { lock (httpClient1Log) return String.Join(Environment.NewLine, httpClient1Log); }
@@ -2186,34 +2186,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             Assert.That(data1,  Is.EqualTo("Hello, 'anonymous'!"),  Client1Log());
 
-            var httpClient2  = new HTTPClient(
-                                   URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
-                                   RemoteCertificateValidator:   (sender,
-                                                                  serverCertificate,
-                                                                  serverCertificateChain,
-                                                                  httpClient,
-                                                                  policyErrors) => {
+            await using var httpClient2  = new HTTPClient(
+                                               URL:                           URL.Parse($"https://localhost:{httpServer.TCPPort}"),
+                                               RemoteCertificateValidator:   (sender,
+                                                                              serverCertificate,
+                                                                              serverCertificateChain,
+                                                                              httpClient,
+                                                                              policyErrors) => {
 
-                                                                     if (serverCertificate is null)
-                                                                         return TLSValidationResult.Failed("The server certificate must not be null!");
+                                                                                 if (serverCertificate is null)
+                                                                                     return TLSValidationResult.Failed("The server certificate must not be null!");
 
-                                                                     var chainReport = PKIFactory.ValidateServerChain(
-                                                                                           serverCertificate,
-                                                                                           serverCACertificate2!,
-                                                                                           rootCACertificate2!
-                                                                                       );
+                                                                                 var chainReport = PKIFactory.ValidateServerChain(
+                                                                                                       serverCertificate,
+                                                                                                       serverCACertificate2!,
+                                                                                                       rootCACertificate2!
+                                                                                                   );
 
-                                                                     var SANs = serverCertificate.DecodeSubjectAlternativeNames();
+                                                                                 var SANs = serverCertificate.DecodeSubjectAlternativeNames();
 
-                                                                     return TLSValidationResult.From(
-                                                                                chainReport.IsValid,
-                                                                                chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
-                                                                            );
+                                                                                 return TLSValidationResult.From(
+                                                                                            chainReport.IsValid,
+                                                                                            chainReport.Status.Select(chainStatus => chainStatus.Status.ToString())
+                                                                                        );
 
-                                                                 },
-                                   ClientCertificates:           [ clientCertificate2! ],
-                                   TLSProtocols:                  ClientTLSProtocols
-                               );
+                                                                             },
+                                               ClientCertificates:           [ clientCertificate2! ],
+                                               TLSProtocols:                  ClientTLSProtocols
+                                           );
 
             var httpClient2Log = new List<String>();
             String Client2Log() { lock (httpClient2Log) return String.Join(Environment.NewLine, httpClient2Log); }

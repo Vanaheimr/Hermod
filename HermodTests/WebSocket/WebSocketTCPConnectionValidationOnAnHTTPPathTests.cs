@@ -106,10 +106,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             if (server is not null)
+            {
                 await server.Shutdown(Wait: true);
+                await server.DisposeAsync();
+            }
 
             if (httpServer is not null)
-                await httpServer.Stop();
+                await httpServer.DisposeAsync();
 
             server      = null;
             httpServer  = null;
@@ -363,10 +366,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                                                                     Boolean                          CallOff)
         {
 
-            var lentServer  = new WebSocketMirrorServer(
-                                  RequireAuthentication:  false,
-                                  AutoStart:              false
-                              );
+            await using var lentServer  = new WebSocketMirrorServer(
+                                              RequireAuthentication:  false,
+                                              AutoStart:              false
+                                          );
 
             var asked       = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var refusal     = new TaskCompletionSource<String>(TaskCreationOptions.RunContinuationsAsynchronously);

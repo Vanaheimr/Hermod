@@ -33,12 +33,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// A network service node.
     /// </summary>
-    public class NetworkServiceNode : INetworkServiceNode
+    public class NetworkServiceNode : INetworkServiceNode,
+                                      IDisposable,
+                                      IAsyncDisposable
     {
 
         #region Data
 
         private readonly CryptoWallet cryptoWallet = new();
+
+        /// <summary>
+        /// Whether this node made its HTTP server itself, and so is the one to
+        /// dispose of it. One that was handed in belongs to whoever handed it
+        /// in, and may be serving others as well.
+        /// </summary>
+        private readonly Boolean      ownsHTTPServer;
+
+        /// <summary>
+        /// Whether this node made the DNS client of its HTTP server itself, and
+        /// so is the one to dispose of it: the server was lent it, and leaves
+        /// it alone. One that was handed in belongs to whoever handed it in.
+        /// </summary>
+        private readonly Boolean      ownsDNSClient;
 
         #endregion
 
@@ -123,16 +139,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 foreach (var identityGroup in IdentityGroups.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage.IdentityGroup)))
                     AddCryptoKey(identityGroup);
 
-            var dnsClient        = DNSClient      ?? new DNSClient(
-                                                         LoggerFactory: LoggerFactory
-                                                     );
-
+            // The DNS client of a node is that of its HTTP server. One made beside
+            // a server that was handed in served nobody, and its cache cleaned up
+            // on a timer for the rest of the process; so one is made only for a
+            // server of this node's own making.
+            this.ownsHTTPServer  = HTTPServer is null;
+            this.ownsDNSClient   = HTTPServer is null && DNSClient is null;
 
             this.HTTPServer      = HTTPServer     ?? new HTTPServer(
                                                          TCPPort:         IPPort.Parse(1234),
                                                          HTTPServerName:  this.Id.ToString(),
                                                          //Description:     this.Description,
-                                                         DNSClient:       dnsClient,
+                                                         DNSClient:       DNSClient ?? new DNSClient(
+                                                                                           LoggerFactory: LoggerFactory
+                                                                                       ),
                                                          LoggerFactory:   LoggerFactory
                                                      );
 
@@ -436,6 +456,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public override String ToString()
 
             => Id.ToString();
+
+        #endregion
+
+
+        #region Dispose/Async()
+
+        /// <summary>
+        /// Dispose of the HTTP server and its DNS client, where this node made
+        /// them. Their maintenance, Warden and DNS cache timers used to run for
+        /// as long as the process did. What was handed in is left to whoever
+        /// handed it in.
+        /// </summary>
+        public virtual async ValueTask DisposeAsync()
+        {
+
+            if (ownsHTTPServer)
+                await HTTPServer.DisposeAsync().ConfigureAwait(false);
+
+            if (ownsDNSClient)
+                await DNSClient.DisposeAsync().ConfigureAwait(false);
+
+            GC.SuppressFinalize(this);
+
+        }
+
+        /// <summary>
+        /// Dispose of the HTTP server and its DNS client, where this node made
+        /// them, and leave what was handed in alone.
+        /// </summary>
+        public virtual void Dispose()
+        {
+
+            if (ownsHTTPServer)
+                HTTPServer.Dispose();
+
+            if (ownsDNSClient)
+                DNSClient.Dispose();
+
+            GC.SuppressFinalize(this);
+
+        }
 
         #endregion
 

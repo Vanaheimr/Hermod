@@ -326,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         public void CacheSSHFP_AcceptsEveryAlgorithm(SSHFP_Algorithm Algorithm, SSHFP_FingerprintType Type)
         {
 
-            var dnsClient = new DNSClient();
+            using var dnsClient = new DNSClient();
 
             Assert.DoesNotThrow(() =>
                 dnsClient.CacheSSHFP(DomainName.Parse("cached.example.com."),

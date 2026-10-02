@@ -41,6 +41,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 
         private readonly List<DNSServiceName>  queriedNames  = [];
 
+        private          Int32                 disposeCount;
+
         #endregion
 
         #region Properties
@@ -70,6 +72,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
         /// The IPv6 addresses to answer every query with.
         /// </summary>
         public List<IPv6Address>              IPv6Addresses    { get; } = [];
+
+        /// <summary>
+        /// How often this client was disposed of, synchronously or not - by
+        /// whoever it was lent to as well, which is what that is not to do.
+        /// </summary>
+        public Int32                          DisposeCount
+            => disposeCount;
 
         #endregion
 
@@ -152,11 +161,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 
         public void Dispose()
         {
+            Interlocked.Increment(ref disposeCount);
             GC.SuppressFinalize(this);
         }
 
         public ValueTask DisposeAsync()
         {
+            Interlocked.Increment(ref disposeCount);
             GC.SuppressFinalize(this);
             return ValueTask.CompletedTask;
         }

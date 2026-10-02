@@ -71,10 +71,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             if (client is not null)
-                await client.Close();
+                await client.DisposeAsync();
 
             if (server is not null)
+            {
                 await server.Shutdown();
+                await server.DisposeAsync();
+            }
 
             client  = null;
             server  = null;
@@ -298,8 +301,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             using var port     = new ClosedPort();
 
-            var withPolicy     = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) { ReconnectPolicy = Quickly };
-            var withoutPolicy  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
+            await using var withPolicy     = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}")) { ReconnectPolicy = Quickly };
+            await using var withoutPolicy  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
 
             try
             {
@@ -368,6 +371,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         private async Task<Boolean> ComesBack(ClosedPort  Port,
                                               TimeSpan    Within)
         {
+
+            // The server the client was connected to, which the test stopped or
+            // shut down, and which nothing else will dispose of once its place
+            // is taken.
+            if (server is not null)
+                await server.DisposeAsync();
 
             Port.HandOver();
 

@@ -342,7 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (SocketException se)
             {
 
-                await Log($"DNS TCP query to {RemoteIPAddress}:{RemotePort} socket error: {se.SocketErrorCode} — {se.Message}");
+                await Log($"DNS TCP query to {RemoteIPAddress}:{RemotePort} socket error: {se.SocketErrorCode} — {se.Message}").ConfigureAwait(false);
 
                 return DNSInfo.Failed(
                            OriginOf(),
@@ -366,7 +366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (Exception ex)
             {
 
-                await Log($"DNS TCP query to {RemoteIPAddress}:{RemotePort} failed: [{ex.GetType().Name}] {ex.Message}");
+                await Log($"DNS TCP query to {RemoteIPAddress}:{RemotePort} failed: [{ex.GetType().Name}] {ex.Message}").ConfigureAwait(false);
 
                 return DNSInfo.Failed(
                            OriginOf(),
@@ -950,7 +950,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
             keepalive.Dispose();
             tcpStreamLock.Dispose();
-            await base.DisposeAsync();
+            await base.DisposeAsync().ConfigureAwait(false);
         }
 
 

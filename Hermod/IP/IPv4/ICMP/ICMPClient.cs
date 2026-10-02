@@ -40,12 +40,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
     /// <summary>
     /// The ICMP Client.
     /// </summary>
-    public class ICMPClient : IICMPClient
+    public class ICMPClient : IICMPClient,
+                              IDisposable,
+                              IAsyncDisposable
     {
 
         #region Data
 
         private readonly TestRunResultDelegate? ResultHandler;
+
+        /// <summary>
+        /// Whether this client made its DNS client itself, and so is the one
+        /// to dispose of it. One that was handed in belongs to whoever handed
+        /// it in, and may be serving others as well.
+        /// </summary>
+        private readonly Boolean                ownsDNSClient;
 
         #endregion
 
@@ -70,6 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         {
 
             this.ResultHandler  = ResultHandler;
+            this.ownsDNSClient  = DNSClient is null;
             this.DNSClient      = DNSClient ?? new DNSClient();
 
         }
@@ -618,6 +628,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         //           );
 
         //}
+
+        #endregion
+
+
+        #region Dispose/Async()
+
+        /// <summary>
+        /// Dispose of the DNS client this client made for itself. Its cache
+        /// cleans up on a timer, and a running timer keeps what it calls alive:
+        /// every client made used to leave a cache behind that ticked every ten
+        /// seconds for the rest of the process. A DNS client that was handed in
+        /// is left to whoever handed it in.
+        /// </summary>
+        public virtual async ValueTask DisposeAsync()
+        {
+
+            if (ownsDNSClient)
+                await DNSClient.DisposeAsync().ConfigureAwait(false);
+
+            GC.SuppressFinalize(this);
+
+        }
+
+        /// <summary>
+        /// Dispose of the DNS client this client made for itself, and leave
+        /// one that was handed in alone.
+        /// </summary>
+        public virtual void Dispose()
+        {
+
+            if (ownsDNSClient)
+                DNSClient.Dispose();
+
+            GC.SuppressFinalize(this);
+
+        }
 
         #endregion
 

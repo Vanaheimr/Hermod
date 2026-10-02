@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             {
                 slowClient.Dispose();
                 anotherClient.Dispose();
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             finally
             {
                 slowClient.Dispose();
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -156,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -189,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -262,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -288,7 +288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -320,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -363,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -408,7 +408,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -453,7 +453,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -484,7 +484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -515,7 +515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -547,7 +547,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -591,7 +591,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -622,7 +622,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -650,7 +650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -677,7 +677,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -705,7 +705,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -739,7 +739,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -779,7 +779,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -807,7 +807,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -838,7 +838,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -873,7 +873,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -908,7 +908,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -935,7 +935,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -979,7 +979,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1009,7 +1009,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1038,7 +1038,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1092,7 +1092,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1147,7 +1147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1177,7 +1177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1207,7 +1207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1233,7 +1233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1280,7 +1280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1312,7 +1312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1343,7 +1343,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1427,7 +1427,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1457,7 +1457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1488,7 +1488,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1517,7 +1517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1579,7 +1579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1611,7 +1611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1716,7 +1716,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }
@@ -1756,7 +1756,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await server.Stop();
+                await server.DisposeAsync();
             }
 
         }

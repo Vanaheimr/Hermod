@@ -76,6 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly HTTP2Timeouts         timeouts;
         private readonly HTTP2StreamingHandler? streamingHandler;
         private readonly long                  maxRequestBodySize;
+        private readonly Int32                 connectionWindowSize;
 
         /// <summary>
         /// The HTTP/1.1 pipeline this listener falls back to, or null for an
@@ -188,6 +189,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// protocol and then not serving it is worse than not offering it, since a
         /// client that could have spoken h2 may pick http/1.1 and get nothing.
         /// </param>
+        /// <param name="ConnectionWindowSize">
+        /// The connection-level receive window each connection grants its client:
+        /// at least RFC 9113's 65 535 octets, four stream windows (4 MiB) by
+        /// default. The server gives back the window of a streamed request body or
+        /// of tunnel bytes only once the handler has read them, so this is what
+        /// one connection can be made to hold for handlers that do not read — and
+        /// since all streams of a connection draw on it, it has to be larger than
+        /// a stream's window, or a single stream whose handler has stalled stops
+        /// all others on the connection. Smaller saves memory per connection;
+        /// larger lets more streams stall at once, and lets more flow per round
+        /// trip. See <see cref="HTTP2FlowControl"/>.
+        /// </param>
         public HTTP2Server(
             IPAddress            Address,
             int                  Port,
@@ -205,12 +218,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             IEnumerable<string>? OriginSet = null,
             IEnumerable<(string Origin, string FieldValue)>? AlternativeServices = null,
             HTTP11FallbackHandler? HTTP11Fallback = null,
-            Func<List<(string Name, string Value)>, bool>? AcceptEarlyData = null)
+            Func<List<(string Name, string Value)>, bool>? AcceptEarlyData = null,
+            Int32                ConnectionWindowSize = HTTP2FlowControl.DefaultConnectionWindowSize)
         {
 
             if (!Cleartext && Certificate is null)
                 throw new ArgumentNullException(nameof(Certificate),
                     "A server certificate is required for HTTP/2 over TLS. Pass Cleartext: true to serve plaintext h2c instead.");
+
+            // Here rather than once the first client connects: a size that cannot
+            // be granted is the caller's mistake, not the client's.
+            this.connectionWindowSize      = HTTP2FlowControl.CheckConnectionWindowSize(ConnectionWindowSize, nameof(ConnectionWindowSize));
 
             this.endpoint                  = new IPEndPoint(Address, Port);
             this.certificate               = Certificate;
@@ -508,7 +526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private async Task RunConnectionAsync(Stream Transport, X509Certificate2? clientCertificate, CancellationToken Token)
         {
 
-            var connection = new HTTP2Connection(Transport, requestHandler, connectHandler, Token, clientCertificate, timeouts, streamingHandler, maxRequestBodySize, isAuthorityServed, originSet, alternativeServices, acceptEarlyData);
+            var connection = new HTTP2Connection(Transport, requestHandler, connectHandler, Token, clientCertificate, timeouts, streamingHandler, maxRequestBodySize, isAuthorityServed, originSet, alternativeServices, acceptEarlyData, connectionWindowSize);
             activeConnections.TryAdd(connection, 0);
 
             try

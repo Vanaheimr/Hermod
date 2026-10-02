@@ -48,6 +48,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         private String directory = "";
 
+        /// <summary>
+        /// The servers this test made. Dropped without being disposed of,
+        /// each kept its timers running for the rest of the test run.
+        /// </summary>
+        private readonly List<HTTPServer> servers = [];
+
         #endregion
 
         #region SetUp / TearDown
@@ -59,10 +65,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         [TearDown]
-        public void TearDown()
+        public async Task TearDown()
         {
+
+            foreach (var server in servers)
+                await server.DisposeAsync();
+
+            servers.Clear();
+
             if (Directory.Exists(directory))
                 Directory.Delete(directory, recursive: true);
+
         }
 
         #endregion
@@ -200,6 +213,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                              TCPPort:    IPPort.Zero,
                              AutoStart:  false
                          );
+
+            servers.Add(server);
 
             var api    = new HTTPExtAPI(
                              server,

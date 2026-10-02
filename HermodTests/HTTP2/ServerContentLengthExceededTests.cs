@@ -74,8 +74,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         /// <summary>
         /// The server's connection receive window, which it raises to 1 MiB at
-        /// once. What it has taken in it gives back in a WINDOW_UPDATE once that
-        /// is half of it, and sets aside for the next one before.
+        /// once here, one stream window (see <see cref="StartAsync"/>). What it
+        /// has taken in it gives back in a WINDOW_UPDATE once that is half of
+        /// it, and sets aside for the next one before.
         /// </summary>
         private const Int64 Window = 1024 * 1024;
 
@@ -248,16 +249,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// A server connection that takes in every upload as <paramref name="Path"/>
         /// says: with <paramref name="Buffered"/>, or with <see cref="StreamingEcho"/>,
         /// which tells <paramref name="UploadRead"/> how its reading of the upload
-        /// to /upload went.
+        /// to /upload went. It grants the client a connection window of one stream
+        /// window, <see cref="Window"/>, as it did by default before that became
+        /// four: half of it is then owed for an upload of 512 KiB, and given back
+        /// at once, which the tests here count on.
         /// </summary>
         private static Task<PipedH2ServerConnection> StartAsync(UploadPath                                                                                 Path,
                                                                 EchoHandler                                                                                Buffered,
                                                                 TaskCompletionSource<(List<String> Chunks, Exception? End, CancellationToken HandlerToken)>  UploadRead)
 
             => Path == UploadPath.Buffered
-                   ? PipedH2ServerConnection.StartAsync(Buffered.Handle)
+                   ? PipedH2ServerConnection.StartAsync(Buffered.Handle,
+                                                        ConnectionWindowSize:  (Int32) Window)
                    : PipedH2ServerConnection.StartAsync((streamId, headers, body, cancellationToken) => throw new InvalidOperationException("Every request is streamed here"),
-                                                        StreamingHandler: StreamingEcho(UploadRead));
+                                                        StreamingHandler:      StreamingEcho(UploadRead),
+                                                        ConnectionWindowSize:  (Int32) Window);
 
         #endregion
 

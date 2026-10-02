@@ -106,13 +106,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             if (client is not null)
-                await client.Close();
+                await client.DisposeAsync();
 
             if (server is not null)
+            {
                 await server.Shutdown(Wait: true);
+                await server.DisposeAsync();
+            }
 
             if (httpServer is not null)
-                await httpServer.Stop();
+                await httpServer.DisposeAsync();
 
             client      = null;
             server      = null;

@@ -55,10 +55,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
         #region ShutdownEachTest()
 
         [TearDown]
-        public virtual void ShutdownEachTest()
+        public virtual async Task ShutdownEachTest()
         {
-            ModbusTCPServer?.Shutdown();
+
+            if (ModbusTCPServer is not null)
+                await ModbusTCPServer.DisposeAsync();
+
             ModbusTCPServer = null;
+
         }
 
         #endregion
@@ -202,9 +206,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
 
             };
 
-            var client = new ModbusTCPClient(IPv4Address.Localhost,
-                                             ModbusTCPServer.TCPPort,
-                                             StartingAddressOffset: 0);
+            await using var client = new ModbusTCPClient(IPv4Address.Localhost,
+                                                         ModbusTCPServer.TCPPort,
+                                                         StartingAddressOffset: 0);
 
             var response = await client.ReadHoldingRegisters(9, 4);
 

@@ -145,28 +145,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
 
-        #region StartAsync(RequestHandler, StreamingHandler = null, ConnectHandler = null, IsAuthorityServed = null)
+        #region StartAsync(RequestHandler, StreamingHandler = null, ConnectHandler = null, IsAuthorityServed = null, ConnectionWindowSize = null)
 
         /// <summary>
         /// Start a server connection with these handlers, and return once the
         /// client side has completed the connection preface. With
         /// <paramref name="IsAuthorityServed"/>, the server answers a request for
-        /// an origin it refuses with 421.
+        /// an origin it refuses with 421. With <paramref name="ConnectionWindowSize"/>,
+        /// it grants the client that connection window instead of its default.
         /// </summary>
         public static async Task<PipedH2ServerConnection> StartAsync(HTTP2RequestHandler     RequestHandler,
-                                                                     HTTP2StreamingHandler?  StreamingHandler   = null,
-                                                                     HTTP2ConnectHandler?    ConnectHandler     = null,
-                                                                     Func<String, Boolean>?  IsAuthorityServed  = null)
+                                                                     HTTP2StreamingHandler?  StreamingHandler      = null,
+                                                                     HTTP2ConnectHandler?    ConnectHandler        = null,
+                                                                     Func<String, Boolean>?  IsAuthorityServed     = null,
+                                                                     Int32?                  ConnectionWindowSize  = null)
         {
 
             var peer = new PipedH2ServerConnection();
 
             peer.connection = new HTTP2Connection(peer.Server,
                                                   RequestHandler,
-                                                  ConnectHandler:     ConnectHandler,
-                                                  CancellationToken:  peer.cancellation.Token,
-                                                  StreamingHandler:   StreamingHandler,
-                                                  IsAuthorityServed:  IsAuthorityServed);
+                                                  ConnectHandler:        ConnectHandler,
+                                                  CancellationToken:     peer.cancellation.Token,
+                                                  StreamingHandler:      StreamingHandler,
+                                                  IsAuthorityServed:     IsAuthorityServed,
+                                                  ConnectionWindowSize:  ConnectionWindowSize ?? HTTP2FlowControl.DefaultConnectionWindowSize);
 
             // On the thread pool, not the test's thread: the connection's loops
             // would otherwise capture NUnit's SynchronizationContext. Once the
@@ -514,8 +517,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public Int64 ConnectionWindowHeldBack()
         {
 
-            var target  = (Int64) typeof(HTTP2Connection).GetField("ConnectionRecvWindowTarget",  BindingFlags.NonPublic | BindingFlags.Static)!.
-                                                          GetValue(null)!;
+            var target  = (Int32) typeof(HTTP2Connection).GetField("connectionWindowSize",        BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                                          GetValue(connection)!;
 
             var owed    = (Int64) typeof(HTTP2Connection).GetField("connectionPendingRecvUpdate", BindingFlags.NonPublic | BindingFlags.Instance)!.
                                                           GetValue(connection)!;
@@ -625,15 +628,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// loop holds that frame between its check of the stream's state and
         /// anything it does with the frame's bytes: the moment a reset made on
         /// another task, a handler's or the writer loop's, may land on any real
-        /// connection.
+        /// connection. Meanwhile has that reset made, and the read loop is held
+        /// until the server has sent its RST_STREAM.
         ///
         /// The connection's receive-window lock, which the read loop takes right
         /// after that check, is held on a thread of its own. The frame's payload
         /// is read at once, as soon as its header is in, so the thread that reads
         /// it goes on from that read to the lock, and has to wait there. With that
-        /// thread seen waiting, Meanwhile runs; then the lock is let go. Nothing
-        /// else may take the lock meanwhile: a handler reading its body, say,
-        /// would wait there as well.
+        /// thread seen waiting, Meanwhile runs. The lock is let go by the thread
+        /// that holds it, as soon as the RST_STREAM is written, whether Meanwhile
+        /// is done by then or not; Meanwhile may wait for anything that follows.
+        ///
+        /// It was let go once Meanwhile was done, and Meanwhile needed a thread of
+        /// the pool's to get there, where the pool had none to spare. Whatever
+        /// resets the stream goes on to the lock right after its RST_STREAM, to
+        /// give back the window of what was left unread, and waits there on its
+        /// pool thread, beside the read loop: the writer loop or a failing
+        /// handler's task, and a tunnel's handler too, once it has read the end of
+        /// its tunnel. The reset completes what Meanwhile waits for on the thread
+        /// that makes it, so Meanwhile's continuation is queued on that thread,
+        /// just before it blocks, behind the tunnel handler's. Another thread takes
+        /// them only once it finds nothing else to do, and the handler's takes the
+        /// first such thread to the lock as well. On a CI runner with four cores,
+        /// whose pool starts with four threads, one of them the test host's for
+        /// good, a reset of the writer loop's left Meanwhile to the pool's
+        /// starvation heuristics, and the threads they added went to the timers
+        /// of what earlier tests had left running first:
+        /// TunnelWriteFailsAsAChunkArrives took up to 13 s, and timed out in three
+        /// nightlies of 2026-10-01.
         /// </summary>
         public async Task HoldDataAfterStateCheckAsync(HTTP2Frame Data, Func<Task> Meanwhile)
         {
@@ -642,15 +664,117 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             // the next frame: no earlier frame can be the one that waits.
             await PingAsync();
 
-            using var holder = MonitorHolder.Hold(ReceiveWindowLockOf(Connection));
+            var resetWritten = WatchForResetWritten(Data.StreamId);
 
-            await SendAsync(Data);
+            try
+            {
 
-            await WaitUntilReaderBlockedAsync();
+                using var holder = MonitorHolder.Hold(ReceiveWindowLockOf(Connection));
 
-            await Meanwhile();
+                await SendAsync(Data);
 
-            holder.LetGo();
+                await WaitUntilReaderBlockedAsync();
+
+                var letGo = holder.LetGoAsync(When:  resetWritten,
+                                              What:  $"the server has sent RST_STREAM on stream {Data.StreamId}");
+
+                await Meanwhile();
+
+                await letGo;
+
+            }
+            finally
+            {
+                UnwatchResetWritten(resetWritten);
+            }
+
+        }
+
+        /// <summary>
+        /// The stream whose next RST_STREAM sets the event, once the server has
+        /// written it — see <see cref="HoldDataAfterStateCheckAsync"/>.
+        /// </summary>
+        private (UInt32 StreamId, ManualResetEventSlim Written)? resetWatched;
+
+        /// <summary>
+        /// An event set once the server has written its next RST_STREAM on this
+        /// stream, by the thread that wrote it, before it goes on: nothing of the
+        /// test runs on that thread.
+        /// </summary>
+        private ManualResetEventSlim WatchForResetWritten(UInt32 StreamId)
+        {
+
+            var written = new ManualResetEventSlim();
+
+            lock (sync)
+                resetWatched = (StreamId, written);
+
+            return written;
+
+        }
+
+        /// <summary>
+        /// Stop watching for the RST_STREAM this event was set up for, if it is
+        /// still watched for.
+        /// </summary>
+        private void UnwatchResetWritten(ManualResetEventSlim Written)
+        {
+            lock (sync)
+            {
+                if (resetWatched?.Written == Written)
+                    resetWatched = null;
+            }
+        }
+
+        /// <summary>
+        /// A task that completes once a thread of its own has taken the
+        /// receive-window lock and let it go again: while
+        /// <see cref="HoldDataAfterStateCheckAsync"/> holds the lock, only once it
+        /// is let go, as for every task of the server's that waits for the lock
+        /// meanwhile. A Meanwhile that waits for this waits as Meanwhile did on a
+        /// CI runner whose pool had no thread to spare, every thread it would run
+        /// waiting for the lock: it can go on only once the lock is let go.
+        /// </summary>
+        public Task ReceiveWindowLockTakenAsync()
+        {
+
+            var receiveWindowLock  = ReceiveWindowLockOf(Connection);
+            var taken              = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            new Thread(() => {
+
+                lock (receiveWindowLock)
+                { }
+
+                taken.TrySetResult();
+
+            }) {
+                IsBackground = true,
+                Name         = "ReceiveWindowLockTaker"
+            }.Start();
+
+            return taken.Task;
+
+        }
+
+        /// <summary>
+        /// The server has written an RST_STREAM on this stream.
+        /// </summary>
+        private void ResetWrittenBy(UInt32 StreamId)
+        {
+
+            ManualResetEventSlim? written = null;
+
+            lock (sync)
+            {
+                if (resetWatched is { } watched && watched.StreamId == StreamId)
+                {
+                    written        = watched.Written;
+                    resetWatched   = null;
+                }
+            }
+
+            written?.Set();
 
         }
 
@@ -1193,6 +1317,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 if (starts?.Type == HTTP2FrameType.DATA)
                     Peer.DataWrittenBy(starts.StreamId, Thread.CurrentThread);
 
+                if (starts?.Type == HTTP2FrameType.RST_STREAM)
+                    Peer.ResetWrittenBy(starts.StreamId);
+
                 return ValueTask.CompletedTask;
 
             }
@@ -1334,11 +1461,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     internal sealed class MonitorHolder : IDisposable
     {
 
-        private readonly Thread                thread;
-        private readonly ManualResetEventSlim  held   = new();
-        private readonly ManualResetEventSlim  letGo  = new();
-        private          Action?               underLock;
-        private          Exception?            failure;
+        private readonly Thread                   thread;
+        private readonly ManualResetEventSlim     held       = new();
+        private readonly ManualResetEventSlim     letGo      = new();
+        private readonly CancellationTokenSource  disposed   = new();
+        private readonly TaskCompletionSource     letGone    = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private          (ManualResetEventSlim Event, String What)?  letGoWhen;
+        private          Action?                  underLock;
+        private          Exception?               failure;
 
         private MonitorHolder(Object Monitor)
         {
@@ -1354,13 +1484,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                              // Thrown on this thread, it would end the test run.
                              try
                              {
+
+                                 // Waited for here, on the thread that holds the monitor:
+                                 // a wait of the caller's would need a thread of the pool's
+                                 // to go on, and those may all be waiting for the monitor.
+                                 if (letGoWhen is { } when && !when.Event.Wait(PipedH2ServerConnection.StepTimeout, disposed.Token))
+                                     throw new TimeoutException($"Timed out waiting until {when.What}");
+
                                  underLock?.Invoke();
+
                              }
+                             catch (OperationCanceledException) when (disposed.IsCancellationRequested)
+                             { }
                              catch (Exception e)
                              {
                                  failure = e;
                              }
 
+                         }
+
+                         // Only for LetGoAsync, whose caller awaits it.
+                         if (letGoWhen is not null)
+                         {
+                             if (failure is null)
+                                 letGone.TrySetResult();
+                             else
+                                 letGone.TrySetException(failure);
                          }
 
                      }) {
@@ -1405,8 +1554,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         }
 
+        /// <summary>
+        /// Let go of the monitor once <paramref name="When"/> is set, on the thread
+        /// that holds it, as soon as it is set: nothing has to run on the pool for
+        /// that. The task completes once the monitor is let go. It fails if When
+        /// is not set within the step timeout, with <paramref name="What"/> in
+        /// its message; the monitor is let go then all the same.
+        /// </summary>
+        public Task LetGoAsync(ManualResetEventSlim When, String What)
+        {
+
+            letGoWhen = (When, What);
+            letGo.Set();
+
+            return letGone.Task;
+
+        }
+
         public void Dispose()
         {
+            disposed.Cancel();
             letGo.Set();
             thread.Join(PipedH2ServerConnection.StepTimeout);
         }

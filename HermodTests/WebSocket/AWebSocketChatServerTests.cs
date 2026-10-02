@@ -71,7 +71,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Shutdown_WebSocketServer()
         {
             if (webSocketChatServer is not null)
+            {
                 await webSocketChatServer.Shutdown(Wait: true);
+                await webSocketChatServer.DisposeAsync();
+            }
 
             webSocketChatServer = null;
         }

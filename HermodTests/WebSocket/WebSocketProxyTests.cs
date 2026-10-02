@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Client setup and connect
 
-            var webSocketClient  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{HTTPPortProxy}"));
+            await using var webSocketClient  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{HTTPPortProxy}"));
 
             #region OnTextMessageReceived
 

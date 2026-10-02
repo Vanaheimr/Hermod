@@ -517,7 +517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (SocketException se)
             {
 
-                await Log($"DNS TLS query to {DNSServerLabel} socket error: {se.SocketErrorCode} — {se.Message}");
+                await Log($"DNS TLS query to {DNSServerLabel} socket error: {se.SocketErrorCode} — {se.Message}").ConfigureAwait(false);
 
                 return DNSInfo.Failed(
                            OriginOf(),
@@ -541,7 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (Exception ex)
             {
 
-                await Log($"DNS TLS query to {DNSServerLabel} failed: [{ex.GetType().Name}] {ex.Message}");
+                await Log($"DNS TLS query to {DNSServerLabel} failed: [{ex.GetType().Name}] {ex.Message}").ConfigureAwait(false);
 
                 return DNSInfo.Failed(
                            OriginOf(),
@@ -720,7 +720,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // timed out, whose MAC folds in a different request's.
                 if (!TransactionSecurity.TryAcceptResponse(ref body, RequestMAC, SignedQuery, out var reason))
                 {
-                    await Log($"Discarding a DoT response from {DNSServerLabel} that failed transaction-signature verification: {reason}");
+                    await Log($"Discarding a DoT response from {DNSServerLabel} that failed transaction-signature verification: {reason}").ConfigureAwait(false);
                     continue;
                 }
 
@@ -1270,7 +1270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
             keepalive.Dispose();
             tlsStreamLock.Dispose();
-            await base.DisposeAsync();
+            await base.DisposeAsync().ConfigureAwait(false);
         }
 
 

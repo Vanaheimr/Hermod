@@ -23,6 +23,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// Both peers maintain their own settings; the "local" settings are what WE advertise
     /// and the "remote" settings are what the PEER advertised. Direction-neutral — used by
     /// both the server and the client connection.
+    ///
+    /// The defaults are our own values, not RFC 9113's initial ones (Section 6.5.2), and a
+    /// "remote" instance keeps them for each setting the peer has not stated. They agree for
+    /// HeaderTableSize and MaxFrameSize. MaxHeaderListSize keeps ours where the RFC sets no
+    /// limit, and the outbound header-list check relies on that. Our InitialWindowSize is not
+    /// the RFC's 65535, so the window arithmetic goes by
+    /// <see cref="HTTP2StreamManager.PeerInitialWindowSize"/> instead.
     /// </summary>
     public sealed class HTTP2Settings
     {
@@ -31,8 +38,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public UInt32  MaxConcurrentStreams { get; set; } = 100;
         // A larger-than-default receive window (RFC 9113 default is 65535). Combined
         // with batched WINDOW_UPDATEs, this lets a large transfer flow with only
-        // occasional flow-control frames instead of one per DATA frame.
-        public UInt32  InitialWindowSize    { get; set; } = 1024 * 1024;   // 1 MiB
+        // occasional flow-control frames instead of one per DATA frame. The
+        // connection window is a multiple of it (see HTTP2FlowControl).
+        public UInt32  InitialWindowSize    { get; set; } = HTTP2FlowControl.StreamWindowSize;   // 1 MiB
         public UInt32  MaxFrameSize         { get; set; } = 16384;   // 2^14
         public UInt32  MaxHeaderListSize    { get; set; } = 8192;
     }

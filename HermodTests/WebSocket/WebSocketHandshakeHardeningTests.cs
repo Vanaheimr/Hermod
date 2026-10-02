@@ -68,7 +68,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Shutdown()
         {
             if (server is not null)
+            {
                 await server.Shutdown(Wait: true);
+                await server.DisposeAsync();
+            }
             server = null;
         }
 
@@ -82,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var port    = StartServer("https://good.example").IPPort;
 
-            var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
+            await using var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
 
             var (_, httpResponse) = await client.Connect(
                                         HTTPRequestBuilder: builder => builder.SetHeaderField("Origin", "https://evil.example")
@@ -102,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var port    = StartServer("https://good.example").IPPort;
 
-            var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
+            await using var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
 
             var (_, httpResponse) = await client.Connect(
                                         HTTPRequestBuilder: builder => builder.SetHeaderField("Origin", "https://good.example")
@@ -124,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // and must still be accepted even when an allow-list is configured.
             var port    = StartServer("https://good.example").IPPort;
 
-            var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
+            await using var client  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{port}"));
 
             var (_, httpResponse) = await client.Connect();
 

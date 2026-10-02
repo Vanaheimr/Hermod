@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
-        #region (protected) ATCPClient(IPAddress,  TCPPort,           ...)
+        #region TCPClient(IPAddress,  TCPPort,           ...)
 
         public TCPClient(IIPAddress                       IPAddress,
                          IPPort                           TCPPort,
@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (protected) ATCPClient(URL, ...)
+        #region TCPClient(URL, ...)
 
         public TCPClient(URL                              URL,
                          I18NString?                      Description              = null,
@@ -117,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (protected) ATCPClient(DomainName, DNSService,        ...)
+        #region TCPClient(DomainName, DNSService,        ...)
 
         public TCPClient(DomainName                       DomainName,
                          SRV_Spec                         DNSService,
@@ -160,17 +160,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region ConnectNew (         TCPPort, ConnectTimeout = null, ReceiveTimeout = null, SendTimeout = null, BufferSize = null, LoggingHandler = null)
+        #region ConnectNew (           TCPPort, ...)
 
         /// <summary>
-        /// Create a new EchoTestClient and connect to the given address and TCP port.
+        /// Create a new TCP client and connect it to the given TCP port on [::1], the IPv6 loopback address.
         /// </summary>
         /// <param name="TCPPort">The TCP port to connect to.</param>
+        /// <param name="Description">An optional description of this TCP client.</param>
+        /// <param name="PreferIPv4">An optional IP version preference.</param>
         /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
         /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
-        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
+        /// <param name="TransmissionRetryDelay">An optional delegate to calculate the delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries.</param>
+        /// <returns>The new TCP client, also when the connect failed: see <see cref="ATCPClient.IsConnected"/>.</returns>
         public static async Task<TCPClient>
 
             ConnectNew(IPPort                           TCPPort,
@@ -200,18 +204,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region ConnectNew (Address, TCPPort, ConnectTimeout = null, ReceiveTimeout = null, SendTimeout = null, BufferSize = null, LoggingHandler = null)
+        #region ConnectNew (IPAddress, TCPPort, ...)
 
         /// <summary>
-        /// Create a new EchoTestClient and connect to the given address and TCP port.
+        /// Create a new TCP client and connect it to the given IP address and TCP port.
         /// </summary>
         /// <param name="IPAddress">The IP address to connect to.</param>
         /// <param name="TCPPort">The TCP port to connect to.</param>
+        /// <param name="Description">An optional description of this TCP client.</param>
+        /// <param name="PreferIPv4">An optional IP version preference.</param>
         /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
         /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="TransmissionRetryDelay">An optional delegate to calculate the delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
-        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
+        /// <returns>The new TCP client, also when the connect failed: see <see cref="ATCPClient.IsConnected"/>.</returns>
         public static async Task<TCPClient>
 
             ConnectNew(IIPAddress                       IPAddress,
@@ -275,10 +283,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region SendText   (Text)
 
         /// <summary>
-        /// Send the given message to the echo server and receive the echoed response.
+        /// Send the given text as UTF-8 and read what comes back until the remote closes the connection.
+        /// Against a remote that keeps it open, this waits until the client is closed.
         /// </summary>
-        /// <param name="Text">The text message to send and echo.</param>
-        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
+        /// <param name="Text">The text to send.</param>
+        /// <returns>Whether it all went without an error, what came back as UTF-8 text, an error message if not, and the time taken.</returns>
         public async Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
         {
 
@@ -297,10 +306,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region SendBinary (Bytes)
 
         /// <summary>
-        /// Send the given bytes to the echo server and receive the echoed response.
+        /// Send the given bytes and read what comes back until the remote closes the connection.
+        /// Against a remote that keeps it open, this waits until the client is closed.
         /// </summary>
-        /// <param name="Bytes">The bytes to send and echo.</param>
-        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
+        /// <param name="Bytes">The bytes to send.</param>
+        /// <returns>Whether it all went without an error, the bytes read, an error message if not, and the time taken.</returns>
         public async Task<(Boolean, Byte[], String?, TimeSpan)> SendBinary(Byte[] Bytes)
         {
 
