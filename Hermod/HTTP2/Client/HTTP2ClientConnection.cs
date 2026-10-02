@@ -1583,7 +1583,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Canceled with the stream's token, which the reset cancels and
         /// <see cref="ThrowIfReset"/> lets pass, or with the connection's,
         /// whichever reaches the write first; neither is the caller's. Nothing
-        /// more of it goes out.
+        /// more of it goes out. A GOAWAY that leaves the stream unprocessed resets
+        /// it the same way, with no error code (<see cref="HandleGoAway"/>), and a
+        /// write there fails alike, with the stream's token; it used to go out,
+        /// to a server that ignores it.
         ///
         /// A write after our side of the stream has ended fails at once with an
         /// <see cref="InvalidOperationException"/>, and sends nothing: DATA after
@@ -1798,8 +1801,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <see cref="HTTP2Stream.GivenUp"/>), where a write that waited on it
         /// fails as a call after its DisposeAsync does, with an
         /// <see cref="ObjectDisposedException"/>; and every stream still open at
-        /// the end of the connection (<see cref="RunAsync"/>), which passes here,
-        /// and where a write fails with an <see cref="OperationCanceledException"/>
+        /// the end of the connection (<see cref="RunAsync"/>) or left unprocessed
+        /// by a GOAWAY (<see cref="HandleGoAway"/>), which passes here, and where
+        /// a write fails with an <see cref="OperationCanceledException"/>
         /// (see <see cref="SendTunnelDataAsync"/>).
         /// </summary>
         private static void ThrowIfReset(HTTP2Stream Stream)
@@ -2731,10 +2735,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             foreach (var ex in abandoned)
             {
+
+                // The server will not act on such a stream, and ignores every
+                // frame we send on it (§6.8): the stream is over, as though it had
+                // never been opened. So it is closed here, by a reset of our own
+                // that sends nothing, as a stream a GOAWAY catches before its
+                // HEADERS go out is (RegisterExchange). It used to stay open until
+                // the connection ended: a request body still being sent there, and
+                // the writes of a streamed request or a tunnel, went out into the
+                // void, at the cost of the streams the server still serves, and an
+                // accepted tunnel read nothing more, yet waited — only a server
+                // that breaks §6.8 leaves one above its last-stream-id, as
+                // answering the CONNECT is acting on it. Now what is queued on the
+                // stream is abandoned, a write there fails, and a tunnel reads its
+                // end, null, as after the server's RST_STREAM (HTTP2Stream.Reset).
+                // Closed before the exchange fails, as RegisterExchange closes the
+                // stream before it refuses the request: whoever hears of the
+                // failure finds the stream closed.
+                ex.Stream.Reset();
+
                 RemoveExchange(ex.Stream.StreamId);
                 FailExchange(ex,
                     new HTTP2RequestNotProcessedException(code,
                         $"Server sent GOAWAY (lastStreamId={lastStreamId}, {code}) — request not processed"));
+
             }
 
             // A request waiting for a stream slot will get none on this
@@ -2844,8 +2868,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Fail an exchange, routing to the streaming vehicles or the buffered Completion as appropriate.
         /// A tunnel fails only while its CONNECT waits for an answer: an accepted
         /// one has its status, and what it reads ends with the reset of its
-        /// stream, at the server's RST_STREAM or at the end of the connection
-        /// (<see cref="RunAsync"/>).
+        /// stream, at the server's RST_STREAM, at a GOAWAY that leaves the stream
+        /// unprocessed (<see cref="HandleGoAway"/>), or at the end of the
+        /// connection (<see cref="RunAsync"/>).
         /// </summary>
         private static void FailExchange(ClientExchange Exchange, Exception Ex)
         {

@@ -737,12 +737,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         #region Request_AfterGoAwayLeftTheOnlySlotUnprocessed_IsNotSent()
 
         /// <summary>
-        /// A GOAWAY that leaves the only request unprocessed ends its exchange,
-        /// while its stream stays half-closed, and counts, as the server sends
-        /// nothing more on it. Since stream slots follow the stream, a request
-        /// started then waited for that slot until the connection closed; before,
-        /// it failed at once, but as "Maximum concurrent streams (1) exceeded".
-        /// It now fails as any request after a GOAWAY does.
+        /// A GOAWAY that leaves the only request unprocessed ends its exchange.
+        /// Its stream used to stay half-closed, and count, as the server sends
+        /// nothing more on it (the GOAWAY closes it now, see
+        /// ClientGoAwayUnprocessedStreamTests). Since stream slots follow the
+        /// stream, a request started then waited for that slot until the
+        /// connection closed; before, it failed at once, but as "Maximum
+        /// concurrent streams (1) exceeded". It now fails as any request after
+        /// a GOAWAY does, whether its slot is free or not.
         /// </summary>
         [Test]
         public async Task Request_AfterGoAwayLeftTheOnlySlotUnprocessed_IsNotSent()
