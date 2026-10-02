@@ -284,7 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var request     = connection.SendRequestAsync(HTTPMethod.GET, URIScheme.http, "localhost", "/");
             var headers     = await transport.NextHeadersAsync();
 
-            await transport.SendLastAsync(Offending(Frame, headers.StreamId));
+            await transport.WriteAsync(Offending(Frame, headers.StreamId));
 
             var (ended, failure)  = await EndOf(request);
             var closed            = (await EndOf(connection.Closed)).Ended;
@@ -324,7 +324,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var opening     = connection.OpenTunnelAsync("localhost:443");
             var headers     = await transport.NextHeadersAsync();
 
-            await transport.SendLastAsync(Offending("PING of 7 octets", headers.StreamId));
+            await transport.WriteAsync(Offending("PING of 7 octets", headers.StreamId));
 
             var (ended, failure)  = await EndOf(opening);
             var closed            = (await EndOf(connection.Closed)).Ended;
@@ -362,7 +362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var connection  = new HTTP2ClientConnection(transport.Client, new HTTP2ClientOptions());
             var starting    = connection.StartAsync();
 
-            await transport.SendLastAsync(Offending("SETTINGS INITIAL_WINDOW_SIZE 2^31", 0));
+            await transport.WriteAsync(Offending("SETTINGS INITIAL_WINDOW_SIZE 2^31", 0));
 
             var (ended, failure)  = await EndOf(starting);
             var closed            = (await EndOf(connection.Closed)).Ended;
@@ -411,7 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var second      = connection.SendRequestAsync(HTTPMethod.GET, URIScheme.http, "localhost", "/second");
             await transport.NextHeadersAsync();
 
-            await transport.SendLastAsync(HTTP2Frame.CreatePriorityUpdate(headers.StreamId, "u=0"));
+            await transport.WriteAsync(HTTP2Frame.CreatePriorityUpdate(headers.StreamId, "u=0"));
 
             var (firstEnded,  firstFailure)   = await EndOf(first);
             var goAwayWaited                  = (await EndOf(timers.Created)).Ended;
@@ -472,7 +472,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var second      = connection.SendRequestAsync(HTTPMethod.GET, URIScheme.http, "localhost", "/second");
             await transport.NextHeadersAsync();
 
-            await transport.SendLastAsync(HTTP2Frame.CreatePriorityUpdate(headers.StreamId, "u=0"));
+            await transport.WriteAsync(HTTP2Frame.CreatePriorityUpdate(headers.StreamId, "u=0"));
 
             var (firstEnded,  firstFailure)   = await EndOf(first);
             var goAwayWaited                  = (await EndOf(timers.Created)).Ended;
