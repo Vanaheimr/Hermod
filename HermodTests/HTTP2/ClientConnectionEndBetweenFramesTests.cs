@@ -98,6 +98,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
 
             private Int32 readsAfterTheEnd;
+            private Int32 watchingTheToken;
+            private readonly TaskCompletionSource tokenCancelled = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             /// <summary>
             /// The reads that returned bytes once the connection's token had been
@@ -106,8 +108,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             public Int32 ReadsAfterTheEnd
                 => Volatile.Read(ref readsAfterTheEnd);
 
+            /// <summary>
+            /// Completes once the connection's token is cancelled. Every read gets
+            /// it, and the first one tells which it is.
+            /// </summary>
+            public Task TokenCancelled
+                => tokenCancelled.Task;
+
             public override async ValueTask<Int32> ReadAsync(Memory<Byte> Buffer, CancellationToken CancellationToken = default)
             {
+
+                if (Interlocked.Exchange(ref watchingTheToken, 1) == 0)
+                    CancellationToken.Register(() => tokenCancelled.TrySetResult());
 
                 var count = await Transport.ReadAsync(Buffer,
                                                       Reads == TransportReads.IgnoreTheToken
@@ -181,35 +193,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// End the connection as <paramref name="How"/> says, while its read loop
         /// waits for the next frame, then send it a frame that needs no answer, a
         /// WINDOW_UPDATE for the connection, and return whether the connection
-        /// has ended within the step timeout. A read that ends with the token
-        /// has ended the loop already, and the frame stays unread. A read that
-        /// does not look at the token takes it, and the loop handles it, as it
-        /// handles a frame it was handling anyway when the end came. Written, not
-        /// sent: <see cref="HoldingH2Transport.SendAsync"/> would wait for the
-        /// next read, which a loop that has ended never starts.
+        /// has ended within the step timeout: CloseAsync or the cancellation has
+        /// returned, and <see cref="HTTP2ClientConnection.Closed"/> completed. A
+        /// read that ends with the token has ended the loop already, and the
+        /// frame stays unread. A read that does not look at the token takes it,
+        /// and the loop handles it, as it handles a frame it was handling anyway
+        /// when the end came. Written, not sent: <see cref="HoldingH2Transport.SendAsync"/>
+        /// would wait for the next read, which a loop that has ended never starts.
+        ///
+        /// The frame goes out while CloseAsync is still under way: CloseAsync
+        /// returns once the read loop has ended, and a read that does not look at
+        /// the token ends with the frame alone. Awaited first, it waited for good.
+        /// But not before the end has cancelled the connection's token: a frame
+        /// read before would be one more frame of a connection that goes on, and
+        /// the loop would wait in the next read. CloseAsync cancels it after its
+        /// GOAWAY, and the token the connection was made with passes its
+        /// cancellation on in a callback, which CancelAsync runs on the thread
+        /// pool.
         /// </summary>
         private static async Task<Boolean> EndAsync(HoldingH2Transport       Transport,
+                                                    TokenReads               Reads,
                                                     HTTP2ClientConnection    Connection,
                                                     CancellationTokenSource  Token,
                                                     ConnectionEnd            How)
         {
 
-            switch (How)
-            {
+            var ending = How switch {
+                             ConnectionEnd.ClientCloses    => Connection.CloseAsync(),
+                             ConnectionEnd.TokenCancelled  => Token.CancelAsync(),
+                             _                             => throw new ArgumentOutOfRangeException(nameof(How))
+                         };
 
-                case ConnectionEnd.ClientCloses:
-                    await Connection.CloseAsync();
-                    break;
-
-                case ConnectionEnd.TokenCancelled:
-                    await Token.CancelAsync();
-                    break;
-
-            }
+            if (await Task.WhenAny(Reads.TokenCancelled, Task.Delay(HoldingH2Transport.StepTimeout)) != Reads.TokenCancelled)
+                return false;
 
             await Transport.WriteAsync(HTTP2Frame.CreateWindowUpdate(0, 1));
 
-            return await Task.WhenAny(Connection.Closed, Task.Delay(HoldingH2Transport.StepTimeout)) == Connection.Closed;
+            var ended = Task.WhenAll(ending, Connection.Closed);
+
+            if (await Task.WhenAny(ended, Task.Delay(HoldingH2Transport.StepTimeout)) != ended)
+                return false;
+
+            await ended;
+            return true;
 
         }
 
@@ -266,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var trailers    = stream.GetTrailersAsync();
             var waited      = !head.IsCompleted && !reading.IsCompleted && !trailers.IsCompleted;
 
-            var closed      = await EndAsync(transport, connection, token, How);
+            var closed      = await EndAsync(transport, reads, connection, token, How);
 
             // At once: a test that fails waits out the step timeout once, not three times.
             var outcomes    = await Task.WhenAll(EndOf(head), EndOf(reading), EndOf(trailers));
@@ -332,7 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var trailers    = stream.GetTrailersAsync();
             var waited      = !reading.IsCompleted && !trailers.IsCompleted;
 
-            var closed      = await EndAsync(transport, connection, token, How);
+            var closed      = await EndAsync(transport, reads, connection, token, How);
 
             var outcomes    = await Task.WhenAll(EndOf(reading), EndOf(trailers));
 
