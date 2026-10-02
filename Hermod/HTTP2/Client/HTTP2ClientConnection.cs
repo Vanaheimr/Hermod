@@ -322,8 +322,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             try
             {
-                while (!cancellationToken.IsCancellationRequested)
+                while (true)
                 {
+                    // However the connection ends, the loop leaves through the
+                    // catch, which fails what is left on the connection. A read
+                    // that ends with the connection's token gets there by
+                    // itself. But the token may be cancelled while the loop
+                    // handles a frame — by CloseAsync, or by the token the
+                    // connection was made with — and a read need not look at
+                    // it: SslStream hands out what it has decrypted already,
+                    // whatever the token says. The loop stopped at its
+                    // condition then, with no exception. A buffered request
+                    // failed all the same, as it waits with the connection's
+                    // token, but a streamed response waits with its caller's
+                    // alone, and waited for good.
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     var frame = await ReadFrameAsync();
 
                     // Liveness: any inbound frame counts as the connection being alive.
