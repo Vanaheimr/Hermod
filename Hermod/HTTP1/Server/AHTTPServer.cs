@@ -184,42 +184,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new abstract HTTPTestServer that listens on the loopback address and the given TCP port.
+        /// Create a new abstract HTTP server that listens on the given IP address and TCP port.
         /// </summary>
-        /// <param name="IPAddress">The IP address to listen on. If null, the loopback address will be used.</param>
-        /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>
+        /// <param name="IPAddress">The IP address to listen on. If null, both loopback addresses, [::1] and 127.0.0.1.</param>
+        /// <param name="TCPPort">The TCP port to listen on. If null or 0, the operating system chooses one, and the TCPPort property tells which.</param>
         /// <param name="HTTPServerName">An optional HTTP server name. If null or empty, the default HTTP server name will be used.</param>
-        /// <param name="BufferSize">An optional buffer size for the TCP stream. If null, the default buffer size will be used.</param>
-        /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
-        /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
+        /// <param name="Description">An optional multilingual description of this HTTP server.</param>
+        ///
+        /// <param name="BufferSize">An optional buffer size for the TCP stream. If null, the default buffer size of 32 KByte will be used. An HTTP request header section has to fit into it.</param>
+        /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout of 30 seconds will be used.</param>
+        /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout of 30 seconds will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-        /// 
-        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
-        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        /// <param name="MaintenanceEvery">The maintenance interval.</param>
-        /// 
-        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
-        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden interval.</param>
-        /// 
-        /// <param name="ServerCertificateSelector"></param>
-        /// <param name="ClientCertificateValidator"></param>
-        /// <param name="LocalCertificateSelector"></param>
-        /// <param name="AllowedTLSProtocols"></param>
-        /// <param name="ClientCertificateRequired"></param>
-        /// <param name="CheckCertificateRevocation"></param>
-        /// 
+        ///
+        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate for each accepted connection. Without a certificate, a connection does without TLS.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication. Where it is given, the TLS handshake asks the client for a certificate.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the local TLS certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocols to allow. Kept in AllowedTLSProtocols, but not read yet: the TLS handshake allows TLS 1.2 and 1.3.</param>
+        /// <param name="ClientCertificateRequired">Whether TLS client certification is required. Kept in ClientCertificateRequired, but not read yet: the TLS handshake asks for a client certificate where a ClientCertificateValidator is given.</param>
+        /// <param name="CheckCertificateRevocation">Whether TLS client certificate revocation should be verified. Kept in CheckCertificateRevocation, but not read yet: the TLS handshake checks no revocation.</param>
+        ///
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information. If null, the default connection identification will be used.</param>
-        /// <param name="MaxClientConnections">An optional maximum number of concurrent TCP client connections. If null, the default maximum number of concurrent TCP client connections will be used.</param>
-        /// <param name="DNSClient"></param>
-        /// 
-        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
+        /// <param name="MaxClientConnections">An optional maximum number of concurrent TCP client connections. If null, the default maximum of 8192 concurrent TCP client connections will be used.</param>
+        /// <param name="DNSClient">An optional DNS client for the warden and other DNS lookups. If null, the server makes one of its own.</param>
+        ///
+        /// <param name="DisableMaintenanceTasks">Whether to disable all maintenance tasks.</param>
         /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
         /// <param name="MaintenanceEvery">The maintenance interval.</param>
-        /// 
-        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
+        ///
+        /// <param name="DisableWardenTasks">Whether to disable all warden tasks. Kept in DisableWardenTasks, but not read yet: the warden runs either way.</param>
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden interval.</param>
+        /// <param name="WardenCheckEvery">The warden check interval.</param>
+        ///
+        /// <param name="LoggerFactory">An optional logger factory.</param>
+        /// <param name="AutoStart">Whether to automatically start the HTTP server.</param>
+        /// <param name="MaxHTTPBodySize">The maximum request-body size accepted by this HTTP server, in bytes, up to Int32.MaxValue. If null, 8 MByte.</param>
+        /// <param name="MaxHTTPHeaderSize">The maximum size of an HTTP request header section, in bytes, up to BufferSize. If null, 32 KByte, or BufferSize if that is smaller.</param>
+        /// <param name="MaxHTTPHeaderLineLength">The maximum length of an HTTP request header field line, in bytes, up to MaxHTTPHeaderSize. If null, 8 KByte, or MaxHTTPHeaderSize if that is smaller.</param>
+        /// <param name="MaxHTTPRequestTargetLength">The maximum length of an HTTP request-target, in bytes, up to MaxHTTPHeaderLineLength. If null, 8 KByte, or MaxHTTPHeaderLineLength if that is smaller.</param>
+        /// <param name="MaxHTTPHeaderCount">The maximum number of header fields of an HTTP request. If null, 100.</param>
+        /// <param name="MaxHTTPChunkSizeLineLength">The maximum length of a chunk-size line of a chunked HTTP request body, chunk extensions included. If null, 8 KByte.</param>
+        /// <param name="MaxHTTPChunkTrailerLineLength">The maximum length of a trailer field line of a chunked HTTP request body. If null, 8 KByte.</param>
+        /// <param name="MaxHTTPChunkTrailerCount">The maximum number of trailer fields of a chunked HTTP request body. If null, 100.</param>
+        /// <param name="MaxHTTPChunkTrailerSize">The maximum size of the trailer section of a chunked HTTP request body, in bytes. If null, 32 KByte.</param>
+        /// <param name="MaxHTTPChunkMetadataSize">The maximum size of all chunk-size lines and the trailer section of a chunked HTTP request body together, in bytes. If null, 64 KByte.</param>
+        /// <param name="HeaderReadTimeout">The maximum time to wait for more of an HTTP request header section, and for the next request on a kept-alive connection. It starts again with every read, so it does not bound a header section as a whole. If null, ReceiveTimeout.</param>
+        /// <param name="BodyReadTimeout">The maximum time allowed to receive one complete HTTP request body. If null, ReceiveTimeout.</param>
         public AHTTPServer(IIPAddress?                                               IPAddress                       = null,
                            IPPort?                                                   TCPPort                         = null,
                            String?                                                   HTTPServerName                  = null,

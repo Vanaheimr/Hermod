@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (override) ProcessHTTPRequest(Request, Stream, CancellationToken = default)
+        #region (override) ProcessHTTPRequest(Request, CancellationToken = default)
 
         public override async Task<(HTTPRequest, HTTPResponse?)>
 
