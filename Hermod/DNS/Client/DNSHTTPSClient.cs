@@ -264,9 +264,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region DNSHTTPSClient(TCPPort, ...)
 
         /// <summary>
-        /// Create a new DNS HTTPS client for the given DNS server.
+        /// Create a new DNS HTTPS client for the given TCP port on [::1], the IPv6 loopback address.
         /// </summary>
-        /// <param name="IPAddress">The DNS server to query.</param>
+        /// <param name="TCPPort">The TCP port to connect to.</param>
+        /// <param name="Description">An optional description of this DNS HTTPS client.</param>
+        /// <param name="Mode">The optional DNS request mode. Default is GET.</param>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="HTTPUserAgent">An optional HTTP user agent.</param>
+        /// <param name="HTTPAuthentication">An optional HTTP authentication.</param>
+        /// <param name="TLSHostname">An optional hostname for TLS SNI (Server Name Indication) and remote certificate validation.</param>
+        /// <param name="RemoteCertificateValidator">An optional remote TLS server certificate validator.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use. Defaults to TLS 1.3 if not specified.</param>
+        /// <param name="CipherSuitesPolicy">The TLS cipher suites policy to use. If null, the system defaults will be used.</param>
+        /// <param name="CertificateChainPolicy">An optional TLS certificate chain policy to use for validating the server's certificate chain.</param>
+        /// <param name="CertificateRevocationCheckMode">An optional TLS certificate revocation check mode to use for validating the server's certificate.</param>
+        /// <param name="AllowRenegotiation">Whether to allow TLS renegotiation. Defaults to true if not specified.</param>
+        /// <param name="AllowTLSResume">Whether to allow TLS session resumption. Defaults to false if not specified.</param>
+        /// <param name="PreferIPv4">An optional IP version preference.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="TransmissionRetryDelay">An optional delegate to calculate the delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="DisableLogging">Disable logging of connection events and errors.</param>
+        /// <param name="Logger">An optional logger.</param>
+        /// <param name="LoggerFactory">An optional logger factory.</param>
         public DNSHTTPSClient(IPPort                                                     TCPPort,
                               I18NString?                                                Description                          = null,
                               DNSHTTPSMode?                                              Mode                                 = null,
@@ -366,6 +390,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new DNS HTTPS client for the given DNS server.
         /// </summary>
         /// <param name="IPAddress">The DNS server to query.</param>
+        /// <param name="TCPPort">The optional TCP port to connect to. Default is 443.</param>
+        /// <param name="Description">An optional description of this DNS HTTPS client.</param>
+        /// <param name="Mode">The optional DNS request mode. Default is GET.</param>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="HTTPUserAgent">An optional HTTP user agent.</param>
+        /// <param name="HTTPAuthentication">An optional HTTP authentication.</param>
+        /// <param name="TLSHostname">An optional hostname for TLS SNI (Server Name Indication) and remote certificate validation.</param>
+        /// <param name="RemoteCertificateValidator">An optional remote TLS server certificate validator.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use. Defaults to TLS 1.3 if not specified.</param>
+        /// <param name="CipherSuitesPolicy">The TLS cipher suites policy to use. If null, the system defaults will be used.</param>
+        /// <param name="CertificateChainPolicy">An optional TLS certificate chain policy to use for validating the server's certificate chain.</param>
+        /// <param name="CertificateRevocationCheckMode">An optional TLS certificate revocation check mode to use for validating the server's certificate.</param>
+        /// <param name="AllowRenegotiation">Whether to allow TLS renegotiation. Defaults to true if not specified.</param>
+        /// <param name="AllowTLSResume">Whether to allow TLS session resumption. Defaults to false if not specified.</param>
+        /// <param name="PreferIPv4">An optional IP version preference.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="TransmissionRetryDelay">An optional delegate to calculate the delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="DisableLogging">Disable logging of connection events and errors.</param>
+        /// <param name="Logger">An optional logger.</param>
+        /// <param name="LoggerFactory">An optional logger factory.</param>
         public DNSHTTPSClient(IIPAddress                                                 IPAddress,
                               IPPort?                                                    TCPPort                              = null,
                               I18NString?                                                Description                          = null,
@@ -465,7 +514,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Create a new DNS HTTPS client for the given DNS server.
         /// </summary>
-        /// <param name="IPAddress">The DNS server to query.</param>
+        /// <param name="URL">The DNS server to query.</param>
+        /// <param name="Description">An optional description of this DNS HTTPS client.</param>
+        /// <param name="Mode">The optional DNS request mode. Default is GET.</param>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="HTTPUserAgent">An optional HTTP user agent.</param>
+        /// <param name="HTTPAuthentication">An optional HTTP authentication.</param>
+        /// <param name="TLSHostname">An optional hostname for TLS SNI (Server Name Indication) and remote certificate validation.</param>
+        /// <param name="RemoteCertificateValidator">An optional remote TLS server certificate validator.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use. Defaults to TLS 1.3 if not specified.</param>
+        /// <param name="CipherSuitesPolicy">The TLS cipher suites policy to use. If null, the system defaults will be used.</param>
+        /// <param name="CertificateChainPolicy">An optional TLS certificate chain policy to use for validating the server's certificate chain.</param>
+        /// <param name="CertificateRevocationCheckMode">An optional TLS certificate revocation check mode to use for validating the server's certificate.</param>
+        /// <param name="AllowRenegotiation">Whether to allow TLS renegotiation. Defaults to true if not specified.</param>
+        /// <param name="AllowTLSResume">Whether to allow TLS session resumption. Defaults to false if not specified.</param>
+        /// <param name="PreferIPv4">An optional IP version preference.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="TransmissionRetryDelay">An optional delegate to calculate the delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="DisableLogging">Disable logging of connection events and errors.</param>
+        /// <param name="DNSClient">An optional DNS client to use.</param>
+        /// <param name="Logger">An optional logger.</param>
+        /// <param name="LoggerFactory">An optional logger factory.</param>
         public DNSHTTPSClient(URL                                                        URL,
                               I18NString?                                                Description                          = null,
                               DNSHTTPSMode?                                              Mode                                 = null,
