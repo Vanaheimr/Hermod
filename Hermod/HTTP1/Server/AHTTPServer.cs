@@ -1140,7 +1140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        #region (protected) ProcessHTTPRequest(Request, Stream, CancellationToken = default)
+        #region Request limits and error responses
 
         private Boolean TryValidateHeaderLimits(ReadOnlySpan<Byte>  Header,
                                                 out HTTPStatusCode  ErrorStatusCode,
@@ -1342,6 +1342,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         new JProperty("description", "The request body read timed out.")
                                     ).ToUTF8Bytes()
                }.AsImmutable;
+
+        #endregion
+
+        #region (protected, abstract) ProcessHTTPRequest(Request, Stream, CancellationToken = default)
 
         /// <summary>
         /// Process the given HTTP request.
