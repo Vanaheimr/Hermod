@@ -662,7 +662,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 DomainName? dnsSRVRemoteHost   = null;
                 IPPort?     dnsSRVRemotePort   = null;
 
-                if (RemoteIPAddress is not null)
+                // IPvXAddress.Localhost - what the port-only constructors and
+                // ConnectNew connect to - is both loopback addresses, and the
+                // preference picks one of them below, as it does for a host name
+                // with both an A and an AAAA record. As itself it was neither an
+                // IPv4Address nor an IPv6Address to that choice: IPv4Only and
+                // IPv6Only found nothing and failed without dialling, and
+                // PreferIPv4 fell back to it and dialled what ToDotNet() makes
+                // of it, [::1].
+                if (RemoteIPAddress is IPvXAddress { IsLocalhost: true })
+                {
+                    ResolvedIPAddresses.Add(IPv4Address.Localhost);
+                    ResolvedIPAddresses.Add(IPv6Address.Localhost);
+                }
+
+                else if (RemoteIPAddress is not null)
                     ResolvedIPAddresses.Add(RemoteIPAddress);
 
                 if (ResolvedIPAddresses.Count == 0)
@@ -670,19 +684,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     var hostname = (DomainName?.FullName ?? RemoteURL.Host.ToString())?.Trim() ?? "";
 
-                    #region Localhost / URL looks like an IP address...
+                    #region URL looks like an IP address / Localhost...
 
-                    if      (IPAddress.IsIPv4Localhost(hostname))
-                        ResolvedIPAddresses.Add(IPv4Address.Localhost);
-
-                    else if (IPAddress.IsIPv6Localhost(hostname))
-                        ResolvedIPAddresses.Add(IPv6Address.Localhost);
-
-                    else if (IPAddress.IsIPv4(hostname))
+                    // An address is itself. Every one starting with "127." used
+                    // to be taken for localhost, and 127.0.0.2 was dialled as
+                    // 127.0.0.1.
+                    if      (IPAddress.IsIPv4(hostname))
                         ResolvedIPAddresses.Add(IPv4Address.Parse(hostname));
 
                     else if (IPAddress.IsIPv6(hostname))
                         ResolvedIPAddresses.Add(IPv6Address.Parse(hostname));
+
+                    // "localhost" stays 127.0.0.1 - a client that names no
+                    // preference asks for PreferIPv6, and must still reach the
+                    // servers that listen on 127.0.0.1 or 0.0.0.0 alone - except
+                    // where only IPv6 will do. IPv6Only used to fail here, saying
+                    // that none of the resolved addresses was of its family.
+                    else if (IPAddress.IsIPv4Localhost(hostname))
+                        ResolvedIPAddresses.Add(IPVersionPreference == IPVersionPreference.IPv6Only
+                                                    ? IPv6Address.Localhost
+                                                    : IPv4Address.Localhost);
+
+                    else if (IPAddress.IsIPv6Localhost(hostname))
+                        ResolvedIPAddresses.Add(IPv6Address.Localhost);
 
                     #endregion
 
@@ -798,11 +822,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     RemotePort     ??= remotePort;
 
-                    var connectTokenSource  = new CancellationTokenSource();
-                    var linkedTokenSource   = CancellationTokenSource.CreateLinkedTokenSource(
-                                                  LiveClientCancellationTokenSource.Token,
-                                                  connectTokenSource.               Token
-                                              );
+                    // Both disposed of as this block is left, however it is left.
+                    // Neither used to be, and a linked token source stays
+                    // registered on the token sources it is linked to until it
+                    // is disposed of. Every connect left a registration on the
+                    // client's token source, which lives as long as the client,
+                    // and both of these with it, whether the connect went
+                    // through or not - and an HTTP client connects anew for
+                    // every request to a server that closes its connections.
+                    using var connectTokenSource  = new CancellationTokenSource();
+                    using var linkedTokenSource   = CancellationTokenSource.CreateLinkedTokenSource(
+                                                        LiveClientCancellationTokenSource.Token,
+                                                        connectTokenSource.               Token
+                                                    );
 
                     // This connect's TcpClient, which it works on from here on,
                     // looking at the field only to see whether a close has taken
