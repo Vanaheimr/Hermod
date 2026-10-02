@@ -101,6 +101,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private Int32                                             nextLocalId;
         private Task                                             runTask = Task.CompletedTask;
 
+        /// <summary>
+        /// Why the connection ended, once it has: the receive loop is gone, and nothing will ever answer
+        /// a channel opened from now on.
+        /// </summary>
+        private volatile Exception?                              ended;
+
         #endregion
 
         #region Properties
@@ -180,6 +186,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var localId = (UInt32) Interlocked.Increment(ref nextLocalId);
             var channel = new SshMuxChannel(this, localId, ChannelType, TypeData ?? []);
             channels[localId] = channel;
+
+            // A connection that has ended answers nothing, and the loop that would have failed this channel
+            // with it is gone: without this, a channel opened after the server's DISCONNECT waited for its
+            // confirmation for ever. Asked after the channel is registered, and the loop records why it
+            // ended before it fails what is registered - so one of the two always sees the other.
+            if (ended is Exception gone)
+            {
+                channels.TryRemove(localId, out _);
+                channel.Fault(gone);
+                await channel.OpenAwaitable.ConfigureAwait(false);
+            }
 
             await SendAsync(SshChannelWire.ChannelOpen(ChannelType, localId, InitialWindow, MaxPacket, TypeData ?? []), CancellationToken).ConfigureAwait(false);
 
@@ -451,6 +468,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         private void FaultAll(Exception Exception)
         {
+            ended = Exception;
             foreach (var ch in channels.Values) ch.Fault(Exception);
             while (pendingGlobalReplies.TryDequeue(out var tcs)) tcs.TrySetException(Exception);
             accepted.Writer.TryComplete(Exception);
@@ -458,7 +476,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         private void CompleteAll()
         {
-            foreach (var ch in channels.Values) ch.Fault(new SshChannelClosedException());
+            var closed = new SshChannelClosedException();
+            ended ??= closed;
+            foreach (var ch in channels.Values) ch.Fault(ended);
             accepted.Writer.TryComplete();
         }
 

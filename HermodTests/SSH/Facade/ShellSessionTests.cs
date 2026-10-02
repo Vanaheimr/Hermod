@@ -527,6 +527,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region AChannelOpenedAfterTheConnectionEndedFailsAtOnce
+
+        /// <summary>
+        /// A channel opened once the server has ended the connection fails at once: it used to wait for a
+        /// confirmation nobody would ever send, for ever.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task AChannelOpenedAfterTheConnectionEndedFailsAtOnce(CancellationToken CancellationToken)
+        {
+
+            var running = await Serve(options => options with {
+                              ShellHandler = (context, ct) => ValueTask.FromResult(0)
+                          }, CancellationToken);
+
+            await using var client = await Connect(running, CancellationToken);
+
+            await running.Server.DisposeAsync();
+
+            // The DISCONNECT has to have arrived; until it has, the open would rightly be sent.
+            await Task.Delay(500, CancellationToken);
+
+            var opening = client.OpenShellAsync(Xterm, CancellationToken: CancellationToken).AsTask();
+
+            Assert.That(await Task.WhenAny(opening, Task.Delay(TimeSpan.FromSeconds(5), CancellationToken)), Is.SameAs(opening),
+                        "the channel is still waiting for its confirmation");
+
+            Assert.That(async () => await opening, Throws.Exception);
+
+        }
+
+        #endregion
+
         #region ThePseudoTerminalIsReadAsItIsSent
 
         /// <summary>
