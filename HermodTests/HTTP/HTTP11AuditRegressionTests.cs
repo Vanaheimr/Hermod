@@ -96,7 +96,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -164,7 +164,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -245,7 +245,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -291,7 +291,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -375,7 +375,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -454,7 +454,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -498,7 +498,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -609,7 +609,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -878,7 +878,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -956,18 +956,18 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
     [Test]
     public void Semantically_Equivalent_Parameter_Routes_Must_Be_Rejected()
     {
-        var server = new HTTPServer(
-                         IPAddress: IPv4Address.Localhost,
-                         TCPPort:   IPPort.Zero,
-                         AutoStart: false
-                     );
+        using var server = new HTTPServer(
+                               IPAddress: IPv4Address.Localhost,
+                               TCPPort:   IPPort.Zero,
+                               AutoStart: false
+                           );
         var api = new HTTPAPI(server);
 
         api.AddHandler(
@@ -1076,7 +1076,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -1125,7 +1125,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -1174,7 +1174,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -1223,7 +1223,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -1276,7 +1276,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -1334,7 +1334,7 @@ public sealed class HTTP11AuditRegressionTests
         finally
         {
             if (server is not null)
-                await server.Stop();
+                await server.DisposeAsync();
         }
     }
 
@@ -1524,7 +1524,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -1822,7 +1822,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -1884,7 +1884,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 
@@ -1929,7 +1929,7 @@ public sealed class HTTP11AuditRegressionTests
         }
         finally
         {
-            await server.Stop();
+            await server.DisposeAsync();
         }
     }
 

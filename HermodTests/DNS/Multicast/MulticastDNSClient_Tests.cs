@@ -724,6 +724,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
+        #region HybridClient_DisposesTheUnicastClientItMadeItself()
+
+        /// <summary>
+        /// A unicast client the hybrid made itself is held by nobody else, so
+        /// it goes with the hybrid, whatever OwnsClients says. Left alone, its
+        /// cache went on cleaning up on a timer for the rest of the process.
+        /// </summary>
+        [Test]
+        public async Task HybridClient_DisposesTheUnicastClientItMadeItself()
+        {
+
+            var network = new InMemoryMulticastDNSNetwork();
+
+            await using var transport  = network.CreateTransport(ClientAddress);
+            await using var client     = new MulticastDNSClient(transport, FastClientOptions());
+
+            await client.StartAsync();
+
+            TimerCount.AssertNoneLeft(
+                await TimerCount.Of(
+                          () => new HybridDNSClient(client),
+                          hybrid => hybrid.DisposeAsync()
+                      ),
+                "hybrid DNS clients with unicast clients of their own"
+            );
+
+            Assert.That(client.IsRunning, Is.True, "the Multicast DNS client was lent, and is left alone");
+
+        }
+
+        #endregion
+
         #region HybridClient_ForwardsDnssecConfigurationToUnicastClient()
 
         [Test]

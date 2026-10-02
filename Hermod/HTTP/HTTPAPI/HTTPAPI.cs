@@ -1529,6 +1529,12 @@ Error:
                                                                 await eventSource.Unsubscribe(request.RemoteSocket.ToString());
                                                             }
 
+                                                            // The server is stopping: its token ends the wait for the next event,
+                                                            // see ATCPServer.Stop(), and that is no error. The subscription has
+                                                            // gone with the events already.
+                                                            catch (OperationCanceledException) when (request.CancellationToken.IsCancellationRequested)
+                                                            { }
+
                                                             catch (Exception e) {
                                                                 await HandleErrors(
                                                                     nameof(MapEventSource),

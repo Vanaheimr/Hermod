@@ -115,6 +115,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected readonly         ILogger<ATCPServer>                        logger;
         protected readonly         ILoggerFactory                             loggerFactory;
 
+        /// <summary>
+        /// Whether this server made its DNS client itself, and so is the one
+        /// to dispose of it. One that was handed in belongs to whoever handed
+        /// it in, and may be serving others as well.
+        /// </summary>
+        private          readonly  Boolean                                    ownsDNSClient;
+
+        /// <summary>
+        /// Whether DisposeAsync() has run: a second call would cancel a token
+        /// source the first one disposed of, which throws.
+        /// </summary>
+        private                    Int32                                      disposed;
+
         #endregion
 
         #region Properties
@@ -425,6 +438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.CheckCertificateRevocation  = CheckCertificateRevocation  ?? false;
             this.loggerFactory               = LoggerFactory               ?? NullLoggerFactory.Instance;
             this.logger                      = loggerFactory.CreateLogger<ATCPServer>();  //NullLogger<ATCPServer>.Instance;
+            this.ownsDNSClient               = DNSClient is null;
             this.DNSClient                   = DNSClient                   ?? new DNSClient(Logger: loggerFactory.CreateLogger<IDNSClient>());
 
 
@@ -1241,33 +1255,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Stop the ATCPTestServer and close all active client connections.
         /// </summary>
+        /// <remarks>
+        /// Returns once the handler of every connection has finished, as it
+        /// always did - but the handlers are no longer waited for one after
+        /// another, and the server's token is cancelled before they are waited
+        /// for rather than after.
+        ///
+        /// Every connection is closed first, and the token cancelled only then.
+        /// A handler that is told to stop while its connection is still open
+        /// may answer on it: a WebSocket loop that ends after its 101 closes
+        /// with 1002, protocol error, so one ended by the token would send that
+        /// to a client that did nothing wrong. A connection that is closed first
+        /// carries nothing more, which is what a Stop() has always done to its
+        /// clients. Whoever wants them told calls AWebSocketServer.Shutdown(),
+        /// which sends its close frames before it gets here.
+        ///
+        /// The token then, because a closed connection ends only the handlers
+        /// that read from it or write to it. An event stream waits for its next
+        /// event or its next heartbeat instead, and finds out that its client
+        /// has gone only when it next writes - up to fifteen seconds later. Each
+        /// handler used to be waited for before the next connection was closed,
+        /// and the token was cancelled after the last: a server with N open
+        /// streams took up to N times fifteen seconds to stop.
+        ///
+        /// The handlers are waited for together, last of all, so that the wait
+        /// lasts as long as the slowest of them. That includes the connections
+        /// the accept loop took in while this ran. They are looked for again once
+        /// the loop has ended, and after that no more can come.
+        /// </remarks>
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="Message">An optional message to include in the TCP server stopped event.</param>
         public async Task Stop(EventTracking_Id?  EventTrackingId   = null,
                                String?            Message           = null)
         {
 
-            var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
+            var eventTrackingId  = EventTrackingId ?? EventTracking_Id.New;
+            var handlers         = new List<Task>();
 
-            foreach (var client in activeClients.Keys)
+            // Every connection still listed is closed and taken off the list,
+            // and its handler kept for the wait at the end.
+            async Task CloseConnections()
             {
-                try
+                foreach (var client in activeClients.Keys)
                 {
-                    if (activeClients.TryRemove(client, out var task))
+                    try
                     {
-
-                        client.Close();
-
-                        // Wait for client task to complete
-                        await task;
-
+                        if (activeClients.TryRemove(client, out var task))
+                        {
+                            handlers.Add(task);
+                            client.Close();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        await Log($"Error stopping client: {ex.Message}");
                     }
                 }
-                catch (Exception ex)
-                {
-                    await Log($"Error stopping client: {ex.Message}");
-                }
             }
+
+            await CloseConnections();
 
             cts.Cancel();
             tcpListenerIPv6?.Stop();
@@ -1279,6 +1325,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             if (serverTask is not null)
                 await serverTask;
+
+            // Those the accept loop took in after the first look. It has ended,
+            // so these are the last.
+            await CloseConnections();
+
+            foreach (var handler in handlers)
+            {
+                try
+                {
+                    await handler;
+                }
+                catch (Exception ex)
+                {
+                    await Log($"Error stopping client: {ex.Message}");
+                }
+            }
 
             await LogEvent(
                       OnTCPServerStopped,
@@ -1501,13 +1563,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Dispose/Async()
 
-        public async ValueTask DisposeAsync()
+        public virtual async ValueTask DisposeAsync()
         {
+
+            if (Interlocked.Exchange(ref disposed, 1) == 1)
+                return;
+
             await Stop();
             maintenanceTimer?.Dispose();
             await Warden.DisposeAsync();
+
+            // The Warden is lent the DNS client and leaves it alone; it is this
+            // server's to dispose of where this server made it, and only there.
+            if (ownsDNSClient)
+                await DNSClient.DisposeAsync();
+
             cts.Dispose();
             GC.SuppressFinalize(this);
+
         }
 
         public void Dispose()

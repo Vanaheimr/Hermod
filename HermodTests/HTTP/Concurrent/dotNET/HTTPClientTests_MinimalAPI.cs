@@ -54,15 +54,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
         {
 
             var startTime     = Timestamp.Now;
+            var httpClients   = new List<HTTPClient>();
             var httpRequests  = new List<Task<HTTPResponse>>();
 
             for (var i = 0; i < 100; i++)
             {
+
+                var httpClient = new HTTPClient(
+                                     URL.Parse(BaseURL)
+                                 );
+
+                httpClients.Add(httpClient);
+
                 httpRequests.Add(
-                    new HTTPClient(
-                        URL.Parse(BaseURL)
-                    ).
-                    POST(
+                    httpClient.POST(
                         HTTPPath.Root + "mirror" + "httpBody",
                         i.ToString().ToUTF8Bytes(),//.PadLeft(4, '0').ToUTF8Bytes();
                         HTTPContentType.Text.PLAIN
@@ -71,6 +76,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
             }
 
             var responeses = await Task.WhenAll(httpRequests.ToArray());
+
+            foreach (var httpClient in httpClients)
+                await httpClient.DisposeAsync();
 
             var runtime = Timestamp.Now - startTime;
 

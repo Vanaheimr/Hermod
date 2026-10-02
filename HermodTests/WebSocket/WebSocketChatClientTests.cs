@@ -265,7 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 try
                 {
 
-                    await webSocketClient.Close();
+                    await webSocketClient.DisposeAsync();
 
                 }
                 catch (Exception e)

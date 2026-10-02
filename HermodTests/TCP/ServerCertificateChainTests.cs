@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
             }
             finally
             {
-                await httpServer.Stop();
+                await httpServer.DisposeAsync();
             }
 
         }
@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
             }
             finally
             {
-                await httpServer.Stop();
+                await httpServer.DisposeAsync();
             }
 
         }
@@ -325,7 +325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
             }
             finally
             {
-                await httpServer.Stop();
+                await httpServer.DisposeAsync();
             }
 
         }

@@ -32,6 +32,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private readonly Func<IDomainName, Boolean>  isMulticastName;
         private          Boolean                     isDisposed;
 
+        /// <summary>
+        /// Whether the unicast client is one this client made itself. Nobody
+        /// else holds it then, so it is disposed of with this client whatever
+        /// OwnsClients says, which is about the clients that were handed in.
+        /// </summary>
+        private readonly Boolean                     madeUnicastClient;
+
         #endregion
 
         #region Properties
@@ -92,10 +99,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             ArgumentNullException.ThrowIfNull(MulticastClient);
 
-            this.MulticastClient  = MulticastClient;
-            this.UnicastClient    = UnicastClient   ?? new DNSClient();
-            this.OwnsClients      = OwnsClients;
-            this.isMulticastName  = IsMulticastName ?? MulticastDNS.IsLocalName;
+            this.MulticastClient    = MulticastClient;
+            this.madeUnicastClient  = UnicastClient is null;
+            this.UnicastClient      = UnicastClient   ?? new DNSClient();
+            this.OwnsClients        = OwnsClients;
+            this.isMulticastName    = IsMulticastName ?? MulticastDNS.IsLocalName;
 
         }
 
@@ -153,10 +161,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             isDisposed = true;
 
             if (OwnsClients)
-            {
                 MulticastClient.Dispose();
+
+            if (OwnsClients || madeUnicastClient)
                 UnicastClient.  Dispose();
-            }
 
         }
 
@@ -172,10 +180,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             isDisposed = true;
 
             if (OwnsClients)
-            {
                 await MulticastClient.DisposeAsync().ConfigureAwait(false);
+
+            if (OwnsClients || madeUnicastClient)
                 await UnicastClient.  DisposeAsync().ConfigureAwait(false);
-            }
 
         }
 

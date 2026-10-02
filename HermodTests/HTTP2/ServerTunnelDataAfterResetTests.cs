@@ -225,7 +225,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// returns null, the end of the tunnel, and the chunk never reaches it.
         /// </summary>
         [Test]
-        public async Task TunnelWriteFailsAsAChunkArrives_ChunkDropped_ConnectionServesOn()
+        public Task TunnelWriteFailsAsAChunkArrives_ChunkDropped_ConnectionServesOn()
+
+            => TunnelWriteFailsAsAChunkArrives(MeanwhileNeedsTheLock: false);
+
+        #endregion
+
+        #region TunnelWriteFailsAsAChunkArrives_MeanwhileNeedsTheLock_ChunkDropped_ConnectionServesOn()
+
+        /// <summary>
+        /// As above, with the test's Meanwhile going on only once the receive-window
+        /// lock that holds the read loop has been let go. So it went in CI, on
+        /// runners with four cores: the writer loop and the tunnel's handler wait
+        /// for that lock once the stream is reset, and those two, the read loop
+        /// and the thread the test host keeps for itself took every thread the
+        /// pool would run. Meanwhile waited for the pool to find itself starved,
+        /// and timed out in three nightlies of 2026-10-01, because the lock was
+        /// let go only once Meanwhile was done. It is let go by the thread that
+        /// holds it, as soon as the RST_STREAM is out (see
+        /// PipedH2ServerConnection.HoldDataAfterStateCheckAsync).
+        /// </summary>
+        [Test]
+        public Task TunnelWriteFailsAsAChunkArrives_MeanwhileNeedsTheLock_ChunkDropped_ConnectionServesOn()
+
+            => TunnelWriteFailsAsAChunkArrives(MeanwhileNeedsTheLock: true);
+
+        #endregion
+
+        #region (TunnelWriteFailsAsAChunkArrives)
+
+        private static async Task TunnelWriteFailsAsAChunkArrives(Boolean MeanwhileNeedsTheLock)
         {
 
             var tunnelOpen  = new TaskCompletionSource<Task<Byte[]?>>(Async);
@@ -274,6 +303,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 await peer.HoldDataAfterStateCheckAsync(HTTP2Frame.CreateData(1, ASCII("part 1")), async () => {
 
                     write.TrySetResult();
+
+                    if (MeanwhileNeedsTheLock)
+                        await peer.ReceiveWindowLockTakenAsync().WaitAsync(PipedH2ServerConnection.StepTimeout);
 
                     // The writer loop resets the stream, which completes the
                     // tunnel's channel, and sends RST_STREAM.

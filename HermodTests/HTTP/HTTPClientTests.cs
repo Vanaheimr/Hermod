@@ -52,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_001()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.GET(HTTPPath.Root).
                                                  ConfigureAwait(false);
 
@@ -140,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task HEAD_Root_Has_No_Body()
         {
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.SendRequest(
                                          httpClient.HEADRequest(HTTPPath.Root)
                                      );
@@ -159,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task OPTIONS_Root_Has_No_Body()
         {
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.SendRequest(
                                          httpClient.OPTIONSRequest(HTTPPath.Root)
                                      );
@@ -211,7 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task PUT_Root_Is_MethodNotAllowed()
         {
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.SendRequest(
                                          httpClient.PUTRequest(HTTPPath.Root)
                                      );
@@ -235,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task GET_AccessControlAllowMethods_RoundTrip()
         {
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.GET(HTTPPath.Root + "corsMethods");
 
             Assert.That(httpResponse.HTTPStatusCode,            Is.EqualTo(HTTPStatusCode.OK));
@@ -255,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task GET_AccessControlAllowMethods_UnknownMethodIsPreserved()
         {
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.GET(HTTPPath.Root + "corsMethods" + "unknown");
 
             var methodNames  = httpResponse.AccessControlAllowMethods.Select(method => method.ToString()).ToArray();
@@ -273,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_002()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.GET(HTTPPath.Root,
                                                      RequestBuilder: requestBuilder => {
                                                          requestBuilder.Host = HTTPHostname.Localhost;
@@ -322,7 +322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_NotForEveryone_MissingBasicAuth()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone").
                                                  ConfigureAwait(false);
 
@@ -369,7 +369,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_NotForEveryone_ValidBasicAuth()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone",
                                                      Authentication:  HTTPBasicAuthentication.Create("testUser1", "testPassword1")).
                                                  ConfigureAwait(false);
@@ -415,7 +415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_NotForEveryone_ValidBasicAuth_MissingAuthorization()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone",
                                                      Authentication:  HTTPBasicAuthentication.Create("testUser2", "testPassword2")).
                                                  ConfigureAwait(false);
@@ -465,7 +465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var randomString  = RandomExtensions.RandomString(50);
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.POST(
                                           HTTPPath.Root + "mirror" + ("queryString?q=" + randomString),
                                           null,
@@ -519,7 +519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var randomString  = RandomExtensions.RandomString(50);
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.POST(
                                           HTTPPath.Root + "mirror" + "httpBody",
                                           randomString.ToUTF8Bytes(),
@@ -576,7 +576,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             const String requestBody = "expect-continue";
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.POST(
                                          HTTPPath.Root + "mirror" + "httpBody",
                                          requestBody.ToUTF8Bytes(),
@@ -599,7 +599,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var randomString  = RandomExtensions.RandomString(50);
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.MIRROR(
                                           HTTPPath.Root + "mirror" + "httpBody",
                                           randomString.ToUTF8Bytes(),
@@ -655,7 +655,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var queryContent  = RandomExtensions.RandomString(50);
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse  = await httpClient.QUERY(
                                            HTTPPath.Root + "query",
                                            queryContent.ToUTF8Bytes(),
@@ -683,7 +683,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var queryContent = RandomExtensions.RandomString(50);
             var chunkedBody  = $"{queryContent.Length:X}\r\n{queryContent}\r\n0\r\n\r\n".ToUTF8Bytes();
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.QUERY(
                                          HTTPPath.Root + "query",
                                          chunkedBody,
@@ -712,7 +712,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var queryContent = RandomExtensions.RandomString(50);
             var chunkedBody  = $"{queryContent.Length:X}\r\n{queryContent}\r\n0\r\nX-Query-Metadata: accepted\r\n\r\n".ToUTF8Bytes();
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.QUERY(
                                          HTTPPath.Root + "query",
                                          chunkedBody,
@@ -741,7 +741,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             const String queryContent = "trailer-request";
 
             var chunkedBody = $"{queryContent.Length:X}\r\n{queryContent}\r\n0\r\nX-Query-Metadata: accepted\r\n\r\n".ToUTF8Bytes();
-            var httpClient  = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient  = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.QUERY(
                                          HTTPPath.Root + "query" + "trailer",
                                          chunkedBody,
@@ -767,7 +767,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var randomString = RandomExtensions.RandomString(50);
             var chunkedBody  = $"{randomString.Length:X}\r\n{randomString}\r\n0\r\n\r\n".ToUTF8Bytes();
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.RunRequest(
                                          HTTPMethod.POST,
                                          HTTPPath.Root + "mirror" + "httpBody",
@@ -813,7 +813,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task GET_EventStream()
         {
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.GET(HTTPPath.Root + "events");
             var events       = await HTTPEventSource<Newtonsoft.Json.Linq.JObject>.ParseHTTPResponseStream(httpResponse);
 
@@ -831,7 +831,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task GET_LiveEventStreamWorker()
         {
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.GET(HTTPPath.Root + "events" + "live");
             var events       = await HTTPEventSource<Newtonsoft.Json.Linq.JObject>.ParseHTTPResponseStream(httpResponse);
 
@@ -922,7 +922,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_ChunkedEncoding_chunked()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
 
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "chunked").
                                                  ConfigureAwait(false);
@@ -969,7 +969,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_ChunkedEncoding_chunkedSlow()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
 
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "chunkedSlow").
                                                  ConfigureAwait(false);
@@ -1016,7 +1016,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task GET_AutomaticallyChunkedResponse_Trailers_Are_Available()
         {
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.GET(HTTPPath.Root + "chunkedAutomaticTrailerHeaders");
 
             Assert.That(httpResponse.HTTPStatusCode,       Is.EqualTo(HTTPStatusCode.OK));
@@ -1034,7 +1034,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task GET_ChunkedLiveResponse_Trailers_Are_Available()
         {
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.GET(HTTPPath.Root + "chunkedLiveTrailerHeaders");
 
             Assert.That(httpResponse.HTTPStatusCode,       Is.EqualTo(HTTPStatusCode.OK));
@@ -1054,7 +1054,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task GET_ChunkedLiveResponse_Extensions_Are_Available()
         {
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.GET(HTTPPath.Root + "chunkedLiveExtensions");
 
             Assert.That(httpResponse.HTTPStatusCode,       Is.EqualTo(HTTPStatusCode.OK));
@@ -1076,7 +1076,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             const String queryContent = "client-worker";
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.QUERY(
                                    HTTPPath.Root + "query" + "extensions",
                                    queryContent.ToUTF8Bytes(),
@@ -1112,7 +1112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task QUERY_ChunkedRequestExtensions_Are_Exposed_To_The_Handler()
         {
 
-            var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient   = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
             var httpResponse = await httpClient.QUERY(
                                    HTTPPath.Root + "query" + "extensions",
                                    "5;part=one;part=\"two words\"\r\nhello\r\n0\r\n\r\n".ToUTF8Bytes(),
@@ -1133,7 +1133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Test_ChunkedEncoding_chunkedTrailerHeaders()
         {
 
-            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            await using var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
 
             var httpResponse  = await httpClient.GET(HTTPPath.Root + "chunkedTrailerHeaders").
                                                  ConfigureAwait(false);

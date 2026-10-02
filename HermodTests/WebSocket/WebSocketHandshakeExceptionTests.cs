@@ -63,13 +63,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             if (client is not null)
-                await client.Close();
+                await client.DisposeAsync();
 
             if (secondClient is not null)
-                await secondClient.Close();
+                await secondClient.DisposeAsync();
 
             if (server is not null)
+            {
                 await server.Shutdown(Wait: true);
+                await server.DisposeAsync();
+            }
 
             client        = null;
             secondClient  = null;
@@ -430,7 +433,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         private static async Task<UInt32> AnswerOf(AWebSocketServer Server)
         {
 
-            var asking = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{Server.IPPort}"));
+            await using var asking = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{Server.IPPort}"));
 
             try
             {
@@ -444,6 +447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             {
                 await asking.Close();
                 await Server.Shutdown(Wait: true);
+                await Server.DisposeAsync();
             }
 
         }

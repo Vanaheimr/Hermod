@@ -71,7 +71,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             if (server is not null)
+            {
                 await server.Shutdown(Wait: true);
+                await server.DisposeAsync();
+            }
 
             server = null;
 

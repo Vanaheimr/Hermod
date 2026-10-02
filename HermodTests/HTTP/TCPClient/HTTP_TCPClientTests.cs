@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task Shutdown_HTTPServer()
         {
             if (httpServer is not null)
-                await httpServer.Stop();
+                await httpServer.DisposeAsync();
         }
 
         #endregion
