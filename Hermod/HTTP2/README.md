@@ -339,7 +339,7 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 | **9113** | HTTP/2 | ✅ Complete | Framing, streams, flow control, settings, GOAWAY, §9.2 TLS profile, §9.1.1 authority checking. h2spec 146/146. |
 | **7541** | HPACK: Header Compression | ✅ Complete | Full decoder **and** encoder (static + dynamic table + Huffman both ways). |
 | **7301** | TLS ALPN | ✅ | `h2` negotiation in the TLS handshake. |
-| **9218** | Extensible Prioritization Scheme | ✅ | `priority` header, `PRIORITY_UPDATE`, `SETTINGS_NO_RFC7540_PRIORITIES`; priority-aware writer on both roles. Both roles emit; the server sends its responses by it, the client its own request bodies and tunnel bytes. |
+| **9218** | Extensible Prioritization Scheme | ✅ | `priority` header, `PRIORITY_UPDATE`, `SETTINGS_NO_RFC7540_PRIORITIES`; priority-aware writer on both roles. Both roles emit; the server sends its responses by it, the client its own request bodies and tunnel bytes. A `PRIORITY_UPDATE` from the server is a connection error for the client (§7.1). |
 | **8441** | Bootstrapping WebSockets with HTTP/2 | ✅ | Extended CONNECT, `:protocol`, `SETTINGS_ENABLE_CONNECT_PROTOCOL`. |
 | **8336** | The ORIGIN HTTP/2 Frame | ✅ | Server announces its Origin Set; client parses it (ignored on stream ≠ 0 and over h2c). |
 | **7838** | HTTP Alternative Services | ✅ | ALTSVC frame both directions + the `Alt-Svc` field-value grammar; client records alternatives, does not act on them (no HTTP/3 endpoint to act on yet). |
@@ -1011,6 +1011,9 @@ that prints, which is roughly what the library used to hardcode.
   parsed-and-ignored, per §5.3.1 self-dependency validation only).
 - The `priority` request/response header (urgency + incremental) and
   `PRIORITY_UPDATE` frame — parsed leniently (bad hint → default, not an error).
+- `PRIORITY_UPDATE` goes from client to server only (§7.1): a client that
+  receives one ends the connection with `GOAWAY PROTOCOL_ERROR`. It used to
+  ignore the frame, as one of a type it does not handle.
 - A **priority-aware multiplexed writer**: a single per-connection writer loop
   schedules DATA by urgency → non-incremental-first → round-robin fairness
   (`HTTP2SendOrder`, shared by both roles).
@@ -1221,6 +1224,19 @@ that prints, which is roughly what the library used to hardcode.
   to its end and the next request waits for the slot rather than fail. A rejected
   CONNECT ends its stream (`END_STREAM`, or `RST_STREAM CANCEL` while the
   rejection has a body to come), and a tunnel closes once both sides have ended.
+- **Connection errors are reported to the server** (§5.4.1): one the client
+  finds in what the server sends — a frame the server must not send, a
+  malformed frame, a setting out of range — ends the connection with a `GOAWAY`
+  of its code, the error's message as debug data, where the client used to end
+  it without a word. The `GOAWAY` is the last frame the client sends. It gets a
+  second, on the options' `TimeProvider`, to get past a write in progress, and
+  is given up after that, so that a write that never ends cannot hold up the
+  connection's end, which `Closed` and a pool wait for.
+- **What waits on the server fails with the connection error**: a request in
+  flight, a tunnel being opened and `StartAsync` fail with the
+  `HTTP2ConnectionException` the connection ended over. They used to fail with
+  "A task was canceled.": the read loop fails them with the error and then
+  cancels the connection, and the cancellation reached their waits first.
 - **`HTTP2ClientPool`**: a single-origin pool that keeps N warm connections
   (default 4), routes to the least-loaded, transparently fails over
   not-processed requests, and self-heals dead connections in the background.
