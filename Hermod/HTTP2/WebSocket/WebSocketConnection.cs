@@ -129,7 +129,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         ///  - completing the close handshake on a Close frame (echoing it back
         ///    per Section 5.5.1) and on any protocol violation.
         /// Returns null once the connection is closed — either a normal close
-        /// handshake or the underlying tunnel simply ending.
+        /// handshake or the underlying tunnel simply ending, as a client's tunnel
+        /// does with the end of its HTTP/2 connection.
         /// </summary>
         public async Task<WebSocketMessage?> ReceiveAsync(CancellationToken CancellationToken)
         {
