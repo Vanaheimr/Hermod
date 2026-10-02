@@ -3988,6 +3988,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// not), and every close would wait the drain out. Should the server still
         /// be sending, the close may go out as a reset, and the server may not
         /// read the GOAWAY; it learns that the connection ended either way.
+        ///
+        /// On a transport the caller passed in, and still owns, it waits for the
+        /// end of the connection for at most <see cref="ReadLoopEndTimeout"/>
+        /// (see <see cref="AbortAsync"/>).
         /// </summary>
         public async Task CloseAsync()
         {
@@ -4013,12 +4017,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // The read loop ends with the cancellation, and closes the transport
             // on its way out. Without a read loop — StartAsync failed before it
             // started one, or was never called — that is left to us.
-            if (runLoop is not null)
-                await runLoop;
-            else
+            if (runLoop is null)
                 await CloseTransportAsync(DrainFirst: false);
 
+            // An owned transport is closed once the loop has ended, and
+            // only then: it is ours, and it is over a socket made for the
+            // connection, whose reads end with the token.
+            else if (ownsTransport)
+                await runLoop;
+
+            // A transport the caller passed in need not end a read with
+            // the token: a read that ignores it ends with the next bytes
+            // the server sends, or when the caller closes the transport.
+            // Waiting for that for good left CloseAsync waiting for the
+            // server, and a caller who closes the transport only after
+            // CloseAsync waiting for itself (#69 with #72). Closing it is
+            // not ours to do, so the wait is bounded: past it, the loop
+            // ends, and fails what still waits on the connection, once the
+            // read returns.
+            else
+            {
+                try
+                {
+                    await runLoop.WaitAsync(ReadLoopEndTimeout, options.TimeProvider);
+                }
+                catch (TimeoutException)
+                { }
+            }
+
         }
+
+        /// <summary>
+        /// How long <see cref="AbortAsync"/> waits for the read loop to end on a
+        /// transport the caller owns, whose read need not end with the token.
+        /// </summary>
+        private static readonly TimeSpan ReadLoopEndTimeout = TimeSpan.FromSeconds(1);
 
         /// <summary>
         /// How long a GOAWAY that ends the connection over an error may take, to
