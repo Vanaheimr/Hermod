@@ -174,6 +174,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
         [TearDown]
         public void DisposeCertificates()
         {
+
+            // A server's context of this chain puts the intermediate into the
+            // CA store, where unique names would otherwise pile up, one per
+            // test and run.
+            InstalledAuthorities.Remove(root, intermediate);
+
             root?.        Dispose();
             intermediate?.Dispose();
             server?.      Dispose();
@@ -327,6 +333,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
             {
                 await httpServer.DisposeAsync();
             }
+
+        }
+
+        #endregion
+
+
+        #region AContextOfTheChain_LeavesNoAuthorityBehind()
+
+        /// <summary>
+        /// What the teardown of these tests relies on: a context of this chain
+        /// puts the intermediate into a CA store on Windows, and
+        /// <see cref="InstalledAuthorities.Remove"/> takes it out again.
+        /// </summary>
+        [Test]
+        public void AContextOfTheChain_LeavesNoAuthorityBehind()
+        {
+
+            if (!OperatingSystem.IsWindows())
+                Assert.Ignore("Only Windows puts intermediates into a certificate store.");
+
+            Assert.That(new ServerCertificateChain(server, [ intermediate ]).TryCreateContext(out _, out var error), Is.True, error);
+
+            Assume.That(IsInstalled(intermediate), Is.True, "the platform no longer installs intermediates, and the teardowns may go");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InstalledAuthorities.Remove(root, intermediate), Is.EqualTo(1));
+                Assert.That(IsInstalled(intermediate),                        Is.False);
+            });
+
+        }
+
+        private static Boolean IsInstalled(X509Certificate2 Authority)
+        {
+
+            foreach (var location in new[] { StoreLocation.CurrentUser, StoreLocation.LocalMachine })
+            {
+
+                using var store = new X509Store(StoreName.CertificateAuthority, location);
+                store.Open(OpenFlags.ReadOnly);
+
+                var found = store.Certificates.Find(X509FindType.FindByThumbprint, Authority.Thumbprint, validOnly: false);
+
+                try
+                {
+                    if (found.Count > 0)
+                        return true;
+                }
+                finally
+                {
+                    foreach (var certificate in found)
+                        certificate.Dispose();
+                }
+
+            }
+
+            return false;
 
         }
 

@@ -63,6 +63,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
         #endregion
 
+        #region Setup / TearDown
+
+        /// <summary>
+        /// The CAs of the PKI the current test has made.
+        /// </summary>
+        private readonly List<dotX509.X509Certificate2?> authorities = [];
+
+        /// <summary>
+        /// Take the CAs of this test's PKI out of the CA store again. On Windows
+        /// the TLS context a client builds of its certificate and the client CA
+        /// (tests 3 and 4) puts that CA there, and UniqueCAName gives every run
+        /// another one: 280 "Hermod ClientCA" had piled up by 2026-10-02.
+        /// </summary>
+        [TearDown]
+        public void RemoveInstalledAuthorities()
+        {
+
+            InstalledAuthorities.Remove(authorities);
+
+            authorities.Clear();
+
+        }
+
+        #endregion
+
 
         #region Mutual_TLS_ECC__1_usingLocalCertificateSelector_Test1()
 
@@ -190,6 +215,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var serverCertificate2    = serverCertificate.  ToDotNet2(serverKeyPair.Private, [ serverCACertificate, rootCACertificate ]);
             var clientCertificate2    = clientCertificate.  ToDotNet2(clientKeyPair.Private, [ clientCACertificate, rootCACertificate ]);
+
+            // Out of the CA store again at teardown, where a client's TLS context puts the client CA.
+            authorities.AddRange([ rootCACertificate2, serverCACertificate2, clientCACertificate2 ]);
 
             Assert.That(rootCACertificate2,     Is.Not.Null);
             Assert.That(serverCACertificate2,   Is.Not.Null);
@@ -538,6 +566,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var serverCertificate2    = serverCertificate.  ToDotNet2(serverKeyPair.Private, [ serverCACertificate, rootCACertificate ]);
             var clientCertificate2    = clientCertificate.  ToDotNet2(clientKeyPair.Private, [ clientCACertificate, rootCACertificate ]);
 
+            // Out of the CA store again at teardown, where a client's TLS context puts the client CA.
+            authorities.AddRange([ rootCACertificate2, serverCACertificate2, clientCACertificate2 ]);
+
             Assert.That(rootCACertificate2,     Is.Not.Null);
             Assert.That(serverCACertificate2,   Is.Not.Null);
             Assert.That(clientCACertificate2,   Is.Not.Null);
@@ -878,6 +909,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var serverCertificate2    = serverCertificate.  ToDotNet2(serverKeyPair.Private, [ serverCACertificate, rootCACertificate ]);
             var clientCertificate2    = clientCertificate.  ToDotNet2(clientKeyPair.Private, [ clientCACertificate, rootCACertificate ]);
+
+            // Out of the CA store again at teardown, where a client's TLS context puts the client CA.
+            authorities.AddRange([ rootCACertificate2, serverCACertificate2, clientCACertificate2 ]);
 
             Assert.That(rootCACertificate2,     Is.Not.Null);
             Assert.That(serverCACertificate2,   Is.Not.Null);
@@ -1236,6 +1270,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var serverCertificate2    = serverCertificate.  ToDotNet2(serverKeyPair.Private, [ serverCACertificate, rootCACertificate ]);
             var clientCertificate2    = clientCertificate.  ToDotNet2(clientKeyPair.Private, [ clientCACertificate, rootCACertificate ]);
 
+            // Out of the CA store again at teardown, where a client's TLS context puts the client CA.
+            authorities.AddRange([ rootCACertificate2, serverCACertificate2, clientCACertificate2 ]);
+
             Assert.That(rootCACertificate2,     Is.Not.Null);
             Assert.That(serverCACertificate2,   Is.Not.Null);
             Assert.That(clientCACertificate2,   Is.Not.Null);
@@ -1593,6 +1630,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
             var serverCertificate2    = serverCertificate.  ToDotNet2(serverKeyPair.Private, [ serverCACertificate, rootCACertificate ]);
             var clientCertificate2    = clientCertificate.  ToDotNet2(clientKeyPair.Private, [ clientCACertificate, rootCACertificate ]);
 
+            // Out of the CA store again at teardown, where a client's TLS context puts the client CA.
+            authorities.AddRange([ rootCACertificate2, serverCACertificate2, clientCACertificate2 ]);
+
             Assert.That(rootCACertificate2,     Is.Not.Null);
             Assert.That(serverCACertificate2,   Is.Not.Null);
             Assert.That(clientCACertificate2,   Is.Not.Null);
@@ -1944,6 +1984,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
 
             var serverCertificate2    = serverCertificate.  ToDotNet2(serverKeyPair.Private, [ serverCACertificate, rootCACertificate ]);
             var clientCertificate2    = clientCertificate.  ToDotNet2(clientKeyPair.Private, [ clientCACertificate, rootCACertificate ]);
+
+            // Out of the CA store again at teardown, where a client's TLS context puts the client CA.
+            authorities.AddRange([ rootCACertificate2, serverCACertificate2, clientCACertificate2 ]);
 
             Assert.That(rootCACertificate2,     Is.Not.Null);
             Assert.That(serverCACertificate2,   Is.Not.Null);

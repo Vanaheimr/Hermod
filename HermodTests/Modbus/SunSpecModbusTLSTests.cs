@@ -698,21 +698,16 @@ public class SunSpecModbusTLSTests
         => (await Frontend.BoundEndPoint.WaitAsync(TimeSpan.FromSeconds(5))).Port;
 
     /// <summary>
-    /// Take the certificate authorities of a test PKI out of the current user's
-    /// intermediate CA store, where a frontend's TLS context has put them.
+    /// Take the certificate authorities of a test PKI out of the intermediate
+    /// CA stores again, where a frontend's TLS context has put them.
     /// </summary>
     /// <remarks>
-    /// On Windows, SslStreamCertificateContext puts the intermediates of a chain
-    /// the operating system cannot build into that store, so that SChannel can
-    /// send them - and nothing ever takes them out again. Every test here builds
-    /// a PKI of its own, with names of its own, so every run left one more CA
-    /// behind. On 2026-10-02 the store held 3,900 certificates, 1,283 of them
-    /// issuing device CAs of ModbusPKI. Every load of the store costs about
-    /// 0.14 ms of CPU per certificate in it - 0.6 s at 3,900 - and it is loaded
-    /// by every context that is built and by every chain build with custom
-    /// trust, which the frontend does for each client certificate it checks:
-    /// two or three times per handshake, which under load came to more than the
-    /// 5 s handshake timeout.
+    /// See <see cref="InstalledAuthorities"/>. Every test here builds a PKI of
+    /// its own, with names of its own, so every run left one more CA behind: on
+    /// 2026-10-02 the store held 3,900 certificates, 1,283 of them issuing
+    /// device CAs of ModbusPKI. The frontend loads that store for each client
+    /// certificate it checks, two or three times per handshake, which under
+    /// load came to more than the 5 s handshake timeout.
     /// </remarks>
     private static void RemoveInstalledAuthorities(String PKIDirectory)
     {
@@ -728,14 +723,7 @@ public class SunSpecModbusTLSTests
 
         try
         {
-
-            using var store = new X509Store(StoreName.CertificateAuthority, StoreLocation.CurrentUser);
-            store.Open(OpenFlags.ReadWrite);
-
-            foreach (var authority in authorities)
-                foreach (var installed in store.Certificates.Find(X509FindType.FindByThumbprint, authority.Thumbprint, validOnly: false))
-                    store.Remove(installed);
-
+            InstalledAuthorities.Remove(authorities);
         }
         finally
         {
