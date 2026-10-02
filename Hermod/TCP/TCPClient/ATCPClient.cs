@@ -822,11 +822,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     RemotePort     ??= remotePort;
 
-                    var connectTokenSource  = new CancellationTokenSource();
-                    var linkedTokenSource   = CancellationTokenSource.CreateLinkedTokenSource(
-                                                  LiveClientCancellationTokenSource.Token,
-                                                  connectTokenSource.               Token
-                                              );
+                    // Both disposed of as this block is left, however it is left.
+                    // Neither used to be, and a linked token source stays
+                    // registered on the token sources it is linked to until it
+                    // is disposed of. Every connect left a registration on the
+                    // client's token source, which lives as long as the client,
+                    // and both of these with it, whether the connect went
+                    // through or not - and an HTTP client connects anew for
+                    // every request to a server that closes its connections.
+                    using var connectTokenSource  = new CancellationTokenSource();
+                    using var linkedTokenSource   = CancellationTokenSource.CreateLinkedTokenSource(
+                                                        LiveClientCancellationTokenSource.Token,
+                                                        connectTokenSource.               Token
+                                                    );
 
                     // This connect's TcpClient, which it works on from here on,
                     // looking at the field only to see whether a close has taken
