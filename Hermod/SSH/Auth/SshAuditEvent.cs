@@ -83,12 +83,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <summary>
     /// A single authentication method succeeded for the user (may be one factor of several).
     /// </summary>
-    public sealed record AuthMethodSucceededEvent(DateTimeOffset Timestamp, String Username, String Method) : SshAuditEvent(Timestamp);
+    public sealed record AuthMethodSucceededEvent(DateTimeOffset Timestamp, String Username, String Method) : SshAuditEvent(Timestamp)
+    {
+        /// <summary>
+        /// What authenticated, where it can be named: the SHA-256 fingerprint of a public key.
+        /// </summary>
+        public String? Identity { get; init; }
+    }
 
     /// <summary>
     /// A single authentication attempt failed. The reason is for the audit log only, never the wire.
     /// </summary>
-    public sealed record AuthMethodFailedEvent(DateTimeOffset Timestamp, String Username, String Method, String Reason) : SshAuditEvent(Timestamp);
+    public sealed record AuthMethodFailedEvent(DateTimeOffset Timestamp, String Username, String Method, String Reason) : SshAuditEvent(Timestamp)
+    {
+        /// <summary>
+        /// What was tried, where it can be named: the SHA-256 fingerprint of a public key.
+        /// </summary>
+        public String? Identity { get; init; }
+    }
 
     /// <summary>
     /// Authentication completed successfully (all required factors satisfied).

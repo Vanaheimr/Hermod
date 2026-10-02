@@ -110,6 +110,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public Int32                 KeyExchangeCount  { get; private set; }
 
         /// <summary>
+        /// What the peer said it is in its identification string - "SSH-2.0-PuTTY_Release_0.83", say -
+        /// once the version exchange is done.
+        /// </summary>
+        public SshIdentificationString?  PeerIdentification  { get; private set; }
+
+        /// <summary>
         /// The extensions received from the peer via SSH_MSG_EXT_INFO (RFC 8308), if any.
         /// </summary>
         public IReadOnlyDictionary<String, String>  PeerExtensions  => peerExtensions;
@@ -183,7 +189,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             var transport = new SshTransport(Pipe, IsServer: false, localId.ToWireBytes(), remote.WireBytes,
                                              HostKey: null, VerifyHostKey, Ciphers, Macs, KeyExchanges, HostKeyAlgorithms,
-                                             ServerSignatureAlgorithms: null);
+                                             ServerSignatureAlgorithms: null) {
+                                 PeerIdentification = remote.Identification
+                             };
 
             await transport.PerformKeyExchangeAsync(IsInitial: true, PeerKexInit: null, CancellationToken).ConfigureAwait(false);
 
@@ -215,7 +223,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             var transport = new SshTransport(Pipe, IsServer: true, remote.WireBytes, localId.ToWireBytes(),
                                              HostKey, VerifyHostKey: null, Ciphers, Macs, KeyExchanges, HostKeyAlgorithms: null,
-                                             ServerSignatureAlgorithms);
+                                             ServerSignatureAlgorithms) {
+                                 PeerIdentification = remote.Identification
+                             };
 
             await transport.PerformKeyExchangeAsync(IsInitial: true, PeerKexInit: null, CancellationToken).ConfigureAwait(false);
 

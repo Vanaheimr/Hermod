@@ -42,6 +42,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public Int32      MaxSessions          { get; init; } = 10;
 
         /// <summary>
+        /// The maximum number of connections at once, authenticated or not (default 100). One more is
+        /// closed as soon as it is accepted.
+        /// </summary>
+        public Int32      MaxConnections       { get; init; } = 100;
+
+        /// <summary>
+        /// The maximum number of connections at once that have not authenticated yet (default 10) - the
+        /// OpenSSH <c>MaxStartups</c>. What somebody guessing passwords or keys holds open is these.
+        /// </summary>
+        public Int32      MaxUnauthenticated   { get; init; } = 10;
+
+        /// <summary>
+        /// The maximum number of unauthenticated connections from one address at once (default 3) - the
+        /// OpenSSH <c>PerSourceMaxStartups</c>, so that one address cannot take every slot of
+        /// <see cref="MaxUnauthenticated"/> and lock everybody else out.
+        /// </summary>
+        public Int32      MaxUnauthenticatedPerAddress  { get; init; } = 3;
+
+        /// <summary>
         /// The maximum SSH packet payload accepted, in bytes (default 256 KiB; RFC 4253 floor is 35 000).
         /// </summary>
         public Int32      MaxPacketSize        { get; init; } = 256 * 1024;

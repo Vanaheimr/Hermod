@@ -241,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 Input.AdvanceTo(buffer.Start, buffer.End);
 
                 if (result.IsCompleted)
-                    throw new SshWireException("The connection was closed in the middle of an SSH packet!");
+                    throw new SshConnectionClosedException("The connection was closed in the middle of an SSH packet!");
 
             }
 

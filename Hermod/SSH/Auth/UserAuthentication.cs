@@ -108,6 +108,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             // principals and critical options checked by the authenticator at this point.
             var restrictions     = SshSessionRestrictions.None;
 
+            // The key that authenticated, for whoever asks afterwards which one it was.
+            Byte[]? authenticatedKey = null;
+
             while (true)
             {
 
@@ -128,10 +131,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 {
 
                     completedMethods.Add(request.Method);
-                    await EmitAsync(AuditSink, new AuthMethodSucceededEvent(clock.GetUtcNow(), request.Username, request.Method), CancellationToken).ConfigureAwait(false);
+                    await EmitAsync(AuditSink, new AuthMethodSucceededEvent(clock.GetUtcNow(), request.Username, request.Method) {
+                                                   Identity = request.Method == PublicKeyMethod ? SshFingerprint.Sha256(request.PublicKeyBlob) : null
+                                               }, CancellationToken).ConfigureAwait(false);
 
                     if (request.Method == PublicKeyMethod)
                     {
+
+                        authenticatedKey = request.PublicKeyBlob;
 
                         // A certificate carries the CA's constraints; an authorized_keys entry carries
                         // the administrator's. Both can apply, and the stricter side wins — a credential
@@ -154,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     {
                         await Transport.SendPacketAsync(new Byte[] { (Byte) SshMessageNumber.UserAuthSuccess }, CancellationToken).ConfigureAwait(false);
                         await EmitAsync(AuditSink, new AuthenticationSucceededEvent(clock.GetUtcNow(), request.Username, [.. completedMethods]), CancellationToken).ConfigureAwait(false);
-                        return new SshAuthResult(request.Username, request.Method, restrictions);
+                        return new SshAuthResult(request.Username, request.Method, restrictions, authenticatedKey);
                     }
 
                     // A factor succeeded but more are required — partial success (RFC 4252).
@@ -164,7 +171,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 }
 
                 if (request.Method != NoneMethod)
-                    await EmitAsync(AuditSink, new AuthMethodFailedEvent(clock.GetUtcNow(), request.Username, request.Method, "rejected"), CancellationToken).ConfigureAwait(false);
+                    await EmitAsync(AuditSink, new AuthMethodFailedEvent(clock.GetUtcNow(), request.Username, request.Method, "rejected") {
+                                                   Identity = request.Method == PublicKeyMethod && request.PublicKeyBlob.Length > 0 ? SshFingerprint.Sha256(request.PublicKeyBlob) : null
+                                               }, CancellationToken).ConfigureAwait(false);
 
                 await Transport.SendPacketAsync(BuildFailure(Authenticator.OfferedMethods, PartialSuccess: false), CancellationToken).ConfigureAwait(false);
 

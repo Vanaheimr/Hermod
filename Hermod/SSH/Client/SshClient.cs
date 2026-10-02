@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Buffers;
+using System.IO.Pipelines;
 
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
@@ -80,6 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region Data
 
+        private readonly IDuplexPipe             pipe;
         private readonly SshTransport            transport;
         private readonly SshChannelMultiplexer   mux;
 
@@ -96,8 +98,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region Constructor(s)
 
-        private SshClient(SshTransport Transport, SshChannelMultiplexer Mux)
+        private SshClient(IDuplexPipe Pipe, SshTransport Transport, SshChannelMultiplexer Mux)
         {
+            this.pipe      = Pipe;
             this.transport = Transport;
             this.mux       = Mux;
         }
@@ -129,6 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
             if (!authenticated)
             {
                 transport.Dispose();
+                await CloseAsync(pipe).ConfigureAwait(false);
                 throw new SshAuthenticationException("None of the supplied credentials were accepted.");
             }
 
@@ -137,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
             if (Options.HostKeysReceived is not null)
                 WireHostKeyUpdates(mux, transport.ServerHostKey, Options.HostKeysReceived);
 
-            return new SshClient(transport, mux.Start());
+            return new SshClient(pipe, transport, mux.Start());
 
         }
 
@@ -183,6 +187,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #endregion
 
+        #region OpenShellAsync(Pty = null, Environment = null, CancellationToken = default)
+
+        /// <summary>
+        /// Start an interactive shell, with the given pseudo-terminal where there is one - what
+        /// <c>ssh host</c> does at a terminal.
+        /// </summary>
+        public ValueTask<SshClientShell> OpenShellAsync(SshPty?                               Pty                = null,
+                                                        IReadOnlyDictionary<String, String>?  Environment        = null,
+                                                        CancellationToken                     CancellationToken  = default)
+
+            => SshClientShell.OpenAsync(mux, Pty, Environment, CancellationToken);
+
+        #endregion
+
         #region OpenTcpStreamAsync(Host, Port, CancellationToken)
 
         /// <summary>
@@ -218,10 +236,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// <summary>
         /// Close the connection and stop multiplexing.
         /// </summary>
+        /// <remarks>
+        /// The server is told - a DISCONNECT, as every client says goodbye - and the connection is closed.
+        /// Neither happened before: the socket stayed open until the process ended, and a server saw a
+        /// client that had long gone as one still connected.
+        /// </remarks>
         public async ValueTask DisposeAsync()
         {
+
+            try
+            {
+                var abw = new ArrayBufferWriter<Byte>();
+                var w   = new SshPacketWriter(abw);
+                w.WriteByte((Byte) SshMessageNumber.Disconnect);
+                w.WriteUInt32((UInt32) DisconnectReason.ByApplication);
+                w.WriteString("the client is closing the connection");
+                w.WriteString("");
+                await mux.SendAsync(abw.WrittenSpan.ToArray()).AsTask().WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            }
+            catch
+            {
+                // The connection may be gone already.
+            }
+
             await mux.DisposeAsync().ConfigureAwait(false);
             transport.Dispose();
+            await CloseAsync(pipe).ConfigureAwait(false);
+
+        }
+
+        private static async ValueTask CloseAsync(IDuplexPipe Pipe)
+        {
+            try { await Pipe.Output.CompleteAsync().ConfigureAwait(false); } catch { }
+            try { await Pipe.Input. CompleteAsync().ConfigureAwait(false); } catch { }
         }
 
         #endregion

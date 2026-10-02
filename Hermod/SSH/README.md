@@ -123,6 +123,38 @@ Every capability is off until it is configured: no `SftpFileSystem` means no SFT
 `ForwardingPolicy` defaults to `None`. A server that was never told to forward cannot be talked
 into it.
 
+### An interactive shell
+
+An exec handler is given a command and answers it. A `ShellHandler` is a conversation: it gets the
+terminal the client asked for (`pty-req`: its name, size and modes), the environment, who signed
+in with which key and from where, and the keys as they are typed - and the channel's requests go
+on being read while it runs, so a resized window and a signal reach it at once.
+
+```csharp
+await using var server = new SshServer(new SshServerOptions {
+    HostKeys      = [ hostKey ],
+    Authenticator = authenticator,
+    ShellHandler  = async (context, ct) => {
+                        context.WindowChanged += size => Redraw(size.Columns);
+                        await context.WriteAsync($"Hello {context.Session.Username} " +
+                                                 $"({context.Session.PublicKeyFingerprint})\r\n", ct);
+                        // ... read context.Input until the user leaves ...
+                        return 0;                                       // the exit status
+                    },
+    Limits        = new SshServerLimits { LoginGraceTime = TimeSpan.FromSeconds(30) }
+});
+```
+
+There is no terminal driver in between, so the handler is its own line discipline: Enter arrives as
+CR, Backspace as DEL, Ctrl+C as 3, and `"\r\n"` ends a line on the screen. With a shell handler and
+nothing else the server serves the shell and nothing else - exec, SFTP and tunnels are refused - and
+a key confined to one command (`command="..."`) is never given the shell. `SshClient.OpenShellAsync`
+is the client half, for a program or a test that wants to be the person at the terminal.
+
+Stopping the server is orderly: no connection is accepted any more, every shell is told through its
+token while its channel is still open - `context.Stopping` says that this is why - and is given
+`ShutdownGracePeriod` to say goodbye before its connection ends with a DISCONNECT that says why.
+
 `LocalSftpFileSystem` is root-jailed — paths are resolved and then checked against the root, so
 `../` and a symlink pointing out both fail. `SshAccessProfile` narrows it further to
 upload-only or download-only, and `SftpLimits` adds quotas and a bandwidth ceiling.
@@ -220,7 +252,7 @@ distinguishes "disagreed" from "no evidence either way".
 
 ## Test
 
-321 hermetic tests live under [`HermodTests/SSH`](../../HermodTests/SSH), mirroring this
+334 hermetic tests live under [`HermodTests/SSH`](../../HermodTests/SSH), mirroring this
 folder layout. They need nothing but the code — unit tests and loopback round-trips between our
 own client and our own server.
 
@@ -254,6 +286,12 @@ Three things about them are worth knowing:
   format string — meant for a SIEM rather than a log file.
 - **A generic `DISCONNECT` on the wire while the detail goes to the audit sink**: an attacker
   learns "protocol error", the operator learns which one.
+- **Limits that are enforced, not only configured.** `SshServerLimits` bounds the attempts per
+  connection, the time to authenticate in, the sessions per connection, the connections at once, and
+  those not yet authenticated - in all and per address, so that one address cannot take every slot -
+  and probes clients that have gone quiet. Every event of a connection carries its id and its peer,
+  and a client that leaves is recorded as having left: only one that speaks nonsense, or fails to
+  authenticate, is a protocol error.
 - **Constant-time comparison** for everything that authenticates — AEAD tags, TOTP codes,
   `known_hosts` and SSHFP fingerprints.
 - **Keystroke-timing obfuscation** for interactive sessions (OpenSSH's countermeasure to inferring

@@ -28,9 +28,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
 
     /// <summary>
-    /// The outcome of a successful user authentication.
-    /// </summary>
-    /// <summary>
     /// The outcome of a successful authentication.
     /// </summary>
     /// <param name="Username">The authenticated account.</param>
@@ -41,9 +38,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// for an ordinary credential. The session layer must apply these; a certificate carrying a
     /// restriction nobody applies is refused at validation time rather than silently widened.
     /// </param>
+    /// <param name="PublicKeyBlob">
+    /// The public key (or certificate) that authenticated, where <c>publickey</c> was among the methods;
+    /// otherwise null. Which key it was is what a log of who signed in needs beside the name: an account
+    /// may have several, and one of them may be the one that leaked.
+    /// </param>
     public sealed record SshAuthResult(String                  Username,
                                        String                  Method,
-                                       SshSessionRestrictions  Restrictions);
+                                       SshSessionRestrictions  Restrictions,
+                                       Byte[]?                 PublicKeyBlob  = null)
+    {
+
+        /// <summary>
+        /// The SHA-256 fingerprint of <see cref="PublicKeyBlob"/>, as <c>ssh-keygen -l</c> writes it
+        /// ("SHA256:..."); null where no key authenticated.
+        /// </summary>
+        public String? PublicKeyFingerprint
+            => PublicKeyBlob is not null
+                   ? SshFingerprint.Sha256(PublicKeyBlob)
+                   : null;
+
+    }
 
 
     /// <summary>

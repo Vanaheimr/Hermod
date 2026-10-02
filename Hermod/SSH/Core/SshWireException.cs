@@ -56,4 +56,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     }
 
+
+    /// <summary>
+    /// The connection ended while a packet was being read: the peer went away rather than sending
+    /// something malformed.
+    /// </summary>
+    /// <remarks>
+    /// A wire exception still, so that everything that catches those goes on catching this. Its own
+    /// type so that a server can tell a client that closed its window from one that spoke nonsense -
+    /// the first is not a protocol error, and a log that called every logout one would be no use.
+    /// </remarks>
+    public sealed class SshConnectionClosedException : SshWireException
+    {
+
+        /// <summary>
+        /// Create a new connection-closed exception.
+        /// </summary>
+        /// <param name="Message">What was being read when the connection ended.</param>
+        public SshConnectionClosedException(String Message)
+
+            : base(Message)
+
+        { }
+
+    }
+
 }
