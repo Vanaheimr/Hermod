@@ -80,6 +80,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly CancellationTokenSource     poolCts        = new();
         private volatile bool                        disposed;
 
+        /// <summary>
+        /// Connections taken out of <see cref="connections"/> by a GOAWAY, until
+        /// they are closed: once they are <see cref="HTTP2ClientConnection.Drained"/>
+        /// and none of our requests is on them any more (see <see cref="CloseIfDoneAsync"/>),
+        /// or by <see cref="DisposeAsync"/>. Taking one out of here is taking on its
+        /// close. Guarded by <see cref="gate"/>.
+        /// </summary>
+        private readonly HashSet<HTTP2ClientConnection>          draining    = [];
+
+        /// <summary>
+        /// How many of our requests are on each connection: from when
+        /// <see cref="AcquireConnectionAsync"/> picks it until the connection's
+        /// SendRequestAsync returns. Connections with none are not listed.
+        /// Guarded by <see cref="gate"/>.
+        /// </summary>
+        private readonly Dictionary<HTTP2ClientConnection, Int32> requestsOn  = [];
+
         private long reconnects;
         private long failovers;
         private long totalRequests;
@@ -92,6 +109,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// How many live connections the pool currently holds.
         /// </summary>
         public int  ConnectionCount { get { lock (gate) return connections.Count; } }
+
+        /// <summary>
+        /// How many connections the pool no longer routes to, after a GOAWAY, but
+        /// has not closed yet: their in-flight streams, or our requests on them,
+        /// have still to finish.
+        /// </summary>
+        public int  DrainingConnectionCount { get { lock (gate) return draining.Count; } }
 
         /// <summary>
         /// The target number of connections the pool keeps warm.
@@ -233,6 +257,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         Interlocked.Increment(ref failovers);
                     _ = ReplenishAsync();
                 }
+                finally
+                {
+                    ReleaseConnection(connection);
+                }
             }
 
             if (lastNotProcessed is not null)
@@ -251,6 +279,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Pick the least-loaded usable connection (most free MAX_CONCURRENT_STREAMS
         /// slots). If none is usable right now — every connection just died and the
         /// pool is mid-reconnect — nudge a replenish and wait briefly, then retry.
+        /// The request counts as on the connection from here (see
+        /// <see cref="requestsOn"/>), and the caller has to
+        /// <see cref="ReleaseConnection"/> it.
         /// </summary>
         private async Task<HTTP2ClientConnection> AcquireConnectionAsync(CancellationToken CancellationToken)
         {
@@ -276,6 +307,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                             best      = c;
                         }
                     }
+
+                    if (best is not null)
+                        requestsOn[best] = requestsOn.GetValueOrDefault(best) + 1;
                 }
 
                 // Return the least-loaded usable connection. If even it is momentarily
@@ -289,6 +323,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 _ = ReplenishAsync();
                 await Task.Delay(TimeSpan.FromMilliseconds(25), timeProvider, CancellationToken);
             }
+
+        }
+
+        /// <summary>
+        /// A request is done with <paramref name="Connection"/>: its
+        /// SendRequestAsync has returned. If that was the last of ours on a
+        /// connection drained out by a GOAWAY, close it.
+        /// </summary>
+        private void ReleaseConnection(HTTP2ClientConnection Connection)
+        {
+
+            lock (gate)
+            {
+                var left = requestsOn[Connection] - 1;
+                if (left > 0)
+                    requestsOn[Connection] = left;
+                else
+                    requestsOn.Remove(Connection);
+            }
+
+            // Not awaited: the request has its outcome, and need not wait for the close.
+            _ = CloseIfDoneAsync(Connection);
 
         }
 
@@ -331,9 +387,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Wait until a connection can no longer take new streams (GOAWAY or death),
         /// drop it from the routable set, and trigger a background replacement. In
-        /// the GOAWAY case the connection object lives on until its in-flight streams
+        /// the GOAWAY case the connection lives on until its in-flight streams
         /// finish — removing it from the pool only stops *new* routing, it doesn't
-        /// disturb requests already awaiting on it.
+        /// disturb requests already awaiting on it — and is closed then
+        /// (<see cref="CloseIfDoneAsync"/>), or by <see cref="DisposeAsync"/>,
+        /// whichever comes first.
+        ///
+        /// It used to be closed by neither: the server need not close a
+        /// connection it has sent a GOAWAY on (RFC 9113, Section 6.8), and one
+        /// that did not kept the connection, and its TCP connection, open for
+        /// as long as the pool's process ran.
         /// </summary>
         private async Task WatchConnectionAsync(HTTP2ClientConnection Connection)
         {
@@ -341,14 +404,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             try   { await Connection.Unusable; }
             catch { /* Unusable never faults, but be defensive */ }
 
-            var removed = false;
-            lock (gate)
-                removed = connections.Remove(Connection);
+            // Taken out, and noted as draining, under the lock under which
+            // DisposeAsync takes what is left: every connection is closed
+            // either by DisposeAsync, or from here.
+            var removed  = false;
+            var closeNow = false;
 
-            if (removed && !disposed)
+            lock (gate)
             {
-                Interlocked.Increment(ref reconnects);
-                _ = ReplenishAsync();
+                removed = connections.Remove(Connection);
+                if (removed)
+                {
+                    if (disposed)
+                        closeNow = true;
+                    else
+                        draining.Add(Connection);
+                }
+            }
+
+            if (!removed)
+                return;   // DisposeAsync took it, and closes it
+
+            if (closeNow)
+            {
+                try { await Connection.CloseAsync(); } catch { /* best effort */ }
+                return;
+            }
+
+            Interlocked.Increment(ref reconnects);
+            _ = ReplenishAsync();
+
+            // A connection that has ended is drained at once, and closed already.
+            try   { await Connection.Drained; }
+            catch { /* Drained never faults, but be defensive */ }
+
+            await CloseIfDoneAsync(Connection);
+
+        }
+
+        /// <summary>
+        /// Close a connection drained out by a GOAWAY once it is done: its last
+        /// stream has closed (<see cref="HTTP2ClientConnection.Drained"/>), and
+        /// the last of our requests on it has returned — a request's stream
+        /// closes before its outcome is handed on, and closing the connection in
+        /// between would turn the outcome into a cancellation (see Drained).
+        /// Called after each of the two, so whichever comes last closes it; a
+        /// connection not draining (any more) is left alone.
+        /// </summary>
+        private async Task CloseIfDoneAsync(HTTP2ClientConnection Connection)
+        {
+
+            lock (gate)
+            {
+                if (!Connection.Drained.IsCompleted       ||
+                     requestsOn.ContainsKey(Connection)   ||
+                    !draining.Remove(Connection))
+                    return;
+            }
+
+            if (!Connection.Closed.IsCompleted)
+            {
+                try { await Connection.CloseAsync(); } catch { /* best effort */ }
             }
 
         }
@@ -420,7 +536,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         #region Disposal
 
         /// <summary>
-        /// Close every pooled connection (best-effort GOAWAY each) and stop maintenance.
+        /// Close every pooled connection (best-effort GOAWAY each), and every
+        /// connection still draining after a GOAWAY, and stop maintenance.
         /// </summary>
         public async ValueTask DisposeAsync()
         {
@@ -434,8 +551,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             List<HTTP2ClientConnection> toClose;
             lock (gate)
             {
-                toClose = [.. connections];
+                toClose = [.. connections, .. draining];
                 connections.Clear();
+                draining.Clear();
             }
 
             foreach (var c in toClose)
