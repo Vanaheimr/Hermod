@@ -867,6 +867,129 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
+        // The test above sends half a header and then nothing, so it passes
+        // whether the deadline bounds the header section or only each read.
+        // A Slowloris client keeps sending: one byte well inside the timeout,
+        // then the next. A timeout that starts again with every read never
+        // fires, and the connection stays open for as long as the client likes.
+        [Test]
+        public async Task Dripped_Request_Header_Is_Closed_At_The_Header_Deadline()
+        {
+
+            var server = CreateHTTPServer(
+                             IPv4Address.Localhost,
+                             HeaderReadTimeout: TimeSpan.FromMilliseconds(300)
+                         );
+
+            try
+            {
+
+                await using var rawClient = await HTTPRawSocketClient.ConnectAsync(
+                                              System.Net.IPAddress.Loopback,
+                                              server.TCPPort
+                                          );
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+                await rawClient.SendAsync(
+                          "GET / HTTP/1.1\r\nHost: localhost\r\nX-Drip: ",
+                          cts.Token
+                      );
+
+                var response = rawClient.ReadResponseAsync(CancellationToken: cts.Token);
+
+                var (closed, bytesDripped) = await DripUntilClosed(
+                                                       rawClient,
+                                                       response,
+                                                       TimeSpan.FromMilliseconds(100),
+                                                       30
+                                                   );
+
+                Assert.That(closed, Is.True, $"The connection was still open after {bytesDripped} bytes, one every 100 ms, with a header deadline of 300 ms.");
+                Assert.That(async () => await response, Throws.InstanceOf<IOException>());
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        // The deadline is one request's, not the connection's: it starts again
+        // once a response has been sent, so a kept-alive connection serves
+        // requests for longer than the deadline - and the next request's
+        // header, dripped, is closed at its own deadline all the same.
+        [Test]
+        public async Task Each_Request_On_A_KeptAlive_Connection_Gets_Its_Own_Header_Deadline()
+        {
+
+            var server = CreateHTTPServer(
+                             IPv4Address.Localhost,
+                             ConnectionType.KeepAlive,
+                             HeaderReadTimeout: TimeSpan.FromMilliseconds(500)
+                         );
+
+            try
+            {
+
+                await using var rawClient = await HTTPRawSocketClient.ConnectAsync(
+                                              System.Net.IPAddress.Loopback,
+                                              server.TCPPort
+                                          );
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+                for (var i = 1; i <= 5; i++)
+                {
+
+                    await Task.Delay(TimeSpan.FromMilliseconds(200), cts.Token);
+
+                    await rawClient.SendAsync(
+                              "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n",
+                              cts.Token
+                          );
+
+                    HTTPRawSocketResponse? okResponse = null;
+
+                    try
+                    {
+                        okResponse = await rawClient.ReadResponseAsync(CancellationToken: cts.Token);
+                    }
+                    catch (IOException e)
+                    {
+                        Assert.Fail($"Request {i}, sent about {i * 200} ms after the connection was opened, found it closed with a header deadline of 500 ms: {e.Message}");
+                    }
+
+                    Assert.That(okResponse!.StatusCode, Is.EqualTo(200), $"Request {i}");
+
+                }
+
+                await rawClient.SendAsync(
+                          "GET / HTTP/1.1\r\nHost: localhost\r\nX-Drip: ",
+                          cts.Token
+                      );
+
+                var response = rawClient.ReadResponseAsync(CancellationToken: cts.Token);
+
+                var (closed, bytesDripped) = await DripUntilClosed(
+                                                       rawClient,
+                                                       response,
+                                                       TimeSpan.FromMilliseconds(100),
+                                                       50
+                                                   );
+
+                Assert.That(closed, Is.True, $"The connection was still open after {bytesDripped} bytes, one every 100 ms, with a header deadline of 500 ms.");
+                Assert.That(async () => await response, Throws.InstanceOf<IOException>());
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
         [Test]
         public async Task Incomplete_ContentLength_Request_Body_Returns_RequestTimeout()
         {
@@ -1905,6 +2028,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             RegisterRootHandler(new HTTPAPI(server));
 
             return server;
+
+        }
+
+        /// <summary>
+        /// Send one header byte every Interval until the server closes the
+        /// connection - seen by the pending Response read ending, or by a
+        /// send failing - or until MaxBytes have been sent.
+        /// </summary>
+        private static async Task<(Boolean Closed, Int32 BytesDripped)> DripUntilClosed(HTTPRawSocketClient  RawClient,
+                                                                                        Task                 Response,
+                                                                                        TimeSpan             Interval,
+                                                                                        Int32                MaxBytes)
+        {
+
+            var bytesDripped = 0;
+
+            while (bytesDripped < MaxBytes)
+            {
+
+                if (await Task.WhenAny(Response, Task.Delay(Interval)) == Response)
+                    return (true, bytesDripped);
+
+                try
+                {
+                    await RawClient.SendAsync("a");
+                }
+                catch (IOException)
+                {
+                    return (true, bytesDripped);
+                }
+
+                bytesDripped++;
+
+            }
+
+            return (Response.IsCompleted, bytesDripped);
 
         }
 
