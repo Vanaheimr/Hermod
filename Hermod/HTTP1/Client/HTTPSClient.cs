@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
                    CertificateRevocationCheckMode,
-                   EnforceTLS,
+                   EnforceTLS ?? true,
                    ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
@@ -317,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
                    CertificateRevocationCheckMode,
-                   EnforceTLS,
+                   EnforceTLS ?? true,
                    ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
@@ -370,7 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CipherSuitesPolicy">The TLS cipher suites policy to use. If null, the system defaults will be used.</param>
         /// <param name="CertificateChainPolicy">An optional TLS certificate chain policy to use for validating the server's certificate chain.</param>
         /// <param name="CertificateRevocationCheckMode">An optional TLS certificate revocation check mode to use for validating the server's certificate.</param>
-        /// <param name="EnforceTLS">Whether to enforce TLS. If true, the client will attempt to establish a TLS connection immediately after connecting.</param>
+        /// <param name="EnforceTLS">Whether to enforce TLS. If true, the client will attempt to establish a TLS connection immediately after connecting; if false, it speaks plain HTTP. Defaults to true if not specified.</param>
         /// <param name="ApplicationProtocols">The TLS application protocols to use for ALPN (Application-Layer Protocol Negotiation). If empty, ALPN will be disabled.</param>
         /// <param name="AllowRenegotiation">Whether to allow TLS renegotiation. Defaults to true if not specified.</param>
         /// <param name="AllowTLSResume">Whether to allow TLS session resumption. Defaults to false if not specified.</param>
@@ -497,7 +497,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CipherSuitesPolicy">The TLS cipher suites policy to use. If null, the system defaults will be used.</param>
         /// <param name="CertificateChainPolicy">An optional TLS certificate chain policy to use for validating the server's certificate chain.</param>
         /// <param name="CertificateRevocationCheckMode">An optional TLS certificate revocation check mode to use for validating the server's certificate.</param>
-        /// <param name="EnforceTLS">Whether to enforce TLS. If true, the client will attempt to establish a TLS connection immediately after connecting.</param>
+        /// <param name="EnforceTLS">Whether to enforce TLS. If true, the client will attempt to establish a TLS connection immediately after connecting; if false, it speaks plain HTTP. Defaults to true if not specified.</param>
         /// <param name="ApplicationProtocols">The TLS application protocols to use for ALPN (Application-Layer Protocol Negotiation). If empty, ALPN will be disabled.</param>
         /// <param name="AllowRenegotiation">Whether to allow TLS renegotiation. Defaults to true if not specified.</param>
         /// <param name="AllowTLSResume">Whether to allow TLS session resumption. Defaults to false if not specified.</param>
@@ -765,7 +765,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CipherSuitesPolicy">The TLS cipher suites policy to use. If null, the system defaults will be used.</param>
         /// <param name="CertificateChainPolicy">An optional TLS certificate chain policy to use for validating the server's certificate chain.</param>
         /// <param name="CertificateRevocationCheckMode">An optional TLS certificate revocation check mode to use for validating the server's certificate.</param>
-        /// <param name="EnforceTLS">Whether to enforce TLS. If true, the client will attempt to establish a TLS connection immediately after connecting.</param>
+        /// <param name="EnforceTLS">Whether to enforce TLS. If true, the client will attempt to establish a TLS connection immediately after connecting; if false, it speaks plain HTTP. Defaults to true if not specified.</param>
         /// <param name="ApplicationProtocols">The TLS application protocols to use for ALPN (Application-Layer Protocol Negotiation). If empty, ALPN will be disabled.</param>
         /// <param name="AllowRenegotiation">Whether to allow TLS renegotiation. Defaults to true if not specified.</param>
         /// <param name="AllowTLSResume">Whether to allow TLS session resumption. Defaults to false if not specified.</param>
