@@ -242,8 +242,9 @@ The client can also open CONNECT tunnels and WebSockets (RFC 9113 §8.5 / RFC
 hand-rolled:
 
 ```csharp
-// plain CONNECT — a raw bidirectional byte tunnel
-var tunnel = await conn.OpenTunnelAsync("proxy.target:443");
+// plain CONNECT — a raw bidirectional byte tunnel; DisposeAsync gives it up
+// (RST_STREAM CANCEL) unless both sides have ended it
+await using var tunnel = await conn.OpenTunnelAsync("proxy.target:443");
 await tunnel.WriteAsync(bytes);
 var reply = await tunnel.ReadAsync(CancellationToken.None);
 
@@ -274,7 +275,7 @@ body is written incrementally while the response is read incrementally, both at
 once:
 
 ```csharp
-var s = await conn.StartStreamingRequestAsync("POST", "https", "localhost:8443", "/svc.Greeter/Bidi",
+await using var s = await conn.StartStreamingRequestAsync("POST", "https", "localhost:8443", "/svc.Greeter/Bidi",
     ExtraHeaders: [("content-type", "application/grpc"), ("te", "trailers")]);
 var head = await s.GetResponseAsync();                 // status + headers
 await s.WriteAsync(frame);                              // send a request-body chunk (DATA)
@@ -387,6 +388,15 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   `SETTINGS_HEADER_TABLE_SIZE`.
 - The 257-entry Huffman table is self-validated at class-init (prefix-collision
   check).
+- The client decodes every response header block, also one no exchange takes
+  any more — trailers that crossed its `RST_STREAM`, say — and then drops it
+  (RFC 9113 §5.1, "updating header compression state"). It used to drop such a
+  block undecoded, which left its dynamic table a step behind the server's, so
+  the next block that referred to it was decoded wrong; split into `HEADERS`
+  and `CONTINUATION`, the block ended the connection. And the `END_STREAM` of a
+  continued `HEADERS` frame ends the stream: it was taken from the
+  `CONTINUATION` frame, which has no such flag (§6.10), and the response never
+  ended.
 
 ### Flow control
 
@@ -422,10 +432,21 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   for good, though most of what they had been sent was read. (Go's
   `x/net/http2` uses the same test, `inflow.add`; Chromium instead returns what
   is owed at the next read once 5 s have passed since its last update.)
-- The **client** returns the window of what it receives on receipt, read or
-  not: a tunnel or a streamed response the application does not read cannot
-  stall the other streams of the connection — but nothing bounds what the
-  client buffers for it, either.
+- The **client** pushes back on a tunnel or a streamed response as well, with
+  its stream window alone: the stream window of their DATA goes back as the
+  application reads it, so one the application does not read holds no more than
+  its window, 1 MiB, and DATA beyond it is a `FLOW_CONTROL_ERROR`. It used to
+  give back every window on receipt, read or not, and buffered whatever the
+  server sent. The connection window still goes back on receipt — as .NET's
+  `SocketsHttpHandler` does — so an unread stream keeps no window from the
+  others, and no number of them can stall the connection. The client decides
+  how many streams it opens, and often reads them one after the other: of five
+  streamed responses opened at once, the one read now never waits for window
+  that the four not read yet hold. A buffered response, padding and DATA no
+  exchange takes go back on receipt, too. No stream-level `WINDOW_UPDATE` goes out once the
+  server can send nothing more on the stream. A stream that will not be read to
+  its end is given up with `DisposeAsync` (see
+  [below](#streaming-trailers--grpc)).
 - Bounded buffered request body (`MaxRequestBodySize`, default 16 MiB).
 - Padding counted against flow control (§6.1); closed-stream DATA still
   window-accounted (§6.9); cookie-crumb reassembly (§8.2.3).
@@ -455,8 +476,9 @@ The two windows bound different things, and whatever one gains, another loses
 (`HTTP2Server(…, ConnectionWindowSize: …)`) and on the client
 (`HTTP2ClientOptions.ConnectionWindowSize`): at least RFC 9113's 65 535 octets —
 a connection window can be raised, not lowered — and at most 2³¹ − 1. The stream
-window stays at 1 MiB. On the client, which returns the window on receipt, it
-bounds only how much can be in flight, not what is buffered.
+window stays at 1 MiB. On the client, which returns the connection window on
+receipt, it bounds only how much can be in flight: what the client holds for a
+stream the application does not read, the stream window bounds.
 
 ```csharp
 // Many connections, memory for one stalled channel each: two stream windows.
@@ -1062,6 +1084,22 @@ that prints, which is roughly what the library used to hardcode.
   a new stream, or a complete response that stands. `DownloadAsync` reads such a
   response even when ending its request meets the `RST_STREAM NO_ERROR` that
   followed it.
+- **Giving a stream up.** The client gives back the stream window of a tunnel or
+  a streamed response as the application reads it (see
+  [Flow control](#flow-control)), so one nobody reads to its end keeps the
+  server waiting, and its stream slot, until the connection ends.
+  `HTTP2ClientStream` and `HTTP2ClientTunnel` are `IAsyncDisposable`:
+  `DisposeAsync` resets the stream with `RST_STREAM CANCEL` unless both sides
+  have ended it or it was reset — no `RST_STREAM` on a closed stream, none in
+  answer to the server's — which frees its slot, and drops what was not read.
+  A read or a write waiting on it then fails with an `ObjectDisposedException`,
+  as does every call after; a response head or trailers that had arrived stay.
+  The reset is made under the write lock, right before its `RST_STREAM` goes
+  out: no `WINDOW_UPDATE` or DATA of the stream follows it, and the request
+  given the slot sends its `HEADERS` after it. A tunnel whose `OpenTunnelAsync`
+  was cancelled before the server answered is reset the same way, as nobody
+  would hold it, and `DownloadAsync` gives up a response it does not read to its
+  end — an error page, or a body whose writing failed.
 - **gRPC** runs over the stack (unary, server-streaming, client-streaming, bidi)
   with `grpc-status` in trailers — verified against the real `Grpc.Net.Client`,
   with **zero gRPC-specific production code**.
