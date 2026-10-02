@@ -51,36 +51,45 @@ public class SunSpecModbusTLSTests
 
         await new ModbusPKI().BuildPKI(pkiDirectory);
 
-        using var meter        = new SunSpecMeterDevice("meter-test-001",     SunSpecMeterMode.ImportOnly);
-        using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        using var frontend     = new ModbusTlsFrontend(
-                                     new ModbusTlsFrontendOptions(
-                                         NetIPAddress.Loopback,
-                                         0,  // any free port - the frontend says which
-                                         Path.Combine(pkiDirectory, "server.pfx"),
-                                         "demo",
-                                         Path.Combine(pkiDirectory, "issuing-clients-ca.crt"),
-                                         TimeSpan.FromSeconds(5),
-                                         TimeSpan.FromSeconds(5),
-                                         TimeSpan.FromSeconds(5)
-                                     ),
-                                     new SunSpecBackendFactory(meter),
-                                     new AuthorizationPolicy(meter),
-                                     new NUnitLogger<ModbusTlsFrontend>()
-                                 );
+        try
+        {
 
-        var frontendTask = frontend.RunAsync(frontendCts.Token);
-        var listenPort   = await ListenPortOf(frontend);
+            using var meter        = new SunSpecMeterDevice("meter-test-001",     SunSpecMeterMode.ImportOnly);
+            using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using var frontend     = new ModbusTlsFrontend(
+                                         new ModbusTlsFrontendOptions(
+                                             NetIPAddress.Loopback,
+                                             0,  // any free port - the frontend says which
+                                             Path.Combine(pkiDirectory, "server.pfx"),
+                                             "demo",
+                                             Path.Combine(pkiDirectory, "issuing-clients-ca.crt"),
+                                             TimeSpan.FromSeconds(5),
+                                             TimeSpan.FromSeconds(5),
+                                             TimeSpan.FromSeconds(5)
+                                         ),
+                                         new SunSpecBackendFactory(meter),
+                                         new AuthorizationPolicy(meter),
+                                         new NUnitLogger<ModbusTlsFrontend>()
+                                     );
 
-        await ReadAndAssertEnergyMeterAsync(
-                  listenPort,
-                  null,
-                  pkiDirectory,
-                  frontendCts.Token
-              );
+            var frontendTask = frontend.RunAsync(frontendCts.Token);
+            var listenPort   = await ListenPortOf(frontend);
 
-        await frontendCts.CancelAsync();
-        await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+            await ReadAndAssertEnergyMeterAsync(
+                      listenPort,
+                      null,
+                      pkiDirectory,
+                      frontendCts.Token
+                  );
+
+            await frontendCts.CancelAsync();
+            await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+
+        }
+        finally
+        {
+            RemoveInstalledAuthorities(pkiDirectory);
+        }
 
     }
 
@@ -104,60 +113,70 @@ public class SunSpecModbusTLSTests
         await new ModbusPKI().BuildPKI(rootA);
         await new ModbusPKI().BuildPKI(rootB);
 
-        const String sniRootA = "meter-a.sunspec.test";
-        const String sniRootB = "meter-b.sunspec.test";
+        try
+        {
 
-        using var meter        = new SunSpecMeterDevice("meter-test-sni-001", SunSpecMeterMode.ImportOnly);
-        using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        using var frontend     = new ModbusTlsFrontend(
-                                     new ModbusTlsFrontendOptions(
-                                         NetIPAddress.Loopback,
-                                         0,  // any free port - the frontend says which
-                                         Path.Combine(rootA, "server.pfx"),
-                                         "demo",
-                                         Path.Combine(rootA, "issuing-clients-ca.crt"),
-                                         TimeSpan.FromSeconds(5),
-                                         TimeSpan.FromSeconds(5),
-                                         TimeSpan.FromSeconds(5),
-                                         [
-                                             new ModbusTlsFrontendSNIBinding(
-                                                 sniRootA,
-                                                 Path.Combine(rootA, "server.pfx"),
-                                                 "demo",
-                                                 Path.Combine(rootA, "issuing-clients-ca.crt")
-                                             ),
-                                             new ModbusTlsFrontendSNIBinding(
-                                                 sniRootB,
-                                                 Path.Combine(rootB, "server.pfx"),
-                                                 "demo",
-                                                 Path.Combine(rootB, "issuing-clients-ca.crt")
-                                             )
-                                         ]
-                                     ),
-                                     new SunSpecBackendFactory(meter),
-                                     new AuthorizationPolicy(meter),
-                                     new NUnitLogger<ModbusTlsFrontend>()
-                                 );
+            const String sniRootA = "meter-a.sunspec.test";
+            const String sniRootB = "meter-b.sunspec.test";
 
-        var frontendTask = frontend.RunAsync(frontendCts.Token);
-        var listenPort   = await ListenPortOf(frontend);
+            using var meter        = new SunSpecMeterDevice("meter-test-sni-001", SunSpecMeterMode.ImportOnly);
+            using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using var frontend     = new ModbusTlsFrontend(
+                                         new ModbusTlsFrontendOptions(
+                                             NetIPAddress.Loopback,
+                                             0,  // any free port - the frontend says which
+                                             Path.Combine(rootA, "server.pfx"),
+                                             "demo",
+                                             Path.Combine(rootA, "issuing-clients-ca.crt"),
+                                             TimeSpan.FromSeconds(5),
+                                             TimeSpan.FromSeconds(5),
+                                             TimeSpan.FromSeconds(5),
+                                             [
+                                                 new ModbusTlsFrontendSNIBinding(
+                                                     sniRootA,
+                                                     Path.Combine(rootA, "server.pfx"),
+                                                     "demo",
+                                                     Path.Combine(rootA, "issuing-clients-ca.crt")
+                                                 ),
+                                                 new ModbusTlsFrontendSNIBinding(
+                                                     sniRootB,
+                                                     Path.Combine(rootB, "server.pfx"),
+                                                     "demo",
+                                                     Path.Combine(rootB, "issuing-clients-ca.crt")
+                                                 )
+                                             ]
+                                         ),
+                                         new SunSpecBackendFactory(meter),
+                                         new AuthorizationPolicy(meter),
+                                         new NUnitLogger<ModbusTlsFrontend>()
+                                     );
 
-        await ReadAndAssertEnergyMeterAsync(
-                  listenPort,
-                  sniRootA,
-                  rootA,
-                  frontendCts.Token
-              );
+            var frontendTask = frontend.RunAsync(frontendCts.Token);
+            var listenPort   = await ListenPortOf(frontend);
 
-        await ReadAndAssertEnergyMeterAsync(
-                  listenPort,
-                  sniRootB,
-                  rootB,
-                  frontendCts.Token
-              );
+            await ReadAndAssertEnergyMeterAsync(
+                      listenPort,
+                      sniRootA,
+                      rootA,
+                      frontendCts.Token
+                  );
 
-        await frontendCts.CancelAsync();
-        await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+            await ReadAndAssertEnergyMeterAsync(
+                      listenPort,
+                      sniRootB,
+                      rootB,
+                      frontendCts.Token
+                  );
+
+            await frontendCts.CancelAsync();
+            await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+
+        }
+        finally
+        {
+            RemoveInstalledAuthorities(rootA);
+            RemoveInstalledAuthorities(rootB);
+        }
 
     }
 
@@ -414,6 +433,54 @@ public class SunSpecModbusTLSTests
     /// </summary>
     private static async Task<Int32> ListenPortOf(ModbusTlsFrontend Frontend)
         => (await Frontend.BoundEndPoint.WaitAsync(TimeSpan.FromSeconds(5))).Port;
+
+    /// <summary>
+    /// Take the certificate authorities of a test PKI out of the current user's
+    /// intermediate CA store, where a frontend's TLS context has put them.
+    /// </summary>
+    /// <remarks>
+    /// On Windows, SslStreamCertificateContext puts the intermediates of a chain
+    /// the operating system cannot build into that store, so that SChannel can
+    /// send them - and nothing ever takes them out again. Every test here builds
+    /// a PKI of its own, with names of its own, so every run left one more CA
+    /// behind. On 2026-10-02 the store held 3,900 certificates, 1,283 of them
+    /// issuing device CAs of ModbusPKI. Every load of the store costs about
+    /// 0.14 ms of CPU per certificate in it - 0.6 s at 3,900 - and it is loaded
+    /// by every context that is built and by every chain build with custom
+    /// trust, which the frontend does for each client certificate it checks:
+    /// two or three times per handshake, which under load came to more than the
+    /// 5 s handshake timeout.
+    /// </remarks>
+    private static void RemoveInstalledAuthorities(String PKIDirectory)
+    {
+
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var authorities = new[] { "ca.crt", "issuing-device-ca.crt", "issuing-clients-ca.crt" }.
+                              Select (fileName => Path.Combine(PKIDirectory, fileName)).
+                              Where  (File.Exists).
+                              Select (X509CertificateLoader.LoadCertificateFromFile).
+                              ToArray();
+
+        try
+        {
+
+            using var store = new X509Store(StoreName.CertificateAuthority, StoreLocation.CurrentUser);
+            store.Open(OpenFlags.ReadWrite);
+
+            foreach (var authority in authorities)
+                foreach (var installed in store.Certificates.Find(X509FindType.FindByThumbprint, authority.Thumbprint, validOnly: false))
+                    store.Remove(installed);
+
+        }
+        finally
+        {
+            foreach (var authority in authorities)
+                authority.Dispose();
+        }
+
+    }
 
     private static async Task ReadAndAssertEnergyMeterAsync(Int32              listenPort,
                                                             String?            TLSHostname,
@@ -723,6 +790,8 @@ public class SunSpecModbusTLSTests
                 // Even when the frontend failed, which the wait above reports.
                 frontend.Dispose();
                 frontendCts.Dispose();
+
+                RemoveInstalledAuthorities(PKIDirectory);
 
             }
 
