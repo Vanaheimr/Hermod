@@ -144,11 +144,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// RFC 9113's 65 535 octets, four stream windows (4 MiB) by default, as on
         /// the server (see <see cref="HTTP2FlowControl"/>).
         ///
-        /// The client gives back the window of what it receives at once, whether
-        /// the application has read it or not. So this bounds what the server can
-        /// have in flight on the connection, across all streams — how much flows
-        /// per round trip — and not what the client holds for a tunnel or a
-        /// streamed response the application does not read: that it buffers.
+        /// The client gives back the connection window of what it receives at
+        /// once, whether the application has read it or not. So this bounds what
+        /// the server can have in flight on the connection, across all streams —
+        /// how much flows per round trip — and not what the client holds for a
+        /// tunnel or a streamed response the application does not read: that the
+        /// stream window bounds, which goes back only as it is read.
         /// </summary>
         public Int32    ConnectionWindowSize
         {

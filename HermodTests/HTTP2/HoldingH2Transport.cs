@@ -19,6 +19,7 @@
 
 using System.Text;
 using System.IO.Pipelines;
+using System.Buffers.Binary;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
@@ -64,6 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private TaskCompletionSource?  caughtUp;
         private Int64                  caughtUpAt;
         private Boolean                prefaceRead;
+        private UInt64                 pings;
 
         /// <summary>
         /// The stream to hand to the <see cref="HTTP2ClientConnection"/>.
@@ -171,15 +173,112 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
-        /// Send a frame to the client and return once the connection's read loop
-        /// has handled it. The loop handles one frame at a time and reads the
-        /// next only after that, so a read that begins with every byte sent so
-        /// far taken means everything sent so far has been handled.
+        /// Everything the client sends from here on, up to its answer to a PING
+        /// the test sends now. The read loop answers a PING once it has handled
+        /// every frame sent before it, so whatever the client sent as it handled
+        /// them, and whatever it had sent before, comes first — and so does
+        /// whatever a call of the test's own sent before it returned, such as a
+        /// WINDOW_UPDATE that a read gives back.
         /// </summary>
-        public async Task SendAsync(HTTP2Frame Frame)
+        public async Task<List<HTTP2Frame>> SentUntilPingAckAsync()
         {
 
-            var bytes = Frame.Serialize();
+            var payload  = new Byte[8];
+            BinaryPrimitives.WriteUInt64BigEndian(payload, Interlocked.Increment(ref pings));
+
+            // Not awaited first: the client writes its answer only once the
+            // test has read what it wrote before, should that fill the pipe.
+            var pinging  = SendAsync(HTTP2Frame.CreatePing(payload));
+            var frames   = new List<HTTP2Frame>();
+
+            using var timeout = new CancellationTokenSource(StepTimeout);
+
+            while (true)
+            {
+
+                var frame = await NextFrameAsync(timeout.Token)
+                                ?? throw new EndOfStreamException("The client closed before it answered the PING");
+
+                if (frame.Type == HTTP2FrameType.PING && frame.IsAck && frame.Payload.AsSpan().SequenceEqual(payload))
+                    break;
+
+                frames.Add(frame);
+
+            }
+
+            await pinging;
+
+            return frames;
+
+        }
+
+        /// <summary>
+        /// Send a header block on a stream, encoded by the server's side's HPACK
+        /// encoder, and return once the read loop has handled it. The client's
+        /// decoder mirrors the dynamic table of that encoder, so every header
+        /// block the test sends goes through it, in the order it is sent.
+        /// </summary>
+        public Task SendHeadersAsync(UInt32                                   StreamId,
+                                     IEnumerable<(String Name, String Value)> Fields,
+                                     Boolean                                  EndStream = false)
+
+            => SendAsync(HTTP2Frame.CreateHeaders(StreamId, EncodeHeaderBlock(Fields), EndStream, EndHeaders: true));
+
+        /// <summary>
+        /// Encode a header block with the server's side's HPACK encoder, for a
+        /// test that frames it itself — in HEADERS and CONTINUATION, say. Each
+        /// block so encoded must be sent, and in this order: the encoder has
+        /// added its fields to its dynamic table already.
+        /// </summary>
+        public Byte[] EncodeHeaderBlock(IEnumerable<(String Name, String Value)> Fields)
+
+            => encoder.EncodeHeaderBlock(Fields);
+
+        /// <summary>
+        /// Write frames to the client, in one piece, and return at once: for
+        /// frames after which the read loop may stop, a connection error, say,
+        /// where <see cref="SendAsync"/> would wait for good.
+        /// </summary>
+        public async Task WriteAsync(params HTTP2Frame[] Frames)
+        {
+
+            var bytes = Frames.SelectMany(frame => frame.Serialize()).ToArray();
+
+            lock (sync)
+                sent += bytes.Length;
+
+            await WriteToClientAsync(bytes);
+
+        }
+
+        /// <summary>
+        /// Write bytes into the pipe to the client, within the step timeout. The
+        /// pipe takes 64 KiB before the client reads, and a client whose read
+        /// loop has ended — at a connection error the test did not expect, say,
+        /// for a test run against a change taken out again — reads nothing more:
+        /// a write of more than that would wait for good, where the test is to
+        /// fail.
+        /// </summary>
+        private async Task WriteToClientAsync(Byte[] Bytes)
+        {
+
+            using var timeout = new CancellationTokenSource(StepTimeout);
+
+            await toClient.WriteAsync(Bytes, timeout.Token);
+
+        }
+
+        /// <summary>
+        /// Send frames to the client, in one piece, and return once the
+        /// connection's read loop has handled all of them. The loop handles one
+        /// frame at a time and reads the next only after that, so a read that
+        /// begins with every byte sent so far taken means everything sent so
+        /// far has been handled.
+        /// </summary>
+        public async Task SendAsync(params HTTP2Frame[] Frames)
+        {
+
+            var bytes = Frames.SelectMany(frame => frame.Serialize()).ToArray();
 
             // Unlike a release, this must not resume the test inline: that would
             // run the test on the connection's read loop, which could not read
@@ -195,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 caughtUpAt  = sent;
             }
 
-            await toClient.WriteAsync(bytes);
+            await WriteToClientAsync(bytes);
             await done.Task.WaitAsync(StepTimeout);
 
         }
