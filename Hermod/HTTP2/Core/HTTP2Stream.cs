@@ -377,9 +377,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// the read loop may close the stream at any moment, at the peer's
         /// END_STREAM or RST_STREAM, and nothing but PRIORITY may be sent on a
         /// closed stream (RFC 9113, Section 5.1), a RST_STREAM of ours included.
-        /// For a client that gives up a stream it will not read any further.
+        /// For a client that gives up a stream it will not read any further, or
+        /// discards a response it cannot take. <paramref name="ErrorCode"/>, the
+        /// code of the RST_STREAM that goes with the reset, is kept as
+        /// <see cref="OwnResetCode"/>.
         /// </summary>
-        public bool TryReset()
+        public bool TryReset(HTTP2ErrorCode? ErrorCode = null)
         {
 
             lock (stateLock)
@@ -391,8 +394,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 if (State is (HTTP2StreamState.Open or HTTP2StreamState.HalfClosedLocal))
                     DiscardsPeerFrames = true;
 
-                State     = HTTP2StreamState.Closed;
-                WasReset  = true;
+                State         = HTTP2StreamState.Closed;
+                WasReset      = true;
+                ownResetCode  = ErrorCode;
 
             }
 
@@ -458,12 +462,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// The error code of our own RST_STREAM that closed this stream, as
-        /// <see cref="Reset(HTTP2ErrorCode)"/> keeps it; null before that, after a
-        /// reset of ours that was not given one, and after a reset that came
-        /// second: the peer's was first then, and <see cref="PeerResetCode"/>
-        /// says why. The client passes it, as it passes the peer's, so that a
-        /// write on a stream it has reset itself — its DATA writer loop, for a
-        /// failure of its own on that stream — fails with the code its
+        /// <see cref="Reset(HTTP2ErrorCode)"/> and <see cref="TryReset"/> keep it;
+        /// null before that, after a reset of ours that was not given one, and
+        /// after a reset that came second: the peer's was first then, and
+        /// <see cref="PeerResetCode"/> says why. The client passes it, as it passes
+        /// the peer's, so that a write on a stream it has reset itself — its DATA
+        /// writer loop, for a failure of its own on that stream, or a response it
+        /// discarded for the size of its header list — fails with the code its
         /// RST_STREAM carried. Read under the lock of the transitions, under
         /// which the reset sets it.
         /// </summary>
