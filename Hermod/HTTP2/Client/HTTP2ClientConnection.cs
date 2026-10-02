@@ -172,6 +172,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private readonly TaskCompletionSource unusable = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        /// <summary>
+        /// Completes once the connection has received a GOAWAY and has no stream
+        /// in flight any more, or has ended (see <see cref="Drained"/>). After a
+        /// GOAWAY no new stream reaches the wire (see <see cref="RegisterExchange"/>),
+        /// so a connection drained stays drained.
+        /// </summary>
+        private readonly TaskCompletionSource drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         private UInt32? continuationStreamId;
         private int     continuationFrameCount;
         private bool    goawayReceived;
@@ -433,6 +441,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 closed.TrySetResult();     // wake any pool watcher awaiting this connection's death
 
+                drained.TrySetResult();    // nothing is in flight on a connection that has ended
+
             }
 
         }
@@ -454,6 +464,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// and replace it. Never faults.
         /// </summary>
         public Task Unusable => unusable.Task;
+
+        /// <summary>
+        /// Completes once the connection has received a GOAWAY and its last stream
+        /// in flight has closed (<see cref="ActiveStreamCount"/> is 0), or once it
+        /// has ended. A connection that has received a GOAWAY takes no new stream,
+        /// and the server need not close it (RFC 9113, Section 6.8): from here on
+        /// it serves nothing, and <see cref="HTTP2ClientPool"/> closes it. Never
+        /// faults.
+        ///
+        /// Streams, not requests: the stream of a request closes before its
+        /// response or failure is handed on, and a retry of a refused request
+        /// waits for its new stream with none open. Closing the connection right
+        /// away cancels what waits for such an outcome, and a request answered
+        /// in full, or refused for another connection to take, fails with "A task
+        /// was canceled." instead. So the pool closes it once this has completed
+        /// and its own requests on it have returned as well. Internal for that:
+        /// a holder who cannot tell when its requests have returned has no use for
+        /// it.
+        /// </summary>
+        internal Task Drained => drained.Task;
 
         /// <summary>
         /// Whether this connection can still take *new* requests: it hasn't been torn
@@ -3639,6 +3669,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// connection prunes its own: the gate counts through all the streams
         /// the manager holds, which would otherwise be every stream of the
         /// connection's life.
+        ///
+        /// After a GOAWAY, the stream that closes last makes the connection
+        /// <see cref="Drained"/>. Every stream that closes passes here, as the
+        /// gate would otherwise wait for good, and so does the GOAWAY itself
+        /// (<see cref="HandleGoAway"/>), after it has noted the GOAWAY under the
+        /// lock read here: whichever of the two comes last sees both.
         /// </summary>
         private void SignalStreamSlotFreed()
         {
@@ -3646,14 +3682,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             streamManager.PruneClosedStreams();
 
             TaskCompletionSource freed;
+            Boolean              goaway;
 
             lock (exchangesLock)
             {
                 freed           = streamSlotFreed;
                 streamSlotFreed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                goaway          = goawayReceived;
             }
 
             freed.TrySetResult();
+
+            if (goaway && streamManager.ActiveStreamCount == 0)
+                drained.TrySetResult();
 
         }
 
