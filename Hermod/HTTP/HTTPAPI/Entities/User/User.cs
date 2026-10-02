@@ -1163,15 +1163,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Parse Language         [optional]
 
-                if (!JSONObject.ParseOptional("language",
-                                              "user language",
-                                              LanguagesExtensions.TryParse,
-                                              out Languages? UserLanguage,
-                                              out ErrorResponse))
-                {
-                    if (ErrorResponse is not null)
-                        return false;
-                }
+                JSONObject.ParseOptional("language",
+                                         "user language",
+                                         LanguagesExtensions.TryParse,
+                                         out Languages? UserLanguage,
+                                         out ErrorResponse);
+
+                if (ErrorResponse is not null)
+                    return false;
 
                 #endregion
 

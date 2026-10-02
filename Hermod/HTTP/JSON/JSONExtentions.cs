@@ -1368,7 +1368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 // "properyKey": null -> will be ignored!
-                if (JSONToken is null)
+                if (JSONToken is null || JSONToken.Type == JTokenType.Null)
                     return false;
 
                 if (!(JSONToken is JArray JSONArray))
@@ -1383,11 +1383,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
+                        // There, but not valid: true, as every ParseOptional does.
                         if (!Parser(item.ToString(), out T? Value))
                         {
                             ErrorResponse = "Could not parse item '" + item + "' within the " + PropertyDescription + " array!";
                             Values = new T[0];
-                            return false;
+                            return true;
                         }
 
                         _Values.Add(Value);
