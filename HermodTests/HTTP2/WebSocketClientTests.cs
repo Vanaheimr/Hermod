@@ -48,6 +48,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var protocol = headers.FirstOrDefault(h => h.Name == ":protocol").Value;
             var path     = headers.FirstOrDefault(h => h.Name == ":path").Value;
 
+            // Says which priority field the CONNECT carried, then echoes.
+            if (protocol == "websocket" && path == "/ws-priority")
+            {
+
+                var priority = headers.FirstOrDefault(h => h.Name == "priority").Value ?? "none";
+
+                return Task.FromResult(new HTTP2ConnectResult
+                {
+                    StatusCode = 200,
+                    RunAsync   = async (tunnel, ct2) =>
+                    {
+                        var ws = new WebSocketConnection(tunnel, WebSocketRole.Server);
+                        await ws.SendTextAsync(priority, ct2);
+                        while (await ws.ReceiveAsync(ct2) is { } msg)
+                            await ws.SendTextAsync(Encoding.UTF8.GetString(msg.Payload), ct2);
+                    }
+                });
+
+            }
+
             if (protocol == "websocket" && path == "/ws-echo")
             {
                 var offer   = headers.FirstOrDefault(h => h.Name == "sec-websocket-extensions").Value;
@@ -169,6 +189,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var end = await ws.ReceiveAsync(CancellationToken.None);
             Assert.That(end, Is.Null, "close handshake completes (ReceiveAsync -> null)");
 
+            await conn.CloseAsync();
+        }
+
+        #endregion
+
+        #region ExtendedConnect_WithPriority_UpdatedLater()
+
+        /// <summary>
+        /// A WebSocket opened with a priority carries it to the server as the
+        /// CONNECT's priority field (RFC 9218), and reports it as its tunnel's.
+        /// Reprioritized later, it reports the new one, the server takes the
+        /// PRIORITY_UPDATE, and the session goes on.
+        /// </summary>
+        [Test]
+        public async Task ExtendedConnect_WithPriority_UpdatedLater()
+        {
+            var conn   = await HTTP2Client.ConnectAsync("localhost", srv.Port, H2.AcceptAnyServerCert);
+            var ws     = await conn.OpenWebSocketAsync("localhost", URIScheme.https, "/ws-priority", Priority: new HTTP2Priority(1, false));
+            var tunnel = (HTTP2ClientTunnel) ws.Tunnel;
+
+            var seen   = await ws.ReceiveAsync(CancellationToken.None);
+            Assert.Multiple(() =>
+            {
+                Assert.That(seen is { Opcode: WebSocketOpcode.Text } ? Encoding.UTF8.GetString(seen.Payload) : null,
+                            Is.EqualTo("u=1"),                     "the priority field the server got with the CONNECT");
+                Assert.That(tunnel.Priority, Is.EqualTo(new HTTP2Priority(1, false)), "the tunnel's priority, as opened");
+            });
+
+            await ws.UpdatePriorityAsync(new HTTP2Priority(6, true));
+
+            await ws.SendTextAsync("after the update", CancellationToken.None);
+            var echo = await ws.ReceiveAsync(CancellationToken.None);
+            Assert.Multiple(() =>
+            {
+                Assert.That(tunnel.Priority, Is.EqualTo(new HTTP2Priority(6, true)), "the tunnel's priority, as updated");
+                Assert.That(echo is { Opcode: WebSocketOpcode.Text } ? Encoding.UTF8.GetString(echo.Payload) : null,
+                            Is.EqualTo("after the update"),        "the session goes on after the update");
+            });
+
+            await ws.CloseAsync(1000, "bye", CancellationToken.None);
             await conn.CloseAsync();
         }
 

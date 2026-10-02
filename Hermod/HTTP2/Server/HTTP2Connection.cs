@@ -1336,10 +1336,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 // RFC 9218, Section 4: an ordinary (non-pseudo) header field, so
                 // it already passed the regular field-level checks above —
-                // parsed leniently, same as PRIORITY_UPDATE (see ParsePriority).
+                // parsed leniently, same as PRIORITY_UPDATE (see HTTP2Priority.Parse).
                 var priorityEntry = decoded.FirstOrDefault(h => h.Name == "priority");
                 if (priorityEntry.Name is not null)
-                    Stream.Priority = ParsePriority(priorityEntry.Value);
+                    Stream.Priority = HTTP2Priority.Parse(priorityEntry.Value);
 
                 if (decoded.First(h => h.Name == ":method").Value == "CONNECT")
                     Stream.IsConnectTunnel = true;
@@ -1839,72 +1839,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (stream is null || stream.State == HTTP2StreamState.Closed)
                 return;
 
-            stream.Priority = ParsePriority(priorityFieldValue);
+            stream.Priority = HTTP2Priority.Parse(priorityFieldValue);
 
             // The writer loop may already be idle-waiting with this stream's
             // (now stale) priority baked into its last pick — wake it so the
             // new priority takes effect immediately rather than on the next
             // unrelated window change.
             SignalWriterWakeup();
-
-        }
-
-        #endregion
-
-
-        #region RFC 9218 Priority (Extensible Prioritization Scheme for HTTP)
-
-        /// <summary>
-        /// Parse an RFC 9218 Priority Field Value — a Structured Fields
-        /// Dictionary (RFC 8941) with two recognized keys, "u" (urgency, integer
-        /// 0-7, default 3) and "i" (incremental, boolean, default false). Used
-        /// both for the request's own "priority" header field (Section 4) and
-        /// for a PRIORITY_UPDATE frame's payload (Section 7.1), which share the
-        /// identical value grammar.
-        ///
-        /// Deliberately lenient (Section 4): a parse failure, an unknown key, or
-        /// an out-of-range urgency just falls back to that parameter's default
-        /// rather than raising a stream/connection error — a malformed priority
-        /// hint is a hint gone wrong, not a protocol violation. Per RFC 8941,
-        /// Section 3.3.6, a bare key with no "=value" is shorthand for a true
-        /// Boolean, which is how a bare "i" (e.g. "u=1, i") means "i=?1".
-        /// </summary>
-        private static HTTP2Priority ParsePriority(string Value)
-        {
-
-            var urgency     = HTTP2Priority.DefaultUrgency;
-            var incremental = false;
-
-            foreach (var rawMember in Value.Split(','))
-            {
-
-                var member = rawMember.Trim();
-                if (member.Length == 0)
-                    continue;
-
-                var eq    = member.IndexOf('=');
-                var key   = (eq < 0 ? member : member[..eq]).Trim();
-                var value =  eq < 0 ? "?1"   : member[(eq + 1)..].Trim();
-
-                switch (key)
-                {
-
-                    case "u" when byte.TryParse(value, out var u) && u <= 7:
-                        urgency = u;
-                        break;
-
-                    case "i":
-                        incremental = value == "?1";
-                        break;
-
-                    // Unknown key, or a recognized key with an out-of-range /
-                    // malformed value — ignored, that parameter keeps its default.
-
-                }
-
-            }
-
-            return new HTTP2Priority(urgency, incremental);
 
         }
 
@@ -2514,7 +2455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Monotonic counter handed out to a stream's <see cref="HTTP2Stream.LastServedSequence"/>
-        /// each time the writer loop sends from it — see <see cref="ComparePriority"/>.
+        /// each time the writer loop sends from it — see <see cref="HTTP2SendOrder.Compare"/>.
         /// </summary>
         private long writerSequence;
 
@@ -2569,7 +2510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// SendTunnelDataAsync) no longer race each other for send-window space;
         /// they just enqueue onto their stream's <see cref="HTTP2OutboundQueue"/>
         /// and this loop is the sole arbiter of whose bytes go out next,
-        /// applying RFC 9218 urgency/incremental ordering (<see cref="ComparePriority"/>)
+        /// applying RFC 9218 urgency/incremental ordering (<see cref="HTTP2SendOrder"/>)
         /// instead of first-come-first-served.
         ///
         /// Runs for the connection's whole lifetime, started in RunAsync
@@ -2604,12 +2545,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     lock (flowLock)
                     {
 
-                        stream = PickNextStreamToSend(candidates, streamManager.ConnectionSendWindow, out var needsWindow);
+                        stream = HTTP2SendOrder.PickNext(candidates, streamManager.ConnectionSendWindow, out var needsWindow);
 
                         if (stream is not null && needsWindow)
                         {
 
-                            // PickNextStreamToSend already confirmed both windows
+                            // HTTP2SendOrder.PickNext already confirmed both windows
                             // are positive for a window-needing pick, so this is
                             // always > 0 — nothing left to do here but take it.
                             reserved = (int) Math.Min(
@@ -2790,79 +2731,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 connectionCts.Cancel();
 
             }
-
-        }
-
-        /// <summary>
-        /// Pick the best of Candidates to send from next, per <see cref="ComparePriority"/>.
-        /// Skips streams with nothing queued, and streams whose only queued
-        /// bytes need flow-control window that isn't currently available — either
-        /// the stream's own send window or, since it's shared, the connection's
-        /// (an end-of-stream-only marker needs no window at all, so such a
-        /// stream is still a candidate regardless of either window).
-        ///
-        /// Filtering window-blocked streams out of candidacy here — rather than
-        /// picking the single best candidate first and discarding the whole turn
-        /// if only *it* turns out window-blocked — matters for correctness, not
-        /// just efficiency: without it, a lower-priority stream that needs no
-        /// window (e.g. a tunnel's closing marker) could starve indefinitely
-        /// behind a higher-priority stream that's permanently connection-window-
-        /// blocked, even though the lower-priority one is otherwise immediately
-        /// sendable.
-        /// </summary>
-        private static HTTP2Stream? PickNextStreamToSend(IReadOnlyList<HTTP2Stream> Candidates, long ConnectionSendWindow, out bool NeedsWindow)
-        {
-
-            HTTP2Stream? best            = null;
-            var          bestNeedsWindow = false;
-
-            foreach (var stream in Candidates)
-            {
-
-                if (!stream.OutboundQueue.HasPending)
-                    continue;
-
-                var needsWindow = stream.OutboundQueue.HeadNeedsWindow;
-
-                if (needsWindow && (stream.SendWindow <= 0 || ConnectionSendWindow <= 0))
-                    continue;   // Flow control blocked; retry once WINDOW_UPDATE arrives
-
-                if (best is null || ComparePriority(stream, best) < 0)
-                {
-                    best            = stream;
-                    bestNeedsWindow = needsWindow;
-                }
-
-            }
-
-            NeedsWindow = bestNeedsWindow;
-            return best;
-
-        }
-
-        /// <summary>
-        /// RFC 9218 send ordering: lower urgency number sends first; within the
-        /// same urgency, a non-incremental stream ("send as a single unit") is
-        /// preferred over an incremental one ("fine to interleave"); ties beyond
-        /// that are broken round-robin-fairly by recency of last service. This
-        /// is a deliberate simplification of the RFC's non-incremental guidance
-        /// — a strict reading favors draining one non-incremental stream to
-        /// completion before starting the next at the same urgency, whereas this
-        /// still round-robins fairly among several concurrent non-incremental
-        /// streams at that urgency, rather than head-of-line-blocking one behind
-        /// another. Reasonable for a learning implementation, and arguably a
-        /// fairer outcome for concurrent equal-urgency responses either way.
-        /// </summary>
-        private static int ComparePriority(HTTP2Stream A, HTTP2Stream B)
-        {
-
-            if (A.Priority.Urgency != B.Priority.Urgency)
-                return A.Priority.Urgency.CompareTo(B.Priority.Urgency);
-
-            if (A.Priority.Incremental != B.Priority.Incremental)
-                return A.Priority.Incremental ? 1 : -1;   // Non-incremental drained preferentially
-
-            return A.LastServedSequence.CompareTo(B.LastServedSequence);   // Least-recently-served first
 
         }
 
@@ -3407,7 +3275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var priorityEntry = ResponseHeaders.FirstOrDefault(h => h.Name == "priority");
 
             if (priorityEntry.Name is not null)
-                Stream.Priority = ParsePriority(priorityEntry.Value);
+                Stream.Priority = HTTP2Priority.Parse(priorityEntry.Value);
 
         }
 

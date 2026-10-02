@@ -73,14 +73,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public UInt32 StreamId => stream.StreamId;
 
         /// <summary>
-        /// Send a chunk of request body as flow-controlled DATA frame(s) — never END_STREAM.
+        /// Send a chunk of request body as flow-controlled DATA frame(s) — never
+        /// END_STREAM. The connection's writer loop sends them by the priority the
+        /// request asked for, between the DATA of its other streams; the task
+        /// completes once the last frame of them is the next to go out.
         ///
         /// Nothing more goes out on a stream the server has reset, and the task
         /// fails then, as the response side of a reset stream does, with an
         /// <see cref="HTTP2StreamException"/> that carries the reset's error code:
         /// before the response, or after a complete one, which a server may follow
         /// with RST_STREAM NO_ERROR to stop the rest of an upload it no longer
-        /// needs (RFC 9113, Section 8.1). That response stands.
+        /// needs (RFC 9113, Section 8.1). That response stands. Once the request is
+        /// complete on our side (<see cref="CompleteRequestAsync"/>), a write fails
+        /// with an <see cref="InvalidOperationException"/>.
+        /// <paramref name="CancellationToken"/> ends the wait, not the write: a
+        /// chunk already queued still goes out, in order.
         /// </summary>
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken = default)
         {
@@ -106,6 +113,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// response side of a reset stream does and as <see cref="WriteAsync"/>
         /// does, with an <see cref="HTTP2StreamException"/> that carries the
         /// reset's error code. A response that was complete stands.
+        ///
+        /// Either end goes out behind the chunks written before it. Once the
+        /// request is complete, ending it again sends nothing — without trailers
+        /// it returns, with them it fails with an <see cref="InvalidOperationException"/>.
         /// </summary>
         public Task CompleteRequestAsync(IEnumerable<(string Name, string Value)>? Trailers = null,
                                          CancellationToken                          CancellationToken = default)

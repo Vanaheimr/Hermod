@@ -481,6 +481,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var writing     = upload.WriteAsync(ASCII("more than ten bytes"));
 
+            // What the stream has window for goes out first: the writer loop sends
+            // it, on a thread of its own, and the rest waits for more window.
+            var first       = await transport.NextFrameOnAsync(upload.StreamId);
+
             await transport.RespondAsync(upload.StreamId, "answered early");
             await transport.SendAsync(HTTP2Frame.CreateRstStream(upload.StreamId, HTTP2ErrorCode.NO_ERROR));
 
@@ -493,9 +497,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Assert.Multiple(() =>
             {
 
+                Assert.That($"{first.StreamId} {first.Type} \"{Encoding.ASCII.GetString(first.Payload ?? [])}\"",
+                                                Is.EqualTo($"{upload.StreamId} DATA \"more than \""),
+                                                                                         "what the write sent: the ten bytes it had window for");
+
                 Assert.That(written,            Is.True,                                 "the write waiting for window returned");
-                Assert.That(sent,               Is.EqualTo(new[] { $"{upload.StreamId} DATA \"more than \"", NextRequest(upload.StreamId + 2) }),
-                                                                                         "what the client sent from the write on, up to the next request's HEADERS: the ten bytes it had window for");
+                Assert.That(sent,               Is.EqualTo(new[] { NextRequest(upload.StreamId + 2) }),
+                                                                                         "what the client sent after those ten bytes, up to the next request's HEADERS");
 
             });
 
