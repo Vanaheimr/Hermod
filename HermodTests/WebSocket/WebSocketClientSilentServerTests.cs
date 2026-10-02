@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             if (client is not null)
-                await client.Close();
+                await client.DisposeAsync();
 
             client = null;
 

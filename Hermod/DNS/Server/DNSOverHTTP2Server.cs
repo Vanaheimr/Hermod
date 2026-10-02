@@ -79,7 +79,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// where TLS would only hide the layer under examination.
     /// </para>
     /// </remarks>
-    public class DNSOverHTTP2Server : IDNSOverHTTPSServer
+    public class DNSOverHTTP2Server : IDNSOverHTTPSServer,
+                                      IAsyncDisposable
     {
 
         #region Data
@@ -90,6 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         private          CancellationTokenSource?       cancellationTokenSource;
         private          Task?                          listenerTask;
+        private          Int32                          disposed;
 
         #endregion
 
@@ -216,9 +218,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.TCPPort      = TCPPort ?? IPPort.Zero;
 
             // The HTTP/1.1 half of the ALPN offer: a DoH server over the very same
-            // resource, constructed but never started. It binds nothing and
-            // accepts nothing — its only job is to render streams this listener
-            // has already negotiated.
+            // resource, constructed but never started. It accepts nothing — its
+            // only job is to render streams this listener has already negotiated.
+            // Made like any TCP server all the same, it holds a socket on a port
+            // of the system's choosing and runs a TCP server's timers until
+            // DisposeAsync() lets go of it.
             this.http11Renderer  = ServeHTTP11ViaALPN && certificate is not null
                                        ? new DNSOverHTTPSServer(
                                              DNSServerOptions:  pipeline.Options,
@@ -283,7 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              ServeHTTP11ViaALPN
                          );
 
-            await server.Start();
+            await server.Start().ConfigureAwait(false);
 
             return server;
 
@@ -381,6 +385,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             cancellationTokenSource.Dispose();
             cancellationTokenSource = null;
             listenerTask            = null;
+
+        }
+
+        #endregion
+
+        #region DisposeAsync()
+
+        /// <summary>
+        /// Stop, and let go of the HTTP/1.1 renderer for good.
+        /// </summary>
+        /// <remarks>
+        /// Stop() keeps the renderer, as a server that was stopped can be
+        /// started again and needs it then. Nothing let go of it at all before,
+        /// so every server made with a certificate left its timers running
+        /// for the rest of the process.
+        /// </remarks>
+        public async ValueTask DisposeAsync()
+        {
+
+            if (Interlocked.Exchange(ref disposed, 1) == 1)
+                return;
+
+            await Stop().ConfigureAwait(false);
+
+            if (http11Renderer is not null)
+                await http11Renderer.DisposeAsync().ConfigureAwait(false);
+
+            GC.SuppressFinalize(this);
 
         }
 
@@ -494,7 +526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   result.DNSRequest,
                                   CancellationToken
                               )
-                          );
+                          ).ConfigureAwait(false);
 
                 if (result.DNSResponse is not null)
                     await LogEvent(
@@ -505,7 +537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   result.DNSResponse,
                                   CancellationToken
                               )
-                          );
+                          ).ConfigureAwait(false);
 
                 return Render(result, method == HTTPMethod.HEAD);
 

@@ -36,8 +36,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// chunks aren't buffered for replay, so a reset surfaces to the caller (same as
     /// a CONNECT tunnel). Mirrors the server's <c>IHTTP2RequestStream</c> /
     /// <c>IHTTP2ResponseStream</c> seam from the client side.
+    ///
+    /// The response body is held for <see cref="ReadAsync"/> up to the stream's
+    /// window, 1 MiB: its window goes back to the server only as it is read, so
+    /// the server can send no more than that ahead of the reader. A response
+    /// that will not be read to its end is given up with <see cref="DisposeAsync"/>,
+    /// or it keeps its stream, and the server, waiting.
     /// </summary>
-    public sealed class HTTP2ClientStream
+    public sealed class HTTP2ClientStream : IAsyncDisposable
     {
 
         private readonly HTTP2ClientConnection                    connection;
@@ -45,6 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly Task<HTTP2ResponseHead>                  responseHead;
         private readonly ChannelReader<byte[]>                    responseChunks;
         private readonly Task<List<(string Name, string Value)>>  responseTrailers;
+        private          Int32                                    disposed;
 
         internal HTTP2ClientStream(
             HTTP2ClientConnection                   Connection,
@@ -88,7 +95,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// caller's, as a tunnel's does (<see cref="HTTP2ClientTunnel.WriteAsync"/>).
         /// </summary>
         public Task WriteAsync(byte[] Data, CancellationToken CancellationToken = default)
-            => connection.SendStreamDataAsync(stream, Data, CancellationToken);
+        {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed) != 0, this);
+            return connection.SendStreamDataAsync(stream, Data, CancellationToken);
+        }
 
         /// <summary>
         /// Finish the request, half-closing our side: a zero-length END_STREAM DATA
@@ -117,6 +127,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                          CancellationToken                          CancellationToken = default)
         {
 
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed) != 0, this);
+
             var trailerList = Trailers?.ToList();
 
             return trailerList is { Count: > 0 }
@@ -133,12 +145,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Read the next response body chunk as it arrives, or null once the response ends (END_STREAM / reset).
+        ///
+        /// Its stream window goes back to the server as it is read
+        /// (consumption-driven backpressure): a chunk read gives the server room
+        /// for as much more.
         /// </summary>
         public async Task<byte[]?> ReadAsync(CancellationToken CancellationToken = default)
         {
+
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed) != 0, this);
+
             if (await responseChunks.WaitToReadAsync(CancellationToken) && responseChunks.TryRead(out var chunk))
+            {
+                await connection.ReplenishConsumedAsync(stream, chunk.Length);
                 return chunk;
+            }
+
             return null;
+
         }
 
         /// <summary>
@@ -146,6 +170,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         public Task<List<(string Name, string Value)>> GetTrailersAsync()
             => responseTrailers;
+
+        /// <summary>
+        /// Give the exchange up: unless both sides have ended the stream, or it
+        /// was reset, it is reset with RST_STREAM CANCEL — so that the server
+        /// stops sending a response nobody reads to its end, and a request that
+        /// was not ended is not taken for a whole one — and its stream slot is
+        /// free for the next request. What was received and not read is dropped.
+        /// A read that waits for the response then fails with an
+        /// <see cref="ObjectDisposedException"/>, as does a write, and every call
+        /// to <see cref="ReadAsync"/>, <see cref="WriteAsync"/> or
+        /// <see cref="CompleteRequestAsync"/> after this one. The response head
+        /// and trailers stay as they arrived; whichever had not, fails the same
+        /// way. Never throws.
+        /// </summary>
+        public async ValueTask DisposeAsync()
+        {
+
+            if (Interlocked.Exchange(ref disposed, 1) != 0)
+                return;
+
+            await connection.AbandonAsync(stream, new ObjectDisposedException(GetType().FullName, $"Stream {StreamId} was disposed."));
+
+        }
 
     }
 

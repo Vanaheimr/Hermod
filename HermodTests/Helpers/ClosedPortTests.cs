@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 
             port.HandOver();
 
-            var server        = new WebSocketMirrorServer(HTTPPort: port.Number, RequireAuthentication: false, AutoStart: true);
+            await using var server        = new WebSocketMirrorServer(HTTPPort: port.Number, RequireAuthentication: false, AutoStart: true);
 
             using var client  = new TcpClient();
 

@@ -64,7 +64,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Shutdown_WebSocketServer()
         {
             if (webSocketServer is not null)
+            {
                 await webSocketServer.Shutdown(Wait: true);
+                await webSocketServer.DisposeAsync();
+            }
 
             webSocketServer = null;
         }

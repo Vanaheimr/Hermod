@@ -162,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             var dir   = Path.Combine(Path.GetTempPath(), "hermod-prio-" + UUIDv7.Generate().ToString("N"));
-            var queue = new FileMailQueue(dir, new NullSmtpLogger());
+            using var queue = new FileMailQueue(dir, new NullSmtpLogger());
 
             try
             {

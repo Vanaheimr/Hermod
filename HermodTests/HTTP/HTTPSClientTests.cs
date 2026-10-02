@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
         public async Task Test_001()
         {
 
-            var httpsClient    = new HTTPClient(
+            await using var httpsClient    = new HTTPClient(
                                      URL.Parse($"https://127.0.0.1:{httpsServer.TCPPort}"),
                                      RemoteCertificateValidator: (sender, certificate, chain, server, policyErrors) => {
 

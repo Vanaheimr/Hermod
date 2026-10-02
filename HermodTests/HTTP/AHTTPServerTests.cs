@@ -721,7 +721,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [OneTimeTearDown]
         public async Task Shutdown_HTTPServer()
         {
-            await httpServer.Stop();
+            await httpServer.DisposeAsync();
         }
 
         #endregion

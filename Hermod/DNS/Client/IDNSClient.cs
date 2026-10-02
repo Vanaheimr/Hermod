@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                           RecursionDesired,
                           ForceUpdate,
                           CancellationToken
-                      )).FilteredAnswers.Select(v => Mapper(v));
+                      ).ConfigureAwait(false)).FilteredAnswers.Select(v => Mapper(v));
 
         #endregion
 
@@ -159,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                           RecursionDesired,
                           ForceUpdate,
                           CancellationToken
-                      )).FilteredAnswers.Select(v => Mapper(v));
+                      ).ConfigureAwait(false)).FilteredAnswers.Select(v => Mapper(v));
 
         #endregion
 

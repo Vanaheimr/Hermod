@@ -4310,6 +4310,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        await eventSource.Unsubscribe(request.RemoteSocket.ToString());
                                                                    }
 
+                                                                   // The server is stopping; see HTTPAPI.MapEventSource.
+                                                                   catch (OperationCanceledException) when (request.CancellationToken.IsCancellationRequested)
+                                                                   { }
+
                                                                    catch (Exception e) {
                                                                        await HandleErrors(
                                                                            nameof(MapEventSource),

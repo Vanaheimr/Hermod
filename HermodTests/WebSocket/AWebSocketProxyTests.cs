@@ -89,12 +89,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             if (webSocketServer is not null)
+            {
                 await webSocketServer.Shutdown(Wait: true);
+                await webSocketServer.DisposeAsync();
+            }
 
             webSocketServer = null;
 
             if (webSocketProxy is not null)
+            {
                 await webSocketProxy.Shutdown(Wait: true);
+                await webSocketProxy.DisposeAsync();
+            }
 
             webSocketProxy  = null;
 

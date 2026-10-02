@@ -68,7 +68,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public async Task Shutdown()
         {
             if (server is not null)
+            {
                 await server.Shutdown(Wait: true);
+                await server.DisposeAsync();
+            }
             server = null;
         }
 
@@ -82,10 +85,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var port    = StartServer(Strict: true).IPPort;
 
-            var client  = new WebSocketClient(
-                              URL.Parse($"ws://127.0.0.1:{port}"),
-                              SecWebSocketProtocols: [ "ocpp1.6" ]
-                          );
+            await using var client  = new WebSocketClient(
+                                          URL.Parse($"ws://127.0.0.1:{port}"),
+                                          SecWebSocketProtocols: [ "ocpp1.6" ]
+                                      );
 
             var (_, httpResponse) = await client.Connect();
 
@@ -103,10 +106,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var port    = StartServer(Strict: true).IPPort;
 
-            var client  = new WebSocketClient(
-                              URL.Parse($"ws://127.0.0.1:{port}"),
-                              SecWebSocketProtocols: [ "ocpp2.1" ]
-                          );
+            await using var client  = new WebSocketClient(
+                                          URL.Parse($"ws://127.0.0.1:{port}"),
+                                          SecWebSocketProtocols: [ "ocpp2.1" ]
+                                      );
 
             var (_, httpResponse) = await client.Connect();
 
@@ -129,10 +132,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // without a 'Sec-WebSocket-Protocol' header even if nothing matched.
             var port    = StartServer(Strict: false).IPPort;
 
-            var client  = new WebSocketClient(
-                              URL.Parse($"ws://127.0.0.1:{port}"),
-                              SecWebSocketProtocols: [ "ocpp1.6" ]
-                          );
+            await using var client  = new WebSocketClient(
+                                          URL.Parse($"ws://127.0.0.1:{port}"),
+                                          SecWebSocketProtocols: [ "ocpp1.6" ]
+                                      );
 
             var (_, httpResponse) = await client.Connect();
 

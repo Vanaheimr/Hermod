@@ -217,7 +217,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             IEnumerable<String>?   OriginSet         = null,
             IEnumerable<(String Origin, String FieldValue)>? AlternativeServices = null,
             HTTP11FallbackHandler? HTTP11Fallback = null,
-            Func<List<(String Name, String Value)>, Boolean>? AcceptEarlyData = null)
+            Func<List<(String Name, String Value)>, Boolean>? AcceptEarlyData = null,
+            Int32                  ConnectionWindowSize = HTTP2FlowControl.DefaultConnectionWindowSize)
         {
 
             var cert   = Cleartext ? null : (Certificate ?? H2.MakeCert());
@@ -231,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                          ConnectHandler, RequireClientCertificate, ValidateClientCertificate,
                                          Timeouts, StreamingHandler, Cleartext, MaxRequestBodySize,
                                          IsBlocklistedCipherSuite, IsAuthorityServed, OriginSet, AlternativeServices,
-                                         HTTP11Fallback, AcceptEarlyData);
+                                         HTTP11Fallback, AcceptEarlyData, ConnectionWindowSize);
 
             var runTask = server.RunAsync();
 

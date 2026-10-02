@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 );
 
                 var httpClient  = await HTTPClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
-                var client      = httpClient.Item1!;
+                await using var client = httpClient.Item1!;
 
                 var status      = await client.SendRequest(client.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/api/v1/status")));
 
@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
             finally
             {
-                await httpServer.Stop();
+                await httpServer.DisposeAsync();
             }
 
         }

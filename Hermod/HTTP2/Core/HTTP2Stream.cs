@@ -132,7 +132,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// A reset, or the end of the tunnel's handler, returns the connection's
         /// share of the window for what is still unread at once (see
         /// <see cref="UnreadRecvBytes"/>): after either, nobody has to read it. The
-        /// handler's end completes the channel as a reset does.
+        /// handler's end completes the channel as a reset does. The client's
+        /// tunnel (HTTP2ClientTunnel.ReadAsync) withholds the stream's window the
+        /// same way, and gives back the connection's on receipt.
         /// </summary>
         public Channel<byte[]>?    TunnelInbound   { get; set; }
 
@@ -369,6 +371,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
+        /// Reset this stream as <see cref="Reset()"/> does, unless it is closed
+        /// already — both sides ended, or reset — and return whether it was reset.
+        /// Checked and changed under one lock, as in <see cref="TryCloseLocal"/>:
+        /// the read loop may close the stream at any moment, at the peer's
+        /// END_STREAM or RST_STREAM, and nothing but PRIORITY may be sent on a
+        /// closed stream (RFC 9113, Section 5.1), a RST_STREAM of ours included.
+        /// For a client that gives up a stream it will not read any further.
+        /// </summary>
+        public bool TryReset()
+        {
+
+            lock (stateLock)
+            {
+
+                if (State == HTTP2StreamState.Closed)
+                    return false;
+
+                if (State is (HTTP2StreamState.Open or HTTP2StreamState.HalfClosedLocal))
+                    DiscardsPeerFrames = true;
+
+                State     = HTTP2StreamState.Closed;
+                WasReset  = true;
+
+            }
+
+            // Outside the lock, as always: Reset finds the stream closed and reset
+            // already, and releases what a reset releases.
+            Reset();
+
+            return true;
+
+        }
+
+        /// <summary>
         /// Once both sides have ended this stream it is closed, and the writer
         /// loop's picker skips it: whatever is still queued on it, or is queued
         /// later, would never be sent, and its producer would wait for the whole
@@ -441,6 +477,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         private HTTP2ErrorCode? ownResetCode;
+
+        /// <summary>
+        /// True once the client's application has given this stream up — by
+        /// HTTP2ClientStream.DisposeAsync or HTTP2ClientTunnel.DisposeAsync, or by
+        /// cancelling the opening of a tunnel — rather than read it to its end.
+        /// A write or the end of the request that waits on it then fails as a
+        /// call after DisposeAsync does, with an ObjectDisposedException. Set by
+        /// the client's connection only, before it resets the stream.
+        /// </summary>
+        internal bool GivenUp { get; set; }
 
         /// <summary>
         /// Forcibly close: we send RST_STREAM, or the connection ends.

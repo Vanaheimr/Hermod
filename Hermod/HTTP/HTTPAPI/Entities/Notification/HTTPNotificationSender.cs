@@ -66,14 +66,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                       Boolean            DisableSendNotifications   = false,
                                       PgpPublicKeyRing?  PublicKeyRing              = null,
                                       PgpSecretKeyRing?  SecretKeyRing              = null,
-                                      IDNSClient?         DNSClient                  = null)
+                                      IDNSClient?         DNSClient                  = null,
+                                      TimeProvider?      TimeProvider               = null)
 
             : base(HTTPExtAPI,
                    SendNotificationsEvery,
                    DisableSendNotifications,
                    PublicKeyRing,
                    SecretKeyRing,
-                   DNSClient)
+                   DNSClient,
+                   TimeProvider)
 
         {
 

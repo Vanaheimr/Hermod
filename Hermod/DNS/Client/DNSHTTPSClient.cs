@@ -646,7 +646,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                          );
 
-            var response = await client.ConnectAsync();
+            var response = await client.ConnectAsync().ConfigureAwait(false);
 
             return (client, response);
 
@@ -735,7 +735,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                          );
 
-            var response = await client.ConnectAsync();
+            var response = await client.ConnectAsync().ConfigureAwait(false);
 
             return (client, response);
 
@@ -932,7 +932,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                              HTTPRequestLogDelegate,
                                              HTTPResponseLogDelegate,
                                              CancellationToken: timeoutCTS.Token
-                                         );
+                                         ).ConfigureAwait(false);
                 }
                 catch (IOException)
                 {
@@ -944,7 +944,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                              HTTPRequestLogDelegate,
                                              HTTPResponseLogDelegate,
                                              CancellationToken: timeoutCTS.Token
-                                         );
+                                         ).ConfigureAwait(false);
                 }
 
                 stopwatch.Stop();
@@ -1132,7 +1132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     DNSServerLabel
                 );
 
-                await Log($"DNS HTTPS query to {DNSServerLabel} failed: [{ex.GetType().Name}] {ex.Message}");
+                await Log($"DNS HTTPS query to {DNSServerLabel} failed: [{ex.GetType().Name}] {ex.Message}").ConfigureAwait(false);
 
                 return DNSInfo.Failed(
                            OriginOf(),
@@ -1705,7 +1705,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public override async ValueTask DisposeAsync()
         {
             httpStreamLock.Dispose();
-            await base.DisposeAsync();
+            await base.DisposeAsync().ConfigureAwait(false);
         }
 
 

@@ -65,7 +65,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         public virtual async Task ShutdownEachTest()
         {
             if (webSocketServer is not null)
+            {
                 await webSocketServer.Shutdown();
+                await webSocketServer.DisposeAsync();
+            }
 
             webSocketServer = null;
         }
@@ -142,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             //    textMessageResponses.Add(responseMessage ?? "-");
             //};
 
-            var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
+            await using var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
             await webSocketClient.Connect();
 
             Assert.That(validatedTCP,           Is.True);
@@ -251,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             //    textMessageResponses.Add(responseMessage ?? "-");
             //};
 
-            var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
+            await using var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
             await webSocketClient.Connect();
 
             Assert.That(validatedTCP,           Is.True);
