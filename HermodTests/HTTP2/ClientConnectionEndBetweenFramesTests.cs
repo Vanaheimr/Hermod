@@ -200,10 +200,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// sent: <see cref="HoldingH2Transport.SendAsync"/> would wait for the
         /// next read, which a loop that has ended never starts.
         ///
-        /// CloseAsync returns once the read loop has ended, which a read that
-        /// does not look at the token does only with the frame: the frame goes
-        /// out once CloseAsync has cancelled the token the loop reads with, and
-        /// CloseAsync is awaited after it.
+        /// CloseAsync waits for the read loop to end, which a read that does not
+        /// look at the token does only with the frame, on a transport the caller
+        /// owns, as here, for a second at most (see
+        /// CloseAsync_Returns_WhenACallerOwnedTransportsReadIgnoresTheToken):
+        /// the frame goes out once CloseAsync has cancelled the token the loop
+        /// reads with, and CloseAsync is awaited after it.
         /// </summary>
         private static async Task<Boolean> EndAsync(HoldingH2Transport       Transport,
                                                     TokenReads               Reads,
@@ -378,6 +380,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                 Assert.That(trailersEnded,               Is.True,                                      "the trailers failed once the connection had ended");
                 Assert.That(trailersFailure,             Is.InstanceOf<OperationCanceledException>(),  "how the trailers failed");
+
+            });
+
+        }
+
+        #endregion
+
+        #region CloseAsync_Returns_WhenACallerOwnedTransportsReadIgnoresTheToken()
+
+        /// <summary>
+        /// CloseAsync on a transport the caller passed in, whose read does not
+        /// look at the token, while the server sends nothing. Since the close
+        /// waited for the read loop, to close an owned transport after its last
+        /// read, it waited for the server's next frame here, for good when none
+        /// came, and a caller that closes its transport after CloseAsync waited
+        /// for itself. It returns now, though the read goes on: the transport
+        /// is the caller's, and closing it is not the connection's to do. The
+        /// connection ends with the read, and fails a streamed response that
+        /// waits on it then, as it always has.
+        /// </summary>
+        [Test]
+        public async Task CloseAsync_Returns_WhenACallerOwnedTransportsReadIgnoresTheToken()
+        {
+
+            await using var transport  = new HoldingH2Transport(HoldHeadersOf: streamId => false);
+            var             reads      = new TokenReads(transport.Client, TransportReads.IgnoreTheToken);
+
+            var connection  = await ConnectAsync(transport, reads, CancellationToken.None);
+            var stream      = await StartStreamAsync(connection);
+            var head        = stream.GetResponseAsync(CancellationToken.None);
+
+            var closing     = connection.CloseAsync();
+            var returned    = await Task.WhenAny(closing, Task.Delay(HoldingH2Transport.StepTimeout)) == closing;
+            var reading     = !connection.Closed.IsCompleted && !head.IsCompleted;
+
+            await transport.WriteAsync(HTTP2Frame.CreateWindowUpdate(0, 1));
+
+            var closed      = await Task.WhenAny(connection.Closed, Task.Delay(HoldingH2Transport.StepTimeout)) == connection.Closed;
+            var (headEnded, headFailure) = await EndOf(head);
+
+            Assert.Multiple(() =>
+            {
+
+                Assert.That(returned,                    Is.True,                                      "CloseAsync returned while the server sent nothing");
+                Assert.That(reading,                     Is.True,                                      "the read and the response, still waiting for the server then");
+                Assert.That(closed,                      Is.True,                                      "the connection ended with the read");
+                Assert.That(reads.ReadsAfterTheEnd > 0,  Is.True,                                      "a read took the frame after the close");
+
+                Assert.That(headEnded,                   Is.True,                                      "the head failed once the connection had ended");
+                Assert.That(headFailure,                 Is.InstanceOf<OperationCanceledException>(),  "how the head failed");
 
             });
 
