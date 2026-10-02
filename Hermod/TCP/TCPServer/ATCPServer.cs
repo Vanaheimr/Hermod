@@ -91,6 +91,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected        readonly  ConcurrentDictionary<TCPConnection, Task>  activeClients                 = [];
 
+        /// <summary>
+        /// Clients that have been accepted and handed to the thread pool, but whose
+        /// <see cref="TCPConnection"/> does not exist yet - the window between the
+        /// accept loop letting go of a client and that client appearing in
+        /// <see cref="activeClients"/>. A concurrent set: only the keys are read.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="Stop"/> waits for these before it drains
+        /// <see cref="activeClients"/>, because a client accepted inside that window
+        /// is otherwise one it neither closes nor waits for. The accept loop cannot
+        /// hold the window shut itself: holding it shut means doing the connection's
+        /// own work - the certificate selectors, the SslStream, the certificate
+        /// context - on the one thread that has to stay free to accept.
+        /// </remarks>
+        private          readonly  ConcurrentDictionary<Task, Byte>            pendingClients                = [];
+
 
         /// <summary>
         /// The default maintenance interval.
@@ -949,56 +965,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                 #endregion
 
-                                var tcpConnection  = new TCPConnection(
-                                                         TCPServer:                    this,
-                                                         TCPClient:                    client,
-                                                         ServerCertificateSelector:    ServerCertificateSelector,
-                                                         ClientCertificateValidator:   ClientCertificateValidator,
-                                                         LocalCertificateSelector:     LocalCertificateSelector,
-                                                         SSLStream:                    null,
-                                                         ReadTimeout:                  ReceiveTimeout,
-                                                         WriteTimeout:                 SendTimeout,
-                                                         Logger:                       loggerFactory.CreateLogger<TCPConnection>()
-                                                      );
-
-                                // Entered before its handler starts, so that a handler which
-                                // finishes at once finds its entry to remove - but under a
-                                // placeholder that is NOT finished. The real task takes the
-                                // entry only when HandleNewTCPClientAsync returns, at its
-                                // first await that does not complete at once, and the Warden
-                                // reaps an entry whose task has completed. Task.CompletedTask
-                                // told it that a connection was done while its handler was
-                                // still on its way there - accepting TLS, validating, or on a
-                                // fresh process being compiled on its first request - and it
-                                // closed the connection under the handler.
+                                // Everything this connection needs doing goes to the thread
+                                // pool, and this loop goes straight back to accepting. An
+                                // async method runs on its caller's thread until its first
+                                // await that does not complete at once, so building the
+                                // connection and calling the handler here ran the whole
+                                // synchronous prefix of both on the accept loop - as far as
+                                // AuthenticateAsServer's first await.
                                 //
-                                // The placeholder finishes with the handler, so that whoever
-                                // took it in the meantime - the Warden's snapshot, a Stop()
-                                // that awaits every client - learns from it what the handler
-                                // did rather than waiting for ever.
-                                var placeholder = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                                // That prefix contains the TLS certificate context, and
+                                // building one is a certificate-chain build: native
+                                // CertGetCertificateChain, measured at 578 - 2621 ms on the
+                                // first connection of a process, with the thread pool idle
+                                // (PendingWorkItemCount = 0 - it was never a starvation).
+                                // For that long the loop did not reach AcceptTcpClientAsync
+                                // again and every other client sat in the listen backlog
+                                // behind it, which is the one thing AuthenticateAsServer's
+                                // own summary says must not happen. The prefix also contains
+                                // consumer code - ServerCertificateSelector,
+                                // ServerCertificateChainSelector, ConnectionIdBuilder - and
+                                // how long that takes is not ours to bound at all.
+                                var registered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                                activeClients.TryAdd(
-                                    tcpConnection,
-                                    placeholder.Task
-                                );
+                                // Before the work starts, not after: a Stop() that comes
+                                // between this accept and the activeClients entry has to
+                                // find something to wait for.
+                                pendingClients.TryAdd(registered.Task, 0);
 
-                                var clientTask = HandleNewTCPClientAsync(tcpConnection);
-
-                                activeClients.TryUpdate(
-                                    tcpConnection,
-                                    clientTask,
-                                    placeholder.Task
-                                );
-
-                                _ = clientTask.ContinueWith(
-                                        static (_, state) => ((TaskCompletionSource) state!).TrySetResult(),
-                                        placeholder,
-                                        CancellationToken.None,
-                                        TaskContinuationOptions.ExecuteSynchronously,
-                                        TaskScheduler.Default
+                                // Not cts.Token: a cancelled token would stop the work from
+                                // running at all, and then nobody releases the connection
+                                // slot or closes this socket. The work asks cts itself.
+                                _ = Task.Run(
+                                        () => HandleAcceptedTCPClientAsync(client, registered),
+                                        CancellationToken.None
                                     );
 
+                                // The slot travels with the connection: the dispatched work
+                                // releases it, in HandleNewTCPClientAsync's finally or in its
+                                // own, so this loop's finally must not.
                                 connectionSlotAcquired = false;
 
                             }
@@ -1065,14 +1069,148 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region (private) HandleAcceptedTCPClientAsync(Client, Registered)
+
+        /// <summary>
+        /// Build an accepted TCP client's connection, register it and hand it to the
+        /// connection handler - on the thread pool, never on the accept loop.
+        /// </summary>
+        /// <param name="Client">The accepted TCP client.</param>
+        /// <param name="Registered">Completed once this client is in <see cref="activeClients"/>, or once it never will be. Both are answers <see cref="Stop"/> can act on; without one it would wait for ever.</param>
+        /// <remarks>
+        /// Its own method, dispatched rather than called, so that none of this runs on
+        /// the accept loop - see the comment at its call site for what that cost. The
+        /// connection slot is already acquired when this is called, and is released
+        /// here on every path that does not reach
+        /// <see cref="HandleNewTCPClientAsync"/>, which releases it in its own finally.
+        /// </remarks>
+        private async Task HandleAcceptedTCPClientAsync(TcpClient             Client,
+                                                        TaskCompletionSource  Registered)
+        {
+
+            try
+            {
+
+                TCPConnection tcpConnection;
+
+                try
+                {
+
+                    // Accepted just as the server is stopping: dropped here, rather than
+                    // taken through a TLS handshake on a token that is cancelled already.
+                    cts.Token.ThrowIfCancellationRequested();
+
+                    tcpConnection  = new TCPConnection(
+                                         TCPServer:                    this,
+                                         TCPClient:                    Client,
+                                         ServerCertificateSelector:    ServerCertificateSelector,
+                                         ClientCertificateValidator:   ClientCertificateValidator,
+                                         LocalCertificateSelector:     LocalCertificateSelector,
+                                         SSLStream:                    null,
+                                         ReadTimeout:                  ReceiveTimeout,
+                                         WriteTimeout:                 SendTimeout,
+                                         Logger:                       loggerFactory.CreateLogger<TCPConnection>()
+                                      );
+
+                }
+                catch (Exception e)
+                {
+
+                    // There is no connection, so HandleNewTCPClientAsync - which is what
+                    // releases the slot, in its finally - is never reached. Released here
+                    // or it is gone for the lifetime of the server, and the same for the
+                    // socket, which nothing else now holds.
+                    connectionSlots.Release();
+
+                    try
+                    {
+                        Client.Close();
+                    }
+                    catch (Exception)
+                    { }
+
+                    if (e is not OperationCanceledException)
+                        await Log($"Error preparing accepted client: {e.Message}");
+
+                    return;
+
+                }
+
+                // Entered before its handler starts, so that a handler which
+                // finishes at once finds its entry to remove - but under a
+                // placeholder that is NOT finished. The real task takes the
+                // entry only when HandleNewTCPClientAsync returns, at its
+                // first await that does not complete at once, and the Warden
+                // reaps an entry whose task has completed. Task.CompletedTask
+                // told it that a connection was done while its handler was
+                // still on its way there - accepting TLS, validating, or on a
+                // fresh process being compiled on its first request - and it
+                // closed the connection under the handler.
+                //
+                // The placeholder finishes with the handler, so that whoever
+                // took it in the meantime - the Warden's snapshot, a Stop()
+                // that awaits every client - learns from it what the handler
+                // did rather than waiting for ever.
+                var placeholder = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                activeClients.TryAdd(
+                    tcpConnection,
+                    placeholder.Task
+                );
+
+                // The entry exists, so a Stop() has it. Said here rather than left to the
+                // finally below, which is reached only once the handler has run its own
+                // synchronous prefix - the certificate context - and there is no reason to
+                // make a Stop() wait for that twice.
+                Registered.TrySetResult();
+
+                var clientTask = HandleNewTCPClientAsync(tcpConnection);
+
+                activeClients.TryUpdate(
+                    tcpConnection,
+                    clientTask,
+                    placeholder.Task
+                );
+
+                _ = clientTask.ContinueWith(
+                        static (_, state) => ((TaskCompletionSource) state!).TrySetResult(),
+                        placeholder,
+                        CancellationToken.None,
+                        TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default
+                    );
+
+            }
+            catch (Exception e)
+            {
+                // Nobody awaits this task - it is discarded at its call site - so an
+                // exception that got out of here would be an unobserved one, and the
+                // connection would be gone without a word.
+                await Log($"Error dispatching accepted client: {e.Message}");
+            }
+            finally
+            {
+                Registered.TrySetResult();
+                pendingClients.TryRemove(Registered.Task, out _);
+            }
+
+        }
+
+        #endregion
+
         #region (private) HandleNewTCPClientAsync(Connection)
 
         private async Task HandleNewTCPClientAsync(TCPConnection Connection)
         {
 
             var eventTrackingId2  = EventTracking_Id.New;
-            var remoteIPEndPoint  = (Connection.TCPClient.Client.RemoteEndPoint as IPEndPoint)!;
-            var remoteSocket      = IPSocket.FromIPEndPoint(remoteIPEndPoint);
+
+            // The connection's own, built from the same RemoteEndPoint in its
+            // constructor. Read from the socket a second time here, this method could
+            // throw before its try block - on a socket the peer had reset in the
+            // meantime - and then nothing released the connection slot, and the
+            // activeClients entry kept a placeholder task that Stop() waits for.
+            var remoteSocket      = Connection.RemoteSocket;
 
             try
             {
@@ -1299,7 +1437,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The handlers are waited for together, last of all, so that the wait
         /// lasts as long as the slowest of them. That includes the connections
         /// the accept loop took in while this ran. They are looked for again once
-        /// the loop has ended, and after that no more can come.
+        /// the loop has ended - but the loop ending is no longer enough on its
+        /// own to say that they are all on the list, because the loop hands each
+        /// connection it accepts to the thread pool instead of listing it itself.
+        /// So the ones still on their way there are waited for first, between the
+        /// loop ending and that second look; see <see cref="pendingClients"/>.
+        /// After that no more can come.
         /// </remarks>
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="Message">An optional message to include in the TCP server stopped event.</param>
@@ -1344,8 +1487,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (serverTask is not null)
                 await serverTask;
 
-            // Those the accept loop took in after the first look. It has ended,
-            // so these are the last.
+            // Clients the accept loop had handed to the thread pool but which were
+            // not listed yet. Waited for here, between the loop ending and the second
+            // look, which is the one place where waiting for them is complete: the
+            // loop has ended, so no new one can arrive, and the look below is still to
+            // come, so whatever registers in the meantime is still found. The loop
+            // cannot hold that window shut itself - see pendingClients - and with the
+            // token already cancelled above, each of these either bails in its
+            // constructor or registers at once, so this costs nothing.
+            foreach (var pendingClient in pendingClients.Keys)
+            {
+                try
+                {
+                    await pendingClient;
+                }
+                catch (Exception ex)
+                {
+                    await Log($"Error waiting for a pending client: {ex.Message}");
+                }
+            }
+
+            // Those the accept loop took in after the first look. It has ended and
+            // everything it handed on is listed by now, so these are the last.
             await CloseConnections();
 
             foreach (var handler in handlers)

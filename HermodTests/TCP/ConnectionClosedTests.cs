@@ -874,17 +874,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
         #endregion
 
+        #region (private static) Upgrade(Client)
+
+        /// <summary>
+        /// Ask for a WebSocket, and read the answer: a 101.
+        /// </summary>
+        private static async Task Upgrade(TcpClient Client)
+        {
+
+            var response = await Exchange(Client, Encoding.ASCII.GetString(UpgradeRequest));
+
+            Assert.That(response, Does.StartWith("HTTP/1.1 101"), response);
+
+        }
+
+        #endregion
+
         #region AWebSocketServerReportsEachConnectionOnce()
 
         /// <summary>
         /// A WebSocket server on a port of its own reports each connection
         /// closed once through OnTCPConnectionClosed of ATCPServer - beside the
-        /// event of that name of its own.
+        /// event of that name of its own - and by the client, which hung up
+        /// before it asked for anything.
         /// </summary>
         /// <remarks>
-        /// Who closed it is not asked: the WebSocket server closes the socket in
-        /// its connection loop, before the server can look at it, and then all
-        /// the server can say is that it closed the connection itself.
+        /// The WebSocket server closes the socket in its connection loop, before
+        /// the server can look at it. Until the loop said who closed it, all the
+        /// server could say was that it had closed the connection itself.
         /// </remarks>
         [Test]
         public async Task AWebSocketServerReportsEachConnectionOnce()
@@ -907,10 +924,260 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
                 foreach (var connectionId in server.Connections.Ids)
                     Assert.That(reports.ClosedBy(connectionId),
-                                Has.Length.EqualTo(1),
-                                $"reports that connection {connectionId} closed");
+                                Is.EqualTo(new[] { ConnectionClosedBy.Client }),
+                                $"reports that connection {connectionId} closed, and by whom");
 
             });
+
+        }
+
+        #endregion
+
+        #region AWebSocketClientThatSendsACloseFrameIsReportedOnceAsTheOneWhoClosed()
+
+        /// <summary>
+        /// A WebSocket client sends a close frame, and waits for the server to
+        /// answer it and hang up: the connection is reported closed once, by
+        /// the client.
+        /// </summary>
+        /// <remarks>
+        /// The client is still there when the server hangs up, so the socket
+        /// cannot tell who closed: only the loop that read the close frame can.
+        /// </remarks>
+        [Test]
+        public async Task AWebSocketClientThatSendsACloseFrameIsReportedOnceAsTheOneWhoClosed()
+        {
+
+            await using var server   = new TestWebSocketServer();
+            var             reports  = new Reports(server);
+
+            await server.Start();
+
+            using (var client = await ConnectTo(server))
+            {
+
+                await Upgrade(client);
+
+                await client.GetStream().WriteAsync(WebSocketFrame.Close(WebSocketFrame.ClosingStatusCode.NormalClosure,
+                                                                         Mask:        WebSocketFrame.MaskStatus.On,
+                                                                         MaskingKey:  [ 0x12, 0x34, 0x56, 0x78 ]).ToByteArray());
+
+                await ReadUntilTheServerHangsUp(client);
+
+            }
+
+            await server.Connections.Done(1);
+
+            Assert.That(reports.ClosedBy(server.Connections.Ids.Single()),
+                        Is.EqualTo(new[] { ConnectionClosedBy.Client }),
+                        "reports that the connection closed, and by whom");
+
+        }
+
+        #endregion
+
+        #region AWebSocketClientThatDropsItsConnectionIsReportedOnceAsTheOneWhoClosed(Reset)
+
+        /// <summary>
+        /// A WebSocket client drops its connection without a close frame -
+        /// closes it, or resets it: the connection is reported closed once, by
+        /// the client.
+        /// </summary>
+        [TestCase(false, TestName = "AWebSocketClientThatDropsItsConnectionIsReportedOnceAsTheOneWhoClosed(closed)")]
+        [TestCase(true,  TestName = "AWebSocketClientThatDropsItsConnectionIsReportedOnceAsTheOneWhoClosed(reset)")]
+        public async Task AWebSocketClientThatDropsItsConnectionIsReportedOnceAsTheOneWhoClosed(Boolean Reset)
+        {
+
+            await using var server   = new TestWebSocketServer();
+            var             reports  = new Reports(server);
+
+            await server.Start();
+
+            using (var client = await ConnectTo(server))
+            {
+
+                await Upgrade(client);
+
+                // An RST instead of a FIN: the socket closed without lingering,
+                // and closed itself. Disposing the client shuts its stream
+                // down first, and that sends a FIN before the RST.
+                if (Reset)
+                {
+                    client.Client.LingerState = new LingerOption(true, 0);
+                    client.Client.Close();
+                }
+
+            }
+
+            await server.Connections.Done(1);
+
+            Assert.That(reports.ClosedBy(server.Connections.Ids.Single()),
+                        Is.EqualTo(new[] { ConnectionClosedBy.Client }),
+                        "reports that the connection closed, and by whom");
+
+        }
+
+        #endregion
+
+        #region AWebSocketConnectionTheServerClosesIsReportedOnceAsClosedByTheServer()
+
+        /// <summary>
+        /// The WebSocket server closes a connection whose client is still
+        /// there, and goes on running: the connection is reported closed once,
+        /// by the server.
+        /// </summary>
+        /// <remarks>
+        /// Close() closes the socket and then cancels the loop's read. On
+        /// Windows the read mostly ends cancelled; on Linux it fails, as though
+        /// the client had reset the connection. So the close has to say that it
+        /// was the server's before it closes anything: without that, this test
+        /// and the next failed 5 of 5 on Linux, and passed on Windows.
+        /// </remarks>
+        [Test]
+        public async Task AWebSocketConnectionTheServerClosesIsReportedOnceAsClosedByTheServer()
+        {
+
+            await using var server   = new TestWebSocketServer();
+            var             reports  = new Reports(server);
+
+            await server.Start();
+
+            using (var client = await ConnectTo(server))
+            {
+
+                await Upgrade(client);
+
+                await server.WebSocketConnections.Single().Close(WebSocketFrame.ClosingStatusCode.NormalClosure);
+
+                await ReadUntilTheServerHangsUp(client);
+
+            }
+
+            await server.Connections.Done(1);
+
+            Assert.That(reports.ClosedBy(server.Connections.Ids.Single()),
+                        Is.EqualTo(new[] { ConnectionClosedBy.Server }),
+                        "reports that the connection closed, and by whom");
+
+        }
+
+        #endregion
+
+        #region AWebSocketConnectionTheServerShutsDownIsReportedOnceAsClosedByTheServer()
+
+        /// <summary>
+        /// The WebSocket server shuts down, and closes a connection whose
+        /// client is still there: the connection is reported closed once, by
+        /// the server.
+        /// </summary>
+        /// <remarks>
+        /// Shutdown() closes each connection with a close frame of its own
+        /// first, and only then stops the server. In between, the loop's read
+        /// can fail as though the client had reset the connection - measured:
+        /// an IOException, OperationAborted.
+        /// </remarks>
+        [Test]
+        public async Task AWebSocketConnectionTheServerShutsDownIsReportedOnceAsClosedByTheServer()
+        {
+
+            await using var server   = new TestWebSocketServer();
+            var             reports  = new Reports(server);
+
+            await server.Start();
+
+            using var client = await ConnectTo(server);
+
+            await Upgrade(client);
+
+            await server.Shutdown("Bye.");
+
+            await ReadUntilTheServerHangsUp(client);
+
+            await server.Connections.Done(1);
+
+            Assert.That(reports.ClosedBy(server.Connections.Ids.Single()),
+                        Is.EqualTo(new[] { ConnectionClosedBy.Server }),
+                        "reports that the connection closed, and by whom");
+
+        }
+
+        #endregion
+
+        #region AWebSocketConnectionWhoseClientMissesItsPingsIsReportedOnceAsClosedByTheServer()
+
+        /// <summary>
+        /// A WebSocket client says nothing, not even a pong, for longer than
+        /// the server waits, while its connection stays open: the server gives
+        /// it up, and the connection is reported closed once, by the server.
+        /// </summary>
+        /// <remarks>
+        /// The loop ends without a close of its own here, and closes the
+        /// connection on its way out.
+        /// </remarks>
+        [Test]
+        public async Task AWebSocketConnectionWhoseClientMissesItsPingsIsReportedOnceAsClosedByTheServer()
+        {
+
+            await using var server   = new TestWebSocketServer() {
+                                           WebSocketPingEvery   = TimeSpan.FromMilliseconds(200),
+                                           MaxOutstandingPings  = 1
+                                       };
+            var             reports  = new Reports(server);
+
+            await server.Start();
+
+            using (var client = await ConnectTo(server))
+            {
+
+                await Upgrade(client);
+
+                await ReadUntilTheServerHangsUp(client);
+
+            }
+
+            await server.Connections.Done(1);
+
+            Assert.That(reports.ClosedBy(server.Connections.Ids.Single()),
+                        Is.EqualTo(new[] { ConnectionClosedBy.Server }),
+                        "reports that the connection closed, and by whom");
+
+        }
+
+        #endregion
+
+        #region AWebSocketConnectionFailedForAProtocolErrorIsReportedOnceAsClosedByTheServer()
+
+        /// <summary>
+        /// A WebSocket client sends a frame without a mask, which a client must
+        /// not, and the server fails the connection: it is reported closed
+        /// once, by the server - although the client sent the frame that ended
+        /// it.
+        /// </summary>
+        [Test]
+        public async Task AWebSocketConnectionFailedForAProtocolErrorIsReportedOnceAsClosedByTheServer()
+        {
+
+            await using var server   = new TestWebSocketServer();
+            var             reports  = new Reports(server);
+
+            await server.Start();
+
+            using (var client = await ConnectTo(server))
+            {
+
+                await Upgrade(client);
+
+                await client.GetStream().WriteAsync(WebSocketFrame.Text("Hello").ToByteArray());
+
+                await ReadUntilTheServerHangsUp(client);
+
+            }
+
+            await server.Connections.Done(1);
+
+            Assert.That(reports.ClosedBy(server.Connections.Ids.Single()),
+                        Is.EqualTo(new[] { ConnectionClosedBy.Server }),
+                        "reports that the connection closed, and by whom");
 
         }
 

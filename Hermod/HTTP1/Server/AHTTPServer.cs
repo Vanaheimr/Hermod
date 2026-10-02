@@ -132,7 +132,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt32  MaxHTTPChunkMetadataSize      { get; }
 
         /// <summary>
-        /// The maximum time allowed to receive one complete HTTP request header.
+        /// The maximum time allowed to receive one complete HTTP request header
+        /// section, counted from when the server starts waiting for the request:
+        /// on a new connection, or once the previous response on a kept-alive
+        /// connection has been sent. It is therefore also the keep-alive idle
+        /// timeout, and a client sending its header one byte at a time does not
+        /// extend it.
         /// </summary>
         public TimeSpan HeaderReadTimeout { get; }
 
@@ -227,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxHTTPChunkTrailerCount">The maximum number of trailer fields of a chunked HTTP request body. If null, 100.</param>
         /// <param name="MaxHTTPChunkTrailerSize">The maximum size of the trailer section of a chunked HTTP request body, in bytes. If null, 32 KByte.</param>
         /// <param name="MaxHTTPChunkMetadataSize">The maximum size of all chunk-size lines and the trailer section of a chunked HTTP request body together, in bytes. If null, 64 KByte.</param>
-        /// <param name="HeaderReadTimeout">The maximum time to wait for more of an HTTP request header section, and for the next request on a kept-alive connection. It starts again with every read, so it does not bound a header section as a whole. If null, ReceiveTimeout.</param>
+        /// <param name="HeaderReadTimeout">The maximum time to wait for one complete HTTP request header section. It starts when the server starts waiting for the request - on a new connection, or once the previous response on a kept-alive connection has been sent - so it bounds the keep-alive idle wait and the header section together, and it does not start again with every read. If null, ReceiveTimeout.</param>
         /// <param name="BodyReadTimeout">The maximum time allowed to receive one complete HTTP request body. If null, ReceiveTimeout.</param>
         public AHTTPServer(IIPAddress?                                               IPAddress                       = null,
                            IPPort?                                                   TCPPort                         = null,
@@ -509,7 +514,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 CancellationToken  CancellationToken   = default)
         {
 
-            CancellationTokenSource? bodyReadTimeoutCancellation = null;
+            CancellationTokenSource? bodyReadTimeoutCancellation   = null;
+
+            // One deadline per request, not one per read: a timeout that
+            // starts again with every read is kept open by a client sending
+            // one byte at a time, which is the whole of the Slowloris attack.
+            // It is made when the loop first has to wait for a request - on a
+            // new connection, or once the previous response has been sent -
+            // so it bounds the keep-alive idle wait and the header section
+            // together, and it is let go once that header section is complete.
+            CancellationTokenSource? headerReadTimeoutCancellation = null;
 
             try
             {
@@ -537,11 +551,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 while (true)
                 {
 
-                    using var headerReadTimeoutCancellation = CreateReadTimeoutCancellationSource(
-                                                                  CancellationToken,
-                                                                  HeaderReadTimeout
-                                                              );
-
                     #region Read data if no delimiter found yet
 
                     if (dataLength < endOfHTTPHeaderDelimiterLength ||
@@ -566,7 +575,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             break;
                         }
 
-                        // Will read data, or wait until read timeout...
+                        headerReadTimeoutCancellation ??= CreateReadTimeoutCancellationSource(
+                                                              CancellationToken,
+                                                              HeaderReadTimeout
+                                                          );
+
+                        // Will read data, or wait until the header deadline...
                         var bytesRead = await stream.ReadAsync(
                                              buffer.Slice(dataLength, bufferSize),
                                              headerReadTimeoutCancellation.Token
@@ -585,6 +599,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var endOfHTTPHeaderIndex = buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan());
                     if (endOfHTTPHeaderIndex < 0)
                         continue;
+
+                    // This request's header section is complete; the next
+                    // request gets a deadline of its own.
+                    headerReadTimeoutCancellation?.Dispose();
+                    headerReadTimeoutCancellation = null;
 
                     if (!TryValidateHeaderLimits(
                              buffer.Span[..endOfHTTPHeaderIndex],
@@ -1131,7 +1150,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             finally
             {
-                bodyReadTimeoutCancellation?.Dispose();
+                headerReadTimeoutCancellation?.Dispose();
+                bodyReadTimeoutCancellation?.  Dispose();
             }
 
         }

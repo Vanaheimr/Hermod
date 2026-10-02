@@ -212,6 +212,7 @@ var conn = await HTTP2Client.ConnectAsync("localhost", 8443,
         KeepAliveInterval       = TimeSpan.FromSeconds(30),   // 0 = disabled
         TimeProvider            = TimeProvider.System,        // inject a test clock here
         IsBlocklistedCipherSuite = null,                      // null = the RFC 9113 §9.2.2 rule
+        MaxResponseBodySize     = 16 * 1024 * 1024,           // the most a buffered response may bring
 
         // RFC 9110 §8.4 / §11 — the client half of the semantics the server has
         // had all along. Both off by default: they change what goes out on the
@@ -467,6 +468,22 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   its end is given up with `DisposeAsync` (see
   [below](#streaming-trailers--grpc)).
 - Bounded buffered request body (`MaxRequestBodySize`, default 16 MiB).
+- Bounded buffered **response** body on the client (`MaxResponseBodySize`,
+  default 16 MiB — the counterpart of `MaxRequestBodySize`). A response that
+  `SendRequestAsync` collects whole fails with `HTTP2ResponseTooLargeException`
+  at the DATA frame that would take its body past the limit (padding not
+  counted), which is not taken in — or at its HEADERS already, if it declares
+  a larger `content-length`, unless it can have no body at all (the answer to
+  a HEAD request, a 204, a 304; §8.1.1). The stream is reset with
+  `RST_STREAM CANCEL`: the server did nothing wrong, the client wants no more
+  of it. The refused frame, and whatever the server sent before it read the
+  reset, still go back to the connection window; nothing of the request follows
+  the reset, and the stream's slot is free once the reset is out: the
+  connection goes on. The client used to buffer whatever the server sent — it
+  gives a buffered body's window back on receipt, and `MaxDecodedBodySize`
+  bounds only what decoding makes of a body taken in whole. Streamed responses
+  (`StartStreamingRequestAsync`, `DownloadAsync`) and tunnels are read chunk
+  by chunk, and not bound by it.
 - Padding counted against flow control (§6.1); closed-stream DATA still
   window-accounted (§6.9); cookie-crumb reassembly (§8.2.3).
 
@@ -695,8 +712,9 @@ catching up. What it has so far:
   disagrees about.
 - **Decompression-bomb bound** — `MaxDecodedBodySize` (16 MiB default) is
   enforced *during* decompression, not after: checking the output size
-  afterwards would mean the bomb had already gone off. The client-side
-  counterpart of the server's `MaxRequestBodySize`.
+  afterwards would mean the bomb had already gone off. It bounds what decoding
+  makes of a body; the body as it arrives, before any decoding, is bounded by
+  `MaxResponseBodySize` (see [Flow control](#flow-control)).
 - **Answering a 401** (§11) — with `Credentials` set, the client parses the
   `WWW-Authenticate` challenge, picks the strongest scheme it can answer
   (Digest > Bearer > Token > Basic — Basic last, since it hands the password
