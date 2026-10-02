@@ -1860,9 +1860,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// (<see cref="DiscardOversizedResponseAsync"/>).
         /// The client's other resets carry no code: a stream a GOAWAY caught
         /// before its HEADERS went out (<see cref="RegisterExchange"/>), a CONNECT
-        /// the server rejected (<see cref="EndRejectedTunnelAsync"/>) or one the
-        /// caller gave up opening (<see cref="OpenTunnelAsync"/>), where nobody
-        /// gets to write; a stream the application has given up
+        /// the server rejected (<see cref="EndRejectedTunnelAsync"/>), one the
+        /// caller gave up opening (<see cref="OpenTunnelAsync"/>) or a buffered
+        /// response larger than it may be (<see cref="RefuseOversizedResponseAsync"/>),
+        /// where nobody gets to write; a stream the application has given up
         /// (<see cref="AbandonAsync"/>, which says so on the stream:
         /// <see cref="HTTP2Stream.GivenUp"/>), where a write that waited on it
         /// fails as a call after its DisposeAsync does, with an
@@ -2328,6 +2329,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     return;
                 }
+
+                // A buffered response that declares more body than it may hold is
+                // refused now, before any of it arrives, rather than at the DATA
+                // frame that takes it past the limit (see HandleDataAsync) —
+                // unless it can have no body at all, whatever it declares, or
+                // these HEADERS end the stream: they bring no body to bound, and
+                // the stream may be closed on both sides then, when it takes no
+                // RST_STREAM (RFC 9113, Section 5.1).
+                //
+                // The read loop does not wait for the reset here, as it does not
+                // for a rejected CONNECT's (above): should the write lock be busy,
+                // it may handle DATA up to the server's END_STREAM before the
+                // RST_STREAM goes out, which then crosses that END_STREAM, and
+                // the server ignores it (Section 5.1).
+                if (!EndStream &&
+                    DeclaredContentLength(Decoded) is { } declared &&
+                    declared > options.MaxResponseBodySize &&
+                    !HasNoContent(Exchange, Decoded))
+                {
+
+                    _ = RefuseOversizedResponseAsync(
+                            Exchange,
+                            new HTTP2ResponseTooLargeException(
+                                HTTP2ErrorCode.CANCEL,
+                                Exchange.Stream.StreamId,
+                                options.MaxResponseBodySize,
+                                declared,
+                                0,
+                                $"Declared content-length {declared} exceeds the {options.MaxResponseBodySize}-byte limit of a buffered response (MaxResponseBodySize). " +
+                                $"Stream reset by client: {HTTP2ErrorCode.CANCEL}"
+                            )
+                        );
+
+                    return;
+
+                }
             }
             else
             {
@@ -2505,6 +2542,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     if (length > 0 && exchange.ResponseChunks!.Writer.TryWrite(payload.ToArray()))
                         withheld = length;
                 }
+                else if (exchange.Body.Length + length > options.MaxResponseBodySize)
+                {
+
+                    // A buffered body is handed over whole at its end, and its
+                    // window goes back on receipt (below): nothing but this limit
+                    // keeps a server from making the client hold all it sends. The
+                    // frame that would take the body past it is not taken in. Its
+                    // window goes back to the connection all the same, padding
+                    // included (Sections 6.1 and 6.9): the server has counted it
+                    // there, and the connection goes on. Not to the stream, which
+                    // the refusal resets.
+                    var received = exchange.Body.Length + length;
+
+                    await ReplenishReceiveWindowsAsync(null, StreamCredit: 0, ConnectionCredit: flowLength);
+
+                    await RefuseOversizedResponseAsync(
+                              exchange,
+                              new HTTP2ResponseTooLargeException(
+                                  HTTP2ErrorCode.CANCEL,
+                                  Frame.StreamId,
+                                  options.MaxResponseBodySize,
+                                  DeclaredContentLength(exchange.Headers),
+                                  received,
+                                  $"Response body exceeds the {options.MaxResponseBodySize}-byte limit of a buffered response (MaxResponseBodySize): {received} bytes received. " +
+                                  $"Stream reset by client: {HTTP2ErrorCode.CANCEL}"
+                              )
+                          );
+
+                    return;
+
+                }
                 else
                     exchange.Body.Write(payload);
             }
@@ -2667,6 +2735,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             => Stream.State is HTTP2StreamState.Open
                             or HTTP2StreamState.HalfClosedLocal;
+
+        #endregion
+
+
+        #region Response body limit (MaxResponseBodySize)
+
+        /// <summary>
+        /// Refuse a buffered response that would take more than
+        /// <see cref="HTTP2ClientOptions.MaxResponseBodySize"/>: at its HEADERS,
+        /// for the content-length it declares, or at the DATA frame that would
+        /// take its body past the limit.
+        ///
+        /// Its exchange goes at once, before anything is awaited, so that the read
+        /// loop hands nothing more of the stream to it: DATA the server sent
+        /// before it read the RST_STREAM finds no exchange, and gives its window
+        /// back to the connection (see <see cref="HandleDataAsync"/>). Then the
+        /// stream is reset with RST_STREAM CANCEL: the server did nothing wrong,
+        /// the client wants no more of the stream. A request body still being
+        /// sent on it stops there, and its slot is free — not before: the stream
+        /// counts until it is reset, so the removal of the exchange wakes nobody
+        /// waiting for a slot, as <see cref="RemoveExchange"/> would. The response
+        /// fails last, with <paramref name="Failure"/>, once the RST_STREAM is on
+        /// the wire: a caller who goes on with another request finds the slot
+        /// free.
+        ///
+        /// Trailers the server sent before it read the RST_STREAM find no
+        /// exchange either: their header block is decoded, for the HPACK table
+        /// the server has added to, and dropped (see <see cref="CompleteHeaderBlock(UInt32)"/>).
+        /// </summary>
+        private async Task RefuseOversizedResponseAsync(ClientExchange                  Exchange,
+                                                        HTTP2ResponseTooLargeException  Failure)
+        {
+
+            lock (exchangesLock)
+                exchanges.Remove(Exchange.Stream.StreamId);
+
+            try
+            {
+
+                if (await ResetStreamAsync(Exchange.Stream, Failure.ErrorCode))
+                {
+
+                    SignalStreamSlotFreed();
+
+                    // The writer loop looks again: a request body queued on the
+                    // stream is not sent, as the stream is closed now.
+                    SignalWriterWakeup();
+
+                }
+
+            }
+            catch
+            {
+                // The write fails only as the connection ends, and every stream with it.
+            }
+
+            Exchange.Completion.TrySetException(Failure);
+
+        }
+
+        /// <summary>
+        /// The content-length a response declares (RFC 9113, Section 8.1.1), if it
+        /// declares one the client can read. One that is no number bounds
+        /// nothing here, and nor does a second, which makes the response
+        /// malformed: the body is bounded as its DATA frames arrive all the same.
+        /// </summary>
+        private static Int64? DeclaredContentLength(List<(String Name, String Value)>? Headers)
+        {
+
+            foreach (var (name, value) in Headers ?? [])
+            {
+                if (name == "content-length" &&
+                    Int64.TryParse(value,
+                                   System.Globalization.NumberStyles.None,
+                                   System.Globalization.CultureInfo.InvariantCulture,
+                                   out var length))
+                {
+                    return length;
+                }
+            }
+
+            return null;
+
+        }
+
+        /// <summary>
+        /// Whether a response can have no content, whatever content-length it
+        /// declares (RFC 9110, Section 6.4.1): the answer to a HEAD request, a 204
+        /// and a 304. RFC 9113, Section 8.1.1 lets such a response give the
+        /// length of the representation it leaves out, and a DATA frame may still
+        /// end its stream, empty. (A 1xx is no final response, and is never asked
+        /// about.)
+        /// </summary>
+        private static Boolean HasNoContent(ClientExchange                     Exchange,
+                                            List<(String Name, String Value)>  ResponseHeaders)
+
+            => Exchange.RequestHeaders.FirstOrDefault(header => header.Name == ":method").Value == "HEAD" ||
+               ResponseHeaders.        FirstOrDefault(header => header.Name == ":status").Value is "204" or "304";
 
         #endregion
 

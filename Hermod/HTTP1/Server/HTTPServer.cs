@@ -168,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxHTTPChunkTrailerCount">The maximum number of trailer fields of a chunked HTTP request body. If null, 100.</param>
         /// <param name="MaxHTTPChunkTrailerSize">The maximum size of the trailer section of a chunked HTTP request body, in bytes. If null, 32 KByte.</param>
         /// <param name="MaxHTTPChunkMetadataSize">The maximum size of all chunk-size lines and the trailer section of a chunked HTTP request body together, in bytes. If null, 64 KByte.</param>
-        /// <param name="HeaderReadTimeout">The maximum time to wait for more of an HTTP request header section, and for the next request on a kept-alive connection. It starts again with every read, so it does not bound a header section as a whole. If null, ReceiveTimeout.</param>
+        /// <param name="HeaderReadTimeout">The maximum time to wait for one complete HTTP request header section. It starts when the server starts waiting for the request - on a new connection, or once the previous response on a kept-alive connection has been sent - so it bounds the keep-alive idle wait and the header section together, and it does not start again with every read. If null, ReceiveTimeout.</param>
         /// <param name="BodyReadTimeout">The maximum time allowed to receive one complete HTTP request body. If null, ReceiveTimeout.</param>
         /// <param name="IncludeStackTracesInErrorResponses">Whether internal exception details and stack traces are included in HTTP error responses.</param>
         public HTTPServer(IIPAddress?                                               IPAddress                    = null,
