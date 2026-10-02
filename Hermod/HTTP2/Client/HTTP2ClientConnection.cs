@@ -55,7 +55,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         private readonly Stream              transportStream;
         private readonly HTTP2Settings       localSettings    = new();
-        private readonly HTTP2Settings       remoteSettings   = new();
+
+        /// <summary>
+        /// What the server has stated, and our own defaults for what it has not —
+        /// but for MAX_HEADER_LIST_SIZE, whose initial value is unlimited (RFC
+        /// 9113, Section 6.5.2): a server that never states one is held to none
+        /// of ours.
+        /// </summary>
+        private readonly HTTP2Settings       remoteSettings   = new() { MaxHeaderListSize = UInt32.MaxValue };
         private readonly HTTP2StreamManager  streamManager    = new(HTTP2Role.Client);
         private readonly HPACKDecoder        hpackDecoder     = new();
         private readonly HPACKEncoder        hpackEncoder     = new();
@@ -240,6 +247,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 (HTTP2SettingsParameter.INITIAL_WINDOW_SIZE,    localSettings.InitialWindowSize),
                 (HTTP2SettingsParameter.MAX_FRAME_SIZE,         localSettings.MaxFrameSize),
                 (HTTP2SettingsParameter.ENABLE_PUSH,            0),  // We don't accept server push
+                // RFC 9113, Section 6.5.2: the limit we hold a response's header
+                // list to (see EnforceHeaderBufferLimit).
+                (HTTP2SettingsParameter.MAX_HEADER_LIST_SIZE,   localSettings.MaxHeaderListSize),
                 // RFC 9218, Section 3: we use the modern priority scheme (the
                 // "priority" header + PRIORITY_UPDATE), not RFC 7540 priority.
                 (HTTP2SettingsParameter.NO_RFC7540_PRIORITIES,  1)
@@ -1169,11 +1179,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <c>EnforceOutboundHeaderListSize</c>, sharing its accounting through
         /// <see cref="HTTP2HeaderList.UncompressedSize"/>.
         ///
-        /// Before the peer's SETTINGS arrive this compares against our default rather
-        /// than their real limit, which is unavoidable — the first request may leave
-        /// before they have said anything — and harmless: the check is advisory in
-        /// both directions, and the inbound half at the peer remains the real
-        /// enforcement.
+        /// A peer that has stated no limit has none (the setting's initial value is
+        /// unlimited), and nothing is refused here. It used to be held to our own
+        /// default — 8 KiB then — for as long as it stated nothing, which was the
+        /// whole connection for a peer that never states the setting, and requests
+        /// it would have taken were refused before they left.
         /// </summary>
         private Boolean ExceedsPeerHeaderListSize(List<(String Name, String Value)> Headers, out Int64 Size)
         {

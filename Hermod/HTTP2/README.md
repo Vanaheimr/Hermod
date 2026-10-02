@@ -543,13 +543,17 @@ before, and the most a connection can be made to hold is four times that.
   accumulation + a per-block CONTINUATION cap (server **and** client).
 - PING/SETTINGS/PRIORITY_UPDATE flood counting.
 - Stream-ID exhaustion handling (proactive GOAWAY + `REFUSED_STREAM`).
-- Inbound + outbound `MAX_HEADER_LIST_SIZE` enforcement, on **both** roles: the
-  limit is advisory in the RFC's words but refusing early is strictly better than
-  spending a round trip on headers that come back as a stream reset. Measured on
-  the *uncompressed* list (`HTTP2HeaderList.UncompressedSize`, name + value + 32
-  per field), since the compressed size depends on whichever connection's dynamic
-  table the block travels on. The client refuses a request before allocating its
-  stream, so nothing declined consumes a stream ID.
+- Inbound + outbound `MAX_HEADER_LIST_SIZE` enforcement, on **both** roles. Each
+  states its own limit, 32 KiB, in its connection preface, and holds the peer to
+  the limit the peer stated — to none before that: the setting's initial value is
+  unlimited (§6.5.2). Both used to keep their limit to themselves, and to hold a
+  peer that stated none to their own. On the way out the limit is advisory in the
+  RFC's words, but refusing early is strictly better than spending a round trip
+  on headers that come back as a stream reset. Measured on the *uncompressed* list
+  (`HTTP2HeaderList.UncompressedSize`, name + value + 32 per field), since the
+  compressed size depends on whichever connection's dynamic table the block
+  travels on. The client refuses a request before allocating its stream, so
+  nothing declined consumes a stream ID.
 - Per-stream `RST_STREAM` cancellation (a `CancellationToken` into the handler).
   The end of a connection resets every stream still open on it, as the peer's
   `RST_STREAM` would: each handler's token fires, its reads and writes fail and

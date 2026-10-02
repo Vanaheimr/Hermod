@@ -83,7 +83,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private readonly Func<List<(string Name, string Value)>, bool> acceptEarlyData;
         private readonly HTTP2Settings        localSettings  = new();
-        private readonly HTTP2Settings        remoteSettings = new();
+
+        /// <summary>
+        /// What the client has stated, and our own defaults for what it has not —
+        /// but for MAX_HEADER_LIST_SIZE, whose initial value is unlimited (RFC
+        /// 9113, Section 6.5.2): a client that never states one is held to none
+        /// of ours.
+        /// </summary>
+        private readonly HTTP2Settings        remoteSettings = new() { MaxHeaderListSize = UInt32.MaxValue };
         private readonly HTTP2StreamManager   streamManager  = new();
         private readonly HPACKDecoder         hpackDecoder   = new();
         private readonly HPACKEncoder         hpackEncoder   = new();
@@ -433,6 +440,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 (HTTP2SettingsParameter.INITIAL_WINDOW_SIZE,      localSettings.InitialWindowSize),
                 (HTTP2SettingsParameter.MAX_FRAME_SIZE,           localSettings.MaxFrameSize),
                 (HTTP2SettingsParameter.ENABLE_PUSH,              0),   // We don't do server push
+
+                // RFC 9113, Section 6.5.2: the limit we hold a request's header
+                // list to (see EnforceHeaderBufferLimit). Unstated, it held
+                // clients that had no way of knowing it.
+                (HTTP2SettingsParameter.MAX_HEADER_LIST_SIZE,     localSettings.MaxHeaderListSize),
 
                 // RFC 9218, Section 3: unconditional, since we already ignore
                 // RFC 7540's stream-dependency/weight priority signaling
