@@ -540,7 +540,9 @@ before, and the most a connection can be made to hold is four times that.
 
 - **Rapid Reset mitigation (CVE-2023-44487)** — a peer-reset-ratio guard.
 - **CONTINUATION-flood mitigation (CVE-2024-27316)** — bounded header-block
-  accumulation + a per-block CONTINUATION cap (server **and** client).
+  accumulation (at most twice `MAX_HEADER_LIST_SIZE` of compressed bytes, held
+  until the block can be decoded) + a per-block CONTINUATION cap (server **and**
+  client).
 - PING/SETTINGS/PRIORITY_UPDATE flood counting.
 - Stream-ID exhaustion handling (proactive GOAWAY + `REFUSED_STREAM`).
 - Inbound + outbound `MAX_HEADER_LIST_SIZE` enforcement, on **both** roles. Each
@@ -554,6 +556,19 @@ before, and the most a connection can be made to hold is four times that.
   compressed size depends on whichever connection's dynamic table the block
   travels on. The client refuses a request before allocating its stream, so
   nothing declined consumes a stream ID.
+- On the way in, each block's *decoded* list is measured against our limit,
+  before anything else looks at it, and a list past it is answered on its stream
+  (§10.5.1): the server answers a request with **431** without calling a handler
+  (a body that follows is dropped, and the client asked to stop it with
+  `RST_STREAM NO_ERROR` once the 431 is complete), resets a stream whose trailers
+  are past it with `PROTOCOL_ERROR`; the client fails that one request, and resets
+  its stream with `PROTOCOL_ERROR`. The block is decoded either way — HPACK has to
+  see every block — and only one past twice the limit in compressed bytes ends the
+  connection. This used to be a connection error at the limit itself, measured on
+  the compressed bytes: every stream went down with the one that carried a large
+  block, and a small block that decoded to a huge list passed (an HPACK bomb: 2000
+  one-byte references to a 4000-byte cookie in the dynamic table reached the
+  handler as one cookie of 8 MB).
 - Per-stream `RST_STREAM` cancellation (a `CancellationToken` into the handler).
   The end of a connection resets every stream still open on it, as the peer's
   `RST_STREAM` would: each handler's token fires, its reads and writes fail and
@@ -1250,13 +1265,13 @@ they're common in the wild:
 | Threat | Defense |
 |---|---|
 | HTTP/2 Rapid Reset (CVE-2023-44487) | Peer-reset-ratio guard → `GOAWAY ENHANCE_YOUR_CALM` |
-| CONTINUATION flood (CVE-2024-27316) | Bounded header buffer + per-block CONTINUATION cap (both roles) |
+| CONTINUATION flood (CVE-2024-27316) | Header buffer bounded at twice `MAX_HEADER_LIST_SIZE` + per-block CONTINUATION cap (both roles) |
 | PING / SETTINGS / PRIORITY_UPDATE floods | Unproductive-frame counting |
 | Slowloris (trickle / withhold) | Handshake / preface / idle / in-progress / SETTINGS-ACK timeouts |
 | Memory exhaustion by fast producer | Consumption-driven backpressure (at most `ConnectionWindowSize` held per connection) + bounded buffered body |
 | One stalled stream holding up the connection | Connection window four stream windows; owed window returned once the peer has no more left |
 | Stream-ID exhaustion | Proactive GOAWAY + `REFUSED_STREAM` |
-| Oversized header lists | Inbound + outbound `MAX_HEADER_LIST_SIZE`, both roles |
+| Oversized header lists, HPACK bombs | `MAX_HEADER_LIST_SIZE` stated, and held to the *decoded* list: 431 / stream reset inbound, refusal outbound (both roles) |
 | Range amplification | `MaxRanges` cap on a byte-range set |
 | Weak TLS 1.2 cipher suites | RFC 9113 Appendix A check → `GOAWAY INADEQUATE_SECURITY` |
 | Decompression bombs | `MaxDecodedBodySize`, enforced *during* decode |

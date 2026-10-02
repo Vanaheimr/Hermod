@@ -248,7 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 (HTTP2SettingsParameter.MAX_FRAME_SIZE,         localSettings.MaxFrameSize),
                 (HTTP2SettingsParameter.ENABLE_PUSH,            0),  // We don't accept server push
                 // RFC 9113, Section 6.5.2: the limit we hold a response's header
-                // list to (see EnforceHeaderBufferLimit).
+                // list to (see CompleteHeaderBlock).
                 (HTTP2SettingsParameter.MAX_HEADER_LIST_SIZE,   localSettings.MaxHeaderListSize),
                 // RFC 9218, Section 3: we use the modern priority scheme (the
                 // "priority" header + PRIORITY_UPDATE), not RFC 7540 priority.
@@ -1854,7 +1854,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <see cref="HTTP2StreamException"/> that carries the reset's error code,
         /// which the stream keeps — the server's (see <see cref="HandleRstStream"/>),
         /// or the one of our own RST_STREAM, once the writer loop has reset the
-        /// stream for a failure of its own there (<see cref="ResetAfterStreamErrorAsync"/>).
+        /// stream for a failure of its own there (<see cref="ResetAfterStreamErrorAsync"/>),
+        /// or once we have discarded a response for the size of its header list,
+        /// while a streamed request may still be written on
+        /// (<see cref="DiscardOversizedResponseAsync"/>).
         /// The client's other resets carry no code: a stream a GOAWAY caught
         /// before its HEADERS went out (<see cref="RegisterExchange"/>), a CONNECT
         /// the server rejected (<see cref="EndRejectedTunnelAsync"/>) or one the
@@ -1959,8 +1962,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// so none follows the RST_STREAM. And a request given the slot so freed
         /// sends its HEADERS after it, as they need the lock as well: the server
         /// never counts both streams at once.
+        ///
+        /// With <paramref name="KeepCode"/>, the stream keeps the RST_STREAM's code
+        /// (<see cref="HTTP2Stream.OwnResetCode"/>), and a write on it fails with
+        /// that code (see ThrowIfReset): for a stream the application may still
+        /// write on, without having given it up.
         /// </summary>
-        private async Task<Boolean> ResetStreamAsync(HTTP2Stream Stream, HTTP2ErrorCode ErrorCode)
+        private async Task<Boolean> ResetStreamAsync(HTTP2Stream Stream, HTTP2ErrorCode ErrorCode, Boolean KeepCode = false)
         {
 
             var bytes = HTTP2Frame.CreateRstStream(Stream.StreamId, ErrorCode).Serialize();
@@ -1970,7 +1978,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             try
             {
 
-                if (!Stream.TryReset())
+                if (!Stream.TryReset(KeepCode ? ErrorCode : null))
                     return false;
 
                 await transportStream.WriteAsync(bytes, cancellationToken);
@@ -2184,17 +2192,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
-        /// Bound the response header block we're accumulating against our advertised
-        /// MAX_HEADER_LIST_SIZE, so a server can't exhaust client memory by never
-        /// setting END_HEADERS (the client-side mirror of the server's
-        /// EnforceHeaderBufferLimit).
+        /// Bound what a response header block makes us hold before it is complete,
+        /// so a server can't exhaust client memory by never setting END_HEADERS
+        /// (the client-side mirror of the server's EnforceHeaderBufferLimit). A
+        /// block is held whole until it can be decoded, as every block must be,
+        /// and its decoded list is held to our MAX_HEADER_LIST_SIZE then (see
+        /// CompleteHeaderBlock). Here its compressed bytes are bounded, at twice
+        /// that limit: a server a little past the limit costs the one response,
+        /// and only one far past it the connection.
         /// </summary>
         private void EnforceHeaderBufferLimit()
         {
-            if (headerBlock.Length > localSettings.MaxHeaderListSize)
+            if (headerBlock.Length > MaxHeaderBlockSize)
                 throw new HTTP2ConnectionException(HTTP2ErrorCode.ENHANCE_YOUR_CALM,
-                    $"Response header block exceeds MAX_HEADER_LIST_SIZE ({localSettings.MaxHeaderListSize} bytes)");
+                    $"Response header block exceeds {MaxHeaderBlockSize} bytes, twice MAX_HEADER_LIST_SIZE ({localSettings.MaxHeaderListSize} bytes)");
         }
+
+        /// <summary>
+        /// The most of a header block's compressed bytes we hold, twice our
+        /// MAX_HEADER_LIST_SIZE: see <see cref="EnforceHeaderBufferLimit"/>.
+        /// </summary>
+        private Int64 MaxHeaderBlockSize
+
+            => 2 * (Int64) localSettings.MaxHeaderListSize;
 
         /// <summary>
         /// The header block of <paramref name="StreamId"/> is complete: decode it,
@@ -2221,8 +2241,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var decoded = hpackDecoder.DecodeHeaderBlock(block);
 
             var exchange = GetExchange(StreamId);
-            if (exchange is not null)
-                CompleteHeaderBlock(exchange, decoded, headerBlockEndsStream);
+            if (exchange is null)
+                return;
+
+            // RFC 9113, Section 6.5.2: the MAX_HEADER_LIST_SIZE we stated is on the
+            // decoded list of each block, interim responses and trailers included,
+            // and it is measured before anything else looks at the list: a block of
+            // a few kilobytes can decode to megabytes.
+            var headerListSize = HTTP2HeaderList.UncompressedSize(decoded);
+
+            if (headerListSize > localSettings.MaxHeaderListSize)
+            {
+                _ = DiscardOversizedResponseAsync(exchange, headerBlockEndsStream, headerListSize);
+                return;
+            }
+
+            CompleteHeaderBlock(exchange, decoded, headerBlockEndsStream);
 
         }
 
@@ -2307,6 +2341,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     FinalizeStreamingResponse(Exchange);
                 else
                     CompleteResponse(Exchange);
+            }
+
+        }
+
+        /// <summary>
+        /// Discard a response whose header block decodes to a list past the
+        /// MAX_HEADER_LIST_SIZE we stated. RFC 9113, Section 10.5.1 lets a client
+        /// discard a response it cannot process, and has such a response treated
+        /// as malformed: a stream error of type PROTOCOL_ERROR (Section 8.1.1), as
+        /// a response without a :status is. The request fails with it, and the
+        /// stream is reset, unless the block ended it; the connection and its other
+        /// streams go on. What the server sent on the stream before it read our
+        /// RST_STREAM is ignored, its header blocks decoded (see HandleHeaders).
+        ///
+        /// The exchange goes at once, on the read loop, so that nothing more of
+        /// the stream reaches it. A block that ends the server's side closes the
+        /// stream, if ours has ended as well, and nothing but PRIORITY goes out on
+        /// a closed stream (RFC 9113, Section 5.1): the response is discarded, and
+        /// that is all. Any other stream is reset with RST_STREAM PROTOCOL_ERROR,
+        /// so that the server sends no more of the response, nor we of the
+        /// request: decided and done under the write lock, so that nothing of ours
+        /// follows it (<see cref="ResetStreamAsync"/>), and a write the request
+        /// makes after it fails with that code (see ThrowIfReset). The request
+        /// fails, and the stream's slot under MAX_CONCURRENT_STREAMS is free, once
+        /// the RST_STREAM is out.
+        /// </summary>
+        private async Task DiscardOversizedResponseAsync(ClientExchange Exchange, Boolean EndStream, Int64 HeaderListSize)
+        {
+
+            var stream = Exchange.Stream;
+
+            RemoveExchange(stream.StreamId);
+
+            if (EndStream)
+                CloseRemoteIfOpen(stream);
+
+            var reset = false;
+
+            try
+            {
+                reset = await ResetStreamAsync(stream, HTTP2ErrorCode.PROTOCOL_ERROR, KeepCode: true);
+            }
+            catch
+            {
+                // The write fails only as the connection ends, and every stream with it.
+            }
+            finally
+            {
+
+                FailExchange(Exchange,
+                             new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, stream.StreamId,
+                                 $"The response header list ({HeaderListSize} bytes uncompressed) exceeds our " +
+                                 $"MAX_HEADER_LIST_SIZE ({localSettings.MaxHeaderListSize} bytes)"));
+
+                SignalStreamSlotFreed();
+
+                // The writer loop lets go of what is queued on the stream.
+                if (reset)
+                    SignalWriterWakeup();
+
             }
 
         }
