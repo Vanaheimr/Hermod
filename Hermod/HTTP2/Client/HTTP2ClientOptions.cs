@@ -87,10 +87,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Ceiling on a decoded response body, enforced *during* decompression.
         /// A few kilobytes of gzip can expand to gigabytes, so a client that
         /// decodes automatically needs a bound just as much as a server that
-        /// buffers request bodies — this is the client-side counterpart of the
-        /// server's <c>MaxRequestBodySize</c>, and shares its 16 MiB default.
+        /// buffers request bodies: <see cref="MaxResponseBodySize"/> bounds the
+        /// body as it arrives, this bounds what decoding makes of it, with the
+        /// same 16 MiB default.
         /// </summary>
         public long     MaxDecodedBodySize      { get; init; } = 16 * 1024 * 1024;
+
+        /// <summary>
+        /// Ceiling on the body of a buffered response — one that
+        /// <see cref="HTTP2ClientConnection.SendRequestAsync"/> collects whole
+        /// before it hands it over — in DATA octets as they arrive, padding not
+        /// counted, before any decoding. Nobody reads such a body before it has
+        /// ended, so the client gives back the flow-control window of what it
+        /// takes in at once, and without a bound a server could make it hold as
+        /// much as it cares to send. The client-side counterpart of the server's
+        /// <c>MaxRequestBodySize</c>, with its 16 MiB default.
+        ///
+        /// The DATA frame that would take the body past it is not taken in: the
+        /// response fails with an <see cref="HTTP2ResponseTooLargeException"/>,
+        /// and the stream is reset with RST_STREAM CANCEL. A response that
+        /// declares a content-length above it fails the same way at its HEADERS,
+        /// before any of its body arrives — unless it can have no body at all, as
+        /// the answer to a HEAD request, a 204 or a 304 (RFC 9113, Section 8.1.1).
+        /// The connection goes on: the refused frame, and whatever the server had
+        /// sent on the stream before it read the RST_STREAM, still go back to the
+        /// connection's window.
+        ///
+        /// Streamed responses (<see cref="HTTP2ClientConnection.StartStreamingRequestAsync"/>,
+        /// <see cref="HTTP2ClientConnection.DownloadAsync"/>) and tunnels are not
+        /// buffered, and not bound by this.
+        /// </summary>
+        public long     MaxResponseBodySize     { get; init; } = 16 * 1024 * 1024;
 
         /// <summary>
         /// Ask for an RFC 9530 digest on every request (<c>want-content-digest</c>)
