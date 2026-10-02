@@ -579,16 +579,35 @@ before, and the most a connection can be made to hold is four times that.
 
 - **Rapid Reset mitigation (CVE-2023-44487)** — a peer-reset-ratio guard.
 - **CONTINUATION-flood mitigation (CVE-2024-27316)** — bounded header-block
-  accumulation + a per-block CONTINUATION cap (server **and** client).
+  accumulation (at most twice `MAX_HEADER_LIST_SIZE` of compressed bytes, held
+  until the block can be decoded) + a per-block CONTINUATION cap (server **and**
+  client).
 - PING/SETTINGS/PRIORITY_UPDATE flood counting.
 - Stream-ID exhaustion handling (proactive GOAWAY + `REFUSED_STREAM`).
-- Inbound + outbound `MAX_HEADER_LIST_SIZE` enforcement, on **both** roles: the
-  limit is advisory in the RFC's words but refusing early is strictly better than
-  spending a round trip on headers that come back as a stream reset. Measured on
-  the *uncompressed* list (`HTTP2HeaderList.UncompressedSize`, name + value + 32
-  per field), since the compressed size depends on whichever connection's dynamic
-  table the block travels on. The client refuses a request before allocating its
-  stream, so nothing declined consumes a stream ID.
+- Inbound + outbound `MAX_HEADER_LIST_SIZE` enforcement, on **both** roles. Each
+  states its own limit, 32 KiB, in its connection preface, and holds the peer to
+  the limit the peer stated — to none before that: the setting's initial value is
+  unlimited (§6.5.2). Both used to keep their limit to themselves, and to hold a
+  peer that stated none to their own. On the way out the limit is advisory in the
+  RFC's words, but refusing early is strictly better than spending a round trip
+  on headers that come back as a stream reset. Measured on the *uncompressed* list
+  (`HTTP2HeaderList.UncompressedSize`, name + value + 32 per field), since the
+  compressed size depends on whichever connection's dynamic table the block
+  travels on. The client refuses a request before allocating its stream, so
+  nothing declined consumes a stream ID.
+- On the way in, each block's *decoded* list is measured against our limit,
+  before anything else looks at it, and a list past it is answered on its stream
+  (§10.5.1): the server answers a request with **431** without calling a handler
+  (a body that follows is dropped, and the client asked to stop it with
+  `RST_STREAM NO_ERROR` once the 431 is complete), resets a stream whose trailers
+  are past it with `PROTOCOL_ERROR`; the client fails that one request, and resets
+  its stream with `PROTOCOL_ERROR`. The block is decoded either way — HPACK has to
+  see every block — and only one past twice the limit in compressed bytes ends the
+  connection. This used to be a connection error at the limit itself, measured on
+  the compressed bytes: every stream went down with the one that carried a large
+  block, and a small block that decoded to a huge list passed (an HPACK bomb: 2000
+  one-byte references to a 4000-byte cookie in the dynamic table reached the
+  handler as one cookie of 8 MB).
 - Per-stream `RST_STREAM` cancellation (a `CancellationToken` into the handler).
   The end of a connection resets every stream still open on it, as the peer's
   `RST_STREAM` would: each handler's token fires, its reads and writes fail and
@@ -1237,6 +1256,16 @@ that prints, which is roughly what the library used to hardcode.
   `OperationCanceledException`, as before: the end of a connection is no reset
   with an error code, which a write would report as an `HTTP2StreamException`.
   The reset sends nothing, and an ended connection counts no stream as active.
+- **Every end of the read loop fails what is left on the connection**, also one
+  that comes between two frames: `CloseAsync`, or the token the connection was
+  made with, while the loop handles a frame, or while it takes one from a read
+  that does not look at the token — `SslStream` hands out what it has decrypted
+  already, whatever the token says. The loop used to stop at its condition then,
+  with no exception, and failed nothing. A buffered request failed all the same,
+  as it waits with the connection's token, but a streamed response waits with
+  its caller's alone: its `GetResponseAsync`, `ReadAsync` and `GetTrailersAsync`
+  waited for good. They fail now with an `OperationCanceledException`, as when
+  the end finds the loop in a read.
 - **Slots and windows follow the stream**: the `MAX_CONCURRENT_STREAMS` gate,
   and `AvailableStreamSlots` for the pool, count the streams that are open or
   half-closed (§5.1.2), as the stream allocator and the server do, not the
@@ -1259,6 +1288,20 @@ that prints, which is roughly what the library used to hardcode.
   `HTTP2ConnectionException` the connection ended over. They used to fail with
   "A task was canceled.": the read loop fails them with the error and then
   cancels the connection, and the cancellation reached their waits first.
+- **The client closes its TCP connection when the connection ends**: after
+  `CloseAsync`, after a connection error's `GOAWAY` (§5.4.1), after the
+  keepalive's teardown and after the server closed its side, and when
+  `ConnectAsync` fails once the socket is open (a TLS handshake, ALPN, or a
+  start that fails). It used to leave the socket to the GC, in `CLOSE_WAIT` once
+  the server had closed: cancelling a pending read does not close a socket.
+  After a connection error's `GOAWAY` it reads and discards what the server
+  still sends, for up to 250 ms, as the server does, so that the close is a FIN
+  behind the `GOAWAY`, not a reset that may discard it. `CloseAsync` returns once
+  the connection has ended and the socket is closed, and its `GOAWAY NO_ERROR`
+  gets the same second as a connection error's: behind a write that never
+  ended, `CloseAsync` used not to return. A connection built on a stream of
+  your own (`new HTTP2ClientConnection(stream)`) leaves it open, as before;
+  `OwnsTransport: true` hands it over to be closed.
 - **`HTTP2ClientPool`**: a single-origin pool that keeps N warm connections
   (default 4), routes to the least-loaded, transparently fails over
   not-processed requests, and self-heals dead connections in the background.
@@ -1286,13 +1329,13 @@ they're common in the wild:
 | Threat | Defense |
 |---|---|
 | HTTP/2 Rapid Reset (CVE-2023-44487) | Peer-reset-ratio guard → `GOAWAY ENHANCE_YOUR_CALM` |
-| CONTINUATION flood (CVE-2024-27316) | Bounded header buffer + per-block CONTINUATION cap (both roles) |
+| CONTINUATION flood (CVE-2024-27316) | Header buffer bounded at twice `MAX_HEADER_LIST_SIZE` + per-block CONTINUATION cap (both roles) |
 | PING / SETTINGS / PRIORITY_UPDATE floods | Unproductive-frame counting |
 | Slowloris (trickle / withhold) | Handshake / preface / idle / in-progress / SETTINGS-ACK timeouts |
 | Memory exhaustion by fast producer | Consumption-driven backpressure (at most `ConnectionWindowSize` held per connection) + bounded buffered body |
 | One stalled stream holding up the connection | Connection window four stream windows; owed window returned once the peer has no more left |
 | Stream-ID exhaustion | Proactive GOAWAY + `REFUSED_STREAM` |
-| Oversized header lists | Inbound + outbound `MAX_HEADER_LIST_SIZE`, both roles |
+| Oversized header lists, HPACK bombs | `MAX_HEADER_LIST_SIZE` stated, and held to the *decoded* list: 431 / stream reset inbound, refusal outbound (both roles) |
 | Range amplification | `MaxRanges` cap on a byte-range set |
 | Weak TLS 1.2 cipher suites | RFC 9113 Appendix A check → `GOAWAY INADEQUATE_SECURITY` |
 | Decompression bombs | `MaxDecodedBodySize`, enforced *during* decode |

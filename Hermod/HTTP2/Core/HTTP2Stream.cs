@@ -462,12 +462,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// The error code of our own RST_STREAM that closed this stream, as
-        /// <see cref="Reset(HTTP2ErrorCode)"/> keeps it; null before that, after a
-        /// reset of ours that was not given one, and after a reset that came
-        /// second: the peer's was first then, and <see cref="PeerResetCode"/>
-        /// says why. The client passes it, as it passes the peer's, so that a
-        /// write on a stream it has reset itself — its DATA writer loop, for a
-        /// failure of its own on that stream — fails with the code its
+        /// <see cref="Reset(HTTP2ErrorCode)"/> and <see cref="TryReset"/> keep it;
+        /// null before that, after a reset of ours that was not given one, and
+        /// after a reset that came second: the peer's was first then, and
+        /// <see cref="PeerResetCode"/> says why. The client passes it, as it passes
+        /// the peer's, so that a write on a stream it has reset itself — its DATA
+        /// writer loop, for a failure of its own on that stream, or a response it
+        /// discarded for the size of its header list — fails with the code its
         /// RST_STREAM carried. Read under the lock of the transitions, under
         /// which the reset sets it.
         /// </summary>

@@ -25,11 +25,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// both the server and the client connection.
     ///
     /// The defaults are our own values, not RFC 9113's initial ones (Section 6.5.2), and a
-    /// "remote" instance keeps them for each setting the peer has not stated. They agree for
-    /// HeaderTableSize and MaxFrameSize. MaxHeaderListSize keeps ours where the RFC sets no
-    /// limit, and the outbound header-list check relies on that. Our InitialWindowSize is not
-    /// the RFC's 65535, so the window arithmetic goes by
-    /// <see cref="HTTP2StreamManager.PeerInitialWindowSize"/> instead.
+    /// "remote" instance keeps them for each setting the peer has not stated — but for
+    /// MaxHeaderListSize, which each connection starts off at the RFC's unlimited, so that
+    /// the outbound header-list checks hold a peer to no limit it has not stated. They agree
+    /// for HeaderTableSize and MaxFrameSize. Our InitialWindowSize is not the RFC's 65535, so
+    /// the window arithmetic goes by <see cref="HTTP2StreamManager.PeerInitialWindowSize"/>
+    /// instead.
     /// </summary>
     public sealed class HTTP2Settings
     {
@@ -42,7 +43,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         // connection window is a multiple of it (see HTTP2FlowControl).
         public UInt32  InitialWindowSize    { get; set; } = HTTP2FlowControl.StreamWindowSize;   // 1 MiB
         public UInt32  MaxFrameSize         { get; set; } = 16384;   // 2^14
-        public UInt32  MaxHeaderListSize    { get; set; } = 8192;
+
+        // The largest header list we take, as RFC 9113, Section 6.5.2 counts it
+        // (HTTP2HeaderList.UncompressedSize): 32 KiB, what Hermod's HTTP/1.1
+        // server takes of a request's header section. Stated in both roles'
+        // connection prefaces.
+        public UInt32  MaxHeaderListSize    { get; set; } = 32 * 1024;
     }
 
 }

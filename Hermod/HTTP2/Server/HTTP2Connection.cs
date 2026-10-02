@@ -83,7 +83,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private readonly Func<List<(string Name, string Value)>, bool> acceptEarlyData;
         private readonly HTTP2Settings        localSettings  = new();
-        private readonly HTTP2Settings        remoteSettings = new();
+
+        /// <summary>
+        /// What the client has stated, and our own defaults for what it has not —
+        /// but for MAX_HEADER_LIST_SIZE, whose initial value is unlimited (RFC
+        /// 9113, Section 6.5.2): a client that never states one is held to none
+        /// of ours.
+        /// </summary>
+        private readonly HTTP2Settings        remoteSettings = new() { MaxHeaderListSize = UInt32.MaxValue };
         private readonly HTTP2StreamManager   streamManager  = new();
         private readonly HPACKDecoder         hpackDecoder   = new();
         private readonly HPACKEncoder         hpackEncoder   = new();
@@ -433,6 +440,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 (HTTP2SettingsParameter.INITIAL_WINDOW_SIZE,      localSettings.InitialWindowSize),
                 (HTTP2SettingsParameter.MAX_FRAME_SIZE,           localSettings.MaxFrameSize),
                 (HTTP2SettingsParameter.ENABLE_PUSH,              0),   // We don't do server push
+
+                // RFC 9113, Section 6.5.2: the limit we hold a request's header
+                // list to (see CompleteHeaders). Unstated, it held clients that
+                // had no way of knowing it.
+                (HTTP2SettingsParameter.MAX_HEADER_LIST_SIZE,     localSettings.MaxHeaderListSize),
 
                 // RFC 9218, Section 3: unconditional, since we already ignore
                 // RFC 7540's stream-dependency/weight priority signaling
@@ -1283,18 +1295,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
-        /// Enforce the advertised MAX_HEADER_LIST_SIZE against the header block we
-        /// are still accumulating, so a peer cannot exhaust memory by never sending
-        /// END_HEADERS (CONTINUATION flood, CVE-2024-27316). We compare against the
-        /// compressed buffered size; for a peer that respects the advertised limit
-        /// on the uncompressed list, the compressed form never exceeds it.
+        /// Bound what a header block makes us hold before it is complete, so a peer
+        /// cannot exhaust memory by never sending END_HEADERS (CONTINUATION flood,
+        /// CVE-2024-27316). A block is held whole until it can be decoded — HPACK
+        /// has to see every block, or both ends' dynamic tables fall out of step
+        /// (RFC 9113, Section 4.3) — and its decoded list is held to our
+        /// MAX_HEADER_LIST_SIZE then (see CompleteHeaders). Here its compressed
+        /// bytes are bounded, at twice that limit: a client that honours the limit
+        /// stays below it — an encoder that picks the shorter of Huffman and raw
+        /// for each string makes a list no longer than the RFC counts it — and one
+        /// that goes a little past it still gets an answer on its stream. Past
+        /// twice the limit, holding more is what a flood asks of us: the
+        /// connection ends.
+        ///
+        /// It used to end at the limit itself, on the compressed bytes: every
+        /// stream on the connection went down with the one that carried a large
+        /// block, and a small block that decoded to a huge list passed.
         /// </summary>
         private void EnforceHeaderBufferLimit(MemoryStream HeaderBuffer)
         {
-            if (HeaderBuffer.Length > localSettings.MaxHeaderListSize)
+            if (HeaderBuffer.Length > MaxHeaderBlockSize)
                 throw new HTTP2ConnectionException(HTTP2ErrorCode.ENHANCE_YOUR_CALM,
-                    $"Header block exceeds MAX_HEADER_LIST_SIZE ({localSettings.MaxHeaderListSize} bytes)");
+                    $"Header block exceeds {MaxHeaderBlockSize} bytes, twice MAX_HEADER_LIST_SIZE ({localSettings.MaxHeaderListSize} bytes)");
         }
+
+        /// <summary>
+        /// The most of a header block's compressed bytes we hold, twice our
+        /// MAX_HEADER_LIST_SIZE: see <see cref="EnforceHeaderBufferLimit"/>.
+        /// </summary>
+        private Int64 MaxHeaderBlockSize
+
+            => 2 * (Int64) localSettings.MaxHeaderListSize;
 
         /// <summary>
         /// Decode the complete header block and, if END_STREAM was set, dispatch the request.
@@ -1320,6 +1351,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // one anyway, it's still just validated and stored, not re-dispatched
             // — the branch below only ever fires for the FIRST header block.
             var isInitialHeaders = Stream.RequestHeaders is null;
+
+            // RFC 9113, Section 6.5.2: the MAX_HEADER_LIST_SIZE we stated is on the
+            // decoded list, name + value + 32 per field, and it is measured here,
+            // before anything else looks at the list. The compressed bytes are no
+            // measure of it: a block of a few kilobytes of one-byte references to
+            // an entry of the dynamic table decodes to megabytes, and a request of
+            // 2000 references to a cookie of 4000 bytes was validated field by
+            // field and handed on with one cookie of 8 MB (CombineCookieFields).
+            var headerListSize = HTTP2HeaderList.UncompressedSize(decoded);
+
+            if (headerListSize > localSettings.MaxHeaderListSize)
+            {
+
+                // Trailers come with the request under way, and maybe its response:
+                // a stream error, as for any other malformed trailers (Section 8.1.1).
+                if (!isInitialHeaders)
+                    throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, Stream.StreamId,
+                        $"Trailer list ({headerListSize} bytes) exceeds MAX_HEADER_LIST_SIZE ({localSettings.MaxHeaderListSize} bytes)");
+
+                RefuseHeaderListTooLarge(Stream, EndStream);
+                return;
+
+            }
 
             if (isInitialHeaders)
             {
@@ -1430,8 +1484,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // the handler now — at HEADERS-complete — and feed it the body through a
             // channel as DATA arrives, rather than buffering the whole body first.
             // This is what lets a handler read the request and write the response
-            // concurrently (bidirectional streaming, e.g. gRPC).
-            if (streamingHandler is not null)
+            // concurrently (bidirectional streaming, e.g. gRPC). A request refused
+            // with 431 is a streaming request too, whichever handler is registered
+            // (see RefuseHeaderListTooLarge): its trailers end a body nothing reads.
+            if (streamingHandler is not null || Stream.IsStreamingRequest)
             {
 
                 if (isInitialHeaders)
@@ -3105,6 +3161,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                        }
                    }, CancellationToken.None);
 
+        /// <summary>
+        /// Answer 431 (Request Header Fields Too Large, RFC 6585, Section 5): the
+        /// request's header list is past the MAX_HEADER_LIST_SIZE we stated, and
+        /// RFC 9113, Section 10.5.1 suggests this answer to it.
+        /// </summary>
+        private Task SendHeaderListTooLargeAsync(HTTP2Stream Stream)
+
+            => SendResponseAsync(
+                   Stream,
+                   [(":status", "431"), ("content-type", "text/plain")],
+                   Encoding.UTF8.GetBytes("Request Header Fields Too Large")
+               );
+
+        /// <summary>
+        /// Refuse a request whose header list is past our MAX_HEADER_LIST_SIZE
+        /// with 431, at its header block (see CompleteHeaders): it reaches no
+        /// handler, whichever is registered, and is answered at once — on the
+        /// buffered path it would otherwise have its body taken in first. From
+        /// here on it is a streaming request that nothing reads, as one refused
+        /// with 421 or 425 is (see EndReadingAsync): what the client sends of its
+        /// body is dropped, its window given back, and once the 431 is complete,
+        /// the client is asked to stop with RST_STREAM NO_ERROR (RFC 9113,
+        /// Section 8.1). Its header list is not kept: an empty one marks the
+        /// request as begun, so that the next header block on the stream is taken
+        /// for trailers. Fire-and-forget, as the read loop must not wait for the
+        /// flow control of a response.
+        /// </summary>
+        private void RefuseHeaderListTooLarge(HTTP2Stream Stream, bool EndStream)
+        {
+
+            Stream.RequestHeaders      = [];
+            Stream.IsStreamingRequest  = true;
+            Stream.RequestBodyChannel  = Channel.CreateUnbounded<byte[]>();
+
+            // Before the 431 can go out: its END_STREAM must find the client's
+            // side ended already, or the client would be asked to stop sending a
+            // body it has not got.
+            if (EndStream)
+            {
+                Stream.CloseRemote();
+                Stream.RequestBodyChannel.Writer.TryComplete();
+            }
+
+            _ = Task.Run(async () => {
+                    await EndReadingAsync(Stream);
+                    try
+                    {
+                        await SendHeaderListTooLargeAsync(Stream);
+                    }
+                    catch
+                    {
+                        // The stream may have been reset, or the connection torn
+                        // down, while we were declining it — nothing left to say.
+                    }
+                }, CancellationToken.None);
+
+        }
+
         private bool IsAuthoritativeFor(List<(string Name, string Value)> RequestHeaders)
         {
 
@@ -3427,11 +3541,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// advisory limit on the UNCOMPRESSED header list size — the sum of each
         /// field's name + value length plus a fixed 32-byte overhead per field
         /// (the same accounting HPACK's own dynamic table uses internally). We
-        /// already enforce this on the way IN (EnforceHeaderBufferLimit, checked
-        /// against the compressed buffer as a cheap floor); this is the missing
+        /// hold the client to ours on the way IN (see CompleteHeaders); this is the
         /// outbound half — proactively refuse to send a response the peer already
         /// told us it won't accept, rather than spend a round trip on headers
-        /// it's likely to just reject anyway. Throwing here is caught by
+        /// it's likely to just reject anyway. A client that stated no limit has
+        /// none (see remoteSettings). Throwing here is caught by
         /// DispatchRequestAsync's catch-all, which falls back to a small (and
         /// thus safely under any sane limit) 500 response.
         /// </summary>

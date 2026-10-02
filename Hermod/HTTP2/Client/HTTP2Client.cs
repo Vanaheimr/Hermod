@@ -76,78 +76,106 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                       };
 
-            await tcp.ConnectAsync(
-                      Host,
-                      Port,
-                      CancellationToken
-                  );
+            // The socket is ours to close until a connection has started on it,
+            // and the connection's to close from then on (OwnsTransport). A
+            // connect, a handshake or a start that failed left it open, until
+            // the GC finalized it.
+            SslStream?              ssl         = null;
+            HTTP2ClientConnection?  connection  = null;
 
-            // h2c: skip TLS/ALPN entirely and speak HTTP/2 over the raw socket.
-            if (Cleartext)
+            try
             {
 
-                var plain = new HTTP2ClientConnection(
-                                tcp.GetStream(),
-                                Options,
-                                CancellationToken
-                            );
+                await tcp.ConnectAsync(
+                          Host,
+                          Port,
+                          CancellationToken
+                      );
 
-                await plain.StartAsync();
+                // h2c: skip TLS/ALPN entirely and speak HTTP/2 over the raw socket.
+                if (Cleartext)
+                {
 
-                return plain;
-
-            }
-
-            var ssl            = new SslStream(
+                    connection = new HTTP2ClientConnection(
                                      tcp.GetStream(),
-                                     leaveInnerStreamOpen: false,
-                                     ValidateServerCertificate
+                                     Options,
+                                     CancellationToken,
+                                     OwnsTransport: true
                                  );
 
-            var clientOptions  = new SslClientAuthenticationOptions {
-                                     TargetHost            = Host,
-                                     ApplicationProtocols  = [ SslApplicationProtocol.Http2 ],
-                                     EnabledSslProtocols   = SslProtocols.Tls12 | SslProtocols.Tls13
-                                 };
+                    await connection.StartAsync();
 
-            if (ClientCertificate is not null)
-                clientOptions.ClientCertificates = [ClientCertificate];
+                    return connection;
 
-            await ssl.AuthenticateAsClientAsync(
-                      clientOptions,
-                      CancellationToken
-                  );
+                }
 
-            if (ssl.NegotiatedApplicationProtocol != SslApplicationProtocol.Http2)
-                throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
-                    $"Server did not negotiate HTTP/2 over ALPN (got '{ssl.NegotiatedApplicationProtocol}')");
+                ssl                = new SslStream(
+                                         tcp.GetStream(),
+                                         leaveInnerStreamOpen: false,
+                                         ValidateServerCertificate
+                                     );
 
-            // RFC 9113, Section 9.2.2: HTTP/2 over TLS 1.2 must not use a cipher
-            // suite from Appendix A. The requirement is on "a deployment", so it
-            // binds both roles — a client that notices is entitled to refuse. We
-            // bail out before sending the preface: there is no point starting a
-            // connection we would immediately tear down.
-            if (ssl.SslProtocol == SslProtocols.Tls12 &&
-                (Options?.IsBlocklistedCipherSuite ?? HTTP2CipherSuites.IsBlocklisted)(ssl.NegotiatedCipherSuite))
-            {
+                var clientOptions  = new SslClientAuthenticationOptions {
+                                         TargetHost            = Host,
+                                         ApplicationProtocols  = [ SslApplicationProtocol.Http2 ],
+                                         EnabledSslProtocols   = SslProtocols.Tls12 | SslProtocols.Tls13
+                                     };
 
-                await ssl.DisposeAsync();
-                tcp.Dispose();
+                if (ClientCertificate is not null)
+                    clientOptions.ClientCertificates = [ClientCertificate];
 
-                throw new HTTP2ConnectionException(HTTP2ErrorCode.INADEQUATE_SECURITY,
-                    $"Server negotiated cipher suite {ssl.NegotiatedCipherSuite}, which must not be used for HTTP/2 (RFC 9113, Appendix A)");
+                await ssl.AuthenticateAsClientAsync(
+                          clientOptions,
+                          CancellationToken
+                      );
 
-            }
+                if (ssl.NegotiatedApplicationProtocol != SslApplicationProtocol.Http2)
+                    throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
+                        $"Server did not negotiate HTTP/2 over ALPN (got '{ssl.NegotiatedApplicationProtocol}')");
 
-            var connection = new HTTP2ClientConnection(
+                // RFC 9113, Section 9.2.2: HTTP/2 over TLS 1.2 must not use a cipher
+                // suite from Appendix A. The requirement is on "a deployment", so it
+                // binds both roles — a client that notices is entitled to refuse. We
+                // bail out before sending the preface: there is no point starting a
+                // connection we would immediately tear down.
+                if (ssl.SslProtocol == SslProtocols.Tls12 &&
+                    (Options?.IsBlocklistedCipherSuite ?? HTTP2CipherSuites.IsBlocklisted)(ssl.NegotiatedCipherSuite))
+                    throw new HTTP2ConnectionException(HTTP2ErrorCode.INADEQUATE_SECURITY,
+                        $"Server negotiated cipher suite {ssl.NegotiatedCipherSuite}, which must not be used for HTTP/2 (RFC 9113, Appendix A)");
+
+                connection = new HTTP2ClientConnection(
                                  ssl,
                                  Options,
-                                 CancellationToken
+                                 CancellationToken,
+                                 OwnsTransport: true
                              );
 
-            await connection.StartAsync();
+                await connection.StartAsync();
 
-            return connection;
+                return connection;
+
+            }
+            catch
+            {
+
+                // A connection that failed to start ends, and closes the socket,
+                // by itself (see HTTP2ClientConnection.AbortAsync).
+                if (connection is not null)
+                    await connection.AbortAsync();
+
+                else
+                {
+
+                    if (ssl is not null)
+                        await ssl.DisposeAsync();
+
+                    tcp.Dispose();
+
+                }
+
+                throw;
+
+            }
 
         }
 
