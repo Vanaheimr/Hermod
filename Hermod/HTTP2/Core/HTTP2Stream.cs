@@ -377,9 +377,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// the read loop may close the stream at any moment, at the peer's
         /// END_STREAM or RST_STREAM, and nothing but PRIORITY may be sent on a
         /// closed stream (RFC 9113, Section 5.1), a RST_STREAM of ours included.
-        /// For a client that gives up a stream it will not read any further.
+        /// For a client that gives up a stream it will not read any further, or
+        /// discards a response it cannot take. <paramref name="ErrorCode"/>, the
+        /// code of the RST_STREAM that goes with the reset, is kept as
+        /// <see cref="OwnResetCode"/>.
         /// </summary>
-        public bool TryReset()
+        public bool TryReset(HTTP2ErrorCode? ErrorCode = null)
         {
 
             lock (stateLock)
@@ -391,8 +394,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 if (State is (HTTP2StreamState.Open or HTTP2StreamState.HalfClosedLocal))
                     DiscardsPeerFrames = true;
 
-                State     = HTTP2StreamState.Closed;
-                WasReset  = true;
+                State         = HTTP2StreamState.Closed;
+                WasReset      = true;
+                ownResetCode  = ErrorCode;
 
             }
 
