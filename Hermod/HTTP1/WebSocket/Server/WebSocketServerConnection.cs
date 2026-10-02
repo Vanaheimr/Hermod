@@ -27,7 +27,9 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 using static org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame;
 
@@ -141,6 +143,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// The HTTP WebSocket server.
         /// </summary>
         public AWebSocketServer         WebSocketServer               { get; }
+
+        /// <summary>
+        /// The TCP connection the server accepted, for a WebSocket server on a
+        /// port of its own: the one the server reports closed once the
+        /// connection loop is done, and where who closed it is recorded.
+        /// </summary>
+        /// <remarks>
+        /// The loop closes the socket, and after that the server cannot look
+        /// at it any more to tell. Null for a connection that was handed a
+        /// stream, where the HTTP server that owns the socket looks at it.
+        /// </remarks>
+        internal TCPConnection?         TCPConnection                 { get; init; }
 
         /// <summary>
         /// The local TCP socket.
@@ -804,6 +818,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (IsClosed)
                 return;
 
+            // The server's close, unless somebody said before: where the client
+            // closed, the connection loop has said so before it calls this. Said
+            // before anything is closed, because a read that fails once the
+            // socket is gone looks just like a client that reset it.
+            RecordClosedBy(ConnectionClosedBy.Server);
+
             // The closing handshake must never be blocked or dropped by the send
             // backpressure limit (and must not recurse when the close was itself
             // triggered by backpressure).
@@ -877,6 +897,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 IsClosed = true;
             }
         }
+
+        #endregion
+
+        #region (internal) RecordClosedBy(ClosedBy)
+
+        /// <summary>
+        /// Record who closed this connection, for the report of the server that
+        /// accepted it, unless somebody has already: the first to say is the
+        /// one who closed it.
+        /// </summary>
+        /// <param name="ClosedBy">Who closed this connection.</param>
+        internal void RecordClosedBy(ConnectionClosedBy ClosedBy)
+
+            => TCPConnection?.RecordClosedBy(ClosedBy);
 
         #endregion
 

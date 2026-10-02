@@ -43,11 +43,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region TLS handshake timeout does not block accept loop
 
+        /// <summary>
+        /// A connection whose TLS setup is still in progress must not occupy the
+        /// accept loop: the next client has to be accepted while the first one is
+        /// still in there.
+        /// </summary>
+        /// <remarks>
+        /// The property is an ordering, not a latency, and the test says so. It used
+        /// to connect a half-open client, connect a second one, and give the second
+        /// accept a 500 ms budget - and it failed 9 of 10 fixture runs on a
+        /// developer machine, and failed alone too, because the thing that budget
+        /// was really measuring was how long the server spent building its
+        /// certificate context: 578 - 2621 ms for the first connection of a
+        /// process, with the thread pool idle. A budget cannot separate "the loop
+        /// was free" from "the loop was busy but finished in time", so this one
+        /// does not try:
+        ///
+        /// the first connection parks inside <c>ServerCertificateSelector</c> - which
+        /// the server calls once per accepted connection, on whichever thread is
+        /// setting that connection up - and stays parked on a gate that only this
+        /// test opens, and only after it has seen the second connection accepted. So
+        /// while the second client connects, the first one is provably still in its
+        /// TLS setup. If that setup holds the accept loop, the second connection is
+        /// never accepted at all and the second signal never arrives: the test fails
+        /// because the ordering is wrong, not because a machine was slow. Its
+        /// timeout is a liveness backstop of <see cref="AcceptSignalTimeout"/>,
+        /// several orders of magnitude above a loopback accept, so a slow machine is
+        /// slow rather than wrong.
+        ///
+        /// Verified against a server with the dispatch removed again - the accept
+        /// loop building the connection and calling the handler itself - where it
+        /// fails 10 of 10 runs on the signal that cannot arrive.
+        /// </remarks>
         [Test]
         public async Task Slow_TLS_Handshake_Does_Not_Block_Following_Accepts()
         {
 
-            var server        = CreateHTTPSServer(TimeSpan.FromSeconds(2));
+            var serverCertificate = CreateServerCertificate();
+
+            // The first connection's TLS setup, held open for as long as this test
+            // needs it. ManualResetEventSlim and not a Task: the selector is a
+            // synchronous delegate, and blocking is the whole point - it is standing
+            // in for every slow thing a real one does, from an SNI lookup to the
+            // certificate-chain build the server itself does a moment later.
+            using var gate          = new ManualResetEventSlim(false);
+
+            var       firstSetup    = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var       secondAccept  = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            TcpClient? firstAccepted = null;
+
+            var server            = new HTTPServer(
+                                        TCPPort:                    IPPort.Zero,
+
+                                        // Generous on purpose: the first connection has to
+                                        // still be unfinished while the second one is
+                                        // observed, and this is what guarantees it. Nothing
+                                        // here waits for the timeout to fire - that is
+                                        // Timed_Out_TLS_Handshake_Removes_Active_Client - and
+                                        // Stop() closes the sockets, so it is never paid.
+                                        ReceiveTimeout:             TimeSpan.FromMinutes(1),
+
+                                        ServerCertificateSelector:  (tcpServer, tcpClient) => {
+
+                                                                        // Identity, not a count: the
+                                                                        // selector is asked again for
+                                                                        // the same client when a
+                                                                        // connection reaches the HTTP
+                                                                        // layer, and that must not read
+                                                                        // as a second accept.
+                                                                        if (Interlocked.CompareExchange(ref firstAccepted, tcpClient, null) is null)
+                                                                        {
+                                                                            firstSetup.TrySetResult();
+                                                                            gate.Wait();
+                                                                        }
+
+                                                                        else if (!ReferenceEquals(tcpClient, firstAccepted))
+                                                                            secondAccept.TrySetResult();
+
+                                                                        return serverCertificate;
+
+                                                                    },
+                                        AutoStart:                  true
+                                    );
+
+            RegisterRootHandler(new HTTPAPI(server));
+
             var slowClient    = new TcpClient(AddressFamily.InterNetwork);
             var anotherClient = new TcpClient(AddressFamily.InterNetwork);
 
@@ -56,21 +136,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 await slowClient.ConnectAsync(System.Net.IPAddress.Loopback, server.TCPPort.ToInt32());
 
-                Assert.That(await WaitUntilAsync(
-                        () => server.NumberOfConnectedClients > 0,
-                        TimeSpan.FromSeconds(1)
-                    ), Is.True, "The first slow TLS client was never accepted.");
+                Assert.That(await Reached(firstSetup, "the first client's TLS setup"),
+                            Is.True,
+                            "The first slow TLS client was never accepted.");
 
                 await anotherClient.ConnectAsync(System.Net.IPAddress.Loopback, server.TCPPort.ToInt32());
 
-                Assert.That(await WaitUntilAsync(
-                        () => server.NumberOfConnectedClients >= 2,
-                        TimeSpan.FromMilliseconds(500)
-                    ), Is.True, "A half-open TLS client must not block later HTTPS accepts.");
+                Assert.That(await Reached(secondAccept, "the second client's accept"),
+                            Is.True,
+                            "A half-open TLS client must not block later HTTPS accepts: the second " +
+                            "connection was not accepted while the first one was still in its TLS setup.");
 
             }
             finally
             {
+                // Before Stop(), and whatever happened above: a server whose accept
+                // path is still parked here is one that Stop() would wait for.
+                gate.Set();
+
                 slowClient.Dispose();
                 anotherClient.Dispose();
                 await server.DisposeAsync();
@@ -775,6 +858,129 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.ThrowsAsync<EndOfStreamException>(async () =>
                     await rawClient.ReadResponseAsync(CancellationToken: cts.Token)
                 );
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        // The test above sends half a header and then nothing, so it passes
+        // whether the deadline bounds the header section or only each read.
+        // A Slowloris client keeps sending: one byte well inside the timeout,
+        // then the next. A timeout that starts again with every read never
+        // fires, and the connection stays open for as long as the client likes.
+        [Test]
+        public async Task Dripped_Request_Header_Is_Closed_At_The_Header_Deadline()
+        {
+
+            var server = CreateHTTPServer(
+                             IPv4Address.Localhost,
+                             HeaderReadTimeout: TimeSpan.FromMilliseconds(300)
+                         );
+
+            try
+            {
+
+                await using var rawClient = await HTTPRawSocketClient.ConnectAsync(
+                                              System.Net.IPAddress.Loopback,
+                                              server.TCPPort
+                                          );
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+                await rawClient.SendAsync(
+                          "GET / HTTP/1.1\r\nHost: localhost\r\nX-Drip: ",
+                          cts.Token
+                      );
+
+                var response = rawClient.ReadResponseAsync(CancellationToken: cts.Token);
+
+                var (closed, bytesDripped) = await DripUntilClosed(
+                                                       rawClient,
+                                                       response,
+                                                       TimeSpan.FromMilliseconds(100),
+                                                       30
+                                                   );
+
+                Assert.That(closed, Is.True, $"The connection was still open after {bytesDripped} bytes, one every 100 ms, with a header deadline of 300 ms.");
+                Assert.That(async () => await response, Throws.InstanceOf<IOException>());
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        // The deadline is one request's, not the connection's: it starts again
+        // once a response has been sent, so a kept-alive connection serves
+        // requests for longer than the deadline - and the next request's
+        // header, dripped, is closed at its own deadline all the same.
+        [Test]
+        public async Task Each_Request_On_A_KeptAlive_Connection_Gets_Its_Own_Header_Deadline()
+        {
+
+            var server = CreateHTTPServer(
+                             IPv4Address.Localhost,
+                             ConnectionType.KeepAlive,
+                             HeaderReadTimeout: TimeSpan.FromMilliseconds(500)
+                         );
+
+            try
+            {
+
+                await using var rawClient = await HTTPRawSocketClient.ConnectAsync(
+                                              System.Net.IPAddress.Loopback,
+                                              server.TCPPort
+                                          );
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+                for (var i = 1; i <= 5; i++)
+                {
+
+                    await Task.Delay(TimeSpan.FromMilliseconds(200), cts.Token);
+
+                    await rawClient.SendAsync(
+                              "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n",
+                              cts.Token
+                          );
+
+                    HTTPRawSocketResponse? okResponse = null;
+
+                    try
+                    {
+                        okResponse = await rawClient.ReadResponseAsync(CancellationToken: cts.Token);
+                    }
+                    catch (IOException e)
+                    {
+                        Assert.Fail($"Request {i}, sent about {i * 200} ms after the connection was opened, found it closed with a header deadline of 500 ms: {e.Message}");
+                    }
+
+                    Assert.That(okResponse!.StatusCode, Is.EqualTo(200), $"Request {i}");
+
+                }
+
+                await rawClient.SendAsync(
+                          "GET / HTTP/1.1\r\nHost: localhost\r\nX-Drip: ",
+                          cts.Token
+                      );
+
+                var response = rawClient.ReadResponseAsync(CancellationToken: cts.Token);
+
+                var (closed, bytesDripped) = await DripUntilClosed(
+                                                       rawClient,
+                                                       response,
+                                                       TimeSpan.FromMilliseconds(100),
+                                                       50
+                                                   );
+
+                Assert.That(closed, Is.True, $"The connection was still open after {bytesDripped} bytes, one every 100 ms, with a header deadline of 500 ms.");
+                Assert.That(async () => await response, Throws.InstanceOf<IOException>());
 
             }
             finally
@@ -1825,6 +2031,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
+        /// <summary>
+        /// Send one header byte every Interval until the server closes the
+        /// connection - seen by the pending Response read ending, or by a
+        /// send failing - or until MaxBytes have been sent.
+        /// </summary>
+        private static async Task<(Boolean Closed, Int32 BytesDripped)> DripUntilClosed(HTTPRawSocketClient  RawClient,
+                                                                                        Task                 Response,
+                                                                                        TimeSpan             Interval,
+                                                                                        Int32                MaxBytes)
+        {
+
+            var bytesDripped = 0;
+
+            while (bytesDripped < MaxBytes)
+            {
+
+                if (await Task.WhenAny(Response, Task.Delay(Interval)) == Response)
+                    return (true, bytesDripped);
+
+                try
+                {
+                    await RawClient.SendAsync("a");
+                }
+                catch (IOException)
+                {
+                    return (true, bytesDripped);
+                }
+
+                bytesDripped++;
+
+            }
+
+            return (Response.IsCompleted, bytesDripped);
+
+        }
+
         private static void RegisterRootHandler(HTTPAPI         HTTPAPI,
                                                 ConnectionType?  ResponseConnection = null)
         {
@@ -1957,6 +2199,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
 
             return Encoding.ASCII.GetString(response.ToArray());
+
+        }
+
+        /// <summary>
+        /// How long a test waits for a signal the server is supposed to send at once.
+        /// </summary>
+        /// <remarks>
+        /// A liveness backstop, not a budget: the signals it is used for arrive in
+        /// microseconds when the server is right and never when it is wrong, so the
+        /// only thing this number decides is how long a broken server takes to say
+        /// so. Generous enough that no load on any machine can make a working server
+        /// look broken.
+        /// </remarks>
+        private static readonly TimeSpan AcceptSignalTimeout = TimeSpan.FromSeconds(30);
+
+        /// <summary>
+        /// Wait for a signal the server completes, rather than polling for a state
+        /// change within a deadline.
+        /// </summary>
+        /// <param name="Signal">The signal to wait for.</param>
+        /// <param name="What">What the signal means, for the timeout message.</param>
+        private static async Task<Boolean> Reached(TaskCompletionSource  Signal,
+                                                   String                What,
+                                                   TimeSpan?             Timeout   = null)
+        {
+
+            var timeout = Timeout ?? AcceptSignalTimeout;
+
+            try
+            {
+
+                // WaitAsync, and not WhenAny(Signal.Task, Task.Delay(timeout)): the
+                // delay in that pair is abandoned rather than cancelled, so every
+                // call that succeeds - which is every call, in microseconds - leaves
+                // a timer standing for the whole timeout. WaitAsync disposes its own
+                // when the signal arrives.
+                await Signal.Task.WaitAsync(timeout);
+
+                return true;
+
+            }
+            catch (TimeoutException)
+            {
+
+                TestContext.Out.WriteLine($"Timed out after {timeout.TotalSeconds:N0} s waiting for {What}.");
+
+                return false;
+
+            }
 
         }
 

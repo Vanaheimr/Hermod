@@ -41,14 +41,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
     /// token and waits for the accept loop to end. A connection the loop had
     /// accepted by then, but not yet listed, is listed afterwards, and its
     /// handler gets going with nobody to close its connection or to wait for it.
-    /// So Stop() looks at the list a second time once the loop has ended, when no
-    /// more can come. The old Stop() did not, and while it waited for its event
+    /// So Stop() waits for the ones still on their way onto the list and then
+    /// looks at the list a second time, once the loop has ended and no more can
+    /// come. The old Stop() did neither, and while it waited for its event
     /// streams, one after another, for up to fifteen seconds each, the loop went
     /// on taking connections in.
     ///
-    /// The window is narrow, so this test holds it open. The accept loop makes
-    /// each connection's logger before it lists the connection, and the logger
-    /// factory here holds it there until Stop() has looked.
+    /// The window is narrow, so this test holds it open. A connection's logger is
+    /// made just before the connection is listed - on the thread pool, which is
+    /// where the accept loop hands each connection it has accepted, so that no
+    /// part of setting one up happens on the one thread that has to stay free to
+    /// accept - and the logger factory here holds whoever asks for it until this
+    /// test lets go. So what is held open is the gap between a connection being
+    /// accepted and it being listed, whichever thread is crossing it.
     ///
     /// The handlers take a moment to finish once their connections have closed,
     /// as handlers that log or tidy up do. A Stop() that closed the connections
@@ -91,11 +96,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
             // connection, found nothing else to close, and cancelled the token.
             var stopping = server.Stop();
 
+            // Released only once Stop() has had its chance to come back without
+            // us, and the asymmetry is the point: a Stop() that waits for this
+            // connection cannot return before the release, so correct code always
+            // spends the two seconds and always passes, while a Stop() that does
+            // not wait returns on its own and is caught below. The two seconds are
+            // the cost of the test, paid on every run.
+            var returnedOnItsOwn = stopping == await Task.WhenAny(
+                                                         stopping,
+                                                         Task.Delay(TimeSpan.FromSeconds(2))
+                                                     );
+
             gate.Release.Set();
 
             await stopping.WaitAsync(TimeSpan.FromSeconds(10));
 
             Assert.Multiple(() => {
+                Assert.That(returnedOnItsOwn,                 Is.False,       "Stop() returned without waiting for the connection held between its accept and its listing");
                 Assert.That(server.HandlersStarted,           Is.EqualTo(2),  "both handlers had started");
                 Assert.That(server.HandlersFinished,          Is.EqualTo(2),  "and had finished when Stop() returned");
                 Assert.That(server.NumberOfConnectedClients,  Is.Zero,        "no connection left on the server's books");

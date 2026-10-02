@@ -341,6 +341,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
+        /// End what the client writes, as a client that closes its transport
+        /// would, so that the test reads the end of the stream after the last
+        /// frame the client sent. <see cref="HTTP2ClientConnection"/> closes
+        /// none, so this is how a test learns that nothing more is coming, once
+        /// the connection has ended.
+        /// </summary>
+        public ValueTask EndClientSideAsync()
+
+            => clientToServer.Writer.CompleteAsync();
+
+        /// <summary>
         /// Let the client return from the write of the HEADERS of this stream.
         ///
         /// A write the read loop started — a retry — carries on inline, on the

@@ -212,6 +212,7 @@ var conn = await HTTP2Client.ConnectAsync("localhost", 8443,
         KeepAliveInterval       = TimeSpan.FromSeconds(30),   // 0 = disabled
         TimeProvider            = TimeProvider.System,        // inject a test clock here
         IsBlocklistedCipherSuite = null,                      // null = the RFC 9113 §9.2.2 rule
+        MaxResponseBodySize     = 16 * 1024 * 1024,           // the most a buffered response may bring
 
         // RFC 9110 §8.4 / §11 — the client half of the semantics the server has
         // had all along. Both off by default: they change what goes out on the
@@ -338,7 +339,7 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 | **9113** | HTTP/2 | ✅ Complete | Framing, streams, flow control, settings, GOAWAY, §9.2 TLS profile, §9.1.1 authority checking. h2spec 146/146. |
 | **7541** | HPACK: Header Compression | ✅ Complete | Full decoder **and** encoder (static + dynamic table + Huffman both ways). |
 | **7301** | TLS ALPN | ✅ | `h2` negotiation in the TLS handshake. |
-| **9218** | Extensible Prioritization Scheme | ✅ | `priority` header, `PRIORITY_UPDATE`, `SETTINGS_NO_RFC7540_PRIORITIES`; priority-aware writer on both roles. Both roles emit; the server sends its responses by it, the client its own request bodies and tunnel bytes. |
+| **9218** | Extensible Prioritization Scheme | ✅ | `priority` header, `PRIORITY_UPDATE`, `SETTINGS_NO_RFC7540_PRIORITIES`; priority-aware writer on both roles. Both roles emit; the server sends its responses by it, the client its own request bodies and tunnel bytes. A `PRIORITY_UPDATE` from the server is a connection error for the client (§7.1). |
 | **8441** | Bootstrapping WebSockets with HTTP/2 | ✅ | Extended CONNECT, `:protocol`, `SETTINGS_ENABLE_CONNECT_PROTOCOL`. |
 | **8336** | The ORIGIN HTTP/2 Frame | ✅ | Server announces its Origin Set; client parses it (ignored on stream ≠ 0 and over h2c). |
 | **7838** | HTTP Alternative Services | ✅ | ALTSVC frame both directions + the `Alt-Svc` field-value grammar; client records alternatives, does not act on them (no HTTP/3 endpoint to act on yet). |
@@ -467,6 +468,22 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   its end is given up with `DisposeAsync` (see
   [below](#streaming-trailers--grpc)).
 - Bounded buffered request body (`MaxRequestBodySize`, default 16 MiB).
+- Bounded buffered **response** body on the client (`MaxResponseBodySize`,
+  default 16 MiB — the counterpart of `MaxRequestBodySize`). A response that
+  `SendRequestAsync` collects whole fails with `HTTP2ResponseTooLargeException`
+  at the DATA frame that would take its body past the limit (padding not
+  counted), which is not taken in — or at its HEADERS already, if it declares
+  a larger `content-length`, unless it can have no body at all (the answer to
+  a HEAD request, a 204, a 304; §8.1.1). The stream is reset with
+  `RST_STREAM CANCEL`: the server did nothing wrong, the client wants no more
+  of it. The refused frame, and whatever the server sent before it read the
+  reset, still go back to the connection window; nothing of the request follows
+  the reset, and the stream's slot is free once the reset is out: the
+  connection goes on. The client used to buffer whatever the server sent — it
+  gives a buffered body's window back on receipt, and `MaxDecodedBodySize`
+  bounds only what decoding makes of a body taken in whole. Streamed responses
+  (`StartStreamingRequestAsync`, `DownloadAsync`) and tunnels are read chunk
+  by chunk, and not bound by it.
 - Padding counted against flow control (§6.1); closed-stream DATA still
   window-accounted (§6.9); cookie-crumb reassembly (§8.2.3).
 
@@ -695,8 +712,9 @@ catching up. What it has so far:
   disagrees about.
 - **Decompression-bomb bound** — `MaxDecodedBodySize` (16 MiB default) is
   enforced *during* decompression, not after: checking the output size
-  afterwards would mean the bomb had already gone off. The client-side
-  counterpart of the server's `MaxRequestBodySize`.
+  afterwards would mean the bomb had already gone off. It bounds what decoding
+  makes of a body; the body as it arrives, before any decoding, is bounded by
+  `MaxResponseBodySize` (see [Flow control](#flow-control)).
 - **Answering a 401** (§11) — with `Credentials` set, the client parses the
   `WWW-Authenticate` challenge, picks the strongest scheme it can answer
   (Digest > Bearer > Token > Basic — Basic last, since it hands the password
@@ -993,6 +1011,9 @@ that prints, which is roughly what the library used to hardcode.
   parsed-and-ignored, per §5.3.1 self-dependency validation only).
 - The `priority` request/response header (urgency + incremental) and
   `PRIORITY_UPDATE` frame — parsed leniently (bad hint → default, not an error).
+- `PRIORITY_UPDATE` goes from client to server only (§7.1): a client that
+  receives one ends the connection with `GOAWAY PROTOCOL_ERROR`. It used to
+  ignore the frame, as one of a type it does not handle.
 - A **priority-aware multiplexed writer**: a single per-connection writer loop
   schedules DATA by urgency → non-incremental-first → round-robin fairness
   (`HTTP2SendOrder`, shared by both roles).
@@ -1166,7 +1187,13 @@ that prints, which is roughly what the library used to hardcode.
   `HTTP2RequestNotProcessedException`, PING keepalive / dead-connection
   detection, client-side flood bounds. No new stream after a `GOAWAY` (§6.8): a
   request started then, or waiting for a stream slot when it comes, fails at once
-  with `HTTP2RequestNotProcessedException`.
+  with `HTTP2RequestNotProcessedException`. A stream the `GOAWAY` leaves
+  unprocessed, above its last-stream-id, is closed at once, as though it had
+  never been opened, sending nothing: its request fails as before, a request body
+  still being sent there stops rather than go out to a server that ignores it, a
+  write fails with an `OperationCanceledException`, and an accepted tunnel — only
+  a server that breaks §6.8 leaves one above its last-stream-id — reads its end,
+  `null`, rather than wait until the whole connection ends.
 - **The writer loop's failures are contained** as the server's are: a stream
   error — DATA after our own END_STREAM, from a write racing the end of its
   request — resets that one stream (`RST_STREAM INTERNAL_ERROR`; its writes and
@@ -1207,6 +1234,19 @@ that prints, which is roughly what the library used to hardcode.
   to its end and the next request waits for the slot rather than fail. A rejected
   CONNECT ends its stream (`END_STREAM`, or `RST_STREAM CANCEL` while the
   rejection has a body to come), and a tunnel closes once both sides have ended.
+- **Connection errors are reported to the server** (§5.4.1): one the client
+  finds in what the server sends — a frame the server must not send, a
+  malformed frame, a setting out of range — ends the connection with a `GOAWAY`
+  of its code, the error's message as debug data, where the client used to end
+  it without a word. The `GOAWAY` is the last frame the client sends. It gets a
+  second, on the options' `TimeProvider`, to get past a write in progress, and
+  is given up after that, so that a write that never ends cannot hold up the
+  connection's end, which `Closed` and a pool wait for.
+- **What waits on the server fails with the connection error**: a request in
+  flight, a tunnel being opened and `StartAsync` fail with the
+  `HTTP2ConnectionException` the connection ended over. They used to fail with
+  "A task was canceled.": the read loop fails them with the error and then
+  cancels the connection, and the cancellation reached their waits first.
 - **`HTTP2ClientPool`**: a single-origin pool that keeps N warm connections
   (default 4), routes to the least-loaded, transparently fails over
   not-processed requests, and self-heals dead connections in the background.
