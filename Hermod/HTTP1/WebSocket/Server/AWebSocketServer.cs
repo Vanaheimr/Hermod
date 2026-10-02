@@ -1195,6 +1195,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 // a firewall does not explain itself to whoever it keeps out.
                 var calledOff  = verdict is CalledOffTCPValidation;
 
+                // For the HTTP server, which reports the connection closed once
+                // it is done with it: by a filter rule, as on a port of its own -
+                // unless nobody said no, and the server is going away.
+                if (!calledOff)
+                    TCPConnection?.RecordClosedBy(ConnectionClosedBy.FilterRule);
+
                 var refusal    = new HTTPResponse.Builder(
                                      Timestamp.Now,
                                      eventTrackingId,

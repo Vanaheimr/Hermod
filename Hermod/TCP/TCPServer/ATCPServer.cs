@@ -303,7 +303,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public event NewTCPConnectionDelegate?           OnNewTCPConnection;
 
         /// <summary>
-        /// An event fired whenever a new TCP connection was closed.
+        /// An event fired for every connection this server took on - once,
+        /// when it is done with it and has closed it - with who closed it, and
+        /// with the event tracking identification of the connection's other
+        /// events.
         /// </summary>
         public event ConnectionClosedDelegate?           OnTCPConnectionClosed;
 
@@ -1101,6 +1104,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (status.Result == ConnectionFilterResult.Rejected)
                 {
 
+                    Connection.RecordClosedBy(ConnectionClosedBy.FilterRule);
+
                     // This will/might cause a TCP RST (Reset) packet being send!
                     Connection.TCPClient.LingerState = new LingerOption(false, 0);
 
@@ -1180,41 +1185,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             finally
             {
 
-                if (activeClients.TryRemove(Connection, out _))
+                // Off the list, where it still is. Stop() takes a connection
+                // off before it closes it, and AHTTPServer lists one of its own
+                // in its place and takes that off when it is done with it.
+                activeClients.TryRemove(Connection, out _);
+
+                // Who closed it: whoever closed it said so; otherwise whoever
+                // hung up first. Asked before the server shuts its side down:
+                // on Linux that alone makes a socket look as though its client
+                // had hung up.
+                var closedBy = Connection.RecordClosedBy(
+                                   Connection.ClientHasHungUp()
+                                       ? ConnectionClosedBy.Client
+                                       : ConnectionClosedBy.Server
+                               );
+
+                try
                 {
-
-                    try
-                    {
-                        if (Connection.TCPClient.Client?.Connected == true)
-                            Connection.TCPClient.Client.Shutdown(SocketShutdown.Both);
-                    }
-                    catch (Exception)
-                    { }
-
-                    try
-                    {
-                        Connection.Dispose();
-                    }
-                    catch (Exception)
-                    { }
-
-                    //await Log($"Closed connection {Connection.ConnectionId}");
-
-                    //DebugX.LogT($"Cleaned up client '{Connection.RemoteSocket}'!");
-
-                    await LogEvent(
-                              OnTCPConnectionClosed,
-                              loggingDelegate => loggingDelegate.Invoke(
-                                  this,
-                                  Timestamp.Now,
-                                  eventTrackingId2,
-                                  remoteSocket,
-                                  Connection.ConnectionId,
-                                  ConnectionClosedBy.Client
-                              )
-                          );
-
+                    if (Connection.TCPClient.Client?.Connected == true)
+                        Connection.TCPClient.Client.Shutdown(SocketShutdown.Both);
                 }
+                catch (Exception)
+                { }
+
+                try
+                {
+                    Connection.Dispose();
+                }
+                catch (Exception)
+                { }
+
+                // Reported here, and nowhere else: once for every connection
+                // this server took on - refused, failed or handled, closed by
+                // its handler, by Stop() or by its client - and only once the
+                // server is done with it. TCPConnection.Close() and Dispose()
+                // used to report it as well, so most connections were reported
+                // twice, the second time as closed by the client, whoever had
+                // closed it.
+                await LogEvent(
+                          OnTCPConnectionClosed,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              this,
+                              Timestamp.Now,
+                              eventTrackingId2,
+                              remoteSocket,
+                              Connection.ConnectionId,
+                              closedBy
+                          )
+                      );
 
                 connectionSlots.Release();
 
@@ -1356,39 +1374,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-
-        #region (protected internal) SendConnectionClosed(ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy)
-
-        /// <summary>
-        /// Send a "connection closed" event.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the event.</param>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="RemoteSocket">The remote socket that was closed.</param>
-        /// <param name="ConnectionId">The internal connection identification.</param>
-        /// <param name="ClosedBy">Whether it was closed by us or by the client.</param>
-        public async Task SendConnectionClosed(DateTimeOffset      ServerTimestamp,
-                                               EventTracking_Id    EventTrackingId,
-                                               IPSocket            RemoteSocket,
-                                               String              ConnectionId,
-                                               ConnectionClosedBy  ClosedBy)
-        {
-
-            await LogEvent(
-                      OnTCPConnectionClosed,
-                      loggingDelegate => loggingDelegate.Invoke(
-                          this,
-                          Timestamp.Now,
-                          EventTrackingId,
-                          RemoteSocket,
-                          ConnectionId,
-                          ClosedBy
-                      )
-                  );
-
-        }
-
-        #endregion
 
         #region (protected) SendNewTCPConnectionRejected(Timestamp, EventTrackingId, RemoteSocket, ConnectionId, Reason = null)
 

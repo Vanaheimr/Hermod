@@ -355,13 +355,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region ConnectNew (           TCPPort, ...)
 
         /// <summary>
-        /// Create a new HTTPClient and connect to the given address and TCP port.
+        /// Create a new HTTP client and connect it to the given TCP port on [::1], the IPv6 loopback address.
         /// </summary>
         /// <param name="TCPPort">The TCP port to connect to.</param>
+        /// <param name="Description">An optional description of this HTTP client.</param>
+        /// <param name="HTTPUserAgent">An optional HTTP user agent.</param>
+        /// <param name="HTTPAuthentication">An optional HTTP authentication.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="ContentType">An optional HTTP content type header.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="DefaultRequestBuilder">An optional delegate to create the default HTTP request builder.</param>
+        /// <param name="TLSHostname">An optional hostname for TLS SNI (Server Name Indication) and remote certificate validation.</param>
+        /// <param name="RemoteCertificateValidator">An optional remote TLS server certificate validator.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificates">Optional TLS client certificates to use for authentication. Ignored if ClientCertificateContext is provided.</param>
+        /// <param name="ClientCertificateContext">An optional TLS client certificate context, including the client certificate and any intermediate CAs. If provided, this takes precedence over ClientCertificates.</param>
+        /// <param name="ClientCertificateChain">An optional TLS client certificate chain, including the client certificate and any intermediate CAs.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use. Defaults to TLS 1.3 if not specified.</param>
+        /// <param name="CipherSuitesPolicy">The TLS cipher suites policy to use. If null, the system defaults will be used.</param>
+        /// <param name="CertificateChainPolicy">An optional TLS certificate chain policy to use for validating the server's certificate chain.</param>
+        /// <param name="CertificateRevocationCheckMode">An optional TLS certificate revocation check mode to use for validating the server's certificate.</param>
+        /// <param name="EnforceTLS">Whether to enforce TLS. If true, the client will attempt to establish a TLS connection immediately after connecting.</param>
+        /// <param name="ApplicationProtocols">The TLS application protocols to use for ALPN (Application-Layer Protocol Negotiation). If empty, ALPN will be disabled.</param>
+        /// <param name="AllowRenegotiation">Whether to allow TLS renegotiation. Defaults to true if not specified.</param>
+        /// <param name="AllowTLSResume">Whether to allow TLS session resumption. Defaults to false if not specified.</param>
+        /// <param name="TOTPConfig">An optional Time-Based One-Time Password (TOTP) configuration.</param>
+        /// <param name="PreferIPv4">An optional IP version preference.</param>
         /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
         /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="TransmissionRetryDelay">An optional delegate to calculate the delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="ConsumeRequestChunkedTEImmediately">Whether to consume the request chunked transfer encoding immediately.</param>
+        /// <param name="ConsumeResponseChunkedTEImmediately">Whether to consume the response chunked transfer encoding immediately.</param>
+        /// <param name="DisableLogging">Disable logging of connection events and errors.</param>
+        /// <returns>The new HTTP client, also when the connect failed, and the result of the connect.</returns>
         public static async Task<(HTTPClient?, TCPConnectionResult)>
 
             ConnectNew(IPPort                                                     TCPPort,
@@ -450,15 +479,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region ConnectNew (IPAddress, TCPPort, ...)
 
         /// <summary>
-        /// Create a new HTTPClient and connect to the given address and TCP port.
+        /// Create a new HTTP client and connect it to the given IP address and TCP port.
         /// </summary>
         /// <param name="IPAddress">The IP address to connect to.</param>
         /// <param name="TCPPort">The TCP port to connect to.</param>
+        /// <param name="Description">An optional description of this HTTP client.</param>
+        /// <param name="HTTPUserAgent">An optional HTTP user agent.</param>
+        /// <param name="HTTPAuthentication">An optional HTTP authentication.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="ContentType">An optional HTTP content type header.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="DefaultRequestBuilder">An optional delegate to create the default HTTP request builder.</param>
+        /// <param name="TLSHostname">An optional hostname for TLS SNI (Server Name Indication) and remote certificate validation.</param>
+        /// <param name="RemoteCertificateValidator">An optional remote TLS server certificate validator.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificates">Optional TLS client certificates to use for authentication. Ignored if ClientCertificateContext is provided.</param>
+        /// <param name="ClientCertificateContext">An optional TLS client certificate context, including the client certificate and any intermediate CAs. If provided, this takes precedence over ClientCertificates.</param>
+        /// <param name="ClientCertificateChain">An optional TLS client certificate chain, including the client certificate and any intermediate CAs.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use. Defaults to TLS 1.3 if not specified.</param>
+        /// <param name="CipherSuitesPolicy">The TLS cipher suites policy to use. If null, the system defaults will be used.</param>
+        /// <param name="CertificateChainPolicy">An optional TLS certificate chain policy to use for validating the server's certificate chain.</param>
+        /// <param name="CertificateRevocationCheckMode">An optional TLS certificate revocation check mode to use for validating the server's certificate.</param>
+        /// <param name="EnforceTLS">Whether to enforce TLS. If true, the client will attempt to establish a TLS connection immediately after connecting.</param>
+        /// <param name="ApplicationProtocols">The TLS application protocols to use for ALPN (Application-Layer Protocol Negotiation). If empty, ALPN will be disabled.</param>
+        /// <param name="AllowRenegotiation">Whether to allow TLS renegotiation. Defaults to true if not specified.</param>
+        /// <param name="AllowTLSResume">Whether to allow TLS session resumption. Defaults to false if not specified.</param>
+        /// <param name="TOTPConfig">An optional Time-Based One-Time Password (TOTP) configuration.</param>
+        /// <param name="PreferIPv4">An optional IP version preference.</param>
         /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
         /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="TransmissionRetryDelay">An optional delegate to calculate the delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
-        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
+        /// <param name="ConsumeRequestChunkedTEImmediately">Whether to consume the request chunked transfer encoding immediately.</param>
+        /// <param name="ConsumeResponseChunkedTEImmediately">Whether to consume the response chunked transfer encoding immediately.</param>
+        /// <param name="DisableLogging">Disable logging of connection events and errors.</param>
+        /// <returns>The new HTTP client, also when the connect failed, and the result of the connect.</returns>
         public static async Task<(HTTPClient?, TCPConnectionResult)>
 
             ConnectNew(IIPAddress                                                 IPAddress,
@@ -556,14 +613,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region ConnectNew (URL, ...)
 
         /// <summary>
-        /// Create a new HTTPClient and connect to the given URL.
+        /// Create a new HTTP client and connect it to the given URL.
         /// </summary>
         /// <param name="URL">The URL to connect to.</param>
+        /// <param name="Description">An optional description of this HTTP client.</param>
+        /// <param name="HTTPUserAgent">An optional HTTP user agent.</param>
+        /// <param name="HTTPAuthentication">An optional HTTP authentication.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="ContentType">An optional HTTP content type header.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="DefaultRequestBuilder">An optional delegate to create the default HTTP request builder.</param>
+        /// <param name="TLSHostname">An optional hostname for TLS SNI (Server Name Indication) and remote certificate validation.</param>
+        /// <param name="RemoteCertificateValidator">An optional remote TLS server certificate validator.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificates">Optional TLS client certificates to use for authentication. Ignored if ClientCertificateContext is provided.</param>
+        /// <param name="ClientCertificateContext">An optional TLS client certificate context, including the client certificate and any intermediate CAs. If provided, this takes precedence over ClientCertificates.</param>
+        /// <param name="ClientCertificateChain">An optional TLS client certificate chain, including the client certificate and any intermediate CAs.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use. Defaults to TLS 1.3 if not specified.</param>
+        /// <param name="CipherSuitesPolicy">The TLS cipher suites policy to use. If null, the system defaults will be used.</param>
+        /// <param name="CertificateChainPolicy">An optional TLS certificate chain policy to use for validating the server's certificate chain.</param>
+        /// <param name="CertificateRevocationCheckMode">An optional TLS certificate revocation check mode to use for validating the server's certificate.</param>
+        /// <param name="ApplicationProtocols">The TLS application protocols to use for ALPN (Application-Layer Protocol Negotiation). If empty, ALPN will be disabled.</param>
+        /// <param name="AllowRenegotiation">Whether to allow TLS renegotiation. Defaults to true if not specified.</param>
+        /// <param name="AllowTLSResume">Whether to allow TLS session resumption. Defaults to false if not specified.</param>
+        /// <param name="TOTPConfig">An optional Time-Based One-Time Password (TOTP) configuration.</param>
+        /// <param name="PreferIPv4">An optional IP version preference.</param>
         /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
         /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="TransmissionRetryDelay">An optional delegate to calculate the delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
-        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
+        /// <param name="DNSClient">An optional DNS client to use.</param>
+        /// <param name="ConsumeRequestChunkedTEImmediately">Whether to consume the request chunked transfer encoding immediately.</param>
+        /// <param name="ConsumeResponseChunkedTEImmediately">Whether to consume the response chunked transfer encoding immediately.</param>
+        /// <param name="DisableLogging">Disable logging of connection events and errors.</param>
+        /// <returns>The new HTTP client, also when the connect failed: see <see cref="AHTTPClient.IsHTTPConnected"/>.</returns>
         public static async Task<HTTPClient>
 
             ConnectNew(URL                                                        URL,
@@ -659,14 +744,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region ConnectNew (DNSName,   DNSService, ...)
 
         /// <summary>
-        /// Create a new HTTPClient and connect to the given URL.
+        /// Create a new HTTP client and connect it to an IP address and TCP port resolved from the given DNS name and DNS service.
         /// </summary>
         /// <param name="DNSName">The DNS Name to lookup in order to resolve high available IP addresses and TCP ports.</param>
         /// <param name="DNSService">The DNS service to lookup in order to resolve high available IP addresses and TCP ports.</param>
+        /// <param name="Description">An optional description of this HTTP client.</param>
+        /// <param name="HTTPUserAgent">An optional HTTP user agent.</param>
+        /// <param name="HTTPAuthentication">An optional HTTP authentication.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="ContentType">An optional HTTP content type header.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="DefaultRequestBuilder">An optional delegate to create the default HTTP request builder.</param>
+        /// <param name="TLSHostname">An optional hostname for TLS SNI (Server Name Indication) and remote certificate validation.</param>
+        /// <param name="RemoteCertificateValidator">An optional remote TLS server certificate validator.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificates">Optional TLS client certificates to use for authentication. Ignored if ClientCertificateContext is provided.</param>
+        /// <param name="ClientCertificateContext">An optional TLS client certificate context, including the client certificate and any intermediate CAs. If provided, this takes precedence over ClientCertificates.</param>
+        /// <param name="ClientCertificateChain">An optional TLS client certificate chain, including the client certificate and any intermediate CAs.</param>
+        /// <param name="TLSProtocols">The TLS protocols to use. Defaults to TLS 1.3 if not specified.</param>
+        /// <param name="CipherSuitesPolicy">The TLS cipher suites policy to use. If null, the system defaults will be used.</param>
+        /// <param name="CertificateChainPolicy">An optional TLS certificate chain policy to use for validating the server's certificate chain.</param>
+        /// <param name="CertificateRevocationCheckMode">An optional TLS certificate revocation check mode to use for validating the server's certificate.</param>
+        /// <param name="EnforceTLS">Whether to enforce TLS. If true, the client will attempt to establish a TLS connection immediately after connecting.</param>
+        /// <param name="ApplicationProtocols">The TLS application protocols to use for ALPN (Application-Layer Protocol Negotiation). If empty, ALPN will be disabled.</param>
+        /// <param name="AllowRenegotiation">Whether to allow TLS renegotiation. Defaults to true if not specified.</param>
+        /// <param name="AllowTLSResume">Whether to allow TLS session resumption. Defaults to false if not specified.</param>
+        /// <param name="TOTPConfig">An optional Time-Based One-Time Password (TOTP) configuration.</param>
+        /// <param name="PreferIPv4">An optional IP version preference.</param>
         /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
         /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="TransmissionRetryDelay">An optional delegate to calculate the delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries.</param>
         /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="ConsumeRequestChunkedTEImmediately">Whether to consume the request chunked transfer encoding immediately.</param>
+        /// <param name="ConsumeResponseChunkedTEImmediately">Whether to consume the response chunked transfer encoding immediately.</param>
+        /// <param name="DisableLogging">Disable logging of connection events and errors.</param>
+        /// <param name="DNSClient">An optional DNS client to use.</param>
+        /// <returns>The new HTTP client, also when the connect failed: see <see cref="AHTTPClient.IsHTTPConnected"/>.</returns>
         public static async Task<HTTPClient>
 
             ConnectNew(DomainName                                                 DNSName,

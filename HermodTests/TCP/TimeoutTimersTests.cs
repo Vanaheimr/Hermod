@@ -148,10 +148,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
                 Server.OnNewTCPConnection     += (_, _, _, _, _, _)         => { Interlocked.Increment(ref accepted); return Task.CompletedTask; };
                 Server.OnTCPConnectionFailed  += (_, _, _, _, _, exception) => { Failures.Enqueue(exception);       return Task.CompletedTask; };
 
-                // Each connection is reported closed twice: by TCPConnection.Dispose(),
-                // and by the server once that has returned. Counted twice, ten
-                // connections would pass for twenty, while the handshakes of the
-                // other ten were still under way, with their timers running.
+                // Each connection is reported closed once, when the server is done
+                // with it - one whose handshake failed as well. Counted by
+                // connection all the same: reported twice, as every connection
+                // was before ConnectionClosedTests, ten connections would pass
+                // for twenty, while the handshakes of the other ten were still
+                // under way, with their timers running.
                 Server.OnTCPConnectionClosed  += (_, _, _, _, connectionId, _) => {
                                                      if (closed.TryAdd(connectionId, 0))
                                                          Closed.Release();

@@ -22,15 +22,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
     /// <summary>
     /// Per-stream FIFO of outbound body bytes, drained by the connection's single
-    /// priority-aware writer loop (<see cref="HTTP2Connection"/>'s writer loop)
-    /// rather than written directly by whichever response/tunnel task produced
-    /// them. That indirection is what makes RFC 9218 prioritization possible:
-    /// only the writer loop decides whose bytes actually go on the wire next,
-    /// instead of producers racing each other for the connection's shared send
-    /// window first-come-first-served.
+    /// priority-aware writer loop (<see cref="HTTP2Connection"/>'s for response
+    /// bodies, <see cref="HTTP2ClientConnection"/>'s for request bodies) rather
+    /// than written directly by whichever response, request or tunnel task
+    /// produced them. That indirection is what makes RFC 9218 prioritization
+    /// possible: only the writer loop decides whose bytes actually go on the
+    /// wire next (<see cref="HTTP2SendOrder"/>), instead of producers racing each
+    /// other for the connection's shared send window first-come-first-served.
     ///
-    /// Single-consumer (the writer loop) / multi-producer (response and tunnel
-    /// tasks) — only <see cref="TakeChunk"/> and <see cref="AbandonAll"/> ever
+    /// Single-consumer (the writer loop) / multi-producer (response, request and
+    /// tunnel tasks) — only <see cref="TakeChunk"/> and <see cref="AbandonAll"/> ever
     /// remove items: the one on the writer loop, the other on whichever task
     /// closes the stream (the read loop, for an RST_STREAM). Every member takes
     /// the same gate, so neither races the other, nor a producer. An item that

@@ -30,20 +30,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
-    /// A simple HTTP test server that listens for incoming TCP connections and processes HTTP requests, supporting pipelining.
+    /// The base of the HTTP pipelines an <see cref="HTTPServer"/> runs on every request, before the URL is matched to a handler.
     /// </summary>
-    /// <param name="IPAddress">The IP address to listen on. If null, the loopback address will be used.</param>
-    /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>
-    /// <param name="HTTPServerName">An optional HTTP server name. If null or empty, the default HTTP server name will be used.</param>
-    /// <param name="BufferSize">An optional buffer size for the TCP stream. If null, the default buffer size will be used.</param>
-    /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
-    /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
-    /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
+    /// <remarks>
+    /// <see cref="HTTPServer.AddPipeline"/> adds a pipeline, and the server runs its pipelines in the order they were added.
+    /// A pipeline that returns no response lets the request carry on. The first one that returns a response is the last:
+    /// the server answers the request with it, and neither the remaining pipelines nor a handler see the request.
+    /// </remarks>
     public abstract class AHTTPPipeline()
     {
 
-        #region (override) ProcessHTTPRequest(Request, Stream, CancellationToken = default)
+        #region (virtual) ProcessHTTPRequest(Request, CancellationToken = default)
 
+        /// <summary>
+        /// Process the given HTTP request. This one passes it on unchanged.
+        /// </summary>
+        /// <param name="Request">The HTTP request to process.</param>
+        /// <param name="CancellationToken">An optional cancellation token to cancel the processing of the HTTP request.</param>
+        /// <returns>The HTTP request to pass on, and an HTTP response to answer it with, or null to let it carry on.</returns>
         public virtual async Task<(HTTPRequest, HTTPResponse?)>
 
             ProcessHTTPRequest(HTTPRequest        Request,

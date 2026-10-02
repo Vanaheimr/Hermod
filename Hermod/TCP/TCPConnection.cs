@@ -310,6 +310,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
         #endregion
 
+        #region ClosedBy
+
+        /// <summary>
+        /// A ConnectionClosedBy, or -1 while nobody has said.
+        /// </summary>
+        private Int32 closedBy = -1;
+
+        /// <summary>
+        /// Who closed this connection, once somebody has said: whoever called
+        /// Close(), or the server, which looks at the socket when its handler
+        /// is done with the connection and nobody has said.
+        /// </summary>
+        public ConnectionClosedBy? ClosedBy
+        {
+            get
+            {
+                var value = Volatile.Read(ref closedBy);
+                return value < 0 ? null : (ConnectionClosedBy) value;
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Constructor(s)
@@ -1153,15 +1176,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
         #endregion
 
-        #region Close(ClosedBy = ConnectionClosedBy.Server, EventTrackingId = null)
+        #region (internal) RecordClosedBy(ClosedBy)
+
+        /// <summary>
+        /// Record who closed this connection, unless somebody has already: the
+        /// first to say is the one who closed it.
+        /// </summary>
+        /// <remarks>
+        /// Whoever closes the connection says so before closing anything. The
+        /// server looks at the socket when nobody has said, and on Linux a
+        /// socket that this side has shut down looks just like one whose client
+        /// hung up: readable, with nothing to read. (On Windows it does not.)
+        /// Looked at first and recorded afterwards, it cannot be mistaken for
+        /// one: either the close recorded first, and its answer stands, or it
+        /// recorded after the server, and so closed after the server had looked.
+        /// </remarks>
+        /// <param name="ClosedBy">Who closed this connection.</param>
+        /// <returns>Who closed this connection - the given one, or whoever said before.</returns>
+        internal ConnectionClosedBy RecordClosedBy(ConnectionClosedBy ClosedBy)
+        {
+
+            var before = Interlocked.CompareExchange(ref closedBy, (Int32) ClosedBy, -1);
+
+            return before < 0
+                       ? ClosedBy
+                       : (ConnectionClosedBy) before;
+
+        }
+
+        #endregion
+
+        #region (internal) ClientHasHungUp()
+
+        /// <summary>
+        /// Whether the client has hung up, as far as the socket can tell: closed
+        /// its end of the connection, or reset it.
+        /// </summary>
+        /// <remarks>
+        /// Asked when the handler of the connection is done with it, and only
+        /// then, because like IsConnectionClosed() it only tells the truth while
+        /// nothing else reads from the connection. A socket that is closed
+        /// already tells nothing, and neither does one with bytes still unread
+        /// in front of the end: both say no.
+        /// </remarks>
+        internal Boolean ClientHasHungUp()
+        {
+            try
+            {
+
+                // Null once the TcpClient is closed.
+                var socket = TCPClient.Client;
+
+                return socket is not null &&
+                       socket.Poll(0, SelectMode.SelectRead) &&
+                       socket.Available == 0;
+
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region Close(ClosedBy = ConnectionClosedBy.Server)
 
         /// <summary>
         /// Close this TCP connection.
         /// </summary>
-        /// <param name="ClosedBy">Whether the connection was closed by the client or the server.</param>
-        public void Close(ConnectionClosedBy  ClosedBy          = ConnectionClosedBy.Server,
-                          EventTracking_Id?   EventTrackingId   = null)
+        /// <remarks>
+        /// Reports nothing. The server reports the connection closed once its
+        /// handler is done with it, and says who closed it as said here.
+        /// </remarks>
+        /// <param name="ClosedBy">Who closed the connection: the first to say is the one who did.</param>
+        public void Close(ConnectionClosedBy ClosedBy = ConnectionClosedBy.Server)
         {
+
+            // Before anything is closed - see RecordClosedBy().
+            RecordClosedBy(ClosedBy);
 
             if (!isClosed)
             {
@@ -1203,13 +1296,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
                     TCPClient?.Close();
                     TCPClient?.Dispose();
-                    TCPServer.SendConnectionClosed(
-                        Timestamp.Now,
-                        EventTrackingId ?? EventTracking_Id.New,
-                        RemoteSocket,
-                        ConnectionId,
-                        ClosedBy
-                    );
 
                     isClosed = true;
 
@@ -1228,6 +1314,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         /// <summary>
         /// Dispose this TCP connection.
         /// </summary>
+        /// <remarks>
+        /// Reports nothing, as Close() does not.
+        /// </remarks>
         public override void Dispose()
         {
             if (!isClosed)
@@ -1252,14 +1341,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                         TCPClient.Close();
                         TCPClient.Dispose();
                     }
-
-                    TCPServer.SendConnectionClosed(
-                        Timestamp.Now,
-                        EventTracking_Id.New,
-                        RemoteSocket,
-                        ConnectionId,
-                        ConnectionClosedBy.Server
-                    );
 
                     isClosed = true;
 

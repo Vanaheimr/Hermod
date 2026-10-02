@@ -942,6 +942,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ClientCertificates               = ClientCertificates     ?? [];
             this.ClientCertificateChain           = ClientCertificateChain ?? [];
             this.TransmissionRetryDelay           = TransmissionRetryDelay ?? DefaultTransmissionRetryDelay;
+            this.DisableLogging                   = DisableLogging         ?? false;
             this.MaxConnectionLifetime            = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder            = DefaultRequestBuilder  ?? ((httpClient) => new HTTPRequest.Builder(httpClient) {
@@ -1066,6 +1067,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ClientCertificates               = ClientCertificates     ?? [];
             this.ClientCertificateChain           = ClientCertificateChain ?? [];
             this.TransmissionRetryDelay           = TransmissionRetryDelay ?? DefaultTransmissionRetryDelay;
+            this.DisableLogging                   = DisableLogging         ?? false;
             this.MaxConnectionLifetime            = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder            = DefaultRequestBuilder  ?? ((httpClient) => new HTTPRequest.Builder(httpClient) {
@@ -1194,6 +1196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ClientCertificates               = ClientCertificates     ?? [];
             this.ClientCertificateChain           = ClientCertificateChain ?? [];
             this.TransmissionRetryDelay           = TransmissionRetryDelay ?? DefaultTransmissionRetryDelay;
+            this.DisableLogging                   = DisableLogging         ?? false;
             this.MaxConnectionLifetime            = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder            = DefaultRequestBuilder  ?? ((httpClient) => new HTTPRequest.Builder(httpClient) {

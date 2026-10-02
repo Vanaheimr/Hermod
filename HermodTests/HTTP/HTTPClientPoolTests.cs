@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -90,6 +91,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.That(host.ToString(), Does.StartWith("[2606:2800:"));
             Assert.That(host.Port,       Is.EqualTo(IPPort.Parse(8080)));
+
+        }
+
+        #endregion
+
+        #region DisableLogging_IsWhatThePoolWasMadeWith()
+
+        /// <summary>
+        /// The pool handed DisableLogging to every client it made, but never
+        /// kept it itself: its own DisableLogging said false, whatever it was
+        /// made with.
+        /// </summary>
+        [Test]
+        public async Task DisableLogging_IsWhatThePoolWasMadeWith()
+        {
+
+            await using var byIPAddress   = new HTTPClientPool(IPv4Address.Localhost,            IPPort.Parse(8080),   DisableLogging: true);
+            await using var byURL         = new HTTPClientPool(URL.Parse("http://example.org/"),                        DisableLogging: true);
+            await using var byDNSService  = new HTTPClientPool(DomainName.Parse("example.org"),  SRV_Spec.TCP("http"), DisableLogging: true);
+            await using var byDefault     = new HTTPClientPool(URL.Parse("http://example.org/"));
+
+            Assert.Multiple(() => {
+                Assert.That(byIPAddress. DisableLogging, Is.True,  "made from an IP address");
+                Assert.That(byURL.       DisableLogging, Is.True,  "made from a URL");
+                Assert.That(byDNSService.DisableLogging, Is.True,  "made from a DNS service");
+                Assert.That(byDefault.   DisableLogging, Is.False, "made without saying");
+            });
 
         }
 

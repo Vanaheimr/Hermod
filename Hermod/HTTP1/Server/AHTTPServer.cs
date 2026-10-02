@@ -66,7 +66,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
-    /// A simple HTTP test server that listens for incoming TCP connections and processes HTTP requests, supporting pipelining.
+    /// An abstract HTTP server that listens for incoming TCP connections and parses HTTP requests, supporting pipelining.
+    /// Subclasses process each request in <see cref="ProcessHTTPRequest"/>.
     /// </summary>
     public abstract class AHTTPServer : ATCPServer//, IHTTPServer
     {
@@ -401,6 +402,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           connection,
                           CancellationToken
                       );
+
+                // Who closed the connection, for the server to report once this
+                // has returned. Asked here, while the socket can still tell:
+                // the stream goes at the end of this block, and with it the
+                // socket where there is no TLS. Whoever closed it has said so
+                // on the connection listed in its place - Stop(), or a WebSocket
+                // server that refused it - and otherwise the socket tells
+                // whether the client hung up.
+                TCPConnection.RecordClosedBy(
+                    connection.RecordClosedBy(
+                        connection.ClientHasHungUp()
+                            ? ConnectionClosedBy.Client
+                            : ConnectionClosedBy.Server
+                    )
+                );
 
             }
             catch (Exception e)

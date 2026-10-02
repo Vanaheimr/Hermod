@@ -159,13 +159,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         #endregion
 
 
-        public Task SendConnectionClosed(DateTimeOffset      ServerTimestamp,
-                                         EventTracking_Id    EventTrackingId,
-                                         IPSocket            RemoteSocket,
-                                         String              ConnectionId,
-                                         ConnectionClosedBy  ClosedBy);
-
-
     }
 
 }

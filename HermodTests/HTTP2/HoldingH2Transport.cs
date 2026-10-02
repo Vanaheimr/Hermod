@@ -41,6 +41,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// request, answer it, and learn from <see cref="SendAsync"/> when the read
     /// loop has handled the answer — all while the client is still inside that
     /// write, which on a real socket is a window of microseconds.
+    ///
+    /// It holds the client's write of an RST_STREAM the same way, for every
+    /// stream <see cref="HoldResetOf"/> selects. It can also fail the client's
+    /// next DATA write on a stream, as a broken transport would
+    /// (<see cref="FailNextDataWrite"/>), and hands the test each frame the
+    /// client sends (<see cref="NextFrameAsync"/>), which a test needs to wait
+    /// for what the connection's DATA writer loop sends on a thread of its own.
     /// </summary>
     internal sealed class HoldingH2Transport : IAsyncDisposable
     {
@@ -67,6 +74,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private Boolean                prefaceRead;
         private UInt64                 pings;
 
+        private (UInt32 StreamId, Exception Failure)?  dataWriteFailure;
+
         /// <summary>
         /// The stream to hand to the <see cref="HTTP2ClientConnection"/>.
         /// </summary>
@@ -77,9 +86,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// </summary>
         public Func<UInt32, Boolean>   HoldHeadersOf   { get; }
 
-        public HoldingH2Transport(Func<UInt32, Boolean> HoldHeadersOf)
+        /// <summary>
+        /// Which streams' RST_STREAM the client is held in until <see cref="Release"/>,
+        /// as it is held in HEADERS. A stream is held in one or the other.
+        /// </summary>
+        public Func<UInt32, Boolean>   HoldResetOf     { get; }
+
+        public HoldingH2Transport(Func<UInt32, Boolean>   HoldHeadersOf,
+                                  Func<UInt32, Boolean>?  HoldResetOf   = null)
         {
             this.HoldHeadersOf  = HoldHeadersOf;
+            this.HoldResetOf    = HoldResetOf ?? (streamId => false);
             this.fromClient     = clientToServer.Reader.AsStream();
             this.toClient       = serverToClient.Writer.AsStream();
             this.Client         = new ClientSide(this);
@@ -355,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             // A hold that never engaged would leave the test ordering nothing,
             // and passing for the wrong reason.
             if (release is null)
-                throw new InvalidOperationException($"The client is not held in the HEADERS of stream {StreamId}");
+                throw new InvalidOperationException($"The client is not held in the HEADERS or the RST_STREAM of stream {StreamId}");
 
             // The TPL never runs a continuation inline on a thread with a
             // SynchronizationContext of its own, and NUnit gives its test threads
@@ -375,10 +392,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         }
 
+        /// <summary>
+        /// Fail the client's next write of a DATA frame on this stream with
+        /// <paramref name="Failure"/>, as a broken transport would, and write
+        /// none of it. The writes after it go through again.
+        /// </summary>
+        public void FailNextDataWrite(UInt32 StreamId, Exception Failure)
+        {
+            lock (sync)
+                dataWriteFailure = (StreamId, Failure);
+        }
+
+        /// <summary>
+        /// Go away as a server that closes the connection does: the client's next
+        /// read finds the end of the stream.
+        /// </summary>
+        public ValueTask EndServerSideAsync()
+
+            => serverToClient.Writer.CompleteAsync();
+
         #endregion
 
 
         #region Client side
+
+        /// <summary>
+        /// The failure armed for a write that starts with this frame, if any —
+        /// only once.
+        /// </summary>
+        private Exception? WriteFailureFor(HTTP2Frame Frame)
+        {
+
+            lock (sync)
+            {
+
+                if (dataWriteFailure is not { } armed ||
+                    Frame.Type     != HTTP2FrameType.DATA ||
+                    Frame.StreamId != armed.StreamId)
+                    return null;
+
+                dataWriteFailure = null;
+
+                return armed.Failure;
+
+            }
+
+        }
 
         private void ReadStarting()
         {
@@ -419,9 +478,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         /// <summary>
         /// The connection's end: reads what the test sends, and writes to the
-        /// test — holding a write that completes a selected HEADERS frame until
-        /// it is released. Outgoing bytes are parsed into frames as they pass,
-        /// so where the connection splits its writes does not matter.
+        /// test — holding a write that completes a selected HEADERS or RST_STREAM
+        /// frame until it is released. Outgoing bytes are parsed into frames as
+        /// they pass, so where the connection splits its writes does not matter.
         /// </summary>
         private sealed class ClientSide(HoldingH2Transport Transport) : Stream
         {
@@ -448,11 +507,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             public override async ValueTask WriteAsync(ReadOnlyMemory<Byte> Buffer, CancellationToken CancellationToken = default)
             {
 
+                // The connection writes a DATA frame whole, in one write, so a
+                // write that starts between frames starts with its header.
+                if (prefaceLeft == 0 && frame is null && headerFill == 0 && Buffer.Length >= HTTP2Frame.HeaderSize &&
+                    Transport.WriteFailureFor(HTTP2Frame.ParseHeader(Buffer.Span[..HTTP2Frame.HeaderSize])) is { } failure)
+                    throw failure;
+
                 // Holds exist before the bytes go out, so the test cannot read
-                // these HEADERS and then find nothing to release.
-                var holds = HeadersCompletedBy(Buffer.Span).
-                                Where (Transport.HoldHeadersOf).
-                                Select(Transport.Hold).
+                // these HEADERS, or this RST_STREAM, and then find nothing to
+                // release.
+                var holds = FramesCompletedBy(Buffer.Span).
+                                Where (completed => completed.Type == HTTP2FrameType.HEADERS    ? Transport.HoldHeadersOf(completed.StreamId)
+                                                  : completed.Type == HTTP2FrameType.RST_STREAM ? Transport.HoldResetOf  (completed.StreamId)
+                                                  : false).
+                                Select(completed => Transport.Hold(completed.StreamId)).
                                 ToList();
 
                 await toServer.WriteAsync(Buffer, CancellationToken);
@@ -463,12 +531,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             }
 
             /// <summary>
-            /// The stream IDs of the HEADERS frames whose last byte is in <paramref name="Data"/>.
+            /// The type and stream ID of the frames whose last byte is in <paramref name="Data"/>.
             /// </summary>
-            private List<UInt32> HeadersCompletedBy(ReadOnlySpan<Byte> Data)
+            private List<(HTTP2FrameType Type, UInt32 StreamId)> FramesCompletedBy(ReadOnlySpan<Byte> Data)
             {
 
-                var completed = new List<UInt32>();
+                var completed = new List<(HTTP2FrameType Type, UInt32 StreamId)>();
 
                 while (!Data.IsEmpty)
                 {
@@ -507,8 +575,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                     if (payloadLeft == 0)
                     {
 
-                        if (frame.Type == HTTP2FrameType.HEADERS)
-                            completed.Add(frame.StreamId);
+                        completed.Add((frame.Type, frame.StreamId));
 
                         frame = null;
 
