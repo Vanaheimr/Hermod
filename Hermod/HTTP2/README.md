@@ -1188,6 +1188,16 @@ that prints, which is roughly what the library used to hardcode.
   `OperationCanceledException`, as before: the end of a connection is no reset
   with an error code, which a write would report as an `HTTP2StreamException`.
   The reset sends nothing, and an ended connection counts no stream as active.
+- **Every end of the read loop fails what is left on the connection**, also one
+  that comes between two frames: `CloseAsync`, or the token the connection was
+  made with, while the loop handles a frame, or while it takes one from a read
+  that does not look at the token — `SslStream` hands out what it has decrypted
+  already, whatever the token says. The loop used to stop at its condition then,
+  with no exception, and failed nothing. A buffered request failed all the same,
+  as it waits with the connection's token, but a streamed response waits with
+  its caller's alone: its `GetResponseAsync`, `ReadAsync` and `GetTrailersAsync`
+  waited for good. They fail now with an `OperationCanceledException`, as when
+  the end finds the loop in a read.
 - **Slots and windows follow the stream**: the `MAX_CONCURRENT_STREAMS` gate,
   and `AvailableStreamSlots` for the pool, count the streams that are open or
   half-closed (§5.1.2), as the stream allocator and the server do, not the
