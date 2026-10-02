@@ -54,6 +54,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private static readonly Byte[] ConnectionPreface = Encoding.ASCII.GetBytes("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
 
         private readonly Stream              transportStream;
+
+        /// <summary>
+        /// Whether the connection closes <see cref="transportStream"/> when it
+        /// ends (see <see cref="CloseTransportAsync"/>): true for a transport
+        /// <see cref="HTTP2Client.ConnectAsync"/> made, which nobody else holds,
+        /// false for one the caller passed in and still owns.
+        /// </summary>
+        private readonly Boolean             ownsTransport;
+
+        /// <summary>
+        /// Set once the transport is being closed, so that it is closed once.
+        /// </summary>
+        private Int32                        transportClosing;
+
+        /// <summary>
+        /// The frame read loop, once <see cref="StartAsync"/> started it. It ends
+        /// with the connection, an owned transport closed, which is what
+        /// <see cref="CloseAsync"/> waits for.
+        /// </summary>
+        private Task?                        runLoop;
+
         private readonly HTTP2Settings       localSettings    = new();
         private readonly HTTP2Settings       remoteSettings   = new();
         private readonly HTTP2StreamManager  streamManager    = new(HTTP2Role.Client);
@@ -129,8 +150,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Completes when the connection has finished — the frame read loop exited,
         /// whether via a clean <see cref="CloseAsync"/>, a peer GOAWAY teardown, or a
-        /// fatal I/O error. Never faults (it's a lifecycle signal, not a result), so
-        /// a consumer like <see cref="HTTP2ClientPool"/> can simply <c>await</c> it to
+        /// fatal I/O error, and closed the transport if the connection owns it
+        /// (see <see cref="CloseTransportAsync"/>). Never faults (it's a
+        /// lifecycle signal, not a result), so a consumer like <see cref="HTTP2ClientPool"/> can simply <c>await</c> it to
         /// learn the connection died and replace it.
         /// </summary>
         private readonly TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -203,12 +225,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// (prior-knowledge, RFC 9113 §3.3). Only the <see cref="Stream"/> base API
         /// is used, so the connection is transport-agnostic.
         /// </param>
+        /// <param name="OwnsTransport">
+        /// Whether the connection closes <paramref name="TransportStream"/> when it
+        /// ends, however it ends: after <see cref="CloseAsync"/>, a connection
+        /// error, the keepalive's teardown, the server closing its side. True for
+        /// a stream nobody else will close — one over a socket made for this
+        /// connection, as <see cref="HTTP2Client.ConnectAsync"/> passes. The
+        /// default, false, leaves the stream to whoever passed it in: the
+        /// connection only stops using it.
+        /// </param>
         public HTTP2ClientConnection(Stream               TransportStream,
                                      HTTP2ClientOptions?  Options             = null,
-                                     CancellationToken    CancellationToken   = default)
+                                     CancellationToken    CancellationToken   = default,
+                                     Boolean              OwnsTransport       = false)
         {
 
             this.transportStream        = TransportStream;
+            this.ownsTransport          = OwnsTransport;
             this.isSecure               = TransportStream is SslStream { IsAuthenticated: true };
             this.options                = Options ?? HTTP2ClientOptions.Default;
             this.connectionCts          = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
@@ -259,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 streamManager.ConnectionRecvWindow += connectionBump;
             }
 
-            _ = Task.Run(RunAsync);
+            runLoop = Task.Run(RunAsync);
 
             // Every DATA frame of the connection goes out through it, for as long
             // as the connection lives (see DataWriterLoopAsync).
@@ -274,6 +307,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         private async Task RunAsync()
         {
+
+            var goAwaySent = false;
+
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
@@ -326,7 +362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // has no one to tell, and a cancellation means the connection is
                 // being closed already.
                 if (ex is HTTP2ConnectionException connectionError)
-                    await SendGoAwayAsync(connectionError.ErrorCode, connectionError.Message);
+                    goAwaySent = await SendGoAwayAsync(connectionError.ErrorCode, connectionError.Message);
 
             }
             finally
@@ -363,9 +399,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     stream.Reset();
 
                 unusable.TrySetResult();   // no new streams from here on
+
+                // RFC 9113, Section 5.4.1: after the GOAWAY of a connection error,
+                // the TCP connection is closed. And after every other end as well:
+                // a cancelled read does not close a socket, so one whose
+                // connection ended over CloseAsync, the keepalive or the server's
+                // end of stream stayed open until the GC finalized it.
+                await CloseTransportAsync(DrainFirst: goAwaySent);
+
                 closed.TrySetResult();     // wake any pool watcher awaiting this connection's death
 
             }
+
         }
 
         #endregion
@@ -3318,9 +3363,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
 
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            catch (Exception) when (cancellationToken.IsCancellationRequested)
             {
-                // The connection is ending — normal.
+                // The connection is ending — normal. A write going out when it
+                // did fails with the cancellation, or, once the read loop has
+                // closed the transport under it (see CloseTransportAsync), with
+                // what the transport says when closed: an IOException, an
+                // ObjectDisposedException. Neither is a failure of this loop.
             }
             catch (Exception e)
             {
@@ -3764,21 +3813,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         #region Shutdown
 
         /// <summary>
-        /// Send a best-effort GOAWAY and tear the connection down.
+        /// Send a best-effort GOAWAY and tear the connection down. Returns once the
+        /// connection has ended, and closed its transport if it owns it (see the
+        /// constructor's OwnsTransport).
+        ///
+        /// The GOAWAY goes out as that of a connection error does (see
+        /// <see cref="SendGoAwayAsync"/>): within <see cref="GoAwayTimeout"/>, or
+        /// not at all. It used to go out the plain way, which waits for the write
+        /// lock with the connection's token, a token not cancelled before the
+        /// GOAWAY is out: behind a write that did not end — the server no longer
+        /// reads, say — CloseAsync did not return.
+        ///
+        /// Unlike after a connection error, nothing is drained before the close:
+        /// a server need not close its side over a client's GOAWAY (Hermod's does
+        /// not), and every close would wait the drain out. Should the server still
+        /// be sending, the close may go out as a reset, and the server may not
+        /// read the GOAWAY; it learns that the connection ended either way.
         /// </summary>
         public async Task CloseAsync()
         {
 
             if (!goawayReceived)
-            {
-                try
-                {
-                    await SendFrameAsync(HTTP2Frame.CreateGoAway(streamManager.LastPeerStreamId, HTTP2ErrorCode.NO_ERROR));
-                }
-                catch { /* best effort */ }
-            }
+                await SendGoAwayAsync(HTTP2ErrorCode.NO_ERROR, null);
+
+            await AbortAsync();
+
+        }
+
+        /// <summary>
+        /// End the connection without a GOAWAY, and return once it has ended and
+        /// closed its transport if it owns it. What <see cref="HTTP2Client.ConnectAsync"/>
+        /// does with a connection whose <see cref="StartAsync"/> failed: a GOAWAY
+        /// of its own could overtake that of the connection error it failed over.
+        /// </summary>
+        internal async Task AbortAsync()
+        {
 
             connectionCts.Cancel();
+
+            // The read loop ends with the cancellation, and closes the transport
+            // on its way out. Without a read loop — StartAsync failed before it
+            // started one, or was never called — that is left to us.
+            if (runLoop is not null)
+                await runLoop;
+            else
+                await CloseTransportAsync(DrainFirst: false);
 
         }
 
@@ -3801,13 +3880,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <see cref="Closed"/> or <see cref="Unusable"/>, a pool among them. A
         /// GOAWAY that has not got the lock and gone out within
         /// <see cref="GoAwayTimeout"/>, on the options' TimeProvider, is given up.
+        /// Returns whether it went out.
         ///
         /// The write lock is not released: the GOAWAY is the last frame of the
         /// connection, as Section 5.4.1 has the TCP connection closed after it,
         /// and every write still waiting for the lock fails with the cancellation
         /// that follows.
         /// </summary>
-        private async Task SendGoAwayAsync(HTTP2ErrorCode ErrorCode, String? DebugMessage)
+        private async Task<Boolean> SendGoAwayAsync(HTTP2ErrorCode ErrorCode, String? DebugMessage)
         {
 
             var bytes = HTTP2Frame.CreateGoAway(streamManager.LastPeerStreamId, ErrorCode, DebugMessage).Serialize();
@@ -3821,17 +3901,102 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             catch (OperationCanceledException)
             {
-                return;
+                return false;
             }
 
             try
             {
                 await transportStream.WriteAsync(bytes, bounded.Token);
                 await transportStream.FlushAsync(bounded.Token);
+                return true;
             }
             catch
             {
                 // Best effort: the connection ends either way.
+                return false;
+            }
+
+        }
+
+        /// <summary>
+        /// How long, and how much, the client reads and discards after the GOAWAY
+        /// of a connection error before it closes the transport (see
+        /// <see cref="DrainAsync"/>): the figures of the server's drain (see
+        /// HTTP2Connection.DrainForCloseAsync).
+        /// </summary>
+        private static readonly TimeSpan  DrainTimeout   = TimeSpan.FromMilliseconds(250);
+        private const           Int32     DrainMaxBytes  = 256 * 1024;
+
+        /// <summary>
+        /// Close the transport if the connection owns it, and only once: at the
+        /// end of the read loop, or in <see cref="AbortAsync"/> when there is no
+        /// read loop. Disposing the stream closes the socket under it: an
+        /// <see cref="SslStream"/> made with leaveInnerStreamOpen false disposes
+        /// its NetworkStream, and the NetworkStream of a TcpClient owns its
+        /// socket. A transport the caller passed in, and still owns, stays open.
+        /// </summary>
+        /// <param name="DrainFirst">
+        /// Whether the GOAWAY of a connection error went out, which the server
+        /// should get to read before the close (see <see cref="DrainAsync"/>).
+        /// </param>
+        private async Task CloseTransportAsync(Boolean DrainFirst)
+        {
+
+            if (!ownsTransport || Interlocked.Exchange(ref transportClosing, 1) == 1)
+                return;
+
+            if (DrainFirst)
+                await DrainAsync();
+
+            try
+            {
+                await transportStream.DisposeAsync();
+            }
+            catch
+            {
+                // Closed it is, as far as it can be closed.
+            }
+
+        }
+
+        /// <summary>
+        /// Read and discard what the server still sends, until it closes its side,
+        /// for at most <see cref="DrainTimeout"/> (on the options' TimeProvider)
+        /// and <see cref="DrainMaxBytes"/>. Closing a socket with unread data in
+        /// its receive buffer sends a reset rather than a FIN, and the reset may
+        /// make the server's side discard the GOAWAY before it is read: the server
+        /// then sees a broken connection, not the error it ended over (RFC 9113,
+        /// Section 6.8). The server drains after its own GOAWAY for that reason.
+        ///
+        /// The read loop calls it on its way out, after its last read completed,
+        /// so no other read is pending on the transport.
+        /// </summary>
+        private async Task DrainAsync()
+        {
+
+            try
+            {
+
+                using var timeout = new CancellationTokenSource(DrainTimeout, options.TimeProvider);
+
+                var buffer   = new Byte[8192];
+                var drained  = 0;
+
+                while (drained < DrainMaxBytes)
+                {
+
+                    var read = await transportStream.ReadAsync(buffer, timeout.Token);
+                    if (read == 0)
+                        break;
+
+                    drained += read;
+
+                }
+
+            }
+            catch
+            {
+                // Timed out, or the transport failed: it is closed either way.
             }
 
         }

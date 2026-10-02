@@ -1237,6 +1237,20 @@ that prints, which is roughly what the library used to hardcode.
   `HTTP2ConnectionException` the connection ended over. They used to fail with
   "A task was canceled.": the read loop fails them with the error and then
   cancels the connection, and the cancellation reached their waits first.
+- **The client closes its TCP connection when the connection ends**: after
+  `CloseAsync`, after a connection error's `GOAWAY` (§5.4.1), after the
+  keepalive's teardown and after the server closed its side, and when
+  `ConnectAsync` fails once the socket is open (a TLS handshake, ALPN, or a
+  start that fails). It used to leave the socket to the GC, in `CLOSE_WAIT` once
+  the server had closed: cancelling a pending read does not close a socket.
+  After a connection error's `GOAWAY` it reads and discards what the server
+  still sends, for up to 250 ms, as the server does, so that the close is a FIN
+  behind the `GOAWAY`, not a reset that may discard it. `CloseAsync` returns once
+  the connection has ended and the socket is closed, and its `GOAWAY NO_ERROR`
+  gets the same second as a connection error's: behind a write that never
+  ended, `CloseAsync` used not to return. A connection built on a stream of
+  your own (`new HTTP2ClientConnection(stream)`) leaves it open, as before;
+  `OwnsTransport: true` hands it over to be closed.
 - **`HTTP2ClientPool`**: a single-origin pool that keeps N warm connections
   (default 4), routes to the least-loaded, transparently fails over
   not-processed requests, and self-heals dead connections in the background.
