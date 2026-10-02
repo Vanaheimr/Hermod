@@ -1107,6 +1107,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected Task Log(String Message)
         {
 
+            if (DisableLogging)
+                return Task.CompletedTask;
+
             var onLogs = OnLogs;
             if (onLogs is not null)
             {
