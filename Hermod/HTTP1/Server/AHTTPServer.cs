@@ -66,7 +66,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
-    /// A simple HTTP test server that listens for incoming TCP connections and processes HTTP requests, supporting pipelining.
+    /// An abstract HTTP server that listens for incoming TCP connections and parses HTTP requests, supporting pipelining.
+    /// Subclasses process each request in <see cref="ProcessHTTPRequest"/>.
     /// </summary>
     public abstract class AHTTPServer : ATCPServer//, IHTTPServer
     {
