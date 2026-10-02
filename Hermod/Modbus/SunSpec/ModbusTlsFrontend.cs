@@ -68,8 +68,9 @@ public sealed class ModbusTlsFrontend : IDisposable
 
     /// <summary>
     /// The endpoint the listener actually bound - completed once
-    /// <see cref="RunAsync"/> has bound it, or faulted with whatever prevented
-    /// that.
+    /// <see cref="RunAsync"/> has bound it and built the TLS contexts of the
+    /// certificates it knows, or faulted with whatever prevented that: the
+    /// bind, or a certificate selector that had no certificate to show.
     /// </summary>
     /// <remarks>
     /// The options name the port to bind, which is not the port that gets
@@ -151,15 +152,42 @@ public sealed class ModbusTlsFrontend : IDisposable
 
         var boundEndPoint = (System.Net.IPEndPoint) _listener.LocalEndpoint;
 
-        _boundEndPoint.TrySetResult(boundEndPoint);
-
         _logger.LogInformation("mbaps frontend listening on {Endpoint} (TLS-only, mutual auth)",
             boundEndPoint);
-        var startupChain = ServerCertificateFor(null);
 
-        _logger.LogInformation("server cert: {Subject}", startupChain.Certificate.Subject);
-        _logger.LogInformation("intermediates sent: {Count}", startupChain.Intermediates.Count);
-        _logger.LogInformation("trusted CA: {Subject}", String.Join(", ", TrustAnchorsFor(null).Select(anchor => anchor.Subject)));
+        ServerCertificateChain startupChain;
+
+        try
+        {
+
+            // Before the first await, so that a frontend which has no
+            // certificate to show fails in the call to RunAsync() itself, where
+            // a host that starts it can see so at once.
+            startupChain = ServerCertificateFor(null);
+
+            _logger.LogInformation("server cert: {Subject}", startupChain.Certificate.Subject);
+            _logger.LogInformation("intermediates sent: {Count}", startupChain.Intermediates.Count);
+            _logger.LogInformation("trusted CA: {Subject}", String.Join(", ", TrustAnchorsFor(null).Select(anchor => anchor.Subject)));
+
+        }
+        catch (Exception e)
+        {
+            _listener.Stop();
+            _boundEndPoint.TrySetException(e);
+            throw;
+        }
+
+        // The TLS contexts of the certificates known now are built before anyone
+        // is told where to connect, rather than by the first handshake that needs
+        // one. Building a context walks the chain, and on Windows opens the
+        // intermediate CA store to put the intermediates there - which took 6 to
+        // 15 seconds on a loaded machine whose store held 3,900 certificates, all
+        // of it on the handshake clock of whichever client came first. Nor could
+        // the handshake timeout cut it short: the build is synchronous, so it ran
+        // to its end, and then the client was dropped for having taken too long.
+        await Task.Run(() => PrepareCertificateContexts(startupChain), CancellationToken.None).ConfigureAwait(false);
+
+        _boundEndPoint.TrySetResult(boundEndPoint);
 
         try
         {
@@ -748,6 +776,47 @@ public sealed class ModbusTlsFrontend : IDisposable
                         offline:                 true
                     )
            );
+
+    /// <summary>
+    /// Build the TLS contexts of the certificates this frontend knows at start:
+    /// the one it shows a client that names no server, and without a selector
+    /// also every SNI binding's.
+    /// </summary>
+    /// <param name="StartupChain">What ServerCertificateFor(null) answered at start.</param>
+    /// <remarks>
+    /// Ahead of time only, not instead of: a selector is still asked at every
+    /// handshake, so a certificate replaced under a running frontend is shown
+    /// from the next handshake on, which builds its context then. And a context
+    /// that cannot be built here is left to the handshake, which fails for it
+    /// as it always did - the warning is all that is added.
+    /// </remarks>
+    private void PrepareCertificateContexts(ServerCertificateChain StartupChain)
+    {
+
+        IEnumerable<ServerCertificateChain> chains = _serverCertificateSelector is null
+                                                         ? [ StartupChain, .. _sniBindings.Values.Select(binding => binding.ServerChain) ]
+                                                         : [ StartupChain ];
+
+        foreach (var chain in chains)
+        {
+            try
+            {
+                ContextFor(chain);
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "the TLS context of {Certificate} could not be built in advance: {ExceptionType}", chain.Certificate.Subject, e.GetType().Name);
+            }
+        }
+
+    }
+
+    /// <summary>
+    /// Whether the TLS context of this chain has been built - for tests.
+    /// </summary>
+    internal static Boolean HasCertificateContextFor(ServerCertificateChain Chain)
+
+        => _certificateContexts.ContainsKey(Chain.CacheKey);
 
     /// <summary>
     /// The CAs a client certificate may chain to for this name.

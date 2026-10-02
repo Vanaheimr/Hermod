@@ -427,6 +427,269 @@ public class SunSpecModbusTLSTests
     #endregion
 
 
+    #region Hermod_ModbusTLSFrontend_BuildsItsCertificateContextsBeforeItSaysWhereItListens_Test()
+
+    /// <summary>
+    /// The TLS contexts of the certificates a frontend is given are built by
+    /// the time it says where it listens - not by the first handshake that
+    /// needs one, which used to build them on its client's handshake clock.
+    /// </summary>
+    [Test]
+    public async Task Hermod_ModbusTLSFrontend_BuildsItsCertificateContextsBeforeItSaysWhereItListens_Test()
+    {
+
+        var pkiDirectory = Path.Combine(
+                               TestContext.CurrentContext.WorkDirectory,
+                               "SunSpecModbusTLS",
+                               Guid.NewGuid().ToString("N")
+                           );
+
+        var rootA = Path.Combine(pkiDirectory, "root-a");
+        var rootB = Path.Combine(pkiDirectory, "root-b");
+
+        await new ModbusPKI().BuildPKI(rootA);
+        await new ModbusPKI().BuildPKI(rootB);
+
+        var chainA = LoadServerChain(Path.Combine(rootA, "server.pfx"));
+        var chainB = LoadServerChain(Path.Combine(rootB, "server.pfx"));
+
+        try
+        {
+
+            using var meter        = new SunSpecMeterDevice("meter-test-contexts", SunSpecMeterMode.ImportOnly);
+            using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using var frontend     = new ModbusTlsFrontend(
+                                         new ModbusTlsFrontendOptions(
+                                             NetIPAddress.Loopback,
+                                             0,  // any free port - the frontend says which
+                                             Path.Combine(rootA, "server.pfx"),
+                                             "demo",
+                                             Path.Combine(rootA, "issuing-clients-ca.crt"),
+                                             TimeSpan.FromSeconds(5),
+                                             TimeSpan.FromSeconds(5),
+                                             TimeSpan.FromSeconds(5),
+                                             [
+                                                 new ModbusTlsFrontendSNIBinding(
+                                                     "meter-b.sunspec.test",
+                                                     Path.Combine(rootB, "server.pfx"),
+                                                     "demo",
+                                                     Path.Combine(rootB, "issuing-clients-ca.crt")
+                                                 )
+                                             ]
+                                         ),
+                                         new SunSpecBackendFactory(meter),
+                                         new AuthorizationPolicy(meter),
+                                         new NUnitLogger<ModbusTlsFrontend>()
+                                     );
+
+            var frontendTask = frontend.RunAsync(frontendCts.Token);
+
+            await ListenPortOf(frontend);
+
+            Assert.Multiple(() => {
+                Assert.That(ModbusTlsFrontend.HasCertificateContextFor(chainA), Is.True, "the default certificate's TLS context was not built before the frontend said where it listens");
+                Assert.That(ModbusTlsFrontend.HasCertificateContextFor(chainB), Is.True, "the SNI certificate's TLS context was not built before the frontend said where it listens");
+            });
+
+            await frontendCts.CancelAsync();
+            await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+
+        }
+        finally
+        {
+            DisposeChain(chainA);
+            DisposeChain(chainB);
+            RemoveInstalledAuthorities(rootA);
+            RemoveInstalledAuthorities(rootB);
+        }
+
+    }
+
+    #endregion
+
+    #region Hermod_ModbusTLSFrontend_AsksItsSelectorAtEveryHandshake_Test()
+
+    /// <summary>
+    /// A frontend with a certificate selector builds the context of what the
+    /// selector answers at start before it says where it listens - and still
+    /// asks the selector at every handshake, so that a certificate replaced
+    /// under it is the one the next client sees, as a meter whose certificate
+    /// is renewed at runtime needs.
+    /// </summary>
+    [Test]
+    public async Task Hermod_ModbusTLSFrontend_AsksItsSelectorAtEveryHandshake_Test()
+    {
+
+        var pkiDirectory = Path.Combine(
+                               TestContext.CurrentContext.WorkDirectory,
+                               "SunSpecModbusTLS",
+                               Guid.NewGuid().ToString("N")
+                           );
+
+        var rootA = Path.Combine(pkiDirectory, "root-a");
+        var rootB = Path.Combine(pkiDirectory, "root-b");
+
+        await new ModbusPKI().BuildPKI(rootA);
+        await new ModbusPKI().BuildPKI(rootB);
+
+        var chainA   = LoadServerChain(Path.Combine(rootA, "server.pfx"));
+        var chainB   = LoadServerChain(Path.Combine(rootB, "server.pfx"));
+        var anchorA  = X509CertificateLoader.LoadCertificateFromFile(Path.Combine(rootA, "issuing-clients-ca.crt"));
+        var anchorB  = X509CertificateLoader.LoadCertificateFromFile(Path.Combine(rootB, "issuing-clients-ca.crt"));
+        var current  = chainA;
+
+        try
+        {
+
+            using var meter        = new SunSpecMeterDevice("meter-test-selector", SunSpecMeterMode.ImportOnly);
+            using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using var frontend     = new ModbusTlsFrontend(
+                                         new ModbusTlsFrontendOptions(
+                                             NetIPAddress.Loopback,
+                                             0,  // any free port - the frontend says which
+                                             null,
+                                             null,
+                                             null,
+                                             TimeSpan.FromSeconds(5),
+                                             TimeSpan.FromSeconds(5),
+                                             TimeSpan.FromSeconds(5),
+                                             ServerCertificateSelector:  serverName => current,
+                                             ClientTrustAnchors:         () => [ anchorA, anchorB ]
+                                         ),
+                                         new SunSpecBackendFactory(meter),
+                                         new AuthorizationPolicy(meter),
+                                         new NUnitLogger<ModbusTlsFrontend>()
+                                     );
+
+            var frontendTask = frontend.RunAsync(frontendCts.Token);
+            var listenPort   = await ListenPortOf(frontend);
+
+            Assert.Multiple(() => {
+                Assert.That(ModbusTlsFrontend.HasCertificateContextFor(chainA), Is.True,  "the TLS context of the selector's first answer was not built before the frontend said where it listens");
+                Assert.That(ModbusTlsFrontend.HasCertificateContextFor(chainB), Is.False, "a TLS context was built for a certificate the selector had not answered with yet");
+            });
+
+            // Replaced under the running frontend: the next client is shown
+            // the new certificate, which ReadAndAssertEnergyMeterAsync pins.
+            current = chainB;
+
+            await ReadAndAssertEnergyMeterAsync(
+                      listenPort,
+                      null,
+                      rootB,
+                      frontendCts.Token
+                  );
+
+            await frontendCts.CancelAsync();
+            await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+
+        }
+        finally
+        {
+            DisposeChain(chainA);
+            DisposeChain(chainB);
+            anchorA.Dispose();
+            anchorB.Dispose();
+            RemoveInstalledAuthorities(rootA);
+            RemoveInstalledAuthorities(rootB);
+        }
+
+    }
+
+    #endregion
+
+    #region Hermod_ModbusTLSFrontend_FailsAtOnceWithoutACertificate_Test()
+
+    /// <summary>
+    /// A frontend whose selector has no certificate to show fails in the call
+    /// to RunAsync() itself - before its first await, where a host that starts
+    /// it sees so at once - and says why through BoundEndPoint as well.
+    /// </summary>
+    [Test]
+    public void Hermod_ModbusTLSFrontend_FailsAtOnceWithoutACertificate_Test()
+    {
+
+        var noCertificate      = new InvalidOperationException("This meter has no valid Modbus/TLS certificate to show.");
+
+        using var meter        = new SunSpecMeterDevice("meter-test-no-certificate", SunSpecMeterMode.ImportOnly);
+        using var frontend     = new ModbusTlsFrontend(
+                                     new ModbusTlsFrontendOptions(
+                                         NetIPAddress.Loopback,
+                                         0,  // any free port - the frontend says which
+                                         null,
+                                         null,
+                                         null,
+                                         TimeSpan.FromSeconds(5),
+                                         TimeSpan.FromSeconds(5),
+                                         TimeSpan.FromSeconds(5),
+                                         ServerCertificateSelector:  serverName => throw noCertificate,
+                                         ClientTrustAnchors:         () => []
+                                     ),
+                                     new SunSpecBackendFactory(meter),
+                                     new AuthorizationPolicy(meter),
+                                     new NUnitLogger<ModbusTlsFrontend>()
+                                 );
+
+        var frontendTask       = frontend.RunAsync();
+
+        Assert.Multiple(() => {
+
+            Assert.That(frontendTask.IsFaulted,                   Is.True,                 "RunAsync() did not fail at once");
+            Assert.That(frontendTask.Exception?.InnerException,   Is.SameAs(noCertificate));
+
+            Assert.That(async () => await frontend.BoundEndPoint.WaitAsync(TimeSpan.FromSeconds(5)),
+                        Throws.Exception.SameAs(noCertificate),
+                        "BoundEndPoint did not say why the frontend will not listen");
+
+        });
+
+    }
+
+    #endregion
+
+
+    /// <summary>
+    /// A server's certificate chain out of its PKCS#12 file, as the frontend
+    /// reads it: the certificate with the private key, and everything else
+    /// in the file with it.
+    /// </summary>
+    private static ServerCertificateChain LoadServerChain(String PfxPath)
+    {
+
+        var certificates = X509CertificateLoader.LoadPkcs12CollectionFromFile(
+                               PfxPath,
+                               "demo",
+                               X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable
+                           ).
+                           OfType<X509Certificate2>().
+                           ToArray();
+
+        var leaf   = certificates.Single(certificate => certificate.HasPrivateKey);
+
+        var chain  = new ServerCertificateChain(
+                         leaf,
+                         certificates.Where(certificate => certificate != leaf)
+                     );
+
+        // The root, which the chain leaves out, as the frontend's does.
+        foreach (var certificate in certificates)
+            if (certificate != leaf && !chain.Intermediates.Contains(certificate))
+                certificate.Dispose();
+
+        return chain;
+
+    }
+
+    private static void DisposeChain(ServerCertificateChain Chain)
+    {
+
+        Chain.Certificate.Dispose();
+
+        foreach (var intermediate in Chain.Intermediates)
+            intermediate.Dispose();
+
+    }
+
     /// <summary>
     /// The port the frontend was given for port 0 - known once it has bound
     /// its listener, which is also when a client may connect.
