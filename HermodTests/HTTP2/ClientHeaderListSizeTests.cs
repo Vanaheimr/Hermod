@@ -366,6 +366,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
+        #region RequestWaitingForAStreamSlot_GetsTheDiscardedResponsesSlot(Streaming, EndStream)
+
+        /// <summary>
+        /// The server takes one stream at a time, and a second request waits for
+        /// the first's. When the first response is discarded for its header list,
+        /// the second request gets its slot — after the RST_STREAM, so the server
+        /// never counts the two streams at once. Where the block ends the stream,
+        /// and the request had ended its side, the stream is closed, and takes no
+        /// RST_STREAM: the second request gets its slot all the same.
+        /// </summary>
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true,  true)]
+        public async Task RequestWaitingForAStreamSlot_GetsTheDiscardedResponsesSlot(Boolean Streaming, Boolean EndStream)
+        {
+
+            await using var transport = new HoldingH2Transport(HoldHeadersOf: streamId => false);
+
+            var connection  = await transport.ConnectAsync(new HTTP2ClientOptions());
+
+            await transport.SendAsync(HTTP2Frame.CreateSettings((HTTP2SettingsParameter.MAX_CONCURRENT_STREAMS, 1)));
+
+            Task response;
+
+            if (Streaming)
+            {
+                var upload  = await connection.StartStreamingRequestAsync(HTTPMethod.POST, URIScheme.http, "localhost", "/first").WaitAsync(StepTimeout);
+                response    = ReadAllAsync(upload);
+            }
+            else
+                response    = connection.SendRequestAsync(HTTPMethod.GET, URIScheme.http, "localhost", "/first");
+
+            var streamId    = (await transport.NextHeadersAsync()).StreamId;
+            var waiting     = connection.SendRequestAsync(HTTPMethod.GET, URIScheme.http, "localhost", "/next");
+
+            await SendBlockAsync(transport, streamId, RawHeaderBlock.Literals(OfSize([(":status", "200"), ("x-field", "")], Limit + 1)), EndStream);
+
+            var failure     = await FailureOf(response);
+
+            var sent        = new List<HTTP2Frame>();
+            var request     = await transport.NextHeadersAsync(sent);
+
+            sent.Add(request);
+
+            await transport.RespondAsync(request.StreamId, "next");
+
+            var answer      = await waiting.WaitAsync(StepTimeout);
+
+            Assert.Multiple(() =>
+            {
+
+                Assert.That(Describe(failure),  Is.EqualTo("HTTP2StreamException PROTOCOL_ERROR, MAX_HEADER_LIST_SIZE"),
+                                                                                                    "how the request over the limit failed");
+
+                Assert.That(sent.Where (frame => frame.StreamId != 0).
+                                 Select(frame => frame.Type == HTTP2FrameType.RST_STREAM ? Resets([frame])[0] + " RST_STREAM"
+                                                                                         : $"{frame.StreamId} {frame.Type}"),
+                                                Is.EqualTo(EndStream && !Streaming ? new[] { $"{streamId + 2} HEADERS" }
+                                                                                   : new[] { $"{streamId} PROTOCOL_ERROR RST_STREAM",
+                                                                                             $"{streamId + 2} HEADERS" }),
+                                                                                                    "what the client sent on its streams, up to the waiting request's HEADERS");
+
+                Assert.That(answer.Status,      Is.EqualTo(200),                                    "status of the waiting request's response");
+
+            });
+
+            await connection.CloseAsync();
+
+        }
+
+        #endregion
+
         #region ResponseBlockPastTwiceTheLimit_EndsTheConnection(Over)
 
         /// <summary>
