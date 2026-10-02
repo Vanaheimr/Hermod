@@ -391,6 +391,26 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   body-size cap first. A buffered upload that declared its length and ended with
   trailers used to be reset with `PROTOCOL_ERROR`, as if it had sent no body at
   all; and trailers let a body of another length through.
+- The client holds **responses** to their `content-length` the same way ("Clients
+  MUST NOT accept a malformed response", §8.1.1), buffered and streamed alike.
+  A response fails with an `HTTP2StreamException` carrying `PROTOCOL_ERROR`,
+  and its stream is reset with `RST_STREAM PROTOCOL_ERROR`, in these cases:
+  - at its HEADERS, if its `content-length` is no number of octets (`1*DIGIT`:
+    no sign, no blanks, no list) or two of them differ;
+  - at the DATA frame that takes its body past the declared length — that
+    frame is not taken in, and a streamed body's reader gets what came before
+    it, then the failure;
+  - where its body ends shorter than declared: at END_STREAM, or at trailers,
+    which it then hands over none of.
+
+  A stream both sides have ended by then is closed and takes no `RST_STREAM`.
+  A request body still being sent stops at the reset, and a streamed request's
+  next write fails with `PROTOCOL_ERROR`. The refused frame goes back to the
+  connection's window, the stream's slot is free, and the connection goes on.
+  A response that can have no content (to a HEAD request, a 204, a 304) may
+  declare a length it does not send, but not a malformed one. A CONNECT
+  tunnel's `content-length` bounds nothing. The client used to accept all of
+  these, and handed over whatever body arrived.
 - Cleartext **h2c** (prior knowledge, RFC 9113 §3.3) — server and client. (The
   RFC 7540 `Upgrade: h2c` negotiation was removed in RFC 9113 and is
   deliberately not implemented.)
@@ -476,7 +496,9 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   a larger `content-length`, unless it can have no body at all (the answer to
   a HEAD request, a 204, a 304; §8.1.1). The stream is reset with
   `RST_STREAM CANCEL`: the server did nothing wrong, the client wants no more
-  of it. The refused frame, and whatever the server sent before it read the
+  of it. (A body that goes past its own `content-length` as well is malformed,
+  and that goes first: `PROTOCOL_ERROR`, see
+  [Connection & framing](#connection--framing-rfc-9113).) The refused frame, and whatever the server sent before it read the
   reset, still go back to the connection window; nothing of the request follows
   the reset, and the stream's slot is free once the reset is out: the
   connection goes on. The client used to buffer whatever the server sent — it

@@ -1460,6 +1460,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 Exchange.Trailers        = [];
                 Exchange.Interim         = [];
 
+                Exchange.DeclaredContentLength  = null;
+                Exchange.ExpectedBodyLength     = null;
+                Exchange.ReceivedBodyLength     = 0;
+
                 await IssueOnNewStreamAsync(Exchange);
             }
             catch (Exception ex)
@@ -1944,15 +1948,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// which the stream keeps — the server's (see <see cref="HandleRstStream"/>),
         /// or the one of our own RST_STREAM, once the writer loop has reset the
         /// stream for a failure of its own there (<see cref="ResetAfterStreamErrorAsync"/>),
-        /// or once we have discarded a response for the size of its header list,
-        /// while a streamed request may still be written on
-        /// (<see cref="DiscardOversizedResponseAsync"/>).
+        /// or once the client has refused its response — a malformed one, or a
+        /// buffered one larger than it may be (<see cref="RefuseResponseAsync"/>)
+        /// — or discarded it for the size of its header list
+        /// (<see cref="DiscardOversizedResponseAsync"/>), while a streamed request
+        /// may still be written on.
         /// The client's other resets carry no code: a stream a GOAWAY caught
         /// before its HEADERS went out (<see cref="RegisterExchange"/>), a CONNECT
-        /// the server rejected (<see cref="EndRejectedTunnelAsync"/>), one the
-        /// caller gave up opening (<see cref="OpenTunnelAsync"/>) or a buffered
-        /// response larger than it may be (<see cref="RefuseOversizedResponseAsync"/>),
-        /// where nobody gets to write; a stream the application has given up
+        /// the server rejected (<see cref="EndRejectedTunnelAsync"/>) or one the
+        /// caller gave up opening (<see cref="OpenTunnelAsync"/>), where nobody
+        /// gets to write; a stream the application has given up
         /// (<see cref="AbandonAsync"/>, which says so on the stream:
         /// <see cref="HTTP2Stream.GivenUp"/>), where a write that waited on it
         /// fails as a call after its DisposeAsync does, with an
@@ -2404,6 +2409,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     return;
                 }
 
+                // RFC 9113, Section 8.1.1: a response whose content-length is no
+                // length, or whose DATA do not add up to it, is malformed, and
+                // "Clients MUST NOT accept a malformed response". The value is
+                // read now, for a buffered response and a streamed one alike, and
+                // one that is no length fails the response here, before its head
+                // is handed over — even one that can have no content, which may
+                // declare the length of what it leaves out, but no malformed one.
+                // A response whose HEADERS end the stream has an empty body, and
+                // one held to a length above zero is malformed as well: the
+                // server's side has ended, so the stream takes an RST_STREAM only
+                // if ours is still open (see RefuseResponseAsync).
+                if (!TryParseContentLength(Decoded, out var declaredLength, out var malformed))
+                {
+
+                    if (EndStream)
+                        CloseRemoteIfOpen(Exchange.Stream);
+
+                    _ = RefuseResponseAsync(Exchange, MalformedResponse(Exchange, malformed));
+
+                    return;
+
+                }
+
+                Exchange.DeclaredContentLength  = declaredLength;
+                Exchange.ExpectedBodyLength     = HasNoContent(Exchange, Decoded) ? null : declaredLength;
+
+                if (EndStream && Exchange.ExpectedBodyLength is > 0)
+                {
+
+                    CloseRemoteIfOpen(Exchange.Stream);
+
+                    _ = RefuseResponseAsync(Exchange, BodyLengthMismatch(Exchange));
+
+                    return;
+
+                }
+
                 // A streaming exchange: surface the response head immediately so the
                 // caller can start reading the body (which arrives as DATA), and
                 // finalize now if this response has no body/trailers (headers-only).
@@ -2422,23 +2464,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // A buffered response that declares more body than it may hold is
                 // refused now, before any of it arrives, rather than at the DATA
                 // frame that takes it past the limit (see HandleDataAsync) —
-                // unless it can have no body at all, whatever it declares, or
-                // these HEADERS end the stream: they bring no body to bound, and
-                // the stream may be closed on both sides then, when it takes no
-                // RST_STREAM (RFC 9113, Section 5.1).
+                // unless it can have no body at all, whatever it declares, and is
+                // held to no length. HEADERS that end the stream and declare a
+                // body have been refused above, as malformed.
                 //
                 // The read loop does not wait for the reset here, as it does not
                 // for a rejected CONNECT's (above): should the write lock be busy,
                 // it may handle DATA up to the server's END_STREAM before the
                 // RST_STREAM goes out, which then crosses that END_STREAM, and
                 // the server ignores it (Section 5.1).
-                if (!EndStream &&
-                    DeclaredContentLength(Decoded) is { } declared &&
-                    declared > options.MaxResponseBodySize &&
-                    !HasNoContent(Exchange, Decoded))
+                if (Exchange.ExpectedBodyLength is { } declared &&
+                    declared > options.MaxResponseBodySize)
                 {
 
-                    _ = RefuseOversizedResponseAsync(
+                    _ = RefuseResponseAsync(
                             Exchange,
                             new HTTP2ResponseTooLargeException(
                                 HTTP2ErrorCode.CANCEL,
@@ -2457,8 +2496,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             else
             {
+
+                // Trailers that end the stream end the body as well, so it is
+                // here, and not at a DATA frame with END_STREAM, that its length
+                // is compared with the declared one (Section 8.1.1). Before the
+                // trailers are stored: a malformed response hands over none.
+                if (EndStream && !HasDeclaredBodyLength(Exchange))
+                {
+
+                    CloseRemoteIfOpen(Exchange.Stream);
+
+                    _ = RefuseResponseAsync(Exchange, BodyLengthMismatch(Exchange));
+
+                    return;
+
+                }
+
                 // A second header block is trailers (RFC 9113, Section 8.1).
                 Exchange.Trailers = Decoded;
+
             }
 
             if (EndStream)
@@ -2618,6 +2674,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // end the connection (the client mirror of the server's 2cf453d8).
             if (exchange is not null)
             {
+
+                // RFC 9113, Section 8.1.1: DATA that add up to more than the
+                // declared content-length make the response malformed, and that
+                // is certain at the frame that takes them past it: no later frame
+                // brings the sum back. So the response is refused here, before
+                // any of this frame reaches the reader of a streamed body, or a
+                // buffered one, as the server refuses such a request. The frame's
+                // window goes back to the connection, padding included, as for a
+                // body past the limit (below). A tunnel is held to no length.
+                if (exchange.ExpectedBodyLength is { } declared &&
+                    exchange.ReceivedBodyLength + length > declared)
+                {
+
+                    exchange.ReceivedBodyLength += length;
+
+                    await ReplenishReceiveWindowsAsync(null, StreamCredit: 0, ConnectionCredit: flowLength);
+
+                    await RefuseResponseAsync(
+                              exchange,
+                              MalformedResponse(exchange, $"content-length {declared} exceeded: {exchange.ReceivedBodyLength} bytes of DATA received")
+                          );
+
+                    return;
+
+                }
+
                 if (exchange.Stream.IsConnectTunnel)
                 {
                     // Tunnel bytes — hand them to the tunnel reader as they arrive.
@@ -2626,10 +2708,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
                 else if (exchange.IsStreaming)
                 {
+
+                    exchange.ReceivedBodyLength += length;
+
                     // Streaming response body — hand each chunk to the reader as it
                     // arrives, rather than buffering the whole response.
                     if (length > 0 && exchange.ResponseChunks!.Writer.TryWrite(payload.ToArray()))
                         withheld = length;
+
                 }
                 else if (exchange.Body.Length + length > options.MaxResponseBodySize)
                 {
@@ -2646,13 +2732,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     await ReplenishReceiveWindowsAsync(null, StreamCredit: 0, ConnectionCredit: flowLength);
 
-                    await RefuseOversizedResponseAsync(
+                    await RefuseResponseAsync(
                               exchange,
                               new HTTP2ResponseTooLargeException(
                                   HTTP2ErrorCode.CANCEL,
                                   Frame.StreamId,
                                   options.MaxResponseBodySize,
-                                  DeclaredContentLength(exchange.Headers),
+                                  exchange.DeclaredContentLength,
                                   received,
                                   $"Response body exceeds the {options.MaxResponseBodySize}-byte limit of a buffered response (MaxResponseBodySize): {received} bytes received. " +
                                   $"Stream reset by client: {HTTP2ErrorCode.CANCEL}"
@@ -2663,7 +2749,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 }
                 else
+                {
+                    exchange.ReceivedBodyLength += length;
                     exchange.Body.Write(payload);
+                }
+
             }
 
             // Replenish flow control — batched, not one WINDOW_UPDATE per DATA
@@ -2688,6 +2778,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     exchange.Stream.TunnelInbound!.Writer.TryComplete();
                     RemoveExchange(Frame.StreamId);
                 }
+
+                // The body ends with this frame, so its length is compared with
+                // the declared one now (Section 8.1.1), as it is where trailers
+                // end a body (see CompleteHeaderBlock). The server's side has
+                // ended: the stream takes an RST_STREAM only if ours is still open.
+                else if (!HasDeclaredBodyLength(exchange))
+                {
+                    CloseRemoteIfOpen(exchange.Stream);
+                    await RefuseResponseAsync(exchange, BodyLengthMismatch(exchange));
+                }
+
                 else if (exchange.IsStreaming)
                     FinalizeStreamingResponse(exchange);   // no trailers — END_STREAM on DATA
                 else
@@ -2828,33 +2929,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         #endregion
 
 
-        #region Response body limit (MaxResponseBodySize)
+        #region Refusing a response: content-length (RFC 9113, Section 8.1.1), MaxResponseBodySize
 
         /// <summary>
-        /// Refuse a buffered response that would take more than
-        /// <see cref="HTTP2ClientOptions.MaxResponseBodySize"/>: at its HEADERS,
+        /// Refuse a response: a malformed one (RFC 9113, Section 8.1.1), whose
+        /// content-length is no length, or whose DATA do not add up to it — at
+        /// its HEADERS, at the DATA frame that takes its body past the declared
+        /// length, or where its body ends — with PROTOCOL_ERROR, a stream error
+        /// (Section 5.4.2); or a buffered one that would take more than
+        /// <see cref="HTTP2ClientOptions.MaxResponseBodySize"/> — at its HEADERS,
         /// for the content-length it declares, or at the DATA frame that would
-        /// take its body past the limit.
+        /// take its body past the limit — with CANCEL: the server did nothing
+        /// wrong there, the client wants no more of the stream.
         ///
         /// Its exchange goes at once, before anything is awaited, so that the read
         /// loop hands nothing more of the stream to it: DATA the server sent
         /// before it read the RST_STREAM finds no exchange, and gives its window
         /// back to the connection (see <see cref="HandleDataAsync"/>). Then the
-        /// stream is reset with RST_STREAM CANCEL: the server did nothing wrong,
-        /// the client wants no more of the stream. A request body still being
-        /// sent on it stops there, and its slot is free — not before: the stream
-        /// counts until it is reset, so the removal of the exchange wakes nobody
-        /// waiting for a slot, as <see cref="RemoveExchange"/> would. The response
-        /// fails last, with <paramref name="Failure"/>, once the RST_STREAM is on
-        /// the wire: a caller who goes on with another request finds the slot
-        /// free.
+        /// stream is reset with RST_STREAM and the code of <paramref name="Failure"/>,
+        /// which the stream keeps: a write on a streamed request fails with it
+        /// (<see cref="ThrowIfReset"/>). A request body still being sent on it
+        /// stops there. A stream whose two sides have ended already — the
+        /// server's with the malformed response's END_STREAM, which the caller
+        /// has closed it with, ours with the request's — is closed, and takes no
+        /// RST_STREAM (Section 5.1). Its slot is free then, or once the reset is
+        /// on the wire — not before: the stream counts until it is reset, so the
+        /// removal of the exchange wakes nobody waiting for a slot, as
+        /// <see cref="RemoveExchange"/> would. The response fails last, with
+        /// <paramref name="Failure"/>: a caller who goes on with another request
+        /// finds the slot free. A streamed one fails what has not arrived of it
+        /// — its head, if it is refused at its HEADERS, and its trailers — and
+        /// its reader gets the failure after the chunks handed to it before.
         ///
         /// Trailers the server sent before it read the RST_STREAM find no
         /// exchange either: their header block is decoded, for the HPACK table
         /// the server has added to, and dropped (see <see cref="CompleteHeaderBlock(UInt32)"/>).
         /// </summary>
-        private async Task RefuseOversizedResponseAsync(ClientExchange                  Exchange,
-                                                        HTTP2ResponseTooLargeException  Failure)
+        private async Task RefuseResponseAsync(ClientExchange        Exchange,
+                                               HTTP2StreamException  Failure)
         {
 
             lock (exchangesLock)
@@ -2863,16 +2975,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             try
             {
 
-                if (await ResetStreamAsync(Exchange.Stream, Failure.ErrorCode))
-                {
-
-                    SignalStreamSlotFreed();
+                if (await ResetStreamAsync(Exchange.Stream, Failure.ErrorCode, KeepCode: true))
 
                     // The writer loop looks again: a request body queued on the
                     // stream is not sent, as the stream is closed now.
                     SignalWriterWakeup();
 
-                }
+                SignalStreamSlotFreed();
 
             }
             catch
@@ -2880,34 +2989,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // The write fails only as the connection ends, and every stream with it.
             }
 
-            Exchange.Completion.TrySetException(Failure);
+            FailExchange(Exchange, Failure);
 
         }
 
         /// <summary>
-        /// The content-length a response declares (RFC 9113, Section 8.1.1), if it
-        /// declares one the client can read. One that is no number bounds
-        /// nothing here, and nor does a second, which makes the response
-        /// malformed: the body is bounded as its DATA frames arrive all the same.
+        /// Read the content-length a response declares (RFC 9113, Section 8.1.1):
+        /// <paramref name="ContentLength"/> is null if it declares none. False,
+        /// with what is wrong in <paramref name="Malformed"/>, if the response is
+        /// malformed for it: a value that is no number of octets (RFC 9110,
+        /// Section 8.6: 1*DIGIT — no sign, no blanks, and no list, not even of
+        /// equal values, which the server rejects as well), or two fields that
+        /// differ. Equal fields are one.
         /// </summary>
-        private static Int64? DeclaredContentLength(List<(String Name, String Value)>? Headers)
+        private static Boolean TryParseContentLength(List<(String Name, String Value)>  Headers,
+                                                     out Int64?                         ContentLength,
+                                                     out String                         Malformed)
         {
 
-            foreach (var (name, value) in Headers ?? [])
+            ContentLength  = null;
+            Malformed      = "";
+
+            String? first  = null;
+
+            foreach (var (name, value) in Headers)
             {
-                if (name == "content-length" &&
-                    Int64.TryParse(value,
-                                   System.Globalization.NumberStyles.None,
-                                   System.Globalization.CultureInfo.InvariantCulture,
-                                   out var length))
+
+                if (name != "content-length")
+                    continue;
+
+                if (!Int64.TryParse(value,
+                                    System.Globalization.NumberStyles.None,
+                                    System.Globalization.CultureInfo.InvariantCulture,
+                                    out var length))
                 {
-                    return length;
+                    ContentLength  = null;
+                    Malformed      = $"invalid content-length '{value}'";
+                    return false;
                 }
+
+                if (ContentLength is not null && ContentLength != length)
+                {
+                    ContentLength  = null;
+                    Malformed      = $"conflicting content-length values '{first}' and '{value}'";
+                    return false;
+                }
+
+                ContentLength    = length;
+                first          ??= value;
+
             }
 
-            return null;
+            return true;
 
         }
+
+        /// <summary>
+        /// Whether a response's body, which has ended, is as long as it declares:
+        /// true as well for one held to no length (<see cref="ClientExchange.ExpectedBodyLength"/>).
+        /// </summary>
+        private static Boolean HasDeclaredBodyLength(ClientExchange Exchange)
+
+            => Exchange.ExpectedBodyLength is not { } declared ||
+               Exchange.ReceivedBodyLength == declared;
+
+        /// <summary>
+        /// The failure of a malformed response (RFC 9113, Section 8.1.1): a stream
+        /// error of type PROTOCOL_ERROR, which the stream is reset with.
+        /// </summary>
+        private static HTTP2StreamException MalformedResponse(ClientExchange Exchange, String Reason)
+
+            => new (HTTP2ErrorCode.PROTOCOL_ERROR,
+                    Exchange.Stream.StreamId,
+                    $"Malformed response: {Reason}");
+
+        /// <summary>
+        /// The failure of a response whose body ended other than it declared.
+        /// </summary>
+        private static HTTP2StreamException BodyLengthMismatch(ClientExchange Exchange)
+
+            => MalformedResponse(Exchange,
+                                 $"content-length {Exchange.ExpectedBodyLength} does not match the {Exchange.ReceivedBodyLength} bytes of DATA received");
 
         /// <summary>
         /// Whether a response can have no content, whatever content-length it
@@ -3634,6 +3796,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             public List<(String Name, String Value)>    Trailers        { get; set; } = [];
             public List<(int Status, List<(String Name, String Value)> Headers)> Interim { get; set; } = [];
             public bool                                 HeadersReceived { get; set; }
+
+            // RFC 9113, Section 8.1.1: the content-length the final response
+            // declares, if any; the length its body must add up to — the declared
+            // one, unless the response can have no content (HasNoContent); and
+            // the DATA payload its body has brought so far, buffered or streamed.
+            public Int64?                               DeclaredContentLength  { get; set; }
+            public Int64?                               ExpectedBodyLength     { get; set; }
+            public Int64                                ReceivedBodyLength     { get; set; }
+
             public TaskCompletionSource<HTTP2Response>  Completion      { get; } =
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
         }
