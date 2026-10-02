@@ -20,6 +20,7 @@
 using System.Net.Sockets;
 using System.Collections.Concurrent;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 using Microsoft.Extensions.Logging;
@@ -729,18 +730,57 @@ public class SunSpecModbusTLSTests
         try
         {
 
-            using var store = new X509Store(StoreName.CertificateAuthority, StoreLocation.CurrentUser);
-            store.Open(OpenFlags.ReadWrite);
-
-            foreach (var authority in authorities)
-                foreach (var installed in store.Certificates.Find(X509FindType.FindByThumbprint, authority.Thumbprint, validOnly: false))
-                    store.Remove(installed);
+            // The machine's store first: a process that may write to it, as
+            // the elevated one on a CI runner does, is where .NET puts them.
+            // And the user's store lists the machine's certificates as well,
+            // but cannot take them out - "Access is denied" - so they have to
+            // be gone from there before the user's store is looked at.
+            RemoveFrom(StoreLocation.LocalMachine, authorities);
+            RemoveFrom(StoreLocation.CurrentUser,  authorities);
 
         }
         finally
         {
             foreach (var authority in authorities)
                 authority.Dispose();
+        }
+
+    }
+
+    /// <summary>
+    /// Take these certificates out of the intermediate CA store of this
+    /// location, where it can be written to. A cleanup that fails is said in
+    /// the test's output, and does not fail the test.
+    /// </summary>
+    private static void RemoveFrom(StoreLocation                  Location,
+                                   IEnumerable<X509Certificate2>  Authorities)
+    {
+
+        using var store = new X509Store(StoreName.CertificateAuthority, Location);
+
+        try
+        {
+            store.Open(OpenFlags.ReadWrite | OpenFlags.OpenExistingOnly);
+        }
+        catch (CryptographicException)
+        {
+            // Not this process's to write to - the machine's store, unelevated.
+            return;
+        }
+
+        foreach (var authority in Authorities)
+        {
+            foreach (var installed in store.Certificates.Find(X509FindType.FindByThumbprint, authority.Thumbprint, validOnly: false))
+            {
+                try
+                {
+                    store.Remove(installed);
+                }
+                catch (CryptographicException e)
+                {
+                    TestContext.Out.WriteLine($"Could not take '{installed.Subject}' out of {Location}\\CA: {e.Message}");
+                }
+            }
         }
 
     }
