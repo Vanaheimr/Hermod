@@ -264,7 +264,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region DNSHTTPSClient(TCPPort, ...)
 
         /// <summary>
-        /// Create a new DNS HTTPS client for the given TCP port on [::1], the IPv6 loopback address.
+        /// Create a new DNS HTTPS client for the given TCP port on the loopback address:
+        /// [::1] by default and under PreferIPv6 or IPv6Only, 127.0.0.1 under PreferIPv4 or IPv4Only.
         /// </summary>
         /// <param name="TCPPort">The TCP port to connect to.</param>
         /// <param name="Description">An optional description of this DNS HTTPS client.</param>

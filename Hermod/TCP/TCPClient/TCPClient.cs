@@ -163,7 +163,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region ConnectNew (           TCPPort, ...)
 
         /// <summary>
-        /// Create a new TCP client and connect it to the given TCP port on [::1], the IPv6 loopback address.
+        /// Create a new TCP client and connect it to the given TCP port on the loopback address:
+        /// [::1] by default and under PreferIPv6 or IPv6Only, 127.0.0.1 under PreferIPv4 or IPv4Only.
         /// </summary>
         /// <param name="TCPPort">The TCP port to connect to.</param>
         /// <param name="Description">An optional description of this TCP client.</param>

@@ -378,6 +378,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // as well, on its own; nothing here waits for it.
                 _ = connectionCts.CancelAsync();
 
+                // The connection is gone, and with it every stream still open on
+                // it: reset them all, as the server's RST_STREAM would, and as a
+                // server connection resets its own at its end (37598d96). Failing
+                // the exchanges does not reach an accepted tunnel: its CONNECT
+                // has its answer, and nothing ended what it reads. A tunnel's
+                // ReadAsync without a token of its own, and a WebSocket's
+                // ReceiveAsync over it, waited for good on a connection that was
+                // gone. The reset ends the tunnel's inbound side, and ReadAsync
+                // returns null, as after the server's RST_STREAM; it abandons
+                // what is queued on the stream, and a write waiting there fails
+                // with an OperationCanceledException, as it did before (see
+                // SendTunnelDataAsync); and it cancels the stream's token. It
+                // sends nothing, and runs none of the callers' code here: their
+                // continuations go to the thread pool, and nothing holds up the
+                // end below. After the cancellation: a request or tunnel started
+                // from now on fails before its HEADERS go out, and nobody is left
+                // with a stream this misses.
+                foreach (var stream in streamManager.GetSendableStreams())
+                    stream.Reset();
+
                 unusable.TrySetResult();   // no new streams from here on
 
                 // RFC 9113, Section 5.4.1: after the GOAWAY of a connection error,
@@ -1654,6 +1674,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// RST_STREAM, on a stream the writer loop has reset for a failure of its
         /// own (<see cref="ResetAfterStreamErrorAsync"/>).
         ///
+        /// The end of the connection resets the stream as well (<see cref="RunAsync"/>),
+        /// but with no error code, and there is none to report: a write still
+        /// queued then, or made after it, fails with an
+        /// <see cref="OperationCanceledException"/>, as it did before that reset.
+        /// Canceled with the stream's token, which the reset cancels and
+        /// <see cref="ThrowIfReset"/> lets pass, or with the connection's,
+        /// whichever reaches the write first; neither is the caller's. Nothing
+        /// more of it goes out. A GOAWAY that leaves the stream unprocessed resets
+        /// it the same way, with no error code (<see cref="HandleGoAway"/>), and a
+        /// write there fails alike, with the stream's token; it used to go out,
+        /// to a server that ignores it.
+        ///
         /// A write after our side of the stream has ended fails at once with an
         /// <see cref="InvalidOperationException"/>, and sends nothing: DATA after
         /// END_STREAM is a protocol error (Section 5.1). Once
@@ -1858,15 +1890,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// which the stream keeps — the server's (see <see cref="HandleRstStream"/>),
         /// or the one of our own RST_STREAM, once the writer loop has reset the
         /// stream for a failure of its own there (<see cref="ResetAfterStreamErrorAsync"/>).
-        /// The client resets streams of its own otherwise where nobody gets to
-        /// write on them — a stream a GOAWAY caught before its HEADERS went out
-        /// (<see cref="RegisterExchange"/>), a CONNECT the server rejected
-        /// (<see cref="EndRejectedTunnelAsync"/>) or one the caller gave up
-        /// opening (<see cref="OpenTunnelAsync"/>) — and where the application has
-        /// given a stream up (<see cref="AbandonAsync"/>, which says so on the
-        /// stream: <see cref="HTTP2Stream.GivenUp"/>): a write that waited on
-        /// that one fails as a call after its DisposeAsync does, with an
-        /// <see cref="ObjectDisposedException"/>.
+        /// The client's other resets carry no code: a stream a GOAWAY caught
+        /// before its HEADERS went out (<see cref="RegisterExchange"/>), a CONNECT
+        /// the server rejected (<see cref="EndRejectedTunnelAsync"/>) or one the
+        /// caller gave up opening (<see cref="OpenTunnelAsync"/>), where nobody
+        /// gets to write; a stream the application has given up
+        /// (<see cref="AbandonAsync"/>, which says so on the stream:
+        /// <see cref="HTTP2Stream.GivenUp"/>), where a write that waited on it
+        /// fails as a call after its DisposeAsync does, with an
+        /// <see cref="ObjectDisposedException"/>; and every stream still open at
+        /// the end of the connection (<see cref="RunAsync"/>) or left unprocessed
+        /// by a GOAWAY (<see cref="HandleGoAway"/>), which passes here, and where
+        /// a write fails with an <see cref="OperationCanceledException"/>
+        /// (see <see cref="SendTunnelDataAsync"/>).
         /// </summary>
         private static void ThrowIfReset(HTTP2Stream Stream)
         {
@@ -2797,10 +2833,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             foreach (var ex in abandoned)
             {
+
+                // The server will not act on such a stream, and ignores every
+                // frame we send on it (§6.8): the stream is over, as though it had
+                // never been opened. So it is closed here, by a reset of our own
+                // that sends nothing, as a stream a GOAWAY catches before its
+                // HEADERS go out is (RegisterExchange). It used to stay open until
+                // the connection ended: a request body still being sent there, and
+                // the writes of a streamed request or a tunnel, went out into the
+                // void, at the cost of the streams the server still serves, and an
+                // accepted tunnel read nothing more, yet waited — only a server
+                // that breaks §6.8 leaves one above its last-stream-id, as
+                // answering the CONNECT is acting on it. Now what is queued on the
+                // stream is abandoned, a write there fails, and a tunnel reads its
+                // end, null, as after the server's RST_STREAM (HTTP2Stream.Reset).
+                // Closed before the exchange fails, as RegisterExchange closes the
+                // stream before it refuses the request: whoever hears of the
+                // failure finds the stream closed.
+                ex.Stream.Reset();
+
                 RemoveExchange(ex.Stream.StreamId);
                 FailExchange(ex,
                     new HTTP2RequestNotProcessedException(code,
                         $"Server sent GOAWAY (lastStreamId={lastStreamId}, {code}) — request not processed"));
+
             }
 
             // A request waiting for a stream slot will get none on this
@@ -2908,6 +2964,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Fail an exchange, routing to the streaming vehicles or the buffered Completion as appropriate.
+        /// A tunnel fails only while its CONNECT waits for an answer: an accepted
+        /// one has its status, and what it reads ends with the reset of its
+        /// stream, at the server's RST_STREAM, at a GOAWAY that leaves the stream
+        /// unprocessed (<see cref="HandleGoAway"/>), or at the end of the
+        /// connection (<see cref="RunAsync"/>).
         /// </summary>
         private static void FailExchange(ClientExchange Exchange, Exception Ex)
         {

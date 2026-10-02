@@ -31,7 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class HTTPFilterPipeline() : AHTTPPipeline()
     {
 
-        #region (override) ProcessHTTPRequest(Request, Stream, CancellationToken = default)
+        #region (override) ProcessHTTPRequest(Request, CancellationToken = default)
 
         public override async Task<(HTTPRequest, HTTPResponse?)>
 
