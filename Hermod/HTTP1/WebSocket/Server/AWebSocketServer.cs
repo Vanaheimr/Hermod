@@ -1067,7 +1067,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
 
-                      ),
+                      ) {
+                          TCPConnection = Connection
+                      },
                       token
                   );
 
@@ -1484,8 +1486,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             }
                                                             catch (Exception e)
                                                             {
+
+                                                                // A reset, or a socket closed under the read - and
+                                                                // whoever closed it here has said so before.
+                                                                if (e is IOException or SocketException)
+                                                                    webSocketConnection.RecordClosedBy(ConnectionClosedBy.Client);
+
                                                                 Logger.LogDebug(e, "Read error on WebSocket connection {RemoteSocket}.", webSocketConnection.RemoteSocket);
                                                                 break;
+
                                                             }
 
                                                         }
@@ -1577,7 +1586,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         // A read of zero bytes means the remote endpoint closed the TCP connection!
                                                         if (read == 0)
+                                                        {
+                                                            webSocketConnection.RecordClosedBy(ConnectionClosedBy.Client);
                                                             break;
+                                                        }
 
                                                         // Any received bytes prove the peer is alive (liveness for zombie detection).
                                                         lastActivityTimestamp = Timestamp.Now;
@@ -2516,6 +2528,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                     // The close handshake demands that we send a close frame back,
                                                                     // echoing the received close status code (RFC 6455 Section 5.5.1)!
                                                                     var receivedCloseCode = frame.GetClosingStatusCode();
+
+                                                                    // The client closed, and the server only answers.
+                                                                    webSocketConnection.RecordClosedBy(ConnectionClosedBy.Client);
 
                                                                     await webSocketConnection.Close(
                                                                               receivedCloseCode == WebSocketFrame.ClosingStatusCode.NoStatusReceived
