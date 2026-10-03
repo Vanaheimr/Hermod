@@ -1094,6 +1094,14 @@ that prints, which is roughly what the library used to hardcode.
   both the Autobahn HTTP/1.1-Upgrade path and the production HTTP/2 CONNECT path.
 - Server **and** client roles (`WebSocketRole`), over `IHTTP2Tunnel` on both
   ends.
+- **Bounded messages** — `MaxMessageSize` (constructor, or
+  `OpenWebSocketAsync(…, MaxMessageSize:)`; 64 MiB default, as the HTTP/1.1
+  stack's `MaxTextMessageSizeIn`/`MaxBinaryMessageSizeIn`) bounds a received
+  message across all its fragments, and under permessage-deflate both as it
+  travels and once inflated. Past it the connection fails with 1009 — at the
+  header of the frame that would go past, before its payload is read, and
+  *during* inflation, at the first byte past the limit, so a deflate bomb never
+  goes off. A single frame stays capped at 16 MiB (1002).
 
 ### HTTP semantics (RFC 9110)
 

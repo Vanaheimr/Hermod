@@ -49,11 +49,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
         /// itself sets no limit, but an unbounded 64-bit length field taken
         /// straight off the wire is a memory-exhaustion vector — bounded generously
         /// enough for any reasonable message, small enough to fail fast otherwise.
+        /// The message a frame belongs to has a limit of its own,
+        /// <see cref="MaxMessageSize"/>.
         /// </summary>
         private const long MaxFramePayloadLength = 16 * 1024 * 1024;   // 16 MiB
 
+        /// <summary>
+        /// The default of <see cref="MaxMessageSize"/>: 64 MiB, the default of the
+        /// HTTP/1.1 stack's <c>MaxTextMessageSizeIn</c> and <c>MaxBinaryMessageSizeIn</c>.
+        /// </summary>
+        public const ulong DefaultMaxMessageSize = org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame.DefaultMaxPayloadSize;
+
         private readonly IHTTP2Tunnel   tunnel;
         private readonly WebSocketRole  role;
+
+        /// <summary>
+        /// <see cref="MaxMessageSize"/>, but no more than the largest byte array
+        /// (<see cref="Array.MaxLength"/>), which is all one message can be.
+        /// </summary>
+        private readonly long           maxMessageLength;
 
         /// <summary>
         /// Whether the "permessage-deflate" extension (RFC 7692) was negotiated at
@@ -90,12 +104,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
         /// <see cref="perMessageDeflate"/> — this connection always runs the
         /// extension in no-context-takeover mode.
         /// </param>
-        public WebSocketConnection(IHTTP2Tunnel Tunnel, WebSocketRole Role = WebSocketRole.Server, bool PerMessageDeflate = false)
+        /// <param name="MaxMessageSize">
+        /// The most bytes one received message may have, see
+        /// <see cref="MaxMessageSize"/>. 64 MiB by default, as on the HTTP/1.1 stack.
+        /// </param>
+        public WebSocketConnection(IHTTP2Tunnel Tunnel, WebSocketRole Role = WebSocketRole.Server, bool PerMessageDeflate = false, ulong MaxMessageSize = DefaultMaxMessageSize)
         {
-            tunnel            = Tunnel;
-            role              = Role;
-            perMessageDeflate = PerMessageDeflate;
+            tunnel              = Tunnel;
+            role                = Role;
+            perMessageDeflate   = PerMessageDeflate;
+            this.MaxMessageSize = MaxMessageSize;
+            maxMessageLength    = (long) Math.Min(MaxMessageSize, (ulong) Array.MaxLength);
         }
+
+
+        /// <summary>
+        /// The most bytes one received message may have: all its fragments
+        /// together, and under permessage-deflate both as it travels and once
+        /// inflated. A message that would be larger fails the connection with
+        /// 1009 ("message too big", RFC 6455 Section 7.4.1) as early as its bytes
+        /// tell: at the header of the frame that would take it past the limit,
+        /// before that frame's payload is read, and while inflating, as soon as
+        /// the inflater has put out one byte more than the limit.
+        ///
+        /// Each frame on its own stays capped at 16 MiB (a 1002 above that), so a
+        /// larger message has to arrive in fragments. And no message can have
+        /// more bytes than the largest byte array, <see cref="Array.MaxLength"/>,
+        /// whatever this says.
+        /// </summary>
+        public ulong MaxMessageSize { get; }
 
 
         /// <summary>
@@ -116,7 +153,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
         ///    Section 5.4),
         ///  - answering Ping with Pong without surfacing either to the caller,
         ///  - completing the close handshake on a Close frame (echoing it back
-        ///    per Section 5.5.1) and on any protocol violation.
+        ///    per Section 5.5.1) and on any protocol violation,
+        ///  - failing the connection with 1009 on a message larger than
+        ///    <see cref="MaxMessageSize"/>.
         /// Returns null once the connection is closed — either a normal close
         /// handshake or the underlying tunnel simply ending, which a tunnel may
         /// also do at the end of its connection; the tunnel's type says when.
@@ -136,11 +175,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
 
                 try
                 {
-                    frame = await ReadRawFrameAsync(CancellationToken);
+                    frame = await ReadRawFrameAsync(fragmentBuffer?.Count ?? 0, CancellationToken);
                 }
                 catch (WebSocketProtocolException ex)
                 {
-                    await CloseAsync(1002, ex.Message, CancellationToken);
+                    await CloseAsync(ex.CloseCode, ex.Message, CancellationToken);
                     return null;
                 }
 
@@ -186,15 +225,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
 
                             // permessage-deflate: RSV1 ⇒ the payload is DEFLATE-
                             // compressed; inflate before anything else (a decode
-                            // failure fails the connection, RFC 7692 Section 7.2.2).
+                            // failure fails the connection, RFC 7692 Section 7.2.2,
+                            // and so does a message that inflates too big).
                             if (frame.Rsv1)
                             {
-                                var inflated = Inflate(payload);
+                                var inflated = await InflateOrCloseAsync(payload, CancellationToken);
                                 if (inflated is null)
-                                {
-                                    await CloseAsync(1002, "permessage-deflate decode failed", CancellationToken);
                                     return null;
-                                }
                                 payload = inflated;
                             }
 
@@ -236,6 +273,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
                             return null;
                         }
 
+                        // Within MaxMessageSize: ReadRawFrameAsync has refused a
+                        // frame that would take the message past it, on its header.
                         fragmentBuffer!.AddRange(frame.Payload);
 
                         // Uncompressed text: validate this fragment's bytes against the
@@ -256,12 +295,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
                         {
                             // Inflate the whole reassembled message, then UTF-8-check
                             // the decompressed text.
-                            var inflated = Inflate(body);
+                            var inflated = await InflateOrCloseAsync(body, CancellationToken);
                             if (inflated is null)
-                            {
-                                await CloseAsync(1002, "permessage-deflate decode failed", CancellationToken);
                                 return null;
-                            }
                             body = inflated;
 
                             if (fragmentOpcode == WebSocketOpcode.Text && !IsValidUtf8(body))
@@ -319,10 +355,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
         /// <summary>
         /// Decompress a permessage-deflate message payload (RFC 7692 Section 7.2.2):
         /// re-append the <c>00 00 FF FF</c> tail the sender stripped, then raw-inflate.
-        /// Returns null on any decode failure (a malformed compressed message).
+        /// Returns null on any decode failure (a malformed compressed message), and
+        /// when the message inflates to more than <paramref name="MaxLength"/> bytes,
+        /// which <paramref name="TooBig"/> then says.
+        ///
+        /// That is found out while inflating, not after: the inflater is never asked
+        /// for more than one byte past the limit, so a few KiB that would inflate to
+        /// gigabytes (a "deflate bomb") cost no more than the limit does.
         /// </summary>
-        private static byte[]? Inflate(byte[] Compressed)
+        private static byte[]? Inflate(byte[] Compressed, long MaxLength, out bool TooBig)
         {
+
+            TooBig = false;
 
             try
             {
@@ -333,13 +377,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
 
                 using var deflate = new DeflateStream(input, CompressionMode.Decompress);
                 using var output  = new MemoryStream();
-                deflate.CopyTo(output);
-                return output.ToArray();
+
+                var chunk = new byte[16 * 1024];
+
+                while (true)
+                {
+
+                    // One byte past the limit at most: that byte, if it comes,
+                    // makes the message too big, and nothing after it is inflated.
+                    var read = deflate.Read(chunk, 0, (int) Math.Min(chunk.Length, MaxLength - output.Length + 1));
+                    if (read == 0)
+                        return output.ToArray();
+
+                    if (output.Length + read > MaxLength)
+                    {
+                        TooBig = true;
+                        return null;
+                    }
+
+                    output.Write(chunk, 0, read);
+
+                }
             }
             catch (InvalidDataException)
             {
                 return null;
             }
+
+        }
+
+        /// <summary>
+        /// Inflate a compressed message, or fail the connection: with 1009 when it
+        /// inflates to more than <see cref="MaxMessageSize"/>, with 1002 when it does
+        /// not decode (RFC 7692 Section 7.2.2). Null when the connection was failed.
+        /// </summary>
+        private async Task<byte[]?> InflateOrCloseAsync(byte[] Compressed, CancellationToken CancellationToken)
+        {
+
+            var inflated = Inflate(Compressed, maxMessageLength, out var tooBig);
+
+            if (inflated is null)
+                await (tooBig
+                           ? CloseAsync(1009, $"Message too big (inflates to more than {maxMessageLength} bytes)", CancellationToken)
+                           : CloseAsync(1002, "permessage-deflate decode failed", CancellationToken));
+
+            return inflated;
 
         }
 
@@ -534,8 +616,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
         /// <summary>
         /// Read and unmask a single WebSocket frame (RFC 6455 Section 5.2).
         /// Returns null if the tunnel ended before a complete frame arrived.
+        ///
+        /// <paramref name="MessageLength"/> is how many bytes the fragments of the
+        /// message being received have brought so far, 0 if none is. A continuation
+        /// frame adds to them, so it must fit into what is left of
+        /// <see cref="MaxMessageSize"/>; a Text or Binary frame starts a message, so
+        /// it must fit into all of it. Checked on the declared length, before a byte
+        /// of the payload is read.
         /// </summary>
-        private async Task<RawFrame?> ReadRawFrameAsync(CancellationToken CancellationToken)
+        private async Task<RawFrame?> ReadRawFrameAsync(int MessageLength, CancellationToken CancellationToken)
         {
 
             var header = await ReadExactAsync(2, CancellationToken);
@@ -581,6 +670,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
                 if (payloadLength < 0)
                     throw new WebSocketProtocolException("Payload length must not have the high bit set");
             }
+
+            // Before the frame's own cap, so that a limit below it is answered
+            // with 1009 as well.
+            if (opcode is (WebSocketOpcode.Text or WebSocketOpcode.Binary or WebSocketOpcode.Continuation) &&
+                payloadLength > maxMessageLength - (opcode == WebSocketOpcode.Continuation ? MessageLength : 0))
+                throw new WebSocketProtocolException($"Message too big (more than {maxMessageLength} bytes)", 1009);
 
             if (payloadLength > MaxFramePayloadLength)
                 throw new WebSocketProtocolException($"Frame payload too large ({payloadLength} bytes)");
