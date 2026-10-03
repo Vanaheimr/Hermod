@@ -254,6 +254,12 @@ and server roles.
 - Trailers are parsed after the terminal chunk and exposed as trailing headers.
 - Body-size and metadata limits apply while streaming; buffering the entire
   encoded message is not required.
+- Malformed framing is refused as malformed: every rejection raises
+  `HTTPInvalidChunkException`, a `FormatException`, so a caller can tell bad
+  input from a defect in the decoder without catching `Exception`. One of the
+  eleven throw sites — the synchronous CRLF check — raised a bare
+  `System.Exception` until 2026-10-03, where its asynchronous sibling thirty
+  lines above raised the right one for the same condition.
 
 ### Sending
 
