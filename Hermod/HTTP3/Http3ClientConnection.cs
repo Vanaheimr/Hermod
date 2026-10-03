@@ -244,23 +244,23 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
 
     /// <summary>
     /// Closes the connection immediately with a CONNECTION_CLOSE (RFC 9000 §10.2; default: NO_ERROR).
-    /// Its tunnels end at once: their reads return <c>null</c>.
+    /// Its tunnels and WebTransport sessions end at once.
     /// </summary>
     public void Close(TransportError error = TransportError.NoError, string reason = "")
     {
         _quic.Close(error, reason);
-        EndTunnels();
+        EndTunnelsAndSessions();
     }
 
     /// <summary>
     /// Closes the connection HTTP/3-conformantly without an error (RFC 9114 §5.2 SHOULD:
     /// CONNECTION_CLOSE type 0x1d with H3_NO_ERROR) — e.g. after the server initiated the teardown via GOAWAY.
-    /// Its tunnels end at once: their reads return <c>null</c>.
+    /// Its tunnels and WebTransport sessions end at once.
     /// </summary>
     public void CloseGracefully()
     {
         _quic.CloseApplication(Http3Error.NoError, "graceful shutdown");
-        EndTunnels();
+        EndTunnelsAndSessions();
     }
 
     /// <summary>
@@ -629,20 +629,24 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     {
         PumpStreams();
         if (_quic.IsClosing || _quic.IsDraining || _quic.IsClosed || _quic.IsIdleTimedOut)
-            EndTunnels();
+            EndTunnelsAndSessions();
     }
 
     /// <summary>
-    /// Ends every tunnel once the connection has ended — closed by either side, after a connection
-    /// error, or timed out: no FIN or reset will ever arrive for them any more, so a read waiting
-    /// for one would wait for ever. Their reads return <c>null</c> once what was received is read,
-    /// as for a reset (≙ TCP RST, RFC 9220 §3), which is also how the HTTP/2 client ends its
-    /// tunnels with its connection.
+    /// Ends every tunnel and every WebTransport session once the connection has ended — closed by
+    /// either side, after a connection error, or timed out: no FIN, reset or WT_CLOSE_SESSION will
+    /// ever arrive for them any more, so whoever waits for one would wait for ever. A tunnel's reads
+    /// return <c>null</c> once what was received is read, as for a reset (≙ TCP RST, RFC 9220 §3);
+    /// a session ends as when its CONNECT stream closes (draft-ietf-webtrans-http3 §6), with its
+    /// streams aborted. The HTTP/2 client ends its tunnels with its connection the same way.
     /// </summary>
-    private void EndTunnels()
+    private void EndTunnelsAndSessions()
     {
         foreach (RequestState state in _requests.Values)
+        {
             state.Tunnel?.End();
+            state.WebTransportSession?.OnConnectStreamClosed();
+        }
     }
 
     private void PumpStreams()
@@ -1119,7 +1123,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
 
     public void Dispose()
     {
-        EndTunnels();
+        EndTunnelsAndSessions();
         _quic.Dispose();
     }
 

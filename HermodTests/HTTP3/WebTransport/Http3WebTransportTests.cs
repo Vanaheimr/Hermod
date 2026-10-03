@@ -21,6 +21,7 @@ using System.Text;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3.Qpack;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3.WebTransport;
+using org.GraphDefined.Vanaheimr.Hermod.Quic;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
 
@@ -194,16 +195,115 @@ public class Http3WebTransportTests
         Assert.That(client.IsClosing, Is.False);
     }
 
+    public enum Closer { Client, Server }
+
+    [Test]
+    public void ASessionEndsWithItsConnection([Values] Closer closer)
+    {
+        // A session ended only on WT_CLOSE_SESSION or its CONNECT stream's end, both seen in the
+        // pump — which does nothing once the connection is closing, draining or closed.
+        (Http3ClientConnection client, Http3ServerConnection server, WebTransportSession serverSession, ServerCertificate cert)
+            = EstablishedSession(onServerStream: _ => { });
+        using ServerCertificate certGuard = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+        WebTransportSession clientSession = GetClientSession(client, server);
+        WebTransportStream? uni = clientSession.OpenUnidirectionalStream();
+        for (int r = 0; r < 5; r++) Pump(client, server);
+
+        if (closer == Closer.Server)
+            server.CloseGracefully();
+        else
+            client.CloseGracefully();
+        for (int r = 0; r < 50 && !(clientSession.IsClosed && serverSession.IsClosed); r++) Pump(client, server);
+
+        Assert.That(clientSession.IsClosed, Is.True, "A client's session must see its connection end.");
+        Assert.That(serverSession.IsClosed, Is.True, "A server's session must see its connection end.");
+        Assert.That(clientSession.CloseErrorCode, Is.EqualTo(0u)); // as for a CONNECT stream's end (§6)
+        Assert.That(uni, Is.Not.Null);
+    }
+
+    [Test]
+    public void ClosingAConnectionEndsItsSessionsAtOnce([Values] Closer closer, [Values] bool gracefully)
+    {
+        // The side that closes knows at once, in the close call itself, not on a later pump.
+        (Http3ClientConnection client, Http3ServerConnection server, WebTransportSession serverSession, ServerCertificate cert)
+            = EstablishedSession(onServerStream: _ => { });
+        using ServerCertificate certGuard = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+        WebTransportSession clientSession = GetClientSession(client, server);
+
+        if (closer == Closer.Client)
+        {
+            if (gracefully)
+                client.CloseGracefully();
+            else
+                client.Close();
+            Assert.That(clientSession.IsClosed, Is.True, "Closing a client's connection must end its sessions.");
+        }
+        else
+        {
+            if (gracefully)
+                server.CloseGracefully();
+            else
+                server.Close();
+            Assert.That(serverSession.IsClosed, Is.True, "Closing a server's connection must end its sessions.");
+        }
+    }
+
+    [Test]
+    public void ASessionEndsWhenItsConnectionTimesOut()
+    {
+        // An idle timeout closes the connection silently (RFC 9000 §10.1): nothing at all arrives.
+        var clock = new FakeTimeProvider();
+        (Http3ClientConnection client, Http3ServerConnection server, WebTransportSession serverSession, ServerCertificate cert)
+            = EstablishedSession(onServerStream: _ => { }, clock, new TransportParameters { MaxIdleTimeoutMs = 300 });
+        using ServerCertificate certGuard = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+        WebTransportSession clientSession = GetClientSession(client, server);
+        for (int r = 0; r < 5; r++) Pump(client, server);
+        Assert.That(clientSession.IsClosed, Is.False);
+
+        clock.Advance(TimeSpan.FromSeconds(5));
+        client.CheckTimeouts();
+        server.CheckTimeouts();
+
+        Assert.That(client.IsIdleTimedOut, Is.True);
+        Assert.That(server.IsIdleTimedOut, Is.True);
+        Assert.That(clientSession.IsClosed, Is.True, "A client's session must see its connection time out.");
+        Assert.That(serverSession.IsClosed, Is.True, "A server's session must see its connection time out.");
+    }
+
+    [Test]
+    public void ASessionEndsWhenItsConnectionIsDisposed()
+    {
+        // Disposing a connection is the end of it as well — and nothing pumps it afterwards.
+        (Http3ClientConnection client, Http3ServerConnection server, WebTransportSession serverSession, ServerCertificate cert)
+            = EstablishedSession(onServerStream: _ => { });
+        using ServerCertificate certGuard = cert;
+        WebTransportSession clientSession = GetClientSession(client, server);
+
+        client.Dispose();
+        server.Dispose();
+
+        Assert.That(clientSession.IsClosed, Is.True, "A client's session must see its connection disposed.");
+        Assert.That(serverSession.IsClosed, Is.True, "A server's session must see its connection disposed.");
+    }
+
     // ---- Helpers --------------------------------------------------------------------------
 
     private static (Http3ClientConnection, Http3ServerConnection, ServerCertificate) Pair(
-        ulong serverMaxSessions, Func<Http3Request, Action<WebTransportSession>?>? accept = null)
+        ulong serverMaxSessions, Func<Http3Request, Action<WebTransportSession>?>? accept = null,
+        TimeProvider? clock = null, TransportParameters? serverParameters = null)
     {
         var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        var server = new Http3ServerConnection(cert, _ => new Http3Response { Status = 200, Body = [] },
-            webTransportMaxSessions: serverMaxSessions, webTransportHandler: accept);
-        var client = new Http3ClientConnection("localhost", certificateValidation: validation, webTransportMaxSessions: 4);
+        var server = new Http3ServerConnection(cert, _ => new Http3Response { Status = 200, Body = [] }, serverParameters,
+            webTransportMaxSessions: serverMaxSessions, webTransportHandler: accept, timeProvider: clock);
+        var client = new Http3ClientConnection("localhost", certificateValidation: validation, webTransportMaxSessions: 4,
+                                               timeProvider: clock);
         client.Start();
         for (int r = 0; r < 20 && !client.HandshakeConfirmed; r++) Pump(client, server);
         Assert.That(client.HandshakeConfirmed, Is.True);
@@ -213,11 +313,12 @@ public class Http3WebTransportTests
     }
 
     private static (Http3ClientConnection, Http3ServerConnection, WebTransportSession, ServerCertificate)
-        EstablishedSession(Action<WebTransportStream> onServerStream)
+        EstablishedSession(Action<WebTransportStream> onServerStream, TimeProvider? clock = null,
+                           TransportParameters? serverParameters = null)
     {
         WebTransportSession? serverSession = null;
         (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
-            Pair(serverMaxSessions: 4, accept: _ => session => serverSession = session);
+            Pair(serverMaxSessions: 4, accept: _ => session => serverSession = session, clock, serverParameters);
 
         ulong id = client.ConnectWebTransport("localhost", "/wt");
         for (int r = 0; r < 20 && (serverSession is null || !client.TryGetWebTransportSession(id, out _)); r++)
