@@ -592,6 +592,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // RFC 1870 §6.1: "If the indicated size is larger than the server's fixed maximum
+            // message size, the server responds with code 552" - at MAIL, before the client
+            // transfers what would only be refused at the end of data. The value is 1*20 digits
+            // (checked above), which can exceed UInt64; a value that does is larger than any limit.
+            if (mailParameters.TryGetValue("SIZE", out var declaredSize) &&
+                (!UInt64.TryParse(declaredSize, out var size) || size > (UInt64) config.MaxMessageSize))
+            {
+                await SendResponseAsync(552, "5.3.4 Message size exceeds fixed maximum message size");
+                return;
+            }
+
             _mailFrom = match.Groups[1].Value;
 
             // Parse DSN parameters (RFC 3461)
