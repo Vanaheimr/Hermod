@@ -437,6 +437,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region AUTH refusals (RFC 4954 §4, §6; RFC 2034 §4)
+
+        // SCRAM-SHA-256 is offered in cleartext, so these need no certificate. The user store
+        // is the server's default, empty one: every user is unknown. The base64 argument below
+        // is "not a scram message".
+
+        [TestCase("AUTH NO-SUCH-MECHANISM",                                     504, "5.5.4", TestName = "An unknown mechanism is 504 5.5.4")]
+        [TestCase("AUTH SCRAM-SHA-256 bm90IGEgc2NyYW0gbWVzc2FnZQ==",           535, "5.7.8", TestName = "A malformed SCRAM message is 535 5.7.8")]
+        public async Task An_AUTH_refusal_carries_its_reply_code_once(String Command, Int32 Code, String EnhancedCode)
+        {
+
+            await using var server = new Server();
+            using var wire         = await server.ConnectAsync();
+
+            Assert.That(await wire.CommandAsync("EHLO client.example"), Is.EqualTo(250));
+
+            await wire.SendAsync(Command + "\r\n");
+            var reply = await wire.ReplyAsync();
+
+            // Not "535 535 5.7.8 …": the enhanced code follows the reply code directly.
+            Assert.That(reply.Code, Is.EqualTo(Code));
+            Assert.That(reply.Text, Does.StartWith(EnhancedCode + " "), $"reply text was \"{reply.Text}\"");
+
+        }
+
+
+        [Test]
+        public async Task A_failed_SCRAM_proof_is_535_5_7_8()
+        {
+
+            await using var server = new Server();
+            using var wire         = await server.ConnectAsync();
+
+            Assert.That(await wire.CommandAsync("EHLO client.example"), Is.EqualTo(250));
+
+            // An unknown user still gets a challenge (no account enumeration), so the
+            // refusal comes with the proof.
+            await wire.SendAsync("AUTH SCRAM-SHA-256 " + Convert.ToBase64String(Encoding.ASCII.GetBytes("n,,n=nobody,r=abcdef")) + "\r\n");
+            var challenge = await wire.ReplyAsync();
+            Assert.That(challenge.Code, Is.EqualTo(334));
+
+            var serverNonce = Encoding.ASCII.GetString(Convert.FromBase64String(challenge.Text)).Split(',')[0][2..];
+            await wire.SendAsync(Convert.ToBase64String(Encoding.ASCII.GetBytes($"c=biws,r={serverNonce},p=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")) + "\r\n");
+            var reply = await wire.ReplyAsync();
+
+            Assert.That(reply.Code, Is.EqualTo(535));
+            Assert.That(reply.Text, Does.StartWith("5.7.8 "), $"reply text was \"{reply.Text}\"");
+
+        }
+
+        #endregion
+
+
     }
 
 }
