@@ -32,6 +32,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         public abstract string MechanismName { get; }
         public abstract Task<AuthResponse> ProcessAsync(string? clientResponse, CancellationToken ct = default);
         public virtual void Reset() { }
+
+        /// <summary>
+        /// RFC 4954 §4: "If the server cannot [BASE64] decode any client response, it MUST reject
+        /// the AUTH command with a 501 reply (and an enhanced status code of 5.5.2)." A response
+        /// that decodes but says the wrong thing is a failed authentication (535); one that does
+        /// not decode is this.
+        /// </summary>
+        protected static AuthResponse Undecodable
+            => new (AuthResult.Fail, ErrorCode: "501 5.5.2 Cannot decode response");
+
+        /// <summary>
+        /// Decode a client response. RFC 4954 §4: a single "=" is the empty response - which
+        /// Convert.FromBase64String would reject.
+        /// </summary>
+        /// <returns>False when the response is not valid base64.</returns>
+        protected static bool TryDecode(string clientResponse, out string decoded)
+        {
+
+            decoded = "";
+
+            if (clientResponse == "=")
+                return true;
+
+            try
+            {
+                decoded = Encoding.UTF8.GetString(Convert.FromBase64String(clientResponse));
+                return true;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+
+        }
     }
 
 }

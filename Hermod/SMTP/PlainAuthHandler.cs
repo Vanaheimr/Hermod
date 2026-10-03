@@ -45,7 +45,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             try
             {
-                var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(clientResponse));
+                if (!TryDecode(clientResponse, out var decoded))
+                    return Undecodable;
+
                 var parts = decoded.Split('\0');
 
                 if (parts.Length < 3)

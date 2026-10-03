@@ -61,7 +61,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                         else
                         {
                             // Received username
-                            _username = Encoding.UTF8.GetString(Convert.FromBase64String(clientResponse));
+                            if (!TryDecode(clientResponse, out var username))
+                                return Undecodable;
+
+                            _username = username;
                             _state = State.WaitingPassword;
                             return new AuthResponse(
                                 AuthResult.Continue,
@@ -75,7 +78,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                             return new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Authentication failed");
                         }
 
-                        var password = Encoding.UTF8.GetString(Convert.FromBase64String(clientResponse));
+                        if (!TryDecode(clientResponse, out var password))
+                            return Undecodable;
+
                         _state = State.Complete;
 
                         if (await userStore.ValidatePasswordAsync(_username!, password, ct))

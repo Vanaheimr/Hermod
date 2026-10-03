@@ -72,7 +72,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
 
             // Decode client-first-message
-            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(clientResponse));
+            if (!TryDecode(clientResponse, out var decoded))
+                return Undecodable;
+
             logger.Log(LogLevel.Debug, $"SCRAM client-first: {decoded}");
 
             // Parse: gs2-header, client-first-message-bare
@@ -138,7 +140,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
 
             // Decode client-final-message
-            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(clientResponse));
+            if (!TryDecode(clientResponse, out var decoded))
+                return Task.FromResult(Undecodable);
+
             logger.Log(LogLevel.Debug, $"SCRAM client-final: {decoded}");
 
             // Parse: c=channel-binding,r=nonce,p=ClientProof
