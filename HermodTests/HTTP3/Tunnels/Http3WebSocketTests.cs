@@ -20,6 +20,7 @@
 using System.Text;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3.Qpack;
+using org.GraphDefined.Vanaheimr.Hermod.Quic;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Connection;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Streams;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
@@ -183,6 +184,145 @@ public class Http3WebSocketTests
         Assert.That(Encoding.UTF8.GetString(echo.Result!.Payload), Is.EqualTo("anyone there?"));
     }
 
+    public enum Closer { Client, Server }
+
+    [Test]
+    public void AClientWebSocketEndsWithItsConnection([Values] Closer closer)
+    {
+        // A tunnel ended only on its own stream's FIN or reset. Once the connection itself has
+        // ended, no such frame can come any more — and a client's WebSocket waited for ever.
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) = WebSocketServerPair(out _);
+        using ServerCertificate certGuard = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        (Http3Tunnel tunnel, IReadOnlyList<HeaderField> _) = OpenWebSocket(client, server, offerDeflate: false);
+        var ws = new WebSocketConnection(tunnel, WebSocketRole.Client);
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+
+        Task<WebSocketMessage?> received = ws.ReceiveAsync(None);
+        if (closer == Closer.Server)
+            server.CloseGracefully();
+        else
+            client.CloseGracefully();
+        for (int round = 0; round < 50 && !received.IsCompleted; round++)
+            Pump(client, server);
+
+        Assert.That(received.IsCompleted, Is.True, "A WebSocket must see its connection end.");
+        Assert.That(received.Result, Is.Null);
+    }
+
+    [Test]
+    public void AServerWebSocketEndsWithItsConnection([Values] Closer closer)
+    {
+        // The server's side of the same: its echo loop waits in ReceiveAsync, and ends only when
+        // that returns null.
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) = WebSocketServerPair(out Func<bool> serverLoopEnded);
+        using ServerCertificate certGuard = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        OpenWebSocket(client, server, offerDeflate: false);
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+        Assert.That(serverLoopEnded(), Is.False);
+
+        if (closer == Closer.Server)
+            server.CloseGracefully();
+        else
+            client.CloseGracefully();
+        for (int round = 0; round < 50 && !serverLoopEnded(); round++)
+            Pump(client, server);
+
+        Assert.That(serverLoopEnded(), Is.True, "A server's WebSocket must see its connection end.");
+    }
+
+    [Test]
+    public void ClosingAConnectionEndsItsWebSocketsAtOnce([Values] Closer closer, [Values] bool gracefully)
+    {
+        // The side that closes knows at once: its WebSockets end in the close call itself, not on
+        // a later pump — an application may well stop pumping a connection it has closed.
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) = WebSocketServerPair(out Func<bool> serverLoopEnded);
+        using ServerCertificate certGuard = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        (Http3Tunnel tunnel, IReadOnlyList<HeaderField> _) = OpenWebSocket(client, server, offerDeflate: false);
+        var ws = new WebSocketConnection(tunnel, WebSocketRole.Client);
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+        Task<WebSocketMessage?> received = ws.ReceiveAsync(None);
+
+        if (closer == Closer.Client)
+        {
+            if (gracefully)
+                client.CloseGracefully();
+            else
+                client.Close();
+            Assert.That(received.IsCompleted, Is.True, "Closing a client's connection must end its WebSockets.");
+            Assert.That(received.Result, Is.Null);
+        }
+        else
+        {
+            if (gracefully)
+                server.CloseGracefully();
+            else
+                server.Close();
+            Assert.That(serverLoopEnded(), Is.True, "Closing a server's connection must end its WebSockets.");
+        }
+    }
+
+    [Test]
+    public void AWebSocketEndsWhenItsConnectionTimesOut()
+    {
+        // An idle timeout closes the connection silently (RFC 9000 §10.1): nothing at all arrives.
+        var clock = new FakeTimeProvider();
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            WebSocketServerPair(out Func<bool> serverLoopEnded, clock, new TransportParameters { MaxIdleTimeoutMs = 300 });
+        using ServerCertificate certGuard = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        (Http3Tunnel tunnel, IReadOnlyList<HeaderField> _) = OpenWebSocket(client, server, offerDeflate: false);
+        var ws = new WebSocketConnection(tunnel, WebSocketRole.Client);
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+        Task<WebSocketMessage?> received = ws.ReceiveAsync(None);
+        Assert.That(received.IsCompleted, Is.False);
+
+        clock.Advance(TimeSpan.FromSeconds(5));
+        client.CheckTimeouts();
+        server.CheckTimeouts();
+
+        Assert.That(client.IsIdleTimedOut, Is.True);
+        Assert.That(server.IsIdleTimedOut, Is.True);
+        Assert.That(received.IsCompleted, Is.True, "A client's WebSocket must see its connection time out.");
+        Assert.That(received.Result, Is.Null);
+        Assert.That(serverLoopEnded(), Is.True, "A server's WebSocket must see its connection time out.");
+    }
+
+    [Test]
+    public void AWebSocketEndsWhenItsConnectionIsDisposed()
+    {
+        // Disposing a connection is the end of it as well — and nothing pumps it afterwards.
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) = WebSocketServerPair(out Func<bool> serverLoopEnded);
+        using ServerCertificate certGuard = cert;
+
+        (Http3Tunnel tunnel, IReadOnlyList<HeaderField> _) = OpenWebSocket(client, server, offerDeflate: false);
+        var ws = new WebSocketConnection(tunnel, WebSocketRole.Client);
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+        Task<WebSocketMessage?> received = ws.ReceiveAsync(None);
+
+        client.Dispose();
+        server.Dispose();
+
+        Assert.That(received.IsCompleted, Is.True, "A client's WebSocket must see its connection disposed.");
+        Assert.That(received.Result, Is.Null);
+        Assert.That(serverLoopEnded(), Is.True, "A server's WebSocket must see its connection disposed.");
+    }
+
     [Test]
     public void PerMessageDeflate_IsNegotiatedAndRoundTrips()
     {
@@ -256,7 +396,8 @@ public class Http3WebSocketTests
     /// Client + server with a WebSocket echo connectHandler (RFC 8441 §5 handshake: acceptance only
     /// for :protocol "websocket", permessage-deflate accepted when offered), handshake pumped.
     /// </summary>
-    private static (Http3ClientConnection, Http3ServerConnection, ServerCertificate) WebSocketServerPair(out Func<bool> serverLoopEnded)
+    private static (Http3ClientConnection, Http3ServerConnection, ServerCertificate) WebSocketServerPair(
+        out Func<bool> serverLoopEnded, TimeProvider? clock = null, TransportParameters? serverParameters = null)
     {
         var cert = ServerCertificate.CreateSelfSigned("localhost");
         bool loopEnded = false;
@@ -286,9 +427,9 @@ public class Http3WebSocketTests
         }
 
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        var server = new Http3ServerConnection(cert, _ => new Http3Response { Status = 200, Body = [] },
-                                               connectHandler: ConnectHandler);
-        var client = new Http3ClientConnection("localhost", certificateValidation: validation);
+        var server = new Http3ServerConnection(cert, _ => new Http3Response { Status = 200, Body = [] }, serverParameters,
+                                               connectHandler: ConnectHandler, timeProvider: clock);
+        var client = new Http3ClientConnection("localhost", certificateValidation: validation, timeProvider: clock);
         client.Start();
         for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
             Pump(client, server);
