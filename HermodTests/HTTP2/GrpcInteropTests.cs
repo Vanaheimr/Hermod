@@ -322,7 +322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var opts    = new CallOptions();
 
             var unknown = new Method<String, String>(MethodType.Unary, "helloworld.Greeter", "Nope", marsh, marsh);
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await invoker.AsyncUnaryCall(unknown, null, opts, "x").ResponseAsync);
+            var ex = await Assert.ThrowsAsync<RpcException>(async () => await invoker.AsyncUnaryCall(unknown, null, opts, "x").ResponseAsync);
             Assert.That(ex!.StatusCode, Is.EqualTo(StatusCode.Unimplemented), "unknown method -> UNIMPLEMENTED");
         }
 

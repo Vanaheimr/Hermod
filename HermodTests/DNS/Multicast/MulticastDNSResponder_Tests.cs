@@ -1032,7 +1032,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             Assert.That(capture.Count, Is.EqualTo(0), "a withdrawn record is not answered");
 
             // ...and withdrawing twice neither throws nor sends anything.
-            Assert.DoesNotThrowAsync(() => publication.WithdrawAsync());
+            await Assert.DoesNotThrowAsync(() => publication.WithdrawAsync());
 
             Assert.Multiple(() => {
                 Assert.That(capture.Count,       Is.EqualTo(0));
@@ -1203,11 +1203,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             var records      = ServiceRecords("myhost.local.", "10.0.0.7", 8443);
             var publication  = await responder.PublishAsync(records, Probe: false);
 
-            Assert.ThrowsAsync<ArgumentException>(() => publication.UpdateAsync([]));
+            await Assert.ThrowsAsync<ArgumentException>(() => publication.UpdateAsync([]));
 
             await publication.WithdrawAsync();
 
-            Assert.ThrowsAsync<InvalidOperationException>(() => publication.UpdateAsync(records));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => publication.UpdateAsync(records));
 
         }
 
@@ -1582,13 +1582,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             var record       = new A(MyHost, DNSQueryClasses.IN, TimeSpan.FromSeconds(120), ServerAddress);
             var chaosRecord  = new A(MyHost, DNSQueryClasses.CH, TimeSpan.FromSeconds(120), ServerAddress);
 
-            Assert.ThrowsAsync<InvalidOperationException>(() => responder.PublishAsync([ record ]), "not started");
+            await Assert.ThrowsAsync<InvalidOperationException>(() => responder.PublishAsync([ record ]), "not started");
 
             await responder.StartAsync();
 
-            Assert.Multiple(() => {
-                Assert.ThrowsAsync<ArgumentException>(() => responder.PublishAsync([]),              "no records");
-                Assert.ThrowsAsync<ArgumentException>(() => responder.PublishAsync([ chaosRecord ]), "class CH");
+            await Assert.MultipleAsync(async () => {
+                await Assert.ThrowsAsync<ArgumentException>(() => responder.PublishAsync([]),              "no records");
+                await Assert.ThrowsAsync<ArgumentException>(() => responder.PublishAsync([ chaosRecord ]), "class CH");
                 Assert.That(responder.Publications,  Is.Empty);
                 Assert.That(capture.Count,           Is.EqualTo(0));
             });
@@ -1631,7 +1631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
 
-            Assert.CatchAsync<OperationCanceledException>(
+            await Assert.CatchAsync<OperationCanceledException>(
                 () => responder.PublishAsync(
                           ServiceRecords("myhost.local.", "10.0.0.7", 8443),
                           Probe:             true,

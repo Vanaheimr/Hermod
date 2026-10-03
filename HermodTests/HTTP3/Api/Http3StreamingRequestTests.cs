@@ -122,7 +122,7 @@ public class Http3StreamingRequestTests
     }
 
     [Test]
-    public void Reader_SurfacesAnAbort()
+    public async Task Reader_SurfacesAnAbort()
     {
         var body = new Http3RequestBody();
         ValueTask<int> pending = body.ReadAsync(new byte[16]);
@@ -130,7 +130,7 @@ public class Http3StreamingRequestTests
         body.Fail(new OperationCanceledException("aborted"));
 
         Assert.That(pending.IsCompleted, Is.True);
-        Assert.ThrowsAsync<OperationCanceledException>(async () => await pending);
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await pending);
     }
 
     [Test]

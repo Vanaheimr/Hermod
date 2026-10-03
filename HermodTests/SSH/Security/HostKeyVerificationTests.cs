@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 catch { }
             }, CancellationToken);
 
-            var error = Assert.CatchAsync<SshWireException>(async () =>
+            var error = await Assert.CatchAsync<SshWireException>(async () =>
                             await SshTransport.ClientHandshakeAsync(clientPipe, CancellationToken: CancellationToken));
 
             Assert.That(error!.Message, Does.Contain("host-key verification").IgnoreCase,
@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 catch { }
             }, CancellationToken);
 
-            Assert.CatchAsync<SshWireException>(async () =>
+            await Assert.CatchAsync<SshWireException>(async () =>
                 await SshTransport.ClientHandshakeAsync(
                           clientPipe,
                           VerifyHostKey:     blob => blob.AsSpan().SequenceEqual(expected.PublicKeyBlob),

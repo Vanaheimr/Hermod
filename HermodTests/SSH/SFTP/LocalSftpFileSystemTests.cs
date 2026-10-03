@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         [Test]
         [CancelAfter(15000)]
-        public void Local_TraversalAttempts_AreContainedInRoot(CancellationToken CancellationToken)
+        public async Task Local_TraversalAttempts_AreContainedInRoot(CancellationToken CancellationToken)
         {
 
             // Plant a secret OUTSIDE the root to prove it can never be reached.
@@ -117,15 +117,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
                 var fs = new LocalSftpFileSystem(root);
 
-                Assert.Multiple(() => {
+                await Assert.MultipleAsync(async () => {
                     foreach (var escape in new[] { "/../" + Path.GetFileName(secret), "/../../etc/passwd", "/..", "/foo/../../bar" })
                     {
-                        var ex = Assert.CatchAsync<SftpException>(async () => await fs.StatAsync(escape, CancellationToken), $"escape: {escape}");
+                        var ex = await Assert.CatchAsync<SftpException>(async () => await fs.StatAsync(escape, CancellationToken), $"escape: {escape}");
                         Assert.That(ex!.Code, Is.EqualTo(SftpStatusCode.PermissionDenied), $"escape: {escape}");
                     }
 
                     // A path that uses .. but stays within the root is fine.
-                    Assert.DoesNotThrowAsync(async () => await fs.RealPathAsync("/sub/../inside", CancellationToken));
+                    await Assert.DoesNotThrowAsync(async () => await fs.RealPathAsync("/sub/../inside", CancellationToken));
                 });
             }
             finally
@@ -152,13 +152,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var read = await fs.ReadAsync(rh, 0, 64, CancellationToken);
             await fs.CloseAsync(rh, CancellationToken);
 
-            Assert.Multiple(() => {
+            await Assert.MultipleAsync(async () => {
                 Assert.That(Encoding.UTF8.GetString(read), Is.EqualTo("hello"));
 
                 // … but every mutation is denied.
-                Assert.That(Assert.CatchAsync<SftpException>(async () => await fs.OpenAsync("/new.txt", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken))!.Code, Is.EqualTo(SftpStatusCode.PermissionDenied));
-                Assert.That(Assert.CatchAsync<SftpException>(async () => await fs.MakeDirectoryAsync("/dir", CancellationToken))!.Code, Is.EqualTo(SftpStatusCode.PermissionDenied));
-                Assert.That(Assert.CatchAsync<SftpException>(async () => await fs.RemoveAsync("/readme.txt", CancellationToken))!.Code, Is.EqualTo(SftpStatusCode.PermissionDenied));
+                Assert.That((await Assert.CatchAsync<SftpException>(async () => await fs.OpenAsync("/new.txt", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken)))!.Code, Is.EqualTo(SftpStatusCode.PermissionDenied));
+                Assert.That((await Assert.CatchAsync<SftpException>(async () => await fs.MakeDirectoryAsync("/dir", CancellationToken)))!.Code, Is.EqualTo(SftpStatusCode.PermissionDenied));
+                Assert.That((await Assert.CatchAsync<SftpException>(async () => await fs.RemoveAsync("/readme.txt", CancellationToken)))!.Code, Is.EqualTo(SftpStatusCode.PermissionDenied));
             });
 
         }
@@ -231,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await fs.CloseAsync(handle, CancellationToken);
 
-            Assert.ThrowsAsync<SftpException>(async () => await fs.FlushAsync(handle, CancellationToken),
+            await Assert.ThrowsAsync<SftpException>(async () => await fs.FlushAsync(handle, CancellationToken),
                                               "a handle the file system does not know must not report a successful flush");
 
         }

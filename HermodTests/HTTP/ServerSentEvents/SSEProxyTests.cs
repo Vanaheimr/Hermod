@@ -327,7 +327,7 @@ public class SSEProxyTests
         var writer   = new StreamWriter(new BrokenStream());
 
         // Bounded, because the way this goes wrong is a stream that never returns.
-        var failure  = Assert.ThrowsAsync<IOException>(async () => await writer.WriteEvents(
+        var failure  = await Assert.ThrowsAsync<IOException>(async () => await writer.WriteEvents(
                                                                              Endless(finished),
                                                                              TimeSpan.FromMilliseconds(50)
                                                                          ).WaitAsync(TimeSpan.FromSeconds(5)));

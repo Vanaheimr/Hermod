@@ -822,7 +822,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
         /// never a listener this server calls HTTPS.
         /// </summary>
         [Test]
-        public void DNSServer_HTTPS_Start_Requires_ServerCertificate()
+        public async Task DNSServer_HTTPS_Start_Requires_ServerCertificate()
         {
 
             var server = new DNSServer(
@@ -836,7 +836,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
                              }
                          );
 
-            Assert.ThrowsAsync<InvalidOperationException>(
+            await Assert.ThrowsAsync<InvalidOperationException>(
                 async () => await server.Start()
             );
 

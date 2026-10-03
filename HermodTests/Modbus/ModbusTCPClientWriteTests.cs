@@ -192,8 +192,8 @@ public class ModbusTCPClientWriteTests
 
         // A register is two bytes, and a frame that says so but carries a
         // different number of them is not sent.
-        Assert.ThrowsAsync<ArgumentException>(() => client.WriteSingleRegister(1, [ 0x12 ]));
-        Assert.ThrowsAsync<ArgumentException>(() => client.WriteSingleRegister(1, [ 0x12, 0x34, 0x56 ]));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.WriteSingleRegister(1, [ 0x12 ]));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.WriteSingleRegister(1, [ 0x12, 0x34, 0x56 ]));
         Assert.That(peer.Exchanges, Has.Count.EqualTo(1));
 
     }

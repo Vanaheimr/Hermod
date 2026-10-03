@@ -146,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", bastionUserKey, CancellationToken: CancellationToken);
 
                 // The target presents a key we do NOT trust → the tunneled handshake must fail.
-                Assert.CatchAsync(async () => await SshProxyJump.ConnectThroughAsync(
+                await Assert.CatchAsync(async () => await SshProxyJump.ConnectThroughAsync(
                                                   client, "127.0.0.1", (UInt16) targetPort,
                                                   VerifyHostKey: _ => false,
                                                   CancellationToken: CancellationToken));

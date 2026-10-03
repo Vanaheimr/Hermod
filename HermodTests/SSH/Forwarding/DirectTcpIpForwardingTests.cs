@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
 
                 // A destination outside the ACL is refused — and the session stays usable.
-                var refused = Assert.CatchAsync<SshForwardingException>(async () =>
+                var refused = await Assert.CatchAsync<SshForwardingException>(async () =>
                     await SshForwarding.OpenTcpStreamAsync(client, "127.0.0.1", (UInt16) (echoPort + 1), CancellationToken));
 
                 // The permitted destination tunnels through to the echo server.

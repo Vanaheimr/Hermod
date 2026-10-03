@@ -601,11 +601,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var transport  = network.CreateTransport(ClientAddress);
             await using var client     = new MulticastDNSClient(transport, FastClientOptions());
 
-            Assert.Multiple(() => {
+            await Assert.MultipleAsync(async () => {
                 Assert.That(client.IsRunning, Is.False);
-                Assert.ThrowsAsync<InvalidOperationException>(() => client.Query(MyHostName, [ DNSResourceRecordTypes.A ]));
-                Assert.ThrowsAsync<InvalidOperationException>(() => client.Query(MyHost,     [ DNSResourceRecordTypes.A ]));
-                Assert.ThrowsAsync<InvalidOperationException>(() => client.BrowseAsync(TestService));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => client.Query(MyHostName, [ DNSResourceRecordTypes.A ]));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => client.Query(MyHost,     [ DNSResourceRecordTypes.A ]));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => client.BrowseAsync(TestService));
             });
 
         }
@@ -625,7 +625,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await client.StartAsync();
 
-            Assert.CatchAsync<OperationCanceledException>(
+            await Assert.CatchAsync<OperationCanceledException>(
                 () => client.Query(MyHostName, [ DNSResourceRecordTypes.A ], CancellationToken: new CancellationToken(canceled: true))
             );
 
@@ -718,7 +718,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             });
 
             // Disposing twice is harmless.
-            Assert.DoesNotThrowAsync(() => owning.DisposeAsync().AsTask());
+            await Assert.DoesNotThrowAsync(() => owning.DisposeAsync().AsTask());
 
         }
 

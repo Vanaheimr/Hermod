@@ -233,11 +233,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             Assert.That(sftp.Supports("fsync@openssh.com"), Is.False);
 
-            var direct = Assert.ThrowsAsync<SftpException>(async () => await sftp.FsyncAsync("handle-1", CancellationToken));
+            var direct = await Assert.ThrowsAsync<SftpException>(async () => await sftp.FsyncAsync("handle-1", CancellationToken));
             Assert.That(direct!.Code, Is.EqualTo(SftpStatusCode.OpUnsupported));
 
             // The upload path refuses up front — before a single byte is written, not after.
-            var upload = Assert.ThrowsAsync<SftpException>(async () => await sftp.UploadAsync("/x.bin", [1], CancellationToken, SyncToDisk: true));
+            var upload = await Assert.ThrowsAsync<SftpException>(async () => await sftp.UploadAsync("/x.bin", [1], CancellationToken, SyncToDisk: true));
             Assert.That(upload!.Code, Is.EqualTo(SftpStatusCode.OpUnsupported));
 
             await sftp.DisposeAsync();
@@ -316,7 +316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var source      = await sftp.OpenFileAsync("/source.bin", SftpOpenFlags.Read, CancellationToken);
             var destination = await sftp.OpenFileAsync("/second.bin", SftpOpenFlags.Create | SftpOpenFlags.Write | SftpOpenFlags.Truncate, CancellationToken);
 
-            var refused = Assert.ThrowsAsync<SftpException>(async () =>
+            var refused = await Assert.ThrowsAsync<SftpException>(async () =>
                 await sftp.CopyDataAsync(source, 0, 0, destination, 0, CancellationToken));
 
             Assert.That(refused!.Code, Is.EqualTo(SftpStatusCode.Failure).Or.EqualTo(SftpStatusCode.PermissionDenied),
@@ -359,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             var handle = await sftp.OpenFileAsync("/f.bin", SftpOpenFlags.Read | SftpOpenFlags.Write, CancellationToken);
 
-            var refused = Assert.ThrowsAsync<SftpException>(async () =>
+            var refused = await Assert.ThrowsAsync<SftpException>(async () =>
                 await sftp.CopyDataAsync(handle, 0, 4, handle, 6, CancellationToken));
 
             Assert.That(refused!.Code, Is.EqualTo(SftpStatusCode.OpUnsupported));

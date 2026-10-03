@@ -587,7 +587,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
         #region TLSServer_Start_Requires_ServerCertificate()
 
         [Test]
-        public void TLSServer_Start_Requires_ServerCertificate()
+        public async Task TLSServer_Start_Requires_ServerCertificate()
         {
 
             var server = new DNSServer(
@@ -601,7 +601,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
                              }
                          );
 
-            Assert.ThrowsAsync<InvalidOperationException>(
+            await Assert.ThrowsAsync<InvalidOperationException>(
                 async () => await server.Start()
             );
 

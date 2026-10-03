@@ -531,7 +531,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
 
                 Assert.That((Int32) h2Response.StatusCode, Is.EqualTo(200), "h2 is still served");
 
-                Assert.ThrowsAsync<HttpRequestException>(
+                await Assert.ThrowsAsync<HttpRequestException>(
                     async () => await overH11.PostAsync(
                                           UrlOf(server),
                                           new ByteArrayContent(QueryFor("api.example.test."))
@@ -648,7 +648,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
         #region DNSServer_Refuses_Both_DoH_Listeners_On_One_Port()
 
         [Test]
-        public void DNSServer_Refuses_Both_DoH_Listeners_On_One_Port()
+        public async Task DNSServer_Refuses_Both_DoH_Listeners_On_One_Port()
         {
 
             using var certificate = CreateSelfSignedServerCertificate();
@@ -669,7 +669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
 
             // ALPN is what lets one port carry both, and this server cannot do
             // that yet — so it says so rather than failing inside a listener task.
-            Assert.ThrowsAsync<InvalidOperationException>(
+            await Assert.ThrowsAsync<InvalidOperationException>(
                 async () => await server.Start()
             );
 

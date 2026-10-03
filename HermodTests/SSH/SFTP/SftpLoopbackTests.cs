@@ -119,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
             var sftp = await SftpClient.OpenAsync(client, CancellationToken);
 
-            var error = Assert.CatchAsync<SftpException>(async () => await sftp.DownloadAsync("/does-not-exist", CancellationToken));
+            var error = await Assert.CatchAsync<SftpException>(async () => await sftp.DownloadAsync("/does-not-exist", CancellationToken));
             Assert.That(error!.Code, Is.EqualTo(SftpStatusCode.NoSuchFile));
 
             await sftp.DisposeAsync();

@@ -201,7 +201,7 @@ public class Http3AsyncApiTests
     {
         // No server: the handshake can never be confirmed ⇒ TimeoutException instead of a hang.
         await using var client = new Http3Client("localhost", 1, CertificateValidationOptions.Insecure);
-        Assert.ThrowsAsync<TimeoutException>(() => client.ConnectAsync(TimeSpan.FromMilliseconds(500)));
+        await Assert.ThrowsAsync<TimeoutException>(() => client.ConnectAsync(TimeSpan.FromMilliseconds(500)));
     }
 
     [Test]
