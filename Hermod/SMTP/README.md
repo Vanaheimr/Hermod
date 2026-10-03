@@ -72,7 +72,7 @@ Last verified: **2026-07-20**
 
 | Specification | Hermod support |
 |---|---|
-| [RFC 3207](https://www.rfc-editor.org/rfc/rfc3207.html), STARTTLS | Implemented and regression-tested on the MTA and submission ports; pipelined-plaintext discarded on upgrade. |
+| [RFC 3207](https://www.rfc-editor.org/rfc/rfc3207.html), STARTTLS | Implemented and regression-tested on the MTA and submission ports; pipelined-plaintext discarded on upgrade. The submission client in `STARTTLS` mode never falls back to cleartext: STARTTLS not offered, refused (`454`) or a failed handshake ends the attempt with `MailSentStatus.TLSUnavailable`, without retry. |
 | [RFC 7435](https://www.rfc-editor.org/rfc/rfc7435.html), Opportunistic security | Implemented: default MTA→MTA policy accepts an imperfect certificate (encryption beats cleartext) but logs it; enforced modes never downgrade. |
 | [RFC 8461](https://www.rfc-editor.org/rfc/rfc8461.html), MTA-STS | Implemented: policy fetched via `_mta-sts` TXT + `https://mta-sts.<domain>/.well-known/mta-sts.txt`; MX filtered and TLS enforced in `enforce` mode. |
 | [RFC 8460](https://www.rfc-editor.org/rfc/rfc8460.html), SMTP TLS Reporting (TLS-RPT) | Implemented and regression-tested, **opt-in**: outbound per-domain success/typed-failure aggregate reports (gzipped `application/tlsrpt+gzip`, DKIM-signed) **and** inbound ingestion of received reports. |

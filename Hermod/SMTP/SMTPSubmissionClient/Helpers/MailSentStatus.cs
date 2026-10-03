@@ -30,7 +30,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         ConnectionClosed,   // the server closed the TCP connection unexpectedly
         Timeout,            // the server stopped responding (read/command timeout)
         UnknownError,
-        ExceptionOccurred
+        ExceptionOccurred,
+        TLSUnavailable      // TLS was required (STARTTLS), but not offered, refused, or the handshake failed; nothing was sent in cleartext
     }
 
 }
