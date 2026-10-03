@@ -181,6 +181,223 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+
+        #region A handshake that never ends
+
+        /// <summary>
+        /// Agrees to TLS - with a 220 to STARTTLS, or by accepting the connection on an
+        /// implicit TLS port - reads the ClientHello and then says nothing, until the
+        /// client hangs up.
+        /// </summary>
+        private sealed class SilentHandshakeServer : IDisposable
+        {
+
+            private readonly TcpListener              listener = new (System.Net.IPAddress.Loopback, 0);
+            private readonly CancellationTokenSource  stop     = new ();
+            private readonly Boolean                  startTls;
+
+            public readonly ConcurrentQueue<String>   Commands = new();
+
+            public readonly TaskCompletionSource      ClientHelloReceived = new (TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public Int32 Port
+                => ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+
+            public SilentHandshakeServer(Boolean StartTls)
+            {
+                startTls = StartTls;
+                listener.Start();
+                _ = Task.Run(ServeAsync);
+            }
+
+            private async Task ServeAsync()
+            {
+                try
+                {
+
+                    using var client = await listener.AcceptTcpClientAsync(stop.Token);
+                    using var stream = client.GetStream();
+
+                    if (startTls)
+                    {
+
+                        // Nothing is read through the reader once the 220 is out: the ClientHello
+                        // only comes after it, so it is still in the socket, not in this buffer.
+                        using var reader = new StreamReader(stream, Encoding.ASCII, leaveOpen: true);
+                        using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true) { NewLine = "\r\n", AutoFlush = true };
+
+                        await writer.WriteLineAsync("220 silent.test ESMTP");
+
+                        String? line;
+                        while ((line = await reader.ReadLineAsync(stop.Token)) is not null)
+                        {
+
+                            Commands.Enqueue(line);
+                            var upper = line.ToUpperInvariant();
+
+                            if (upper.StartsWith("EHLO"))
+                            {
+                                await writer.WriteLineAsync("250-silent.test");
+                                await writer.WriteLineAsync("250-STARTTLS");
+                                await writer.WriteLineAsync("250 8BITMIME");
+                            }
+                            else if (upper == "STARTTLS")
+                            {
+                                await writer.WriteLineAsync("220 2.0.0 Ready to start TLS");
+                                break;
+                            }
+                            else
+                                await writer.WriteLineAsync("250 2.0.0 ok");
+
+                        }
+
+                    }
+
+                    var buffer = new Byte[16 * 1024];
+
+                    if (await stream.ReadAsync(buffer, stop.Token) > 0)
+                        ClientHelloReceived.TrySetResult();
+
+                    // ...and never a ServerHello.
+                    while (await stream.ReadAsync(buffer, stop.Token) > 0) { }
+
+                }
+                catch
+                {
+                    // the client hung up, or the test is over
+                }
+            }
+
+            public void Dispose()
+            {
+                stop.Cancel();
+                listener.Stop();
+            }
+
+        }
+
+        private static SMTPSubmissionClient ClientFor(SilentHandshakeServer  Server,
+                                                      TLSUsage               UseTLS,
+                                                      TimeSpan               CommandTimeout,
+                                                      Boolean                WithCredentials)
+
+            => new (DomainName.Parse("127.0.0.1"),
+                    IPPort.Parse((UInt16) Server.Port),
+                    Login:                       WithCredentials ? "app"    : null,
+                    Password:                    WithCredentials ? "secret" : null,
+                    LocalDomain:                 "client.example",
+                    UseTLS:                      UseTLS,
+                    RemoteCertificateValidator:  (_, _, _, _, _) => TLSValidationResult.Success(),
+                    ConnectionTimeout:           TimeSpan.FromSeconds(3),
+                    CommandTimeout:              CommandTimeout);
+
+        private static EMailEnvelop Confidential()
+
+            => new (EMail.Parse([
+                       "From: app@client.example",
+                       "To: you@silent.test",
+                       "Subject: confidential",
+                       "",
+                       "for TLS only"
+                   ]));
+
+        /// <summary>
+        /// Waits for the send, but not for ever: a send that is not bounded fails the test
+        /// instead of hanging the suite.
+        /// </summary>
+        private static async Task<SMTPSendResult> Bounded(Task<SMTPSendResult> Send)
+        {
+
+            var guard = TimeSpan.FromSeconds(30);
+
+            if (await Task.WhenAny(Send, Task.Delay(guard)) != Send)
+                Assert.Fail($"the send was still running after {guard.TotalSeconds} s: the TLS handshake is not bounded");
+
+            return await Send;
+
+        }
+
+
+        // Every SMTP step waits at most the command timeout for the server - except, until
+        // now, the handshake after STARTTLS, which only the caller's token could end. With
+        // no RequestTimeout that was never: one 220 and then silence, from the server or
+        // from someone on the path, held SendWithResult for good.
+        [Test]
+        public async Task A_server_that_never_answers_the_ClientHello_cannot_hold_the_send([Values] Boolean WithCredentials)
+        {
+
+            using var server = new SilentHandshakeServer(StartTls: true);
+            using var client = ClientFor(server, TLSUsage.STARTTLS, TimeSpan.FromSeconds(3), WithCredentials);
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var result    = await Bounded(client.SendWithResult(Confidential(), NumberOfRetries: 2));
+            stopwatch.Stop();
+
+            var commands  = server.Commands.ToArray();
+
+            Assert.That(server.ClientHelloReceived.Task.IsCompleted, Is.True, "the client started the handshake");
+            Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(10)),
+                        "the handshake gets the 3 s command timeout, like every other step");
+            Assert.That(result.Status,     Is.EqualTo(MailSentStatus.TLSUnavailable));
+            Assert.That(result.TLSActive,  Is.False);
+            Assert.That(result.Attempts,   Is.EqualTo(1), "a stalled handshake is not retried, like every other way STARTTLS can fail");
+            Assert.That(commands,          Has.None.StartsWith("MAIL").And.None.StartsWith("AUTH").And.None.EqualTo("for TLS only"),
+                        "nothing past EHLO/STARTTLS may be sent in cleartext: " + String.Join(" | ", commands));
+
+        }
+
+        // The deadline is added to the caller's token, not put in its place.
+        [Test]
+        public async Task The_caller_can_still_cancel_a_stalled_handshake_at_once()
+        {
+
+            using var server = new SilentHandshakeServer(StartTls: true);
+            using var client = ClientFor(server, TLSUsage.STARTTLS, TimeSpan.FromSeconds(30), WithCredentials: true);
+            using var cts    = new CancellationTokenSource();
+
+            var send = client.SendWithResult(Confidential(), NumberOfRetries: 2, CancellationToken: cts.Token);
+
+            await server.ClientHelloReceived.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            cts.Cancel();
+            var result    = await Bounded(send);
+            stopwatch.Stop();
+
+            var commands  = server.Commands.ToArray();
+
+            Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(5)),
+                        "the cancellation ends the handshake, not the 30 s command timeout");
+            Assert.That(result.Status,     Is.EqualTo(MailSentStatus.TLSUnavailable));
+            Assert.That(result.Attempts,   Is.EqualTo(1));
+            Assert.That(commands,          Has.None.StartsWith("MAIL").And.None.StartsWith("AUTH"),
+                        "nothing past EHLO/STARTTLS may be sent in cleartext: " + String.Join(" | ", commands));
+
+        }
+
+        // The same handshake, right after connecting to an implicit TLS port (465): it ran
+        // inside ReconnectAsync, with the same token and the same missing deadline.
+        [Test]
+        public async Task A_silent_server_on_an_implicit_TLS_port_cannot_hold_the_send()
+        {
+
+            using var server = new SilentHandshakeServer(StartTls: false);
+            using var client = ClientFor(server, TLSUsage.TLSSocket, TimeSpan.FromSeconds(3), WithCredentials: true);
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var result    = await Bounded(client.SendWithResult(Confidential(), NumberOfRetries: 0));
+            stopwatch.Stop();
+
+            Assert.That(server.ClientHelloReceived.Task.IsCompleted, Is.True, "the client started the handshake");
+            Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(10)),
+                        "the handshake gets the 3 s command timeout");
+            Assert.That(result.Status,     Is.Not.EqualTo(MailSentStatus.ok));
+            Assert.That(result.TLSActive,  Is.False);
+
+        }
+
+        #endregion
+
     }
 
 }
