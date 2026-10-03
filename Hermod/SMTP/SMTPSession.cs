@@ -724,6 +724,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // RFC 3030 §2: "If a DATA statement is issued after a BDAT for the current transaction,
+            // a 503 'Bad sequence of commands' MUST be issued." The chunks already received stay;
+            // the client can still finish with BDAT ... LAST, or RSET.
+            if (_inBdatSequence)
+            {
+                await SendResponseAsync(503, "5.5.1 DATA after BDAT in the same transaction");
+                return;
+            }
+
             // Submission port requires authentication per RFC 6409
             if (isSubmissionPort && config.RequireAuthOnSubmission && !_authManager.IsAuthenticated)
             {
