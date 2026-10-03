@@ -766,7 +766,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // 250-8BITMIME
                                     // 250 DSN
 
-                                    if (EHLOResponses.Any(v => v.StatusCode != SMTPStatusCodes.Ok))
+                                    // RFC 5321 §3.2: a server that does not support EHLO answers 500, 501, 502,
+                                    // 504 or 550, and "the SMTP client ... should then fall back to HELO".
+                                    // HELO negotiates no extension, so its reply stands in for the EHLO list:
+                                    // the greeting line alone. With TLSUsage.STARTTLS that ends the attempt as
+                                    // TLSUnavailable below, because no STARTTLS was offered.
+                                    if ((UInt16) EHLOResponses.First().StatusCode is 500 or 501 or 502 or 504 or 550)
+                                    {
+
+                                        smtpLogger.LogInformation("SMTP server {RemoteHost} refused EHLO ({StatusCode}); falling back to HELO",
+                                                                  RemoteHost, (UInt16) EHLOResponses.First().StatusCode);
+
+                                        var HELOResponse = await SendCommandAndWaitForResponseAsync("HELO " + LocalDomain, cancellationToken).ConfigureAwait(false);
+
+                                        if (HELOResponse.StatusCode != SMTPStatusCodes.Ok)
+                                            throw new SMTPClientException("SMTP HELO command error: " + HELOResponse.ToString());
+
+                                        EHLOResponses = [ HELOResponse ];
+
+                                    }
+
+                                    else if (EHLOResponses.Any(v => v.StatusCode != SMTPStatusCodes.Ok))
                                     {
 
                                         var error = EHLOResponses.Where(smtpExtendedResponse => smtpExtendedResponse.StatusCode != SMTPStatusCodes.Ok).
@@ -839,6 +859,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // 250 DSN
 
                                     var mailServerName = EHLOResponses.FirstOrDefault();
+
+                                    // The extensions of this connection, not the union of every connection this
+                                    // client ever made: after a HELO fallback none were negotiated, and a flag
+                                    // left over from an earlier server would put an ESMTP parameter on MAIL.
+                                    Capabilities = SmtpCapabilities.None;
 
                                     EHLOResponses.Skip(1).ForEach(smtpExtendedResponse =>
                                     {
