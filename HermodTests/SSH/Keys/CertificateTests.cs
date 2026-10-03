@@ -166,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 return await UserAuthentication.ClientPublicKeyAuthenticateAsync(t, "achim", certifiedKey, CancellationToken: CancellationToken);
             }, CancellationToken);
 
-            Assert.Multiple(async () => {
+            await Assert.MultipleAsync(async () => {
                 Assert.That(await clientRun,              Is.True, "certificate auth must succeed");
                 Assert.That((await serverRun).Username,   Is.EqualTo("achim"));
             });

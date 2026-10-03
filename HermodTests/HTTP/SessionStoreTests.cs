@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var tokens  = Enumerable.Range(0, 500).Select(_ => store.Create(alice).Token.ToString()).ToList();
 
             Assert.That(tokens.Distinct().Count(),  Is.EqualTo(500));
-            Assert.That(tokens,                     Has.All.Matches<String>(token => Regex.IsMatch(token, "^[A-Za-z0-9_-]{43}$")));
+            Assert.That(tokens,                     Has.All.Matches<String>(token => token is not null && Regex.IsMatch(token, "^[A-Za-z0-9_-]{43}$")));
 
         }
 

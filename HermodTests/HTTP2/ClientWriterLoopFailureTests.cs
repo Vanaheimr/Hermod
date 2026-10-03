@@ -361,7 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(pendingFailure,              Is.Not.Null,                                     "the request waiting for its answer failed");
 
                 Assert.That(events.Named("ConnectionError"),
-                                                         Has.Some.Matches<String>(payload => payload.StartsWith("WRITER_LOOP ") && payload.Contains(failure.Message)),
+                                                         Has.Some.Matches<String>(payload => payload is not null && payload.StartsWith("WRITER_LOOP ") && payload.Contains(failure.Message)),
                                                                                                           "the failure logged");
 
             });

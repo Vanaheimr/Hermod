@@ -240,8 +240,8 @@ public sealed class HTTP11AuditRegressionTests
 
             var sessions = api.Sessions.ToArray();
 
-            Assert.That(sessions, Has.Some.Matches<Session>(session => session.UserId == verifiedUser.Id));
-            Assert.That(sessions, Has.None.Matches<Session>(session => session.UserId == firstUser.Id));
+            Assert.That(sessions, Has.Some.Matches<Session>(session => session?.UserId == verifiedUser.Id));
+            Assert.That(sessions, Has.None.Matches<Session>(session => session?.UserId == firstUser.Id));
         }
         finally
         {
