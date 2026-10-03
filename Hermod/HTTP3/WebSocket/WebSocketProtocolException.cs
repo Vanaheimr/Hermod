@@ -20,10 +20,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
 
     /// <summary>
     /// Raised for any violation of RFC 6455's framing rules (bad mask bit,
-    /// fragmented/oversized control frame, reserved bits set, oversized payload).
+    /// fragmented/oversized control frame, reserved bits set, oversized payload),
+    /// and for a frame that would take its message past the size limit.
     /// Caught by <see cref="WebSocketConnection.ReceiveAsync"/>, which answers
-    /// with a Close frame (code 1002, "protocol error") and ends the connection.
+    /// with a Close frame carrying <see cref="CloseCode"/> — 1002 ("protocol
+    /// error") for the former, 1009 ("message too big") for the latter — and
+    /// ends the connection.
     /// </summary>
-    public sealed class WebSocketProtocolException(string Message) : Exception(Message);
+    public sealed class WebSocketProtocolException(string Message, ushort CloseCode = 1002) : Exception(Message)
+    {
+
+        /// <summary>
+        /// The status code of the Close frame that answers this (RFC 6455 Section 7.4.1).
+        /// </summary>
+        public ushort CloseCode { get; } = CloseCode;
+
+    }
 
 }

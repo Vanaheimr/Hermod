@@ -1685,6 +1685,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// ends with the connection, as the tunnel does
         /// (<see cref="HTTP2ClientTunnel.ReadAsync"/>):
         /// <see cref="WebSocketConnection.ReceiveAsync"/> returns null then.
+        ///
+        /// <paramref name="MaxMessageSize"/> bounds every message the server sends,
+        /// 64 MiB by default (<see cref="WebSocketConnection.MaxMessageSize"/>).
         /// </summary>
         public async Task<WebSocketConnection> OpenWebSocketAsync(
             String                             Authority,
@@ -1693,6 +1696,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             List<(String Name, String Value)>? ExtraHeaders      = null,
             bool                               PerMessageDeflate = false,
             HTTP2Priority?                     Priority          = null,
+            ulong                              MaxMessageSize    = WebSocketConnection.DefaultMaxMessageSize,
             CancellationToken                  CancellationToken = default)
         {
 
@@ -1712,7 +1716,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                            WebSocketDeflate.WasAccepted(
                                tunnel.ResponseHeaders.FirstOrDefault(h => h.Name == "sec-websocket-extensions").Value);
 
-            return new WebSocketConnection(tunnel, WebSocketRole.Client, PerMessageDeflate: accepted);
+            return new WebSocketConnection(tunnel, WebSocketRole.Client, PerMessageDeflate: accepted, MaxMessageSize: MaxMessageSize);
 
         }
 
