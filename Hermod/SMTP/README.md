@@ -156,6 +156,10 @@ TLS state). See the [core transport](#core-smtp--esmtp-transport) and
 - A connection lost before the end of `DATA` delivers nothing.
 - A refused `BDAT` (out of sequence, too large, rate-limited) reads and discards
   its announced octets before answering (RFC 3030 §2).
+- `MAIL`/`RCPT` parameters are checked (RFC 5321 §4.1.1.11): an unknown one, or
+  any after `HELO`, is `555`; a known one with an invalid value (`SIZE=huge`,
+  `BODY=9BITMIME`, `RET=BODY`, `NOTIFY=NEVER,SUCCESS`, …) is `501`. A parameter
+  repeated with the same value is tolerated; with a different value it is `501`.
 - UTF-8 preserved on both `DATA` and `BDAT`; CRLF forced independent of host OS.
 - The submission/relay client sends the canonical serialized message
   (`EMail.ToText()`), never a header-dictionary reconstruction, so DKIM signatures

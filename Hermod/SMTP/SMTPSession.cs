@@ -551,11 +551,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
-            _mailFrom = match.Groups[1].Value;
-
             // Get everything after the closing >
             var paramStart = args.IndexOf('>');
             var parameters = paramStart > 0 ? args[(paramStart + 1)..].Trim() : "";
+
+            // Unknown parameters are 555, malformed values 501 (RFC 5321 §4.1.1.11) - never
+            // silently dropped, which would leave the client believing a request was honoured.
+            var (mailParameters, mailParametersError) = ESMTPParameters.Parse(parameters);
+            if ((mailParametersError ?? ESMTPParameters.ValidateMail(mailParameters, _extendedSmtp)) is { } mailError)
+            {
+                await SendResponseAsync(mailError.Code, mailError.Text);
+                return;
+            }
+
+            _mailFrom = match.Groups[1].Value;
 
             // Parse DSN parameters (RFC 3461)
             var (envId, ret) = DsnParser.ParseMailFromParams(parameters);
@@ -566,7 +575,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             _mtPriority = MtPriority.ParseFromMailParams(parameters);
 
             // Parse REQUIRETLS (RFC 8689)
-            _requireTls = RequireTlsHandler.ParseRequireTls(parameters);
+            _requireTls = mailParameters.ContainsKey("REQUIRETLS");
             if (_requireTls && !_tlsActive)
             {
                 await SendResponseAsync(530, "5.7.0 REQUIRETLS requires active TLS connection");
@@ -614,6 +623,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // Parse DSN parameters (RFC 3461)
             var paramStart = args.IndexOf('>');
             var parameters = paramStart > 0 ? args[(paramStart + 1)..].Trim() : "";
+
+            var (rcptParameters, rcptParametersError) = ESMTPParameters.Parse(parameters);
+            if ((rcptParametersError ?? ESMTPParameters.ValidateRcpt(rcptParameters, _extendedSmtp)) is { } rcptError)
+            {
+                await SendResponseAsync(rcptError.Code, rcptError.Text);
+                return;
+            }
+
             var (notify, orcpt) = DsnParser.ParseRcptToParams(parameters);
 
             // Check if this is a local or remote recipient
