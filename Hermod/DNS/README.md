@@ -86,6 +86,13 @@ concerns:
 
 - **Multi-server queries** with configurable timeout and race semantics
   (fastest valid response wins)
+- **Where those servers come from** — the ones named to the constructor, and
+  the machine's network configuration when the search is asked for:
+  `SearchForIPv4DNSServers` / `SearchForIPv6DNSServers`, defaulting to `true`
+  for the constructor taking no manual servers (which would otherwise have
+  none at all) and to `false` for the one taking them. Which it is matters
+  beyond cost, because the fastest valid response wins: a resolver that joins
+  the set unasked can answer before the one the caller named
 - **SERVFAIL retry logic** via `MaxRetries` (default: 1) — if a DNS server
   returns SERVFAIL, the query is automatically retried up to N times before
   failing over to the next server

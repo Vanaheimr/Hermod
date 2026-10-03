@@ -108,6 +108,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         private readonly          Boolean                  ownsDNSClient;
 
+        /// <summary>
+        /// The DNS client, held as a <see cref="Lazy{T}"/> so that one of this
+        /// client's own making is built when it is first asked for, and not
+        /// before. A DNS client that was handed in is already there and is
+        /// wrapped as a value, so both cases read the same below.
+        /// </summary>
+        private readonly          Lazy<IDNSClient>         dnsClient;
+
         #endregion
 
         #region Properties
@@ -266,7 +274,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public  IDNSClient?                     DNSClient                 { get; }
+        /// <remarks>
+        /// Reading this builds the default DNS client if none was handed in and
+        /// none has been built yet. The default searches the machine's network
+        /// configuration for resolvers, which costs ~38 ms - more than thirty
+        /// times a request on loopback - so a client that never resolves a name
+        /// must never pay for it. Dialling a literal IP address resolves
+        /// nothing: see where ResolvedIPAddresses is filled in Connect.
+        /// </remarks>
+        public  IDNSClient?                     DNSClient
+            => dnsClient.Value;
 
         #endregion
 
@@ -324,7 +341,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.logger                         = Logger                 ?? NullLogger<ATCPClient>.Instance;
             this.loggerFactory                  = LoggerFactory          ?? NullLoggerFactory.Instance;
             this.ownsDNSClient                  = DNSClient is null;
-            this.DNSClient                      = DNSClient              ?? new DNSClient(Logger: loggerFactory.CreateLogger<IDNSClient>());
+
+            // Deferred rather than built here: the default DNS client searches
+            // the machine's network configuration for resolvers - two full
+            // sweeps of every network interface - and a client per request paid
+            // 38.3 ms of that for a request taking 1.06 ms. Measured by
+            // `tests/h1bench -- connect` in HTTP1ConformanceTests, which is
+            // also the regression test.
+            var dnsLoggerFactory                = this.loggerFactory;
+            this.dnsClient                      = DNSClient is not null
+                                                      ? new Lazy<IDNSClient>(DNSClient)
+                                                      : new Lazy<IDNSClient>(() => new DNSClient(
+                                                                                       Logger: dnsLoggerFactory.CreateLogger<IDNSClient>()
+                                                                                   ));
 
             this.clientCancellationTokenSource      = new CancellationTokenSource();
             this.connectionCancellationTokenSource  = new CancellationTokenSource();
@@ -1245,8 +1274,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             // cache cleans up on a timer, and a running timer keeps what it
             // calls alive: every client made and disposed of left a cache
             // behind that ticked every ten seconds for the rest of the process.
-            if (ownsDNSClient && DNSClient is not null)
-                await DNSClient.DisposeAsync().ConfigureAwait(false);
+            //
+            // Asked of the Lazy rather than of the property: reading the
+            // property would build the very DNS client this line then throws
+            // away, and a client that never resolved anything would pay the
+            // search on its way out instead of on its way in.
+            if (ownsDNSClient && dnsClient.IsValueCreated)
+                await dnsClient.Value.DisposeAsync().ConfigureAwait(false);
 
             GC.SuppressFinalize(this);
 
