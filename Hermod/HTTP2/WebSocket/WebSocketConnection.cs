@@ -21,6 +21,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     using System.IO.Compression;
     using System.Text;
 
+    // This file exists twice, in HTTP2/WebSocket/ and in HTTP3/WebSocket/, and
+    // the two differ in the namespace line alone (HTTP3/WebSocket/README.md).
+    // What is one transport's alone goes into a part of the class of its own:
+    // HTTP/2's reprioritization (RFC 9218) is in
+    // HTTP2/WebSocket/WebSocketConnection.Priority.cs, which has no copy.
+
     /// <summary>
     /// RFC 6455 WebSocket framing (masking, opcodes, fragmentation, close
     /// handshake) layered on top of an HTTP/2 extended-CONNECT tunnel
@@ -35,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// only thing that differs between the two ends — everything else (opcodes,
     /// fragmentation, ping/pong, the close handshake) is identical.
     /// </summary>
-    public sealed class WebSocketConnection
+    public sealed partial class WebSocketConnection
     {
 
         /// <summary>
@@ -93,29 +99,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
 
         /// <summary>
-        /// The tunnel this WebSocket runs over: on the client an
-        /// <see cref="HTTP2ClientTunnel"/>, with its stream ID, the headers of the
-        /// server's answer and its priority; on the server an
-        /// <see cref="HTTP2Tunnel"/>.
+        /// The tunnel this WebSocket runs over, the one it was made with — for
+        /// what the transport's tunnel type has beyond reading and writing, which
+        /// is all the WebSocket asks of it.
         /// </summary>
         public IHTTP2Tunnel Tunnel
             => tunnel;
-
-        /// <summary>
-        /// Reprioritize this WebSocket among the other streams of its HTTP/2
-        /// connection (RFC 9218) — a client's: what it sends from now on, and what
-        /// is still queued, goes out by the new priority, and the server is told
-        /// with a PRIORITY_UPDATE frame, for what it sends back
-        /// (<see cref="HTTP2ClientTunnel.UpdatePriorityAsync"/>). A WebSocket that
-        /// uploads a log file in the background, say, and must now hurry. A
-        /// server's WebSocket has no such signal to send: servers must not send
-        /// PRIORITY_UPDATE (RFC 9218, Section 7.1), and it throws.
-        /// </summary>
-        public Task UpdatePriorityAsync(HTTP2Priority Priority, CancellationToken CancellationToken = default)
-
-            => tunnel is HTTP2ClientTunnel clientTunnel
-                   ? clientTunnel.UpdatePriorityAsync(Priority, CancellationToken)
-                   : throw new NotSupportedException("Only a client's WebSocket can be reprioritized: servers must not send PRIORITY_UPDATE (RFC 9218, Section 7.1)");
 
 
         #region Receiving
@@ -129,8 +118,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         ///  - completing the close handshake on a Close frame (echoing it back
         ///    per Section 5.5.1) and on any protocol violation.
         /// Returns null once the connection is closed — either a normal close
-        /// handshake or the underlying tunnel simply ending, as a client's tunnel
-        /// does with the end of its HTTP/2 connection.
+        /// handshake or the underlying tunnel simply ending, which a tunnel may
+        /// also do at the end of its connection; the tunnel's type says when.
         /// </summary>
         public async Task<WebSocketMessage?> ReceiveAsync(CancellationToken CancellationToken)
         {

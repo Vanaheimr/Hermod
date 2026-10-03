@@ -1678,6 +1678,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// — real-time messages on one, a bulk upload on another — each open with
         /// their own, and the more urgent one's messages go out first.
         /// <see cref="WebSocketConnection.UpdatePriorityAsync"/> changes it later.
+        ///
+        /// The WebSocket's <see cref="WebSocketConnection.Tunnel"/> is the
+        /// <see cref="HTTP2ClientTunnel"/> of its stream — with its stream ID, the
+        /// headers of the server's answer and its priority — and the WebSocket
+        /// ends with the connection, as the tunnel does
+        /// (<see cref="HTTP2ClientTunnel.ReadAsync"/>):
+        /// <see cref="WebSocketConnection.ReceiveAsync"/> returns null then.
         /// </summary>
         public async Task<WebSocketConnection> OpenWebSocketAsync(
             String                             Authority,
