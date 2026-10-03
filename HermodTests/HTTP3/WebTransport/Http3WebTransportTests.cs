@@ -253,6 +253,37 @@ public class Http3WebTransportTests
     }
 
     [Test]
+    public void ASessionClosedWithItsConnection_KeepsTheCodeThatCameWithIt()
+    {
+        // The server closes the session with a code and then the connection; when the
+        // WT_CLOSE_SESSION and the CONNECTION_CLOSE come in one packet, the code must not be lost
+        // to the session's end with its connection (code 0).
+        (Http3ClientConnection client, Http3ServerConnection server, WebTransportSession serverSession, ServerCertificate cert)
+            = EstablishedSession(onServerStream: _ => { });
+        using ServerCertificate certGuard = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+        WebTransportSession clientSession = GetClientSession(client, server);
+        for (int r = 0; r < 5; r++) Pump(client, server);
+
+        serverSession.Close(0x77, "moving on");
+        List<byte[]> last = [.. server.GetDatagramsToSend()];
+        server.CloseGracefully();
+        List<byte[]> close = [.. server.GetDatagramsToSend()];
+        Assert.That(last, Is.Not.Empty);
+
+        foreach (byte[] dg in last)
+            client.Quic.ProcessDatagram(dg);
+        foreach (byte[] dg in close)
+            client.ProcessDatagram(dg);
+
+        Assert.That(client.IsDraining, Is.True);
+        Assert.That(clientSession.IsClosed, Is.True);
+        Assert.That(clientSession.CloseErrorCode, Is.EqualTo(0x77u));
+        Assert.That(clientSession.CloseReason, Is.EqualTo("moving on"));
+    }
+
+    [Test]
     public void ASessionEndsWhenItsConnectionTimesOut()
     {
         // An idle timeout closes the connection silently (RFC 9000 §10.1): nothing at all arrives.

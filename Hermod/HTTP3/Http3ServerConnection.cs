@@ -600,8 +600,15 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
 
     private void PumpStreams()
     {
-        if (_quic.IsClosing || _quic.IsDraining || _quic.IsClosed)
+        if (_quic.IsClosing || _quic.IsClosed)
             return; // process nothing further after a connection error
+
+        // The client has closed (draining): nothing more will come, but what came WITH its
+        // CONNECTION_CLOSE — the frames before it in the same packet, which QUIC kept — is still
+        // handed on. Draining forbids sending (RFC 9000 §10.2.2), not reading what has arrived.
+        // Only to what already has a reader, though — a tunnel, a streaming request body, a
+        // WebTransport session: a request that can never be answered starts no handler.
+        bool draining = _quic.IsDraining;
 
         InitializeHttp3IfReady();
 
@@ -638,6 +645,8 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
                 return; // a connection error was reported
             if (state.Responded)
                 continue;
+            if (draining && state.Tunnel is null && state.RequestBody is null && state.WebTransportSession is null)
+                continue; // draining: nobody reads this request any more
 
             // Client cancellation (RFC 9114 §4.1.1): RESET_STREAM on the request ⇒ abort the response
             // side as well — H3_REQUEST_REJECTED when nothing was processed yet (the request counts as
@@ -654,8 +663,11 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             // Backpressure for a streaming request body: while the handler has not consumed what it
             // was given, leave the data ON the QUIC stream. Its receive window then stays shut and
             // the peer stops sending — instead of us buffering the upload in memory.
-            // The same for a tunnel whose consumer has not read what it was given.
-            if (state.RequestBody is { IsSaturated: true } || state.Tunnel is { IsSaturated: true })
+            // The same for a tunnel whose consumer has not read what it was given — but not while
+            // draining: then nothing more can come, and what QUIC already took is handed on rather
+            // than dropped with the connection (bounded by the stream's window). An upload's rest
+            // is not: its request can never be answered any more.
+            if (state.RequestBody is { IsSaturated: true } || (!draining && state.Tunnel is { IsSaturated: true }))
                 continue;
 
             byte[] chunk = state.Stream.Read();
@@ -710,7 +722,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
                 // frame stays queued — same mechanism as a blocked QPACK section. Together with the
                 // read stop above, the QUIC receive window closes and the peer throttles.
                 if (frame.Type == Http3FrameType.Data &&
-                    (state.RequestBody is { IsSaturated: true } || state.Tunnel is { IsSaturated: true }))
+                    (state.RequestBody is { IsSaturated: true } || (!draining && state.Tunnel is { IsSaturated: true })))
                     break;
                 if (!ProcessRequestFrame(state, frame, out bool blocked))
                     return; // connection error reported
@@ -782,7 +794,8 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             _requests.Remove(claimed);
         _webTransportClaimed.Clear();
 
-        PumpResponses();
+        if (!draining) // no response can go out any more
+            PumpResponses();
 
         // Tunnel writes: queued by the consumer — possibly on a thread-pool thread — and put on the
         // stream here. Deliberately AFTER the stream processing above, so an answer written by a

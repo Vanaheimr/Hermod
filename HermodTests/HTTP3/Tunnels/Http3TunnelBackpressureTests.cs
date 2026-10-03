@@ -253,6 +253,59 @@ public class Http3TunnelBackpressureTests
     #endregion
 
 
+    #region WhatCameWithTheClose_ReachesAFullTunnel(Direction)
+
+    /// <summary>
+    /// The reader does not read: its tunnel is full, and what else came sits on the QUIC stream,
+    /// held back. Then the writer's side closes the connection. Nothing more can come, so the
+    /// rest QUIC already took is handed on, rather than dropped with the connection — up to the
+    /// stream's window, once.
+    /// </summary>
+    [Test]
+    public void WhatCameWithTheClose_ReachesAFullTunnel([Values] Direction direction)
+    {
+
+        using Pair pair = OpenPair();
+
+        (Http3Tunnel writer, Http3Tunnel reader) = direction == Direction.ClientToServer
+                                                       ? (pair.ClientTunnel, pair.ServerTunnel)
+                                                       : (pair.ServerTunnel, pair.ClientTunnel);
+
+        (_, Task? waiting) = WriteUntilHeldBack(pair, writer, 256);
+        Assert.That(waiting,           Is.Not.Null, "a write held back");
+        Assert.That(reader.IsSaturated, Is.True,     "the reader's tunnel, full");
+        int inTunnel = reader.Buffered;
+
+        if (direction == Direction.ClientToServer)
+        {
+            pair.Client.CloseGracefully();
+            foreach (byte[] datagram in pair.Client.GetDatagramsToSend())
+                pair.Server.ProcessDatagram(datagram);
+        }
+        else
+        {
+            pair.Server.CloseGracefully();
+            foreach (byte[] datagram in pair.Server.GetDatagramsToSend())
+                pair.Client.ProcessDatagram(datagram);
+        }
+
+        long read = 0;
+        while (true)
+        {
+            Task<byte[]?> next = reader.ReadAsync(None);
+            Assert.That(next.IsCompleted, Is.True, "every read, once the connection ended");
+            if (next.Result is not { } chunk)
+                break;
+            read += chunk.Length;
+        }
+
+        Assert.That(read, Is.GreaterThan(inTunnel), "what QUIC had taken beyond the full tunnel");
+
+    }
+
+    #endregion
+
+
     #region The tunnel on its own, over a bare QUIC stream
 
     private static (Http3Tunnel Tunnel, QuicStream Stream) Bare()
