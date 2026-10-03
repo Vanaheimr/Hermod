@@ -223,7 +223,8 @@ against regressions without becoming flaky.
   MAX_PUSH_ID are still *validated* — a peer that misuses them gets the error the
   RFC asks for — but nothing is ever pushed.
 - **The WebSocket framing is still a copy.** `WebSocket/` duplicates
-  `HTTP2/WebSocket/` byte for byte apart from the namespace. Now that both live in
-  this repository the copy can go away; see [its README](WebSocket/README.md).
+  `HTTP2/WebSocket/` byte for byte apart from the namespace, all but one part of
+  `WebSocketConnection` that is HTTP/2's alone. Now that both live in this
+  repository the copy can go away; see [its README](WebSocket/README.md).
 - **Firefox is untested.** It ignores the Chromium command-line flags and wants the
   certificate in its own NSS store, so it needs a setup path of its own.
