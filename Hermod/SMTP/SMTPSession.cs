@@ -176,7 +176,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     }
 
                     var (command, args) = ParseCommand(line);
-                    await ProcessCommandAsync(command, args, ct);
+
+                    if (ArgumentSyntaxError(command, args) is { } syntaxError)
+                        await SendResponseAsync(501, syntaxError);
+                    else
+                        await ProcessCommandAsync(command, args, ct);
 
                     if (_state == SMTPSessionState.Quit)
                         break;
@@ -1400,6 +1404,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return (line, "");
             return (line[..spaceIndex], line[(spaceIndex + 1)..]);
         }
+
+        /// <summary>
+        /// The argument rules of the RFC 5321 §4.1.1 grammar that the handlers do not check
+        /// themselves, as the text of a 501 - or null when the arguments fit. The command is
+        /// then not executed: a refused "DATA please" opens no DATA phase, a refused
+        /// "STARTTLS now" starts no TLS, a refused "EHLO" greets nobody.
+        /// </summary>
+        private static String? ArgumentSyntaxError(String command, String args)
+
+            => command.ToUpperInvariant() switch {
+
+                   // §4.1.1.1: ehlo = "EHLO" SP ( Domain / address-literal ) CRLF,
+                   //           helo = "HELO" SP Domain CRLF. Unprefixed: RFC 2034 §4 leaves
+                   //           enhanced status codes out of the replies to HELO and EHLO.
+                   "EHLO"     when args.Trim().Length == 0  => "Syntax: EHLO hostname",
+                   "HELO"     when args.Trim().Length == 0  => "Syntax: HELO hostname",
+
+                   // §4.1.1.4: data = "DATA" CRLF; §4.1.1.5: rset = "RSET" CRLF;
+                   // RFC 3207 §4: "STARTTLS" CRLF, "501 Syntax error (no parameters allowed)".
+                   // QUIT with an argument still ends the session: refusing it would only keep
+                   // open a connection both sides are done with.
+                   "DATA"     when args.Length > 0          => "5.5.4 Syntax: DATA takes no parameters",
+                   "RSET"     when args.Length > 0          => "5.5.4 Syntax: RSET takes no parameters",
+                   "STARTTLS" when args.Length > 0          => "5.5.4 Syntax error (no parameters allowed)",
+
+                   _                                        => null
+
+               };
 
     }
 
