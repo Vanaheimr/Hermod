@@ -3157,7 +3157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse(Bytes,       out Request, Timestamp = null, HTTPSource = null, LocalSocket = null, HTTPServer = null, ...)
+        #region (static) TryParse(Bytes,       out Request, Timestamp = null, HTTPSource = null, LocalSocket = null, HTTPServer = null, ServerCertificate = null, ClientCertificate = null, ...)
 
         /// <summary>
         /// Parse the given text as a HTTP request.
@@ -3170,6 +3170,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
         /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
+        /// <param name="ServerCertificate">The optional TLS certificate the server showed for the connection of the request.</param>
+        /// <param name="ClientCertificate">The optional TLS certificate the client showed for the connection of the request.</param>
         /// 
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
@@ -3181,6 +3183,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        IPSocket?                             LocalSocket         = null,
                                        IPSocket?                             RemoteSocket        = null,
                                        HTTPTestServer?                       HTTPServer          = null,
+                                       X509Certificate2?                     ServerCertificate   = null,
+                                       X509Certificate2?                     ClientCertificate   = null,
 
                                        EventTracking_Id?                     EventTrackingId     = null,
                                        CancellationToken                     CancellationToken   = default)
@@ -3206,6 +3210,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       [],
 
                                       HTTPServer:         HTTPServer,
+                                      ServerCertificate:  ServerCertificate,
+                                      ClientCertificate:  ClientCertificate,
                                       EventTrackingId:    EventTrackingId,
                                       CancellationToken:  CancellationToken
                                   );
