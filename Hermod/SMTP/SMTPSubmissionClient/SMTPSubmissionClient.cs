@@ -1017,6 +1017,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         break;
                                     }
 
+                                    // RFC 5321 §2.4: "An SMTP client that has not successfully negotiated an
+                                    // appropriate extension with a particular server MUST NOT transmit messages
+                                    // with information in the high-order bit of octets." RFC 6152 §3 leaves two
+                                    // ways out: convert the message to 7-bit MIME, or treat the barrier as a
+                                    // permanent failure. There is no converter here - re-encoding would also
+                                    // break DKIM and OpenPGP signatures over the content - so it is the second,
+                                    // before anything is sent.
+                                    if (!Capabilities.HasFlag(SmtpCapabilities.EightBitMime) &&
+                                        messageLines.Any(line => line.Any(c => c > (Char) 0x7F)))
+                                    {
+                                        smtpLogger.LogWarning("The message has 8-bit content and {RemoteHost} does not offer 8BITMIME; not sent", RemoteHost);
+                                        result = MailSentStatus.EightBitNotSupported;
+                                        break;
+                                    }
+
                                     #endregion
 
                                     #region MAIL FROM:
