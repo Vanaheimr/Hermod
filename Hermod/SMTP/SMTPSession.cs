@@ -1273,10 +1273,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             return split > 0 ? rawMessage[..split] : rawMessage;
         }
 
+        /// <summary>
+        /// RSET aborts the mail transaction only - sender, recipients and mail data
+        /// (RFC 5321 §4.1.1.5). A completed AUTH lasts for the session (RFC 4954 §4), so
+        /// it is kept: resetting it made an authenticated submission client's next DATA
+        /// a 530 and its relay RCPTs a 550. An AUTH exchange in progress never sees RSET,
+        /// its lines are SASL responses (cancelled by "*").
+        /// </summary>
         private async Task HandleRsetAsync()
         {
             ResetTransaction();
-            _authManager.Reset();
             await SendResponseAsync(250, "OK");
         }
 

@@ -37,7 +37,7 @@ Last verified: **2026-10-03**
 
 | Specification | Hermod support |
 |---|---|
-| [RFC 5321](https://www.rfc-editor.org/rfc/rfc5321.html), SMTP | Implemented and regression-tested: `HELO`/`EHLO`/`MAIL`/`RCPT`/`DATA`/`RSET`/`NOOP`/`QUIT`/`VRFY`, the transaction state machine, `Received:` trace fields (§4.4), dot-stuffing (§4.5.2), line-length limits (§4.5.3.1) enforced while reading, and null-sender (`<>`) handling. Lines end at CR LF and nowhere else (§2.3.8): a bare CR or LF never ends a command or `DATA`, which closes SMTP smuggling; content containing one is rejected by default (`RejectBareLineEndings`). Correct `MAIL FROM:<…>`/`RCPT TO:<…>` syntax on both server and client. |
+| [RFC 5321](https://www.rfc-editor.org/rfc/rfc5321.html), SMTP | Implemented and regression-tested: `HELO`/`EHLO`/`MAIL`/`RCPT`/`DATA`/`RSET`/`NOOP`/`QUIT`/`VRFY`, the transaction state machine (`RSET` aborts the mail transaction and nothing else, §4.1.1.5), `Received:` trace fields (§4.4), dot-stuffing (§4.5.2), line-length limits (§4.5.3.1) enforced while reading, and null-sender (`<>`) handling. Lines end at CR LF and nowhere else (§2.3.8): a bare CR or LF never ends a command or `DATA`, which closes SMTP smuggling; content containing one is rejected by default (`RejectBareLineEndings`). Correct `MAIL FROM:<…>`/`RCPT TO:<…>` syntax on both server and client. |
 | [RFC 5322](https://www.rfc-editor.org/rfc/rfc5322.html), Internet Message Format | Implemented: RFC 5322 address parsing (display names, angle addresses, quoted local-parts, domain-literals, comments, groups, comma-aware lists) and the typed header/body message model. |
 | [RFC 1870](https://www.rfc-editor.org/rfc/rfc1870.html), SMTP SIZE | Implemented: advertised with the configured maximum; the submission/relay client declares `SIZE=` on `MAIL FROM` and pre-checks the server's limit. |
 | [RFC 6152](https://www.rfc-editor.org/rfc/rfc6152.html), 8BITMIME | Implemented: 8-bit content accepted; `BODY=8BITMIME` emitted when advertised. The submission client does not send 8-bit content to a server without 8BITMIME: there is no 7-bit conversion, so it ends with `MailSentStatus.EightBitNotSupported` before `MAIL` (RFC 6152 §3, second option). |
@@ -61,7 +61,7 @@ Last verified: **2026-10-03**
 
 | Specification | Hermod support |
 |---|---|
-| [RFC 4954](https://www.rfc-editor.org/rfc/rfc4954.html), SMTP AUTH | Implemented and regression-tested: mechanism set depends on TLS state; the AUTH result is checked; submission requires authentication. |
+| [RFC 4954](https://www.rfc-editor.org/rfc/rfc4954.html), SMTP AUTH | Implemented and regression-tested: mechanism set depends on TLS state; the AUTH result is checked; submission requires authentication. A completed AUTH lasts for the session: `RSET` keeps it, and a second `AUTH` is `503`. |
 | [RFC 4616](https://www.rfc-editor.org/rfc/rfc4616.html), PLAIN | Implemented; refused in cleartext (`538`). |
 | draft-murchison-sasl-login, LOGIN | Implemented; refused in cleartext. |
 | [RFC 7677](https://www.rfc-editor.org/rfc/rfc7677.html) / [RFC 5802](https://www.rfc-editor.org/rfc/rfc5802.html), SCRAM-SHA-256 | Implemented and cross-validated: server and client halves interoperate; the password is never transmitted; server signature verified (mutual auth). Live STARTTLS+SCRAM end-to-end test. |
@@ -200,7 +200,7 @@ vectors, and live domains — not only self-consistency.
 | **DNS** | Live queries via the Hermod `DNSClient` against real domains. |
 | **Inbound session** | Raw-socket wire tests (`SMTPSessionWireTests`) for line endings, smuggling variants, BDAT chunk consumption, submission-port authentication, session limits and the verification switches; the whole server is additionally run against the external [SMTPConformanceTests](https://github.com/Vanaheimr/SMTPConformanceTests) suite (RFC-by-RFC, plus swaks, smtplib, openssl and Postfix smtp-sink). |
 
-The committed SMTP regression suite (`HermodTests/SMTP/`) contains **182 passing
+The committed SMTP regression suite (`HermodTests/SMTP/`) contains **183 passing
 tests, 0 failed, 0 skipped** as of the verification date, covering the message
 builders and OpenPGP (`EMailBuilderTests`), MDN (`MdnTests`, `MdnStorageTests`),
 DSN (`DsnTests`), priority (`PriorityTests`), `MAIL`/`RCPT` parameters
