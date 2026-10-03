@@ -477,6 +477,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
+        #region (internal) WireLines(Lines)
+
+        /// <summary>
+        /// The lines of a message as they go on the wire. RFC 5321 §2.3.8: "In addition, the
+        /// appearance of "bare" "CR" or "LF" characters in text (i.e., either without the other)
+        /// has a long history of causing problems in mail implementations [...] SMTP client
+        /// implementations MUST NOT transmit these characters except when they are intended as
+        /// line terminators and then MUST transmit them only as a &lt;CRLF&gt; sequence."
+        /// A serialized line may still hold one - a body text with "\n" in it - so each CR LF,
+        /// bare CR and bare LF inside a line ends it there. Sent verbatim, "\n.\n" in a body was
+        /// the end of DATA to a server that takes a bare LF for a line end, and what followed
+        /// was read as commands (SMTP smuggling). Split here, a "." line is dot-stuffed like
+        /// any other.
+        /// </summary>
+        internal static String[] WireLines(IEnumerable<String> Lines)
+
+            => [.. Lines.SelectMany(line => line.Split([ "\r\n", "\r", "\n" ], StringSplitOptions.None))];
+
+        #endregion
+
         #region (internal) MessageSize(Lines)
 
         /// <summary>
@@ -1103,7 +1123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     }
 
                                     // Serialize once, so we can declare/verify SIZE (RFC 1870) and send the body.
-                                    var messageLines  = EMailEnvelop.Mail?.ToText().ToArray() ?? [];
+                                    var messageLines  = WireLines(EMailEnvelop.Mail?.ToText() ?? []);
                                     var messageBytes  = MessageSize(messageLines);
 
                                     if (serverMaxSize > 0 && messageBytes > serverMaxSize)
