@@ -54,6 +54,12 @@ reference is; the seventh is inside commented-out code under
 - HTTP framing and semantics are identical after the TCP or TLS stream has been
   established; TLS protocol-version and certificate policy are separate from
   HTTP/1.x conformance.
+- A client makes the DNS client it was handed none of when it first asks for
+  one. Since 2026-10-03: the default searches the machine's network
+  configuration for resolvers, which was 38.3 ms of the 39.4 ms a fresh client
+  per request cost - for a request taking 1.06 ms - and a client dialling a
+  literal IP address resolves nothing at all. Long-lived clients never noticed;
+  one per request paid it every time.
 
 ## HTTP/1.0
 

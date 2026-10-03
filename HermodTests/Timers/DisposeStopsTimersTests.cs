@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -138,12 +138,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Timers
         /// A TCP client never disposed of the DNS client it made for itself,
         /// whose cache then went on cleaning up every ten seconds.
         /// </summary>
+        /// <remarks>
+        /// The DNS client is asked for here because it is made when it is first
+        /// asked for, and one that was never made has no timer to leave behind:
+        /// without this line the count of timers running while the clients were
+        /// alive is zero, and "none left" would be true of nothing. That a
+        /// client which never resolves anything makes none at all is what
+        /// HTTPClientLazyDNSClientTests is about.
+        /// </remarks>
         [Test]
         public async Task ATCPClientStopsTheTimerOfItsDNSClient()
 
             => TimerCount.AssertNoneLeft(
                    await TimerCount.Of(
-                             () => new TCPClient(IPv4Address.Localhost, IPPort.Parse(9)),
+                             () => {
+
+                                 var client = new TCPClient(IPv4Address.Localhost, IPPort.Parse(9));
+                                 _ = client.DNSClient;
+
+                                 return client;
+
+                             },
                              client => client.DisposeAsync()
                          ),
                    "TCP clients"
@@ -155,14 +170,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Timers
 
         /// <summary>
         /// The same for every client built on the TCP client, an HTTP client
-        /// for one.
+        /// for one. The DNS client is asked for as above, and for the same
+        /// reason.
         /// </summary>
         [Test]
         public async Task AnHTTPClientStopsTheTimerOfItsDNSClient()
 
             => TimerCount.AssertNoneLeft(
                    await TimerCount.Of(
-                             () => new HTTPClient(URL.Parse("http://127.0.0.1:9")),
+                             () => {
+
+                                 var client = new HTTPClient(URL.Parse("http://127.0.0.1:9"));
+                                 _ = client.DNSClient;
+
+                                 return client;
+
+                             },
                              client => client.DisposeAsync()
                          ),
                    "HTTP clients"
