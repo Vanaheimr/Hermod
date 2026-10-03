@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                   ));
 
             if (Policy is not null)
-                server.AddPipeline(new HTTPCORSPipeline(Policy));
+                server.AddPipeline(new HTTPCORSPipeline(server, Policy));
 
             return server;
 
@@ -332,6 +332,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(response, Does.StartWith("HTTP/1.1 204"), response);
                 Assert.That(response, Does.Match("(?m)^Allow: .*GET.*$"), response);
                 Assert.That(response, Does.Not.Contain("Access-Control-Allow-Origin"), response);
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
+
+        #region The answer names the route's methods, not the policy's
+
+        /// <summary>
+        /// The check that tells variant (b) from variant (a): the policy permits
+        /// a method the route does not have.
+        ///
+        /// Answering from the policy alone would advertise DELETE and refuse it
+        /// on arrival — Access-Control-Allow-Methods promising something no
+        /// handler answers. Asking the router instead means the advertisement
+        /// cannot outlive the handler it describes, which is the whole reason
+        /// for taking the lookup rather than restating the list by hand.
+        /// </summary>
+        [Test]
+        public async Task Allow_Methods_Is_Narrowed_To_What_The_Route_Has()
+        {
+
+            // The route registers GET and POST. The policy is more generous.
+            var server = CreateServer(new CORSPolicy(
+                                          AllowedOrigins: [ "https://example.org" ],
+                                          AllowedMethods: [ HTTPMethod.GET, HTTPMethod.POST, HTTPMethod.DELETE ]
+                                      ));
+
+            try
+            {
+
+                var permitted = await Preflight(server.TCPPort, "https://example.org", "POST");
+
+                Assert.That(permitted, Does.StartWith("HTTP/1.1 204"), permitted);
+                Assert.That(permitted, Does.Match("(?mi)^Access-Control-Allow-Methods: .*POST.*$"), permitted);
+
+                // The policy allows DELETE; the resource does not have it, so it
+                // must not be advertised.
+                Assert.That(permitted, Does.Not.Match("(?mi)^Access-Control-Allow-Methods: .*DELETE.*$"), permitted);
+
+                // And asking for it is refused rather than promised and then
+                // broken on the real request.
+                var refused = await Preflight(server.TCPPort, "https://example.org", "DELETE");
+
+                Assert.That(refused, Does.StartWith("HTTP/1.1 403"), refused);
 
             }
             finally

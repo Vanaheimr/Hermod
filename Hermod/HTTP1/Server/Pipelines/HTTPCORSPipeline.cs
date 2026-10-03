@@ -46,13 +46,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// and a pipeline that rewrote every response would be making the policy
     /// decision this stack leaves to the resource.
     /// </summary>
+    /// <param name="Server">The server this pipeline is installed on, so the answer can name the methods the route actually has rather than the ones a policy file remembers.</param>
     /// <param name="Policy">What the application permits.</param>
-    public class HTTPCORSPipeline(CORSPolicy Policy) : AHTTPPipeline()
+    public class HTTPCORSPipeline(HTTPServer  Server,
+                                  CORSPolicy  Policy) : AHTTPPipeline()
     {
 
         #region Properties
 
-        public CORSPolicy Policy { get; } = Policy;
+        public HTTPServer  Server    { get; } = Server;
+        public CORSPolicy  Policy    { get; } = Policy;
 
         #endregion
 
@@ -87,9 +90,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            Refuse(Request, $"The origin '{origin}' is not permitted.")
                        ));
 
+            // What the route actually has, asked of the router rather than
+            // restated here. The policy says what the application is willing to
+            // permit; the router knows what exists. Advertising their
+            // intersection means Access-Control-Allow-Methods cannot promise a
+            // method no handler answers — which a policy maintained by hand
+            // starts doing the first time a route changes and nobody remembers
+            // this file.
+            //
+            // Empty means the router could not tell us (an unknown resource, or
+            // a route that took the dispatch path). Then the policy is all we
+            // have, which is the behaviour this pipeline had before it could
+            // ask: narrower information, not wrong information.
+            var routeMethods    = Server.GetRegisteredMethods(Request).ToList();
+
+            var offeredMethods  = routeMethods.Count > 0
+                                      ? Policy.AllowedMethods.Where(routeMethods.Contains).ToList()
+                                      : [.. Policy.AllowedMethods];
+
             var requestedMethod = HTTPMethod.TryParse(Request.AccessControlRequestMethod!);
 
-            if (requestedMethod is null || !Policy.Allows(requestedMethod))
+            if (requestedMethod is null || !offeredMethods.Contains(requestedMethod))
                 return Task.FromResult<(HTTPRequest, HTTPResponse?)>((
                            Request,
                            Refuse(Request, $"The method '{Request.AccessControlRequestMethod}' is not permitted for '{origin}'.")
@@ -105,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPStatusCode               = HTTPStatusCode.NoContent,
                                Date                         = Timestamp.Now,
                                AccessControlAllowOrigin     = allowOrigin,
-                               AccessControlAllowMethods    = Policy.AllowedMethods,
+                               AccessControlAllowMethods    = offeredMethods,
                                Connection                   = ConnectionType.KeepAlive
                            };
 

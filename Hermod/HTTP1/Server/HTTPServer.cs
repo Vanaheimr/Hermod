@@ -565,6 +565,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region GetRegisteredMethods(Request)
+
+        /// <summary>
+        /// The methods registered for the resource this request addresses, as the
+        /// router itself sees them — not a second opinion computed from a second
+        /// walk of the tree.
+        ///
+        /// It exists for components that have to answer a question *about* a
+        /// route before the route is dispatched, which today means the CORS
+        /// preflight: the honest value of Access-Control-Allow-Methods is what
+        /// the resource actually has, and anything else is a policy file slowly
+        /// drifting away from the handlers it claims to describe.
+        ///
+        /// Returns empty when the resource is unknown, and also in one case
+        /// where it exists: a route whose own method IS registered takes the
+        /// dispatch path, which carries handlers rather than a method set. For a
+        /// preflight that never happens — an OPTIONS with no registered handler
+        /// is exactly the case that carries the set — but a caller asking about
+        /// some other method should treat empty as "do not know" rather than as
+        /// "none".
+        /// </summary>
+        /// <param name="Request">The request whose target resource to ask about.</param>
+        public IEnumerable<HTTPMethod> GetRegisteredMethods(HTTPRequest Request)
+
+            => GetRequestHandle(Request).AllowedMethods;
+
+        #endregion
+
         #region GetHTTPAPI(Path, out HTTPAPI, Hostname = null)
 
         public Boolean TryGetHTTPAPI(HTTPPath                          Path,
