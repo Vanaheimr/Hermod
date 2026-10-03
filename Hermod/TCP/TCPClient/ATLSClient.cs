@@ -128,6 +128,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public Boolean?                                                  AllowTLSResume                   { get; }
 
+        /// <summary>
+        /// How long a TLS handshake may take before it is given up, on top of the
+        /// cancellation token handed to it. Null, the default, means no deadline of its
+        /// own: a server that never answers the ClientHello is then waited for until
+        /// that token is cancelled.
+        /// </summary>
+        protected virtual TimeSpan?                                      TLSHandshakeTimeout
+            => null;
+
         protected Stream? ActiveStream
 
             => tlsStream is not null
@@ -520,10 +529,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     };
                 }
 
-                await tlsStream.AuthenticateAsClientAsync(
-                          authenticationOptions,
-                          CancellationToken
-                      );
+                using var handshakeDeadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
+                if (TLSHandshakeTimeout.HasValue)
+                    handshakeDeadline.CancelAfter(TLSHandshakeTimeout.Value);
+
+                try
+                {
+                    await tlsStream.AuthenticateAsClientAsync(
+                              authenticationOptions,
+                              handshakeDeadline.Token
+                          );
+                }
+                catch (OperationCanceledException) when (handshakeDeadline.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
+                {
+                    return TCPConnectionResult.Failed(
+                               $"{nameof(ATLSClient)}.{nameof(StartTLS)}: the TLS handshake did not complete within {TLSHandshakeTimeout!.Value.TotalSeconds} seconds"
+                           );
+                }
 
             }
             catch (Exception e)

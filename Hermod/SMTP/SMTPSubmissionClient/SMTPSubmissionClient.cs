@@ -99,6 +99,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         public TLSUsage             UseTLS                  { get; }
 
+        /// <summary>
+        /// The TLS handshake, after STARTTLS or right after connecting, is one more step
+        /// that a silent server can stall, and gets the same deadline as every command.
+        /// Without it a server, or anyone on the path, that answered STARTTLS with 220
+        /// and then ignored the ClientHello held the send for as long as the caller's
+        /// token allowed - with no RequestTimeout, forever.
+        /// </summary>
+        protected override TimeSpan? TLSHandshakeTimeout
+            => commandTimeout;
+
         #endregion
 
         #region Events
@@ -127,6 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="UseTLS">Whether Transport Layer Security should be used or not.</param>
         /// <param name="RemoteCertificateValidator">A callback for validating the remote server certificate.</param>
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
+        /// <param name="CommandTimeout">How long the server may take to answer a command, and how long a TLS handshake may take. Default is 30 seconds.</param>
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         /// <param name="CancellationToken"></param>
@@ -839,8 +850,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     // TLSUsage.STARTTLS means the message goes over TLS or not at all.
                                     // Whatever stands between here and an established TLS session - no
-                                    // STARTTLS offered, STARTTLS refused (454), a failed handshake - ends
-                                    // the attempt. Continuing in cleartext is exactly the downgrade an
+                                    // STARTTLS offered, STARTTLS refused (454), a failed handshake or one
+                                    // that is not done within the command timeout - ends the attempt. Continuing in cleartext is exactly the downgrade an
                                     // on-path attacker gets by rewriting one reply (RFC 3207 §6).
                                     if (UseTLS == TLSUsage.STARTTLS)
                                     {
