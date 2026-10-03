@@ -55,6 +55,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public ConcurrentDictionary<HTTPMethod, MethodNode>  Methods            { get; } = []; // Method -> ContentType -> Handler
 
+        /// <summary>
+        /// The methods this resource advertises in an Allow field: those
+        /// registered for it, plus the two this server answers by itself —
+        /// HEAD wherever GET is registered, and OPTIONS for every routed
+        /// resource (RFC 9110, Section 9.3.7).
+        /// </summary>
+        /// <remarks>
+        /// One property rather than the same two rules repeated per answer.
+        /// The 405, the automatic OPTIONS and the CORS preflight each built
+        /// this set for themselves, and a resource whose OPTIONS names a
+        /// method its 405 does not is one resource giving two accounts of
+        /// itself. Empty stays empty: a node carrying no handlers at all
+        /// advertises nothing, because an Allow field listing only what this
+        /// server adds would promise an answer no handler gives.
+        /// </remarks>
+        public IEnumerable<HTTPMethod>                       AdvertisedMethods
+        {
+            get
+            {
+
+                if (Methods.IsEmpty)
+                    return [];
+
+                var methods = new List<HTTPMethod>(Methods.Keys);
+
+                if ( methods.Contains(HTTPMethod.GET) &&
+                    !methods.Contains(HTTPMethod.HEAD))
+                {
+                    methods.Add(HTTPMethod.HEAD);
+                }
+
+                if (!methods.Contains(HTTPMethod.OPTIONS))
+                    methods.Add(HTTPMethod.OPTIONS);
+
+                return methods;
+
+            }
+        }
+
         public HTTPRequestHandlersX?                         RequestHandlers
         {
 
