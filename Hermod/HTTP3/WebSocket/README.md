@@ -39,8 +39,9 @@ the two stays trivial. A part of one transport's alone then either follows the
 class into the shared namespace, or becomes an extension method in its
 transport's.
 
-That request is now **enforced** for the one file where drift had already
-happened. `WebSocketDeflate.ShouldAccept` was fixed on the HTTP/2 side on
+That request is now **enforced**, for every file, after two of them drifted.
+
+The first was `WebSocketDeflate`: `ShouldAccept` was fixed on the HTTP/2 side on
 2026-09-22 (parse the permessage-deflate offer instead of pattern-matching it,
 RFC 7692 Section 7.1.2.1) and the copy here was left behind, carrying the bug for
 a day with nothing pointed at it — the HTTP/2 copy is covered by a nightly
@@ -52,3 +53,12 @@ against **both** copies and asserts they answer identically, and
 `Hermod.Tests.HTTP3` name the HTTP/3 conformance repository filters on. A fix
 applied to only one copy fails there now, instead of waiting for a suite that
 never visits this half.
+
+The second was `WebSocketConnection`, which that table does not reach. On
+2026-10-01 the HTTP/2 copy got `Tunnel`, `UpdatePriorityAsync` and a sentence on
+how a client's tunnel ends with its HTTP/2 connection, and the copy here none of
+them. `HermodTests/HTTP3/Tunnels/WebSocketCopyTests` compares the files
+themselves: every copy against its original with the namespace line swapped, to
+the byte, and every file against its counterpart, but for the parts that are one
+transport's alone, which it names. A change that reaches only one copy fails
+there, in the pull request that makes it.
