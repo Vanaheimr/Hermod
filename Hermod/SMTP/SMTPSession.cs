@@ -667,6 +667,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
 
             var recipient       = match.Groups[1].Value;
+
+            // RFC 5321 §4.5.1: "the special case of 'RCPT TO:<Postmaster>' (with no domain
+            // specification), MUST be supported" - case-insensitively (§2.4). It is this server's
+            // postmaster, delivered locally whatever the relay rules; with the domain filled in,
+            // what is stored and acted on afterwards is an ordinary address.
+            var isOwnPostmaster = recipient.Equals("postmaster", StringComparison.OrdinalIgnoreCase);
+            if (isOwnPostmaster)
+                recipient = $"postmaster@{config.Hostname}";
+
             var recipientDomain = ExtractDomain(recipient);
 
             // Parse DSN parameters (RFC 3461)
@@ -683,7 +692,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var (notify, orcpt) = DsnParser.ParseRcptToParams(parameters);
 
             // Check if this is a local or remote recipient
-            var isLocalRecipient = config.IsLocalDomain(recipientDomain);
+            var isLocalRecipient = isOwnPostmaster || config.IsLocalDomain(recipientDomain);
 
             if (!isLocalRecipient)
             {
