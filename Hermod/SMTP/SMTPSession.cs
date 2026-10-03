@@ -560,6 +560,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // RFC 5321 §4.1.4: "MAIL [...] MUST NOT be sent if a mail transaction is already open";
+            // the client ends one with DATA or BDAT LAST, or aborts it with RSET or EHLO. §4.3.2
+            // lists 503 for MAIL. Restarting silently dropped recipients the client had seen
+            // accepted.
+            if (_state >= SMTPSessionState.MailFrom)
+            {
+                await SendResponseAsync(503, "5.5.1 Nested MAIL command");
+                return;
+            }
+
             if (config.RequireStartTls && !_tlsActive)
             {
                 await SendResponseAsync(530, "5.7.0 Must issue STARTTLS first");
