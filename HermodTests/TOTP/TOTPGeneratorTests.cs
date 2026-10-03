@@ -212,7 +212,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
                                             TOTPHashAlgorithm.SHA512
                                         );
 
-            Assert.That(current[32..], Is.Not.EqualTo(current[..32]));
+            var firstHalf   = current[..32];
+            var secondHalf  = current[32..];
+
+            Assert.That(secondHalf, Is.Not.EqualTo(firstHalf));
 
         }
 

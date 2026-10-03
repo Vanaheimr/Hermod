@@ -45,7 +45,11 @@ public class SSEProxyTests
 
     #region Data
 
+    // Disposed in StopEverything, bounded by WaitAsync - a path NUnit1032
+    // does not follow.
+    #pragma warning disable NUnit1032
     private HTTPServer?                     httpServer;
+    #pragma warning restore NUnit1032
     private List<HTTPClient>                clients  = [];
 
     #endregion

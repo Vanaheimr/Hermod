@@ -115,7 +115,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Ethernet
             Assert.That(VLANId.From(100) <= VLANId.From(100), Is.True);
             Assert.That(VLANId.From(100) >= VLANId.From(100), Is.True);
 
+            // Two separately built equal values must share their hash code.
+            #pragma warning disable NUnit2009
             Assert.That(VLANId.From(100).GetHashCode(), Is.EqualTo(VLANId.From(100).GetHashCode()));
+            #pragma warning restore NUnit2009
             Assert.That(VLANId.From(100).Equals((Object) VLANId.From(100)), Is.True);
             Assert.That(VLANId.From(100).Equals((Object) 100),              Is.False);
 

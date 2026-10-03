@@ -161,6 +161,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
+        #region Dispose_Certificates()
+
+        /// <summary>
+        /// The two certificates carry private keys and live as long as the fixture.
+        /// </summary>
+        [OneTimeTearDown]
+        public void Dispose_Certificates()
+        {
+
+            serverCertificate?.Dispose();
+            clientCertificate?.Dispose();
+
+            serverCertificate = null;
+            clientCertificate = null;
+
+        }
+
+        #endregion
+
     }
 
 }

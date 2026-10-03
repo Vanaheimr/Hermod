@@ -111,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             client = null;
 
-            listener?.Stop();
+            listener?.Dispose();
 
             lock (taken)
             {

@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         [OneTimeTearDown]
         public async Task StopServer()
         {
-            listener.Stop();
+            listener.Dispose();
             try { await serverLoop.WaitAsync(TimeSpan.FromSeconds(2)); } catch { }
         }
 

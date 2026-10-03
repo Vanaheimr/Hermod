@@ -110,7 +110,10 @@ public class LossyNetworkTests
             return (net.ClientToServer.Dropped, net.ClientToServer.Delayed, net.ClientToServer.Duplicated);
         }
 
+        // Two runs with the same seed, compared: the same call on both sides is the test.
+        #pragma warning disable NUnit2009
         Assert.That(Run(4711), Is.EqualTo(Run(4711)));
+        #pragma warning restore NUnit2009
         Assert.That(Run(4711), Is.Not.EqualTo(Run(1234)), "A different seed must impair differently.");
     }
 

@@ -14,3 +14,14 @@ root = true
 # rest of the library would raise it about fifteen hundred times.
 [Hermod/DNS/**.cs]
 dotnet_diagnostic.CA2007.severity = warning
+
+# NUnit1034 - a test fixture that is used as a base class should be abstract.
+#
+# Here a concrete base class is the pattern, not a slip: an HTTP/2 fixture
+# runs, and an empty class of the same name derives from it in
+# Hermod.Tests.HTTP3, so the HTTP/3 conformance repository, which selects its
+# tests by that namespace, runs them too (WebSocketFrameReadTests,
+# WebSocketMessageLimitTests, WebSocketDeflateNegotiationTests). Making the
+# base abstract would drop the HTTP/2 runs.
+[HermodTests/**.cs]
+dotnet_diagnostic.NUnit1034.severity = none
