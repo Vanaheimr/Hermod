@@ -781,28 +781,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #region Check for STARTTLS
 
+                                    // TLSUsage.STARTTLS means the message goes over TLS or not at all.
+                                    // Whatever stands between here and an established TLS session - no
+                                    // STARTTLS offered, STARTTLS refused (454), a failed handshake - ends
+                                    // the attempt. Continuing in cleartext is exactly the downgrade an
+                                    // on-path attacker gets by rewriting one reply (RFC 3207 §6).
                                     if (UseTLS == TLSUsage.STARTTLS)
                                     {
 
-                                        if (EHLOResponses.Any(v => v.Response == "STARTTLS"))
+                                        if (!EHLOResponses.Any(v => v.Response == "STARTTLS"))
                                         {
-
-                                            var StartTLSResponse = await SendCommandAndWaitForResponseAsync("STARTTLS", cancellationToken).ConfigureAwait(false);
-
-                                            if (StartTLSResponse.StatusCode == SMTPStatusCodes.ServiceReady)
-                                            {
-                                                var startTLSResult = await StartTLS(cancellationToken).ConfigureAwait(false);
-
-                                                if (startTLSResult.IsFailure)
-                                                    throw new SMTPClientException("SMTP STARTTLS failed: " + startTLSResult.Errors.AggregateWith(", "));
-                                            }
-
+                                            smtpLogger.LogWarning("SMTP server {RemoteHost} does not offer STARTTLS; not sending in cleartext", RemoteHost);
+                                            result = MailSentStatus.TLSUnavailable;
+                                            break;
                                         }
 
-                                        else
-                                            throw new Exception("TLS is not supported by the SMTP server!");
+                                        var StartTLSResponse = await SendCommandAndWaitForResponseAsync("STARTTLS", cancellationToken).ConfigureAwait(false);
 
-                                        // Send EHLO again in order to get the new list of supported extensions!
+                                        if (StartTLSResponse.StatusCode != SMTPStatusCodes.ServiceReady)
+                                        {
+                                            smtpLogger.LogWarning("SMTP server {RemoteHost} refused STARTTLS ({StatusCode} {Response}); not sending in cleartext",
+                                                                  RemoteHost, (UInt16) StartTLSResponse.StatusCode, StartTLSResponse.Response);
+                                            result = MailSentStatus.TLSUnavailable;
+                                            break;
+                                        }
+
+                                        var startTLSResult = await StartTLS(cancellationToken).ConfigureAwait(false);
+
+                                        if (startTLSResult.IsFailure || !IsTLSActive)
+                                        {
+                                            smtpLogger.LogWarning("STARTTLS handshake with {RemoteHost} failed: {Errors}; not sending in cleartext",
+                                                                  RemoteHost, startTLSResult.Errors.AggregateWith(", "));
+                                            result = MailSentStatus.TLSUnavailable;
+                                            break;
+                                        }
+
+                                        // RFC 3207 §4.2: everything learnt before TLS is discarded - EHLO again
+                                        // for the extensions offered inside it.
                                         EHLOResponses = await SendCommandAndWaitForResponsesAsync("EHLO " + LocalDomain, cancellationToken).ConfigureAwait(false);
 
                                     }
