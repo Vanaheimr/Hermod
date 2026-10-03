@@ -824,6 +824,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (_state < SMTPSessionState.RcptTo || _rcptTo.Count == 0)
                 refusal = (503, "5.5.1 Need RCPT command first", false);
 
+            // Submission port requires authentication per RFC 6409, as for DATA.
+            else if (isSubmissionPort && config.RequireAuthOnSubmission && !_authManager.IsAuthenticated)
+                refusal = (530, "5.7.0 Authentication required", false);
+
             else if (_bdatBuffer.Length + chunkSize > config.MaxMessageSize)
                 refusal = (552, "5.3.4 Message size exceeds maximum", true);
 

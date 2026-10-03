@@ -96,33 +96,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             public readonly MemoryStorage  Storage = new();
             public readonly UInt16         Port;
+            public readonly UInt16         SubmissionPort;
 
             private readonly SMTPServer    server;
             private readonly Task          running;
             private readonly String        directory;
 
-            public Server(Boolean RejectBareLineEndings = true, Int32 MaxMessageSize = 64 * 1024)
+            /// <param name="RateLimits">Default: the server's, except that a failed AUTH is answered at once.</param>
+            /// <param name="Configure">Changes to the server configuration below.</param>
+            public Server(Boolean                                    RejectBareLineEndings  = true,
+                          Int32                                      MaxMessageSize         = 64 * 1024,
+                          RateLimitConfig?                           RateLimits             = null,
+                          IDNSClient?                                DNS                    = null,
+                          Func<SMTPServerConfig, SMTPServerConfig>?  Configure              = null)
             {
 
-                directory  = Directory.CreateTempSubdirectory("hermod-smtp-").FullName;
+                directory       = Directory.CreateTempSubdirectory("hermod-smtp-").FullName;
 
-                var ports  = new[] { FreePort(), FreePort() };
-                Port       = ports[0];
+                Port            = FreePort();
+                SubmissionPort  = FreePort();
 
-                server     = new SMTPServer(new SMTPServerConfig {
-                                                Hostname               = "mx.hermod.test",
-                                                Port                   = ports[0],
-                                                SubmissionPort         = ports[1],
-                                                EnableImplicitTls      = false,
-                                                MailStoragePath        = directory,
-                                                LocalDomains           = [ "hermod.test" ],
-                                                MaxMessageSize         = MaxMessageSize,
-                                                RejectBareLineEndings  = RejectBareLineEndings,
-                                                SessionTimeout         = TimeSpan.FromSeconds(10)
-                                            },
-                                            new NoDNS(),
-                                            new QuietLogger(),
-                                            mailStorage: Storage);
+                var config      = new SMTPServerConfig {
+                                      Hostname               = "mx.hermod.test",
+                                      Port                   = Port,
+                                      SubmissionPort         = SubmissionPort,
+                                      EnableImplicitTls      = false,
+                                      MailStoragePath        = directory,
+                                      LocalDomains           = [ "hermod.test" ],
+                                      MaxMessageSize         = MaxMessageSize,
+                                      RejectBareLineEndings  = RejectBareLineEndings,
+                                      SessionTimeout         = TimeSpan.FromSeconds(10)
+                                  };
+
+                server          = new SMTPServer(Configure?.Invoke(config) ?? config,
+                                                 DNS ?? new NoDNS(),
+                                                 new QuietLogger(),
+                                                 rateLimitConfig: RateLimits ?? new RateLimitConfig { AuthFailDelayMs = 0 },
+                                                 mailStorage:     Storage);
 
                 // Start() runs the accept loops for the server's lifetime.
                 running    = server.Start();
@@ -138,14 +148,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 return port;
             }
 
-            public async Task<Wire> ConnectAsync()
+            public async Task<Wire> ConnectAsync(UInt16? Port = null)
             {
 
                 for (var attempt = 0; ; attempt++)
                 {
                     try
                     {
-                        var wire = new Wire(new TcpClient("127.0.0.1", Port));
+                        var wire = new Wire(new TcpClient("127.0.0.1", Port ?? this.Port));
                         Assert.That((await wire.ReplyAsync()).Code, Is.EqualTo(220));
                         return wire;
                     }
