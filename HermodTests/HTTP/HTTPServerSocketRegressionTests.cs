@@ -605,6 +605,152 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region Resource OPTIONS without a handler is answered automatically
+
+        /// <summary>
+        /// RFC 9110 §9.3.7 — OPTIONS asks what the target resource supports, and
+        /// the router is the only thing that knows. Before this, an unregistered
+        /// OPTIONS was answered 405 while carrying the very list it was asked for.
+        ///
+        /// Server-wide "OPTIONS *" was always automatic; this is the per-resource
+        /// form behaving the same way.
+        /// </summary>
+        [Test]
+        public async Task Resource_OPTIONS_Without_A_Handler_Is_Answered_Automatically()
+        {
+
+            var server = CreateHTTPServer(IPv4Address.Localhost);
+
+            try
+            {
+
+                var response = await SendRawRequest(
+                                   server.TCPPort,
+                                   "OPTIONS / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+                               );
+
+                Assert.That(response, Does.StartWith("HTTP/1.1 204"), response);
+                Assert.That(response,
+                            Does.Match("(?m)^Allow: (?=.*\\bGET\\b)(?=.*\\bHEAD\\b)(?=.*\\bPOST\\b)(?=.*\\bOPTIONS\\b).*$"),
+                            response);
+
+                // RFC 9110 §15.3.5: a 204 carries no content. The 405 path it used
+                // to share answers with emits a JSON description, and inheriting
+                // that here would desynchronise every client that believes the
+                // status.
+                Assert.That(response, Does.Not.Contain("\"description\""), response);
+
+                var body = response[(response.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4)..];
+                Assert.That(body, Is.Empty, response);
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
+        #region A registered OPTIONS handler still wins
+
+        /// <summary>
+        /// The automatic answer is a fallback, not an override: TryGetValue finds a
+        /// registered handler first, and only its absence reaches the new branch.
+        /// </summary>
+        [Test]
+        public async Task Registered_OPTIONS_Handler_Takes_Precedence()
+        {
+
+            // A second API at the root would collide with the one CreateHTTPServer
+            // already registers there, so this one gets a root of its own.
+            var server   = CreateHTTPServer(IPv4Address.Localhost);
+            var httpAPI  = server.AddHTTPAPI(HTTPPath.Parse("/opt"));
+            var reached  = false;
+
+            httpAPI.AddHandler(HTTPPath.Root + "withhandler",
+                               HTTPMethod:    HTTPMethod.OPTIONS,
+                               HTTPDelegate:  request => {
+                                                  reached = true;
+                                                  return Task.FromResult(
+                                                      new HTTPResponse.Builder(request) {
+                                                          HTTPStatusCode  = HTTPStatusCode.OK,
+                                                          ContentType     = HTTPContentType.Text.PLAIN,
+                                                          Content         = "mine".ToUTF8Bytes()
+                                                      }.AsImmutable
+                                                  );
+                                              });
+
+            try
+            {
+
+                var response = await SendRawRequest(
+                                   server.TCPPort,
+                                   "OPTIONS /opt/withhandler HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+                               );
+
+                Assert.That(reached,  Is.True, response);
+                Assert.That(response, Does.StartWith("HTTP/1.1 200"), response);
+                Assert.That(response, Does.Contain("mine"), response);
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
+        #region Allow advertises OPTIONS on the 405 path as well
+
+        /// <summary>
+        /// RFC 9110 §10.2.1 — Allow lists the methods the target resource supports.
+        /// The server now answers OPTIONS for every routed resource, so the Allow on
+        /// a 405 has to say so too: it is the field a client consults precisely
+        /// because it was just refused, and "OPTIONS / => 204" beside
+        /// "DELETE / => 405, Allow: GET, HEAD" is one resource giving two different
+        /// accounts of itself.
+        /// </summary>
+        [Test]
+        public async Task Allow_Advertises_OPTIONS_On_The_MethodNotAllowed_Path_Too()
+        {
+
+            var server = CreateHTTPServer(IPv4Address.Localhost);
+
+            try
+            {
+
+                var refused = await SendRawRequest(
+                                  server.TCPPort,
+                                  "DELETE / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+                              );
+
+                Assert.That(refused, Does.StartWith("HTTP/1.1 405"), refused);
+                Assert.That(refused,
+                            Does.Match("(?m)^Allow: .*\\bOPTIONS\\b.*$"),
+                            refused);
+
+                // And the claim is true, not merely advertised.
+                var offered = await SendRawRequest(
+                                  server.TCPPort,
+                                  "OPTIONS / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+                              );
+
+                Assert.That(offered, Does.StartWith("HTTP/1.1 204"), offered);
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
         #region Invalid Host and header syntax is rejected
 
         [TestCase("GET / HTTP/1.1\r\nConnection: close\r\n\r\n")]

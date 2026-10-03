@@ -56,6 +56,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                );
 
 
+        /// <summary>
+        /// The resource exists and the method is OPTIONS, but no OPTIONS handler
+        /// was registered for it — RFC 9110 §9.3.7, where the origin server
+        /// answers with its communication options rather than a rejection.
+        ///
+        /// Carried as a status plus the method set rather than as an Error,
+        /// because 204 is not one: the caller asked a question this server can
+        /// answer without any help from the application.
+        /// </summary>
+        /// <param name="AllowedMethods">The methods registered for the resource.</param>
+        public static ParsedRequest ResourceOptions(IEnumerable<HTTPMethod> AllowedMethods)
+
+            => new (
+                   null,
+                   [],
+                   HTTPStatusCode.NoContent,
+                   null,
+                   AllowedMethods
+               );
+
+
         public static ParsedRequest Error(String ErrorResponse)
 
             => new (

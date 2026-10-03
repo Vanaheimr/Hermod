@@ -1124,6 +1124,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Origin
+
+        /// <summary>
+        /// The origin this request was made from (WHATWG Fetch). Present on every
+        /// cross-origin request a browser makes, and on every preflight.
+        /// </summary>
+        public String? Origin
+
+            => GetHeaderField(HTTPRequestHeaderField.Origin);
+
+        #endregion
+
+        #region Access-Control-Request-Method
+
+        /// <summary>
+        /// The method a CORS preflight is asking about. Its presence on an
+        /// OPTIONS request is what makes that request a preflight.
+        /// </summary>
+        public String? AccessControlRequestMethod
+
+            => GetHeaderField(HTTPRequestHeaderField.AccessControlRequestMethod);
+
+        #endregion
+
+        #region Access-Control-Request-Headers
+
+        /// <summary>
+        /// The header field names a CORS preflight is asking about.
+        /// </summary>
+        public String? AccessControlRequestHeaders
+
+            => GetHeaderField(HTTPRequestHeaderField.AccessControlRequestHeaders);
+
+        #endregion
+
+        #region IsCORSPreflight
+
+        /// <summary>
+        /// Whether this request is a CORS preflight: the exact three conditions
+        /// WHATWG Fetch gives, and no policy of its own.
+        ///
+        /// It is a predicate rather than a judgement, so that a server which
+        /// installs no CORS pipeline keeps treating a preflight as the ordinary
+        /// OPTIONS request it also is.
+        /// </summary>
+        public Boolean IsCORSPreflight
+
+            => HTTPMethod == HTTPMethod.OPTIONS &&
+               Origin                      is not null &&
+               AccessControlRequestMethod  is not null;
+
+        #endregion
+
         #region Forwarded
 
         /// <summary>

@@ -565,6 +565,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region GetRegisteredMethods(Request)
+
+        /// <summary>
+        /// The methods registered for the resource this request addresses, as the
+        /// router itself sees them — not a second opinion computed from a second
+        /// walk of the tree.
+        ///
+        /// It exists for components that have to answer a question *about* a
+        /// route before the route is dispatched, which today means the CORS
+        /// preflight: the honest value of Access-Control-Allow-Methods is what
+        /// the resource actually has, and anything else is a policy file slowly
+        /// drifting away from the handlers it claims to describe.
+        ///
+        /// Returns empty when the resource is unknown, and also in one case
+        /// where it exists: a route whose own method IS registered takes the
+        /// dispatch path, which carries handlers rather than a method set. For a
+        /// preflight that never happens — an OPTIONS with no registered handler
+        /// is exactly the case that carries the set — but a caller asking about
+        /// some other method should treat empty as "do not know" rather than as
+        /// "none".
+        /// </summary>
+        /// <param name="Request">The request whose target resource to ask about.</param>
+        public IEnumerable<HTTPMethod> GetRegisteredMethods(HTTPRequest Request)
+
+            => GetRequestHandle(Request).AllowedMethods;
+
+        #endregion
+
         #region GetHTTPAPI(Path, out HTTPAPI, Hostname = null)
 
         public Boolean TryGetHTTPAPI(HTTPPath                          Path,
@@ -714,11 +742,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             if (!parsedRouteNode.RouteNode.Methods.TryGetValue(Request.HTTPMethod, out var methodNode))
+                            {
+
+                                // RFC 9110 §9.3.7: OPTIONS asks what the target resource
+                                // supports, and the router is the only thing that knows.
+                                // Answering 405 here was the one case where routing refused
+                                // a question it had the answer to — Methods.Keys is that
+                                // answer, and it was being thrown into the rejection.
+                                //
+                                // Server-wide "OPTIONS *" has always been automatic
+                                // (AHTTPServer.CreateServerOptionsResponse); this makes the
+                                // per-resource form behave the same way. A registered
+                                // OPTIONS handler still wins — TryGetValue found it first.
+                                if (Request.HTTPMethod == HTTPMethod.OPTIONS)
+                                    return ParsedRequest.ResourceOptions(parsedRouteNode.RouteNode.Methods.Keys);
+
                                 return ParsedRequest.Error(
                                            HTTPStatusCode.MethodNotAllowed,
                                            "Method not allowed!",
                                            parsedRouteNode.RouteNode.Methods.Keys
                                        );
+
+                            }
 
                             if (!methodNode.ContentTypes.Any())
                                 return ParsedRequest.Parsed(
@@ -965,11 +1010,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             if (!parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod, out var methodNode))
+                            {
+
+                                // RFC 9110 §9.3.7: OPTIONS asks what the target resource
+                                // supports, and the router is the only thing that knows.
+                                // Answering 405 here was the one case where routing refused
+                                // a question it had the answer to — Methods.Keys is that
+                                // answer, and it was being thrown into the rejection.
+                                //
+                                // Server-wide "OPTIONS *" has always been automatic
+                                // (AHTTPServer.CreateServerOptionsResponse); this makes the
+                                // per-resource form behave the same way. A registered
+                                // OPTIONS handler still wins — TryGetValue found it first.
+                                if (HTTPMethod == HTTPMethod.OPTIONS)
+                                    return ParsedRequest.ResourceOptions(parsedRouteNode.RouteNode.Methods.Keys);
+
                                 return ParsedRequest.Error(
                                            HTTPStatusCode.MethodNotAllowed,
                                            "Method not allowed!",
                                            parsedRouteNode.RouteNode.Methods.Keys
                                        );
+
+                            }
 
                             if (methodNode.ContentTypes.Any() && HTTPContentTypeSelector is not null)
                             {
@@ -1480,6 +1542,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     //             //          Connection      = ConnectionType.KeepAlive
                     //                   };
 
+                    // RFC 9110 §10.2.1: Allow lists the methods the target resource
+                    // supports. This server now answers OPTIONS for every routed
+                    // resource, so every Allow it emits has to say so — including the
+                    // one on a 405, which is the field a client consults precisely
+                    // because it was just told no. Computed once for both answers
+                    // below: the first version appended OPTIONS only to the 204, and
+                    // "OPTIONS / => 204" beside "DELETE / => 405, Allow: GET, HEAD"
+                    // is one resource giving two different accounts of itself.
+                    var allowedMethods = parsedRequest.AllowedMethods.ToList();
+
+                    if (parsedRequest.AllowedMethods.Any() &&
+                       !allowedMethods.Contains(HTTPMethod.OPTIONS))
+                    {
+                        allowedMethods.Add(HTTPMethod.OPTIONS);
+                    }
+
+                    // The automatic OPTIONS answer is not an error and must not carry
+                    // the error body: RFC 9110 §15.3.5 forbids content on a 204, and a
+                    // JSON description would desynchronise every client that believes it.
+                    if (httpResponse is null &&
+                        parsedRequest.HTTPStatusCode == HTTPStatusCode.NoContent)
+                    {
+                        httpResponse = new HTTPResponse.Builder(Request) {
+                                           HTTPStatusCode  = HTTPStatusCode.NoContent,
+                                           Server          = HTTPServerName,
+                                           Date            = Timestamp.Now,
+                                           Allow           = allowedMethods,
+                                           Connection      = ConnectionType.KeepAlive
+                                       }.AsImmutable;
+                    }
+
                     httpResponse ??= new HTTPResponse.Builder(Request) {
                                          HTTPStatusCode  = parsedRequest.HTTPStatusCode ?? HTTPStatusCode.InternalServerError,
                                          Server          = HTTPServerName,
@@ -1489,7 +1582,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                 new JProperty("request",      Request.FirstPDULine),
                                                                 new JProperty("description",  parsedRequest.ErrorResponse)
                                                             ).ToUTF8Bytes(),
-                                          Allow           = parsedRequest.AllowedMethods,
+                                          Allow           = allowedMethods,
                                           Connection      = ConnectionType.KeepAlive
                                       };
 
