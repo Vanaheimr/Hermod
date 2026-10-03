@@ -41,12 +41,13 @@ public class Http3AsyncHandlerTests
     /// Client/server pair with a completed handshake and initialised HTTP/3.
     /// </summary>
     private static (Http3ClientConnection Client, Http3ServerConnection Server, ServerCertificate Cert) Pair(
-        Func<Http3Request, CancellationToken, Task<Http3Response>> handler)
+        Func<Http3Request, CancellationToken, Task<Http3Response>> handler,
+        TransportParameters? serverParams = null, TimeProvider? clock = null)
     {
         var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        var server = new Http3ServerConnection(cert, handler);
-        var client = new Http3ClientConnection("localhost", certificateValidation: validation);
+        var server = new Http3ServerConnection(cert, handler, serverParams, timeProvider: clock);
+        var client = new Http3ClientConnection("localhost", certificateValidation: validation, timeProvider: clock);
         client.Start();
         for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
             Pump(client, server);
@@ -323,6 +324,99 @@ public class Http3AsyncHandlerTests
 
         Assert.That(observed.Task.IsCompleted, Is.True, "The handler's token must be cancelled.");
         gate.TrySetResult(new Http3Response { Status = 200 });
+    }
+
+    public enum Closer { Client, Server }
+
+    [Test]
+    public void AHandlerIsCancelledWhenItsConnectionEnds([Values] Closer closer)
+    {
+        // The token is documented to be cancelled when the connection ends, too — but only a
+        // client's abort, seen in the pump, cancelled it.
+        var observed = new TaskCompletionSource<bool>();
+        var gate = new TaskCompletionSource<Http3Response>();
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair((_, token) =>
+            {
+                token.Register(() => observed.TrySetResult(true));
+                return gate.Task;
+            });
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        client.SendRequest(Http3Request.Get("localhost", "/slow"));
+        for (int round = 0; round < 10; round++)
+            Pump(client, server);
+        Assert.That(observed.Task.IsCompleted, Is.False);
+
+        if (closer == Closer.Server)
+        {
+            server.CloseGracefully();
+            Assert.That(observed.Task.IsCompleted, Is.True, "Closing a server's connection must cancel its handlers at once.");
+        }
+        else
+        {
+            client.CloseGracefully();
+            for (int round = 0; round < 20 && !observed.Task.IsCompleted; round++)
+                Pump(client, server);
+            Assert.That(observed.Task.IsCompleted, Is.True, "A handler must learn that its connection ended.");
+        }
+        // A graceful shutdown waits for this: a request of an ended connection is pending no more.
+        Assert.That(server.HasPendingRequests, Is.False);
+        gate.TrySetResult(new Http3Response { Status = 200 });
+    }
+
+    [Test]
+    public void AHandlerThatAnswersAfterItsConnectionTimedOut_IsNotServed()
+    {
+        // A timed-out connection is still pumped (it never closes or drains): a handler that answers
+        // after the end must not have its response started — its body source would be read for
+        // nobody, and never disposed.
+        var clock = new FakeTimeProvider();
+        var gate = new TaskCompletionSource<Http3Response>();
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair((_, _) => gate.Task, new TransportParameters { MaxIdleTimeoutMs = 300 }, clock);
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        client.SendRequest(Http3Request.Get("localhost", "/slow"));
+        for (int round = 0; round < 10; round++)
+            Pump(client, server);
+        clock.Advance(TimeSpan.FromSeconds(5));
+        server.CheckTimeouts();
+        Assert.That(server.IsIdleTimedOut, Is.True);
+
+        var source = new CountingStream(100_000);
+        gate.TrySetResult(new Http3Response { Status = 200, BodyStream = source });
+        for (int round = 0; round < 5; round++)
+            server.CheckTimeouts();
+
+        Assert.That(source.BytesRead, Is.Zero, "A response after the connection's end has nowhere to go.");
+    }
+
+    [Test]
+    public void AStreamingResponseIsDisposedWhenItsConnectionEnds()
+    {
+        // The server disposes a response's body source once the body is out — and when the
+        // connection ends half-way, nothing else would.
+        var source = new CountingStream(4 * 1024 * 1024);
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair((_, _) => Task.FromResult(new Http3Response { Status = 200, BodyStream = source }));
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        client.SendRequest(Http3Request.Get("localhost", "/big"));
+        for (int round = 0; round < 12; round++)
+            Pump(client, server);
+        Assert.That(source.BytesRead, Is.GreaterThan(0), "The body must have started.");
+        Assert.That(source.Disposed, Is.False, "But not finished.");
+
+        server.CloseGracefully();
+
+        Assert.That(source.Disposed, Is.True, "The body source must be disposed with its connection.");
     }
 
     /// <summary>

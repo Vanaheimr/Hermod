@@ -125,8 +125,8 @@ public sealed class Http3RequestBody : Stream
     }
 
     /// <summary>
-    /// The request was aborted (RESET_STREAM, malformed, connection error); a waiting reader sees
-    /// the error instead of hanging.
+    /// The request was aborted (RESET_STREAM, malformed, or its connection ended); a waiting reader
+    /// sees the error instead of hanging.
     /// </summary>
     internal void Fail(Exception error)
     {
