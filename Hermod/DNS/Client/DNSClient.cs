@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -282,10 +282,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                          ILogger<IDNSClient>?  Logger                    = null,
                          ILoggerFactory?       LoggerFactory             = null)
 
+            // Resolved here rather than below, because the two overloads do not
+            // declare the same default and the one that applies is the one the
+            // caller read. Without manual servers a client that does not search
+            // has no servers at all, so here an unstated wish is a search.
             : this([],
                    QueryTimeout,
-                   SearchForIPv4DNSServers,
-                   SearchForIPv6DNSServers,
+                   SearchForIPv4DNSServers ?? true,
+                   SearchForIPv6DNSServers ?? true,
                    UseQueryCache,
                    Logger,
                    LoggerFactory)
@@ -325,7 +329,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region Search for IPv4/IPv6 DNS Servers...
 
-            if (SearchForIPv4DNSServers ?? true)
+            // Both of these read `?? true`, which is not the default either
+            // constructor declares: an explicitly passed null searched the
+            // machine's network configuration although this one's signature
+            // says it does not - and a caller forwarding an optional setting
+            // passes exactly that. The parameterless overload coalesces its
+            // own `true` above, so what arrives here unstated is unstated by
+            // a caller who named manual servers.
+            if (SearchForIPv4DNSServers ?? false)
                 NetworkInterface.GetAllNetworkInterfaces().
                     Where     (networkInterface => networkInterface.OperationalStatus == OperationalStatus.Up).
                     SelectMany(networkInterface => networkInterface.GetIPProperties().DnsAddresses).
@@ -336,7 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                    )).
                     ForEach   (dnsServerConfig  => dnsServers.Add(dnsServerConfig));
 
-            if (SearchForIPv6DNSServers ?? true)
+            if (SearchForIPv6DNSServers ?? false)
                 NetworkInterface.GetAllNetworkInterfaces().
                     Where     (networkInterface => networkInterface.OperationalStatus == OperationalStatus.Up).
                     SelectMany(networkInterface => networkInterface.GetIPProperties().DnsAddresses).
