@@ -741,7 +741,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (parsedRouteNode.RouteNode is not null)
                         {
 
-                            if (!parsedRouteNode.RouteNode.Methods.TryGetValue(Request.HTTPMethod, out var methodNode))
+                            // RFC 9110, Section 9.1: "All general-purpose servers MUST
+                            // support the methods GET and HEAD." The MUST binds the
+                            // server rather than the resource — nothing obliges a
+                            // resource to allow HEAD, and Section 9.1 names the 405 as
+                            // the way to refuse a method it does not allow — but a
+                            // server answering 405 to HEAD on every resource it serves
+                            // GET for does not support HEAD in any sense a client can
+                            // use. Section 9.3.2 defines HEAD as GET without the
+                            // content, so the GET handler answers it.
+                            //
+                            // No body logic is needed here: AHTTPServer.HasNoResponseBody
+                            // already copies no content, starts no ChunkWorker and no SSE
+                            // worker for a HEAD request, so the header fields go out as
+                            // Section 9.3.2 asks — the same ones GET would have sent.
+                            //
+                            // It costs what the GET costs, because the handler generates
+                            // content that is then dropped. Section 9.3.2 says as much,
+                            // and prefers minor header inconsistencies to exactly this;
+                            // a handler for which that matters reads Request.HTTPMethod
+                            // and returns the header fields alone. Correct by default,
+                            // cheap when a handler asks for it.
+                            //
+                            // A registered HEAD handler still wins: the first lookup
+                            // finds it, and the fallback is never reached.
+                            if (!parsedRouteNode.RouteNode.Methods.TryGetValue(Request.HTTPMethod, out var methodNode) &&
+                                !(Request.HTTPMethod == HTTPMethod.HEAD &&
+                                  parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod.GET, out methodNode)))
                             {
 
                                 // RFC 9110 §9.3.7: OPTIONS asks what the target resource
@@ -755,12 +781,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 // per-resource form behave the same way. A registered
                                 // OPTIONS handler still wins — TryGetValue found it first.
                                 if (Request.HTTPMethod == HTTPMethod.OPTIONS)
-                                    return ParsedRequest.ResourceOptions(parsedRouteNode.RouteNode.Methods.Keys);
+                                    return ParsedRequest.ResourceOptions(parsedRouteNode.RouteNode.AdvertisedMethods);
 
                                 return ParsedRequest.Error(
                                            HTTPStatusCode.MethodNotAllowed,
                                            "Method not allowed!",
-                                           parsedRouteNode.RouteNode.Methods.Keys
+                                           parsedRouteNode.RouteNode.AdvertisedMethods
                                        );
 
                             }
@@ -1009,7 +1035,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (parsedRouteNode.RouteNode is not null)
                         {
 
-                            if (!parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod, out var methodNode))
+                            // As in the overload above: RFC 9110, Section 9.1 makes GET
+                            // and HEAD a MUST for the server, Section 9.3.2 defines HEAD
+                            // as GET without the content, and the writer is what leaves
+                            // the body out. A registered HEAD handler still wins.
+                            if (!parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod, out var methodNode) &&
+                                !(HTTPMethod == HTTPMethod.HEAD &&
+                                  parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod.GET, out methodNode)))
                             {
 
                                 // RFC 9110 §9.3.7: OPTIONS asks what the target resource
@@ -1023,12 +1055,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 // per-resource form behave the same way. A registered
                                 // OPTIONS handler still wins — TryGetValue found it first.
                                 if (HTTPMethod == HTTPMethod.OPTIONS)
-                                    return ParsedRequest.ResourceOptions(parsedRouteNode.RouteNode.Methods.Keys);
+                                    return ParsedRequest.ResourceOptions(parsedRouteNode.RouteNode.AdvertisedMethods);
 
                                 return ParsedRequest.Error(
                                            HTTPStatusCode.MethodNotAllowed,
                                            "Method not allowed!",
-                                           parsedRouteNode.RouteNode.Methods.Keys
+                                           parsedRouteNode.RouteNode.AdvertisedMethods
                                        );
 
                             }
@@ -1543,20 +1575,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     //                   };
 
                     // RFC 9110 §10.2.1: Allow lists the methods the target resource
-                    // supports. This server now answers OPTIONS for every routed
-                    // resource, so every Allow it emits has to say so — including the
-                    // one on a 405, which is the field a client consults precisely
-                    // because it was just told no. Computed once for both answers
-                    // below: the first version appended OPTIONS only to the 204, and
-                    // "OPTIONS / => 204" beside "DELETE / => 405, Allow: GET, HEAD"
-                    // is one resource giving two different accounts of itself.
+                    // supports — including the one on a 405, which is the field a
+                    // client consults precisely because it was just told no. Two of
+                    // those methods this server adds itself: OPTIONS for every routed
+                    // resource, and HEAD wherever GET is registered.
+                    //
+                    // Both now come from PathNode.AdvertisedMethods rather than from a
+                    // rule applied here. Appending OPTIONS at this spot was right for
+                    // the two answers below and reached nothing else: anything asking
+                    // routing what a resource offers — GetRegisteredMethods, and
+                    // through it the CORS preflight — read the registered methods and
+                    // never saw the added ones. One definition, three readers.
                     var allowedMethods = parsedRequest.AllowedMethods.ToList();
-
-                    if (parsedRequest.AllowedMethods.Any() &&
-                       !allowedMethods.Contains(HTTPMethod.OPTIONS))
-                    {
-                        allowedMethods.Add(HTTPMethod.OPTIONS);
-                    }
 
                     // The automatic OPTIONS answer is not an error and must not carry
                     // the error body: RFC 9110 §15.3.5 forbids content on a 204, and a

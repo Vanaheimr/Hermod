@@ -182,6 +182,35 @@ Until 2026-10-03 the resource-level form was answered `405` unless a handler had
 been registered by hand, while the rejection already carried the method set it
 was being asked for.
 
+`HEAD` is answered by the `GET` handler of the same resource when no `HEAD`
+handler was registered, since 2026-10-03. RFC 9110 §9.1 makes `GET` and `HEAD` a
+`MUST` for every general-purpose server, and §9.3.2 defines `HEAD` as `GET`
+without the content; a registered `HEAD` handler still takes precedence. Before
+that, every `GET` route had to register `HEAD` by hand or answer `405` — which
+the `Allow` field then confirmed, so a client that asked was told the truth about
+a server offering less than it had to.
+
+Nothing is special-cased for the body: the writer already omits it for a `HEAD`
+request, starts no chunk worker and no event-stream worker, so the header fields
+are the ones `GET` would have sent, as §9.3.2 asks. A chunked `GET` answered as
+`HEAD` therefore carries `Transfer-Encoding: chunked` and no body, and the
+connection stays usable — RFC 9112 §6.3 item 1 ends any `HEAD` response at the
+blank line whatever the framing fields say.
+
+**It costs what the `GET` costs.** The handler generates the content and the
+writer drops it. §9.3.2 is explicit that servers prefer minor header
+inconsistencies to generating and discarding content, so a handler for which that
+matters should read `Request.HTTPMethod` and return the header fields alone — a
+64 MiB download answered as `HEAD` otherwise allocates 64 MiB to send nothing.
+
+What a resource advertises is one definition rather than a rule per answer:
+`PathNode.AdvertisedMethods` is the registered methods plus the two the server
+adds itself (`HEAD` where `GET` exists, `OPTIONS` always), and the `405`, the
+automatic `OPTIONS` and `HTTPServer.GetRegisteredMethods` — through which the
+CORS pipeline builds `Access-Control-Allow-Methods` — all read it. A resource
+whose `OPTIONS` names a method its `405` does not is one resource giving two
+accounts of itself.
+
 Handlers are registered at an `HTTPAPI` (`AddHandler`) with URL templates
 relative to the root path of that API; a trailing `{name..}` parameter catches
 the rest of the path. `HTTPServer.AddMethodCallback` and the `Register...`
