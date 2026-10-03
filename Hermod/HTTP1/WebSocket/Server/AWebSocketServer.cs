@@ -1684,7 +1684,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         // Authorization:           Basic Z3c6Z3cyY3NtczJfMTIzNDU2Nzg=
                                                         // X-OCPP-NetworkingMode:   OverlayNetwork
 
-                                                        if (HTTPRequest.TryParse(bytes, out var httpRequest))
+                                                        // With the sockets of the connection and the certificate the
+                                                        // client showed in its TLS handshake. Parsed from its bytes
+                                                        // alone, the request said localhost:443 at both ends, and no
+                                                        // client certificate, whatever its connection knew - and the
+                                                        // validators and AuthenticateAsync, which ask the request,
+                                                        // were told so. A request of an HTTP server has always had
+                                                        // both.
+                                                        if (HTTPRequest.TryParse(bytes,
+                                                                                 out var httpRequest,
+                                                                                 HTTPSource:         new HTTPSource(webSocketConnection.RemoteSocket),
+                                                                                 LocalSocket:        webSocketConnection.LocalSocket,
+                                                                                 RemoteSocket:       webSocketConnection.RemoteSocket,
+                                                                                 ClientCertificate:  webSocketConnection.ClientCertificate,
+                                                                                 CancellationToken:  token2))
                                                         {
 
                                                             // Login stays null until an authentication gives it a
