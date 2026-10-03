@@ -144,7 +144,9 @@ public class Http3TunnelConcurrencyTests
 
     /// <summary>
     /// The case the marshalling exists for: a consumer resuming on a thread-pool thread writes while
-    /// the pump drains. Nothing may be lost, torn or reordered.
+    /// the pump drains. Nothing may be lost, torn or reordered — and as the writes come to far more
+    /// than <see cref="Http3Tunnel.HighWatermark"/>, the later ones wait, without being awaited, until
+    /// the stream has sent the earlier ones, and still keep their order.
     /// </summary>
     [Test]
     public void WritesFromAnotherThread_ArriveCompleteAndInOrder()
@@ -152,27 +154,41 @@ public class Http3TunnelConcurrencyTests
         const int writes = 20_000;
 
         var stream = new QuicStream(new StreamId(0));
+        stream.Send.MaxData = ulong.MaxValue;      // the peer's credit: no limit
         var tunnel = new Http3Tunnel(stream);
+        var sent = new List<byte>();
+        var written = new Task[writes];
         bool writerDone = false;
 
         Task writer = Task.Run(() =>
         {
             for (int i = 0; i < writes; i++)
-                tunnel.WriteAsync(BitConverter.GetBytes(i), CancellationToken.None);
+                written[i] = tunnel.WriteAsync(BitConverter.GetBytes(i), CancellationToken.None);
             Volatile.Write(ref writerDone, true);
         });
 
+        // The pump drains, and the stream sends what it was given, as the connection would.
         Task pump = Task.Run(() =>
         {
-            while (!Volatile.Read(ref writerDone))
+            while (true)
+            {
+                bool done = Volatile.Read(ref writerDone);
                 tunnel.PumpOutbound();
-            tunnel.PumpOutbound(); // final drain
+                while (stream.Send.NextFrame(1200) is { } frame)
+                    sent.AddRange(frame.Data.ToArray());
+                if (done && written.All(write => write.IsCompleted))
+                    break;
+            }
         });
 
         Assert.That(Task.WhenAll(writer, pump).Wait(TimeSpan.FromSeconds(30)), Is.True);
 
         // Every write becomes one DATA frame: type 0x00, length 4, four payload bytes = 6 bytes each.
-        Assert.That(stream.Send.PendingBytes, Is.EqualTo(writes * 6), "Writes were lost or duplicated.");
+        Assert.That(sent, Has.Count.EqualTo(writes * 6), "Writes were lost or duplicated.");
+
+        byte[] bytes = [.. sent];
+        var order = Enumerable.Range(0, writes).Select(i => BitConverter.ToInt32(bytes, i * 6 + 2));
+        Assert.That(order, Is.EqualTo(Enumerable.Range(0, writes)), "Writes were reordered.");
     }
 
     #endregion

@@ -580,7 +580,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
     {
         foreach (RequestState state in _requests.Values)
         {
-            state.Tunnel?.End();
+            state.Tunnel?.EndAbruptly();
             state.WebTransportSession?.OnConnectStreamClosed();
 
             // A handler is still at work, or its response still going out: nothing of it can
@@ -645,7 +645,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             // reset our send side automatically (RFC 9000 §3.5).
             if (state.Stream.IsResetByPeer)
             {
-                state.Tunnel?.End(); // abrupt tunnel teardown (≙ TCP RST, RFC 9220 §3)
+                state.Tunnel?.EndAbruptly(); // abrupt tunnel teardown (≙ TCP RST, RFC 9220 §3)
                 state.Stream.Reset(state.HeadersReceived ? Http3Error.RequestCancelled : Http3Error.RequestRejected);
                 state.Responded = true; // done — there will be no response anymore
                 continue;
@@ -654,7 +654,8 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             // Backpressure for a streaming request body: while the handler has not consumed what it
             // was given, leave the data ON the QUIC stream. Its receive window then stays shut and
             // the peer stops sending — instead of us buffering the upload in memory.
-            if (state.RequestBody is { IsSaturated: true })
+            // The same for a tunnel whose consumer has not read what it was given.
+            if (state.RequestBody is { IsSaturated: true } || state.Tunnel is { IsSaturated: true })
                 continue;
 
             byte[] chunk = state.Stream.Read();
@@ -708,7 +709,8 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
                 // Streaming body: while the handler has not consumed what it already has, the DATA
                 // frame stays queued — same mechanism as a blocked QPACK section. Together with the
                 // read stop above, the QUIC receive window closes and the peer throttles.
-                if (frame.Type == Http3FrameType.Data && state.RequestBody is { IsSaturated: true })
+                if (frame.Type == Http3FrameType.Data &&
+                    (state.RequestBody is { IsSaturated: true } || state.Tunnel is { IsSaturated: true }))
                     break;
                 if (!ProcessRequestFrame(state, frame, out bool blocked))
                     return; // connection error reported

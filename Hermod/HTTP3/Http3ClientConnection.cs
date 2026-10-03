@@ -644,7 +644,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     {
         foreach (RequestState state in _requests.Values)
         {
-            state.Tunnel?.End();
+            state.Tunnel?.EndAbruptly();
             state.WebTransportSession?.OnConnectStreamClosed();
         }
     }
@@ -677,11 +677,16 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
 
             if (state.Tunnel is not null && state.Stream.IsResetByPeer)
             {
-                state.Tunnel.End(); // abrupt tunnel abort (≙ TCP RST, RFC 9220 §3)
+                state.Tunnel.EndAbruptly(); // abrupt tunnel abort (≙ TCP RST, RFC 9220 §3)
                 continue;
             }
             if (state.Cancelled || state.Rejected || state.Malformed || state.TooLarge || state.Stream.IsResetByPeer)
                 continue; // cancelled (§4.1.1), malformed (§4.1.2) or too large (§4.2.2) – do not process further
+
+            // Backpressure for a tunnel: while its consumer has not read what it was given, leave the
+            // data ON the QUIC stream. Its receive window then stays shut and the server stops sending.
+            if (state.Tunnel is { IsSaturated: true })
+                continue;
 
             byte[] chunk = state.Stream.Read();
             if (chunk.Length > 0)
@@ -707,6 +712,9 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
             while (state.Pending.Count > 0 && !state.Malformed && !state.TooLarge)
             {
                 Http3Frame frame = state.Pending.Peek();
+                // A saturated tunnel takes no more DATA; with the read stop above, the window closes.
+                if (frame.Type == Http3FrameType.Data && state.Tunnel is { IsSaturated: true })
+                    break;
                 if (!ProcessResponseFrame(state, frame, out bool blocked))
                     return; // connection error reported
                 if (blocked)

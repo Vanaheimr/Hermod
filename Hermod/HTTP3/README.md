@@ -33,7 +33,7 @@ hand-rolled.
 | `Http3Qpack.cs` | The connection's unidirectional streams: control stream, SETTINGS, QPACK encoder/decoder streams, per-frame placement rules |
 | `Http3Priority.cs` | RFC 9218: the `priority` header, PRIORITY_UPDATE and the §10 scheduler |
 | `Http3RequestBody.cs` | A thread-safe reader for a request body still arriving |
-| `Http3Tunnel.cs` | Extended-CONNECT tunnel: bytes in DATA frames, plus HTTP datagrams |
+| `Http3Tunnel.cs` | Extended-CONNECT tunnel: bytes in DATA frames, plus HTTP datagrams; backpressure both ways at 64 KiB (`HighWatermark`) |
 | `Http3Constants.cs` | Stream types, frame types, SETTINGS identifiers, the §8.1 error codes |
 | `UdpBatchSender.cs` | One `sendmsg` per batch via UDP_SEGMENT (GSO) where the platform offers it, a plain send loop otherwise |
 | `QPack/` | RFC 9204: static + dynamic table, Huffman, encoder/decoder, encoder-stream instructions |
