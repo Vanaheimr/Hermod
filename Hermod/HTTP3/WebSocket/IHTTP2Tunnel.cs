@@ -31,6 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3
     {
         /// <summary>
         /// Read the next chunk from the peer, or null once the peer has ended its side.
+        /// The chunk is the caller's from then on: a WebSocket keeps what it has not
+        /// parsed yet in the chunk itself, across reads, so the tunnel must hand out
+        /// an array it does not use again.
         /// </summary>
         Task<byte[]?> ReadAsync(CancellationToken CancellationToken);
 

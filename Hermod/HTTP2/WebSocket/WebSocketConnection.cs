@@ -726,11 +726,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// to WebSocket frame boundaries, so a single tunnel chunk might contain
         /// less than one WS frame header, or several whole WS frames at once.
         /// Returns null if the tunnel ends before Count bytes are available.
+        ///
+        /// Each byte is copied once, into the result. The chunks a read waits for
+        /// are kept as they come and put together once there are enough of them,
+        /// and what is left of the last one stays buffered as it is, in that chunk.
+        /// Until 2026-10 every chunk was appended to a copy of everything buffered
+        /// before it, so a frame cost its size times the number of chunks it came
+        /// in: about 8 GiB copied for a 16 MiB frame in HTTP/2's 16 KiB DATA frames.
+        /// The result is allocated once its bytes have come, not when a header
+        /// announces them, so a header alone costs nothing.
         /// </summary>
         private async Task<byte[]?> ReadExactAsync(int Count, CancellationToken CancellationToken)
         {
 
-            while (buffer.Length - bufferStart < Count)
+            var buffered = buffer.Length - bufferStart;
+
+            if (buffered >= Count)
+            {
+                var slice    = buffer[bufferStart..(bufferStart + Count)];
+                bufferStart += Count;
+                return slice;
+            }
+
+            var chunks    = new List<byte[]>();
+            var available = buffered;
+
+            while (available < Count)
             {
 
                 var chunk = await tunnel.ReadAsync(CancellationToken);
@@ -738,21 +759,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 if (chunk is null)
                     return null;
 
-                if (bufferStart > 0)
-                {
-                    buffer      = buffer[bufferStart..];
-                    bufferStart = 0;
-                }
-
-                var combined = new byte[buffer.Length + chunk.Length];
-                buffer.CopyTo(combined, 0);
-                chunk.CopyTo(combined, buffer.Length);
-                buffer = combined;
+                chunks.Add(chunk);
+                available += chunk.Length;
 
             }
 
-            var result = buffer[bufferStart..(bufferStart + Count)];
-            bufferStart += Count;
+            var result = new byte[Count];
+            var filled = buffered;
+
+            buffer.AsSpan(bufferStart).CopyTo(result);
+
+            for (var i = 0; i < chunks.Count - 1; i++)
+            {
+                chunks[i].CopyTo(result, filled);
+                filled += chunks[i].Length;
+            }
+
+            // The last chunk completes the result, and the rest of it is the next read's.
+            var last = chunks[^1];
+            var take = Count - filled;
+
+            last.AsSpan(0, take).CopyTo(result.AsSpan(filled));
+
+            buffer      = last;
+            bufferStart = take;
 
             return result;
 
