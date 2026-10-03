@@ -461,6 +461,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
+        #region (internal) EhloLine(Line)
+
+        /// <summary>
+        /// An EHLO reply line with its keyword in upper case and its parameters unchanged:
+        /// "starttls" is "STARTTLS", "size 1000" is "SIZE 1000", "auth plain" is "AUTH plain".
+        /// RFC 5321 §2.4: "Verbs and argument values (e.g., "TO:" or "to:" in the RCPT command
+        /// and extension name keywords) are not case sensitive".
+        /// </summary>
+        internal static String EhloLine(String Line)
+        {
+            var space = Line.IndexOf(' ');
+            return space < 0
+                       ? Line.ToUpperInvariant()
+                       : Line[..space].ToUpperInvariant() + Line[space..];
+        }
+
+        #endregion
+
         #region (private) SendDataAsync(Lines, CancellationToken = default)  — dot-stuffed message body
 
         /// <summary>
@@ -856,7 +874,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     if (UseTLS == TLSUsage.STARTTLS)
                                     {
 
-                                        if (!EHLOResponses.Any(v => v.Response == "STARTTLS"))
+                                        if (!EHLOResponses.Skip(1).Any(response => EhloLine(response.Response) == "STARTTLS"))
                                         {
                                             smtpLogger.LogWarning("SMTP server {RemoteHost} does not offer STARTTLS; not sending in cleartext", RemoteHost);
                                             result = MailSentStatus.TLSUnavailable;
@@ -923,25 +941,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // left over from an earlier server would put an ESMTP parameter on MAIL.
                                     Capabilities = SmtpCapabilities.None;
 
-                                    EHLOResponses.Skip(1).ForEach(smtpExtendedResponse =>
+                                    // Keywords are not case sensitive (RFC 5321 §2.4): each line is compared
+                                    // with its keyword in upper case, its parameters as the server sent them.
+                                    EHLOResponses.Skip(1).Select(response => EhloLine(response.Response)).ForEach(ehloLine =>
                                     {
 
                                         #region PIPELINING
 
-                                        if (smtpExtendedResponse.Response == "PIPELINING")
+                                        if (ehloLine == "PIPELINING")
                                             Capabilities |= SmtpCapabilities.Pipelining;
 
                                         #endregion
 
                                         #region SIZE
 
-                                        else if (smtpExtendedResponse.Response.StartsWith("SIZE"))
+                                        else if (ehloLine.StartsWith("SIZE"))
                                         {
 
                                             Capabilities |= SmtpCapabilities.Size;
 
                                             // "SIZE 10485760" — the value is optional (RFC 1870 §6.1); 0 means "no fixed limit".
-                                            var sizeArg = smtpExtendedResponse.Response.Length > 5 ? smtpExtendedResponse.Response[5..].Trim() : "";
+                                            var sizeArg = ehloLine.Length > 5 ? ehloLine[5..].Trim() : "";
                                             if (sizeArg.Length > 0 && UInt64.TryParse(sizeArg, out var maxMailSize))
                                                 serverMaxSize = maxMailSize;
 
@@ -951,10 +971,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         #region MT-PRIORITY (RFC 6710) / REQUIRETLS (RFC 8689)
 
-                                        if (smtpExtendedResponse.Response == "MT-PRIORITY" || smtpExtendedResponse.Response.StartsWith("MT-PRIORITY "))
+                                        if (ehloLine == "MT-PRIORITY" || ehloLine.StartsWith("MT-PRIORITY "))
                                             supportsMtPriority = true;
 
-                                        if (smtpExtendedResponse.Response == "REQUIRETLS")
+                                        if (ehloLine == "REQUIRETLS")
                                             supportsRequireTls = true;
 
                                         #endregion
@@ -967,20 +987,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         #region STARTTLS
 
-                                        if (smtpExtendedResponse.Response == "STARTTLS")
+                                        if (ehloLine == "STARTTLS")
                                             Capabilities |= SmtpCapabilities.StartTLS;
 
                                         #endregion
 
                                         #region AUTH
 
-                                        else if (smtpExtendedResponse.Response.StartsWith("AUTH "))
+                                        else if (ehloLine.StartsWith("AUTH "))
                                         {
 
                                             Capabilities |= SmtpCapabilities.Authentication;
 
-                                            var authType          = smtpExtendedResponse.Response.Substring(4, 1);
-                                            var foundAuthMethods  = smtpExtendedResponse.Response[5..].
+                                            var authType          = ehloLine.Substring(4, 1);
+                                            var foundAuthMethods  = ehloLine[5..].
                                                                         Split ([' '], StringSplitOptions.RemoveEmptyEntries).
                                                                         Select(method => method.Trim());
 
@@ -1002,42 +1022,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         #region ENHANCEDSTATUSCODES
 
-                                        if (smtpExtendedResponse.Response == "ENHANCEDSTATUSCODES")
+                                        if (ehloLine == "ENHANCEDSTATUSCODES")
                                             Capabilities |= SmtpCapabilities.EnhancedStatusCodes;
 
                                         #endregion
 
                                         #region 8BITMIME
 
-                                        if (smtpExtendedResponse.Response == "8BITMIME")
+                                        if (ehloLine == "8BITMIME")
                                             Capabilities |= SmtpCapabilities.EightBitMime;
 
                                         #endregion
 
                                         #region DSN
 
-                                        if (smtpExtendedResponse.Response == "DSN")
+                                        if (ehloLine == "DSN")
                                             Capabilities |= SmtpCapabilities.Dsn;
 
                                         #endregion
 
                                         #region BINARYMIME
 
-                                        if (smtpExtendedResponse.Response == "BINARYMIME")
+                                        if (ehloLine == "BINARYMIME")
                                             Capabilities |= SmtpCapabilities.BinaryMime;
 
                                         #endregion
 
                                         #region CHUNKING
 
-                                        if (smtpExtendedResponse.Response == "CHUNKING")
+                                        if (ehloLine == "CHUNKING")
                                             Capabilities |= SmtpCapabilities.Chunking;
 
                                         #endregion
 
                                         #region SMTPUTF8
 
-                                        if (smtpExtendedResponse.Response == "SMTPUTF8")
+                                        if (ehloLine == "SMTPUTF8")
                                             Capabilities |= SmtpCapabilities.UTF8;
 
                                         #endregion
