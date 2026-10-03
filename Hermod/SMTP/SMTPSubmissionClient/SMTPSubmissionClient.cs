@@ -55,6 +55,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         // Per-command read/response timeout — bounds how long a silent server can stall us.
         private readonly TimeSpan              commandTimeout;
 
+        // Whether the server sent anything behind the last reply that was read.
+        private Boolean                        dataAfterLastReply;
+
         private readonly ILogger<SMTPSubmissionClient>   smtpLogger;
 
         #endregion
@@ -332,8 +335,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // A single SMTP reply may be multi-line (RFC 5321 §4.2.1): every line but the last has a
             // '-' after the status code, the final line a ' '. It may arrive split across several TCP
             // segments, so keep reading until the reply is complete.
-            var sb   = new StringBuilder();
-            var buf  = new Byte[64 * 1024];
+            var sb        = new StringBuilder();
+            var buf       = new Byte[64 * 1024];
+            var replyEnd  = -1;
 
             while (true)
             {
@@ -370,25 +374,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 sb.Append(Encoding.UTF8.GetString(buf, 0, nread));
 
-                var text = sb.ToString();
-                if (!text.EndsWith("\r\n"))
-                    continue;
-
-                var completeLines = text.Split("\r\n").Where(l => l.Length > 0).ToArray();
-                if (completeLines.Length > 0)
-                {
-                    var last = completeLines[^1];
-                    // final line: 3 digits followed by a space or end-of-line (not a '-')
-                    if (last.Length >= 3 && last.Take(3).All(Char.IsDigit) &&
-                        (last.Length == 3 || last[3] == ' '))
-                        break;
-                }
+                // The reply ends with its first final line, not with whatever the read happened to
+                // return. Waiting for the buffer to *end* in a final line hung until the command
+                // timeout when a server sent anything behind the reply in the same segment - on Linux
+                // a "220 Ready to start TLS" and the bytes after it regularly arrive in one read.
+                replyEnd = EndOfFirstReply(sb.ToString());
+                if (replyEnd >= 0)
+                    break;
 
             }
 
+            var text = sb.ToString();
+
+            // This client does not pipeline, so nothing may follow a reply. What did is discarded,
+            // and the caller may ask whether there was any (see STARTTLS).
+            dataAfterLastReply = replyEnd < text.Length;
+
             var responses = new List<SMTPExtendedResponse>();
 
-            foreach (var line in sb.ToString().Split("\r\n").Where(line => line.IsNotNullOrEmpty()))
+            foreach (var line in text[..replyEnd].Split("\r\n").Where(line => line.IsNotNullOrEmpty()))
             {
 
                 var statusCodeChars  = line.TakeWhile(b => b != ' ' && b != '-').ToArray();
@@ -408,6 +412,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 responses.Add(new SMTPExtendedResponse(SMTPStatusCodes.TransactionFailed, "Unparseable server response"));
 
             return responses;
+
+        }
+
+        #endregion
+
+        #region (private static) EndOfFirstReply                (Text)
+
+        /// <summary>
+        /// The index just behind the CRLF of the first final reply line in the given text
+        /// (three digits followed by a space or nothing, RFC 5321 §4.2.1), or -1 while there is none.
+        /// </summary>
+        private static Int32 EndOfFirstReply(String Text)
+        {
+
+            var start = 0;
+
+            while (true)
+            {
+
+                var eol = Text.IndexOf("\r\n", start, StringComparison.Ordinal);
+                if (eol < 0)
+                    return -1;
+
+                var line = Text[start..eol];
+
+                if (line.Length >= 3 && line.Take(3).All(Char.IsDigit) &&
+                    (line.Length == 3 || line[3] == ' '))
+                    return eol + 2;
+
+                start = eol + 2;
+
+            }
 
         }
 
@@ -822,6 +858,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         {
                                             smtpLogger.LogWarning("SMTP server {RemoteHost} refused STARTTLS ({StatusCode} {Response}); not sending in cleartext",
                                                                   RemoteHost, (UInt16) StartTLSResponse.StatusCode, StartTLSResponse.Response);
+                                            result = MailSentStatus.TLSUnavailable;
+                                            break;
+                                        }
+
+                                        // A TLS server does not speak before the ClientHello, so whatever came
+                                        // behind the 220 was written in cleartext - by the server or by someone
+                                        // on the path - into the place where the handshake belongs.
+                                        if (dataAfterLastReply)
+                                        {
+                                            smtpLogger.LogWarning("SMTP server {RemoteHost} sent data behind its STARTTLS reply, before the TLS handshake; not sending in cleartext",
+                                                                  RemoteHost);
                                             result = MailSentStatus.TLSUnavailable;
                                             break;
                                         }
