@@ -1634,6 +1634,57 @@ public sealed class HTTP11AuditRegressionTests
         Assert.That(source.Position, Is.LessThanOrEqualTo(8193));
     }
 
+    /// <summary>
+    /// The synchronous path threw a bare System.Exception where the
+    /// asynchronous one throws HTTPInvalidChunkException for the same
+    /// condition — so a caller telling malformed input from a defect in the
+    /// decoder had to catch Exception, which catches both. Found by the
+    /// parser fuzzer of HTTP1ConformanceTests on its first run (H-28).
+    /// </summary>
+    [Test]
+    public void Synchronous_Chunk_Read_Must_Refuse_A_Missing_CRLF_As_Malformed()
+    {
+        using var source = new MemoryStream(
+                               // One byte of chunk data, and then two bytes
+                               // that are not CRLF: the data is available, so
+                               // this is the wrong-octets branch rather than
+                               // the end-of-stream one.
+                               Encoding.ASCII.GetBytes("1\r\nAXX")
+                           );
+        using var chunked = new ChunkedTransferEncodingStream(source);
+        var buffer = new Byte[1];
+
+        Assert.That(
+            () => {
+                // The first Read returns the chunk's one byte; the CRLF is
+                // read on the way to the next chunk.
+                while (chunked.Read(buffer, 0, buffer.Length) > 0) { }
+            },
+            Throws.TypeOf<HTTPInvalidChunkException>()
+        );
+    }
+
+    /// <summary>
+    /// And the asynchronous path, beside it, so that "both agree" is what is
+    /// pinned rather than one of them.
+    /// </summary>
+    [Test]
+    public async Task Asynchronous_Chunk_Read_Must_Refuse_A_Missing_CRLF_As_Malformed()
+    {
+        await using var source = new MemoryStream(
+                                     Encoding.ASCII.GetBytes("1\r\nAXX")
+                                 );
+        await using var chunked = new ChunkedTransferEncodingStream(source);
+        var buffer = new Byte[1];
+
+        Assert.That(
+            async () => {
+                while (await chunked.ReadAsync(buffer) > 0) { }
+            },
+            Throws.TypeOf<HTTPInvalidChunkException>()
+        );
+    }
+
     [Test]
     public async Task Excessive_Chunk_Trailers_Must_Be_Rejected()
     {

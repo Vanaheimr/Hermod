@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -195,16 +195,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// ignore its content), so the six below are not defects — but they are
         /// drift, and drift that nothing records is drift nobody can decide about.
         ///
-        /// 306 and 418 are reserved codes carrying the names they had before they
-        /// were reserved; 413, 414, 416 and 422 carry their RFC 7231 names, which
-        /// RFC 9110 renamed. Renaming the fields would be a breaking API change
-        /// for every downstream Vanaheimr project, so it is a decision, not a fix.
+        /// There were six until 2026-10-03, and the reason given for keeping them
+        /// was wrong: "renaming the fields would be a breaking API change for every
+        /// downstream Vanaheimr project". A field name and a reason phrase are two
+        /// different things here. Downstream code compiles against
+        /// HTTPStatusCode.RequestEntityTooLarge; the wire carries Name. Five of the
+        /// six phrases were corrected without touching a single identifier, and
+        /// RequestEntityTooLarge now reads "Content Too Large" (RFC 9110 §15.5.14).
+        ///
+        /// 418 is the one left. RFC 9110 does not mention it; the phrase comes from
+        /// RFC 2324, every stack that implements the code implements that phrase,
+        /// and the registry's "(Unused)" would throw away the only thing anybody
+        /// uses 418 for. 306, by contrast, RFC 9110 §15.4.7 does list as
+        /// "(Unused)", so there the RFC has an opinion and it is followed.
         ///
         /// This test asserts the *exact set* of divergences: a new one fails here,
-        /// and so does silently resolving one of these six without saying so.
+        /// and so does silently resolving the remaining one without saying so.
         /// </summary>
         [Test]
-        public void NamesMatchTheRegistry_ExceptForSixKnownLegacyPhrases()
+        public void NamesMatchTheRegistry_ExceptForTheTeapot()
         {
 
             var drifted = registry.
@@ -213,17 +222,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                               ToArray();
 
             Assert.That(drifted,
-                        Is.EquivalentTo(new UInt16[] { 306, 413, 414, 416, 418, 422 }),
+                        Is.EquivalentTo(new UInt16[] { 418 }),
                         "The set of reason phrases diverging from the IANA registry changed.");
 
-            // And they are these, so that a rename cannot pass as a no-op.
+            // And they are these, so that a rename cannot pass as a no-op and the
+            // five that were corrected cannot quietly go back.
             Assert.Multiple(() => {
-                Assert.That(HTTPStatusCode.SwitchProxy.                 Name, Is.EqualTo("Switch Proxy"));
-                Assert.That(HTTPStatusCode.RequestEntityTooLarge.       Name, Is.EqualTo("Request Entity Too Large"));
-                Assert.That(HTTPStatusCode.RequestURITooLong.           Name, Is.EqualTo("Request-URI Too Long"));
-                Assert.That(HTTPStatusCode.RequestedRangeNotSatisfiable.Name, Is.EqualTo("Requested Range Not Satisfiable"));
+                Assert.That(HTTPStatusCode.SwitchProxy.                 Name, Is.EqualTo("(Unused)"));
+                Assert.That(HTTPStatusCode.RequestEntityTooLarge.       Name, Is.EqualTo("Content Too Large"));
+                Assert.That(HTTPStatusCode.RequestURITooLong.           Name, Is.EqualTo("URI Too Long"));
+                Assert.That(HTTPStatusCode.RequestedRangeNotSatisfiable.Name, Is.EqualTo("Range Not Satisfiable"));
+                Assert.That(HTTPStatusCode.UnprocessableEntity.         Name, Is.EqualTo("Unprocessable Content"));
+
+                // The teapot keeps its phrase, deliberately.
                 Assert.That(HTTPStatusCode.ImATeapot.                   Name, Is.EqualTo("I'm a teapot"));
-                Assert.That(HTTPStatusCode.UnprocessableEntity.         Name, Is.EqualTo("Unprocessable Entity"));
             });
 
         }

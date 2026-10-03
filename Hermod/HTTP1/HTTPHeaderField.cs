@@ -678,9 +678,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPHeaderField<DateTimeOffset?> Date = new ("Date",
                                                                             HeaderFieldType.General,
                                                                             RequestPathSemantic.EndToEnd,
-                                                                            StringParser:     (String text, [NotNullWhen(true)] out DateTimeOffset? dt) => { if (DateTimeOffset.TryParse(text, out var dt2)) { dt = dt2; return true; } dt = null; return false; },
+                                                                            // HTTPDate rather than DateTimeOffset.TryParse: RFC 9110 §5.6.7
+                                                                            // obliges a recipient to accept all three HTTP-date formats, and
+                                                                            // the general parser took neither obsolete one — nor did it name a
+                                                                            // culture, so what it accepted depended on the machine's.
+                                                                            StringParser:     (String text, [NotNullWhen(true)] out DateTimeOffset? dt) => { if (HTTPDate.TryParse(text, out var dt2)) { dt = dt2; return true; } dt = null; return false; },
                                                                             ValueSerializer:  dateTime => dateTime.HasValue
-                                                                                                  ? dateTime.Value.ToUniversalTime().ToString("r")
+                                                                                                  ? dateTime.Value.ToHTTPDate()
                                                                                                   : null);
 
         #endregion

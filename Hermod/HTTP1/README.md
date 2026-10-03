@@ -22,7 +22,7 @@ Last verified: **2026-10-03**
 | Specification | Hermod support |
 |---|---|
 | [RFC 1945](https://www.rfc-editor.org/rfc/rfc1945.html), HTTP/1.0 | Implemented and regression-tested for requests, responses, `Content-Length`, close-delimited responses, default connection closing, optional negotiated keep-alive, and HTTP/1.0-specific rejection/fallback behavior. |
-| [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host`, connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Every status code in the IANA registry is defined with its registered reason phrase — the six that predate RFC 9110 keep their older phrase, pinned explicitly by `HTTPStatusCodeTests`. Resource semantics remain application-defined. |
+| [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host`, connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Every status code in the IANA registry is defined with its registered reason phrase. Six carried pre-RFC-9110 phrases until 2026-10-03; five now match the registry (413 `Content Too Large`, 414 `URI Too Long`, 416 `Range Not Satisfiable`, 422 `Unprocessable Content` and 306 `(Unused)`) without any field being renamed, since the wire carries the phrase and downstream code refers to the field. 418 keeps `I'm a teapot`, which RFC 9110 does not mention and RFC 2324 does. `HTTPStatusCodeTests` pins that one remaining divergence. Resource semantics remain application-defined. |
 | [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html), HTTP/1.1 message syntax and routing | Implemented and regression-tested for start lines, header parsing, message framing, persistent connections, pipelining, chunked transfer coding, trailers, and malformed-message rejection. |
 | [RFC 10008](https://www.rfc-editor.org/rfc/rfc10008.html), HTTP `QUERY` method | The method is modeled as safe and idempotent and is end-to-end tested with fixed-length and chunked request content, trailers, and chunk extensions. Media-type policy, `Accept-Query`, caching, conditional requests, and query-result URI policy are handler responsibilities. |
 | [RFC 4918](https://www.rfc-editor.org/rfc/rfc4918.html), WebDAV | Method tokens are modeled (`COPY`, `LOCK`, `MKCOL`, `MOVE`, `PROPFIND`, `PROPPATCH`, and `UNLOCK`). Hermod does not provide a complete WebDAV resource implementation. |
@@ -254,6 +254,12 @@ and server roles.
 - Trailers are parsed after the terminal chunk and exposed as trailing headers.
 - Body-size and metadata limits apply while streaming; buffering the entire
   encoded message is not required.
+- Malformed framing is refused as malformed: every rejection raises
+  `HTTPInvalidChunkException`, a `FormatException`, so a caller can tell bad
+  input from a defect in the decoder without catching `Exception`. One of the
+  eleven throw sites — the synchronous CRLF check — raised a bare
+  `System.Exception` until 2026-10-03, where its asynchronous sibling thirty
+  lines above raised the right one for the same condition.
 
 ### Sending
 
@@ -446,6 +452,16 @@ Hermod has typed models for many common request and response fields and also
 allows extension fields. This includes content negotiation, representation
 metadata, authorization, CORS fields, cookies, conditional request fields,
 ETags, range-related fields, and WebDAV fields.
+
+Timestamps go through `HTTPDate` (RFC 9110 §5.6.7), which since 2026-10-03
+accepts **all three** HTTP-date formats — the preferred IMF-fixdate and the
+obsolete RFC 850 and `asctime()` ones, which a recipient MUST accept — and
+generates only the first, which is the only one a sender may. The two obsolete
+formats were not parsed before, and the general parser in use named no culture,
+so what a date field accepted depended on the machine it ran on. The RFC 850
+format's two-digit year follows §5.6.7's sliding rule rather than the
+calendar's fixed pivot: a timestamp more than fifty years in the future means
+the most recent past year with the same last two digits.
 
 The presence of a typed field does not imply an automatic policy engine:
 

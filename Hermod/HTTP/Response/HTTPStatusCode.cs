@@ -418,7 +418,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPStatusCode
 
             SwitchProxy         = new (306,
-                                       "Switch Proxy",
+                                       // The field keeps its name, which downstream code
+                                       // refers to; the reason phrase is the registry's.
+                                       "(Unused)",
                                        "Reserved, and no longer used. The name comes from an early " +
                                        "draft; RFC 9110, Section 15.4.7 lists 306 as '(Unused)'.");
 
@@ -630,7 +632,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPStatusCode
 
             RequestEntityTooLarge  = new (413,
-                                         "Request Entity Too Large",
+                                         // RFC 9110, Section 15.5.14 renamed this from the
+                                         // RFC 7231 phrase. The field name stays, because
+                                         // that is the API; the phrase is what goes on the
+                                         // wire and is the registry's to decide.
+                                         "Content Too Large",
                                          "The server is refusing to process a request because the request " +
                                          "entity is larger than the server is willing or able to process. The " +
                                          "server MAY close the connection to prevent the client from continuing " +
@@ -643,7 +649,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPStatusCode
 
             RequestURITooLong   = new (414,
-                                      "Request-URI Too Long",
+                                      // RFC 9110, Section 15.5.15.
+                                      "URI Too Long",
                                       "The server is refusing to service the request because the Request-URI " +
                                       "is longer than the server is willing to interpret.");
 
@@ -669,7 +676,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPStatusCode
 
             RequestedRangeNotSatisfiable  = new (416,
-                                                "Requested Range Not Satisfiable",
+                                                // RFC 9110, Section 15.5.17.
+                                                "Range Not Satisfiable",
                                                 "A server SHOULD return a response with this status code if a request " +
                                                 "included a Range request-header field, and none of the range-specifier " +
                                                 "values in this field overlap the current extent of the selected " +
@@ -719,7 +727,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPStatusCode
 
             UnprocessableEntity = new (422,
-                                      "Unprocessable Entity",
+                                      // RFC 9110, Section 15.5.21.
+                                      "Unprocessable Content",
                                       "The server understands the media type of the request entity, " +
                                       "but was unable to process the contained instructions.");
 

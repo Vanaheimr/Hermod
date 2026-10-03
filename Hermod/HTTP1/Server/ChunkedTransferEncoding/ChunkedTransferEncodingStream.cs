@@ -661,8 +661,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
+            // The same condition as ReadCRLFAsync above, and now the same
+            // exception. This one threw a bare System.Exception, so a caller
+            // wanting to tell malformed input from a defect in the decoder had
+            // to catch Exception, which catches both. Every other one of the
+            // eleven throw sites here raises HTTPInvalidChunkException, which
+            // is a FormatException and therefore catchable as "this input was
+            // malformed".
             if (r < 2 || buf[0] != (Byte) '\r' || buf[1] != (Byte) '\n')
-                throw new Exception("Expected CRLF");
+                throw new HTTPInvalidChunkException("Expected CRLF after HTTP chunk data.");
 
         }
 
