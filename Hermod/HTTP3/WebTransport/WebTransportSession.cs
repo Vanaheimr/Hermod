@@ -93,7 +93,8 @@ public sealed class WebTransportSession
     public ulong SessionId { get; }
 
     /// <summary>
-    /// The session has ended (§6: CONNECT stream closed or WT_CLOSE_SESSION).
+    /// The session has ended (§6: CONNECT stream closed or WT_CLOSE_SESSION), or its HTTP/3
+    /// connection has — closed by either side, timed out or disposed.
     /// </summary>
     public bool IsClosed { get; private set; }
 
