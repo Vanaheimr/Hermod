@@ -346,6 +346,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // RFC 4954 §4: "An AUTH command issued during a mail transaction MUST be rejected
+            // with a 503 reply." A transaction is judged under one identity: an AUTH in its middle
+            // would let the later RCPTs and the DATA run under another than the MAIL did.
+            if (_state >= SMTPSessionState.MailFrom)
+            {
+                await SendResponseAsync(503, "5.5.1 AUTH not permitted during a mail transaction");
+                return;
+            }
+
             if (_authManager.IsAuthenticated)
             {
                 await SendResponseAsync(503, "5.5.1 Already authenticated");
