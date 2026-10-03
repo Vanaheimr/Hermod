@@ -453,6 +453,16 @@ allows extension fields. This includes content negotiation, representation
 metadata, authorization, CORS fields, cookies, conditional request fields,
 ETags, range-related fields, and WebDAV fields.
 
+Timestamps go through `HTTPDate` (RFC 9110 §5.6.7), which since 2026-10-03
+accepts **all three** HTTP-date formats — the preferred IMF-fixdate and the
+obsolete RFC 850 and `asctime()` ones, which a recipient MUST accept — and
+generates only the first, which is the only one a sender may. The two obsolete
+formats were not parsed before, and the general parser in use named no culture,
+so what a date field accepted depended on the machine it ran on. The RFC 850
+format's two-digit year follows §5.6.7's sliding rule rather than the
+calendar's fixed pivot: a timestamp more than fifty years in the future means
+the most recent past year with the same last two digits.
+
 The presence of a typed field does not imply an automatic policy engine:
 
 - Basic and Bearer credentials can be parsed and serialized; handlers decide

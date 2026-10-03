@@ -327,8 +327,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#section-8.8.2"/>
         public static readonly HTTPResponseHeaderField<DateTimeOffset> LastModified = new ("Last-Modified",
                                                                                      RequestPathSemantic.EndToEnd,
-                                                                                     StringParser:     DateTimeOffset.TryParse,
-                                                                                     ValueSerializer:  dateTime => dateTime.ToISO8601());
+                                                                                     // All three HTTP-date formats on the way in (RFC 9110 §5.6.7
+                                                                                     // makes that a MUST), and an IMF-fixdate on the way out — the
+                                                                                     // serializer said ToISO8601(), which is not an HTTP-date at
+                                                                                     // all.
+                                                                                     //
+                                                                                     // Nothing on the wire ever carried it: AHTTPPDUBuilder.cs:157
+                                                                                     // serializes *every* DateTimeOffset-valued header field with
+                                                                                     // HTTPHeaderField.Date's serializer, whichever field it is, so
+                                                                                     // this one was dead for the socket and waiting for the first
+                                                                                     // caller to serialize the field by itself.
+                                                                                     StringParser:     HTTPDate.TryParse,
+                                                                                     ValueSerializer:  dateTime => dateTime.ToHTTPDate());
 
         #endregion
 
