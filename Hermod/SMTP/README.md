@@ -73,7 +73,7 @@ Last verified: **2026-10-03**
 
 | Specification | Hermod support |
 |---|---|
-| [RFC 3207](https://www.rfc-editor.org/rfc/rfc3207.html), STARTTLS | Implemented and regression-tested on the MTA and submission ports; pipelined-plaintext discarded on upgrade. After the upgrade the server discards what it learned from the client in cleartext (§4.2): the mail transaction and a completed `AUTH`, so the client sends `EHLO` and authenticates again inside TLS; the client certificate, which comes from the negotiation, stays for `EXTERNAL`. The submission client in `STARTTLS` mode never falls back to cleartext: STARTTLS not offered, refused (`454`) or a failed handshake ends the attempt with `MailSentStatus.TLSUnavailable`, without retry. A server that refuses `EHLO` (500/501/502/504/550) gets `HELO` instead (RFC 5321 §3.2), with no ESMTP parameter on `MAIL`. |
+| [RFC 3207](https://www.rfc-editor.org/rfc/rfc3207.html), STARTTLS | Implemented and regression-tested on the MTA and submission ports; pipelined-plaintext discarded on upgrade. After the upgrade the server discards what it learned from the client in cleartext (§4.2): the mail transaction and a completed `AUTH`, so the client sends `EHLO` and authenticates again inside TLS; the client certificate, which comes from the negotiation, stays for `EXTERNAL`. The submission client in `STARTTLS` mode never falls back to cleartext: STARTTLS not offered, refused (`454`), data behind the `220` (where only the handshake may follow) or a failed handshake ends the attempt with `MailSentStatus.TLSUnavailable`, without retry. A server that refuses `EHLO` (500/501/502/504/550) gets `HELO` instead (RFC 5321 §3.2), with no ESMTP parameter on `MAIL`. |
 | [RFC 7435](https://www.rfc-editor.org/rfc/rfc7435.html), Opportunistic security | Implemented: default MTA→MTA policy accepts an imperfect certificate (encryption beats cleartext) but logs it; enforced modes never downgrade. |
 | [RFC 8461](https://www.rfc-editor.org/rfc/rfc8461.html), MTA-STS | Implemented: policy fetched via `_mta-sts` TXT + `https://mta-sts.<domain>/.well-known/mta-sts.txt`; MX filtered and TLS enforced in `enforce` mode. |
 | [RFC 8460](https://www.rfc-editor.org/rfc/rfc8460.html), SMTP TLS Reporting (TLS-RPT) | Implemented and regression-tested, **opt-in**: outbound per-domain success/typed-failure aggregate reports (gzipped `application/tlsrpt+gzip`, DKIM-signed) **and** inbound ingestion of received reports. |
@@ -200,7 +200,7 @@ vectors, and live domains — not only self-consistency.
 | **DNS** | Live queries via the Hermod `DNSClient` against real domains. |
 | **Inbound session** | Raw-socket wire tests (`SMTPSessionWireTests`) for line endings, smuggling variants, BDAT chunk consumption, submission-port authentication, the session state `STARTTLS` discards, session limits and the verification switches; the whole server is additionally run against the external [SMTPConformanceTests](https://github.com/Vanaheimr/SMTPConformanceTests) suite (RFC-by-RFC, plus swaks, smtplib, openssl and Postfix smtp-sink). |
 
-The committed SMTP regression suite (`HermodTests/SMTP/`) contains **184 passing
+The committed SMTP regression suite (`HermodTests/SMTP/`) contains **186 passing
 tests, 0 failed, 0 skipped** as of the verification date, covering the message
 builders and OpenPGP (`EMailBuilderTests`), MDN (`MdnTests`, `MdnStorageTests`),
 DSN (`DsnTests`), priority (`PriorityTests`), `MAIL`/`RCPT` parameters
