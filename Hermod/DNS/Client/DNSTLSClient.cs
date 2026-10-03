@@ -28,6 +28,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
 #endregion
 
@@ -71,6 +72,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The DNS query timeout.
         /// </summary>
         public TimeSpan          QueryTimeout              { get; set; }
+
+        /// <summary>
+        /// Connecting to a DNS-over-TLS server means TCP and TLS, so the handshake gets
+        /// the connect timeout too. The query timeout starts only once the connection is
+        /// up, and nothing else ended a handshake that the server never answered: a
+        /// query without a cancellation token waited for good.
+        /// </summary>
+        protected override TimeSpan? TLSHandshakeTimeout
+            => ConnectTimeout;
 
         /// <summary>
         /// Optional EDNS0 options to include in every DNS query.
@@ -452,9 +462,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             try
             {
 
+                // A failed connect - refused, or a handshake that did not complete - is
+                // the answer. Going on wrote the query into the stream of the handshake
+                // that had failed, and its exception took the place of the reason.
                 if (!IsConnected || tcpClient is null)
-                    await ReconnectAsync(CancellationToken).
-                              ConfigureAwait(false);
+                {
+
+                    var connectionResult = await ReconnectAsync(CancellationToken).
+                                                     ConfigureAwait(false);
+
+                    if (connectionResult.IsFailure)
+                        return await ConnectionFailed(connectionResult, dnsQuery, effectiveTimeout).
+                                         ConfigureAwait(false);
+
+                }
 
                 var stopwatch = Stopwatch.StartNew();
 
@@ -473,9 +494,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
                 catch (IOException)
                 {
-                    await ReconnectAsync(CancellationToken).ConfigureAwait(false);
+
+                    var connectionResult = await ReconnectAsync(CancellationToken).ConfigureAwait(false);
+
+                    if (connectionResult.IsFailure)
+                        return await ConnectionFailed(connectionResult, dnsQuery, effectiveTimeout).
+                                         ConfigureAwait(false);
+
                     return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, signedQuery, requestMAC, effectiveTimeout, timeoutCTS.Token).
                                      ConfigureAwait(false);
+
                 }
 
             }
@@ -556,6 +584,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             #endregion
+
+        }
+
+        #endregion
+
+        #region (private) ConnectionFailed(ConnectionResult, Query, Timeout)
+
+        /// <summary>
+        /// The answer to a query whose connection could not be made: said why, and failed.
+        /// </summary>
+        private async Task<DNSInfo> ConnectionFailed(TCPConnectionResult  ConnectionResult,
+                                                     DNSPacket            Query,
+                                                     TimeSpan             Timeout)
+        {
+
+            var reason = ConnectionResult.Errors.AggregateWith(", ");
+
+            logger.LogWarning(
+                "DNS TLS connection to {DNSServer} failed: {Reason}",
+                DNSServerLabel,
+                reason
+            );
+
+            await Log($"DNS TLS connection to {DNSServerLabel} failed: {reason}").ConfigureAwait(false);
+
+            return DNSInfo.Failed(
+                       OriginOf(),
+                       Query.TransactionId,
+                       Timeout
+                   );
 
         }
 

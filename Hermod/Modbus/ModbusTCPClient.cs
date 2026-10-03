@@ -162,6 +162,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public TimeSpan                                                       RequestTimeout                { get; set; }
 
         /// <summary>
+        /// Connecting to a Modbus/TCP Security device (smodbus://) means TCP and TLS, so the
+        /// handshake gets the connect timeout too, which is the request timeout given
+        /// at construction. The connect hands it no token, so a device that never
+        /// answered the ClientHello held the first request for good.
+        /// </summary>
+        protected override TimeSpan?                                          TLSHandshakeTimeout
+            => ConnectTimeout;
+
+        /// <summary>
         /// The delay between transmission retries.
         /// </summary>
         public new TransmissionRetryDelayDelegate                             TransmissionRetryDelay        { get; }

@@ -179,6 +179,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public TimeSpan                                                        RequestTimeout                            { get; set; }
 
         /// <summary>
+        /// Connecting to a wss:// URL means TCP and TLS, so the handshake gets the
+        /// connect timeout too. The connection attempt hands it no token, so a server
+        /// that never answered the ClientHello held the attempt for good: Connect()
+        /// returned only after RequestTimeout (ten minutes by default), and a reconnect
+        /// policy never tried again, because the attempt it would retry never ended.
+        /// </summary>
+        protected override TimeSpan?                                           TLSHandshakeTimeout
+            => ConnectTimeout;
+
+        /// <summary>
         /// The CPO client (HTTP client) logger.
         /// </summary>
         public HTTPClientLogger?                                               HTTPLogger                                { get; set; }
