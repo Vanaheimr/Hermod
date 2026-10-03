@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             {
                 _inAuthExchange = false;
                 _authManager.Reset();
-                await SendResponseAsync(501, "Authentication cancelled");
+                await SendResponseAsync(501, "5.7.0 Authentication cancelled");
                 return;
             }
 
@@ -269,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     break;
 
                 case "NOOP":
-                    await SendResponseAsync(250, "OK");
+                    await SendResponseAsync(250, "2.0.0 OK");
                     break;
 
                 case "QUIT":
@@ -277,12 +277,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     break;
 
                 case "VRFY":
-                    await SendResponseAsync(252, "Cannot verify user");
+                    await SendResponseAsync(252, "2.0.0 Cannot verify user, but will accept message and attempt delivery");
                     break;
 
                 default:
                     _counters.InvalidCommands++;
-                    await SendResponseAsync(500, "Unrecognized command");
+                    await SendResponseAsync(500, "5.5.1 Unrecognized command");
                     break;
 
             }
@@ -338,13 +338,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         {
             if (_state < SMTPSessionState.Greeted)
             {
-                await SendResponseAsync(503, "Say HELO/EHLO first");
+                await SendResponseAsync(503, "5.5.1 Say HELO/EHLO first");
                 return;
             }
 
             if (_authManager.IsAuthenticated)
             {
-                await SendResponseAsync(503, "Already authenticated");
+                await SendResponseAsync(503, "5.5.1 Already authenticated");
                 return;
             }
 
@@ -352,7 +352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var parts = args.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 0)
             {
-                await SendResponseAsync(501, "Syntax: AUTH mechanism [initial-response]");
+                await SendResponseAsync(501, "5.5.4 Syntax: AUTH mechanism [initial-response]");
                 return;
             }
 
@@ -451,17 +451,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             if (certificate is null)
             {
-                await SendResponseAsync(454, "TLS not available");
+                await SendResponseAsync(454, "4.7.0 TLS not available");
                 return;
             }
 
             if (_tlsActive)
             {
-                await SendResponseAsync(503, "TLS already active");
+                await SendResponseAsync(503, "5.5.1 TLS already active");
                 return;
             }
 
-            await SendResponseAsync(220, "Ready to start TLS");
+            await SendResponseAsync(220, "2.0.0 Ready to start TLS");
 
             try
             {
@@ -552,7 +552,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             if (_state < SMTPSessionState.Greeted)
             {
-                await SendResponseAsync(503, "Say HELO first");
+                await SendResponseAsync(503, "5.5.1 Say HELO first");
                 return;
             }
 
@@ -1314,7 +1314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private async Task HandleRsetAsync()
         {
             ResetTransaction();
-            await SendResponseAsync(250, "OK");
+            await SendResponseAsync(250, "2.0.0 OK");
         }
 
         private void ResetTransaction()
@@ -1335,10 +1335,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
         private async Task HandleQuitAsync()
         {
-            await SendResponseAsync(221, $"{config.Hostname} closing connection");
+            await SendResponseAsync(221, $"2.0.0 {config.Hostname} closing connection");
             _state = SMTPSessionState.Quit;
         }
 
+        /// <summary>
+        /// Send one reply line. Once ENHANCEDSTATUSCODES is advertised, RFC 2034 §4 wants "the
+        /// text part of all 2xx, 4xx, and 5xx SMTP responses other than the initial greeting and
+        /// any response to HELO or EHLO" to begin with a status code (RFC 3463) of the same class:
+        /// so every message passed here starts with one, except for those three and for 3xx.
+        /// </summary>
         private async Task SendResponseAsync(int code, string message, bool multiline = false)
         {
             var separator = multiline ? '-' : ' ';
