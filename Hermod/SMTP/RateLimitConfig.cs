@@ -48,12 +48,14 @@ public sealed record RateLimitConfig
     public int      MaxAuthAttemptsPerIpPerHour { get; init; } = 10;
 
     /// <summary>
-    /// Maximum RCPT TO commands per session
+    /// Maximum recipients accepted in one session, over all its transactions; beyond it
+    /// RCPT is answered 452 4.5.3. Applies to every client, whitelisted or not.
     /// </summary>
     public int      MaxRcptPerSession           { get; init; } = 100;
 
     /// <summary>
-    /// Maximum messages per authenticated session
+    /// Maximum messages accepted in one session; the next MAIL is answered 421 and the
+    /// connection closed. Applies to every client, whitelisted or not.
     /// </summary>
     public int      MaxMessagesPerSession       { get; init; } = 100;
 
@@ -68,7 +70,8 @@ public sealed record RateLimitConfig
     public int      MaxInvalidCommands          { get; init; } = 5;
 
     /// <summary>
-    /// Delay after failed AUTH (milliseconds)
+    /// How long a failed AUTH waits before it is answered (milliseconds); 0 answers at once.
+    /// Applies to every client, whitelisted or not.
     /// </summary>
     public int      AuthFailDelayMs             { get; init; } = 3000;
 

@@ -219,7 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
 
             var result = await _authManager.ProcessResponseAsync(response, ct);
-            await HandleAuthResultAsync(result);
+            await HandleAuthResultAsync(result, ct);
         }
 
         private async Task ProcessCommandAsync(String command, String args, CancellationToken ct)
@@ -383,7 +383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (parts.Length > 1)
             {
                 var result = await _authManager.ProcessResponseAsync(parts[1], ct);
-                await HandleAuthResultAsync(result);
+                await HandleAuthResultAsync(result, ct);
             }
             else
             {
@@ -393,7 +393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
         }
 
-        private async Task HandleAuthResultAsync(AuthResponse result)
+        private async Task HandleAuthResultAsync(AuthResponse result, CancellationToken ct)
         {
             switch (result.Result)
             {
@@ -414,6 +414,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
                 case AuthResult.Fail:
                     _inAuthExchange = false;
+
+                    // Count the failure towards MaxAuthAttemptsPerIpPerHour, and make every
+                    // guess cost time: the refusal waits AuthFailDelayMs.
+                    connectionTracker?.RecordAuthFailure(_clientIp);
+                    if (rateLimitConfig.AuthFailDelayMs > 0)
+                        await Task.Delay(rateLimitConfig.AuthFailDelayMs, ct);
+
                     await SendAuthRefusalAsync(result.ErrorCode, 535, "5.7.8 Authentication failed");
                     break;
 
@@ -544,6 +551,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // A session that has delivered its share of messages ends here; the client
+            // reconnects for the rest, which puts it in front of the per-IP limits again.
+            if (_counters.Messages >= rateLimitConfig.MaxMessagesPerSession)
+            {
+                logger.Log(LogLevel.Warning, $"Too many messages in one session from {_clientIp}, disconnecting");
+                await SendResponseAsync(421, "4.7.0 Too many messages in this session, closing connection");
+                _state = SMTPSessionState.Quit;
+                return;
+            }
+
             var match = Regex.Match(args, @"FROM:\s*<([^>]*)>", RegexOptions.IgnoreCase);
             if (!match.Success)
             {
@@ -617,6 +634,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            if (_counters.Recipients >= rateLimitConfig.MaxRcptPerSession)
+            {
+                await SendResponseAsync(452, "4.5.3 Too many recipients in this session");
+                return;
+            }
+
             var recipient       = match.Groups[1].Value;
             var recipientDomain = ExtractDomain(recipient);
 
@@ -674,6 +697,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             );
 
             _rcptTo.Add(recipient);
+            _counters.Recipients++;
             _state = SMTPSessionState.RcptTo;
 
             await SendResponseAsync(250, "2.1.5 OK");
@@ -824,6 +848,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (_state < SMTPSessionState.RcptTo || _rcptTo.Count == 0)
                 refusal = (503, "5.5.1 Need RCPT command first", false);
 
+            // Submission port requires authentication per RFC 6409, as for DATA.
+            else if (isSubmissionPort && config.RequireAuthOnSubmission && !_authManager.IsAuthenticated)
+                refusal = (530, "5.7.0 Authentication required", false);
+
             else if (_bdatBuffer.Length + chunkSize > config.MaxMessageSize)
                 refusal = (552, "5.3.4 Message size exceeds maximum", true);
 
@@ -919,7 +947,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     _mailFrom ?? "",
                     _heloHostname,
                     message,
-                    ct
+                    ct,
+                    checkSpf:   config.VerifySpf,
+                    checkDkim:  config.VerifyDkim,
+                    checkDmarc: config.VerifyDmarc
                 );
                 message.Verification = verification;
 
@@ -1154,14 +1185,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                    ? $"dkim={Dkim(v.Dkim)} header.d={v.DkimDomain}"
                                    : $"dkim={Dkim(v.Dkim)}";
 
+            // A method switched off in the configuration was not run, so it has no result to
+            // report; "none" would claim it was run and found nothing (RFC 8601 §2.7).
+            var clauses = new List<String>();
+
+            if (config.VerifySpf)
+                clauses.Add($"spf={Spf(v.Spf)} smtp.mailfrom={mailFrom}");
+
+            if (config.VerifyDkim)
+                clauses.Add(dkimClause);
+
+            if (config.VerifyDmarc)
+                clauses.Add($"dmarc={Dmarc(v.Dmarc)} header.from={fromDom}{dmarcComment}");
+
             // arc= reflects the received-chain validation status (RFC 8617 §4.1.1); omitted
             // when the message carries no ARC headers.
-            var arcClause = v.Arc != ArcResult.None ? $";\r\n\tarc={Arc(v.Arc)}" : "";
+            if (v.Arc != ArcResult.None)
+                clauses.Add($"arc={Arc(v.Arc)}");
 
-            return $"Authentication-Results: {config.Hostname};\r\n" +
-                   $"\tspf={Spf(v.Spf)} smtp.mailfrom={mailFrom};\r\n" +
-                   $"\t{dkimClause};\r\n" +
-                   $"\tdmarc={Dmarc(v.Dmarc)} header.from={fromDom}{dmarcComment}{arcClause}\r\n";
+            // No method at all is the "none" form of RFC 8601 §2.2.
+            return clauses.Count == 0
+                       ? $"Authentication-Results: {config.Hostname}; none\r\n"
+                       : $"Authentication-Results: {config.Hostname};\r\n\t" + String.Join(";\r\n\t", clauses) + "\r\n";
 
         }
 

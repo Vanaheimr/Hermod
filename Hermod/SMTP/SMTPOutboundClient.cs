@@ -111,6 +111,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                     // MX lookup
                     mxHosts = await ResolveMxAsync(targetDomain, ct);
+
+                    // Null MX (RFC 7505): "MX 0 ." says the domain accepts no mail. Delivery
+                    // MUST NOT be attempted (§4.1), so this is a bounce now - not a connection
+                    // to an empty host name, which failed as a temporary error and was retried.
+                    if (mxHosts.Count > 0 && mxHosts.All(mx => mx.Host.Length == 0))
+                    {
+                        _logger.Log(LogLevel.Warning, $"{targetDomain} has a null MX (RFC 7505); not delivering");
+                        return SendResult.PermFail(556, "5.1.10 Recipient address has null MX");
+                    }
+
+                    // A null MX next to real ones is malformed (RFC 7505 §3); the real ones are tried.
+                    mxHosts = [.. mxHosts.Where(mx => mx.Host.Length > 0)];
+
                     if (mxHosts.Count == 0)
                     {
                         // Fallback to A/AAAA record

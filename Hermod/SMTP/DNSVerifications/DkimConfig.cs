@@ -32,7 +32,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public required string  PrivateKeyPem   { get; init; }
         public          string  Canonicalization{ get; init; } = "relaxed/relaxed";
         public          string  SignedHeaders   { get; init; } = "from:to:subject:date:message-id:mime-version:content-type";
-        public          int     BodyLengthLimit { get; init; } = 0;  // 0 = no limit
     }
 
 }

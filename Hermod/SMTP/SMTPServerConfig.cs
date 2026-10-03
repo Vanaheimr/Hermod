@@ -62,8 +62,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public          Boolean   RejectBareLineEndings     { get; init; } = true;
         public          Boolean   RequireStartTls           { get; init; } = false;
+
+        /// <summary>
+        /// Verify DKIM signatures of inbound mail and report them in Authentication-Results.
+        /// DKIM is advisory either way (RFC 6376 §6.1); DMARC still evaluates it for alignment.
+        /// </summary>
         public          Boolean   VerifyDkim                { get; init; } = true;
+
+        /// <summary>
+        /// Check SPF for inbound mail: a hard fail (-all) is rejected with 550 5.7.23, and the
+        /// result is reported in Authentication-Results. False skips both; DMARC still
+        /// evaluates SPF for alignment.
+        /// </summary>
         public          Boolean   VerifySpf                 { get; init; } = true;
+
+        /// <summary>
+        /// Evaluate DMARC for inbound mail: enforce p=reject/quarantine, report the result in
+        /// Authentication-Results and feed DMARC reporting. False skips all of it.
+        /// </summary>
         public          Boolean   VerifyDmarc               { get; init; } = true;
 
         /// <summary>

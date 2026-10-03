@@ -31,6 +31,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
     /// Simple file-based user store for demonstration.
     /// In production, use a database or LDAP.
     /// </summary>
+    /// <remarks>
+    /// One account per line: <c>username:password_sha256:scram_salt:scram_stored_key:scram_server_key:iterations:cert_thumbprints</c>.
+    /// A password is checked against the salted SCRAM-SHA-256 keys (PBKDF2) when the account
+    /// has them; the unsalted SHA-256 column is only a fallback for accounts without them.
+    /// A client certificate (SASL EXTERNAL) authenticates an account only when its SHA-1 or
+    /// SHA-256 thumbprint is listed for that account.
+    /// </remarks>
     public sealed class FileUserStore : IUserStore
     {
         private readonly string _usersFilePath;
@@ -41,67 +48,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         public FileUserStore(string usersFilePath)
         {
             _usersFilePath = usersFilePath;
-            EnsureDefaultUsers();
+            EnsureUsersFile();
             LoadUsers();
         }
 
-        private void EnsureDefaultUsers()
+        /// <summary>
+        /// Create a users file without accounts when there is none. It used to be filled with
+        /// demo accounts whose passwords are published ("test123", "demo"), which made every
+        /// server started without a users file accept them.
+        /// </summary>
+        private void EnsureUsersFile()
         {
             if (File.Exists(_usersFilePath))
                 return;
 
-            // Create default users file with example users
-            var defaultContent = """
+            var template = """
                 # SMTP User Database
                 # Format: username:password_sha256:scram_salt:scram_stored_key:scram_server_key:iterations:cert_thumbprints
-                # 
-                # Generate password hash: echo -n "password" | sha256sum
-                # Generate SCRAM credentials: use ScramCredentialGenerator
                 #
-                # Example users (password for all: "test123"):
-            
-                admin:a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3:AAAAAAAAAAAAAAAAAAAAAA==:StoredKeyBase64:ServerKeyBase64:4096:
-                user:a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3:AAAAAAAAAAAAAAAAAAAAAA==:StoredKeyBase64:ServerKeyBase64:4096:
-                certuser:::::::AABBCCDD11223344
+                # Generate the SCRAM columns with ScramCredentialGenerator.Generate(password); a
+                # password is then checked against them. password_sha256 (hex SHA-256 of the
+                # password) is only used for accounts without SCRAM columns, and may stay empty.
+                #
+                # cert_thumbprints: comma-separated SHA-1 or SHA-256 thumbprints (hex) of the
+                # client certificates that authenticate this account via SASL EXTERNAL.
+                #
+                # No accounts are configured.
+
                 """;
 
             Directory.CreateDirectory(Path.GetDirectoryName(_usersFilePath) ?? ".");
-            File.WriteAllText(_usersFilePath, defaultContent);
-
-            // Also create properly generated SCRAM credentials
-            GenerateScramUsersFile();
-        }
-
-        private void GenerateScramUsersFile()
-        {
-            var users = new[]
-            {
-                ("admin", "test123"),
-                ("user", "test123"),
-                ("demo", "demo")
-            };
-
-            var lines = new List<string>
-            {
-                "# SMTP User Database - Auto-generated with SCRAM-SHA-256 credentials",
-                "# Format: username:password_sha256:scram_salt:scram_stored_key:scram_server_key:iterations:cert_thumbprints",
-                ""
-            };
-
-            foreach (var (username, password) in users)
-            {
-                var creds = ScramCredentialGenerator.Generate(password);
-                var passwordHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(password))).ToLowerInvariant();
-            
-                lines.Add($"{username}:{passwordHash}:{creds.SaltBase64}:{creds.StoredKeyBase64}:{creds.ServerKeyBase64}:{creds.Iterations}:");
-            }
-
-            // Add a certificate-only user
-            lines.Add("");
-            lines.Add("# Certificate-authenticated user (no password)");
-            lines.Add("certonly:::::::*");  // * means any valid client cert
-
-            File.WriteAllLines(_usersFilePath, lines);
+            File.WriteAllText(_usersFilePath, template);
         }
 
         private void LoadUsers()
@@ -140,10 +117,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
                 _users[username] = creds;
 
-                // Index by certificate thumbprints
+                // Index by certificate thumbprints. A thumbprint names one certificate; anything
+                // else ("*" for any certificate) would let a self-made certificate in.
                 foreach (var thumbprint in creds.AllowedCertThumbprints)
                 {
-                    _certThumbprints[thumbprint] = creds;
+                    if (IsThumbprint(thumbprint))
+                        _certThumbprints[thumbprint] = creds;
                 }
             }
 
@@ -156,24 +135,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             return Task.FromResult(_users.GetValueOrDefault(username));
         }
 
+        /// <summary>
+        /// The account whose listed thumbprints include this certificate's SHA-1 or SHA-256
+        /// thumbprint. Nothing else matches: the TLS handshake accepts any client certificate
+        /// without a CA, so its subject (CN=admin) is whatever its maker wrote there, while
+        /// its thumbprint names the one key pair the handshake proved the client holds.
+        /// </summary>
         public Task<UserCredentials?> GetUserByCertificateAsync(X509Certificate2 cert, CancellationToken ct = default)
         {
             LoadUsers();
-        
-            var thumbprint = cert.Thumbprint;
-        
-            // Check for exact thumbprint match
-            if (_certThumbprints.TryGetValue(thumbprint, out var user))
+
+            if (_certThumbprints.TryGetValue(cert.Thumbprint, out var user) ||
+                _certThumbprints.TryGetValue(cert.GetCertHashString(HashAlgorithmName.SHA256), out user))
                 return Task.FromResult<UserCredentials?>(user);
-
-            // Check for wildcard (any cert accepted)
-            if (_certThumbprints.TryGetValue("*", out var wildcardUser))
-                return Task.FromResult<UserCredentials?>(wildcardUser);
-
-            // Check by subject CN
-            var cn = cert.GetNameInfo(X509NameType.SimpleName, false);
-            if (cn is not null && _users.TryGetValue(cn, out var cnUser))
-                return Task.FromResult<UserCredentials?>(cnUser);
 
             return Task.FromResult<UserCredentials?>(null);
         }
@@ -181,12 +155,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         public async Task<bool> ValidatePasswordAsync(string username, string password, CancellationToken ct = default)
         {
             var user = await GetUserAsync(username, ct);
-            if (user?.PasswordHash is null)
+            if (user is null)
                 return false;
 
-            var inputHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(password))).ToLowerInvariant();
-            return inputHash == user.PasswordHash.ToLowerInvariant();
+            // Salted and iterated: StoredKey = SHA-256(HMAC(PBKDF2(password, salt, i), "Client Key"))
+            // (RFC 5802 §3), the same derivation ScramCredentialGenerator stores.
+            if (user.ScramSalt is not null && user.ScramStoredKey is not null)
+            {
+                try
+                {
+                    var saltedPassword = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password),
+                                                                   Convert.FromBase64String(user.ScramSalt),
+                                                                   user.ScramIterations,
+                                                                   HashAlgorithmName.SHA256,
+                                                                   32);
+                    var storedKey      = SHA256.HashData(HMACSHA256.HashData(saltedPassword, "Client Key"u8));
+
+                    return CryptographicOperations.FixedTimeEquals(storedKey, Convert.FromBase64String(user.ScramStoredKey));
+                }
+                catch (Exception e) when (e is FormatException or ArgumentException)
+                {
+                    // Columns that are no SCRAM keys (hand-edited placeholders): the SHA-256 column decides.
+                }
+            }
+
+            if (user.PasswordHash is null)
+                return false;
+
+            var inputHash = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+            try
+            {
+                return CryptographicOperations.FixedTimeEquals(inputHash, Convert.FromHexString(user.PasswordHash));
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
+
+        /// <summary>
+        /// A SHA-1 (40) or SHA-256 (64) thumbprint in hex.
+        /// </summary>
+        private static bool IsThumbprint(string text)
+            => text.Length is 40 or 64 && text.All(Char.IsAsciiHexDigit);
     }
 
 }

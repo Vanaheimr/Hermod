@@ -35,16 +35,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             ILogger    Logger)
     {
 
+        /// <summary>
+        /// Evaluate SPF, DKIM, DMARC and ARC for an inbound message.
+        /// </summary>
+        /// <param name="checkSpf">Report SPF. False: the result says <see cref="SPFResult.None"/>.</param>
+        /// <param name="checkDkim">Report DKIM. False: the result says <see cref="DkimResult.None"/>.</param>
+        /// <param name="checkDmarc">Evaluate DMARC. False: the result says <see cref="DmarcResult.None"/>
+        /// and carries no DMARC evaluation. DMARC needs SPF and DKIM for its alignment, so while
+        /// it is checked they are evaluated for it even when they are not reported themselves.</param>
         public async Task<DnsVerificationResult> VerifyAsync(String                senderDomain,
                                                              System.Net.IPAddress  clientIp,
                                                              String                mailFrom,
                                                              String                heloHostname,
                                                              EMailMessage          message,
-                                                             CancellationToken     ct = default)
+                                                             CancellationToken     ct          = default,
+                                                             Boolean               checkSpf    = true,
+                                                             Boolean               checkDkim   = true,
+                                                             Boolean               checkDmarc  = true)
         {
 
-            var spfTask   = VerifySpfAsync(senderDomain, clientIp, mailFrom, heloHostname, ct);
-            var dkimTask  = VerifyDkimAsync(message, ct);
+            var spfTask   = checkSpf  || checkDmarc
+                                ? VerifySpfAsync(senderDomain, clientIp, mailFrom, heloHostname, ct)
+                                : Task.FromResult<(SPFResult Result, String? Record)>((SPFResult.None, null));
+            var dkimTask  = checkDkim || checkDmarc
+                                ? VerifyDkimAsync(message, ct)
+                                : Task.FromResult<(DkimResult Result, String? Details, String? Domain)>((DkimResult.None, null, null));
             var mxTask    = GetMxRecordsAsync(senderDomain, ct);
             var arcTask   = VerifyArcAsync(message, ct);
 
@@ -53,24 +68,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // DMARC is anchored on the RFC5322.From domain (RFC 7489 §6.6.1) and needs the
             // SPF/DKIM results to compute identifier alignment, so it runs after the others.
             var fromDomain = DomainOf(message.From);
-            var dmarc      = await VerifyDmarcAsync(
-                                       fromDomain,
-                                       senderDomain,             // envelope MAIL FROM domain (SPF-authenticated)
-                                       spfTask.Result.Result,
-                                       dkimTask.Result.Result,
-                                       dkimTask.Result.Domain,   // d= of the passing DKIM signature
-                                       ct
-                                   );
+            var dmarc      = checkDmarc
+                                 ? await VerifyDmarcAsync(
+                                             fromDomain,
+                                             senderDomain,             // envelope MAIL FROM domain (SPF-authenticated)
+                                             spfTask.Result.Result,
+                                             dkimTask.Result.Result,
+                                             dkimTask.Result.Domain,   // d= of the passing DKIM signature
+                                             ct
+                                         )
+                                 : (DmarcResult.None, null, null);
 
             return new DnsVerificationResult(
-                spfTask.Result.Result,
-                spfTask.Result.Record,
-                dkimTask.Result.Result,
-                dkimTask.Result.Details,
+                checkSpf  ? spfTask.Result.Result   : SPFResult.None,
+                checkSpf  ? spfTask.Result.Record   : null,
+                checkDkim ? dkimTask.Result.Result  : DkimResult.None,
+                checkDkim ? dkimTask.Result.Details : null,
                 dmarc.Result,
                 dmarc.Policy,
                 mxTask.Result,
-                dkimTask.Result.Domain,
+                checkDkim ? dkimTask.Result.Domain  : null,
                 dmarc.Detail,
                 arcTask.Result
             );
