@@ -136,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             try
             {
-                Assert.CatchAsync(async () => {
+                await Assert.CatchAsync(async () => {
                     await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
                         Username      = "device",
                         VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
@@ -179,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                     Credentials   = [ userKey ]
                 }, CancellationToken);
 
-                Assert.CatchAsync(async () => await client.OpenTcpStreamAsync("127.0.0.1", 9, CancellationToken),
+                await Assert.CatchAsync(async () => await client.OpenTcpStreamAsync("127.0.0.1", 9, CancellationToken),
                                   "no-port-forwarding must refuse the channel even under a permissive server policy");
 
                 // The session itself still works.

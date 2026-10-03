@@ -62,7 +62,7 @@ public class Http3ServerHardeningTests
 
         // The third one must not get through — dropped silently, so it runs into its timeout.
         await using var third = new Http3Client("localhost", server.Port, validation);
-        Assert.ThrowsAsync<TimeoutException>(async () => await third.ConnectAsync(TimeSpan.FromSeconds(2)));
+        await Assert.ThrowsAsync<TimeoutException>(async () => await third.ConnectAsync(TimeSpan.FromSeconds(2)));
 
         Assert.That(server.ConnectionCount, Is.EqualTo(2), "No connection may be created beyond the limit.");
         Assert.That(server.ConnectionsRefused, Is.GreaterThan(0), "And the rejection is counted.");

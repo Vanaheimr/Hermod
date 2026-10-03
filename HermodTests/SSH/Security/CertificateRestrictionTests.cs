@@ -209,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                Assert.CatchAsync(async () => {
+                await Assert.CatchAsync(async () => {
                     await using var client = await ConnectAsync(port, hostKey, credential, CancellationToken);
                     await client.ExecuteAsync("whoami", CancellationToken);
                 }, "a certificate restricted to 10.0.0.0/8 must not work from 127.0.0.1");

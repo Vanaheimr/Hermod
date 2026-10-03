@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await using var cmd = await SshConnection.StartCommandAsync(client, new SshCommand("sleep"), options, CancellationToken);
 
-            var lost = Assert.CatchAsync<SshConnectionLostException>(async () => await cmd.WaitForExitAsync(CancellationToken));
+            var lost = await Assert.CatchAsync<SshConnectionLostException>(async () => await cmd.WaitForExitAsync(CancellationToken));
             Assert.That(lost!.WasIdleTimeout, Is.True, "the disconnect must be attributed to the idle timeout");
 
             serverStop.Cancel();

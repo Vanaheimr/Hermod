@@ -352,7 +352,7 @@ public class ClientCertificateTests
         server.Start();
 
         await using var anonymous = new Http3Client("localhost", server.Port, validation);
-        Assert.ThrowsAsync<TimeoutException>(async () => await anonymous.ConnectAsync(TimeSpan.FromSeconds(3)),
+        await Assert.ThrowsAsync<TimeoutException>(async () => await anonymous.ConnectAsync(TimeSpan.FromSeconds(3)),
                                              "A client without a certificate must not complete the handshake.");
 
         // Decisive: the server survived the rejection and still serves the next client. Before the

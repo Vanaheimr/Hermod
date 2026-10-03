@@ -1001,7 +1001,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                           cts.Token
                       );
 
-                Assert.ThrowsAsync<EndOfStreamException>(async () =>
+                await Assert.ThrowsAsync<EndOfStreamException>(async () =>
                     await rawClient.ReadResponseAsync(CancellationToken: cts.Token)
                 );
 
@@ -1741,7 +1741,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             await using var wireStream    = new MemoryStream();
             await using var chunkedStream = new ChunkedTransferEncodingStream(wireStream, LeaveInnerStreamOpen: true);
 
-            Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
                 await chunkedStream.Finish(
                           new Dictionary<String, String> {
                               ["Content-Length"] = "13"

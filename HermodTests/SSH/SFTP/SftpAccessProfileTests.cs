@@ -78,8 +78,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await sftp.UploadAsync("/device.log", Encoding.UTF8.GetBytes("boot ok\n"), CancellationToken);
 
             // … but reading anything back or listing is denied.
-            var download = Assert.CatchAsync<SftpException>(async () => await sftp.DownloadAsync("/device.log", CancellationToken));
-            var list     = Assert.CatchAsync<SftpException>(async () => await sftp.ListDirectoryAsync("/", CancellationToken));
+            var download = await Assert.CatchAsync<SftpException>(async () => await sftp.DownloadAsync("/device.log", CancellationToken));
+            var list     = await Assert.CatchAsync<SftpException>(async () => await sftp.ListDirectoryAsync("/", CancellationToken));
 
             Assert.Multiple(() => {
                 Assert.That(download!.Code, Is.EqualTo(SftpStatusCode.PermissionDenied));
@@ -108,8 +108,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var image = await sftp.DownloadAsync("/firmware.bin", CancellationToken);
 
             // … but uploading or deleting is denied.
-            var upload = Assert.CatchAsync<SftpException>(async () => await sftp.UploadAsync("/evil.bin", [ 1, 2, 3 ], CancellationToken));
-            var delete = Assert.CatchAsync<SftpException>(async () => await sftp.RemoveAsync("/firmware.bin", CancellationToken));
+            var upload = await Assert.CatchAsync<SftpException>(async () => await sftp.UploadAsync("/evil.bin", [ 1, 2, 3 ], CancellationToken));
+            var delete = await Assert.CatchAsync<SftpException>(async () => await sftp.RemoveAsync("/firmware.bin", CancellationToken));
 
             Assert.Multiple(() => {
                 Assert.That(Encoding.UTF8.GetString(image), Is.EqualTo("firmware-image-v2"));

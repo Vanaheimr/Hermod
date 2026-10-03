@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 // The oversized upload is rejected …
                 var tooBig = RandomNumberGenerator.GetBytes(100_000);
-                var error  = Assert.CatchAsync<SftpException>(async () => await sftp.UploadAsync("/big.bin", tooBig, CancellationToken));
+                var error  = await Assert.CatchAsync<SftpException>(async () => await sftp.UploadAsync("/big.bin", tooBig, CancellationToken));
 
                 // … and no partial file is left behind on disk.
                 var physical = Path.Combine(root, "big.bin");

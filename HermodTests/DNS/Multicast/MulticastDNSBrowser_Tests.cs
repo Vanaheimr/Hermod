@@ -790,7 +790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             });
 
             // Stopping twice is harmless.
-            Assert.DoesNotThrowAsync(() => browser.StopAsync());
+            await Assert.DoesNotThrowAsync(() => browser.StopAsync());
 
         }
 
