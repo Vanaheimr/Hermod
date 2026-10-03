@@ -124,8 +124,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             /// <summary>
             /// The status code of the Close frame our end sent, null if it sent none.
-            /// Our end writes each frame whole, in one write, and masks it as a client
-            /// (RFC 6455 Section 5.3).
+            /// Our end writes each frame whole, in one write, masked when it is a client
+            /// and unmasked when it is a server (RFC 6455 Section 5.3), which the frame's
+            /// mask bit says.
             /// </summary>
             public UInt16? CloseCode
             {
