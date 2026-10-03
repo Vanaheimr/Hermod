@@ -61,7 +61,7 @@ Last verified: **2026-10-03**
 
 | Specification | Hermod support |
 |---|---|
-| [RFC 4954](https://www.rfc-editor.org/rfc/rfc4954.html), SMTP AUTH | Implemented and regression-tested: mechanism set depends on TLS state; the AUTH result is checked; submission requires authentication. A completed AUTH lasts for the session: `RSET` keeps it, and a second `AUTH` is `503`. `STARTTLS` ends it (RFC 3207 §4.2): an `AUTH` from before the upgrade does not carry into TLS. |
+| [RFC 4954](https://www.rfc-editor.org/rfc/rfc4954.html), SMTP AUTH | Implemented and regression-tested: mechanism set depends on TLS state; the AUTH result is checked; submission requires authentication. A client response that is not base64 is `501 5.5.2`; `=` is the empty response (§4). A completed AUTH lasts for the session: `RSET` keeps it, and a second `AUTH` is `503`. `STARTTLS` ends it (RFC 3207 §4.2): an `AUTH` from before the upgrade does not carry into TLS. |
 | [RFC 4616](https://www.rfc-editor.org/rfc/rfc4616.html), PLAIN | Implemented; refused in cleartext (`538`). |
 | draft-murchison-sasl-login, LOGIN | Implemented; refused in cleartext. |
 | [RFC 7677](https://www.rfc-editor.org/rfc/rfc7677.html) / [RFC 5802](https://www.rfc-editor.org/rfc/rfc5802.html), SCRAM-SHA-256 | Implemented and cross-validated: server and client halves interoperate; the password is never transmitted; server signature verified (mutual auth). Live STARTTLS+SCRAM end-to-end test. |

@@ -63,14 +63,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             string? requestedAuthzid = null;
             if (!string.IsNullOrEmpty(clientResponse))
             {
-                try
-                {
-                    requestedAuthzid = Encoding.UTF8.GetString(Convert.FromBase64String(clientResponse));
-                }
-                catch
-                {
-                    // Ignore decode errors
-                }
+                if (!TryDecode(clientResponse, out var authzid))
+                    return Undecodable;
+
+                requestedAuthzid = authzid.Length > 0 ? authzid : null;
             }
 
             // Look up user by certificate
