@@ -274,6 +274,81 @@ public class Http3WebSocketTests
     }
 
     [Test]
+    public void AClientWebSocketReceivesWhatCameWithTheServersClose()
+    {
+        // A peer may send its last data and its CONNECTION_CLOSE in one packet. QUIC keeps the
+        // frames before the CLOSE, but the pump handed nothing on once the connection was draining:
+        // the message was lost, and the WebSocket saw only its end. Feeding the data packets to
+        // QUIC alone, past the HTTP/3 pump, and then the CLOSE is the same situation.
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) = WebSocketServerPair(out _);
+        using ServerCertificate certGuard = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        (Http3Tunnel tunnel, IReadOnlyList<HeaderField> _) = OpenWebSocket(client, server, offerDeflate: false);
+        var ws = new WebSocketConnection(tunnel, WebSocketRole.Client);
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+
+        Task<WebSocketMessage?> received = ws.ReceiveAsync(None);
+        ws.SendTextAsync("last words", None);
+        client.CheckTimeouts();
+        foreach (byte[] dg in client.GetDatagramsToSend())
+            server.ProcessDatagram(dg); // the server echoes at once
+        List<byte[]> echo = [.. server.GetDatagramsToSend()];
+        server.CloseGracefully();
+        List<byte[]> close = [.. server.GetDatagramsToSend()];
+        Assert.That(echo, Is.Not.Empty);
+        Assert.That(close, Is.Not.Empty);
+
+        foreach (byte[] dg in echo)
+            client.Quic.ProcessDatagram(dg);
+        foreach (byte[] dg in close)
+            client.ProcessDatagram(dg);
+
+        Assert.That(client.IsDraining, Is.True);
+        Assert.That(received.IsCompleted, Is.True);
+        Assert.That(received.Result, Is.Not.Null, "What came with the server's close must not be lost.");
+        Assert.That(Encoding.UTF8.GetString(received.Result!.Payload), Is.EqualTo("last words"));
+        Task<WebSocketMessage?> after = ws.ReceiveAsync(None);
+        Assert.That(after.IsCompleted, Is.True);
+        Assert.That(after.Result, Is.Null, "After it, the WebSocket ends with its connection.");
+    }
+
+    [Test]
+    public void AServerWebSocketReceivesWhatCameWithTheClientsClose()
+    {
+        // The server's side of the same.
+        var serverTexts = new List<string>();
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            WebSocketServerPair(out Func<bool> serverLoopEnded, onServerText: serverTexts.Add);
+        using ServerCertificate certGuard = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        (Http3Tunnel tunnel, IReadOnlyList<HeaderField> _) = OpenWebSocket(client, server, offerDeflate: false);
+        var ws = new WebSocketConnection(tunnel, WebSocketRole.Client);
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+
+        ws.SendTextAsync("goodbye", None);
+        client.CheckTimeouts();
+        List<byte[]> last = [.. client.GetDatagramsToSend()];
+        client.CloseGracefully();
+        List<byte[]> close = [.. client.GetDatagramsToSend()];
+        Assert.That(last, Is.Not.Empty);
+
+        foreach (byte[] dg in last)
+            server.Quic.ProcessDatagram(dg);
+        foreach (byte[] dg in close)
+            server.ProcessDatagram(dg);
+
+        Assert.That(server.IsDraining, Is.True);
+        Assert.That(serverTexts, Is.EqualTo(new[] { "goodbye" }), "What came with the client's close must not be lost.");
+        Assert.That(serverLoopEnded(), Is.True, "After it, the WebSocket ends with its connection.");
+    }
+
+    [Test]
     public void AWebSocketEndsWhenItsConnectionTimesOut()
     {
         // An idle timeout closes the connection silently (RFC 9000 §10.1): nothing at all arrives.
@@ -397,7 +472,8 @@ public class Http3WebSocketTests
     /// for :protocol "websocket", permessage-deflate accepted when offered), handshake pumped.
     /// </summary>
     private static (Http3ClientConnection, Http3ServerConnection, ServerCertificate) WebSocketServerPair(
-        out Func<bool> serverLoopEnded, TimeProvider? clock = null, TransportParameters? serverParameters = null)
+        out Func<bool> serverLoopEnded, TimeProvider? clock = null, TransportParameters? serverParameters = null,
+        Action<string>? onServerText = null)
     {
         var cert = ServerCertificate.CreateSelfSigned("localhost");
         bool loopEnded = false;
@@ -421,7 +497,7 @@ public class Http3WebSocketTests
                 OnTunnel = tunnel =>
                 {
                     var ws = new WebSocketConnection(tunnel, WebSocketRole.Server, deflate);
-                    _ = EchoLoop(ws, tunnel, () => loopEnded = true);
+                    _ = EchoLoop(ws, tunnel, () => loopEnded = true, onServerText);
                 },
             };
         }
@@ -443,12 +519,16 @@ public class Http3WebSocketTests
         return (client, server, cert);
     }
 
-    private static async Task EchoLoop(WebSocketConnection ws, Http3Tunnel tunnel, Action onEnded)
+    private static async Task EchoLoop(WebSocketConnection ws, Http3Tunnel tunnel, Action onEnded,
+                                       Action<string>? onText = null)
     {
         while (await ws.ReceiveAsync(None) is { } message)
         {
             if (message.Opcode == WebSocketOpcode.Text)
+            {
+                onText?.Invoke(Encoding.UTF8.GetString(message.Payload));
                 await ws.SendTextAsync(Encoding.UTF8.GetString(message.Payload), None);
+            }
             else
                 await ws.SendBinaryAsync(message.Payload, None);
         }

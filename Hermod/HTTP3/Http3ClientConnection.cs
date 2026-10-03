@@ -652,8 +652,12 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     private void PumpStreams()
     {
 
-        if (_quic.IsClosing || _quic.IsDraining || _quic.IsClosed)
+        // Not on IsDraining: after the server's CONNECTION_CLOSE nothing more will come, but what
+        // came WITH it — the frames before it in the same packet, which QUIC kept — is still handed
+        // on. Draining forbids sending (RFC 9000 §10.2.2), not reading what has arrived.
+        if (_quic.IsClosing || _quic.IsClosed)
             return; // process nothing more after a connection error
+        bool draining = _quic.IsDraining;
 
         // First process the server's uni streams (SETTINGS + QPACK encoder instructions).
         _qpack.PumpPeerStreams(_quic.Streams);
@@ -685,7 +689,9 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
 
             // Backpressure for a tunnel: while its consumer has not read what it was given, leave the
             // data ON the QUIC stream. Its receive window then stays shut and the server stops sending.
-            if (state.Tunnel is { IsSaturated: true })
+            // Not while draining: then nothing more can come, and what QUIC already took is handed
+            // on rather than dropped with the connection — bounded by the stream's window.
+            if (!draining && state.Tunnel is { IsSaturated: true })
                 continue;
 
             byte[] chunk = state.Stream.Read();
@@ -713,7 +719,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
             {
                 Http3Frame frame = state.Pending.Peek();
                 // A saturated tunnel takes no more DATA; with the read stop above, the window closes.
-                if (frame.Type == Http3FrameType.Data && state.Tunnel is { IsSaturated: true })
+                if (frame.Type == Http3FrameType.Data && !draining && state.Tunnel is { IsSaturated: true })
                     break;
                 if (!ProcessResponseFrame(state, frame, out bool blocked))
                     return; // connection error reported

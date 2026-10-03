@@ -397,6 +397,142 @@ public class Http3AsyncHandlerTests
     }
 
     [Test]
+    public void AResponseThatCameWithTheServersClose_IsNotLost()
+    {
+        // A server may answer and close in one packet. QUIC keeps the frames before the CLOSE, but
+        // the client's pump took nothing more off its streams once the connection was draining.
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair((_, _) => Task.FromResult(new Http3Response { Status = 200, Body = "answered"u8.ToArray() }));
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+
+        ulong stream = client.SendRequest(Http3Request.Get("localhost", "/last"));
+        client.CheckTimeouts();
+        foreach (byte[] dg in client.GetDatagramsToSend())
+            server.ProcessDatagram(dg); // the server answers at once
+        List<byte[]> answer = [.. server.GetDatagramsToSend()];
+        server.CloseGracefully();
+        List<byte[]> close = [.. server.GetDatagramsToSend()];
+        Assert.That(answer, Is.Not.Empty);
+
+        foreach (byte[] dg in answer)
+            client.Quic.ProcessDatagram(dg);
+        foreach (byte[] dg in close)
+            client.ProcessDatagram(dg);
+
+        Assert.That(client.IsDraining, Is.True);
+        Assert.That(client.TryGetResponse(stream, out Http3Response? response), Is.True,
+                    "A complete response that came with the server's close must not be lost.");
+        Assert.That(response!.Body, Is.EqualTo("answered"u8.ToArray()));
+    }
+
+    [Test]
+    public void ARequestThatCameWithTheClientsClose_IsNotHandled()
+    {
+        // The other direction is different: a request the client sent together with its close
+        // cannot be answered any more — the server must not start a handler for it.
+        int handled = 0;
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair((_, _) =>
+            {
+                handled++;
+                return Task.FromResult(new Http3Response { Status = 200 });
+            });
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+
+        client.SendRequest(Http3Request.Get("localhost", "/too-late"));
+        client.CheckTimeouts();
+        List<byte[]> last = [.. client.GetDatagramsToSend()];
+        client.CloseGracefully();
+        List<byte[]> close = [.. client.GetDatagramsToSend()];
+        Assert.That(last, Is.Not.Empty);
+
+        foreach (byte[] dg in last)
+            server.Quic.ProcessDatagram(dg);
+        foreach (byte[] dg in close)
+            server.ProcessDatagram(dg);
+        for (int round = 0; round < 5; round++)
+            server.CheckTimeouts();
+
+        Assert.That(server.IsDraining, Is.True);
+        Assert.That(handled, Is.Zero);
+        Assert.That(server.RequestsHandled, Is.Zero);
+    }
+
+    [Test]
+    public void ARequestCompletedByWhatCameWithTheClientsClose_IsNotHandled()
+    {
+        // The request's headers arrived before; its last bytes and its FIN came with the client's
+        // close. Complete now, but there is nobody to answer any more.
+        int handled = 0;
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair((_, _) =>
+            {
+                handled++;
+                return Task.FromResult(new Http3Response { Status = 200 });
+            });
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+
+        client.SendRequest(Http3Request.Post("localhost", "/upload", RandomNumberGenerator.GetBytes(5_000),
+                                             "application/octet-stream"));
+        client.CheckTimeouts();
+        List<byte[]> flight = [.. client.GetDatagramsToSend()];
+        Assert.That(flight, Has.Count.GreaterThan(1), "The request must take more than one packet.");
+        server.ProcessDatagram(flight[0]); // the headers and the first bytes
+        Assert.That(handled, Is.Zero, "The request is not complete yet.");
+        client.CloseGracefully();
+        List<byte[]> close = [.. client.GetDatagramsToSend()];
+
+        foreach (byte[] dg in flight[1..])
+            server.Quic.ProcessDatagram(dg);
+        foreach (byte[] dg in close)
+            server.ProcessDatagram(dg);
+        for (int round = 0; round < 5; round++)
+            server.CheckTimeouts();
+
+        Assert.That(server.IsDraining, Is.True);
+        Assert.That(handled, Is.Zero);
+    }
+
+    [Test]
+    public void AResponseReadyWhenTheClientCloses_IsNotStarted()
+    {
+        // A handler finished just as the client's close came in: its response has nowhere to go,
+        // and its body source must not be read for nobody.
+        var gate = new TaskCompletionSource<Http3Response>();
+        var source = new CountingStream(100_000);
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair((_, _) => gate.Task);
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        client.SendRequest(Http3Request.Get("localhost", "/slow"));
+        for (int round = 0; round < 10; round++)
+            Pump(client, server);
+
+        gate.TrySetResult(new Http3Response { Status = 200, BodyStream = source });
+        client.CloseGracefully();
+        foreach (byte[] dg in client.GetDatagramsToSend())
+            server.ProcessDatagram(dg);
+
+        Assert.That(server.IsDraining, Is.True);
+        Assert.That(source.BytesRead, Is.Zero, "A response after the connection's end has nowhere to go.");
+        Assert.That(source.Disposed, Is.False, "It never started — the handler still owns the source.");
+    }
+
+    [Test]
     public void AStreamingResponseIsDisposedWhenItsConnectionEnds()
     {
         // The server disposes a response's body source once the body is out — and when the

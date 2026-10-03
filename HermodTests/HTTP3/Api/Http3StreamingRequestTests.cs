@@ -366,6 +366,53 @@ public class Http3StreamingRequestTests
     }
 
     [Test]
+    public void AnUploadReceivesWhatCameWithTheClientsClose()
+    {
+        // Body data that came in the same packet as the client's CONNECTION_CLOSE reaches the
+        // reader before the reader fails with the connection's end.
+        var bodySeen = new TaskCompletionSource<Http3RequestBody>(TaskCreationOptions.RunContinuationsAsynchronously);
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair(async (_, requestBody, _) =>
+            {
+                bodySeen.TrySetResult(requestBody);
+                try
+                {
+                    await HashBodyAsync(requestBody, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                }
+                return new Http3Response { Status = 200 };
+            });
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        client.SendRequest(Http3Request.Post("localhost", "/upload", RandomNumberGenerator.GetBytes(300_000),
+                                             "application/octet-stream"));
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+        Assert.That(bodySeen.Task.IsCompleted, Is.True, "The handler must have started.");
+        Http3RequestBody body = bodySeen.Task.Result;
+        ulong before = body.TotalReceived;
+        Assert.That(before, Is.LessThan(300_000UL), "The upload must still be in progress.");
+
+        client.CheckTimeouts();
+        List<byte[]> last = [.. client.GetDatagramsToSend()];
+        client.CloseGracefully();
+        List<byte[]> close = [.. client.GetDatagramsToSend()];
+        Assert.That(last, Is.Not.Empty);
+
+        foreach (byte[] dg in last)
+            server.Quic.ProcessDatagram(dg);
+        foreach (byte[] dg in close)
+            server.ProcessDatagram(dg);
+
+        Assert.That(server.IsDraining, Is.True);
+        Assert.That(body.TotalReceived, Is.GreaterThan(before), "What came with the client's close must reach the reader.");
+    }
+
+    [Test]
     public void AnUploadEndsWhenItsConnectionTimesOut()
     {
         // An idle timeout closes the connection silently (RFC 9000 §10.1): nothing at all arrives.
