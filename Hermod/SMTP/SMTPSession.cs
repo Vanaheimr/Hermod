@@ -150,6 +150,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                         continue;
                     }
 
+                    // The reader hands out one char per octet. Commands are ASCII or, for SMTPUTF8
+                    // addresses in MAIL and RCPT, UTF-8 (RFC 6531 §3.3) - decode them as what they
+                    // are, or "jöran@…" goes on into storage, the relay queue and Received: as
+                    // "jÃ¶ran@…". Octets that are not UTF-8 make the line an invalid command.
+                    if (!TryDecodeUtf8(line, out line))
+                    {
+                        _counters.InvalidCommands++;
+                        await SendResponseAsync(500, "5.5.2 Invalid UTF-8 in command line");
+                        if (_counters.InvalidCommands >= rateLimitConfig.MaxInvalidCommands)
+                        {
+                            await SendResponseAsync(421, "4.7.0 Too many errors, closing connection");
+                            break;
+                        }
+                        continue;
+                    }
+
                     logger.Log(LogLevel.Debug, $"C: {line}");
 
                     // Handle AUTH exchange specially
@@ -1232,6 +1248,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             {
                 return null;
             }
+        }
+
+        private static readonly UTF8Encoding StrictUtf8 = new (encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+        /// <summary>
+        /// Re-decode a line read as Latin1 (one char per octet) as UTF-8. An all-ASCII line is
+        /// returned as it is; false when the octets are not valid UTF-8.
+        /// </summary>
+        private static Boolean TryDecodeUtf8(String latin1, out String decoded)
+        {
+
+            decoded = latin1;
+
+            if (latin1.All(Char.IsAscii))
+                return true;
+
+            try
+            {
+                decoded = StrictUtf8.GetString(Encoding.Latin1.GetBytes(latin1));
+                return true;
+            }
+            catch (DecoderFallbackException)
+            {
+                return false;
+            }
+
         }
 
         private static (String Command, String Args) ParseCommand(String line)

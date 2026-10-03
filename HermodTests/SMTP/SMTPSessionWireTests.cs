@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// are data; any SMTP client library would send only the well-formed versions.
     /// </summary>
     [TestFixture]
-    public class SMTPSessionWireTests
+    public partial class SMTPSessionWireTests
     {
 
         #region Test doubles and the server
@@ -74,11 +74,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         private sealed class MemoryStorage : IMailStorage
         {
 
-            public readonly ConcurrentQueue<String> Messages = new();
+            public readonly ConcurrentQueue<String>                                      Messages  = new();
+            public readonly ConcurrentQueue<(String From, IReadOnlyList<String> To)>     Envelopes = new();
 
             public Task<String> StoreAsync(EMailMessage message, String envelopeFrom, IEnumerable<String> envelopeTo, CancellationToken ct = default)
             {
                 Messages.Enqueue(message.RawMessage);
+                Envelopes.Enqueue((envelopeFrom, [.. envelopeTo]));
                 return Task.FromResult("memory");
             }
 
