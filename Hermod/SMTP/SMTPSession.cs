@@ -359,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var startResult = _authManager.StartAuth(mechanism);
             if (startResult.Result == AuthResult.InvalidMechanism)
             {
-                await SendResponseAsync(504, startResult.ErrorCode ?? "Unrecognized authentication type");
+                await SendAuthRefusalAsync(startResult.ErrorCode, 504, "5.5.4 Unrecognized authentication type");
                 return;
             }
 
@@ -398,10 +398,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
                 case AuthResult.Fail:
                     _inAuthExchange = false;
-                    await SendResponseAsync(535, result.ErrorCode ?? "5.7.8 Authentication failed");
+                    await SendAuthRefusalAsync(result.ErrorCode, 535, "5.7.8 Authentication failed");
                     break;
 
             }
+        }
+
+        /// <summary>
+        /// Send an AUTH refusal. The auth handlers and the auth manager phrase it as a whole
+        /// reply ("535 5.7.8 Authentication failed", "504 5.5.4 …", "503 5.5.1 …"), so the code
+        /// is taken from there; prefixing another one gave "535 535 5.7.8 …", which put the
+        /// reply code where RFC 2034 §4 expects the enhanced status code. A text without a
+        /// leading code gets the default.
+        /// </summary>
+        private Task SendAuthRefusalAsync(String? reply, Int32 defaultCode, String defaultText)
+        {
+
+            if (reply is { Length: > 4 } &&
+                reply[3] == ' '          &&
+                reply[..3].All(Char.IsAsciiDigit))
+                return SendResponseAsync(Int32.Parse(reply[..3]), reply[4..]);
+
+            return SendResponseAsync(defaultCode, reply ?? defaultText);
+
         }
 
         private async Task HandleStartTlsAsync(CancellationToken ct)
