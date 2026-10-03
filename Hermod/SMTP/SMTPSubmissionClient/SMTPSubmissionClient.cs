@@ -477,6 +477,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
+        #region (internal) MessageSize(Lines)
+
+        /// <summary>
+        /// The size of a message for SIZE= (RFC 1870 §5): the octets of its lines as sent, "including
+        /// CR-LF pairs, but not the SMTP DATA command's terminating dot or doubled quoting dots" -
+        /// so every line's CR LF, the last one's too.
+        /// </summary>
+        internal static UInt64 MessageSize(IEnumerable<String> Lines)
+
+            => Lines.Aggregate(0UL, (size, line) => size + (UInt64) Encoding.UTF8.GetByteCount(line) + 2);
+
+        #endregion
+
         #region (private) NeedsSmtpUtf8(EMailEnvelop)
 
         /// <summary>
@@ -1091,7 +1104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     // Serialize once, so we can declare/verify SIZE (RFC 1870) and send the body.
                                     var messageLines  = EMailEnvelop.Mail?.ToText().ToArray() ?? [];
-                                    var messageBytes  = (UInt64) String.Join("\r\n", messageLines).ToUTF8Bytes().LongLength;
+                                    var messageBytes  = MessageSize(messageLines);
 
                                     if (serverMaxSize > 0 && messageBytes > serverMaxSize)
                                     {
