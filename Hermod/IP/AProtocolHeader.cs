@@ -27,19 +27,18 @@ public abstract class AProtocolHeader
     public byte[ ] BuildPacket(ArrayList headerList, byte[ ] payLoad)
     {
 
-        AProtocolHeader protocolHeader;
-        byte[ ] newPayload = null;
- 
         // Traverse the array in reverse order since the outer headers may need
         //    the inner headers and payload to compute checksums on.
         for (int i = headerList.Count - 1; i >= 0; i--)
         {
-            protocolHeader = (AProtocolHeader)headerList[i];
-            newPayload = protocolHeader.GetProtocolPacketBytes(payLoad);
- 
+
+            var protocolHeader = (AProtocolHeader?) headerList[i]
+                                     ?? throw new ArgumentException($"The header list must not contain null entries (index {i})!", nameof(headerList));
+
             // The payLoad for the next iteration of the loop is now any
             //    encapsulated headers plus the original payload data.
-            payLoad = newPayload;
+            payLoad = protocolHeader.GetProtocolPacketBytes(payLoad);
+
         }
  
         return payLoad;
