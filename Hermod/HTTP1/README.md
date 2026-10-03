@@ -420,8 +420,12 @@ The presence of a typed field does not imply an automatic policy engine:
   shared HTTP cache.
 - Range and `Content-Range` fields are modeled; handlers select and generate
   partial representations.
-- CORS fields are modeled; applications configure the desired cross-origin
-  policy.
+- CORS fields are modeled, and the one part no handler can reach — the
+  preflight — is available as an opt-in `HTTPCORSPipeline` carrying a
+  `CORSPolicy` the application states. A server that installs none does no CORS,
+  and an ordinary `OPTIONS` still goes to the router. The pipeline deliberately
+  does not decorate ordinary responses: that is per-resource, and the handler
+  already sets it.
 - Cookies are modeled; application code owns session and persistence policy.
 - `Accept-Query` can be emitted as an extension field, but RFC 10008 content
   negotiation is not automatically enforced.

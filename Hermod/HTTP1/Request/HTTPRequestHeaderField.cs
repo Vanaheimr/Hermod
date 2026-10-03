@@ -1614,6 +1614,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Origin
+
+        /// <summary>
+        /// The origin the request is being made from, as an opaque
+        /// scheme/host/port triple or the string "null". A browser attaches it
+        /// to every cross-origin request and to every preflight; it is not
+        /// trustworthy input, it is the subject of the policy decision.
+        /// </summary>
+        /// <example>Origin: https://example.org</example>
+        /// <seealso cref="https://fetch.spec.whatwg.org/#origin-header"/>
+        public static readonly HTTPRequestHeaderField Origin = new ("Origin",
+                                                                     RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region Access-Control-Request-Method
+
+        /// <summary>
+        /// The method the client intends to use once the preflight succeeds.
+        /// Its presence on an OPTIONS request is what makes that request a CORS
+        /// preflight rather than an ordinary one.
+        /// </summary>
+        /// <example>Access-Control-Request-Method: POST</example>
+        /// <seealso cref="https://fetch.spec.whatwg.org/#http-access-control-request-method"/>
+        public static readonly HTTPRequestHeaderField AccessControlRequestMethod = new ("Access-Control-Request-Method",
+                                                                                        RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region Access-Control-Request-Headers
+
+        /// <summary>
+        /// The header field names the client intends to send, comma-separated
+        /// and lower-cased by the browser.
+        /// </summary>
+        /// <example>Access-Control-Request-Headers: content-type, x-demo</example>
+        /// <seealso cref="https://fetch.spec.whatwg.org/#http-access-control-request-headers"/>
+        public static readonly HTTPRequestHeaderField AccessControlRequestHeaders = new ("Access-Control-Request-Headers",
+                                                                                         RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+
     }
 
     #endregion
