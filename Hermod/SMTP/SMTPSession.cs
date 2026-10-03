@@ -466,7 +466,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             try
             {
                 await EstablishTlsAsync(ct);
-                // RFC 3207 §4.2: the client must reset its protocol state after STARTTLS.
+
+                // RFC 3207 §4.2: the server MUST discard any knowledge obtained from the client
+                // that was not obtained from the TLS negotiation itself - whoever was on the path
+                // may have written the cleartext part. That is the mail transaction and a completed
+                // AUTH (SCRAM-SHA-256 is offered in cleartext): kept, it vouched for the TLS session
+                // without a new AUTH. The client certificate came from the negotiation, and the auth
+                // manager's Reset leaves it in place for EXTERNAL.
+                ResetTransaction();
+                _authManager.Reset();
+                _inAuthExchange = false;
+
+                // The client starts over with EHLO.
                 _state = SMTPSessionState.Connected;
             }
             catch (Exception ex)

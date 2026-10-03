@@ -61,7 +61,7 @@ Last verified: **2026-10-03**
 
 | Specification | Hermod support |
 |---|---|
-| [RFC 4954](https://www.rfc-editor.org/rfc/rfc4954.html), SMTP AUTH | Implemented and regression-tested: mechanism set depends on TLS state; the AUTH result is checked; submission requires authentication. A completed AUTH lasts for the session: `RSET` keeps it, and a second `AUTH` is `503`. |
+| [RFC 4954](https://www.rfc-editor.org/rfc/rfc4954.html), SMTP AUTH | Implemented and regression-tested: mechanism set depends on TLS state; the AUTH result is checked; submission requires authentication. A completed AUTH lasts for the session: `RSET` keeps it, and a second `AUTH` is `503`. `STARTTLS` ends it (RFC 3207 §4.2): an `AUTH` from before the upgrade does not carry into TLS. |
 | [RFC 4616](https://www.rfc-editor.org/rfc/rfc4616.html), PLAIN | Implemented; refused in cleartext (`538`). |
 | draft-murchison-sasl-login, LOGIN | Implemented; refused in cleartext. |
 | [RFC 7677](https://www.rfc-editor.org/rfc/rfc7677.html) / [RFC 5802](https://www.rfc-editor.org/rfc/rfc5802.html), SCRAM-SHA-256 | Implemented and cross-validated: server and client halves interoperate; the password is never transmitted; server signature verified (mutual auth). Live STARTTLS+SCRAM end-to-end test. |
@@ -73,7 +73,7 @@ Last verified: **2026-10-03**
 
 | Specification | Hermod support |
 |---|---|
-| [RFC 3207](https://www.rfc-editor.org/rfc/rfc3207.html), STARTTLS | Implemented and regression-tested on the MTA and submission ports; pipelined-plaintext discarded on upgrade. The submission client in `STARTTLS` mode never falls back to cleartext: STARTTLS not offered, refused (`454`) or a failed handshake ends the attempt with `MailSentStatus.TLSUnavailable`, without retry. A server that refuses `EHLO` (500/501/502/504/550) gets `HELO` instead (RFC 5321 §3.2), with no ESMTP parameter on `MAIL`. |
+| [RFC 3207](https://www.rfc-editor.org/rfc/rfc3207.html), STARTTLS | Implemented and regression-tested on the MTA and submission ports; pipelined-plaintext discarded on upgrade. After the upgrade the server discards what it learned from the client in cleartext (§4.2): the mail transaction and a completed `AUTH`, so the client sends `EHLO` and authenticates again inside TLS; the client certificate, which comes from the negotiation, stays for `EXTERNAL`. The submission client in `STARTTLS` mode never falls back to cleartext: STARTTLS not offered, refused (`454`) or a failed handshake ends the attempt with `MailSentStatus.TLSUnavailable`, without retry. A server that refuses `EHLO` (500/501/502/504/550) gets `HELO` instead (RFC 5321 §3.2), with no ESMTP parameter on `MAIL`. |
 | [RFC 7435](https://www.rfc-editor.org/rfc/rfc7435.html), Opportunistic security | Implemented: default MTA→MTA policy accepts an imperfect certificate (encryption beats cleartext) but logs it; enforced modes never downgrade. |
 | [RFC 8461](https://www.rfc-editor.org/rfc/rfc8461.html), MTA-STS | Implemented: policy fetched via `_mta-sts` TXT + `https://mta-sts.<domain>/.well-known/mta-sts.txt`; MX filtered and TLS enforced in `enforce` mode. |
 | [RFC 8460](https://www.rfc-editor.org/rfc/rfc8460.html), SMTP TLS Reporting (TLS-RPT) | Implemented and regression-tested, **opt-in**: outbound per-domain success/typed-failure aggregate reports (gzipped `application/tlsrpt+gzip`, DKIM-signed) **and** inbound ingestion of received reports. |
@@ -198,9 +198,9 @@ vectors, and live domains — not only self-consistency.
 | **TLS-RPT** | Aggregation + RFC 8460 §4 JSON round-trip (outbound); closed-loop gzip/JSON ingestion (inbound); live `_smtp._tls` lookup. |
 | **Submission client** | SCRAM-SHA-256 crypto cross-validated against the server credential generator; a scriptable in-process fake server (Autobahn-style "mean" connection drops/stalls detected in < 10 s, never a 60 s hang); a live STARTTLS+SCRAM end-to-end send; a hanging server aborted promptly on caller cancellation. |
 | **DNS** | Live queries via the Hermod `DNSClient` against real domains. |
-| **Inbound session** | Raw-socket wire tests (`SMTPSessionWireTests`) for line endings, smuggling variants, BDAT chunk consumption, submission-port authentication, session limits and the verification switches; the whole server is additionally run against the external [SMTPConformanceTests](https://github.com/Vanaheimr/SMTPConformanceTests) suite (RFC-by-RFC, plus swaks, smtplib, openssl and Postfix smtp-sink). |
+| **Inbound session** | Raw-socket wire tests (`SMTPSessionWireTests`) for line endings, smuggling variants, BDAT chunk consumption, submission-port authentication, the session state `STARTTLS` discards, session limits and the verification switches; the whole server is additionally run against the external [SMTPConformanceTests](https://github.com/Vanaheimr/SMTPConformanceTests) suite (RFC-by-RFC, plus swaks, smtplib, openssl and Postfix smtp-sink). |
 
-The committed SMTP regression suite (`HermodTests/SMTP/`) contains **183 passing
+The committed SMTP regression suite (`HermodTests/SMTP/`) contains **184 passing
 tests, 0 failed, 0 skipped** as of the verification date, covering the message
 builders and OpenPGP (`EMailBuilderTests`), MDN (`MdnTests`, `MdnStorageTests`),
 DSN (`DsnTests`), priority (`PriorityTests`), `MAIL`/`RCPT` parameters

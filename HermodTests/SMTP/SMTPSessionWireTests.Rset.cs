@@ -41,9 +41,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         /// <summary>
         /// A server whose user store holds one SCRAM-SHA-256 account. The server's default
         /// user store is users.txt in its mail storage directory, and Configure runs before
-        /// the server and its store are built.
+        /// the server and its store are built; further changes go to Configure.
         /// </summary>
-        private static Server ServerWithSubmissionUser()
+        private static Server ServerWithSubmissionUser(Func<SMTPServerConfig, SMTPServerConfig>? Configure = null)
 
             => new (Configure: config => {
 
@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                         File.WriteAllText(Path.Combine(config.MailStoragePath, "users.txt"),
                                           $"{SubmissionUser}::{credentials.SaltBase64}:{credentials.StoredKeyBase64}:{credentials.ServerKeyBase64}:{credentials.Iterations}:\n");
 
-                        return config;
+                        return Configure?.Invoke(config) ?? config;
 
                     });
 
