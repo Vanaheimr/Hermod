@@ -448,12 +448,12 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
 
     /// <summary>
     /// Closes the connection immediately with a CONNECTION_CLOSE (RFC 9000 §10.2; default: NO_ERROR).
-    /// Its tunnels and WebTransport sessions end at once.
+    /// Its requests end at once: tunnels, WebTransport sessions and handlers still at work.
     /// </summary>
     public void Close(TransportError error = TransportError.NoError, string reason = "")
     {
         _quic.Close(error, reason);
-        EndTunnelsAndSessions();
+        EndRequests();
     }
 
     /// <summary>
@@ -493,12 +493,13 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
 
     /// <summary>
     /// Closes the connection after a completed graceful shutdown (RFC 9114 §5.2 SHOULD:
-    /// CONNECTION_CLOSE type 0x1d with H3_NO_ERROR). Its tunnels and WebTransport sessions end at once.
+    /// CONNECTION_CLOSE type 0x1d with H3_NO_ERROR). Its requests end at once: tunnels, WebTransport
+    /// sessions and handlers still at work.
     /// </summary>
     public void CloseGracefully()
     {
         _quic.CloseApplication(Http3Error.NoError, "graceful shutdown");
-        EndTunnelsAndSessions();
+        EndRequests();
     }
 
     private static byte[] BuildVarInt(ulong value)
@@ -563,23 +564,37 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
     {
         PumpStreams();
         if (_quic.IsClosing || _quic.IsDraining || _quic.IsClosed || _quic.IsIdleTimedOut)
-            EndTunnelsAndSessions();
+            EndRequests();
     }
 
     /// <summary>
-    /// Ends every tunnel and every WebTransport session once the connection has ended — closed by
-    /// either side, after a connection error, or timed out: no FIN, reset or WT_CLOSE_SESSION will
-    /// ever arrive for them any more, so whoever waits for one would wait for ever. A tunnel's reads
-    /// return <c>null</c> once what was received is read, as for a reset (≙ TCP RST, RFC 9220 §3);
-    /// a session ends as when its CONNECT stream closes (draft-ietf-webtrans-http3 §6), with its
-    /// streams aborted.
+    /// Ends every request once the connection has ended — closed by either side, after a connection
+    /// error, or timed out: no FIN, reset or WT_CLOSE_SESSION will ever arrive for them any more, so
+    /// whoever waits for one would wait for ever. A tunnel's reads return <c>null</c> once what was
+    /// received is read, as for a reset (≙ TCP RST, RFC 9220 §3); a session ends as when its
+    /// CONNECT stream closes (draft-ietf-webtrans-http3 §6), with its streams aborted; a handler
+    /// still at work is cancelled, a streaming request body fails, and a streaming response body
+    /// is disposed — as when the client aborts the request (RFC 9114 §4.1.1).
     /// </summary>
-    private void EndTunnelsAndSessions()
+    private void EndRequests()
     {
         foreach (RequestState state in _requests.Values)
         {
             state.Tunnel?.End();
             state.WebTransportSession?.OnConnectStreamClosed();
+
+            // A handler is still at work, or its response still going out: nothing of it can
+            // reach the client any more.
+            if (state.Cancellation is { IsCancellationRequested: false } cts)
+            {
+                if (!state.BodyCompleted)
+                    state.RequestBody?.Fail(new OperationCanceledException("the connection ended"));
+                state.BodyCompleted = true;
+                cts.Cancel();
+                state.HandlerTask = null; // its response has nowhere to go — a timed-out connection still pumps
+                state.DisposeResponseResources();
+                state.ResponseComplete = true;
+            }
         }
     }
 
@@ -1503,7 +1518,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
 
     public void Dispose()
     {
-        EndTunnelsAndSessions();
+        EndRequests();
         _quic.Dispose();
     }
 

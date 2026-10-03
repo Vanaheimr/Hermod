@@ -38,12 +38,12 @@ public class Http3StreamingRequestTests
 {
     private static (Http3ClientConnection Client, Http3ServerConnection Server, ServerCertificate Cert) Pair(
         Func<Http3Request, Http3RequestBody, CancellationToken, Task<Http3Response>> handler,
-        TransportParameters? clientParams = null)
+        TransportParameters? clientParams = null, TransportParameters? serverParams = null, TimeProvider? clock = null)
     {
         var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
-        var server = new Http3ServerConnection(cert, handler);
-        var client = new Http3ClientConnection("localhost", clientParams, validation);
+        var server = new Http3ServerConnection(cert, handler, serverParams, timeProvider: clock);
+        var client = new Http3ClientConnection("localhost", clientParams, validation, timeProvider: clock);
         client.Start();
         for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
             Pump(client, server);
@@ -276,6 +276,132 @@ public class Http3StreamingRequestTests
         // pool thread, so wait for it briefly instead of checking IsCompleted straight away.
         Assert.That(readFailed.Task.Wait(TimeSpan.FromSeconds(5)), Is.True,
                     "A reader waiting on an aborted upload must see the error, not hang.");
+    }
+
+    public enum Closer { Client, Server }
+
+    /// <summary>
+    /// A 300 KB upload whose handler reads the body: still in progress after a few rounds, so the
+    /// reader is waiting for more. <paramref name="readEnded"/> reports how its reading ended
+    /// (<c>null</c> = at the end of the body), <paramref name="handlerToken"/> the handler's token.
+    /// </summary>
+    private static (Http3ClientConnection Client, Http3ServerConnection Server, ServerCertificate Cert) UploadInProgress(
+        out Task<Exception?> readEnded, out Task<CancellationToken> handlerToken,
+        TransportParameters? serverParams = null, TimeProvider? clock = null)
+    {
+        var ended = new TaskCompletionSource<Exception?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var token = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair(async (_, requestBody, cancellationToken) =>
+            {
+                token.TrySetResult(cancellationToken);
+                try
+                {
+                    // Deliberately WITHOUT the token: the reader itself must end, not only the token.
+                    await HashBodyAsync(requestBody, CancellationToken.None).ConfigureAwait(false);
+                    ended.TrySetResult(null);
+                }
+                catch (Exception e)
+                {
+                    ended.TrySetResult(e);
+                }
+                return new Http3Response { Status = 200 };
+            }, serverParams: serverParams, clock: clock);
+
+        client.SendRequest(Http3Request.Post("localhost", "/upload", RandomNumberGenerator.GetBytes(300_000),
+                                             "application/octet-stream"));
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+        Assert.That(token.Task.IsCompleted, Is.True, "The handler must have started.");
+        Assert.That(ended.Task.IsCompleted, Is.False, "The upload must still be in progress.");
+
+        readEnded = ended.Task;
+        handlerToken = token.Task;
+        return (client, server, cert);
+    }
+
+    [Test]
+    public void AnUploadEndsWithItsConnection([Values] Closer closer)
+    {
+        // The pump fails the reader and cancels the handler when the client aborts the request —
+        // but it does nothing once the connection is closing, draining or closed.
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            UploadInProgress(out Task<Exception?> readEnded, out Task<CancellationToken> handlerToken);
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        if (closer == Closer.Server)
+            server.CloseGracefully();
+        else
+            client.CloseGracefully();
+        for (int round = 0; round < 40 && !readEnded.IsCompleted; round++)
+            Pump(client, server);
+
+        Assert.That(readEnded.Wait(TimeSpan.FromSeconds(5)), Is.True,
+                    "A reader waiting on an upload must see its connection end, not hang.");
+        Assert.That(readEnded.Result, Is.InstanceOf<OperationCanceledException>());
+        Assert.That(handlerToken.Result.IsCancellationRequested, Is.True);
+    }
+
+    [Test]
+    public void ClosingAConnectionEndsItsUploadsAtOnce([Values] bool gracefully)
+    {
+        // The server that closes knows at once, in the close call itself, not on a later pump.
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            UploadInProgress(out Task<Exception?> readEnded, out Task<CancellationToken> handlerToken);
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        if (gracefully)
+            server.CloseGracefully();
+        else
+            server.Close();
+
+        Assert.That(handlerToken.Result.IsCancellationRequested, Is.True);
+        Assert.That(readEnded.Wait(TimeSpan.FromSeconds(5)), Is.True,
+                    "Closing a server's connection must end its uploads.");
+        Assert.That(readEnded.Result, Is.InstanceOf<OperationCanceledException>());
+    }
+
+    [Test]
+    public void AnUploadEndsWhenItsConnectionTimesOut()
+    {
+        // An idle timeout closes the connection silently (RFC 9000 §10.1): nothing at all arrives.
+        var clock = new FakeTimeProvider();
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            UploadInProgress(out Task<Exception?> readEnded, out Task<CancellationToken> handlerToken,
+                             new TransportParameters { MaxIdleTimeoutMs = 300 }, clock);
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        clock.Advance(TimeSpan.FromSeconds(5));
+        server.CheckTimeouts();
+
+        Assert.That(server.IsIdleTimedOut, Is.True);
+        Assert.That(handlerToken.Result.IsCancellationRequested, Is.True);
+        Assert.That(readEnded.Wait(TimeSpan.FromSeconds(5)), Is.True,
+                    "A reader waiting on an upload must see its connection time out.");
+        Assert.That(readEnded.Result, Is.InstanceOf<OperationCanceledException>());
+    }
+
+    [Test]
+    public void AnUploadEndsWhenItsConnectionIsDisposed()
+    {
+        // Disposing a connection is the end of it as well — and nothing pumps it afterwards.
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            UploadInProgress(out Task<Exception?> readEnded, out Task<CancellationToken> handlerToken);
+        using ServerCertificate c0 = cert;
+        using Http3ClientConnection c = client;
+
+        server.Dispose();
+
+        Assert.That(handlerToken.Result.IsCancellationRequested, Is.True);
+        Assert.That(readEnded.Wait(TimeSpan.FromSeconds(5)), Is.True,
+                    "A reader waiting on an upload must see its connection disposed.");
+        Assert.That(readEnded.Result, Is.InstanceOf<OperationCanceledException>());
     }
 
     [Test]
