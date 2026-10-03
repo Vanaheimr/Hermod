@@ -67,9 +67,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <summary>
         /// The local domain is used in the HELO or EHLO commands sent to
         /// the SMTP server. If left unset, the local IP address will be
-        /// used instead.
+        /// used instead, as an address literal (RFC 5321 §4.1.3).
         /// </summary>
-        public String               LocalDomain             { get; }
+        public String?              LocalDomain             { get; }
 
         /// <summary>
         /// A login name which can be used for SMTP authentication.
@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             this.Login               = Login;
             this.Password            = Password;
-            this.LocalDomain         = LocalDomain ?? System.Net.Dns.GetHostName();
+            this.LocalDomain         = LocalDomain;
             this.UnknownAuthMethods  = [];
             this.RemoteHost          = RemoteHost;
             this.UseTLS              = UseTLS;
@@ -624,6 +624,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
+        #region (private) EhloArgument / (internal) AddressLiteral(Address)
+
+        /// <summary>
+        /// What EHLO and HELO name this client by. RFC 5321 §4.1.4: "The domain name given in the
+        /// EHLO command MUST be either a primary host name (a domain name that resolves to an
+        /// address RR) or, if the host has no name, an address literal". The configured local
+        /// domain, else the address this connection leaves from - the bare machine name the
+        /// client used to send ("octal", "runner-7f3a") is neither.
+        /// </summary>
+        private String EhloArgument
+
+            => LocalDomain ??
+               (CurrentLocalEndPoint is { } localEndPoint
+                    ? AddressLiteral(localEndPoint.Address)
+                    : System.Net.Dns.GetHostName());
+
+        /// <summary>
+        /// The RFC 5321 §4.1.3 address literal of an address: "[192.0.2.1]", "[IPv6:2001:db8::1]".
+        /// An IPv4 address mapped into IPv6 (a dual-mode socket) is the IPv4 address; a zone index
+        /// ("%3") is local to this host and not part of the grammar.
+        /// </summary>
+        internal static String AddressLiteral(System.Net.IPAddress Address)
+        {
+
+            if (Address.IsIPv4MappedToIPv6)
+                Address = Address.MapToIPv4();
+
+            return Address.AddressFamily == AddressFamily.InterNetwork
+                       ? $"[{Address}]"
+                       : $"[IPv6:{new System.Net.IPAddress(Address.GetAddressBytes())}]";
+
+        }
+
+        #endregion
+
         #region (private) IsTransientFailure(Status)
 
         /// <summary>
@@ -817,7 +852,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #region Send EHLO
 
-                                    var EHLOResponses = await SendCommandAndWaitForResponsesAsync("EHLO " + LocalDomain, cancellationToken).ConfigureAwait(false);
+                                    var EHLOResponses = await SendCommandAndWaitForResponsesAsync("EHLO " + EhloArgument, cancellationToken).ConfigureAwait(false);
 
                                     // 250-mail.ahzf.de
                                     // 250-PIPELINING
@@ -842,7 +877,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         smtpLogger.LogInformation("SMTP server {RemoteHost} refused EHLO ({StatusCode}); falling back to HELO",
                                                                   RemoteHost, (UInt16) EHLOResponses.First().StatusCode);
 
-                                        var HELOResponse = await SendCommandAndWaitForResponseAsync("HELO " + LocalDomain, cancellationToken).ConfigureAwait(false);
+                                        var HELOResponse = await SendCommandAndWaitForResponseAsync("HELO " + EhloArgument, cancellationToken).ConfigureAwait(false);
 
                                         if (HELOResponse.StatusCode != SMTPStatusCodes.Ok)
                                             throw new SMTPClientException("SMTP HELO command error: " + HELOResponse.ToString());
@@ -914,7 +949,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         // RFC 3207 §4.2: everything learnt before TLS is discarded - EHLO again
                                         // for the extensions offered inside it.
-                                        EHLOResponses = await SendCommandAndWaitForResponsesAsync("EHLO " + LocalDomain, cancellationToken).ConfigureAwait(false);
+                                        EHLOResponses = await SendCommandAndWaitForResponsesAsync("EHLO " + EhloArgument, cancellationToken).ConfigureAwait(false);
 
                                     }
 
