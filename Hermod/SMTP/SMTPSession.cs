@@ -47,9 +47,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
     {
 
         private Stream                         _stream         = client.GetStream();
-        // Use Latin1 (ISO-8859-1) encoding: 1:1 byte-to-char mapping for 0-255
-        // ASCII only handles 0-127, which breaks BDAT with binary data!
-        private StreamReader                   _reader         = new(client.GetStream(), Encoding.Latin1);
+        // Lines end at CR LF and nowhere else (RFC 5321 §2.3.8); text is Latin1, one char per octet.
+        private SMTPLineReader                 _reader         = new(client.GetStream());
         // NewLine must be CRLF regardless of host OS (SMTP requires <CRLF>).
         private StreamWriter                   _writer         = new(client.GetStream(), Encoding.Latin1) { AutoFlush = true, NewLine = "\r\n" };
         private SMTPSessionState               _state          = SMTPSessionState.Connected;
@@ -118,15 +117,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
                 while (!ct.IsCancellationRequested && client.Connected)
                 {
-                    var line = await ReadLineAsync(ct);
-                    if (line is null)
+                    var read = await ReadLineAsync(config.MaxCommandLineLength, ct);
+                    if (read is null)
                         break;
 
-                    // Command line-length limit (RFC 5321 §4.5.3.1.4)
-                    if (line.Length + 2 > config.MaxCommandLineLength)
+                    var line = read.Value.Text;
+
+                    // Command line-length limit (RFC 5321 §4.5.3.1.4), enforced while reading.
+                    if (read.Value.Status == SMTPLineStatus.TooLong)
                     {
                         _counters.InvalidCommands++;
                         await SendResponseAsync(500, "5.5.6 Line too long");
+                        if (_counters.InvalidCommands >= rateLimitConfig.MaxInvalidCommands)
+                        {
+                            await SendResponseAsync(421, "4.7.0 Too many errors, closing connection");
+                            break;
+                        }
+                        continue;
+                    }
+
+                    // A bare CR or LF is not a line end (RFC 5321 §2.3.8), so it is part of this
+                    // command — which makes the command invalid, not two commands.
+                    if (read.Value.Status == SMTPLineStatus.BareLineEnding)
+                    {
+                        _counters.InvalidCommands++;
+                        await SendResponseAsync(500, "5.5.2 Bare CR or LF in command line");
                         if (_counters.InvalidCommands >= rateLimitConfig.MaxInvalidCommands)
                         {
                             await SendResponseAsync(421, "4.7.0 Too many errors, closing connection");
@@ -447,7 +462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // pre-TLS plaintext is treated as an injection attempt and dropped, never executed
             // as a post-TLS command (the plaintext-command-injection class, CVE-2011-0411).
             _stream = sslStream;
-            _reader = new StreamReader(sslStream, Encoding.Latin1);
+            _reader = new SMTPLineReader(sslStream);
             _writer = new StreamWriter(sslStream, Encoding.Latin1) { AutoFlush = true, NewLine = "\r\n" };
             _tlsActive = true;
 
@@ -644,15 +659,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             int?    errorCode    = null;
             String? errorMessage = null;
 
-            while (!ct.IsCancellationRequested)
+            while (true)
             {
 
-                var line = await ReadLineAsync(ct);
+                var read = await ReadLineAsync(config.MaxTextLineLength, ct);
 
-                if (line is null)
-                    break;              // connection lost
+                // The connection was lost (or timed out) before the end of data: the
+                // transaction did not complete, so nothing of it is delivered.
+                if (read is null)
+                {
+                    ResetTransaction();
+                    return;
+                }
 
-                if (line == ".")
+                var line = read.Value.Text;
+
+                // Only "." between two CR LFs ends the data. A "." next to a bare LF or CR is
+                // content (RFC 5321 §2.3.8) — that is the whole of the SMTP smuggling defence.
+                if (line == "." && read.Value.Status == SMTPLineStatus.Ok)
                     break;              // end of data
 
                 // Once an error is flagged, keep consuming until the terminator so the
@@ -660,12 +684,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 if (errorCode is not null)
                     continue;
 
-                // Text line-length limit (RFC 5321 §4.5.3.1.6), checked on the wire line.
-                if (line.Length + 2 > config.MaxTextLineLength)
+                // Text line-length limit (RFC 5321 §4.5.3.1.6), enforced while reading.
+                if (read.Value.Status == SMTPLineStatus.TooLong)
                 {
                     errorCode    = 500;
                     errorMessage = "5.6.0 Line too long";
                     continue;
+                }
+
+                if (read.Value.Status == SMTPLineStatus.BareLineEnding)
+                {
+
+                    if (config.RejectBareLineEndings)
+                    {
+                        errorCode    = 550;
+                        errorMessage = "5.5.2 Bare CR or LF in message content (RFC 5321 §2.3.8)";
+                        continue;
+                    }
+
+                    // Normalize: every bare CR or LF becomes a CR LF of its own. The message
+                    // stays one message; a "." produced here is an ordinary content line, and
+                    // is dot-stuffed again whenever the message is sent onwards.
+                    line = line.Replace('\r', '\n').Replace("\n", "\r\n");
+
                 }
 
                 // Dot-unstuffing: remove one leading dot (RFC 5321 §4.5.2)
@@ -711,15 +752,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private async Task HandleBdatAsync(String args, CancellationToken ct)
         {
 
-            if (_state < SMTPSessionState.RcptTo || _rcptTo.Count == 0)
-            {
-                await SendResponseAsync(503, "5.5.1 Need RCPT command first");
-                return;
-            }
-
-            // Parse BDAT arguments: BDAT <size> [LAST]
+            // Parse BDAT arguments: BDAT <size> [LAST]. Without a valid size the chunk
+            // cannot be found, so this is the one refusal that cannot consume it.
             var parts = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 1 || !int.TryParse(parts[0], out var chunkSize))
+            if (parts.Length < 1 || !Int64.TryParse(parts[0], out var chunkSize) || chunkSize < 0)
             {
                 await SendResponseAsync(501, "5.5.4 Syntax: BDAT size [LAST]");
                 return;
@@ -727,57 +763,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             var isLast = parts.Length > 1 && parts[1].Equals("LAST", StringComparison.OrdinalIgnoreCase);
 
-            // Validate chunk size
-            if (chunkSize < 0)
+            // From here on the size is known, and RFC 3030 §2 is unconditional: "If a failure
+            // occurs after a BDAT command is received, the receiver-SMTP MUST accept and discard
+            // the associated message data before sending the appropriate 5XX or 4XX code."
+            // Answering first would leave the chunk to be read as commands.
+            (Int32 Code, String Text, Boolean Reset)? refusal = null;
+
+            if (_state < SMTPSessionState.RcptTo || _rcptTo.Count == 0)
+                refusal = (503, "5.5.1 Need RCPT command first", false);
+
+            else if (_bdatBuffer.Length + chunkSize > config.MaxMessageSize)
+                refusal = (552, "5.3.4 Message size exceeds maximum", true);
+
+            else if (!_inBdatSequence &&
+                     connectionTracker is not null &&
+                     !connectionTracker.CanSendMessage(_clientIp, _authManager.IsAuthenticated))
+                refusal = (452, "4.7.1 Too many messages, try again later", false);
+
+            if (refusal is { } r)
             {
-                await SendResponseAsync(501, "5.5.4 Invalid chunk size");
+
+                if (!await ReadChunkAsync(chunkSize, null, ct))
+                {
+                    ResetTransaction();
+                    return;                 // the connection is gone; nobody to answer
+                }
+
+                await SendResponseAsync(r.Code, r.Text);
+
+                if (r.Reset)
+                    ResetTransaction();
+
                 return;
+
             }
 
-            if (_bdatBuffer.Length + chunkSize > config.MaxMessageSize)
+            _inBdatSequence = true;
+
+            // The octets go straight into the message buffer: binary-safe, no line semantics.
+            if (!await ReadChunkAsync(chunkSize, _bdatBuffer, ct))
             {
-                await SendResponseAsync(552, "5.3.4 Message size exceeds maximum");
                 ResetTransaction();
                 return;
             }
-
-            // Check message rate limit on first chunk
-            if (!_inBdatSequence)
-            {
-                if (connectionTracker is not null && 
-                    !connectionTracker.CanSendMessage(_clientIp, _authManager.IsAuthenticated))
-                {
-                    await SendResponseAsync(452, "4.7.1 Too many messages, try again later");
-                    return;
-                }
-                _inBdatSequence = true;
-            }
-
-
-            // Read exact number of bytes
-            // IMPORTANT: We must read from _reader (not _stream) because StreamReader buffers!
-            // The StreamReader may have already read ahead and buffered the BDAT data.
-            var charBuffer = new char[chunkSize];
-            var charsRead = 0;
-        
-            while (charsRead < chunkSize)
-            {
-                var read = await _reader.ReadBlockAsync(charBuffer.AsMemory(charsRead, chunkSize - charsRead), ct);
-                if (read == 0)
-                {
-                    await SendResponseAsync(451, "4.3.0 Connection lost during BDAT");
-                    ResetTransaction();
-                    return;
-                }
-                charsRead += read;
-            }
-
-            // Convert chars back to bytes using Latin1 (1:1 mapping)
-            // The StreamReader uses Latin1, so each char == one byte
-            var buffer = Encoding.Latin1.GetBytes(charBuffer, 0, chunkSize);
-
-            // Append to buffer
-            _bdatBuffer.Write(buffer, 0, buffer.Length);
 
             if (isLast)
             {
@@ -786,13 +814,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 var rawMessage = Encoding.UTF8.GetString(_bdatBuffer.ToArray());
                 _bdatBuffer.SetLength(0);
                 _inBdatSequence = false;
-            
+
                 await ProcessReceivedMessageAsync(rawMessage, ct);
             }
             else
             {
                 // More chunks expected
                 await SendResponseAsync(250, $"2.0.0 {chunkSize} bytes received, continue");
+            }
+
+        }
+
+
+        /// <summary>
+        /// Read a BDAT chunk into <paramref name="destination"/>, or discard it when that is null,
+        /// within the session timeout. False when the connection was lost or timed out first.
+        /// </summary>
+        private async Task<Boolean> ReadChunkAsync(Int64 size, Stream? destination, CancellationToken ct)
+        {
+            try
+            {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                cts.CancelAfter(config.SessionTimeout);
+                return await _reader.ReadExactlyAsync(size, destination, cts.Token);
+            }
+            catch
+            {
+                return false;
             }
         }
 
@@ -1153,13 +1201,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             await _writer.WriteLineAsync(response);
         }
 
-        private async Task<String?> ReadLineAsync(CancellationToken ct)
+        private async Task<SMTPLine?> ReadLineAsync(Int32 maxLength, CancellationToken ct)
         {
             try
             {
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 cts.CancelAfter(config.SessionTimeout);
-                return await _reader.ReadLineAsync(cts.Token);
+                return await _reader.ReadLineAsync(maxLength, cts.Token);
             }
             catch
             {

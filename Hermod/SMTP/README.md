@@ -19,7 +19,7 @@ SPF/DKIM/DMARC/ARC/DANE/TLS-RPT engines, the outbound client and queue) stays in
 and worked API examples — lives in a separate repository, the deployable server
 instance: [**Vanaheimr/SMTPServer** → `docs/SMTP-Server.md`](https://github.com/Vanaheimr/SMTPServer/blob/master/docs/SMTP-Server.md).
 
-Last verified: **2026-07-20**
+Last verified: **2026-10-03**
 
 ## Support levels
 
@@ -37,7 +37,7 @@ Last verified: **2026-07-20**
 
 | Specification | Hermod support |
 |---|---|
-| [RFC 5321](https://www.rfc-editor.org/rfc/rfc5321.html), SMTP | Implemented and regression-tested: `HELO`/`EHLO`/`MAIL`/`RCPT`/`DATA`/`RSET`/`NOOP`/`QUIT`/`VRFY`, the transaction state machine, `Received:` trace fields (§4.4), dot-stuffing (§4.5.2), line-length limits (§4.5.3.1), and null-sender (`<>`) handling. Correct `MAIL FROM:<…>`/`RCPT TO:<…>` syntax on both server and client. |
+| [RFC 5321](https://www.rfc-editor.org/rfc/rfc5321.html), SMTP | Implemented and regression-tested: `HELO`/`EHLO`/`MAIL`/`RCPT`/`DATA`/`RSET`/`NOOP`/`QUIT`/`VRFY`, the transaction state machine, `Received:` trace fields (§4.4), dot-stuffing (§4.5.2), line-length limits (§4.5.3.1) enforced while reading, and null-sender (`<>`) handling. Lines end at CR LF and nowhere else (§2.3.8): a bare CR or LF never ends a command or `DATA`, which closes SMTP smuggling; content containing one is rejected by default (`RejectBareLineEndings`). Correct `MAIL FROM:<…>`/`RCPT TO:<…>` syntax on both server and client. |
 | [RFC 5322](https://www.rfc-editor.org/rfc/rfc5322.html), Internet Message Format | Implemented: RFC 5322 address parsing (display names, angle addresses, quoted local-parts, domain-literals, comments, groups, comma-aware lists) and the typed header/body message model. |
 | [RFC 1870](https://www.rfc-editor.org/rfc/rfc1870.html), SMTP SIZE | Implemented: advertised with the configured maximum; the submission/relay client declares `SIZE=` on `MAIL FROM` and pre-checks the server's limit. |
 | [RFC 6152](https://www.rfc-editor.org/rfc/rfc6152.html), 8BITMIME | Implemented: 8-bit content accepted; `BODY=8BITMIME` emitted when advertised. |
@@ -45,7 +45,7 @@ Last verified: **2026-07-20**
 | [RFC 6532](https://www.rfc-editor.org/rfc/rfc6532.html), Internationalized headers | Partial: UTF-8 header content is carried transparently; RFC 2047 encoded-word normalization is not fully implemented. |
 | [RFC 2034](https://www.rfc-editor.org/rfc/rfc2034.html), Enhanced status codes | Implemented: `ENHANCEDSTATUSCODES` advertised; `x.y.z` codes on responses. |
 | [RFC 3463](https://www.rfc-editor.org/rfc/rfc3463.html), Enhanced status code structure | Implemented: enhanced codes are parsed from replies and surfaced per-recipient and per-transaction in the submission client's `SMTPSendResult`. |
-| [RFC 3030](https://www.rfc-editor.org/rfc/rfc3030.html), CHUNKING / BDAT (+ BINARYMIME) | Implemented and regression-tested: binary-safe `BDAT` chunking, no dot-stuffing. `BINARYMIME` is modeled on the client. |
+| [RFC 3030](https://www.rfc-editor.org/rfc/rfc3030.html), CHUNKING / BDAT (+ BINARYMIME) | Implemented and regression-tested: binary-safe `BDAT` chunking, no dot-stuffing; a refused `BDAT` still consumes its chunk (§2), so the chunk is never read as commands. `BINARYMIME` is modeled on the client. |
 | [RFC 2920](https://www.rfc-editor.org/rfc/rfc2920.html), PIPELINING | Implemented and regression-tested: command groups are read from a buffered, pipeline-safe reader and answered in wire order; buffered plaintext is discarded across `STARTTLS` (RFC 3207 §4.2 injection defense). |
 | [RFC 6409](https://www.rfc-editor.org/rfc/rfc6409.html), Message submission | Implemented: submission ports require authentication; the submission client is a first-class MSA client. |
 | [RFC 3848](https://www.rfc-editor.org/rfc/rfc3848.html), ESMTP transmission types | Implemented: `with` protocol names `ESMTP`/`ESMTPS`/`ESMTPA`/`ESMTPSA` in the `Received:` header reflect TLS and auth state. |
@@ -145,8 +145,17 @@ TLS state). See the [core transport](#core-smtp--esmtp-transport) and
   stuffed to `..` so it cannot terminate `DATA` early. `BDAT` is binary-safe and
   needs no stuffing.
 - Configurable command (default 1024) and text-line (default 2048) length limits
-  (RFC 5321 §4.5.3.1); an over-long `DATA` line is rejected only after the
-  terminating `.` so the connection stays in sync.
+  (RFC 5321 §4.5.3.1), enforced while the line is read; an over-long `DATA` line
+  is rejected only after the terminating `.` so the connection stays in sync.
+- Lines end at CR LF only (RFC 5321 §2.3.8). `<LF>.<LF>`, `<CR>.<CR>` and the
+  mixed forms do not end `DATA`, so a message cannot carry a second, smuggled
+  transaction (CVE-2023-51764 class). A bare CR or LF in a command makes it an
+  invalid command (`500 5.5.2`); in content it rejects the message with
+  `550 5.5.2` after the end of data, or — with `RejectBareLineEndings = false` —
+  is normalized to CR LF inside the one message.
+- A connection lost before the end of `DATA` delivers nothing.
+- A refused `BDAT` (out of sequence, too large, rate-limited) reads and discards
+  its announced octets before answering (RFC 3030 §2).
 - UTF-8 preserved on both `DATA` and `BDAT`; CRLF forced independent of host OS.
 - The submission/relay client sends the canonical serialized message
   (`EMail.ToText()`), never a header-dictionary reconstruction, so DKIM signatures
@@ -167,11 +176,13 @@ vectors, and live domains — not only self-consistency.
 | **TLS-RPT** | Aggregation + RFC 8460 §4 JSON round-trip (outbound); closed-loop gzip/JSON ingestion (inbound); live `_smtp._tls` lookup. |
 | **Submission client** | SCRAM-SHA-256 crypto cross-validated against the server credential generator; a scriptable in-process fake server (Autobahn-style "mean" connection drops/stalls detected in < 10 s, never a 60 s hang); a live STARTTLS+SCRAM end-to-end send; a hanging server aborted promptly on caller cancellation. |
 | **DNS** | Live queries via the Hermod `DNSClient` against real domains. |
+| **Inbound session** | Raw-socket wire tests (`SMTPSessionWireTests`) for line endings, smuggling variants and BDAT chunk consumption; the whole server is additionally run against the external [SMTPConformanceTests](https://github.com/Vanaheimr/SMTPConformanceTests) suite (RFC-by-RFC, plus swaks, smtplib, openssl and Postfix smtp-sink). |
 
-The committed SMTP regression suite (`HermodTests/SMTP/`) contains **84 passing
+The committed SMTP regression suite (`HermodTests/SMTP/`) contains **105 passing
 tests, 0 failed, 0 skipped** as of the verification date, covering the message
 builders and OpenPGP (`EMailBuilderTests`), MDN (`MdnTests`, `MdnStorageTests`),
-DSN (`DsnTests`), priority (`PriorityTests`), and the submission client
+DSN (`DsnTests`), priority (`PriorityTests`), the inbound session on the wire
+(`SMTPSessionWireTests`), and the submission client
 (`SMTPSubmissionClientTests`, `SMTPSubmissionClientWireTests`, `SMTPSubmissionClientTlsScramTests`). The
 SPF/DKIM/DMARC/ARC/DANE/TLS-RPT engines were validated with the dedicated
 harnesses listed above.

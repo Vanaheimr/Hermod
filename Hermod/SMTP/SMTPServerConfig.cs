@@ -53,6 +53,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// defaulted higher to tolerate real-world long-line mail while still bounding memory).
         /// </summary>
         public          Int32     MaxTextLineLength         { get; init; } = 2048;
+        /// <summary>
+        /// What to do with a bare CR or LF inside DATA content. Neither is ever a line end
+        /// (RFC 5321 §2.3.8) — that is what keeps "&lt;LF&gt;.&lt;LF&gt;" from ending a message
+        /// (SMTP smuggling). True (default): reject the message with 550 after the end of data.
+        /// False: accept it, turning each bare CR or LF into a CR LF of its own, for peers that
+        /// send bare LFs and cannot be fixed.
+        /// </summary>
+        public          Boolean   RejectBareLineEndings     { get; init; } = true;
         public          Boolean   RequireStartTls           { get; init; } = false;
         public          Boolean   VerifyDkim                { get; init; } = true;
         public          Boolean   VerifySpf                 { get; init; } = true;
