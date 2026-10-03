@@ -60,4 +60,9 @@ public sealed class QueuedMail
     // queue and re-emitted on the outbound MAIL FROM when the next hop advertises MT-PRIORITY.
     public SByte              Priority          { get; init; } = 0;
 
+    // DSN per recipient (RFC 3461 §5.2.1): NOTIFY and ORCPT belong to each RCPT, not to the
+    // message, and a relaying MTA must pass them on as received. Empty for mail that was not
+    // relayed (MailSender), which keeps using Notify above for every recipient.
+    public RecipientDsn[]     RecipientDsns     { get; init; } = [];
+
 }

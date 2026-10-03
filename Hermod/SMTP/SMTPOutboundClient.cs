@@ -71,7 +71,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                   Boolean            requireTls   = false,
                                                   DsnParameters?     dsn          = null,
                                                   SByte              priority     = 0,
-                                                  CancellationToken  ct           = default)
+                                                  CancellationToken  ct           = default,
+                                                  IReadOnlyCollection<RecipientDsn>? recipientDsns = null)
         {
 
             var startTime = Timestamp.Now;
@@ -154,6 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                mtaStsPolicy.Mode,
                                                dsn ?? DsnParameters.None,
                                                priority,
+                                               recipientDsns ?? [],
                                                ct
                                            );
 
@@ -203,6 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         MtaStsMode          stsMode,
                                                         DsnParameters       dsn,
                                                         SByte               priority,
+                                                        IReadOnlyCollection<RecipientDsn> recipientDsns,
                                                         CancellationToken   ct)
         {
 
@@ -396,7 +399,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 foreach (var recipient in recipients)
                 {
 
-                    await writer.WriteLineAsync(DsnCommands.RcptTo(recipient, dsn, supportsDsn));
+                    // A relayed recipient carries the NOTIFY/ORCPT it was received with (RFC 3461
+                    // §5.2.1); a message of our own applies the message-wide request to every one.
+                    var recipientDsn = recipientDsns.FirstOrDefault(r => r.Recipient == recipient);
+
+                    await writer.WriteLineAsync(recipientDsn is not null
+                                                    ? $"RCPT TO:<{recipient}>" + DsnCommands.RcptToParams(recipientDsn, supportsDsn)
+                                                    : DsnCommands.RcptTo(recipient, dsn, supportsDsn));
                     var rcptResponse = await ReadResponseAsync(reader, ct);
 
                     if (rcptResponse.StartsWith("250") || rcptResponse.StartsWith("251"))

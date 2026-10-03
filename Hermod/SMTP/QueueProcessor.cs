@@ -264,7 +264,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     mail.RequireTls,
                     new DsnParameters(mail.Notify, mail.Ret, mail.EnvId),
                     mail.Priority,
-                    ct
+                    ct,
+                    mail.RecipientDsns
                 );
 
                 await HandleDeliveryResultAsync(mail, result, ct);

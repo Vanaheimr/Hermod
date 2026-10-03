@@ -77,6 +77,21 @@ public static class DsnCommands
     }
 
     /// <summary>
+    /// The NOTIFY/ORCPT parameter suffix for relaying one recipient as it was received (RFC 3461
+    /// §5.2.1), or "" when the remote does not support DSN. NOTIFY=NEVER is a value the client
+    /// chose and is passed on like any other; a received ORCPT is passed on unchanged, and only
+    /// in its absence is one built from the recipient.
+    /// </summary>
+    public static string RcptToParams(RecipientDsn recipient, bool remoteSupportsDsn)
+    {
+        if (!remoteSupportsDsn)
+            return "";
+
+        return " NOTIFY=" + FormatNotify(recipient.Notify) +
+               " ORCPT="  + (recipient.OriginalRecipient ?? $"rfc822;{recipient.Recipient}");
+    }
+
+    /// <summary>
     /// Build a full MAIL FROM command, appending RET/ENVID when the remote supports DSN and one was requested.
     /// </summary>
     public static string MailFrom(string envelopeFrom, DsnParameters dsn, bool remoteSupportsDsn)

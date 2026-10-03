@@ -1056,7 +1056,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                         TargetDomain = domainGroup.Key,
                         QueuedAt = Timestamp.Now,
                         NextRetry = Timestamp.Now,
-                        Priority = _mtPriority   // carry MT-PRIORITY (RFC 6710) onto the relay
+                        Priority = _mtPriority,  // carry MT-PRIORITY (RFC 6710) onto the relay
+
+                        // REQUIRETLS (RFC 8689 §5) travels with the message, or the next hop is
+                        // free to deliver it without TLS.
+                        RequireTls = _requireTls,
+
+                        // RFC 3461 §5.2.1: ENVID and RET "MUST also appear on the MAIL command with
+                        // which the message is relayed", NOTIFY and ORCPT on each relayed RCPT.
+                        EnvId         = _dsnEnvId,
+                        Ret           = _dsnRet,
+                        RecipientDsns = [.. _recipientDsns.Where(r => domainGroup.Contains(r.Recipient))],
+                        Notify        = _recipientDsns.Where (r => domainGroup.Contains(r.Recipient)).
+                                                       Aggregate(DsnNotify.Never, (all, r) => all | r.Notify)
                     };
 
                     await mailQueue.EnqueueAsync(queuedMail, ct);
