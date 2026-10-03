@@ -19,6 +19,7 @@
 
 using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
 
@@ -182,8 +183,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         private sealed class Wire(TcpClient client) : IDisposable
         {
 
-            private readonly NetworkStream  stream  = client.GetStream();
+            private          Stream         stream  = client.GetStream();
             private readonly StringBuilder  pending = new();
+
+            /// <summary>
+            /// The client half of the TLS handshake, after the server's 220 to STARTTLS.
+            /// The server's self-signed certificate is accepted.
+            /// </summary>
+            public async Task StartTlsAsync()
+            {
+
+                Assert.That(pending.Length, Is.Zero, "nothing may follow the 220 to STARTTLS");
+
+                var tls = new SslStream(stream, leaveInnerStreamOpen: false, (_, _, _, _) => true);
+                await tls.AuthenticateAsClientAsync("mx.hermod.test");
+                stream  = tls;
+
+            }
 
             public Task SendAsync(String text)
                 => stream.WriteAsync(Encoding.ASCII.GetBytes(text)).AsTask();
