@@ -66,7 +66,7 @@ public sealed class Http3Tunnel : IHTTP2Tunnel
 
     /// <summary>
     /// Reads the next chunk tunnelled from the peer; <c>null</c> once the peer has ended its side
-    /// (FIN or reset).
+    /// (FIN or reset), or the connection has ended — closed by either side or timed out.
     /// </summary>
     public Task<byte[]?> ReadAsync(CancellationToken CancellationToken)
     {
@@ -191,8 +191,8 @@ public sealed class Http3Tunnel : IHTTP2Tunnel
     }
 
     /// <summary>
-    /// Called by the pump: the peer side has ended (FIN or reset) — outstanding and future reads
-    /// return <c>null</c> once the queue has drained.
+    /// Called by the connection: the peer side has ended (FIN or reset), or the connection itself
+    /// has — outstanding and future reads return <c>null</c> once the queue has drained.
     /// </summary>
     internal void End()
     {

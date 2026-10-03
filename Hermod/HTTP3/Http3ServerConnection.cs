@@ -448,8 +448,13 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
 
     /// <summary>
     /// Closes the connection immediately with a CONNECTION_CLOSE (RFC 9000 §10.2; default: NO_ERROR).
+    /// Its tunnels end at once: their reads return <c>null</c>.
     /// </summary>
-    public void Close(TransportError error = TransportError.NoError, string reason = "") => _quic.Close(error, reason);
+    public void Close(TransportError error = TransportError.NoError, string reason = "")
+    {
+        _quic.Close(error, reason);
+        EndTunnels();
+    }
 
     /// <summary>
     /// Initiates the graceful connection shutdown (RFC 9114 §5.2): sends a GOAWAY with the first
@@ -488,9 +493,13 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
 
     /// <summary>
     /// Closes the connection after a completed graceful shutdown (RFC 9114 §5.2 SHOULD:
-    /// CONNECTION_CLOSE type 0x1d with H3_NO_ERROR).
+    /// CONNECTION_CLOSE type 0x1d with H3_NO_ERROR). Its tunnels end at once: their reads return <c>null</c>.
     /// </summary>
-    public void CloseGracefully() => _quic.CloseApplication(Http3Error.NoError, "graceful shutdown");
+    public void CloseGracefully()
+    {
+        _quic.CloseApplication(Http3Error.NoError, "graceful shutdown");
+        EndTunnels();
+    }
 
     private static byte[] BuildVarInt(ulong value)
     {
@@ -551,6 +560,25 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
     }
 
     private void Pump()
+    {
+        PumpStreams();
+        if (_quic.IsClosing || _quic.IsDraining || _quic.IsClosed || _quic.IsIdleTimedOut)
+            EndTunnels();
+    }
+
+    /// <summary>
+    /// Ends every tunnel once the connection has ended — closed by either side, after a connection
+    /// error, or timed out: no FIN or reset will ever arrive for them any more, so a read waiting
+    /// for one would wait for ever. Their reads return <c>null</c> once what was received is read,
+    /// as for a reset (≙ TCP RST, RFC 9220 §3).
+    /// </summary>
+    private void EndTunnels()
+    {
+        foreach (RequestState state in _requests.Values)
+            state.Tunnel?.End();
+    }
+
+    private void PumpStreams()
     {
         if (_quic.IsClosing || _quic.IsDraining || _quic.IsClosed)
             return; // process nothing further after a connection error
@@ -1468,7 +1496,11 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
         finally { writer.Dispose(); }
     }
 
-    public void Dispose() => _quic.Dispose();
+    public void Dispose()
+    {
+        EndTunnels();
+        _quic.Dispose();
+    }
 
     private sealed class RequestState(QuicStream stream)
     {
