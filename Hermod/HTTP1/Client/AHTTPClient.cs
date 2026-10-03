@@ -98,6 +98,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean?                       ConsumeRequestChunkedTEImmediately     { get;}
         public Boolean?                       ConsumeResponseChunkedTEImmediately    { get;}
 
+        /// <summary>
+        /// Connecting to an https:// URL means TCP and TLS, so the handshake gets the
+        /// connect timeout too, as with .NET's own SocketsHttpHandler.ConnectTimeout.
+        /// RequestTimeout starts only after the connection is up, and nothing else ended
+        /// a handshake that the server never answered: SendRequest waited for as long
+        /// as its caller's token allowed, and the background renewal, which passes none,
+        /// for good.
+        /// </summary>
+        protected override TimeSpan?          TLSHandshakeTimeout
+            => ConnectTimeout;
+
         public HTTPClientLogger?              HTTPLogger                             { get; set; }
 
 
