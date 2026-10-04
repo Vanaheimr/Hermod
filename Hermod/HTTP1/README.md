@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-10-03**
+Last verified: **2026-10-04**
 
 ## Support levels
 
@@ -197,9 +197,33 @@ in `URLMapping/`, the class is `HTTPStandardHandlers` again, and the rest is
 deleted. No behaviour changed - the risk in a move like this is losing an
 overload, which breaks a caller in another repository at compile time and would
 never show up here, so `HTTPStandardHandlersTests` pins all eleven entry points
-and that each is still an extension method. Four of the eleven have a caller in
-the test suite; the other seven do not, including all three on `HTTPExtAPI` -
-the signatures are pinned, the file serving behind them is not exercised.
+and that each is still an extension method. Four of the eleven had a caller in
+the test suite then, and `MapFileSystemFolder` on `HTTPAPI` has had one since
+(below); the other six do not, including all three on `HTTPExtAPI` - their
+signatures are pinned, the serving behind them is not exercised.
+
+`MapFileSystemFolder` keeps to its root since 2026-10-04. Its guard was
+`Path.Combine(root, path)` followed by `GetFullPath(...).StartsWith(root)`, and
+over the wire that served a file from outside the root. The request parser
+refuses `../` in every spelling tried - plain, `%2e`, with `%2f` or `%5c`, or
+double-encoded - but lets a colon through, and on Windows `C:secret.txt` is a
+drive-relative path: `Path.Combine` returns it in place of the root, it
+resolves against the current directory of drive `C:`, and `StartsWith` without
+a trailing separator counted `...\site-secrets\` as inside `...\site`. The root
+is now resolved once and ends in a separator, the request path is appended with
+`Path.Join`, which never discards the root, and on Windows, where no file name
+can hold one, a colon is refused - which also ends `a.txt::$DATA` as a second
+name for `a.txt` that neither the content type nor an `HTMLTemplateHandler`
+recognised. Two more defects were found the same way. A missing file, a
+directory or a device name was a `500` whose body was the exception message,
+that is the absolute path on the server, for any mistyped URL; it is a `404`
+now, and an unexpected exception goes to `HTTPStandardHandlers.Logger` rather
+than to the client. A relative `ResourcePath` refused every file.
+`MapFileSystemFolderTests` sends each of these as a raw request and also pins
+the parser's refusal of dot-segments, which the guard relies on.
+`RegisterFileSystemFile` has no root to keep to - it opens whatever its
+`ResourceFilenameBuilder` returns - so confining that is the caller's job, as
+its documentation now says.
 
 The same rework had left one more `X` behind: `HTTPRequestHandlersX`, the
 record of handlers the routing tree passes around, with no twin to be told
