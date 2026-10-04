@@ -164,6 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                recipients,
                                                messageContent,
                                                enforceTls,
+                                               requireTls,
                                                targetDomain,
                                                mtaStsPolicy.Mode,
                                                dsn ?? DsnParameters.None,
@@ -214,6 +215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         String[]            recipients,
                                                         String              messageContent,
                                                         Boolean             enforceTls,
+                                                        Boolean             requireTls,
                                                         String              policyDomain,
                                                         MtaStsMode          stsMode,
                                                         DsnParameters       dsn,
@@ -409,9 +411,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var supportsDsn         = extensions.ContainsKey("DSN");
                 var supportsMtPriority  = extensions.ContainsKey(MtPriority.Keyword);
 
+                // What the message needs of the next hop, and whether it offers it. A message it
+                // cannot take is not handed over in a form it did not ask for: no 7-bit conversion,
+                // which would break DKIM and OpenPGP signatures over the content.
+                var needsSmtpUtf8  = NeedsSmtpUtf8(envelopeFrom, recipients, messageContent);
+                var has8Bit        = messageContent.Any(c => c > '\x7F');
+
+                // RFC 6531 §3.2: a message that needs SMTPUTF8 goes only to a server that offers it.
+                if (needsSmtpUtf8 && !extensions.ContainsKey("SMTPUTF8"))
+                    return SendResult.PermFail(553, $"5.6.7 {mxHost} does not offer SMTPUTF8, which the message needs", mxHost);
+
+                // RFC 5321 §2.4, RFC 6152 §3: no 8-bit content to a server without 8BITMIME.
+                if (has8Bit && !extensions.ContainsKey("8BITMIME"))
+                    return SendResult.PermFail(554, $"5.6.3 {mxHost} does not offer 8BITMIME, and the message has 8-bit content", mxHost);
+
+                // RFC 8689 §4.2.1: a REQUIRETLS message goes only to a next hop that offers REQUIRETLS
+                // (which it does inside TLS only), and carries the option on.
+                if (requireTls && !extensions.ContainsKey("REQUIRETLS"))
+                    return SendResult.PermFail(550, $"5.7.30 REQUIRETLS support required, and {mxHost} does not offer it", mxHost);
+
                 // MAIL FROM (with RET/ENVID and MT-PRIORITY when requested and supported)
                 var mailFromCommand = DsnCommands.MailFrom(envelopeFrom, dsn, supportsDsn);
                 mailFromCommand     = MtPriority.AppendMailFromParam(mailFromCommand, priority, supportsMtPriority);
+
+                if (has8Bit)
+                    mailFromCommand += " BODY=8BITMIME";        // RFC 6152 §3
+
+                if (needsSmtpUtf8)
+                    mailFromCommand += " SMTPUTF8";             // RFC 6531 §3.4
+
+                if (requireTls)
+                    mailFromCommand += " REQUIRETLS";           // RFC 8689 §4.2.1
                 await connection.WriteLineAsync(mailFromCommand, ct);
                 var mailResponse = await connection.ReadReplyAsync(ct);
                 if (mailResponse.Code != 250)
@@ -630,6 +660,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         }
 
+        /// <summary>
+        /// Whether the message needs SMTPUTF8 (RFC 6531): a non-ASCII envelope address, or a
+        /// non-ASCII header field - the header section of an internationalized message is UTF-8.
+        /// </summary>
+        private static Boolean NeedsSmtpUtf8(String envelopeFrom, IEnumerable<String> recipients, String messageContent)
+        {
+
+            static Boolean NonAscii(String text)
+                => text.Any(c => c > '\x7F');
+
+            if (NonAscii(envelopeFrom) || recipients.Any(NonAscii))
+                return true;
+
+            var headerEnd = messageContent.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+            if (headerEnd < 0)
+                headerEnd = messageContent.IndexOf("\n\n", StringComparison.Ordinal);
+
+            return NonAscii(headerEnd < 0 ? messageContent : messageContent[..headerEnd]);
+
+        }
+
         private static SendResult ParseResponse(String response, String? mx)
         {
 
@@ -688,6 +739,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                   X509Chain?        chain,
                                                   SslPolicyErrors   sslPolicyErrors)
         {
+
+            // A validator of the operator's own - a private CA, a pinned certificate - decides alone.
+            if (_config.RemoteCertificateValidator is not null)
+                return _config.RemoteCertificateValidator(mxHost, certificate as X509Certificate2, chain, sslPolicyErrors);
 
             // Fully valid: chains to a trusted root, matches the MX host, and is present.
             if (sslPolicyErrors == SslPolicyErrors.None)

@@ -19,7 +19,10 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -82,8 +85,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             private readonly String                   greeting;
             private readonly String[]                 extensions;
             private readonly Boolean                  silent;
+            private readonly X509Certificate2?        certificate;
+            private readonly Boolean                  requireTls;
+            private          Boolean                  inTls;
 
             public readonly ConcurrentQueue<String>   Commands  = new();
+            public volatile Boolean                   TlsUsed;
             public readonly ConcurrentQueue<String>   DataLines = new();
             public volatile Boolean                   ClosedByClient;
 
@@ -94,22 +101,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             /// <param name="Greeting">The greeting.</param>
             /// <param name="Extensions">The EHLO keywords.</param>
             /// <param name="Silent">Accept the connection and say nothing at all.</param>
-            public NextHop(Func<String, String?>?  Reply       = null,
-                           String                  Greeting    = "220 next.hop ESMTP",
-                           String[]?               Extensions  = null,
-                           Boolean                 Silent      = false)
+            /// <param name="Certificate">Offer STARTTLS with this certificate.</param>
+            /// <param name="RequireTls">Inside TLS, offer REQUIRETLS (RFC 8689).</param>
+            public NextHop(Func<String, String?>?  Reply        = null,
+                           String                  Greeting     = "220 next.hop ESMTP",
+                           String[]?               Extensions   = null,
+                           Boolean                 Silent       = false,
+                           X509Certificate2?       Certificate  = null,
+                           Boolean                 RequireTls   = false)
             {
-                reply       = line => Reply?.Invoke(line) ?? Default(line);
-                greeting    = Greeting;
-                extensions  = Extensions ?? [ "PIPELINING", "8BITMIME", "SIZE 10485760", "DSN", "SMTPUTF8", "ENHANCEDSTATUSCODES" ];
-                silent      = Silent;
+                reply        = line => Reply?.Invoke(line) ?? Default(line);
+                greeting     = Greeting;
+                extensions   = Extensions ?? [ "PIPELINING", "8BITMIME", "SIZE 10485760", "DSN", "SMTPUTF8", "ENHANCEDSTATUSCODES" ];
+                silent       = Silent;
+                certificate  = Certificate;
+                requireTls   = RequireTls;
                 listener.Start();
                 _ = Task.Run(ServeAsync);
             }
 
+            private String Ehlo()
+            {
+                String[] lines = [ "next.hop", .. extensions,
+                                   .. certificate is not null && !inTls ? new[] { "STARTTLS" }   : [],
+                                   .. requireTls && inTls               ? new[] { "REQUIRETLS" } : [] ];
+                return String.Join("\r\n", lines.Select((line, i) => (i == lines.Length - 1 ? "250 " : "250-") + line));
+            }
+
             private String Default(String Line)
                 => Line.Split(' ')[0].ToUpperInvariant() switch {
-                       "EHLO"  => String.Join("\r\n", new[] { "next.hop" }.Concat(extensions).Select((line, i) => (i == extensions.Length ? "250 " : "250-") + line)),
+                       "EHLO"  => Ehlo(),
                        "HELO"  => "250 next.hop",
                        "MAIL"  => "250 2.1.0 ok",
                        "RCPT"  => "250 2.1.5 ok",
@@ -125,8 +146,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 {
 
                     using var client = await listener.AcceptTcpClientAsync();
-                    using var stream = client.GetStream();
-                    using var reader = new StreamReader(stream, Encoding.UTF8);
+                    Stream    stream = client.GetStream();
+                    var       reader = new StreamReader(stream, Encoding.UTF8);
 
                     if (silent)
                     {
@@ -165,6 +186,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
                         Commands.Enqueue(line);
 
+                        if (line.Equals("STARTTLS", StringComparison.OrdinalIgnoreCase) && certificate is not null && !inTls)
+                        {
+                            await Write("220 2.0.0 Ready to start TLS");
+                            var tls  = new SslStream(stream, false);
+                            await tls.AuthenticateAsServerAsync(certificate);
+                            stream   = tls;
+                            reader   = new StreamReader(tls, Encoding.UTF8);
+                            inTls    = true;
+                            TlsUsed  = true;
+                            continue;
+                        }
+
                         var answer = reply(line);
                         if (line.StartsWith("DATA", StringComparison.OrdinalIgnoreCase) && answer.StartsWith('3'))
                             inData = true;
@@ -186,35 +219,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
-        private static SMTPOutboundClient ClientFor(NextHop NextHop, UInt32 ReadTimeoutMs = 5_000)
+        private static X509Certificate2 SelfSigned()
+        {
+            using var rsa   = RSA.Create(2048);
+            var request     = new CertificateRequest("CN=127.0.0.1", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            using var cert  = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
+            return X509CertificateLoader.LoadPkcs12(cert.Export(X509ContentType.Pfx), null);
+        }
+
+        private static SMTPOutboundClient ClientFor(NextHop NextHop, UInt32 ReadTimeoutMs = 5_000, Boolean TrustAnyCertificate = false)
 
             => new (new SmtpOutboundConfig {
-                        LocalHostname     = "relay.hermod.test",
-                        SmartHost         = "127.0.0.1",
-                        SmartHostPort     = NextHop.Port,
-                        ConnectTimeoutMs  = 3_000,
-                        ReadTimeoutMs     = ReadTimeoutMs,
-                        WriteTimeoutMs    = 3_000
+                        LocalHostname               = "relay.hermod.test",
+                        SmartHost                   = "127.0.0.1",
+                        SmartHostPort               = NextHop.Port,
+                        ConnectTimeoutMs            = 3_000,
+                        ReadTimeoutMs               = ReadTimeoutMs,
+                        WriteTimeoutMs              = 3_000,
+                        RemoteCertificateValidator  = TrustAnyCertificate ? (_, _, _, _) => true : null
                     },
                     null,
                     new NoDNS(),
                     new QuietLogger());
 
         private static async Task<SendResult> Send(NextHop         NextHop,
-                                                   String[]?       To              = null,
-                                                   String          Body            = "hello",
-                                                   UInt32          ReadTimeoutMs   = 5_000,
-                                                   DsnParameters?  Dsn             = null)
+                                                   String[]?       To                   = null,
+                                                   String          Body                 = "hello",
+                                                   UInt32          ReadTimeoutMs        = 5_000,
+                                                   DsnParameters?  Dsn                  = null,
+                                                   Boolean         RequireTls           = false,
+                                                   String          From                 = "sender@client.example",
+                                                   String          Subject              = "relay")
         {
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
-            var result = await ClientFor(NextHop, ReadTimeoutMs).SendAsync("next.example",
-                                                                           "sender@client.example",
-                                                                           To ?? [ "you@next.example" ],
-                                                                           $"Subject: relay\r\n\r\n{Body}\r\n",
-                                                                           dsn: Dsn,
-                                                                           ct: cts.Token);
+            var result = await ClientFor(NextHop, ReadTimeoutMs, TrustAnyCertificate: true).SendAsync("next.example",
+                                                                                                      From,
+                                                                                                      To ?? [ "you@next.example" ],
+                                                                                                      $"Subject: {Subject}\r\n\r\n{Body}\r\n",
+                                                                                                      requireTls: RequireTls,
+                                                                                                      dsn: Dsn,
+                                                                                                      ct: cts.Token);
 
             await Task.Delay(100);
             return result;
