@@ -263,12 +263,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // Update factory: merge new answers into existing entry
                 (key, existingEntry) => {
 
+                    // A signature is replaced together with the RRset it covers and
+                    // with nothing else. Its own type is RRSIG whatever it covers, so
+                    // merging by type alone let the RRSIG of a newly arrived RRset
+                    // replace the RRSIG of every other RRset at this name: a zone apex
+                    // holds both a signed DNSKEY and a signed DS RRset, and whichever
+                    // of the two was fetched first lost its signature to the second.
+                    // RFC 4035 §4.5 asks for "a single atomic entry containing the
+                    // entire answer, including the named RRset and any associated
+                    // DNSSEC RRs" — an RRset served without its signature is, to a
+                    // validator, an RRset that was never signed.
                     var newAnswerTypes = DNSInformation.Answers.
-                                             Select(rr => rr.Type).
+                                             Select(RRsetType).
                                              ToHashSet();
 
                     var mergedAnswers  = existingEntry.DNSInfo.Answers.
-                                             Where (rr => !newAnswerTypes.Contains(rr.Type)).
+                                             Where (rr => !newAnswerTypes.Contains(RRsetType(rr))).
                                              Concat(DNSInformation.Answers).
                                              ToArray();
 
@@ -481,6 +491,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return false;
 
         }
+
+        #endregion
+
+        #region (private static) RRsetType(ResourceRecord)
+
+        /// <summary>
+        /// The type of the RRset a record belongs to for caching purposes: its own
+        /// type, or for an RRSIG the type it covers (RFC 4034 §3.1.1).
+        /// </summary>
+        private static DNSResourceRecordTypes RRsetType(IDNSResourceRecord ResourceRecord)
+
+            => ResourceRecord is RRSIG signature
+                   ? signature.TypeCovered
+                   : ResourceRecord.Type;
 
         #endregion
 
