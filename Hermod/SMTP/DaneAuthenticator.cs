@@ -39,11 +39,17 @@ public static class DaneAuthenticator
     /// <param name="Records">The DNSSEC-validated TLSA records.</param>
     /// <param name="Leaf">The server's end-entity certificate.</param>
     /// <param name="Chain">The certificate chain presented by the server (may be null/incomplete).</param>
+    /// <param name="ReferenceIdentifiers">
+    /// The names the certificate must carry when a DANE-TA(2) record authenticates it (RFC 7672
+    /// §3.2.2, §3.2.3): the TLSA base domain - the MX host or the relay - and, for an MX host, the
+    /// next-hop domain.
+    /// </param>
     /// <param name="Logger">A logger.</param>
-    public static Boolean Matches(IReadOnlyList<TLSA>  Records,
-                                  X509Certificate2     Leaf,
-                                  X509Chain?           Chain,
-                                  ILogger              Logger)
+    public static Boolean Matches(IReadOnlyList<TLSA>          Records,
+                                  X509Certificate2             Leaf,
+                                  X509Chain?                   Chain,
+                                  IReadOnlyCollection<String>  ReferenceIdentifiers,
+                                  ILogger                      Logger)
     {
 
         foreach (var record in Records)
@@ -60,14 +66,19 @@ public static class DaneAuthenticator
                     break;
 
                 // DANE-TA(2): the TLSA record names a trust anchor that must appear in the
-                // certificate chain presented by the server (RFC 7672 §3.1.1).
+                // certificate chain presented by the server (RFC 7672 §3.1.2) - and the server
+                // certificate must carry one of the reference identifiers (§3.2.2): "With DANE-TA(2),
+                // the server certificate MUST contain a name that matches one of the reference
+                // identifiers". Else any certificate the trust anchor issued would do - with a
+                // public CA's intermediate as the anchor, any certificate of that CA.
                 case TLSA_CertificateUsage.DANE_TA:
-                    if (Chain is not null)
-                        foreach (var element in Chain.ChainElements)
-                            if (SelectedDataMatches(record, element.Certificate))
-                                return true;
-                    if (SelectedDataMatches(record, Leaf))
+                    var anchored = Chain is not null &&
+                                   Chain.ChainElements.Any(element => SelectedDataMatches(record, element.Certificate));
+                    if (anchored && NameMatches(Leaf, ReferenceIdentifiers))
                         return true;
+                    if (anchored)
+                        Logger.Log(LogLevel.Warning,
+                                   $"DANE: the certificate '{Leaf.Subject}' chains to the DANE-TA trust anchor but names none of {String.Join(", ", ReferenceIdentifiers)}");
                     break;
 
                 // PKIX-TA(0) / PKIX-EE(1) additionally require WebPKI validation, which is
@@ -86,6 +97,11 @@ public static class DaneAuthenticator
 
     }
 
+
+    // RFC 7672 §3.2.3: the subject alternative names, or the common name when there are none; a
+    // wildcard stands for the left-most label only.
+    private static Boolean NameMatches(X509Certificate2 Certificate, IReadOnlyCollection<String> ReferenceIdentifiers)
+        => ReferenceIdentifiers.Any(name => Certificate.MatchesHostname(name.TrimEnd('.'), allowWildcards: true, allowCommonName: true));
 
     // Compare the selected certificate data (per Selector + MatchingType) against the
     // record's association data in constant time.
