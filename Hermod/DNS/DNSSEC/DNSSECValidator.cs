@@ -204,8 +204,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <remarks>
         /// <para>
         /// The RRset is authenticated before any key in it counts for anything.
-        /// RFC 5011 §2.2 lets a new key start its hold-down only when it appears in
-        /// a DNSKEY RRset "validly signed by a trust anchor", and §2.1 accepts a
+        /// RFC 5011 adds a new key only "when that RRSet is validated by an
+        /// existing trust anchor" (§2), and starts its hold-down when it is seen
+        /// "in a validated trust point DNSKEY RRSet" (§2.2). §2.1 accepts a
         /// revocation only from "a self-signed RRSet": the revoked key itself has
         /// to have signed it.
         /// </para>
