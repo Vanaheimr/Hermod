@@ -49,6 +49,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public          Boolean  RequireValidCertificate { get; init; } = false;
 
         /// <summary>
+        /// Decide on a next hop's certificate yourself - for a private CA, or a pinned certificate:
+        /// (MX host, certificate, chain, policy errors) -> accept. When set, it replaces the PKIX
+        /// check, strict or opportunistic; DANE (RFC 7672) still authenticates against TLSA alone.
+        /// </summary>
+        public          Func<String, System.Security.Cryptography.X509Certificates.X509Certificate2?, System.Security.Cryptography.X509Certificates.X509Chain?, System.Net.Security.SslPolicyErrors, Boolean>?  RemoteCertificateValidator { get; init; }
+
+        /// <summary>
         /// Enable DANE (RFC 7672): look up DNSSEC-validated TLSA records for the target MX and,
         /// when present, enforce STARTTLS and authenticate the server certificate against them.
         /// Requires a DNSSEC-aware resolver path (the DNS client's DO bit is enabled automatically).

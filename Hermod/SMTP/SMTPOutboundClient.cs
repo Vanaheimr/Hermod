@@ -147,9 +147,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
 
                 // Try each MX host in priority order
-                Exception? lastException = null;
-                String? lastError = null;
-                int lastCode = 0;
+                Exception?  lastException  = null;
+                SendResult? lastResult     = null;
 
                 foreach (var mx in mxHosts.OrderBy(m => m.Priority))
                 {
@@ -164,6 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                recipients,
                                                messageContent,
                                                enforceTls,
+                                               requireTls,
                                                targetDomain,
                                                mtaStsPolicy.Mode,
                                                dsn ?? DsnParameters.None,
@@ -185,8 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         }
 
                         // Temp failure - try next MX
-                        lastError = result.ResponseText;
-                        lastCode = result.ResponseCode;
+                        lastResult = result;
                         _logger.Log(LogLevel.Warning, $"MX {mx.Host} temp failed: {result.ResponseCode} {result.ResponseText}");
                     }
                     catch (Exception ex)
@@ -196,10 +195,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     }
                 }
 
-                // All MX hosts failed
-                return lastError is not null
-                    ? SendResult.TempFail(lastCode, lastError)
-                    : SendResult.TempFail($"All MX hosts unreachable: {lastException?.Message}");
+                // All MX hosts failed: the last answer as it was - with its recipients' answers.
+                return lastResult
+                           ?? SendResult.TempFail($"All MX hosts unreachable: {lastException?.Message}");
             }
             catch (Exception ex)
             {
@@ -214,6 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         String[]            recipients,
                                                         String              messageContent,
                                                         Boolean             enforceTls,
+                                                        Boolean             requireTls,
                                                         String              policyDomain,
                                                         MtaStsMode          stsMode,
                                                         DsnParameters       dsn,
@@ -255,8 +254,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var mustEnforceTls = enforceTls || daneActive;
 
             using var client = new TcpClient();
-            client.SendTimeout    = (Int32) _config.WriteTimeoutMs;
-            client.ReceiveTimeout = (Int32) _config.ReadTimeoutMs;
 
             // Connect with timeout
             using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -282,55 +279,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 _tlsRptRecorder(new TlsRptEvent(policyDomain, policyType, mxHost, receivingIp, sendingIp, success, failureType));
             }
 
-            Stream stream = client.GetStream();
-            // UTF-8 (ASCII-compatible) so SMTPUTF8/8BITMIME bodies relay intact; CRLF forced.
-            var reader = new StreamReader(stream, Encoding.UTF8);
-            var writer = new StreamWriter(stream, new UTF8Encoding(false)) { AutoFlush = true, NewLine = "\r\n" };
+            // Every read and write within its timeout: the socket's ReceiveTimeout/SendTimeout do not
+            // apply to asynchronous I/O, so a silent next hop would otherwise hold the delivery forever.
+            var connection = new SMTPConnection(client.GetStream(),
+                                                TimeSpan.FromMilliseconds(_config.ReadTimeoutMs),
+                                                TimeSpan.FromMilliseconds(_config.WriteTimeoutMs));
+
+            // Whether the session can still be ended with QUIT: from the greeting on, until the
+            // connection is lost, a read times out, or a TLS handshake fails halfway.
+            var sessionOpen = false;
 
             try
             {
 
                 // Read greeting
-                var greeting = await ReadResponseAsync(reader, ct);
-                if (!greeting.StartsWith("220"))
-                    return ParseResponse(greeting, mxHost);
+                var greeting = await connection.ReadReplyAsync(ct);
+                sessionOpen  = true;
+                if (greeting.Code != 220)
+                    return ParseResponse(greeting.ToString(), mxHost);
 
                 // EHLO
-                await writer.WriteLineAsync($"EHLO {_config.LocalHostname}");
-                var ehloResponse = await ReadMultilineResponseAsync(reader, ct);
+                await connection.WriteLineAsync($"EHLO {_config.LocalHostname}", ct);
+                var ehloResponse = await connection.ReadReplyAsync(ct);
 
-                if (!ehloResponse.Code.StartsWith("250"))
+                // RFC 5321 §3.2: a server that does not know EHLO answers 500, 501, 502, 504 or 550,
+                // and the client falls back to HELO. Anything else - a 421 that ends the session, a
+                // 554 - is the server's answer to the attempt.
+                if (ehloResponse.Code is 500 or 501 or 502 or 504 or 550)
                 {
 
-                    // Try HELO fallback
-                    await writer.WriteLineAsync($"HELO {_config.LocalHostname}");
-                    ehloResponse = await ReadMultilineResponseAsync(reader, ct);
-
-                    if (!ehloResponse.Code.StartsWith("250"))
-                        return ParseResponse($"{ehloResponse.Code} {ehloResponse.LastLine}", mxHost);
+                    await connection.WriteLineAsync($"HELO {_config.LocalHostname}", ct);
+                    ehloResponse = await connection.ReadReplyAsync(ct);
 
                 }
 
+                if (ehloResponse.Code != 250)
+                    return ParseResponse(ehloResponse.ToString(), mxHost);
+
+                var extensions = Extensions(ehloResponse);
+
                 // STARTTLS if available and desired/required
-                var supportsStartTls = ehloResponse.Lines.Any(l => 
-                    l.Contains("STARTTLS", StringComparison.OrdinalIgnoreCase));
+                var supportsStartTls = extensions.ContainsKey("STARTTLS");
 
                 var wantTls = mustEnforceTls || _config.RequireStartTls || _config.PreferStartTls;
 
                 if (supportsStartTls && wantTls)
                 {
 
-                    await writer.WriteLineAsync("STARTTLS");
-                    var starttlsResponse = await ReadResponseAsync(reader, ct);
+                    await connection.WriteLineAsync("STARTTLS", ct);
+                    var starttlsResponse = await connection.ReadReplyAsync(ct);
 
-                    if (starttlsResponse.StartsWith("220"))
+                    if (starttlsResponse.Code == 220)
                     {
                         // Under DANE the TLSA record authenticates the certificate directly — no
                         // PKIX path or name check (RFC 7672 §3.1). Otherwise validate strictly when
                         // TLS is enforced, else opportunistically (RFC 7435): encrypt but tolerate a bad cert.
                         var validateStrict = mustEnforceTls || _config.RequireValidCertificate;
 
-                        var sslStream = new SslStream(stream, false,
+                        var sslStream = new SslStream(connection.Stream, false,
                             (_, cert, chain, errors) => daneActive
                                 ? ValidateDaneCertificate(mxHost, daneRecords, cert, chain)
                                 : ValidateServerCertificate(mxHost, validateStrict, cert, chain, errors));
@@ -345,6 +351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         }
                         catch (AuthenticationException ex)
                         {
+                            sessionOpen = false;     // half a handshake: neither TLS nor cleartext
                             // A rejected/mismatched certificate under enforced TLS (including a DANE
                             // TLSA mismatch) must not be bypassed: defer instead of downgrading.
                             var why = daneActive ? "DANE TLSA mismatch" : "certificate validation failed";
@@ -352,9 +359,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             return SendResult.TempFail(454, $"TLS {why} for {mxHost}: {ex.Message}", mxHost);
                         }
 
-                        stream = sslStream;
-                        reader = new StreamReader(sslStream, Encoding.UTF8);
-                        writer = new StreamWriter(sslStream, new UTF8Encoding(false)) { AutoFlush = true, NewLine = "\r\n" };
+                        // Whatever was read in cleartext behind the 220 is discarded (RFC 3207 §4.2).
+                        connection.SwitchTo(sslStream);
 
                         _logger.Log(LogLevel.Debug,
                             $"TLS established with {mxHost}: {sslStream.SslProtocol}{(daneActive ? " (DANE-authenticated)" : "")}");
@@ -363,8 +369,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         RecordTls(true, null);
 
                         // Re-send EHLO after TLS
-                        await writer.WriteLineAsync($"EHLO {_config.LocalHostname}");
-                        ehloResponse = await ReadMultilineResponseAsync(reader, ct);
+                        await connection.WriteLineAsync($"EHLO {_config.LocalHostname}", ct);
+                        ehloResponse = await connection.ReadReplyAsync(ct);
+                        if (ehloResponse.Code != 250)
+                            return ParseResponse(ehloResponse.ToString(), mxHost);
+
+                        // RFC 3207 §4.2: what was offered before TLS counts no more.
+                        extensions = Extensions(ehloResponse);
                     }
                     else if (mustEnforceTls || _config.RequireStartTls)
                     {
@@ -386,7 +397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // AUTH if smarthost credentials provided
                 if (_config.SmartHost is not null && _config.SmartHostUsername is not null)
                 {
-                    var authResult = await AuthenticateAsync(reader, writer, ehloResponse, ct);
+                    var authResult = await AuthenticateAsync(connection, extensions, ct);
                     if (!authResult.StartsWith("235"))
                     {
                         return ParseResponse(authResult, mxHost);
@@ -394,21 +405,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
 
                 // DSN (RFC 3461) / MT-PRIORITY (RFC 6710): only emit params the remote advertised.
-                var supportsDsn         = ehloResponse.Lines.Any(l => l.Contains("DSN", StringComparison.OrdinalIgnoreCase));
-                var supportsMtPriority  = ehloResponse.Lines.Any(l => l.Contains(MtPriority.Keyword, StringComparison.OrdinalIgnoreCase));
+                var supportsDsn         = extensions.ContainsKey("DSN");
+                var supportsMtPriority  = extensions.ContainsKey(MtPriority.Keyword);
+
+                // What the message needs of the next hop, and whether it offers it. A message it
+                // cannot take is not handed over in a form it did not ask for: no 7-bit conversion,
+                // which would break DKIM and OpenPGP signatures over the content.
+                var needsSmtpUtf8  = NeedsSmtpUtf8(envelopeFrom, recipients, messageContent);
+                var has8Bit        = messageContent.Any(c => c > '\x7F');
+
+                // RFC 6531 §3.2: a message that needs SMTPUTF8 goes only to a server that offers it.
+                if (needsSmtpUtf8 && !extensions.ContainsKey("SMTPUTF8"))
+                    return SendResult.PermFail(553, $"5.6.7 {mxHost} does not offer SMTPUTF8, which the message needs", mxHost);
+
+                // RFC 5321 §2.4, RFC 6152 §3: no 8-bit content to a server without 8BITMIME.
+                if (has8Bit && !extensions.ContainsKey("8BITMIME"))
+                    return SendResult.PermFail(554, $"5.6.3 {mxHost} does not offer 8BITMIME, and the message has 8-bit content", mxHost);
+
+                // RFC 8689 §4.2.1: a REQUIRETLS message goes only to a next hop that offers REQUIRETLS
+                // (which it does inside TLS only), and carries the option on.
+                if (requireTls && !extensions.ContainsKey("REQUIRETLS"))
+                    return SendResult.PermFail(550, $"5.7.30 REQUIRETLS support required, and {mxHost} does not offer it", mxHost);
 
                 // MAIL FROM (with RET/ENVID and MT-PRIORITY when requested and supported)
                 var mailFromCommand = DsnCommands.MailFrom(envelopeFrom, dsn, supportsDsn);
                 mailFromCommand     = MtPriority.AppendMailFromParam(mailFromCommand, priority, supportsMtPriority);
-                await writer.WriteLineAsync(mailFromCommand);
-                var mailResponse = await ReadResponseAsync(reader, ct);
-                if (!mailResponse.StartsWith("250"))
+
+                if (has8Bit)
+                    mailFromCommand += " BODY=8BITMIME";        // RFC 6152 §3
+
+                if (needsSmtpUtf8)
+                    mailFromCommand += " SMTPUTF8";             // RFC 6531 §3.4
+
+                if (requireTls)
+                    mailFromCommand += " REQUIRETLS";           // RFC 8689 §4.2.1
+                await connection.WriteLineAsync(mailFromCommand, ct);
+                var mailResponse = await connection.ReadReplyAsync(ct);
+                if (mailResponse.Code != 250)
                 {
-                    return ParseResponse(mailResponse, mxHost);
+                    return ParseResponse(mailResponse.ToString(), mxHost);
                 }
 
                 // RCPT TO for each recipient (with NOTIFY/ORCPT when requested and supported)
-                var acceptedRecipients = new List<String>();
+                var outcomes = new List<RecipientOutcome>();
                 foreach (var recipient in recipients)
                 {
 
@@ -416,123 +455,150 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     // §5.2.1); a message of our own applies the message-wide request to every one.
                     var recipientDsn = recipientDsns.FirstOrDefault(r => r.Recipient == recipient);
 
-                    await writer.WriteLineAsync(recipientDsn is not null
-                                                    ? $"RCPT TO:<{recipient}>" + DsnCommands.RcptToParams(recipientDsn, supportsDsn)
-                                                    : DsnCommands.RcptTo(recipient, dsn, supportsDsn));
-                    var rcptResponse = await ReadResponseAsync(reader, ct);
+                    await connection.WriteLineAsync(recipientDsn is not null
+                                                        ? $"RCPT TO:<{recipient}>" + DsnCommands.RcptToParams(recipientDsn, supportsDsn)
+                                                        : DsnCommands.RcptTo(recipient, dsn, supportsDsn),
+                                                    ct);
+                    var rcptResponse = await connection.ReadReplyAsync(ct);
 
-                    if (rcptResponse.StartsWith("250") || rcptResponse.StartsWith("251"))
-                    {
-                        acceptedRecipients.Add(recipient);
-                    }
-                    else
-                    {
+                    outcomes.Add(new RecipientOutcome(recipient, rcptResponse.Code, rcptResponse.Text));
+
+                    if (rcptResponse.Code is not (250 or 251))
                         _logger.Log(LogLevel.Warning, $"Recipient {recipient} rejected: {rcptResponse}");
-                        // Continue with other recipients
-                    }
 
                 }
 
-                if (acceptedRecipients.Count == 0)
-                    return SendResult.PermFail(550, "All recipients rejected", mxHost);
+                // Nobody accepted: refused for now if any was refused for now - those are tried
+                // again - else refused. Each recipient's answer goes with the result.
+                if (outcomes.All(outcome => outcome.Status != SendStatus.Success))
+                {
+                    var first = outcomes.FirstOrDefault(outcome => outcome.Status == SendStatus.TempFail) ?? outcomes[0];
+                    return (first.Status == SendStatus.TempFail
+                                ? SendResult.TempFail(first.Code, $"No recipient accepted: {first.Text}", mxHost)
+                                : SendResult.PermFail(first.Code, $"No recipient accepted: {first.Text}", mxHost))
+                           with { Recipients = outcomes };
+                }
 
                 // DATA
-                await writer.WriteLineAsync("DATA");
-                var dataResponse = await ReadResponseAsync(reader, ct);
-                if (!dataResponse.StartsWith("354"))
-                    return ParseResponse(dataResponse, mxHost);
+                await connection.WriteLineAsync("DATA", ct);
+                var dataResponse = await connection.ReadReplyAsync(ct);
+                if (dataResponse.Code != 354)
+                    return ParseResponse(dataResponse.ToString(), mxHost);
 
-                // Send message content with dot-stuffing
-                await SendMessageDataAsync(writer, messageContent, ct);
+                // Send message content with dot-stuffing, and end with <CRLF>.<CRLF>
+                await connection.WriteAsync(DataOctets(messageContent), ct);
+                var finalResponse = await connection.ReadReplyAsync(ct);
 
-                // End with <CRLF>.<CRLF>
-                await writer.WriteLineAsync(".");
-                var finalResponse = await ReadResponseAsync(reader, ct);
+                // The message was taken for the accepted recipients; what became of the others goes
+                // with the result, for the queue to bounce or retry them.
+                var delivery = ParseResponse(finalResponse.ToString(), mxHost) with { RemoteSupportsDsn = supportsDsn };
 
-                // QUIT (best effort)
-                try
-                {
-                    await writer.WriteLineAsync("QUIT");
-                    await ReadResponseAsync(reader, ct);
-                }
-                catch
-                {
-                    // Ignore QUIT errors
-                }
+                return delivery.Status == SendStatus.Success
+                           ? delivery with { Recipients = outcomes }
+                           : delivery;
 
-                return ParseResponse(finalResponse, mxHost) with { RemoteSupportsDsn = supportsDsn };
-
+            }
+            catch
+            {
+                // A lost connection, a timeout: nothing to say QUIT on.
+                sessionOpen = false;
+                throw;
             }
             finally
             {
+
+                // RFC 5321 §4.1.1.10: "The sender MUST NOT intentionally close the transmission
+                // channel until it sends a QUIT command, and it SHOULD wait until it receives the
+                // reply" - after a refused MAIL, RCPT, DATA or message, a refused STARTTLS or EHLO,
+                // as after a delivery. Best effort: the reply changes nothing about the result.
+                if (sessionOpen)
+                {
+                    try
+                    {
+                        await connection.WriteLineAsync("QUIT", ct);
+                        await connection.ReadReplyAsync(ct);
+                    }
+                    catch
+                    {
+                        // the next hop is gone already
+                    }
+                }
+
                 client.Close();
+
             }
         }
 
-        private async Task<String> AuthenticateAsync(StreamReader       reader,
-                                                     StreamWriter       writer,
-                                                     MultilineResponse  ehloResponse,
-                                                     CancellationToken  ct)
+        private async Task<String> AuthenticateAsync(SMTPConnection                       connection,
+                                                     IReadOnlyDictionary<String, String>  extensions,
+                                                     CancellationToken                    ct)
         {
 
             // Check supported mechanisms
-            var authLine = ehloResponse.Lines.FirstOrDefault(l => 
-                l.StartsWith("250", StringComparison.OrdinalIgnoreCase) &&
-                l.Contains("AUTH", StringComparison.OrdinalIgnoreCase));
-
-            if (authLine is null)
+            if (!extensions.TryGetValue("AUTH", out var authParameters))
             {
                 return "504 AUTH not supported";
             }
 
+            var mechanisms = authParameters.Split(' ', StringSplitOptions.RemoveEmptyEntries).
+                                            Select(mechanism => mechanism.ToUpperInvariant()).
+                                            ToHashSet();
+
             // Prefer PLAIN for simplicity (already over TLS)
-            if (authLine.Contains("PLAIN", StringComparison.OrdinalIgnoreCase))
+            if (mechanisms.Contains("PLAIN"))
             {
 
                 var authString = $"\0{_config.SmartHostUsername}\0{_config.SmartHostPassword}";
                 var authBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
 
-                await writer.WriteLineAsync($"AUTH PLAIN {authBase64}");
-                return await ReadResponseAsync(reader, ct);
+                await connection.WriteLineAsync($"AUTH PLAIN {authBase64}", ct);
+                return (await connection.ReadReplyAsync(ct)).ToString();
 
             }
 
             // Fallback to LOGIN
-            if (authLine.Contains("LOGIN", StringComparison.OrdinalIgnoreCase))
+            if (mechanisms.Contains("LOGIN"))
             {
-                await writer.WriteLineAsync("AUTH LOGIN");
-                var response = await ReadResponseAsync(reader, ct);
-                if (!response.StartsWith("334"))
-                    return response;
+                await connection.WriteLineAsync("AUTH LOGIN", ct);
+                var response = await connection.ReadReplyAsync(ct);
+                if (response.Code != 334)
+                    return response.ToString();
 
-                await writer.WriteLineAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(_config.SmartHostUsername!)));
-                response = await ReadResponseAsync(reader, ct);
-                if (!response.StartsWith("334"))
-                    return response;
+                await connection.WriteLineAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(_config.SmartHostUsername!)), ct);
+                response = await connection.ReadReplyAsync(ct);
+                if (response.Code != 334)
+                    return response.ToString();
 
-                await writer.WriteLineAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(_config.SmartHostPassword!)));
-                return await ReadResponseAsync(reader, ct);
+                await connection.WriteLineAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(_config.SmartHostPassword!)), ct);
+                return (await connection.ReadReplyAsync(ct)).ToString();
             }
 
             return "504 No supported AUTH mechanism";
         }
 
-        private static async Task SendMessageDataAsync(StreamWriter writer, String content, CancellationToken ct)
+        /// <summary>
+        /// The message as it goes after 354: line by line (CR LF, a bare CR and a bare LF each end
+        /// one), dot-stuffed (RFC 5321 §4.5.2), every line with CR LF, and the terminating ".".
+        /// </summary>
+        private static Byte[] DataOctets(String content)
         {
 
-            // Split into lines and apply dot-stuffing
+            var data = new StringBuilder();
+
             using var contentReader = new StringReader(content);
             String? line;
 
-            while ((line = await contentReader.ReadLineAsync(ct)) is not null)
+            while ((line = contentReader.ReadLine()) is not null)
             {
                 // Dot-stuffing: lines starting with "." get an extra "."
                 if (line.StartsWith('.'))
-                {
-                    await writer.WriteAsync('.');
-                }
-                await writer.WriteLineAsync(line);
+                    data.Append('.');
+                data.Append(line).Append("\r\n");
             }
+
+            data.Append(".\r\n");
+
+            return Encoding.UTF8.GetBytes(data.ToString());
 
         }
 
@@ -564,35 +630,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Response Parsing
 
-        private sealed record MultilineResponse(String Code, List<String> Lines, String LastLine);
-
-        private static async Task<String> ReadResponseAsync(StreamReader reader, CancellationToken ct)
+        /// <summary>
+        /// The extensions an EHLO reply offers: keyword in upper case, and its parameters. A keyword
+        /// is the first word of a line after the first, which greets (RFC 5321 §4.1.1.1) - "DSN" in
+        /// the server's name, or in another extension's parameters, offers nothing. The obsolete
+        /// "AUTH=LOGIN PLAIN" form counts as AUTH.
+        /// </summary>
+        internal static IReadOnlyDictionary<String, String> Extensions(SMTPReply EhloReply)
         {
-            var line = await reader.ReadLineAsync(ct);
-            return line ?? "";
-        }
 
-        private static async Task<MultilineResponse> ReadMultilineResponseAsync(StreamReader reader, CancellationToken ct)
-        {
-            var lines = new List<String>();
-            String? line;
-            String code = "";
+            var extensions = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
 
-            while ((line = await reader.ReadLineAsync(ct)) is not null)
+            foreach (var line in EhloReply.Lines.Skip(1))
             {
-                lines.Add(line);
-            
-                if (line.Length >= 3)
+
+                var text     = (line.Length > 4 ? line[4..] : "").Trim();
+                var space    = text.IndexOf(' ');
+                var keyword  = (space < 0 ? text : text[..space]).ToUpperInvariant();
+                var values   = space < 0 ? "" : text[(space + 1)..].Trim();
+
+                if (keyword.StartsWith("AUTH="))
                 {
-                    code = line[..3];
-                
-                    // Check if this is the last line (space after code, not hyphen)
-                    if (line.Length == 3 || line[3] != '-')
-                        break;
+                    values  = (keyword[5..] + " " + values).Trim();
+                    keyword = "AUTH";
                 }
+
+                if (keyword.Length > 0)
+                    extensions[keyword] = extensions.TryGetValue(keyword, out var earlier) && earlier.Length > 0
+                                              ? (earlier + " " + values).Trim()
+                                              : values;
+
             }
 
-            return new MultilineResponse(code, lines, line ?? "");
+            return extensions;
+
+        }
+
+        /// <summary>
+        /// Whether the message needs SMTPUTF8 (RFC 6531): a non-ASCII envelope address, or a
+        /// non-ASCII header field - the header section of an internationalized message is UTF-8.
+        /// </summary>
+        private static Boolean NeedsSmtpUtf8(String envelopeFrom, IEnumerable<String> recipients, String messageContent)
+        {
+
+            static Boolean NonAscii(String text)
+                => text.Any(c => c > '\x7F');
+
+            if (NonAscii(envelopeFrom) || recipients.Any(NonAscii))
+                return true;
+
+            var headerEnd = messageContent.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+            if (headerEnd < 0)
+                headerEnd = messageContent.IndexOf("\n\n", StringComparison.Ordinal);
+
+            return NonAscii(headerEnd < 0 ? messageContent : messageContent[..headerEnd]);
+
         }
 
         private static SendResult ParseResponse(String response, String? mx)
@@ -653,6 +745,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                   X509Chain?        chain,
                                                   SslPolicyErrors   sslPolicyErrors)
         {
+
+            // A validator of the operator's own - a private CA, a pinned certificate - decides alone.
+            if (_config.RemoteCertificateValidator is not null)
+                return _config.RemoteCertificateValidator(mxHost, certificate as X509Certificate2, chain, sslPolicyErrors);
 
             // Fully valid: chains to a trusted root, matches the MX host, and is present.
             if (sslPolicyErrors == SslPolicyErrors.None)
