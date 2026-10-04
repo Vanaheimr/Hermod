@@ -231,6 +231,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
         private async Task ProcessCommandAsync(String command, String args, CancellationToken ct)
         {
+
+            // RFC 3207 §4: a server that requires TLS "SHOULD return the reply code: 530 Must issue
+            // a STARTTLS command first to every command other than NOOP, EHLO, STARTTLS, or QUIT."
+            // Not only MAIL: AUTH would put credentials (or a SCRAM exchange that names the user)
+            // on the cleartext channel, VRFY and RSET would answer before TLS.
+            if (config.RequireStartTls && !_tlsActive &&
+                command.ToUpperInvariant() is not ("NOOP" or "EHLO" or "STARTTLS" or "QUIT"))
+            {
+                await SendResponseAsync(530, "5.7.0 Must issue a STARTTLS command first");
+                return;
+            }
+
             switch (command.ToUpperInvariant())
             {
 
@@ -329,8 +341,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (_tlsActive)
                 extensions.Add("REQUIRETLS");
 
-            // Advertise AUTH mechanisms
-            var authMechanisms = _authManager.GetAvailableMechanisms(_tlsActive).ToList();
+            // Advertise AUTH mechanisms - not before TLS when TLS is required: AUTH would be 530.
+            var authMechanisms = config.RequireStartTls && !_tlsActive
+                                     ? []
+                                     : _authManager.GetAvailableMechanisms(_tlsActive).ToList();
             if (authMechanisms.Count > 0)
                 extensions.Add($"AUTH {String.Join(' ', authMechanisms)}");
 
@@ -579,12 +593,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (_state >= SMTPSessionState.MailFrom)
             {
                 await SendResponseAsync(503, "5.5.1 Nested MAIL command");
-                return;
-            }
-
-            if (config.RequireStartTls && !_tlsActive)
-            {
-                await SendResponseAsync(530, "5.7.0 Must issue STARTTLS first");
                 return;
             }
 
