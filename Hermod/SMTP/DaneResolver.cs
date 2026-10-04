@@ -41,7 +41,7 @@ public sealed class DaneResolver
     /// </summary>
     /// <param name="DNSClient">A DNS client. Its DNSSEC-OK (DO) bit is enabled so RRSIG records are returned.</param>
     /// <param name="Logger">A logger.</param>
-    /// <param name="DNSSECValidator">An optional DNSSEC validator; if omitted, one is created with the IANA root trust anchor.</param>
+    /// <param name="DNSSECValidator">An optional DNSSEC validator; if omitted, one is created with the IANA root trust anchors.</param>
     public DaneResolver(IDNSClient       DNSClient,
                         ILogger          Logger,
                         DNSSECValidator? DNSSECValidator   = null)
