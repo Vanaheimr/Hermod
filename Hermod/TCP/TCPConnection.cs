@@ -809,7 +809,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                                                       ClientCertificateRequired       = ClientCertificateValidator is not null,
                                                       CertificateRevocationCheckMode  = X509RevocationMode.NoCheck,
                                                       CertificateChainPolicy          = chainPolicy,
-                                                      EnabledSslProtocols             = AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
+                                                      // The server's: this connection's own is never set, and a
+                                                      // server told to allow TLS 1.2 only took 1.3 all the same.
+                                                      EnabledSslProtocols             = AllowedTLSProtocols ?? TCPServer.AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
                                                       EncryptionPolicy                = EncryptionPolicy.RequireEncryption
                                                   };
 

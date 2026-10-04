@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Net.Security;
+using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -49,6 +50,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         /// </remarks>
         public IEnumerable<SslApplicationProtocol>  TLSApplicationProtocols
             => [];
+
+        /// <summary>
+        /// The TLS protocols this server allows - or none given, for TLS 1.2
+        /// and 1.3.
+        /// </summary>
+        /// <remarks>
+        /// A default implementation, as TLSApplicationProtocols is: ATCPServer
+        /// has kept the protocols it was given all along, and now says them
+        /// here, where the TLS handshake of a connection asks for them.
+        /// </remarks>
+        public SslProtocols?                        AllowedTLSProtocols
+            => null;
 
         /// <summary>
         /// Gets the IPAddress on which the TCP server listens.

@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate for each accepted connection. Without a certificate, a connection does without TLS.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication. Where it is given, the TLS handshake asks the client for a certificate.</param>
         /// <param name="LocalCertificateSelector">An optional delegate to select the local TLS certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The TLS protocols to allow. Kept in AllowedTLSProtocols, but not read yet: the TLS handshake allows TLS 1.2 and 1.3.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocols to allow - TLS 1.2 and 1.3 where none are given.</param>
         /// <param name="ClientCertificateRequired">Whether TLS client certification is required. Kept in ClientCertificateRequired, but not read yet: the TLS handshake asks for a client certificate where a ClientCertificateValidator is given.</param>
         /// <param name="CheckCertificateRevocation">Whether TLS client certificate revocation should be verified. Kept in CheckCertificateRevocation, but not read yet: the TLS handshake checks no revocation.</param>
         ///
