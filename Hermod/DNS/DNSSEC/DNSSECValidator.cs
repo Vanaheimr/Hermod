@@ -465,6 +465,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             .Where(rr => rr.Type != DNSResourceRecordTypes.RRSIG)
                                             .ToList();
 
+                // The RRsets a signature was verified for, by owner and type
+                var verified = new HashSet<(String Owner, DNSResourceRecordTypes Type)>();
+
                 // For each RRSIG, find the matching RRSet and validate
                 foreach (var rrsig in rrsigRecords)
                 {
@@ -519,7 +522,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (chainResult != DNSSECValidationResult.Secure)
                         return chainResult;
 
+                    verified.Add((Normalize(rrsig.DomainName.FullName), rrsig.TypeCovered));
+
                 }
+
+                // A signature vouches for the RRset it covers and for nothing else
+                // in the answer. This used to skip an RRSIG with nothing to cover
+                // and then report Secure for whatever was left, so a forged A record
+                // beside any genuine RRSIG — over a TXT the answer did not even
+                // hold — was Secure; and one signed RRset made its unsigned
+                // neighbours Secure too.
+                //
+                // An unsigned RRset is Insecure, not Bogus: it is what a signed
+                // CNAME into an unsigned zone legitimately brings along, and whether
+                // its zone is signed is the question an answer without any RRSIG
+                // raises as well, which is answered Insecure above. The exception is
+                // the CNAME a server synthesizes from a DNAME (RFC 6672 §5.3.1),
+                // which is never signed and needs no signature of its own when the
+                // DNAME is verified and the CNAME follows from it.
+                if (answerRecords.Any(rr => !verified.Contains((Normalize(rr.DomainName.FullName), rr.Type)) &&
+                                            !SynthesizedFromAVerifiedDNAME(rr, answerRecords, verified)))
+                    return DNSSECValidationResult.Insecure;
 
                 return DNSSECValidationResult.Secure;
 
@@ -528,6 +551,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 return DNSSECValidationResult.Indeterminate;
             }
+
+        }
+
+        #endregion
+
+        #region (private static) SynthesizedFromAVerifiedDNAME(Record, Answers, Verified)
+
+        /// <summary>
+        /// Whether the record is a CNAME that follows from a verified DNAME of the
+        /// same answer (RFC 6672 §2.2): its owner lies strictly below the DNAME's,
+        /// and its target is the same leading labels in front of the DNAME's target.
+        /// </summary>
+        private static Boolean SynthesizedFromAVerifiedDNAME(ADNSResourceRecord                                Record,
+                                                             IEnumerable<ADNSResourceRecord>                   Answers,
+                                                             HashSet<(String Owner, DNSResourceRecordTypes Type)>  Verified)
+        {
+
+            if (Record is not CNAME cname)
+                return false;
+
+            var owner   = Normalize(cname.DomainName.FullName);
+            var target  = Normalize(cname.CName.FullName);
+
+            return Answers.OfType<DNAME>().Any(dname => {
+
+                var dnameOwner  = Normalize(dname.DomainName.FullName);
+                var dnameTarget = Normalize(dname.Target.FullName);
+
+                if (!Verified.Contains((dnameOwner, DNSResourceRecordTypes.DNAME)) ||
+                    owner == dnameOwner                                            ||
+                    !IsAtOrBelow(owner, dnameOwner))
+                    return false;
+
+                var prefix = dnameOwner.Length == 0
+                                 ? owner
+                                 : owner[..^(dnameOwner.Length + 1)];
+
+                return target == (dnameTarget.Length == 0
+                                      ? prefix
+                                      : prefix + "." + dnameTarget);
+
+            });
 
         }
 

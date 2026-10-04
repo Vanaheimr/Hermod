@@ -521,6 +521,124 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
 
         #endregion
 
+
+        #region A_Signature_Over_Records_The_Answer_Does_Not_Hold_Signs_Nothing_In_It()
+
+        /// <summary>
+        /// The answer holds a forged A record and, beside it, a genuine signature
+        /// over a TXT record of the zone that the answer does not hold. A signature
+        /// with nothing to cover was skipped, and an answer whose every signature
+        /// was skipped was Secure.
+        /// </summary>
+        /// <remarks>
+        /// Insecure rather than Bogus: an RRset without a signature is what an
+        /// unsigned zone sends, and whether www.leaf.test. lies in one is the same
+        /// question as an answer with no RRSIG at all, which is Insecure as well.
+        /// What it must not be is Secure.
+        /// </remarks>
+        [Test]
+        public async Task A_Signature_Over_Records_The_Answer_Does_Not_Hold_Signs_Nothing_In_It()
+        {
+
+            using var chain   = new Chain();
+            var       text    = new TXT(DomainName.Parse("www.leaf.test"), DNSQueryClasses.IN, TimeSpan.FromHours(1), "v=genuine");
+            var       forged  = new A  (DomainName.Parse("www.leaf.test"), DNSQueryClasses.IN, TimeSpan.FromHours(1), IPv4Address.Parse("192.0.2.66"));
+
+            Assert.That(await chain.Validate([ forged, chain.Sign([ text ], chain.LeafKey) ]),
+                        Is.EqualTo(DNSSECValidationResult.Insecure));
+
+        }
+
+        #endregion
+
+        #region An_Unsigned_RRset_Beside_A_Signed_One_Is_Not_Secure()
+
+        /// <summary>
+        /// One signed RRset does not vouch for the others in the same answer.
+        /// </summary>
+        [Test]
+        public async Task An_Unsigned_RRset_Beside_A_Signed_One_Is_Not_Secure()
+        {
+
+            using var chain   = new Chain();
+            var       forged  = new A(DomainName.Parse("mail.leaf.test"), DNSQueryClasses.IN, TimeSpan.FromHours(1), IPv4Address.Parse("192.0.2.66"));
+
+            Assert.That(await chain.Validate([ chain.Address, chain.Sign([ chain.Address ], chain.LeafKey), forged ]),
+                        Is.EqualTo(DNSSECValidationResult.Insecure));
+
+        }
+
+        #endregion
+
+        #region A_CNAME_Into_An_Unsigned_Zone_Is_Insecure()
+
+        /// <summary>
+        /// The legitimate shape of the same thing: a signed CNAME pointing into a
+        /// zone that is not signed. The target's records come without signatures,
+        /// and the answer is Insecure — not Bogus, which would make every signed
+        /// name that points at an unsigned CDN unresolvable.
+        /// </summary>
+        [Test]
+        public async Task A_CNAME_Into_An_Unsigned_Zone_Is_Insecure()
+        {
+
+            using var chain   = new Chain();
+            var       alias   = new CNAME(DomainName.Parse("www.leaf.test"), DNSQueryClasses.IN, TimeSpan.FromHours(1), DomainName.Parse("edge.cdn.example"));
+            var       target  = new A    (DomainName.Parse("edge.cdn.example"), DNSQueryClasses.IN, TimeSpan.FromHours(1), IPv4Address.Parse("192.0.2.80"));
+
+            Assert.That(await chain.Validate([ alias, chain.Sign([ alias ], chain.LeafKey), target ]),
+                        Is.EqualTo(DNSSECValidationResult.Insecure));
+
+        }
+
+        #endregion
+
+        #region A_CNAME_Synthesized_From_A_Signed_DNAME_Is_Secure()
+
+        /// <summary>
+        /// The one unsigned RRset a signed answer legitimately holds: the CNAME a
+        /// server synthesizes from a DNAME (RFC 6672 §5.3.1). It is not signed and
+        /// need not be, because the DNAME is, and the CNAME follows from it — when
+        /// it does.
+        /// </summary>
+        [Test]
+        public async Task A_CNAME_Synthesized_From_A_Signed_DNAME_Is_Secure()
+        {
+
+            using var chain   = new Chain();
+            var       dname   = new DNAME(DomainName.Parse("old.leaf.test"),     DNSQueryClasses.IN, TimeSpan.FromHours(1), DomainName.Parse("leaf.test"));
+            var       cname   = new CNAME(DomainName.Parse("www.old.leaf.test"), DNSQueryClasses.IN, TimeSpan.FromHours(1), DomainName.Parse("www.leaf.test"));
+
+            Assert.That(await chain.Validate([ dname, chain.Sign([ dname ], chain.LeafKey),
+                                               cname,
+                                               chain.Address, chain.Sign([ chain.Address ], chain.LeafKey) ]),
+                        Is.EqualTo(DNSSECValidationResult.Secure));
+
+        }
+
+        #endregion
+
+        #region A_CNAME_That_Does_Not_Follow_From_The_DNAME_Is_Not_Secure()
+
+        /// <summary>
+        /// The same DNAME, and an unsigned CNAME beside it that points somewhere
+        /// the DNAME does not lead.
+        /// </summary>
+        [Test]
+        public async Task A_CNAME_That_Does_Not_Follow_From_The_DNAME_Is_Not_Secure()
+        {
+
+            using var chain   = new Chain();
+            var       dname   = new DNAME(DomainName.Parse("old.leaf.test"),     DNSQueryClasses.IN, TimeSpan.FromHours(1), DomainName.Parse("leaf.test"));
+            var       cname   = new CNAME(DomainName.Parse("www.old.leaf.test"), DNSQueryClasses.IN, TimeSpan.FromHours(1), DomainName.Parse("evil.example"));
+
+            Assert.That(await chain.Validate([ dname, chain.Sign([ dname ], chain.LeafKey), cname ]),
+                        Is.EqualTo(DNSSECValidationResult.Insecure));
+
+        }
+
+        #endregion
+
     }
 
 }
