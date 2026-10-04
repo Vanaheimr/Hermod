@@ -25,7 +25,12 @@ class Icmpv6Header : AProtocolHeader
     private byte icmpCode;
     private ushort icmpChecksum;
 
-    public Ipv6Header ipv6Header;
+    /// <summary>
+    /// The encompassing IPv6 header. GetProtocolPacketBytes needs it for the
+    /// pseudo header checksum, but Create and the parameterless constructor
+    /// leave it null.
+    /// </summary>
+    public Ipv6Header? ipv6Header;
 
     // Common values for the ICMPv6 type and code fields
     static public byte Icmpv6EchoRequestType = 128;      // ICMPv6 echo request type
@@ -116,8 +121,8 @@ class Icmpv6Header : AProtocolHeader
     /// </summary>
     /// <param name="icmpv6Packet">Byte array containing the binary ICMPv6 header</param>
     /// <param name="bytesCopied">Number of bytes used in header</param>
-    /// <returns>Returns the Icmpv6Header object created from the byte array</returns>
-    static public Icmpv6Header Create(byte[] icmpv6Packet, ref int bytesCopied)
+    /// <returns>Returns the Icmpv6Header object created from the byte array, or null if the byte array is too short</returns>
+    static public Icmpv6Header? Create(byte[] icmpv6Packet, ref int bytesCopied)
     {
         Icmpv6Header icmpv6Header = new Icmpv6Header();
         int offset = 0;
@@ -140,10 +145,14 @@ class Icmpv6Header : AProtocolHeader
     /// </summary>
     /// <param name="payLoad">A byte array representing the ICMPv6 payload</param>
     /// <returns>A byte array of the ICMPv6 packet and payload</returns>
+    /// <exception cref="InvalidOperationException">If no IPv6 header is set for the pseudo header.</exception>
     public override byte[] GetProtocolPacketBytes(byte[] payLoad)
     {
         byte[] icmpv6Packet, pseudoHeader, byteValue;
         int offset = 0, payLoadLength;
+
+        var ipv6Header = this.ipv6Header
+                             ?? throw new InvalidOperationException("The ICMPv6 checksum needs the encompassing IPv6 header (ipv6Header) for its pseudo header!");
 
         // Build the ICMPv6 packet first since its required in the pseudo header calculation
         icmpv6Packet = new byte[Icmpv6HeaderLength + payLoad.Length];

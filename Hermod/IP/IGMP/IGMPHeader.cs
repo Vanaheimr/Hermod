@@ -117,8 +117,8 @@ class IgmpHeader : AProtocolHeader
     /// </summary>
     /// <param name="igmpPacket">Byte array containing the binary IGMP header</param>
     /// <param name="bytesCopied">Number of bytes used in header</param>
-    /// <returns>Returns the IgmpHeader object created from the byte array</returns>
-    static public IgmpHeader Create(byte[] igmpPacket, ref int bytesCopied)
+    /// <returns>Returns the IgmpHeader object created from the byte array, or null if the byte array is too short</returns>
+    static public IgmpHeader? Create(byte[] igmpPacket, ref int bytesCopied)
     {
         IgmpHeader igmpHeader = new IgmpHeader();
         int offset = 0;

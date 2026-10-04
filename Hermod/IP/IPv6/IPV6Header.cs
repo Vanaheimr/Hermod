@@ -178,8 +178,8 @@ public class Ipv6Header : AProtocolHeader
     /// </summary>
     /// <param name="ipv6Packet">Byte array containing the binary IPv6 header</param>
     /// <param name="bytesCopied">Number of bytes used in header</param>
-    /// <returns>Returns the Ipv6Header object created from the byte array</returns>
-    static public Ipv6Header Create(byte[] ipv6Packet, ref int bytesCopied)
+    /// <returns>Returns the Ipv6Header object created from the byte array, or null if the byte array is too short</returns>
+    static public Ipv6Header? Create(byte[] ipv6Packet, ref int bytesCopied)
     {
         Ipv6Header ipv6Header = new Ipv6Header();
         byte[] addressBytes = new byte[16];

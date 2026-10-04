@@ -79,8 +79,8 @@ class Icmpv6EchoRequest : AProtocolHeader
     /// </summary>
     /// <param name="echoData">Byte array containing the binary ICMPv6 echo request header</param>
     /// <param name="bytesCopied">Number of bytes used in header</param>
-    /// <returns>Returns the Icmpv6EchoRequest object created from the byte array</returns>
-    static public Icmpv6EchoRequest Create(byte[] echoData, ref int bytesCopied)
+    /// <returns>Returns the Icmpv6EchoRequest object created from the byte array, or null if the byte array is too short</returns>
+    static public Icmpv6EchoRequest? Create(byte[] echoData, ref int bytesCopied)
     {
         Icmpv6EchoRequest icmpv6EchoRequestHeader = new Icmpv6EchoRequest();
 
