@@ -55,7 +55,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this._logger          = logger;
             this._mtaStsResolver  = new MtaStsResolver(dnsClient, logger);
             this._daneResolver    = config.EnableDane
-                                        ? new DaneResolver(dnsClient, logger)
+                                        ? new DaneResolver(dnsClient,
+                                                           logger,
+                                                           config.DnssecTrustAnchors is { } anchors
+                                                               ? new DNSSECValidator(dnsClient, anchors)
+                                                               : null)
                                         : null;
             this._tlsRptRecorder  = tlsRptRecorder;
 

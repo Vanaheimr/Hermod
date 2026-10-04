@@ -67,6 +67,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public          UInt16   SmartHostPort        { get; init; } = 25;
         public          String?  SmartHostUsername    { get; init; }
         public          String?  SmartHostPassword    { get; init; }
+
+        /// <summary>
+        /// The DNSSEC trust anchors DANE validates against - for a private signed zone, or a test.
+        /// By default the IANA root key.
+        /// </summary>
+        public          IReadOnlyList<DS>?  DnssecTrustAnchors  { get; init; }
     }
 
 }
