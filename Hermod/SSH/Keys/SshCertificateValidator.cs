@@ -156,8 +156,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (Now >= Certificate.ValidBefore)
                 return SshCertificateValidation.Fail("the certificate has expired");
 
-            // 6. The principal must be listed (an empty principal list means "valid for all").
-            if (Certificate.Principals.Count > 0 && !Certificate.Principals.Contains(Principal, StringComparer.Ordinal))
+            // 6. The principal must be listed, and an EMPTY list matches nothing.
+            //
+            //    OpenSSH 10.3 lists this under "Potentially incompatible changes": "prior to this
+            //    release, a certificate that had an empty principals section would be treated as
+            //    matching any principal (i.e. as a wildcard) ... This release treats an empty
+            //    principals section as never matching any principal."
+            //
+            //    This code implemented the old reading, which left us strictly MORE permissive than
+            //    the reference: a certificate naming no principals authenticated every user here,
+            //    while OpenSSH 10.3+ refuses it outright. For a field whose only purpose is to take
+            //    access away, "absent means everything" is the wrong direction to fail in, so this is
+            //    a fix and not a compatibility break. A CA that really means "any user" has to say so
+            //    with an explicit principal — which is also the only form a reader can audit.
+            //
+            //    It applies to host certificates too (HostKeyPolicy passes the hostname as the
+            //    principal), matching the release note, which speaks of certificates in general.
+            if (Certificate.Principals.Count == 0)
+                return SshCertificateValidation.Fail("the certificate lists no valid principals, so it matches none");
+
+            if (!Certificate.Principals.Contains(Principal, StringComparer.Ordinal))
                 return SshCertificateValidation.Fail($"'{Principal}' is not a valid principal for this certificate");
 
             // 7. Every critical option must be understood — and here "understood" means the caller will

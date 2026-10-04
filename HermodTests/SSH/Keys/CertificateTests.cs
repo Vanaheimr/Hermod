@@ -112,6 +112,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Certificate_EmptyPrincipals_MatchNothing
+
+        /// <summary>
+        /// An empty principals list matches NOTHING — OpenSSH 10.3's semantics, not the wildcard
+        /// reading that preceded it.
+        /// </summary>
+        /// <remarks>
+        /// This pins a deliberate behaviour change. OpenSSH 10.3 lists it under "Potentially
+        /// incompatible changes": an empty principals section used to be "treated as matching any
+        /// principal (i.e. as a wildcard)" and now "never match[es] any principal". We implemented the
+        /// old reading, which left us strictly more permissive than the reference — a certificate
+        /// naming nobody authenticated everybody. The assertion that matters is therefore not that
+        /// some name is refused, but that <i>no</i> name is accepted, the one a wildcard would have
+        /// waved through included.
+        /// </remarks>
+        [Test]
+        public void Certificate_EmptyPrincipals_MatchNothing()
+        {
+
+            var subject       = SshHostKey.GenerateEd25519();
+            var ca            = SshHostKey.GenerateEd25519();
+            var trust         = new SshCertificateAuthorityTrust().TrustCA(ca);
+
+            var noPrincipals  = IssueUserCert(subject, ca, [ ]);
+            var withPrincipal = IssueUserCert(subject, ca, [ "achim" ]);
+
+            Assert.Multiple(() => {
+
+                // The certificate is otherwise beyond reproach — trusted CA, sound signature, inside
+                // its window — so the empty principals field is the only thing left that can fail it.
+                Assert.That(noPrincipals.VerifyCaSignature(), Is.True,  "the certificate itself must be sound");
+                Assert.That(noPrincipals.Principals,          Is.Empty, "this test is about an empty list");
+
+                foreach (var name in new[] { "achim", "root", "", "*", "anybody" })
+                    Assert.That(SshCertificateValidator.Validate(noPrincipals, SshCertType.User, name, trust, Now).IsValid,
+                                Is.False,
+                                $"an empty principals list must not match '{name}'");
+
+                // The reason has to name the cause: an operator reading an audit log must be able to
+                // tell this apart from a misspelled user name, which is the other way step 6 fails.
+                Assert.That(SshCertificateValidator.Validate(noPrincipals, SshCertType.User, "achim", trust, Now).Reason,
+                            Does.Contain("no valid principals"));
+
+                // Host certificates run through the same check with the hostname as the principal,
+                // which is what HostKeyPolicy passes — so the rule must hold there too.
+                var hostCert = new OpenSshCertificateBuilder {
+                                   Serial      = 7,
+                                   Type        = SshCertType.Host,
+                                   KeyId       = "host",
+                                   Principals  = [ ],
+                                   ValidAfter  = Now.AddHours(-1),
+                                   ValidBefore = Now.AddHours(1)
+                               }.Sign(subject.PublicKeyBlob, ca);
+
+                Assert.That(SshCertificateValidator.Validate(hostCert, SshCertType.Host, "host.example.org", trust, Now).IsValid,
+                            Is.False,
+                            "a host certificate naming no principals must not match any hostname either");
+
+                // The control. Without it this test would also pass if validation had simply started
+                // refusing everything, which is a different bug wearing the same green.
+                Assert.That(SshCertificateValidator.Validate(withPrincipal, SshCertType.User, "achim", trust, Now).IsValid,
+                            Is.True,
+                            "an explicitly named principal must still be accepted");
+
+            });
+
+        }
+
+        #endregion
+
         #region Certificate_UnknownCriticalOption_IsRejected
 
         [Test]
