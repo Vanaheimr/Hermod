@@ -358,6 +358,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                : DenialOfExistence.NoDataForType;
             }
 
+            // An empty non-terminal owns no NSEC: it exists only because a name
+            // below it does. The NSEC whose span holds it names that descendant
+            // as its next name, and that is the proof the name exists and holds
+            // nothing — the way Unbound reads it. Read as a covering NSEC
+            // instead, it made the name one that does not exist, and every DS
+            // query for a label between a zone and a delegation below it
+            // unprovable.
+            var queryName = QName.FullName.TrimEnd('.').ToLowerInvariant();
+
+            if (queryName.Length > 0 &&
+                Records.Any(nsec => Covers(nsec, QName.FullName) &&
+                                    nsec.NextDomainName.FullName.TrimEnd('.').ToLowerInvariant().EndsWith("." + queryName, StringComparison.Ordinal)))
+                return DenialOfExistence.NoDataForType;
+
             // §5.4 — NXDOMAIN: one NSEC covering QNAME, and one covering the
             // wildcard that could otherwise have synthesised it.
             var coversName = Records.Any(nsec => Covers(nsec, QName.FullName));
