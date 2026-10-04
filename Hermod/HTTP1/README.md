@@ -49,6 +49,12 @@ reference is; the seventh is inside commented-out code under
 - The server can listen for IPv4 and IPv6 clients.
 - TLS certificate selection and validation are configurable by the client and
   server APIs.
+- The server answers ALPN (RFC 7301) with `http/1.1`, since 2026-10-04. It
+  offered nothing before, so a client's extension went unacknowledged and a
+  client that could also speak h2 had to guess from the silence. Only
+  `http/1.1` is offered, because that is what this server speaks: a client
+  insisting on `h2` alone is refused with `no_application_protocol` rather than
+  served HTTP/1.1 anyway. A client that sends no ALPN extension is unaffected.
 - Slow or timed-out TLS handshakes do not block the accept loop and are removed
   from active-client tracking.
 - HTTP framing and semantics are identical after the TCP or TLS stream has been

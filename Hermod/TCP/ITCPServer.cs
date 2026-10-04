@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Net.Security;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
@@ -33,6 +35,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
     {
 
         #region Properties
+
+        /// <summary>
+        /// The application protocols this server offers for ALPN (RFC 7301), in
+        /// order of preference — or none, to take no part in the negotiation.
+        /// </summary>
+        /// <remarks>
+        /// A default implementation rather than a member every implementor has
+        /// to add, and the default is to offer nothing: a TCP server has no
+        /// business claiming an application protocol it does not speak, and this
+        /// interface is as much the Modbus and DNS-over-TLS frontends' as it is
+        /// the HTTP server's. Overriding it is how a server says what it is.
+        /// </remarks>
+        public IEnumerable<SslApplicationProtocol>  TLSApplicationProtocols
+            => [];
 
         /// <summary>
         /// Gets the IPAddress on which the TCP server listens.

@@ -813,6 +813,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                                                       EncryptionPolicy                = EncryptionPolicy.RequireEncryption
                                                   };
 
+            // RFC 7301: a server that offers nothing negotiates nothing, and a
+            // client's ALPN extension goes unanswered — which is what every TLS
+            // listener here did. curl, every browser and every HTTP/2-capable
+            // client sends the extension; the HTTP/1 server now says "http/1.1"
+            // back.
+            //
+            // The list comes from the server rather than from a constant here,
+            // because this class carries the Modbus and DNS-over-TLS frontends
+            // too and none of them may claim to speak HTTP.
+            var applicationProtocols = TCPServer.TLSApplicationProtocols.ToList();
+
+            if (applicationProtocols.Count > 0)
+                tlsServerAuthenticationOptions.ApplicationProtocols = applicationProtocols;
+
 
             if (ClientCertificateValidator is not null)
                 tlsServerAuthenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) =>
