@@ -1,4 +1,4 @@
-﻿# Hermod HTTP/1.0 and HTTP/1.1 support
+# Hermod HTTP/1.0 and HTTP/1.1 support
 
 This document describes the HTTP/1.x capabilities of the Hermod HTTP client and
 HTTP server. It distinguishes wire-protocol support from application semantics:
