@@ -656,6 +656,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (denialSigs.Count == 0)
                 return DNSSECValidationResult.Bogus;
 
+            // The records whose signatures verified — the only ones the proof may
+            // be read from.
+            var verified = new List<IDNSResourceRecord>();
+
             foreach (var rrsig in denialSigs)
             {
 
@@ -698,10 +702,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (chainResult != DNSSECValidationResult.Secure)
                     return chainResult;
 
+                verified.AddRange(rrSet);
+
             }
 
             // The records are authentic. Now: do they prove the claim?
-            return DenialOfExistenceValidator.Verify(QName, QType, authorities) switch {
+            //
+            // Only the verified ones. This used to hand the whole authority
+            // section to the proof check, so an unsigned NSEC or NSEC3 placed
+            // beside a genuine signed one — replayed from anywhere in the zone —
+            // was never checked and still counted: a forged NODATA or NXDOMAIN
+            // for any name, Secure.
+            return DenialOfExistenceValidator.Verify(QName, QType, verified) switch {
 
                 DenialOfExistence.NameDoesNotExist  => DNSSECValidationResult.Secure,
                 DenialOfExistence.NoDataForType     => DNSSECValidationResult.Secure,

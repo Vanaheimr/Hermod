@@ -95,6 +95,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
                 => new DNSSECValidator(Resolver, [ RootKey.DelegationSigner() ]).
                        ValidateAsync(Response(Answers ?? [ Address, Sign([ Address ], LeafKey) ]), Now);
 
+            /// <summary>
+            /// Validate a negative answer: an empty answer section and the given authority section.
+            /// </summary>
+            public Task<DNSSECValidationResult> ValidateDenial(IDNSResourceRecord[]    Authorities,
+                                                               String                  QName,
+                                                               DNSResourceRecordTypes  QType)
+
+                => new DNSSECValidator(Resolver, [ RootKey.DelegationSigner() ]).
+                       ValidateAsync(Response([], Authorities), (DomainName.Parse(QName), QType));
+
             public void Dispose()
             {
                 RootKey.Dispose();
@@ -106,9 +116,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
 
         #endregion
 
-        #region (private static) Response(Answers) / Forged(Signature) / UnusableDS(Key)
+        #region (private static) Response(Answers, Authorities) / Forged(Signature) / UnusableDS(Key)
 
-        private static DNSInfo Response(IEnumerable<IDNSResourceRecord> Answers)
+        private static DNSInfo Response(IEnumerable<IDNSResourceRecord>   Answers,
+                                        IEnumerable<IDNSResourceRecord>?  Authorities = null)
 
             => new (
                    Origin:                 new DNSServerConfig(IPv4Address.Localhost, IPPort.DNS),
@@ -119,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
                    RecursionAvailable:     true,
                    ResponseCode:           DNSResponseCodes.NoError,
                    Answers:                [ .. Answers ],
-                   Authorities:            [],
+                   Authorities:            [ .. Authorities ?? [] ],
                    AdditionalRecords:      [],
                    IsValid:                true,
                    IsTimeout:              false,
@@ -634,6 +645,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
 
             Assert.That(await chain.Validate([ dname, chain.Sign([ dname ], chain.LeafKey), cname ]),
                         Is.EqualTo(DNSSECValidationResult.Insecure));
+
+        }
+
+        #endregion
+
+
+        #region A_Signed_NODATA_Proof_Is_Secure()
+
+        /// <summary>
+        /// The baseline for the denial path: www.leaf.test. exists with a TXT record
+        /// only, and the zone's signed NSEC there says so.
+        /// </summary>
+        [Test]
+        public async Task A_Signed_NODATA_Proof_Is_Secure()
+        {
+
+            using var chain  = new Chain();
+            var       nsec   = new NSEC(DomainName.Parse("www.leaf.test"), DNSQueryClasses.IN, TimeSpan.FromHours(1),
+                                        DomainName.Parse("leaf.test"), ADNSResourceRecord.EncodeTypeBitMaps([ "TXT", "RRSIG", "NSEC" ]));
+
+            Assert.That(await chain.ValidateDenial([ nsec, chain.Sign([ nsec ], chain.LeafKey) ], "www.leaf.test", DNSResourceRecordTypes.A),
+                        Is.EqualTo(DNSSECValidationResult.Secure));
+
+        }
+
+        #endregion
+
+        #region An_Unsigned_NSEC_Beside_A_Signed_One_Proves_Nothing()
+
+        /// <summary>
+        /// A genuine signed NSEC of the zone — replayed, it proves nothing about
+        /// www.leaf.test. — and beside it an unsigned one that does. Only the first
+        /// was checked, and the proof was then read from all of them.
+        /// </summary>
+        [Test]
+        public async Task An_Unsigned_NSEC_Beside_A_Signed_One_Proves_Nothing()
+        {
+
+            using var chain    = new Chain();
+            var       genuine  = new NSEC(DomainName.Parse("leaf.test"),     DNSQueryClasses.IN, TimeSpan.FromHours(1),
+                                          DomainName.Parse("www.leaf.test"), ADNSResourceRecord.EncodeTypeBitMaps([ "SOA", "NS", "DNSKEY", "RRSIG", "NSEC" ]));
+            var       forged   = new NSEC(DomainName.Parse("www.leaf.test"), DNSQueryClasses.IN, TimeSpan.FromHours(1),
+                                          DomainName.Parse("leaf.test"),     ADNSResourceRecord.EncodeTypeBitMaps([ "TXT", "RRSIG", "NSEC" ]));
+
+            Assert.That(await chain.ValidateDenial([ genuine, chain.Sign([ genuine ], chain.LeafKey), forged ], "www.leaf.test", DNSResourceRecordTypes.A),
+                        Is.EqualTo(DNSSECValidationResult.Bogus));
 
         }
 
