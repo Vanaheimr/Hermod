@@ -497,6 +497,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
 
         #endregion
 
+
+        #region A_Zone_Cannot_Sign_For_A_Name_Outside_It()
+
+        /// <summary>
+        /// leaf.test.'s chain is intact and its key really made this signature —
+        /// over an A record for www.bank.example. A zone speaks only for the names
+        /// inside it: RFC 4035 §5.3.1, "the RRSIG RR's Signer's Name field MUST be
+        /// the name of the zone that contains the RRset". Otherwise the owner of
+        /// any signed zone could vouch for every name there is.
+        /// </summary>
+        [Test]
+        public async Task A_Zone_Cannot_Sign_For_A_Name_Outside_It()
+        {
+
+            using var chain   = new Chain();
+            var       address = new A(DomainName.Parse("www.bank.example"), DNSQueryClasses.IN, TimeSpan.FromHours(1), IPv4Address.Parse("192.0.2.66"));
+
+            Assert.That(await chain.Validate([ address, chain.Sign([ address ], chain.LeafKey) ]),
+                        Is.EqualTo(DNSSECValidationResult.Bogus));
+
+        }
+
+        #endregion
+
     }
 
 }

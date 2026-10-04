@@ -479,6 +479,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (rrSet.Count == 0)
                         continue;
 
+                    // A zone speaks only for the names inside it. RFC 4035 §5.3.1:
+                    // "The RRSIG RR's Signer's Name field MUST be the name of the
+                    // zone that contains the RRset." Without this, whoever holds the
+                    // key of any properly delegated zone could sign an RRset for any
+                    // name at all under their own signer name, and the chain walk —
+                    // which authenticates the signer's keys, not the signer's
+                    // authority over the owner — would call it Secure.
+                    if (!IsAtOrBelow(rrsig.DomainName.FullName, rrsig.SignerName.FullName))
+                        return DNSSECValidationResult.Bogus;
+
                     // Check signature timestamps
                     if (!WithinValidityWindow(rrsig, now))
                         return DNSSECValidationResult.Bogus;
@@ -592,6 +602,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                         ToList();
 
                 if (rrSet.Count == 0)
+                    return DNSSECValidationResult.Bogus;
+
+                // As for an answer: a zone can deny only names inside it.
+                if (!IsAtOrBelow(rrsig.DomainName.FullName, rrsig.SignerName.FullName))
                     return DNSSECValidationResult.Bogus;
 
                 if (!WithinValidityWindow(rrsig, Now))
