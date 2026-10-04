@@ -82,17 +82,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private readonly IDNSClient dnsClient;
 
         /// <summary>
-        /// The IANA root KSK DS record (Key Tag 20326, Algorithm 8, SHA-256).
+        /// The IANA root trust anchors still in force, as published in
+        /// https://data.iana.org/root-anchors/root-anchors.xml (Algorithm 8, SHA-256):
+        /// KSK-2017 (Key Tag 20326) and KSK-2024 (Key Tag 38696). KSK-2024 signs the
+        /// root DNSKEY RRset alone from 2026-10-11 on, and KSK-2017 is revoked and
+        /// withdrawn after that — a validator anchored on KSK-2017 only would then
+        /// answer Bogus for everything, unless it had picked KSK-2024 up by RFC 5011.
         /// </summary>
-        private static readonly DS RootTrustAnchor = new(
-            DomainName.Parse("."),
-            DNSQueryClasses.IN,
-            TimeSpan.FromDays(36500),
-            20326,
-            8,
-            2,
-            Convert.FromHexString("E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D")
-        );
+        private static readonly DS[] RootTrustAnchors = [
+
+            new (DomainName.Parse("."),
+                 DNSQueryClasses.IN,
+                 TimeSpan.FromDays(36500),
+                 20326,
+                 8,
+                 2,
+                 Convert.FromHexString("E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D")),
+
+            new (DomainName.Parse("."),
+                 DNSQueryClasses.IN,
+                 TimeSpan.FromDays(36500),
+                 38696,
+                 8,
+                 2,
+                 Convert.FromHexString("683D2D0ACB8C9B712A1948B27F741219298D0A450D612C483AF444A4C0FB2B16"))
+
+        ];
 
         #endregion
 
@@ -120,12 +135,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region WithRootTrustAnchor(DNSClient)
 
         /// <summary>
-        /// Create a new DNSSEC validator with the IANA root trust anchor pre-configured.
+        /// Create a new DNSSEC validator with the IANA root trust anchors pre-configured
+        /// (KSK-2017 and KSK-2024).
         /// </summary>
         /// <param name="DNSClient">A DNS client for fetching DNSKEY/DS records.</param>
         public static DNSSECValidator WithRootTrustAnchor(IDNSClient DNSClient)
 
-            => new(DNSClient, [RootTrustAnchor]);
+            => new(DNSClient, RootTrustAnchors);
 
         #endregion
 
