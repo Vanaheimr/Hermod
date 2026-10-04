@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     public class MethodNode(HTTPMethod             Method,
-                            HTTPRequestHandlersX?  RequestHandlers    = null,
+                            HTTPRequestHandlers?  RequestHandlers    = null,
                             URLReplacement?        AllowReplacement   = null)
 
         : IEquatable<MethodNode>,
@@ -39,15 +39,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private          HTTPRequestHandlersX?                              requestHandlers   = RequestHandlers;
+        private          HTTPRequestHandlers?                              requestHandlers   = RequestHandlers;
 
-        private readonly Dictionary<HTTPContentType, HTTPRequestHandlersX>  contentTypes      = [];
+        private readonly Dictionary<HTTPContentType, HTTPRequestHandlers>  contentTypes      = [];
 
         #endregion
 
         #region Properties
         public HTTPMethod             Method             { get; } = Method;
-        public HTTPRequestHandlersX?  RequestHandlers
+        public HTTPRequestHandlers?  RequestHandlers
         {
 
             get
@@ -75,14 +75,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => contentTypes.Keys;
 
 
-        public IEnumerable<HTTPRequestHandlersX>  HTTPRequestHandlers
+        public IEnumerable<HTTPRequestHandlers>  HTTPRequestHandlers
             => contentTypes.Values;
 
         #endregion
 
 
         public void AddContentType(HTTPContentType       HTTPContentType,
-                                   HTTPRequestHandlersX  Handler)
+                                   HTTPRequestHandlers  Handler)
         {
 
             if (!contentTypes.TryAdd(HTTPContentType, Handler))
@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public Boolean TryGetContentType(HTTPContentType                                HTTPContentType,
-                                         [NotNullWhen(true)] out HTTPRequestHandlersX?  Handler)
+                                         [NotNullWhen(true)] out HTTPRequestHandlers?  Handler)
         {
 
             if (contentTypes.TryGetValue(HTTPContentType, out var handler) &&

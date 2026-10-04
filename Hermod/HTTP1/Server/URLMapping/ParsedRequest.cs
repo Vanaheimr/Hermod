@@ -26,13 +26,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class ParsedRequest
     {
 
-        public HTTPRequestHandlersX?       RequestHandlers    { get; }
+        public HTTPRequestHandlers?       RequestHandlers    { get; }
         public Dictionary<String, String>  Parameters         { get; }
         public HTTPStatusCode?             HTTPStatusCode     { get; }
         public String?                     ErrorResponse      { get; }
         public IEnumerable<HTTPMethod>     AllowedMethods     { get; }
 
-        private ParsedRequest(HTTPRequestHandlersX?       RequestHandlers,
+        private ParsedRequest(HTTPRequestHandlers?       RequestHandlers,
                                Dictionary<String, String>  Parameters,
                                HTTPStatusCode?             HTTPStatusCode   = null,
                                String?                     ErrorResponse    = null,
@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static ParsedRequest Parsed(HTTPRequestHandlersX?       RequestHandler,
+        public static ParsedRequest Parsed(HTTPRequestHandlers?       RequestHandler,
                                            Dictionary<String, String>  Parameters)
 
             => new (

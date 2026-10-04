@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private HTTPRequestHandlersX? requestHandlers;
+        private HTTPRequestHandlers? requestHandlers;
 
         #endregion
 
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
         }
 
-        public HTTPRequestHandlersX?                         RequestHandlers
+        public HTTPRequestHandlers?                         RequestHandlers
         {
 
             get

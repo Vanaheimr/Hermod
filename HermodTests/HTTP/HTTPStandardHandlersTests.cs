@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -55,9 +55,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
     /// What can be tested as behaviour is tested elsewhere:
     /// HTTPServerHandlerTests.The_Register_Helpers_Are_Reachable for the three
     /// Register*Handler methods, HTTPTestServerTests for
-    /// MapResourceAssembliesFolder. Four of the eleven overloads below have no
-    /// caller anywhere in this suite; this fixture pins their signatures and
-    /// does not pretend to exercise them.
+    /// MapResourceAssembliesFolder on HTTPAPI. That is four of the eleven
+    /// overloads below; the other seven have no caller anywhere in this suite,
+    /// including all three on HTTPExtAPI, which thirteen other fixtures use but
+    /// never for serving a file. This fixture pins their signatures and does
+    /// not pretend to exercise them.
+    ///
+    /// The last test is about the file next door rather than about this class:
+    /// same cleanup, same failure mode, and too small to be a fixture of its
+    /// own.
     /// </remarks>
     [TestFixture]
     public class HTTPStandardHandlersTests
@@ -213,6 +219,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(logger?.CanWrite,       Is.True);
                 Assert.That(logger?.GetValue(null), Is.Not.Null, "and it starts out as a logger rather than as null");
             });
+
+        }
+
+        #endregion
+
+        #region TheRequestHandlersClassHasNoXEither()
+
+        /// <summary>
+        /// HTTPRequestHandlersX, the other leftover of the same rework: the
+        /// record of handlers that MethodNode, PathNode, ParsedRequest and
+        /// HTTPAPI all pass around, carrying an X with no twin to be
+        /// distinguished from. It is HTTPRequestHandlers now.
+        /// </summary>
+        /// <remarks>
+        /// The name was free as a type and taken as a member - MethodNode has
+        /// an IEnumerable&lt;HTTPRequestHandlers&gt; property of exactly that
+        /// name - which C# allows, since one is read in type position and the
+        /// other in expression position.
+        /// </remarks>
+        [Test]
+        public void TheRequestHandlersClassHasNoXEither()
+        {
+
+            var requestHandlers = hermod.GetTypes().
+                                      Where (type => type.Name.StartsWith("HTTPRequestHandlers")).
+                                      Select(type => type.Name).
+                                      Order().
+                                      ToArray();
+
+            Assert.That(requestHandlers, Is.EqualTo(new[] { "HTTPRequestHandlers" }));
 
         }
 

@@ -197,7 +197,16 @@ in `URLMapping/`, the class is `HTTPStandardHandlers` again, and the rest is
 deleted. No behaviour changed - the risk in a move like this is losing an
 overload, which breaks a caller in another repository at compile time and would
 never show up here, so `HTTPStandardHandlersTests` pins all eleven entry points
-and that each is still an extension method.
+and that each is still an extension method. Four of the eleven have a caller in
+the test suite; the other seven do not, including all three on `HTTPExtAPI` -
+the signatures are pinned, the file serving behind them is not exercised.
+
+The same rework had left one more `X` behind: `HTTPRequestHandlersX`, the
+record of handlers the routing tree passes around, with no twin to be told
+apart from. It is `HTTPRequestHandlers` since 2026-10-04. Nothing outside
+Hermod named it, so the rename reaches no other repository; inside, the name
+was free as a type and taken as a member - `MethodNode` has a property of
+exactly that name - which C# allows.
 
 Both `OPTIONS` forms are answered by the server itself (RFC 9110 §9.3.7): a
 request for a routed resource that has no `OPTIONS` handler is answered
