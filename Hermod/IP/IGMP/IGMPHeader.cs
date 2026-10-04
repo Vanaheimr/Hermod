@@ -130,6 +130,9 @@ class IgmpHeader : AProtocolHeader
         igmpHeader.igmpVersionType = igmpPacket[offset++];
         igmpHeader.igmpMaxResponseTime = igmpPacket[offset++];
         igmpHeader.igmpChecksum = BitConverter.ToUInt16(igmpPacket, offset);
+        offset += 2;
+
+        igmpHeader.igmpGroupAddress = new IPv4Address(igmpPacket.AsSpan(offset, 4));
 
         bytesCopied = IgmpHeader.IgmpHeaderLength;
         return igmpHeader;
