@@ -36,6 +36,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public DNSInfo         DNSInfo        { get; }
 
+        /// <summary>
+        /// The response each RRset at this name came with, by the type of the RRset
+        /// (for an RRSIG, the type it covers). A cache hit for one type is served
+        /// from the response that carried it, and not from the merged entry above,
+        /// which holds every RRset cached under the name and the header and
+        /// authority section of whichever response came last.
+        /// </summary>
+        public IReadOnlyDictionary<DNSResourceRecordTypes, DNSInfo>  Responses  { get; }
+
         #endregion
 
         #region Constructor(s)
@@ -45,12 +54,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="EndOfLife">The timestamp when this entry gets invalidated.</param>
         /// <param name="DNSInfo">The cached DNS information.</param>
-        public DNSCacheEntry(DateTimeOffset  EndOfLife,
-                             DNSInfo         DNSInfo)
+        /// <param name="Responses">The response each RRset at this name came with, by RRset type.</param>
+        public DNSCacheEntry(DateTimeOffset                                        EndOfLife,
+                             DNSInfo                                               DNSInfo,
+                             IReadOnlyDictionary<DNSResourceRecordTypes, DNSInfo>?  Responses   = null)
         {
 
             this.EndOfLife    = EndOfLife;
             this.DNSInfo      = DNSInfo;
+            this.Responses    = Responses ?? new Dictionary<DNSResourceRecordTypes, DNSInfo>();
 
         }
 

@@ -708,28 +708,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return cachedResults;
                 }
 
-                var now              = Timestamp.Now;
-
-                // Some load balancers have shorter timeouts for CNAME records than for A/AAAA records!
-                // Yet CNAME records must be valid in order to use A/AAAA records!
-                var cnameRecord      = cachedResults.Answers.
-                                           FirstOrDefault(resourceRecord => resourceRecord.Type == DNSResourceRecordTypes.CNAME);
-
-                var resourceRecords  = cachedResults.Answers.
-                                           Where         (resourceRecord => resourceRecordTypes.Contains(resourceRecord.Type) &&
-                                                                            resourceRecord.EndOfLife > now &&
-                                                                            ((cnameRecord is null) || (cnameRecord.EndOfLife > now))).
-                                           ToArray();
-
-                if (resourceRecords.Length != 0)
+                // The RRset asked for, with its signatures and the aliases leading
+                // to it - and not the entry for the name, which holds every RRset
+                // cached under it. Handed out whole, it answered a question for an
+                // address with the zone's DNSKEY and DS as well, once a validator
+                // had fetched those: an answer section of A, RRSIG(A), DNSKEY,
+                // RRSIG(DNSKEY), DS and RRSIG(DS) for "ietf.org A".
+                //
+                // Some load balancers have shorter timeouts for CNAME records than
+                // for A/AAAA records, yet the CNAME must be alive for the address
+                // behind it to be used: an expired link of the chain is a miss.
+                if (DNSCache.TryGetAnswer(DNSServiceName, resourceRecordTypes[0], out var cachedAnswer))
                 {
                     logger.LogDebug(
                         "DNS cache hit for '{DNSServiceName}' with {AnswerCount} matching answer(s)",
                         DNSServiceName,
-                        resourceRecords.Length
+                        cachedAnswer.Answers.Count()
                     );
 
-                    return cachedResults;
+                    return cachedAnswer;
                 }
 
                 logger.LogDebug(
