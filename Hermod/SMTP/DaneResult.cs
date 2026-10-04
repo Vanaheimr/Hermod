@@ -54,10 +54,11 @@ public sealed record DaneResult(DaneStatus            Status,
         => Status == DaneStatus.Secure && Records.Count > 0;
 
     /// <summary>
-    /// The lookup proved the destination is DANE-protected but the records could not be trusted; delivery must be deferred.
+    /// Whether DANE applies cannot be known, or the records cannot be trusted: delivery via this
+    /// server must be deferred (RFC 7672 §2.1.2).
     /// </summary>
     public Boolean  MustDefer
-        => Status == DaneStatus.Bogus;
+        => Status is DaneStatus.Bogus or DaneStatus.LookupFailed;
 
     /// <summary>
     /// A record SMTP can use (RFC 7672 §3.1): DANE-TA(2) or DANE-EE(3), a full certificate or a
@@ -71,5 +72,8 @@ public sealed record DaneResult(DaneStatus            Status,
 
     public static DaneResult None(String? Detail = null)
         => new (DaneStatus.NoRecord, [], Detail);
+
+    public static DaneResult Failed(String Detail)
+        => new (DaneStatus.LookupFailed, [], Detail);
 
 }

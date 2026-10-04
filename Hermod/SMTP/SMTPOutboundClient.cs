@@ -251,10 +251,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 if (dane.MustDefer)
                 {
                     _logger.Log(LogLevel.Error,
-                        $"DANE: TLSA records for {mxHost} failed DNSSEC validation ({dane.Detail}); deferring");
+                        $"DANE: whether DANE applies to {mxHost} cannot be known ({dane.Detail}); deferring (RFC 7672 §2.1.2)");
                     // TLS-RPT (RFC 8460 §4.3): a bogus DNSSEC result under DANE.
                     _tlsRptRecorder?.Invoke(new TlsRptEvent(policyDomain, TlsRptPolicyType.Tlsa, mxHost, null, null, false, "dnssec-invalid"));
-                    return SendResult.TempFail(450, $"DANE TLSA validation failed for {mxHost}: {dane.Detail}", mxHost);
+                    return SendResult.TempFail(450, $"4.7.5 DANE TLSA lookup for {mxHost} failed: {dane.Detail}", mxHost);
                 }
 
                 daneActive   = dane.IsUsable;

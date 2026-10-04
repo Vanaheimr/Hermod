@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// <summary>
     /// DANE (RFC 7672) on the relay: a smart host "localhost" in a zone signed for the test, with the
     /// test's trust anchor, and a next hop whose certificate the TLSA records describe. The
-    /// findings N-3 and N-4 of SMTPConformanceTests.
+    /// findings N-1 to N-4 of SMTPConformanceTests.
     /// </summary>
     public partial class SMTPOutboundClientTests
     {
@@ -54,6 +54,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             private readonly Dictionary<(String, DNSResourceRecordTypes), IDNSResourceRecord[]>  answers   = [];
             private readonly Dictionary<(String, DNSResourceRecordTypes), DNSResponseCodes>      failures  = [];
             private readonly HashSet   <(String, DNSResourceRecordTypes)>                        timeouts  = [];
+            private readonly Dictionary<(String, DNSResourceRecordTypes), IDNSResourceRecord[]>  proofs    = [];
+            private readonly String                                                              zone;
 
             public DNSSECSigningKey  Key          { get; }
             public DS                TrustAnchor  { get; }
@@ -61,6 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             public SignedDns(String Zone = "localhost", Boolean SignedAddress = true)
             {
+                zone         = Zone;
                 Key          = DNSSECSigningKey.Generate(DomainName.ParseLenient(Zone), 13, KeySigningKey: true);
                 TrustAnchor  = Key.DelegationSigner();
                 Answer(Zone, DNSResourceRecordTypes.DNSKEY, true, Key.DNSKEY);
@@ -76,12 +79,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 return this;
             }
 
+            public SignedDns Fail(String Name, DNSResourceRecordTypes Type, DNSResponseCodes Code = DNSResponseCodes.ServerFailure)
+            {
+                failures[(Name.ToLowerInvariant(), Type)] = Code;
+                return this;
+            }
+
+            public SignedDns TimeOut(String Name, DNSResourceRecordTypes Type)
+            {
+                timeouts.Add((Name.ToLowerInvariant(), Type));
+                return this;
+            }
+
+            /// <summary>
+            /// Answer a name that does not exist as a signed zone does: NXDOMAIN, with the zone's NSEC
+            /// record and its signature as the proof (RFC 4035 §3.1.3.2).
+            /// </summary>
+            public SignedDns NoSuchName(String Name, DNSResourceRecordTypes Type)
+            {
+                var signedZone = DNSSECZoneSigner.Sign([ .. answers.Values.SelectMany(rrset => rrset).Where(record => record.Type is not DNSResourceRecordTypes.RRSIG and not DNSResourceRecordTypes.DNSKEY) ],
+                                                       DomainName.ParseLenient(zone), [ Key ]);
+                proofs[(Name.ToLowerInvariant(), Type)] = [ .. signedZone.Where(record => record.Type == DNSResourceRecordTypes.NSEC ||
+                                                                                          record is RRSIG rrsig && rrsig.TypeCovered == DNSResourceRecordTypes.NSEC) ];
+                failures[(Name.ToLowerInvariant(), Type)] = DNSResponseCodes.NameError;
+                return this;
+            }
+
             private Task<DNSInfo> Answer(String Name, IEnumerable<DNSResourceRecordTypes> Types)
             {
 
-                var name    = Name.TrimEnd('.').ToLowerInvariant();
-                var records = new List<IDNSResourceRecord>();
-                var code    = DNSResponseCodes.NoError;
+                var name        = Name.TrimEnd('.').ToLowerInvariant();
+                var records     = new List<IDNSResourceRecord>();
+                var authorities = new List<IDNSResourceRecord>();
+                var code        = DNSResponseCodes.NoError;
 
                 foreach (var type in Types)
                 {
@@ -91,10 +121,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                         code = failure;
                     else if (answers.TryGetValue((name, type), out var rrset))
                         records.AddRange(rrset);
+                    if (proofs.TryGetValue((name, type), out var proof))
+                        authorities.AddRange(proof);
                 }
 
                 return Task.FromResult(new DNSInfo(origin, 0, true, false, true, false, code,
-                                                   records, [], [], true, false, TimeSpan.FromSeconds(1), TimeSpan.Zero));
+                                                   records, authorities, [], true, false, TimeSpan.FromSeconds(1), TimeSpan.Zero));
 
             }
 
@@ -206,6 +238,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             });
 
         }
+
+        #region N-1: a failed TLSA lookup defers delivery
+
+        [TestCase(false, TestName = "N-1: TLSA lookup fails with SERVFAIL")]
+        [TestCase(true,  TestName = "N-1: TLSA lookup times out")]
+        [Description("RFC 7672 §2.1.2: \"If any DNS queries used to locate TLSA records fail ... the SMTP client MUST treat that server as unreachable and MUST NOT deliver the message via that server\"")]
+        public async Task A_failed_TLSA_lookup_defers_delivery(Boolean Timeout)
+        {
+
+            using var nextHop = new NextHop();
+            using var dns     = new SignedDns();
+
+            if (Timeout) dns.TimeOut($"_{nextHop.Port}._tcp.localhost", DNSResourceRecordTypes.TLSA);
+            else         dns.Fail   ($"_{nextHop.Port}._tcp.localhost", DNSResourceRecordTypes.TLSA);
+
+            var result = await SendWithDane(nextHop, dns);
+
+            Assert.Multiple(() => {
+                Assert.That(result.Status,       Is.EqualTo(SendStatus.TempFail), result.ResponseText);
+                Assert.That(Delivered(nextHop),  Is.False, "not delivered via that server");
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7672 §2.2.2: a host whose address records are not signed is not asked for TLSA records - a SERVFAIL there, as nameservers of some large providers give, does not hold the mail")]
+        public async Task An_unsigned_host_is_not_asked_for_TLSA_records()
+        {
+
+            using var nextHop = new NextHop();
+            using var dns     = new SignedDns(SignedAddress: false);
+            dns.Fail($"_{nextHop.Port}._tcp.localhost", DNSResourceRecordTypes.TLSA);
+
+            var result = await SendWithDane(nextHop, dns);
+
+            Assert.That(result.Status, Is.EqualTo(SendStatus.Success), result.ResponseText);
+
+        }
+
+        #endregion
+
+        #region N-2: no TLSA records in a signed zone needs a proof
+
+        [Test(Description = "RFC 7672 §2.1.1, RFC 4035 §5.4: in a signed zone \"no TLSA records\" is a fact only with a validated denial of existence - an empty answer without one is what stripping the records produces")]
+        public async Task An_empty_TLSA_answer_without_proof_in_a_signed_zone_defers_delivery()
+        {
+
+            using var nextHop = new NextHop();
+            using var dns     = new SignedDns();
+
+            var result = await SendWithDane(nextHop, dns);
+
+            Assert.Multiple(() => {
+                Assert.That(result.Status,       Is.EqualTo(SendStatus.TempFail), result.ResponseText);
+                Assert.That(Delivered(nextHop),  Is.False);
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7672 §2.2: with a validated denial of the TLSA records, DANE does not apply and the message goes out with opportunistic TLS - the everyday case of a signed zone without DANE")]
+        public async Task A_proven_absence_of_TLSA_records_is_no_DANE()
+        {
+
+            using var nextHop = new NextHop();
+            using var dns     = new SignedDns();
+            dns.NoSuchName($"_{nextHop.Port}._tcp.localhost", DNSResourceRecordTypes.TLSA);
+
+            var result = await SendWithDane(nextHop, dns);
+
+            Assert.That(result.Status, Is.EqualTo(SendStatus.Success), result.ResponseText);
+
+        }
+
+        #endregion
 
         #region N-3: DANE-TA needs the name
 
