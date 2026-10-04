@@ -31,9 +31,9 @@ public sealed class DsnRequest
 {
     // From MAIL FROM
     public string?      EnvId       { get; set; }   // ENVID=
-    public DsnRet       Ret         { get; set; } = DsnRet.Full;
+    public DsnRet?      Ret         { get; set; }                   // null: no RET
     
     // Per-recipient from RCPT TO
-    public DsnNotify    Notify      { get; set; } = DsnNotify.Failure;
+    public DsnNotify?   Notify      { get; set; }                   // null: no NOTIFY
     public string?      OriginalRecipient { get; set; }  // ORCPT=
 }

@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             !_delayNotificationsSent.Contains(mail.Id) &&
                             Timestamp.Now - mail.QueuedAt > queueProcessorConfig.DelayNotificationAfter)
                         {
-                            await bounceHandler.SendDelayNotificationAsync(mail, ct);
+                            await bounceHandler.SendDelayNotificationAsync(mail, result, ct);
                             _delayNotificationsSent.Add(mail.Id);
                         }
                     }
@@ -441,7 +441,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                    Ret             = mail.Ret,
                    EnvId           = mail.EnvId,
                    Priority        = mail.Priority,
-                   RecipientDsns   = [.. mail.RecipientDsns.Where(recipientDsn => recipients.Contains(recipientDsn.Recipient))]
+                   RecipientDsns   = [.. mail.RecipientDsns.Where(recipientDsn => recipients.Contains(recipientDsn.Recipient))],
+                   RemoteMx        = mail.RemoteMx,
+                   RemoteResponse  = mail.RemoteResponse
                };
 
         #region Domain Rate Limiting

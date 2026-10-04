@@ -25,11 +25,42 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
 /// <summary>
-/// Per-recipient DSN settings
+/// Per-recipient DSN settings (RFC 3461 §4.1, §4.2): NOTIFY and ORCPT as the RCPT command
+/// gave them.
 /// </summary>
 public sealed class RecipientDsn
 {
+
     public required string      Recipient           { get; init; }
-    public          DsnNotify   Notify              { get; init; } = DsnNotify.Failure;
+
+    /// <summary>
+    /// The NOTIFY parameter, or null when the RCPT command had none. The difference matters: a
+    /// relay passes on only what it received (RFC 3461 §5.2.1 (c)), and without NOTIFY a failure
+    /// is still reported while a NOTIFY without FAILURE silences it (§5.2.6).
+    /// </summary>
+    public          DsnNotify?  Notify              { get; init; }
+
+    /// <summary>
+    /// The ORCPT parameter as received - address type, ";", and the address as xtext.
+    /// </summary>
     public          string?     OriginalRecipient   { get; init; }
+
+    /// <summary>
+    /// Whether a failure is reported: unless NOTIFY was given without FAILURE (RFC 3461 §5.2.6).
+    /// </summary>
+    public          bool        ReportsFailure
+        => Notify is null || Notify.Value.HasFlag(DsnNotify.Failure);
+
+    /// <summary>
+    /// Whether delivery is reported: only when NOTIFY asked for SUCCESS (RFC 3461 §5.2.2, §5.2.3).
+    /// </summary>
+    public          bool        ReportsSuccess
+        => Notify is not null && Notify.Value.HasFlag(DsnNotify.Success);
+
+    /// <summary>
+    /// Whether a delay may be reported: unless NOTIFY was given without DELAY (RFC 3461 §5.2.5).
+    /// </summary>
+    public          bool        ReportsDelay
+        => Notify is null || Notify.Value.HasFlag(DsnNotify.Delay);
+
 }

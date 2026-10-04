@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
         // DSN support (RFC 3461)
         private string?                        _dsnEnvId;
-        private DsnRet                         _dsnRet          = DsnRet.Full;
+        private DsnRet?                        _dsnRet;
         private readonly List<RecipientDsn>    _recipientDsns   = [];
 
         // MT-PRIORITY (RFC 6710)
@@ -1165,7 +1165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 if (mailQueue is not null)
                 {
                     var localDsns = _recipientDsns.Where(r => _localRcptTo.Contains(r.Recipient)).ToList();
-                    if (localDsns.Any(r => r.Notify.HasFlag(DsnNotify.Success)))
+                    if (localDsns.Any(r => r.ReportsSuccess))
                         await new BounceHandler(config, mailQueue, logger).SendLocalDeliveryNotificationAsync(
                             _mailFrom ?? "", localDsns, stampedRaw, _dsnEnvId, _dsnRet, ct);
                 }
@@ -1216,7 +1216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                         Ret           = _dsnRet,
                         RecipientDsns = [.. _recipientDsns.Where(r => domainGroup.Contains(r.Recipient))],
                         Notify        = _recipientDsns.Where (r => domainGroup.Contains(r.Recipient)).
-                                                       Aggregate(DsnNotify.Never, (all, r) => all | r.Notify)
+                                                       Aggregate(DsnNotify.Never, (all, r) => all | (r.Notify ?? DsnNotify.Never))
                     };
 
                     await mailQueue.EnqueueAsync(queuedMail, ct);
@@ -1390,7 +1390,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         {
             _mailFrom        = null;
             _dsnEnvId        = null;
-            _dsnRet          = DsnRet.Full;
+            _dsnRet          = null;
             _mtPriority      = 0;
             _requireTls      = false;
             _smtpUtf8        = false;

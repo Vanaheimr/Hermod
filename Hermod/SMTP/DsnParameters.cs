@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 /// notifications from the receiving server.
 /// </summary>
 public sealed record DsnParameters(DsnNotify   Notify   = DsnNotify.Never,
-                                   DsnRet      Ret      = DsnRet.Full,
+                                   DsnRet?     Ret      = null,
                                    string?     EnvId    = null)
 {
 
