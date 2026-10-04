@@ -176,6 +176,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         private const UInt16 RevokeFlag = 0x0080;
 
+        /// <summary>
+        /// The DNSKEY Zone Key flag (RFC 4034 §2.1.1). A key without it "MUST NOT
+        /// be used to verify RRSIGs that cover RRsets".
+        /// </summary>
+        private const UInt16 ZoneKeyFlag = 0x0100;
+
         public static readonly TimeSpan AddHoldDownTime = TimeSpan.FromDays(30);
 
         /// <summary>
@@ -427,6 +433,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                 CancellationToken                                           CancellationToken  = default)
         {
 
+            // One reading of the clock for the answer and for every signature on
+            // the way up to the anchor.
+            var now = Now ?? Timestamp.Now;
+
             try
             {
 
@@ -447,7 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          Response,
                                          Question.Value.QName,
                                          Question.Value.QType,
-                                         Now,
+                                         now,
                                          CancellationToken
                                      ).ConfigureAwait(false);
 
@@ -471,6 +481,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             .Where(rr => rr.Type != DNSResourceRecordTypes.RRSIG)
                                             .ToList();
 
+                // The RRsets a signature was verified for, by owner and type
+                var verified = new HashSet<(String Owner, DNSResourceRecordTypes Type)>();
+
                 // For each RRSIG, find the matching RRSet and validate
                 foreach (var rrsig in rrsigRecords)
                 {
@@ -485,9 +498,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (rrSet.Count == 0)
                         continue;
 
+                    // A zone speaks only for the names inside it. RFC 4035 §5.3.1:
+                    // "The RRSIG RR's Signer's Name field MUST be the name of the
+                    // zone that contains the RRset." Without this, whoever holds the
+                    // key of any properly delegated zone could sign an RRset for any
+                    // name at all under their own signer name, and the chain walk —
+                    // which authenticates the signer's keys, not the signer's
+                    // authority over the owner — would call it Secure.
+                    if (!IsAtOrBelow(rrsig.DomainName.FullName, rrsig.SignerName.FullName))
+                        return DNSSECValidationResult.Bogus;
+
                     // Check signature timestamps
-                    var now = (UInt32) (Now ?? Timestamp.Now).ToUnixTimeSeconds();
-                    if (now < rrsig.SignatureInception || now > rrsig.SignatureExpiration)
+                    if (!WithinValidityWindow(rrsig, now))
                         return DNSSECValidationResult.Bogus;
 
                     // Fetch the DNSKEY for the signer zone
@@ -500,33 +522,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (!dnskeyResponse.IsValid)
                         return DNSSECValidationResult.Indeterminate;
 
-                    var dnskeys = dnskeyResponse.Answers.OfType<DNSKEY>().ToList();
-
-                    // Find the DNSKEY matching the RRSIG KeyTag
-                    var matchingKey = dnskeys.FirstOrDefault(
-                                         key => ComputeKeyTag(key) == rrsig.KeyTag &&
-                                                key.Algorithm      == rrsig.Algorithm
-                                     );
-
-                    if (matchingKey is null)
+                    // Verify the RRSIG with a key of the signer's apex DNSKEY RRset —
+                    // the RRset the walk below authenticates, and no other key.
+                    if (!VerifiedByOneOf(rrSet, rrsig, ApexKeys(dnskeyResponse, rrsig.SignerName.FullName)))
                         return DNSSECValidationResult.Bogus;
-
-                    // Verify the RRSIG signature
-                    var sigResult = ValidateRRSig(rrSet, rrsig, matchingKey);
-                    if (sigResult != DNSSECValidationResult.Secure)
-                        return sigResult;
 
                     // Walk the chain of trust upward
                     var chainResult = await WalkChainOfTrust(
                                                rrsig.SignerName,
-                                               dnskeys,
+                                               dnskeyResponse,
+                                               now,
                                                CancellationToken
                                            ).ConfigureAwait(false);
 
                     if (chainResult != DNSSECValidationResult.Secure)
                         return chainResult;
 
+                    verified.Add((Normalize(rrsig.DomainName.FullName), rrsig.TypeCovered));
+
                 }
+
+                // A signature vouches for the RRset it covers and for nothing else
+                // in the answer. This used to skip an RRSIG with nothing to cover
+                // and then report Secure for whatever was left, so a forged A record
+                // beside any genuine RRSIG — over a TXT the answer did not even
+                // hold — was Secure; and one signed RRset made its unsigned
+                // neighbours Secure too.
+                //
+                // An unsigned RRset is Insecure, not Bogus: it is what a signed
+                // CNAME into an unsigned zone legitimately brings along, and whether
+                // its zone is signed is the question an answer without any RRSIG
+                // raises as well, which is answered Insecure above. The exception is
+                // the CNAME a server synthesizes from a DNAME (RFC 6672 §5.3.1),
+                // which is never signed and needs no signature of its own when the
+                // DNAME is verified and the CNAME follows from it.
+                if (answerRecords.Any(rr => !verified.Contains((Normalize(rr.DomainName.FullName), rr.Type)) &&
+                                            !SynthesizedFromAVerifiedDNAME(rr, answerRecords, verified)))
+                    return DNSSECValidationResult.Insecure;
 
                 return DNSSECValidationResult.Secure;
 
@@ -535,6 +567,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 return DNSSECValidationResult.Indeterminate;
             }
+
+        }
+
+        #endregion
+
+        #region (private static) SynthesizedFromAVerifiedDNAME(Record, Answers, Verified)
+
+        /// <summary>
+        /// Whether the record is a CNAME that follows from a verified DNAME of the
+        /// same answer (RFC 6672 §2.2): its owner lies strictly below the DNAME's,
+        /// and its target is the same leading labels in front of the DNAME's target.
+        /// </summary>
+        private static Boolean SynthesizedFromAVerifiedDNAME(ADNSResourceRecord                                Record,
+                                                             IEnumerable<ADNSResourceRecord>                   Answers,
+                                                             HashSet<(String Owner, DNSResourceRecordTypes Type)>  Verified)
+        {
+
+            if (Record is not CNAME cname)
+                return false;
+
+            var owner   = Normalize(cname.DomainName.FullName);
+            var target  = Normalize(cname.CName.FullName);
+
+            return Answers.OfType<DNAME>().Any(dname => {
+
+                var dnameOwner  = Normalize(dname.DomainName.FullName);
+                var dnameTarget = Normalize(dname.Target.FullName);
+
+                if (!Verified.Contains((dnameOwner, DNSResourceRecordTypes.DNAME)) ||
+                    owner == dnameOwner                                            ||
+                    !IsAtOrBelow(owner, dnameOwner))
+                    return false;
+
+                var prefix = dnameOwner.Length == 0
+                                 ? owner
+                                 : owner[..^(dnameOwner.Length + 1)];
+
+                return target == (dnameTarget.Length == 0
+                                      ? prefix
+                                      : prefix + "." + dnameTarget);
+
+            });
 
         }
 
@@ -585,7 +659,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private async Task<DNSSECValidationResult> ValidateDenialAsync(DNSInfo                 Response,
                                                                        DomainName              QName,
                                                                        DNSResourceRecordTypes  QType,
-                                                                       DateTimeOffset?         Now,
+                                                                       DateTimeOffset          Now,
                                                                        CancellationToken       CancellationToken)
         {
 
@@ -597,6 +671,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (denialSigs.Count == 0)
                 return DNSSECValidationResult.Bogus;
+
+            // The records whose signatures verified — the only ones the proof may
+            // be read from.
+            var verified = new List<IDNSResourceRecord>();
 
             foreach (var rrsig in denialSigs)
             {
@@ -611,8 +689,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (rrSet.Count == 0)
                     return DNSSECValidationResult.Bogus;
 
-                var now = (UInt32) (Now ?? Timestamp.Now).ToUnixTimeSeconds();
-                if (now < rrsig.SignatureInception || now > rrsig.SignatureExpiration)
+                // As for an answer: a zone can deny only names inside it.
+                if (!IsAtOrBelow(rrsig.DomainName.FullName, rrsig.SignerName.FullName))
+                    return DNSSECValidationResult.Bogus;
+
+                if (!WithinValidityWindow(rrsig, Now))
                     return DNSSECValidationResult.Bogus;
 
                 var dnskeyResponse = await dnsClient.Query(
@@ -624,30 +705,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (!dnskeyResponse.IsValid)
                     return DNSSECValidationResult.Indeterminate;
 
-                var dnskeys      = dnskeyResponse.Answers.OfType<DNSKEY>().ToList();
-                var matchingKey  = dnskeys.FirstOrDefault(key => ComputeKeyTag(key) == rrsig.KeyTag &&
-                                                                 key.Algorithm      == rrsig.Algorithm);
-
-                if (matchingKey is null)
+                if (!VerifiedByOneOf(rrSet, rrsig, ApexKeys(dnskeyResponse, rrsig.SignerName.FullName)))
                     return DNSSECValidationResult.Bogus;
-
-                var sigResult = ValidateRRSig(rrSet, rrsig, matchingKey);
-                if (sigResult != DNSSECValidationResult.Secure)
-                    return sigResult;
 
                 var chainResult = await WalkChainOfTrust(
                                            rrsig.SignerName,
-                                           dnskeys,
+                                           dnskeyResponse,
+                                           Now,
                                            CancellationToken
                                        ).ConfigureAwait(false);
 
                 if (chainResult != DNSSECValidationResult.Secure)
                     return chainResult;
 
+                verified.AddRange(rrSet);
+
             }
 
             // The records are authentic. Now: do they prove the claim?
-            return DenialOfExistenceValidator.Verify(QName, QType, authorities) switch {
+            //
+            // Only the verified ones. This used to hand the whole authority
+            // section to the proof check, so an unsigned NSEC or NSEC3 placed
+            // beside a genuine signed one — replayed from anywhere in the zone —
+            // was never checked and still counted: a forged NODATA or NXDOMAIN
+            // for any name, Secure.
+            return DenialOfExistenceValidator.Verify(QName, QType, verified) switch {
 
                 DenialOfExistence.NameDoesNotExist  => DNSSECValidationResult.Secure,
                 DenialOfExistence.NoDataForType     => DNSSECValidationResult.Secure,
@@ -881,22 +963,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region (private) WalkChainOfTrust(SignerName, DNSKeys, CancellationToken)
+        #region (private) WalkChainOfTrust(SignerName, DNSKeyResponse, Now, CancellationToken)
 
         /// <summary>
         /// Walk the chain of trust from the signer zone up to a trust anchor.
         /// </summary>
+        /// <param name="SignerName">The zone whose DNSKEY RRset signed the data being validated.</param>
+        /// <param name="DNSKeyResponse">The response the signer's DNSKEY RRset was taken from, its RRSIGs included.</param>
+        /// <param name="Now">The time every signature on the way up is checked against.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        /// <remarks>
+        /// <para>
+        /// Every link of the chain is a signature, and every one of them is
+        /// checked. RFC 4035 §5.2: the child's DNSKEY RRset is authenticated by
+        /// "an RRSIG RR ... that covers the child zone's DNSKEY RRset" made with a
+        /// key that an authenticated DS names, and the DS RRset is authenticated
+        /// in the parent — by the parent's keys, which are authenticated the same
+        /// way one step further up, until a trust anchor stands in for the DS.
+        /// </para>
+        /// <para>
+        /// This used to check that the DS digests matched a key and that the
+        /// DNSKEY RRsets carried an RRSIG whose key tag named one of their keys —
+        /// and never verified any of those signatures. Nothing above the answer
+        /// was authenticated: an attacker who generated a key per zone, published
+        /// unsigned DS records for them and an RRSIG of zero bytes over each
+        /// DNSKEY RRset made every name Secure, and against the real root the
+        /// root's own DNSKEY response can simply be replayed.
+        /// </para>
+        /// <para>
+        /// The walk goes bottom-up, and a link is accepted conditionally on the
+        /// one above it: a DNSKEY RRset is accepted if a DS names its signer, the
+        /// DS if the parent's DNSKEY RRset signed it, and so on until an anchor
+        /// ends it. Any link that fails fails the whole chain.
+        /// </para>
+        /// </remarks>
         private async Task<DNSSECValidationResult> WalkChainOfTrust(DomainName         SignerName,
-                                                                    List<DNSKEY>       DNSKeys,
+                                                                    DNSInfo            DNSKeyResponse,
+                                                                    DateTimeOffset     Now,
                                                                     CancellationToken  CancellationToken)
         {
 
-            var currentZone     = SignerName.FullName;
-            var currentDNSKeys  = DNSKeys;
+            var currentZone         = Normalize(SignerName.FullName);
+            var currentKeyResponse  = DNSKeyResponse;
+            var keyResponses        = new Dictionary<String, DNSInfo>() { [currentZone] = DNSKeyResponse };
 
             // Limit chain walk depth to prevent infinite loops
             for (var depth = 0; depth < 20; depth++)
             {
+
+                var currentKeys     = ApexKeys(currentKeyResponse, currentZone);
+                var currentKeySigs  = Signatures(currentKeyResponse, currentZone, DNSResourceRecordTypes.DNSKEY).
+                                          Where(rrsig => Normalize(rrsig.SignerName.FullName) == currentZone).
+                                          ToList();
 
                 // Which of the zone's keys an anchor or a DS names is decided by key
                 // tag, algorithm and digest, and by nothing else. RFC 4035 §5.2 asks
@@ -913,22 +1031,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // as long as a KSK rollover lasts, and whenever the standby key came
                 // first every name under the zone was Bogus — org. did, with keys 725
                 // and 26974 and the root's DS naming 26974.
-                foreach (var anchor in trustAnchors)
-                {
-                    if (currentDNSKeys.Any(key => ComputeKeyTag(key) == anchor.KeyTag    &&
-                                                  key.Algorithm       == anchor.Algorithm &&
-                                                  VerifyDS(key, anchor)))
-                        return DNSSECValidationResult.Secure;
-                }
+                //
+                // A key an anchor names is not yet a reason to trust the RRset it
+                // was found in: anyone can copy the root's public key into a DNSKEY
+                // response. The RRset is authenticated only once that key's
+                // signature over it verifies.
+                if (trustAnchors.Any(anchor => currentKeys.Any(key => Names(anchor, key))))
+                    return KeySetSignedByAKeyNamedBy(currentKeys, currentKeySigs, trustAnchors, Now)
+                               ? DNSSECValidationResult.Secure
+                               : DNSSECValidationResult.Bogus;
 
-                // Walk to the parent zone and fetch the DS record
-                var parentZone = GetParentZone(currentZone);
-                if (parentZone is null)
+                // Above the root there is nothing to ask, and no anchor was met.
+                if (GetParentZone(currentZone) is null)
                     return DNSSECValidationResult.Bogus;
 
                 // Fetch the DS record for the current zone from the parent
                 var dsResponse = await dnsClient.Query(
-                                          DomainName.Parse(currentZone),
+                                          DomainName.Parse(currentZone + "."),
                                           [DNSResourceRecordTypes.DS],
                                           CancellationToken: CancellationToken
                                       ).ConfigureAwait(false);
@@ -936,79 +1055,242 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (!dsResponse.IsValid)
                     return DNSSECValidationResult.Indeterminate;
 
-                var dsRecords = dsResponse.Answers.OfType<DS>().ToList();
+                var dsRecords = dsResponse.Answers.OfType<DS>().
+                                    Where(ds => Normalize(ds.DomainName.FullName) == currentZone).
+                                    ToList();
 
                 if (dsRecords.Count == 0)
                     return DNSSECValidationResult.Insecure;
+
+                // The DS RRset is the parent's data, signed with the parent's keys
+                // (RFC 4035 §5.2), and its RRSIG names the parent in the Signer's
+                // Name field. Following that name rather than stripping one label
+                // also finds the parent where a label is not a zone cut. A signer
+                // that is not strictly above the child could not be its parent.
+                var dsRRSet    = dsRecords.Cast<IDNSResourceRecord>().ToList();
+                var parentZone = (String?) null;
+
+                foreach (var dsSig in Signatures(dsResponse, currentZone, DNSResourceRecordTypes.DS))
+                {
+
+                    var signer = Normalize(dsSig.SignerName.FullName);
+
+                    if (signer == currentZone              ||
+                        !IsAtOrBelow(currentZone, signer)  ||
+                        !WithinValidityWindow(dsSig, Now))
+                        continue;
+
+                    if (!keyResponses.TryGetValue(signer, out var signerKeyResponse))
+                    {
+
+                        signerKeyResponse = await dnsClient.Query(
+                                                      DomainName.Parse(signer + "."),
+                                                      [DNSResourceRecordTypes.DNSKEY],
+                                                      CancellationToken: CancellationToken
+                                                  ).ConfigureAwait(false);
+
+                        if (!signerKeyResponse.IsValid)
+                            return DNSSECValidationResult.Indeterminate;
+
+                        keyResponses[signer] = signerKeyResponse;
+
+                    }
+
+                    if (VerifiedByOneOf(dsRRSet, dsSig, ApexKeys(signerKeyResponse, signer)))
+                    {
+                        parentZone = signer;
+                        break;
+                    }
+
+                }
+
+                // A DS RRset no key of any parent signed is not the parent's word —
+                // and that includes one that is not signed at all.
+                if (parentZone is null)
+                    return DNSSECValidationResult.Bogus;
 
                 // RFC 6840 §5.2: a DS naming an algorithm or digest this build
                 // cannot use is disregarded rather than failed, and a DS RRset
                 // with nothing left after that is treated exactly like no DS at
                 // all — the delegation is unsigned, not broken.
                 //
-                // Without this the next line reads "no DS verified" and answers
+                // Without this the next step reads "no DS verified" and answers
                 // Bogus, which is the difference between a name resolving
                 // insecurely and not resolving at all. It fires the day a child
                 // moves to an algorithm this code has not learned yet, which is
                 // precisely when the answer must not be an outage.
+                //
+                // §5.2 speaks of "authenticated DS records", which is why this
+                // comes after the signature check: otherwise a forged DS naming
+                // algorithm 253 downgrades any zone to Insecure.
                 if (!HasUsableDelegationSigner(dsRecords))
                     return DNSSECValidationResult.Insecure;
 
-                // At least one DS has to name one of the zone's keys
-                var dsVerified = dsRecords.Any(ds => currentDNSKeys.Any(key => ComputeKeyTag(key) == ds.KeyTag    &&
-                                                                               key.Algorithm       == ds.Algorithm &&
-                                                                               VerifyDS(key, ds)));
-
-                if (!dsVerified)
-                    return DNSSECValidationResult.Bogus;
-
-                // Now move up: fetch the parent zone's DNSKEY records
-                var parentDnskeyResponse = await dnsClient.Query(
-                                                    DomainName.Parse(parentZone),
-                                                    [DNSResourceRecordTypes.DNSKEY],
-                                                    CancellationToken: CancellationToken
-                                                ).ConfigureAwait(false);
-
-                if (!parentDnskeyResponse.IsValid)
-                    return DNSSECValidationResult.Indeterminate;
-
-                var parentDnskeys = parentDnskeyResponse.Answers.OfType<DNSKEY>().ToList();
-
-                if (parentDnskeys.Count == 0)
-                    return DNSSECValidationResult.Indeterminate;
-
-                // Verify the DNSKEY RRSet in the parent is signed
-                var parentRrsigs = parentDnskeyResponse.Answers.OfType<RRSIG>()
-                                       .Where(rr => rr.TypeCovered == DNSResourceRecordTypes.DNSKEY)
-                                       .ToList();
-
-                if (parentRrsigs.Count == 0)
-                    return DNSSECValidationResult.Insecure;
-
-                // Find the DNSKEY that signed the parent DNSKEY RRSet
-                DNSKEY? parentSigningKey = null;
-                foreach (var parentRrsig in parentRrsigs)
-                {
-                    parentSigningKey = parentDnskeys.FirstOrDefault(
-                                          key => ComputeKeyTag(key) == parentRrsig.KeyTag &&
-                                                 key.Algorithm      == parentRrsig.Algorithm
-                                      );
-
-                    if (parentSigningKey is not null)
-                        break;
-                }
-
-                if (parentSigningKey is null)
+                // At least one usable DS has to name a key of the zone, and that
+                // key has to have signed the zone's DNSKEY RRset. A DS that names
+                // a published key which signed nothing vouches for nothing.
+                if (!KeySetSignedByAKeyNamedBy(currentKeys,
+                                               currentKeySigs,
+                                               dsRecords.Where(IsUsableDelegationSigner),
+                                               Now))
                     return DNSSECValidationResult.Bogus;
 
                 // Move up the chain
-                currentZone    = parentZone;
-                currentDNSKeys = parentDnskeys;
+                currentZone         = parentZone;
+                currentKeyResponse  = keyResponses[parentZone];
 
             }
 
             // Chain walk depth exceeded
             return DNSSECValidationResult.Indeterminate;
+
+        }
+
+        #endregion
+
+        #region (private) KeySetSignedByAKeyNamedBy(Keys, Signatures, DelegationSigners, Now)
+
+        /// <summary>
+        /// Whether a zone's apex DNSKEY RRset carries a valid signature made with
+        /// one of its own keys that one of the given DS records (or trust anchors)
+        /// names.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4035 §5.3.1: key tags are not unique, so every key a signature's
+        /// tag and algorithm point at is tried, and every signature — a zone in a
+        /// KSK rollover signs its DNSKEY RRset with both keys, and only one of
+        /// them is named by the DS. One that verifies is enough.
+        /// </remarks>
+        private Boolean KeySetSignedByAKeyNamedBy(List<DNSKEY>     Keys,
+                                                  List<RRSIG>      Signatures,
+                                                  IEnumerable<DS>  DelegationSigners,
+                                                  DateTimeOffset   Now)
+        {
+
+            var delegationSigners  = DelegationSigners.ToList();
+            var namedKeys          = Keys.Where(key => delegationSigners.Any(ds => Names(ds, key))).ToList();
+            var rrSet              = Keys.Cast<IDNSResourceRecord>().ToList();
+
+            return Signatures.Any(rrsig => WithinValidityWindow(rrsig, Now) &&
+                                           VerifiedByOneOf(rrSet, rrsig, namedKeys));
+
+        }
+
+        #endregion
+
+        #region (private) VerifiedByOneOf(RRSet, Signature, Keys)
+
+        /// <summary>
+        /// Whether any of the given keys verifies the signature over the RRset.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4035 §5.3.1: the key has to match the RRSIG's algorithm and key tag,
+        /// and has to have the Zone Key flag set; RFC 4034 §2.1.2: a key whose
+        /// protocol is not 3 is invalid for verification. Several keys may share a
+        /// tag, so each candidate is tried.
+        /// </remarks>
+        private Boolean VerifiedByOneOf(IEnumerable<IDNSResourceRecord>  RRSet,
+                                        RRSIG                            Signature,
+                                        IEnumerable<DNSKEY>              Keys)
+        {
+
+            var rrSet = RRSet.ToList();
+
+            return Keys.Any(key => (key.Flags & ZoneKeyFlag) != 0          &&
+                                   key.Protocol             == 3            &&
+                                   key.Algorithm            == Signature.Algorithm &&
+                                   ComputeKeyTag(key)       == Signature.KeyTag    &&
+                                   ValidateRRSig(rrSet, Signature, key) == DNSSECValidationResult.Secure);
+
+        }
+
+        #endregion
+
+        #region (private static) Names(DelegationSigner, Key)
+
+        /// <summary>
+        /// Whether a DS record (or a trust anchor in DS form) names this key.
+        /// </summary>
+        private static Boolean Names(DS      DelegationSigner,
+                                     DNSKEY  Key)
+
+            => ComputeKeyTag(Key) == DelegationSigner.KeyTag    &&
+               Key.Algorithm      == DelegationSigner.Algorithm &&
+               VerifyDS(Key, DelegationSigner);
+
+        #endregion
+
+        #region (private static) WithinValidityWindow(Signature, Now)
+
+        /// <summary>
+        /// Whether the signature's validity window (RFC 4034 §3.1.5) contains the given time.
+        /// </summary>
+        private static Boolean WithinValidityWindow(RRSIG           Signature,
+                                                    DateTimeOffset  Now)
+        {
+
+            var now = (UInt32) Now.ToUnixTimeSeconds();
+
+            return now >= Signature.SignatureInception &&
+                   now <= Signature.SignatureExpiration;
+
+        }
+
+        #endregion
+
+        #region (private static) ApexKeys(Response, Zone) / Signatures(Response, Owner, TypeCovered)
+
+        /// <summary>
+        /// The DNSKEY records of a response that belong to the zone's apex. A key
+        /// at any other name is not part of the RRset its RRSIG covers, and must not
+        /// be used as if it were.
+        /// </summary>
+        private static List<DNSKEY> ApexKeys(DNSInfo  Response,
+                                             String   Zone)
+
+            => Response.Answers.OfType<DNSKEY>().
+                                Where(key => Normalize(key.DomainName.FullName) == Normalize(Zone)).
+                                ToList();
+
+
+        /// <summary>
+        /// The RRSIG records of a response that cover the given type at the given owner name.
+        /// </summary>
+        private static List<RRSIG> Signatures(DNSInfo                 Response,
+                                              String                  Owner,
+                                              DNSResourceRecordTypes  TypeCovered)
+
+            => Response.Answers.OfType<RRSIG>().
+                                Where(rrsig => rrsig.TypeCovered == TypeCovered &&
+                                               Normalize(rrsig.DomainName.FullName) == Normalize(Owner)).
+                                ToList();
+
+        #endregion
+
+        #region (private static) Normalize(Name) / IsAtOrBelow(Name, Zone)
+
+        /// <summary>
+        /// A name in the one spelling every comparison here uses: lower case, no
+        /// trailing dot, and the root as the empty string.
+        /// </summary>
+        private static String Normalize(String Name)
+
+            => Name.TrimEnd('.').ToLowerInvariant();
+
+
+        /// <summary>
+        /// Whether the name is the zone's apex or lies below it.
+        /// </summary>
+        private static Boolean IsAtOrBelow(String  Name,
+                                           String  Zone)
+        {
+
+            var name = Normalize(Name);
+            var zone = Normalize(Zone);
+
+            return zone.Length == 0 ||
+                   name == zone     ||
+                   name.EndsWith("." + zone, StringComparison.Ordinal);
 
         }
 
