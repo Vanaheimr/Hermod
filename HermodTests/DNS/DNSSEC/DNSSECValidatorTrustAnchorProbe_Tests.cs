@@ -26,9 +26,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
 
     /// <summary>
     /// RFC 5011 believes a root DNSKEY RRset only once it is authenticated: a new
-    /// key starts its hold-down only in a set "validly signed by a trust anchor"
-    /// (§2.2), and a revocation counts only when the revoked key signed the set
-    /// itself (§2.1).
+    /// key is added only "when that RRSet is validated by an existing trust
+    /// anchor" (§2), and a revocation counts only when the revoked key signed the
+    /// set itself (§2.1).
     /// </summary>
     /// <remarks>
     /// The probe used to verify no signature at all. An attacker on the path for
