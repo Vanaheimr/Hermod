@@ -117,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 certificate  = Certificate;
                 requireTls   = RequireTls;
                 listener.Start();
-                _ = Task.Run(ServeAsync);
+                _ = Task.Run(AcceptAsync);
             }
 
             private String Ehlo()
@@ -140,12 +140,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                        _       => "250 2.0.0 ok"
                    };
 
-            private async Task ServeAsync()
+            /// <summary>
+            /// Every connection, each served on its own: a queue delivers bounces and
+            /// retries on connections of their own.
+            /// </summary>
+            private async Task AcceptAsync()
+            {
+                try
+                {
+                    while (true)
+                    {
+                        var client = await listener.AcceptTcpClientAsync();
+                        _ = Task.Run(() => ServeAsync(client));
+                    }
+                }
+                catch
+                {
+                    // the listener was stopped
+                }
+            }
+
+            private async Task ServeAsync(TcpClient Client)
             {
                 try
                 {
 
-                    using var client = await listener.AcceptTcpClientAsync();
+                    using var client = Client;
                     Stream    stream = client.GetStream();
                     var       reader = new StreamReader(stream, Encoding.UTF8);
 

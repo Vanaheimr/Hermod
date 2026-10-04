@@ -288,6 +288,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         private async Task HandleDeliveryResultAsync(QueuedMail mail, SendResult result, CancellationToken ct)
         {
+
+            // Accepted for some recipients, refused for others: each gets what it needs.
+            if (result.Recipients.Select(outcome => outcome.Status).Distinct().Count() > 1)
+            {
+                await HandleMixedOutcomeAsync(mail, result, ct);
+                return;
+            }
+
             switch (result.Status)
             {
 
@@ -358,6 +366,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             }
         }
+
+        /// <summary>
+        /// The next hop answered the recipients differently. RFC 5321 §6.1: a server that accepted a
+        /// message "MUST NOT lose" it - those accepted have it, each recipient refused gets a
+        /// bounce to the sender, and those refused for now go back into the queue on their own,
+        /// with the retry count and schedule the message had.
+        /// </summary>
+        private async Task HandleMixedOutcomeAsync(QueuedMail mail, SendResult result, CancellationToken ct)
+        {
+
+            var accepted   = result.Recipients.Where(outcome => outcome.Status == SendStatus.Success). Select(outcome => outcome.Recipient).ToArray();
+            var refused    = result.Recipients.Where(outcome => outcome.Status == SendStatus.PermFail).ToArray();
+            var refusedNow = result.Recipients.Where(outcome => outcome.Status == SendStatus.TempFail).ToArray();
+
+            logger.Log(LogLevel.Info,
+                $"Partly delivered {mail.Id} via {result.RemoteMx}: {accepted.Length} accepted, {refused.Length} refused, {refusedNow.Length} to retry");
+
+            mail.RemoteMx        = result.RemoteMx;
+            mail.RemoteResponse  = result.ResponseText;
+
+            if (accepted.Length > 0)
+            {
+                mail.Status       = QueueItemStatus.Delivered;
+                mail.DeliveredAt  = Timestamp.Now;
+            }
+            else
+            {
+                mail.Status       = QueueItemStatus.Failed;
+                mail.LastError    = $"{result.ResponseCode} {result.ResponseText}";
+            }
+
+            await mailQueue.UpdateAsync(mail, ct);
+
+            if (accepted.Length > 0)
+                await bounceHandler.SendRelayNotificationAsync(CopyFor(mail, accepted, "delivered"), result.RemoteSupportsDsn, ct);
+
+            foreach (var outcome in refused)
+                await bounceHandler.SendBounceAsync(CopyFor(mail, [ outcome.Recipient ], "refused"),
+                                                    SendResult.PermFail(outcome.Code, outcome.Text, result.RemoteMx),
+                                                    ct);
+
+            if (refusedNow.Length > 0)
+            {
+
+                var retry        = CopyFor(mail, [.. refusedNow.Select(outcome => outcome.Recipient)], $"retry-{mail.RetryCount + 1}");
+                retry.RetryCount = (UInt16) (mail.RetryCount + 1);
+                retry.LastError  = $"{refusedNow[0].Code} {refusedNow[0].Text}";
+                retry.RemoteMx   = result.RemoteMx;
+                retry.NextRetry  = RetryCalculator.GetNextRetryTime(retry.RetryCount);
+                retry.Status     = QueueItemStatus.Deferred;
+
+                await mailQueue.EnqueueAsync(retry, ct);
+
+            }
+
+        }
+
+        /// <summary>
+        /// The same message for some of its recipients: the envelope, the transaction parameters
+        /// and the per-recipient DSN data of those recipients; the time it was queued stays.
+        /// </summary>
+        private static QueuedMail CopyFor(QueuedMail mail, String[] recipients, String suffix)
+
+            => new () {
+                   Id              = $"{mail.Id}.{suffix}",
+                   EnvelopeFrom    = mail.EnvelopeFrom,
+                   EnvelopeTo      = recipients,
+                   MessageContent  = mail.MessageContent,
+                   TargetDomain    = mail.TargetDomain,
+                   QueuedAt        = mail.QueuedAt,
+                   RequireTls      = mail.RequireTls,
+                   Notify          = mail.Notify,
+                   Ret             = mail.Ret,
+                   EnvId           = mail.EnvId,
+                   Priority        = mail.Priority,
+                   RecipientDsns   = [.. mail.RecipientDsns.Where(recipientDsn => recipients.Contains(recipientDsn.Recipient))]
+               };
 
         #region Domain Rate Limiting
 

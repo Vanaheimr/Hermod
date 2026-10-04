@@ -147,9 +147,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
 
                 // Try each MX host in priority order
-                Exception? lastException = null;
-                String? lastError = null;
-                int lastCode = 0;
+                Exception?  lastException  = null;
+                SendResult? lastResult     = null;
 
                 foreach (var mx in mxHosts.OrderBy(m => m.Priority))
                 {
@@ -186,8 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         }
 
                         // Temp failure - try next MX
-                        lastError = result.ResponseText;
-                        lastCode = result.ResponseCode;
+                        lastResult = result;
                         _logger.Log(LogLevel.Warning, $"MX {mx.Host} temp failed: {result.ResponseCode} {result.ResponseText}");
                     }
                     catch (Exception ex)
@@ -197,10 +195,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     }
                 }
 
-                // All MX hosts failed
-                return lastError is not null
-                    ? SendResult.TempFail(lastCode, lastError)
-                    : SendResult.TempFail($"All MX hosts unreachable: {lastException?.Message}");
+                // All MX hosts failed: the last answer as it was - with its recipients' answers.
+                return lastResult
+                           ?? SendResult.TempFail($"All MX hosts unreachable: {lastException?.Message}");
             }
             catch (Exception ex)
             {
@@ -450,7 +447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
 
                 // RCPT TO for each recipient (with NOTIFY/ORCPT when requested and supported)
-                var acceptedRecipients = new List<String>();
+                var outcomes = new List<RecipientOutcome>();
                 foreach (var recipient in recipients)
                 {
 
@@ -464,20 +461,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                     ct);
                     var rcptResponse = await connection.ReadReplyAsync(ct);
 
-                    if (rcptResponse.Code is 250 or 251)
-                    {
-                        acceptedRecipients.Add(recipient);
-                    }
-                    else
-                    {
+                    outcomes.Add(new RecipientOutcome(recipient, rcptResponse.Code, rcptResponse.Text));
+
+                    if (rcptResponse.Code is not (250 or 251))
                         _logger.Log(LogLevel.Warning, $"Recipient {recipient} rejected: {rcptResponse}");
-                        // Continue with other recipients
-                    }
 
                 }
 
-                if (acceptedRecipients.Count == 0)
-                    return SendResult.PermFail(550, "All recipients rejected", mxHost);
+                // Nobody accepted: refused for now if any was refused for now - those are tried
+                // again - else refused. Each recipient's answer goes with the result.
+                if (outcomes.All(outcome => outcome.Status != SendStatus.Success))
+                {
+                    var first = outcomes.FirstOrDefault(outcome => outcome.Status == SendStatus.TempFail) ?? outcomes[0];
+                    return (first.Status == SendStatus.TempFail
+                                ? SendResult.TempFail(first.Code, $"No recipient accepted: {first.Text}", mxHost)
+                                : SendResult.PermFail(first.Code, $"No recipient accepted: {first.Text}", mxHost))
+                           with { Recipients = outcomes };
+                }
 
                 // DATA
                 await connection.WriteLineAsync("DATA", ct);
@@ -489,7 +489,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 await connection.WriteAsync(DataOctets(messageContent), ct);
                 var finalResponse = await connection.ReadReplyAsync(ct);
 
-                return ParseResponse(finalResponse.ToString(), mxHost) with { RemoteSupportsDsn = supportsDsn };
+                // The message was taken for the accepted recipients; what became of the others goes
+                // with the result, for the queue to bounce or retry them.
+                var delivery = ParseResponse(finalResponse.ToString(), mxHost) with { RemoteSupportsDsn = supportsDsn };
+
+                return delivery.Status == SendStatus.Success
+                           ? delivery with { Recipients = outcomes }
+                           : delivery;
 
             }
             catch

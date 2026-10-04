@@ -31,6 +31,30 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
+    /// <summary>
+    /// The next hop's answer to one recipient.
+    /// </summary>
+    /// <param name="Recipient">The recipient address.</param>
+    /// <param name="Code">The reply code to its RCPT.</param>
+    /// <param name="Text">The reply text.</param>
+    public sealed record RecipientOutcome(String  Recipient,
+                                          Int32   Code,
+                                          String  Text)
+    {
+
+        /// <summary>
+        /// Accepted (2xx), refused for now (4xx, and anything unparseable), or refused (5xx).
+        /// </summary>
+        public SendStatus Status
+            => Code switch {
+                   >= 200 and < 300  => SendStatus.Success,
+                   >= 500 and < 600  => SendStatus.PermFail,
+                   _                 => SendStatus.TempFail
+               };
+
+    }
+
+
     public sealed record SendResult(SendStatus  Status,
                                     Int32       ResponseCode,
                                     String      ResponseText,
@@ -44,6 +68,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// "relayed" DSN (RFC 3461 §5.3.1) — avoiding a duplicate.
         /// </summary>
         public Boolean RemoteSupportsDsn { get; init; }
+
+        /// <summary>
+        /// The next hop's answer to each recipient's RCPT, when the transaction got that far. A
+        /// delivery can succeed for some recipients and fail for others (RFC 5321 §3.3): those
+        /// refused are bounced, those refused for now tried again - each on its own.
+        /// </summary>
+        public IReadOnlyList<RecipientOutcome> Recipients { get; init; } = [];
 
         public static SendResult Success(String response, String mx, TimeSpan duration) =>
             new (SendStatus.Success, 250, response, mx, duration);
