@@ -240,6 +240,21 @@ Having a method value means that it can be parsed, serialized, and routed. It
 does not create resource semantics automatically; a handler must be registered
 for the method and path.
 
+**`TRACE` is deliberately not implemented**, and since 2026-10-04 says so with
+`501` rather than the `405` routing used to give: RFC 9110 §9.1 keeps `405` for
+a method "recognized and implemented, but not allowed for the target resource"
+and puts one "unrecognized or not implemented" on the `501` side, and this
+refusal is the server's for every resource at once. §9.1 also makes the choice
+a choice — every method but `GET` and `HEAD` is OPTIONAL.
+
+The reason is §9.3.8's own: a `TRACE` response carries the request's fields
+back, so the final recipient "SHOULD exclude any request fields that are likely
+to contain sensitive data" — a judgement about `Authorization`, `Cookie` and
+whatever an application invented, which a library would make once, for
+everybody, and wrong. Cross-Site Tracing was that mistake in the browsers of
+2003; modern ones forbid the method outright. An application that wants to
+reflect registers a `TRACE` handler and keeps the judgement where it belongs.
+
 ## Chunked transfer coding
 
 Hermod supports chunked transfer coding in both directions and in both client
