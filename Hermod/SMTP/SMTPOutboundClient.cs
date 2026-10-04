@@ -55,7 +55,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this._logger          = logger;
             this._mtaStsResolver  = new MtaStsResolver(dnsClient, logger, config.MtaStsHttpHandler);
             this._daneResolver    = config.EnableDane
-                                        ? new DaneResolver(dnsClient, logger)
+                                        ? new DaneResolver(dnsClient,
+                                                           logger,
+                                                           config.DnssecTrustAnchors is { } anchors
+                                                               ? new DNSSECValidator(dnsClient, anchors)
+                                                               : null)
                                         : null;
             this._tlsRptRecorder  = tlsRptRecorder;
 
@@ -234,9 +238,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // A "bogus" result means the destination advertises DANE but the records cannot be
             // trusted — fail closed and defer rather than risk an unauthenticated channel.
             var                  daneActive   = false;
+            var                  daneTls      = false;
             IReadOnlyList<TLSA>  daneRecords  = [];
 
-            if (_daneResolver is not null)
+            // RFC 7672 §2.2: "When the original next-hop destination is an address literal ...
+            // DANE TLS does not apply."
+            if (_daneResolver is not null && !System.Net.IPAddress.TryParse(mxHost.Trim('[', ']'), out _))
             {
 
                 var dane = await _daneResolver.ResolveTlsaAsync(mxHost, port, ct);
@@ -251,16 +258,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
 
                 daneActive   = dane.IsUsable;
-                daneRecords  = dane.Records;
+                daneTls      = dane.RequiresTls;
+                daneRecords  = [.. dane.Records.Where(DaneResult.IsUsableRecord)];
 
                 if (daneActive)
                     _logger.Log(LogLevel.Info,
                         $"DANE active for {mxHost}: {daneRecords.Count} usable TLSA record(s), TLS enforced");
 
+                else if (daneTls)
+                    _logger.Log(LogLevel.Info,
+                        $"DANE: {mxHost} has secure TLSA records, none usable - TLS required, without authentication (RFC 7672 §2.2)");
+
             }
 
-            // DANE mandates authenticated TLS to this MX (RFC 7672 §2.2).
-            var mustEnforceTls = enforceTls || daneActive;
+            // DANE mandates TLS to this MX (RFC 7672 §2.2), authenticated when a record is usable.
+            var mustEnforceTls = enforceTls || daneTls;
+
+            // RFC 7672 §3.2.3: the reference identifiers of a DANE-TA(2) name check - the host, and
+            // for an MX host the next-hop domain.
+            IReadOnlyCollection<String> referenceIdentifiers = _config.SmartHost is null
+                                                                   ? [ mxHost, policyDomain ]
+                                                                   : [ mxHost ];
 
             using var client = new TcpClient();
 
@@ -347,8 +365,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                         var sslStream = new SslStream(connection.Stream, false,
                             (_, cert, chain, errors) => daneActive
-                                ? ValidateDaneCertificate(mxHost, daneRecords, cert, chain)
-                                : ValidateServerCertificate(mxHost, validateStrict, cert, chain, errors));
+                                ? ValidateDaneCertificate(mxHost, daneRecords, referenceIdentifiers, cert, chain)
+                                // Secure TLSA records, none usable: encrypted, not authenticated (§2.2).
+                                : daneTls || ValidateServerCertificate(mxHost, validateStrict && !daneTls, cert, chain, errors));
 
                         try
                         {
@@ -723,10 +742,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// least one DNSSEC-validated TLSA record. PKIX chain/name errors are irrelevant here —
         /// the TLSA record is the sole authenticator.
         /// </summary>
-        private Boolean ValidateDaneCertificate(String               mxHost,
-                                                IReadOnlyList<TLSA>  tlsaRecords,
-                                                X509Certificate?     certificate,
-                                                X509Chain?           chain)
+        private Boolean ValidateDaneCertificate(String                       mxHost,
+                                                IReadOnlyList<TLSA>          tlsaRecords,
+                                                IReadOnlyCollection<String>  referenceIdentifiers,
+                                                X509Certificate?             certificate,
+                                                X509Chain?                   chain)
         {
 
             if (certificate is null)
@@ -738,7 +758,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var leaf = certificate as X509Certificate2
                            ?? X509CertificateLoader.LoadCertificate(certificate.GetRawCertData());
 
-            var matched = DaneAuthenticator.Matches(tlsaRecords, leaf, chain, _logger);
+            var matched = DaneAuthenticator.Matches(tlsaRecords, leaf, chain, referenceIdentifiers, _logger);
 
             if (!matched)
                 _logger.Log(LogLevel.Error,

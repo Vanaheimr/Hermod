@@ -38,9 +38,19 @@ public sealed record DaneResult(DaneStatus            Status,
 {
 
     /// <summary>
-    /// DANE applies and the certificate must be matched against <see cref="Records"/>.
+    /// DANE applies and the certificate must be matched against the usable <see cref="Records"/>:
+    /// a "secure" TLSA RRset with at least one usable record (RFC 7672 §2.2).
     /// </summary>
     public Boolean  IsUsable
+        => Status == DaneStatus.Secure && Records.Any(IsUsableRecord);
+
+    /// <summary>
+    /// The server has committed to TLS: a "secure" TLSA RRset, usable or not. RFC 7672 §2.2: with only
+    /// unusable records "Any connection to the MTA MUST be made via TLS, but authentication is not
+    /// required"; §2.2.3: "The SMTP client MUST NOT deliver mail via the corresponding host unless a
+    /// TLS session is negotiated via STARTTLS."
+    /// </summary>
+    public Boolean  RequiresTls
         => Status == DaneStatus.Secure && Records.Count > 0;
 
     /// <summary>
@@ -48,6 +58,16 @@ public sealed record DaneResult(DaneStatus            Status,
     /// </summary>
     public Boolean  MustDefer
         => Status == DaneStatus.Bogus;
+
+    /// <summary>
+    /// A record SMTP can use (RFC 7672 §3.1): DANE-TA(2) or DANE-EE(3), a full certificate or a
+    /// SubjectPublicKeyInfo, as they are or as SHA-256 or SHA-512. PKIX-TA(0) and PKIX-EE(1) are
+    /// not used for SMTP (§3.1.3).
+    /// </summary>
+    public static Boolean IsUsableRecord(TLSA Record)
+        => (TLSA_CertificateUsage) Record.CertificateUsage is TLSA_CertificateUsage.DANE_TA or TLSA_CertificateUsage.DANE_EE &&
+           (TLSA_Selector)         Record.Selector         is TLSA_Selector.FullCertificate or TLSA_Selector.SubjectPublicKeyInfo &&
+           (TLSA_MatchingType)     Record.MatchingType     is TLSA_MatchingType.Full or TLSA_MatchingType.SHA256 or TLSA_MatchingType.SHA512;
 
     public static DaneResult None(String? Detail = null)
         => new (DaneStatus.NoRecord, [], Detail);

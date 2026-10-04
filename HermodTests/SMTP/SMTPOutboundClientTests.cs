@@ -86,6 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             private readonly String[]                 extensions;
             private readonly Boolean                  silent;
             private readonly X509Certificate2?        certificate;
+            private readonly X509Certificate2[]       chain;
             private readonly Boolean                  requireTls;
             private          Boolean                  inTls;
 
@@ -103,18 +104,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             /// <param name="Silent">Accept the connection and say nothing at all.</param>
             /// <param name="Certificate">Offer STARTTLS with this certificate.</param>
             /// <param name="RequireTls">Inside TLS, offer REQUIRETLS (RFC 8689).</param>
+            /// <param name="Chain">The certificates to send along with the certificate - its issuers.</param>
             public NextHop(Func<String, String?>?  Reply        = null,
                            String                  Greeting     = "220 next.hop ESMTP",
                            String[]?               Extensions   = null,
                            Boolean                 Silent       = false,
                            X509Certificate2?       Certificate  = null,
-                           Boolean                 RequireTls   = false)
+                           Boolean                 RequireTls   = false,
+                           X509Certificate2[]?     Chain        = null)
             {
                 reply        = line => Reply?.Invoke(line) ?? Default(line);
                 greeting     = Greeting;
                 extensions   = Extensions ?? [ "PIPELINING", "8BITMIME", "SIZE 10485760", "DSN", "SMTPUTF8", "ENHANCEDSTATUSCODES" ];
                 silent       = Silent;
                 certificate  = Certificate;
+                chain        = Chain ?? [];
                 requireTls   = RequireTls;
                 listener.Start();
                 _ = Task.Run(AcceptAsync);
@@ -210,7 +214,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                         {
                             await Write("220 2.0.0 Ready to start TLS");
                             var tls  = new SslStream(stream, false);
-                            await tls.AuthenticateAsServerAsync(certificate);
+                            await tls.AuthenticateAsServerAsync(new SslServerAuthenticationOptions {
+                                      ServerCertificateContext = SslStreamCertificateContext.Create(certificate, [.. chain], offline: true)
+                                  });
                             stream   = tls;
                             reader   = new StreamReader(tls, Encoding.UTF8);
                             inTls    = true;
