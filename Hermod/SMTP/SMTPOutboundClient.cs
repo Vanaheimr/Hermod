@@ -298,21 +298,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 await connection.WriteLineAsync($"EHLO {_config.LocalHostname}", ct);
                 var ehloResponse = await connection.ReadReplyAsync(ct);
 
-                if (ehloResponse.Code != 250)
+                // RFC 5321 §3.2: a server that does not know EHLO answers 500, 501, 502, 504 or 550,
+                // and the client falls back to HELO. Anything else - a 421 that ends the session, a
+                // 554 - is the server's answer to the attempt.
+                if (ehloResponse.Code is 500 or 501 or 502 or 504 or 550)
                 {
 
-                    // Try HELO fallback
                     await connection.WriteLineAsync($"HELO {_config.LocalHostname}", ct);
                     ehloResponse = await connection.ReadReplyAsync(ct);
 
-                    if (ehloResponse.Code != 250)
-                        return ParseResponse(ehloResponse.ToString(), mxHost);
-
                 }
 
+                if (ehloResponse.Code != 250)
+                    return ParseResponse(ehloResponse.ToString(), mxHost);
+
+                var extensions = Extensions(ehloResponse);
+
                 // STARTTLS if available and desired/required
-                var supportsStartTls = ehloResponse.Lines.Any(l =>
-                    l.Contains("STARTTLS", StringComparison.OrdinalIgnoreCase));
+                var supportsStartTls = extensions.ContainsKey("STARTTLS");
 
                 var wantTls = mustEnforceTls || _config.RequireStartTls || _config.PreferStartTls;
 
@@ -363,6 +366,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         // Re-send EHLO after TLS
                         await connection.WriteLineAsync($"EHLO {_config.LocalHostname}", ct);
                         ehloResponse = await connection.ReadReplyAsync(ct);
+                        if (ehloResponse.Code != 250)
+                            return ParseResponse(ehloResponse.ToString(), mxHost);
+
+                        // RFC 3207 §4.2: what was offered before TLS counts no more.
+                        extensions = Extensions(ehloResponse);
                     }
                     else if (mustEnforceTls || _config.RequireStartTls)
                     {
@@ -384,7 +392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // AUTH if smarthost credentials provided
                 if (_config.SmartHost is not null && _config.SmartHostUsername is not null)
                 {
-                    var authResult = await AuthenticateAsync(connection, ehloResponse, ct);
+                    var authResult = await AuthenticateAsync(connection, extensions, ct);
                     if (!authResult.StartsWith("235"))
                     {
                         return ParseResponse(authResult, mxHost);
@@ -392,8 +400,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
 
                 // DSN (RFC 3461) / MT-PRIORITY (RFC 6710): only emit params the remote advertised.
-                var supportsDsn         = ehloResponse.Lines.Any(l => l.Contains("DSN", StringComparison.OrdinalIgnoreCase));
-                var supportsMtPriority  = ehloResponse.Lines.Any(l => l.Contains(MtPriority.Keyword, StringComparison.OrdinalIgnoreCase));
+                var supportsDsn         = extensions.ContainsKey("DSN");
+                var supportsMtPriority  = extensions.ContainsKey(MtPriority.Keyword);
 
                 // MAIL FROM (with RET/ENVID and MT-PRIORITY when requested and supported)
                 var mailFromCommand = DsnCommands.MailFrom(envelopeFrom, dsn, supportsDsn);
@@ -465,23 +473,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
         }
 
-        private async Task<String> AuthenticateAsync(SMTPConnection     connection,
-                                                     SMTPReply          ehloResponse,
-                                                     CancellationToken  ct)
+        private async Task<String> AuthenticateAsync(SMTPConnection                       connection,
+                                                     IReadOnlyDictionary<String, String>  extensions,
+                                                     CancellationToken                    ct)
         {
 
             // Check supported mechanisms
-            var authLine = ehloResponse.Lines.FirstOrDefault(l =>
-                l.StartsWith("250", StringComparison.OrdinalIgnoreCase) &&
-                l.Contains("AUTH", StringComparison.OrdinalIgnoreCase));
-
-            if (authLine is null)
+            if (!extensions.TryGetValue("AUTH", out var authParameters))
             {
                 return "504 AUTH not supported";
             }
 
+            var mechanisms = authParameters.Split(' ', StringSplitOptions.RemoveEmptyEntries).
+                                            Select(mechanism => mechanism.ToUpperInvariant()).
+                                            ToHashSet();
+
             // Prefer PLAIN for simplicity (already over TLS)
-            if (authLine.Contains("PLAIN", StringComparison.OrdinalIgnoreCase))
+            if (mechanisms.Contains("PLAIN"))
             {
 
                 var authString = $"\0{_config.SmartHostUsername}\0{_config.SmartHostPassword}";
@@ -493,7 +501,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
 
             // Fallback to LOGIN
-            if (authLine.Contains("LOGIN", StringComparison.OrdinalIgnoreCase))
+            if (mechanisms.Contains("LOGIN"))
             {
                 await connection.WriteLineAsync("AUTH LOGIN", ct);
                 var response = await connection.ReadReplyAsync(ct);
@@ -565,6 +573,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
         #region Response Parsing
+
+        /// <summary>
+        /// The extensions an EHLO reply offers: keyword in upper case, and its parameters. A keyword
+        /// is the first word of a line after the first, which greets (RFC 5321 §4.1.1.1) - "DSN" in
+        /// the server's name, or in another extension's parameters, offers nothing. The obsolete
+        /// "AUTH=LOGIN PLAIN" form counts as AUTH.
+        /// </summary>
+        internal static IReadOnlyDictionary<String, String> Extensions(SMTPReply EhloReply)
+        {
+
+            var extensions = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var line in EhloReply.Lines.Skip(1))
+            {
+
+                var text     = (line.Length > 4 ? line[4..] : "").Trim();
+                var space    = text.IndexOf(' ');
+                var keyword  = (space < 0 ? text : text[..space]).ToUpperInvariant();
+                var values   = space < 0 ? "" : text[(space + 1)..].Trim();
+
+                if (keyword.StartsWith("AUTH="))
+                {
+                    values  = (keyword[5..] + " " + values).Trim();
+                    keyword = "AUTH";
+                }
+
+                if (keyword.Length > 0)
+                    extensions[keyword] = extensions.TryGetValue(keyword, out var earlier) && earlier.Length > 0
+                                              ? (earlier + " " + values).Trim()
+                                              : values;
+
+            }
+
+            return extensions;
+
+        }
 
         private static SendResult ParseResponse(String response, String? mx)
         {
