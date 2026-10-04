@@ -242,12 +242,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #endregion
 
-            var endOfLife = Timestamp.Now + DNSInformation.Answers.Min(dnsResourceRecord => dnsResourceRecord.TimeToLive);
+            var endOfLife      = Timestamp.Now + DNSInformation.Answers.Min(dnsResourceRecord => dnsResourceRecord.TimeToLive);
 
-            var newEntry  = new DNSCacheEntry(
-                                endOfLife,
-                                DNSInformation
-                            );
+            var newAnswerTypes = DNSInformation.Answers.
+                                     Select(RRsetType).
+                                     ToHashSet();
+
+            var newEntry       = new DNSCacheEntry(
+                                     endOfLife,
+                                     DNSInformation,
+                                     newAnswerTypes.ToDictionary(type => type, _ => DNSInformation)
+                                 );
 
             // Use AddOrUpdate for atomic cache insertion with merge.
             // This avoids a race condition where two concurrent queries for
@@ -273,14 +278,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     // entire answer, including the named RRset and any associated
                     // DNSSEC RRs" — an RRset served without its signature is, to a
                     // validator, an RRset that was never signed.
-                    var newAnswerTypes = DNSInformation.Answers.
-                                             Select(RRsetType).
-                                             ToHashSet();
+                    var mergedAnswers   = existingEntry.DNSInfo.Answers.
+                                              Where (rr => !newAnswerTypes.Contains(RRsetType(rr))).
+                                              Concat(DNSInformation.Answers).
+                                              ToArray();
 
-                    var mergedAnswers  = existingEntry.DNSInfo.Answers.
-                                             Where (rr => !newAnswerTypes.Contains(RRsetType(rr))).
-                                             Concat(DNSInformation.Answers).
-                                             ToArray();
+                    var mergedResponses = existingEntry.Responses.
+                                              Where (response => !newAnswerTypes.Contains(response.Key)).
+                                              Concat(newEntry.Responses).
+                                              ToDictionary();
 
                     return new DNSCacheEntry(
                                endOfLife,
@@ -299,7 +305,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                    DNSInformation.IsTimeout,
                                    DNSInformation.Timeout,
                                    DNSInformation.Runtime
-                               )
+                               ),
+                               mergedResponses
                            );
 
                 }
@@ -488,6 +495,145 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             DNSInfo = null;
+            return false;
+
+        }
+
+        #endregion
+
+        #region TryGetAnswer  (DomainName, RecordType, out DNSInfo)
+
+        /// <summary>
+        /// Get a cached positive answer for one record type: the RRset of that type,
+        /// with its signatures, and the CNAME and DNAME records that lead to it —
+        /// in the response that carried it.
+        /// </summary>
+        /// <remarks>
+        /// The entry for a name holds every RRset cached under it, and handing out
+        /// the entry answered a question for one type with all of them: after a
+        /// validator had fetched a zone's DNSKEY and DS, the next lookup of the
+        /// zone's address came back with the DNSKEY, DS and their RRSIGs in the
+        /// answer section. RFC 1034 §3.6.2 and RFC 2181 §5 make an answer the RRset
+        /// asked for, reached through any aliases; RFC 4035 §3.1.1 adds the RRSIGs
+        /// that cover it, and nothing else.
+        ///
+        /// An RRset is served whole or not at all: if one of its records or of its
+        /// signatures, or one link of the alias chain, has expired, this is a miss.
+        /// Handing out what is left would be an RRset without its signature or
+        /// shorter than the one that was signed, and to a validator both are Bogus.
+        /// </remarks>
+        /// <param name="DomainName">The queried domain name.</param>
+        /// <param name="RecordType">The queried record type.</param>
+        /// <param name="DNSInfo">The cached answer.</param>
+        public Boolean TryGetAnswer(DNSServiceName                    DomainName,
+                                    DNSResourceRecordTypes            RecordType,
+                                    [NotNullWhen(true)] out DNSInfo?  DNSInfo)
+        {
+
+            DNSInfo = null;
+
+            // ANY asks for everything at the name, which a cache cannot know it holds.
+            if (RecordType == DNSResourceRecordTypes.Any ||
+                !dnsCache.TryGetValue(DomainName, out var dnsCacheEntry))
+                return false;
+
+            // Entries added record by record (Add(DomainName, params ResourceRecords))
+            // came without a response; they are their own response.
+            var response = dnsCacheEntry.Responses.Count == 0
+                               ? dnsCacheEntry.DNSInfo
+                               : dnsCacheEntry.Responses.GetValueOrDefault(RecordType);
+
+            if (response is null ||
+                response.ResponseCode != DNSResponseCodes.NoError)
+                return false;
+
+            var now      = Timestamp.Now;
+            var answers  = new List<IDNSResourceRecord>();
+            var visited  = new HashSet<String>(StringComparer.OrdinalIgnoreCase);
+            var owner    = DomainName;
+
+            while (visited.Add(owner.FullName))
+            {
+
+                var atOwner = response.Answers.
+                                  Where(rr => rr.DomainName == owner).
+                                  ToArray();
+
+                var rrset   = atOwner.
+                                  Where(rr => rr.Type == RecordType ||
+                                              rr is RRSIG signature && signature.TypeCovered == RecordType).
+                                  ToArray();
+
+                if (rrset.Any(rr => rr.Type == RecordType))
+                {
+
+                    if (rrset.Any(rr => rr.EndOfLife <= now))
+                        return false;
+
+                    answers.AddRange(rrset);
+
+                    DNSInfo = new DNSInfo(
+                                  response.Origin,
+                                  response.QueryId,
+                                  response.AuthoritativeAnswer,
+                                  response.IsTruncated,
+                                  response.RecursionRequested,
+                                  response.RecursionAvailable,
+                                  response.ResponseCode,
+                                  answers,
+                                  response.Authorities.Where(rr => rr.EndOfLife > now),
+                                  response.AdditionalRecords,
+                                  response.IsValid,
+                                  response.IsTimeout,
+                                  response.Timeout,
+                                  response.Runtime,
+                                  response.AuthenticData,
+                                  response.CheckingDisabled
+                              );
+
+                    return true;
+
+                }
+
+                // A CNAME at the name stands in for every other type there
+                // (RFC 1034 §3.6.2) — unless the CNAME is what was asked for.
+                var cname   = RecordType != DNSResourceRecordTypes.CNAME
+                                  ? atOwner.OfType<CNAME>().FirstOrDefault()
+                                  : null;
+
+                if (cname is null ||
+                    !DNSServiceName.TryParse(cname.CName.FullName, out var target, out _))
+                    return false;
+
+                var cnameRRset = atOwner.
+                                     Where(rr => rr.Type == DNSResourceRecordTypes.CNAME ||
+                                                 rr is RRSIG signature && signature.TypeCovered == DNSResourceRecordTypes.CNAME).
+                                     ToList();
+
+                // A CNAME synthesized from a DNAME (RFC 6672 §5.3.1) is unsigned;
+                // the DNAME and its signature are what a validator verifies it by.
+                foreach (var dname in response.Answers.OfType<DNAME>())
+                {
+                    if (DNAME.TrySubstitute(owner, dname.DomainName, dname.Target, out var rewritten) == DNAMESubstitution.Redirected &&
+                        rewritten is not null && rewritten == target)
+                    {
+                        cnameRRset.AddRange(response.Answers.
+                                                Where(rr => rr.DomainName == dname.DomainName &&
+                                                            (rr.Type == DNSResourceRecordTypes.DNAME ||
+                                                             rr is RRSIG signature && signature.TypeCovered == DNSResourceRecordTypes.DNAME)));
+                    }
+                }
+
+                if (cnameRRset.Any(rr => rr.EndOfLife <= now))
+                    return false;
+
+                answers.AddRange(cnameRRset.Where(rr => !answers.Contains(rr)));
+
+                owner = target;
+
+            }
+
+            // An alias loop.
             return false;
 
         }
