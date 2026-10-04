@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Globalization;
 using System.Text;
 using System.Threading.Channels;
 using System.Collections.Concurrent;
@@ -206,8 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                  loggingPath,
                                                                                                  context is not null ? context + "_" : String.Empty,
                                                                                                  logfileName, "_",
-                                                                                                 Timestamp.Now.Year, "-",
-                                                                                                 Timestamp.Now.Month.ToString("D2"),
+                                                                                                 Timestamp.Now.ToString("yyyy-MM", CultureInfo.InvariantCulture),
                                                                                                  ".log"
                                                                                              ));
 

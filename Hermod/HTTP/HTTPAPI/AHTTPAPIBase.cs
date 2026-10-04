@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -180,8 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                      loggingPath,
                                                                                                      context.IsNotNullOrEmpty() ? context + Path.DirectorySeparatorChar : String.Empty,
                                                                                                      logfileName.Replace(".log", ""), "_",
-                                                                                                     Timestamp.Now.Year, "-",
-                                                                                                     Timestamp.Now.Month.ToString("D2"),
+                                                                                                     Timestamp.Now.ToString("yyyy-MM", CultureInfo.InvariantCulture),
                                                                                                      ".log"
                                                                                                  ));
 
