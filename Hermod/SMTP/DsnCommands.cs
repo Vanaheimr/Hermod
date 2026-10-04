@@ -56,7 +56,12 @@ public static class DsnCommands
         if (!remoteSupportsDsn || !dsn.IsRequested)
             return "";
 
-        var s = dsn.Ret == DsnRet.Hdrs ? " RET=HDRS" : " RET=FULL";
+        // RFC 3461 §5.2.1 (a), (b): RET and ENVID as they were given - and only then.
+        var s = dsn.Ret switch {
+                    DsnRet.Hdrs  => " RET=HDRS",
+                    DsnRet.Full  => " RET=FULL",
+                    _            => ""
+                };
 
         if (dsn.EnvId is not null)
             s += $" ENVID={dsn.EnvId}";
@@ -79,15 +84,16 @@ public static class DsnCommands
     /// <summary>
     /// The NOTIFY/ORCPT parameter suffix for relaying one recipient as it was received (RFC 3461
     /// §5.2.1), or "" when the remote does not support DSN. NOTIFY=NEVER is a value the client
-    /// chose and is passed on like any other; a received ORCPT is passed on unchanged, and only
-    /// in its absence is one built from the recipient.
+    /// chose and is passed on like any other, and a NOTIFY the client did not give is not made
+    /// up (§5.2.1 (c)); a received ORCPT is passed on unchanged, and only in its absence is one
+    /// built from the recipient (§5.2.1 (d)).
     /// </summary>
     public static string RcptToParams(RecipientDsn recipient, bool remoteSupportsDsn)
     {
         if (!remoteSupportsDsn)
             return "";
 
-        return " NOTIFY=" + FormatNotify(recipient.Notify) +
+        return (recipient.Notify is { } notify ? " NOTIFY=" + FormatNotify(notify) : "") +
                " ORCPT="  + (recipient.OriginalRecipient ?? $"rfc822;{recipient.Recipient}");
     }
 

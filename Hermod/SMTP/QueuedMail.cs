@@ -53,7 +53,7 @@ public sealed class QueuedMail
     // DSN request (RFC 3461) attached by the sender; carried onto the outbound MAIL FROM / RCPT TO
     // (if the remote advertises DSN) and used to decide whether to emit a success DSN on delivery.
     public DsnNotify          Notify            { get; init; } = DsnNotify.Never;
-    public DsnRet             Ret               { get; init; } = DsnRet.Full;
+    public DsnRet?            Ret               { get; init; }          // null: no RET was given
     public String?            EnvId             { get; init; }
 
     // Transport priority (MT-PRIORITY, RFC 6710): -9..9, higher is more urgent. Used to order the
