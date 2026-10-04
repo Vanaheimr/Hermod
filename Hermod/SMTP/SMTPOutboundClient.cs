@@ -374,7 +374,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
                             {
                                 TargetHost = mxHost,
-                                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
+                                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                                // Under DANE the chain the server presents is all there is to authenticate
+                                // against (RFC 7672 §3.1): build it offline. Otherwise the platform may go
+                                // fetching issuers from AIA URLs - on Windows for seconds, and when that
+                                // times out the chain comes back without the certificates the server sent,
+                                // the DANE-TA anchor among them. PKIX revocation does not apply either.
+                                CertificateChainPolicy = daneTls
+                                                             ? new X509ChainPolicy {
+                                                                   DisableCertificateDownloads  = true,
+                                                                   RevocationMode               = X509RevocationMode.NoCheck
+                                                               }
+                                                             : null
                             }, ct);
                         }
                         catch (AuthenticationException ex)
