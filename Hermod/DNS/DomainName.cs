@@ -268,6 +268,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (internal) FromWire(Text)
+
+        /// <summary>
+        /// A domain name read out of RDATA where any label octets may appear, as
+        /// <see cref="DNSTools.ExtractName"/> presents it: labels separated by dots,
+        /// dots and backslashes inside a label escaped.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2181 §11: apart from the length limits, "any binary string whatever can
+        /// be used as the label of any resource record", and "Implementations of the
+        /// DNS protocols must not place any restrictions on the labels that can be
+        /// used." Where a name is a hostname the hostname rules of
+        /// <see cref="Parse(String)"/> apply; where it is a position in the canonical
+        /// order of a zone, as in the Next Domain Name of an NSEC (RFC 4034 §4.1.1),
+        /// it is not a hostname, and RFC 9824 puts a label consisting of a single
+        /// zero octet there by design.
+        /// </remarks>
+        /// <param name="Text">A domain name as extracted from the wire.</param>
+        internal static DomainName FromWire(String Text)
+        {
+
+            if (!DNSServiceName.TryParseLabels(Text, out var labels, out var errorResponse))
+                throw new ArgumentException($"Invalid domain name on the wire: '{Text}': {errorResponse}",
+                                            nameof(Text));
+
+            return new DomainName(labels);
+
+        }
+
+        #endregion
+
         #region ParseLenient(Text, Origin)
 
         /// <summary>

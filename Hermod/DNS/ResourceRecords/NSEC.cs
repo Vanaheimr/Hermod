@@ -113,7 +113,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var rdLength  = Stream.ReadUInt16BE();
             var startPos  = Stream.Position;
 
-            this.NextDomainName = DNS.DomainName.Parse(
+            // Not a hostname but a position in the canonical order of the zone
+            // (RFC 4034 §4.1.1), which may hold any octets. An online signer answers
+            // every denial with the QNAME's immediate successor here, the QNAME with
+            // a leading label of one zero octet (RFC 9824 §3.1): mail.ietf.org's is
+            // \000.mail.ietf.org. Read with the hostname rules, that NSEC threw,
+            // took the whole response with it, and every negative answer from a
+            // zone signed that way arrived as ServerFailure.
+            this.NextDomainName = DNS.DomainName.FromWire(
                                      DNSTools.ExtractName(Stream)
                                  );
 
