@@ -1,4 +1,4 @@
-# Hermod HTTP/1.0 and HTTP/1.1 support
+﻿# Hermod HTTP/1.0 and HTTP/1.1 support
 
 This document describes the HTTP/1.x capabilities of the Hermod HTTP client and
 HTTP server. It distinguishes wire-protocol support from application semantics:
@@ -37,11 +37,11 @@ The normative HTTP references for this document, and for the source comments,
 are RFC 9110 and RFC 9112. The 62 comments that still cited RFC 2616 or the
 RFC 7230 series were rewritten on 2026-09-26 to each field's current defining
 document and section, taken from the IANA HTTP Field Name registry rather than
-from memory. Seven mentions remain deliberately: six are RFC 4918 quoting
+from memory. Six mentions remain deliberately: they are RFC 4918 quoting
 RFC 2616 in text this document quotes in turn, where rewriting them would
 misquote RFC 4918, so each block carries a remark saying where the current
-reference is; the seventh is inside commented-out code under
-`HTTP1/Server/URLMapping_old/`, which is a question of its own.
+reference is. There was a seventh, inside commented-out code under
+`HTTP1/Server/URLMapping_old/`; it went with that directory on 2026-10-04.
 
 ## Transport
 
@@ -183,6 +183,21 @@ and common message-smuggling ambiguities.
 The HTTP API routes by host, path, and method. It supports server-wide
 `OPTIONS *`, resource-level `OPTIONS`, `405 Method Not Allowed`, and generation
 of the corresponding `Allow` field.
+
+The routing code is one generation, since 2026-10-04. `URLMapping/` had a
+`URLMapping_old/` beside it, left by the April 2026 commit that deprecated the
+previous implementation: five files of nothing but commented-out code, and two
+that were neither old nor commented - the `URLReplacement` enum that today's
+`MethodNode` and `PathNode` both read, and 848 lines of live extension methods
+on `HTTPAPI`, `HTTPExtAPI` and `HTTPServer` that this library's own tests and
+several other repositories call. Those methods had been modernised under the
+name `HTTPStandardHandlersX`, while the deprecated twin beside them kept the
+plain name: the modernisation had happened to the copy. Both live files are now
+in `URLMapping/`, the class is `HTTPStandardHandlers` again, and the rest is
+deleted. No behaviour changed - the risk in a move like this is losing an
+overload, which breaks a caller in another repository at compile time and would
+never show up here, so `HTTPStandardHandlersTests` pins all eleven entry points
+and that each is still an extension method.
 
 Both `OPTIONS` forms are answered by the server itself (RFC 9110 §9.3.7): a
 request for a routed resource that has no `OPTIONS` handler is answered

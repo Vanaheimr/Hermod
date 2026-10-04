@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// Standard handlers for HTTP servers.
     /// </summary>
-    public static class HTTPStandardHandlersX
+    public static class HTTPStandardHandlers
     {
 
         public static ILogger Logger { get; set; } = NullLogger.Instance;
