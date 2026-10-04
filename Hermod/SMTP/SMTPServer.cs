@@ -45,6 +45,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private readonly TlsRptIngestor?             _tlsRptIngestor;
         private readonly ILogger                     _logger;
         private readonly ConcurrentBag<TcpListener>  _listeners    = [];
+
+        /// <summary>
+        /// Where the MTA port (25) listens, once <see cref="Start"/> has been called - one end point
+        /// per <see cref="SMTPServerConfig.ListenAddresses"/> entry, with the port the system chose
+        /// when the configured one is 0.
+        /// </summary>
+        public IReadOnlyList<System.Net.IPEndPoint>  MtaEndPoints          { get; private set; } = [];
+
+        /// <summary>
+        /// Where the submission port (587) listens, once <see cref="Start"/> has been called.
+        /// </summary>
+        public IReadOnlyList<System.Net.IPEndPoint>  SubmissionEndPoints   { get; private set; } = [];
+
+        /// <summary>
+        /// Where the implicit-TLS port (465) listens, once <see cref="Start"/> has been called;
+        /// empty when it is not bound.
+        /// </summary>
+        public IReadOnlyList<System.Net.IPEndPoint>  ImplicitTlsEndPoints  { get; private set; } = [];
         private readonly ConcurrentBag<Task>         _sessionTasks = [];
         private readonly CancellationTokenSource     _cts = new();
 
@@ -142,33 +160,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             Directory.CreateDirectory(serverConfig.MailStoragePath);
 
-            var listener25  = new TcpListener(System.Net.IPAddress.Any, serverConfig.Port);
-            var listener587 = new TcpListener(System.Net.IPAddress.Any, serverConfig.SubmissionPort);
-
-            listener25. Start();
-            listener587.Start();
-
-            _listeners.Add(listener25);
-            _listeners.Add(listener587);
-
             var sessionLoops = new List<Task>();
 
+            // Bind a port on every listen address. Done before the first await, so the end points
+            // are known as soon as Start returns its task. An IPv6 listener is IPv6 only: with
+            // both Any and IPv6Any listed, a dual-mode socket would collide with the IPv4 one.
+            IReadOnlyList<System.Net.IPEndPoint> Listen(UInt16 port, Boolean isSubmissionPort, Boolean implicitTls)
+            {
+
+                var endPoints = new List<System.Net.IPEndPoint>();
+
+                foreach (var address in serverConfig.ListenAddresses)
+                {
+
+                    var listener = new TcpListener(address, port);
+
+                    if (address.AddressFamily == AddressFamily.InterNetworkV6)
+                        listener.Server.DualMode = false;
+
+                    listener.Start();
+                    _listeners.Add(listener);
+                    endPoints.Add((System.Net.IPEndPoint) listener.LocalEndpoint);
+
+                    sessionLoops.Add(AcceptConnections(listener, isSubmissionPort, implicitTls, _cts.Token));
+
+                }
+
+                return endPoints;
+
+            }
+
             // Port 25:  MTA-to-MTA (inbound)
-            sessionLoops.Add(AcceptConnections(listener25,  isSubmissionPort: false, implicitTls: false, _cts.Token));
+            MtaEndPoints         = Listen(serverConfig.Port,            isSubmissionPort: false, implicitTls: false);
 
             // Port 587: MUA-to-MTA (submission) RFC 6409 — AUTH required, STARTTLS offered.
-            sessionLoops.Add(AcceptConnections(listener587, isSubmissionPort: true,  implicitTls: false, _cts.Token));
+            SubmissionEndPoints  = Listen(serverConfig.SubmissionPort,  isSubmissionPort: true,  implicitTls: false);
 
             // Port 465: MUA-to-MTA implicit-TLS submission ("SMTPS", RFC 8314). Only bound when
             // a certificate is available, since the connection is TLS from the first byte.
             if (implicitTlsEnabled)
-            {
-                var listener465 = new TcpListener(System.Net.IPAddress.Any, serverConfig.ImplicitTlsPort);
-                listener465.Start();
-                _listeners.Add(listener465);
-                sessionLoops.Add(AcceptConnections(listener465, isSubmissionPort: true, implicitTls: true, _cts.Token));
-            }
-            else if (serverConfig.EnableImplicitTls)
+                ImplicitTlsEndPoints = Listen(serverConfig.ImplicitTlsPort, isSubmissionPort: true, implicitTls: true);
+            if (!implicitTlsEnabled && serverConfig.EnableImplicitTls)
             {
                 _logger.Log(LogLevel.Warning, $"Implicit-TLS port {serverConfig.ImplicitTlsPort} not bound: no certificate configured");
             }
@@ -177,6 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (_dmarcReportService is not null)
                 _ = _dmarcReportService.RunAsync(_cts.Token);
 
+            _logger.Log(LogLevel.Info, $"Listening on {String.Join(", ", MtaEndPoints.Concat(SubmissionEndPoints).Concat(ImplicitTlsEndPoints))}");
             _logger.Log(LogLevel.Info, "Server started. Waiting for connections...");
 
             try

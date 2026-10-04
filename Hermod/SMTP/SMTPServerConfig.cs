@@ -21,6 +21,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     public sealed record SMTPServerConfig
     {
         public required String    Hostname                  { get; init; }
+
+        /// <summary>
+        /// The addresses to listen on; every port below is bound on each of them. Default: every
+        /// IPv4 address. <see cref="System.Net.IPAddress.IPv6Any"/> is every IPv6 address and IPv6
+        /// only - list it beside <see cref="System.Net.IPAddress.Any"/> for both;
+        /// <see cref="System.Net.IPAddress.Loopback"/> keeps the server to this host.
+        /// </summary>
+        public IReadOnlyList<System.Net.IPAddress> ListenAddresses { get; init; } = [ System.Net.IPAddress.Any ];
+
+        /// <summary>
+        /// The MTA port. 0 lets the system choose one; <see cref="Server.SMTPServer.MtaEndPoints"/>
+        /// tells which (likewise for the other ports).
+        /// </summary>
         public          UInt16    Port                      { get; init; } = 25;
         public          UInt16    SubmissionPort            { get; init; } = 587;
 
