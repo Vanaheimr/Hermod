@@ -75,6 +75,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         // REQUIRETLS support (RFC 8689)
         private bool                           _requireTls;
 
+        // SMTPUTF8 requested on MAIL (RFC 6531)
+        private Boolean                        _smtpUtf8;
+
         // BDAT/CHUNKING support (RFC 3030)
         private bool                           _inBdatSequence;
         private readonly MemoryStream          _bdatBuffer      = new();
@@ -626,7 +629,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // RFC 6531 §3.5: "When messages are rejected because the MAIL command requires an ASCII
+            // address, the reply-code 550 is returned"; X.6.7 is "Non-ASCII addresses not permitted
+            // for that sender/recipient" (RFC 6533 §6). Without the SMTPUTF8 parameter the client
+            // has not asked for SMTPUTF8 handling, and the transaction must not need it - a relay
+            // could pass the address on to a server that cannot take it.
+            if (!mailParameters.ContainsKey("SMTPUTF8") && !Ascii.IsValid(match.Groups[1].Value))
+            {
+                await SendResponseAsync(550, "5.6.7 Non-ASCII sender address requires SMTPUTF8");
+                return;
+            }
+
             _mailFrom = match.Groups[1].Value;
+            _smtpUtf8 = mailParameters.ContainsKey("SMTPUTF8");
 
             // Parse DSN parameters (RFC 3461)
             var (envId, ret) = DsnParser.ParseMailFromParams(parameters);
@@ -686,6 +701,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
 
             var recipient       = match.Groups[1].Value;
+
+            // RFC 6531 §3.5: "When messages are rejected because the RCPT command requires an ASCII
+            // address, the reply-code 553 is returned".
+            if (!_smtpUtf8 && !Ascii.IsValid(recipient))
+            {
+                await SendResponseAsync(553, "5.6.7 Non-ASCII recipient address requires SMTPUTF8");
+                return;
+            }
 
             // RFC 5321 §4.5.1: "the special case of 'RCPT TO:<Postmaster>' (with no domain
             // specification), MUST be supported" - case-insensitively (§2.4). It is this server's
@@ -1356,6 +1379,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             _dsnRet          = DsnRet.Full;
             _mtPriority      = 0;
             _requireTls      = false;
+            _smtpUtf8        = false;
             _inBdatSequence  = false;
             _state           = SMTPSessionState.Greeted;
             _rcptTo.       Clear();
