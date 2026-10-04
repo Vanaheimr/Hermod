@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this.__dkimSigner     = _dkimSigner;
             this._dnsClient       = dnsClient;
             this._logger          = logger;
-            this._mtaStsResolver  = new MtaStsResolver(dnsClient, logger);
+            this._mtaStsResolver  = new MtaStsResolver(dnsClient, logger, config.MtaStsHttpHandler);
             this._daneResolver    = config.EnableDane
                                         ? new DaneResolver(dnsClient, logger)
                                         : null;

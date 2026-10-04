@@ -41,11 +41,25 @@ public sealed partial class MtaStsResolver : IDisposable
     private readonly ConcurrentDictionary<string, MtaStsPolicy> _cache = new();
     private readonly SemaphoreSlim _fetchLock = new(5); // Max 5 concurrent fetches
 
-    public MtaStsResolver(IDNSClient dnsClient, ILogger logger)
+    /// <summary>
+    /// The largest max_age a policy may have (RFC 8461 §3.2): a year, in seconds.
+    /// </summary>
+    public const UInt32  MaxMaxAge      = 31_557_600;
+
+    /// <summary>
+    /// Create a resolver.
+    /// </summary>
+    /// <param name="dnsClient">The DNS client for the _mta-sts TXT records.</param>
+    /// <param name="logger">A logger.</param>
+    /// <param name="httpHandler">
+    /// The HTTP handler that fetches policies - for a proxy, or a policy host whose certificate
+    /// the system does not trust.
+    /// </param>
+    public MtaStsResolver(IDNSClient dnsClient, ILogger logger, HttpMessageHandler? httpHandler = null)
     {
         _dnsClient = dnsClient;
         _logger = logger;
-        _httpClient = new HttpClient
+        _httpClient = new HttpClient(httpHandler ?? CreateDefaultHandler(), disposeHandler: httpHandler is null)
         {
             Timeout = TimeSpan.FromSeconds(10)
         };
@@ -83,6 +97,9 @@ public sealed partial class MtaStsResolver : IDisposable
             _fetchLock.Release();
         }
     }
+
+    internal static HttpMessageHandler CreateDefaultHandler()
+        => new SocketsHttpHandler();
 
     private async Task<MtaStsPolicy> FetchPolicyAsync(string domain, CancellationToken ct)
     {
