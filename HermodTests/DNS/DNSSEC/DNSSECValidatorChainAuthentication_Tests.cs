@@ -696,6 +696,386 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
 
         #endregion
 
+
+        #region (private static) DelegationNSEC(Child, BitMap) / NSEC3At(Name, Zone, BitMap) / NSEC3Covering(Name, Zone, OptOut)
+
+        /// <summary>
+        /// The parent's NSEC at the child's name, with the given types.
+        /// </summary>
+        private static NSEC DelegationNSEC(String Child, params String[] BitMap)
+
+            => new (DomainName.Parse(Child), DNSQueryClasses.IN, TimeSpan.FromHours(1),
+                    DomainName.Parse("zz." + Child), ADNSResourceRecord.EncodeTypeBitMaps(BitMap));
+
+        /// <summary>
+        /// The NSEC3 of the zone that matches the name: no salt, no extra iterations, opt-out set, as RFC 9276 has every chain look now.
+        /// </summary>
+        private static NSEC3 NSEC3At(String Name, String Zone, params String[] BitMap)
+
+            => new (NSEC3.ComputeHashedOwnerName(DomainName.Parse(Name), DomainName.Parse(Zone), 0, []),
+                    DNSQueryClasses.IN, TimeSpan.FromHours(1),
+                    NSEC3.HashAlgorithmSHA1, 0x01, 0, [],
+                    Step(NSEC3.ComputeHash(DomainName.Parse(Name), 0, []), +1),
+                    ADNSResourceRecord.EncodeTypeBitMaps(BitMap));
+
+        /// <summary>
+        /// The NSEC3 of the zone whose span holds the hash of the name and nothing much else.
+        /// </summary>
+        private static NSEC3 NSEC3Covering(String Name, String Zone, Boolean OptOut)
+        {
+
+            var hash = NSEC3.ComputeHash(DomainName.Parse(Name), 0, []);
+            var zone = DomainName.Parse(Zone).FullName.TrimStart('.');
+
+            return new (DomainName.Parse($"{NSEC3.Base32HexEncode(Step(hash, -1))}.{zone}"),
+                        DNSQueryClasses.IN, TimeSpan.FromHours(1),
+                        NSEC3.HashAlgorithmSHA1, (Byte) (OptOut ? 0x01 : 0x00), 0, [],
+                        Step(hash, +1),
+                        ADNSResourceRecord.EncodeTypeBitMaps([ "NS", "DS", "RRSIG" ]));
+
+        }
+
+        /// <summary>
+        /// The hash one above or below, as a 20-byte big-endian number.
+        /// </summary>
+        private static Byte[] Step(Byte[] Hash, Int32 Delta)
+        {
+
+            var value  = new System.Numerics.BigInteger(Hash, isUnsigned: true, isBigEndian: true) + Delta;
+            var bytes  = value.ToByteArray(isUnsigned: true, isBigEndian: true);
+            var result = new Byte[Hash.Length];
+
+            Array.Copy(bytes, 0, result, result.Length - bytes.Length, bytes.Length);
+
+            return result;
+
+        }
+
+        #endregion
+
+
+        #region A_Stripped_DS_Is_Bogus()
+
+        /// <summary>
+        /// The downgrade: test. holds a DS for leaf.test., and an attacker on the
+        /// path answers the DS query with an empty NOERROR. Nothing proves the DS
+        /// absent, and leaf.test. lies under the anchor. This used to be Insecure —
+        /// for DANE, that is the TLSA records ignored.
+        /// </summary>
+        [Test]
+        public async Task A_Stripped_DS_Is_Bogus()
+        {
+
+            using var chain = new Chain();
+
+            chain.Publish("leaf.test", DNSResourceRecordTypes.DS, []);
+
+            Assert.That(await chain.Validate(), Is.EqualTo(DNSSECValidationResult.Bogus));
+
+        }
+
+        #endregion
+
+        #region A_Signed_NSEC_Proving_No_DS_Is_Insecure()
+
+        /// <summary>
+        /// The legitimate unsigned delegation: test.'s signed NSEC at leaf.test.
+        /// lists NS and no DS. That leaf.test. signs its own records anyway makes
+        /// it an island the chain does not reach — Insecure, not Bogus.
+        /// </summary>
+        [Test]
+        public async Task A_Signed_NSEC_Proving_No_DS_Is_Insecure()
+        {
+
+            using var chain = new Chain();
+            var       nsec  = DelegationNSEC("leaf.test", "NS", "RRSIG", "NSEC");
+
+            chain.Publish("leaf.test", DNSResourceRecordTypes.DS, []);
+            chain.Resolver.Authority("leaf.test", DNSResourceRecordTypes.DS, nsec, chain.Sign([ nsec ], chain.TestKey));
+
+            Assert.That(await chain.Validate(), Is.EqualTo(DNSSECValidationResult.Insecure));
+
+        }
+
+        #endregion
+
+        #region An_OptOut_NSEC3_Span_Is_Insecure()
+
+        /// <summary>
+        /// RFC 5155 §8.6: test. is signed with NSEC3 and opt-out, and leaf.test.
+        /// falls in an opt-out span — the closest encloser is the apex, and the
+        /// next closer name is covered by a span with the Opt-Out flag. The zone
+        /// declined to say whether a delegation is there; if one is, it is
+        /// unsigned.
+        /// </summary>
+        [Test]
+        public async Task An_OptOut_NSEC3_Span_Is_Insecure()
+        {
+
+            using var chain    = new Chain();
+            var       apex     = NSEC3At      ("test", "test", "SOA", "NS", "DNSKEY", "RRSIG", "NSEC3PARAM");
+            var       covering = NSEC3Covering("leaf.test", "test", OptOut: true);
+
+            chain.Publish("leaf.test", DNSResourceRecordTypes.DS, []);
+            chain.Resolver.Authority("leaf.test", DNSResourceRecordTypes.DS,
+                                     apex,     chain.Sign([ apex     ], chain.TestKey),
+                                     covering, chain.Sign([ covering ], chain.TestKey));
+
+            Assert.That(await chain.Validate(), Is.EqualTo(DNSSECValidationResult.Insecure));
+
+        }
+
+        #endregion
+
+        #region A_Span_Without_OptOut_Is_Bogus()
+
+        /// <summary>
+        /// The same span without the flag says leaf.test. does not exist in test.
+        /// at all — which a zone whose keys were just fetched contradicts.
+        /// </summary>
+        [Test]
+        public async Task A_Span_Without_OptOut_Is_Bogus()
+        {
+
+            using var chain    = new Chain();
+            var       apex     = NSEC3At      ("test", "test", "SOA", "NS", "DNSKEY", "RRSIG", "NSEC3PARAM");
+            var       covering = NSEC3Covering("leaf.test", "test", OptOut: false);
+
+            chain.Publish("leaf.test", DNSResourceRecordTypes.DS, []);
+            chain.Resolver.Authority("leaf.test", DNSResourceRecordTypes.DS,
+                                     apex,     chain.Sign([ apex     ], chain.TestKey),
+                                     covering, chain.Sign([ covering ], chain.TestKey));
+
+            Assert.That(await chain.Validate(), Is.EqualTo(DNSSECValidationResult.Bogus));
+
+        }
+
+        #endregion
+
+        #region An_Unsigned_NSEC_Proving_No_DS_Is_Bogus()
+
+        /// <summary>
+        /// The proof an attacker can write: the right NSEC, without test.'s signature.
+        /// </summary>
+        [Test]
+        public async Task An_Unsigned_NSEC_Proving_No_DS_Is_Bogus()
+        {
+
+            using var chain = new Chain();
+
+            chain.Publish("leaf.test", DNSResourceRecordTypes.DS, []);
+            chain.Resolver.Authority("leaf.test", DNSResourceRecordTypes.DS, DelegationNSEC("leaf.test", "NS", "RRSIG", "NSEC"));
+
+            Assert.That(await chain.Validate(), Is.EqualTo(DNSSECValidationResult.Bogus));
+
+        }
+
+        #endregion
+
+        #region A_Proof_Signed_With_A_Key_Made_Up_For_The_Parent_Is_Bogus()
+
+        /// <summary>
+        /// The NSEC is signed, by a key the attacker made up for test. and serves
+        /// as test.'s DNSKEY RRset. The signature verifies against that set; the
+        /// set does not verify against the DS the root holds for test.
+        /// </summary>
+        [Test]
+        public async Task A_Proof_Signed_With_A_Key_Made_Up_For_The_Parent_Is_Bogus()
+        {
+
+            using var chain     = new Chain();
+            using var madeUp    = DNSSECSigningKey.Generate(DomainName.Parse("test"), 13, KeySigningKey: true);
+            var       nsec      = DelegationNSEC("leaf.test", "NS", "RRSIG", "NSEC");
+
+            chain.PublishSigned("test", DNSResourceRecordTypes.DNSKEY, [ madeUp.DNSKEY ], madeUp).
+                  Publish      ("leaf.test", DNSResourceRecordTypes.DS, []);
+            chain.Resolver.Authority("leaf.test", DNSResourceRecordTypes.DS, nsec, chain.Sign([ nsec ], madeUp));
+
+            Assert.That(await chain.Validate(), Is.EqualTo(DNSSECValidationResult.Bogus));
+
+        }
+
+        #endregion
+
+        #region An_Unusable_DS_Signed_With_A_Key_Made_Up_For_The_Parent_Is_Bogus()
+
+        /// <summary>
+        /// The same against RFC 6840 §5.2: a DS naming algorithm 253 is disregarded
+        /// only once it is authenticated, and a signature by a key made up for the
+        /// parent authenticates nothing. This returned Insecure as soon as that
+        /// signature verified against the made-up key, before the parent's keys
+        /// were looked at.
+        /// </summary>
+        [Test]
+        public async Task An_Unusable_DS_Signed_With_A_Key_Made_Up_For_The_Parent_Is_Bogus()
+        {
+
+            using var chain     = new Chain();
+            using var madeUp    = DNSSECSigningKey.Generate(DomainName.Parse("test"), 13, KeySigningKey: true);
+
+            chain.PublishSigned("test",      DNSResourceRecordTypes.DNSKEY, [ madeUp.DNSKEY ],              madeUp).
+                  PublishSigned("leaf.test", DNSResourceRecordTypes.DS,     [ UnusableDS(chain.LeafKey) ], madeUp);
+
+            Assert.That(await chain.Validate(), Is.EqualTo(DNSSECValidationResult.Bogus));
+
+        }
+
+        #endregion
+
+        #region The_Child_Cannot_Deny_Its_Own_DS()
+
+        /// <summary>
+        /// leaf.test.'s apex NSEC never lists DS — DS lives in the parent — and the
+        /// child's own key signed it. It is not the parent's word, and it is not a
+        /// delegation either: SOA is set.
+        /// </summary>
+        [Test]
+        public async Task The_Child_Cannot_Deny_Its_Own_DS()
+        {
+
+            using var chain = new Chain();
+            var       nsec  = DelegationNSEC("leaf.test", "SOA", "NS", "DNSKEY", "RRSIG", "NSEC");
+
+            chain.Publish("leaf.test", DNSResourceRecordTypes.DS, []);
+            chain.Resolver.Authority("leaf.test", DNSResourceRecordTypes.DS, nsec, chain.Sign([ nsec ], chain.LeafKey));
+
+            Assert.That(await chain.Validate(), Is.EqualTo(DNSSECValidationResult.Bogus));
+
+        }
+
+        #endregion
+
+        #region An_NSEC_Without_NS_Proves_No_Delegation()
+
+        /// <summary>
+        /// RFC 6840 §4.4: the matching NSEC must show NS, proving there is a
+        /// delegation at all. The genuine NSEC of an ordinary name lists no DS
+        /// either; replayed for a zone cut the attacker invented there, it would
+        /// make their own key's signatures Insecure instead of Bogus.
+        /// </summary>
+        [Test]
+        public async Task An_NSEC_Without_NS_Proves_No_Delegation()
+        {
+
+            using var chain = new Chain();
+            var       nsec  = DelegationNSEC("leaf.test", "A", "RRSIG", "NSEC");
+
+            chain.Publish("leaf.test", DNSResourceRecordTypes.DS, []);
+            chain.Resolver.Authority("leaf.test", DNSResourceRecordTypes.DS, nsec, chain.Sign([ nsec ], chain.TestKey));
+
+            Assert.That(await chain.Validate(), Is.EqualTo(DNSSECValidationResult.Bogus));
+
+        }
+
+        #endregion
+
+        #region An_OptOut_Span_Beneath_A_Delegation_Proves_Nothing()
+
+        /// <summary>
+        /// RFC 6840 §4.1: the root's NSEC3 records — genuinely signed by the root,
+        /// which is above leaf.test. — with test. as the closest encloser and an
+        /// opt-out span over leaf.test. But test. is a delegation in the root, and
+        /// the root has nothing to say about names below it. Otherwise com.'s
+        /// opt-out spans would make every zone under every signed .com zone
+        /// Insecure.
+        /// </summary>
+        [Test]
+        public async Task An_OptOut_Span_Beneath_A_Delegation_Proves_Nothing()
+        {
+
+            using var chain    = new Chain();
+            var       cut      = NSEC3At      ("test", ".", "NS", "DS", "RRSIG");
+            var       covering = NSEC3Covering("leaf.test", ".", OptOut: true);
+
+            chain.Publish("leaf.test", DNSResourceRecordTypes.DS, []);
+            chain.Resolver.Authority("leaf.test", DNSResourceRecordTypes.DS,
+                                     cut,      chain.Sign([ cut      ], chain.RootKey),
+                                     covering, chain.Sign([ covering ], chain.RootKey));
+
+            Assert.That(await chain.Validate(), Is.EqualTo(DNSSECValidationResult.Bogus));
+
+        }
+
+        #endregion
+
+        #region NSEC3_Records_Of_Two_Zones_Do_Not_Add_Up_To_A_Proof()
+
+        /// <summary>
+        /// test.'s genuine apex NSEC3 as the closest encloser, and the root's
+        /// genuine opt-out span over the hash of leaf.test. — the same parameters,
+        /// as every chain without salt and extra iterations has. Each is signed by
+        /// its zone and each zone is above leaf.test., and together they read as an
+        /// opt-out proof neither zone ever published.
+        /// </summary>
+        [Test]
+        public async Task NSEC3_Records_Of_Two_Zones_Do_Not_Add_Up_To_A_Proof()
+        {
+
+            using var chain    = new Chain();
+            var       apex     = NSEC3At      ("test", "test", "SOA", "NS", "DNSKEY", "RRSIG", "NSEC3PARAM");
+            var       covering = NSEC3Covering("leaf.test", ".", OptOut: true);
+
+            chain.Publish("leaf.test", DNSResourceRecordTypes.DS, []);
+            chain.Resolver.Authority("leaf.test", DNSResourceRecordTypes.DS,
+                                     apex,     chain.Sign([ apex     ], chain.TestKey),
+                                     covering, chain.Sign([ covering ], chain.RootKey));
+
+            Assert.That(await chain.Validate(), Is.EqualTo(DNSSECValidationResult.Bogus));
+
+        }
+
+        #endregion
+
+        #region A_Missing_DS_Outside_Every_Anchor_Is_Insecure()
+
+        /// <summary>
+        /// With an anchor for some other zone only, nothing said leaf.test. should
+        /// be signed, and no proof could chain to anything: an empty DS answer is
+        /// Insecure there, as it always was.
+        /// </summary>
+        [Test]
+        public async Task A_Missing_DS_Outside_Every_Anchor_Is_Insecure()
+        {
+
+            using var chain     = new Chain();
+            using var elsewhere = DNSSECSigningKey.Generate(DomainName.Parse("example"), 13, KeySigningKey: true);
+
+            chain.Publish("leaf.test", DNSResourceRecordTypes.DS, []);
+
+            var result = await new DNSSECValidator(chain.Resolver, [ elsewhere.DelegationSigner() ]).
+                                   ValidateAsync(Response([ chain.Address, chain.Sign([ chain.Address ], chain.LeafKey) ]));
+
+            Assert.That(result, Is.EqualTo(DNSSECValidationResult.Insecure));
+
+        }
+
+        #endregion
+
+        #region An_Unusable_DS_Outside_Every_Anchor_Is_Insecure()
+
+        /// <summary>
+        /// The same for RFC 6840 §5.2: an unusable DS sends the walk on up to the
+        /// anchor, and where there is none to reach, it must not end at the root
+        /// as Bogus.
+        /// </summary>
+        [Test]
+        public async Task An_Unusable_DS_Outside_Every_Anchor_Is_Insecure()
+        {
+
+            using var chain     = new Chain();
+            using var elsewhere = DNSSECSigningKey.Generate(DomainName.Parse("example"), 13, KeySigningKey: true);
+
+            chain.PublishSigned("leaf.test", DNSResourceRecordTypes.DS, [ UnusableDS(chain.LeafKey) ], chain.TestKey);
+
+            var result = await new DNSSECValidator(chain.Resolver, [ elsewhere.DelegationSigner() ]).
+                                   ValidateAsync(Response([ chain.Address, chain.Sign([ chain.Address ], chain.LeafKey) ]));
+
+            Assert.That(result, Is.EqualTo(DNSSECValidationResult.Insecure));
+
+        }
+
+        #endregion
+
     }
 
 }

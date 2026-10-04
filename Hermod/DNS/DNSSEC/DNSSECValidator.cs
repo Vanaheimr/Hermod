@@ -1080,6 +1080,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var currentKeyResponse  = DNSKeyResponse;
             var keyResponses        = new Dictionary<String, DNSInfo>() { [currentZone] = DNSKeyResponse };
 
+            // What an intact chain up to the anchor amounts to: Secure, unless a
+            // link on the way was a proven unsigned delegation.
+            var outcome             = DNSSECValidationResult.Secure;
+
             // Limit chain walk depth to prevent infinite loops
             for (var depth = 0; depth < 20; depth++)
             {
@@ -1111,7 +1115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // signature over it verifies.
                 if (trustAnchors.Any(anchor => currentKeys.Any(key => Names(anchor, key))))
                     return KeySetSignedByAKeyNamedBy(currentKeys, currentKeySigs, trustAnchors, Now)
-                               ? DNSSECValidationResult.Secure
+                               ? outcome
                                : DNSSECValidationResult.Bogus;
 
                 // Above the root there is nothing to ask, and no anchor was met.
@@ -1132,8 +1136,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     Where(ds => Normalize(ds.DomainName.FullName) == currentZone).
                                     ToList();
 
+                // No DS is a claim like any other, and it needs proof like any
+                // other: RFC 4035 §5.2 lets a delegation be insecure only when
+                // the parent's authenticated NSEC or NSEC3 says so. This used to
+                // return Insecure on an empty answer alone, so an attacker on the
+                // path stripped the DS of any signed zone under the anchor and
+                // got Insecure for it — and for DANE, Insecure means the TLSA
+                // records are ignored.
+                //
+                // The proof is the parent's, so it is accepted on the same terms
+                // as a DS would be: conditionally on the parent's keys, which the
+                // walk goes on to authenticate. What it then ends in is Insecure
+                // rather than Secure.
                 if (dsRecords.Count == 0)
-                    return DNSSECValidationResult.Insecure;
+                {
+
+                    // Outside every anchor there is nothing the proof could chain
+                    // to, and nothing that said the zone should be signed.
+                    if (!CoveredByATrustAnchor(DomainName.Parse(currentZone + ".")))
+                        return DNSSECValidationResult.Insecure;
+
+                    var (proof, provenBy) = await ProveNoDelegationSigner(currentZone,
+                                                                          dsResponse,
+                                                                          keyResponses,
+                                                                          Now,
+                                                                          CancellationToken).ConfigureAwait(false);
+
+                    if (proof != DNSSECValidationResult.Insecure || provenBy is null)
+                        return proof;
+
+                    outcome             = DNSSECValidationResult.Insecure;
+                    currentZone         = provenBy;
+                    currentKeyResponse  = keyResponses[provenBy];
+
+                    continue;
+
+                }
 
                 // The DS RRset is the parent's data, signed with the parent's keys
                 // (RFC 4035 §5.2), and its RRSIG names the parent in the Signer's
@@ -1195,9 +1233,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 //
                 // §5.2 speaks of "authenticated DS records", which is why this
                 // comes after the signature check: otherwise a forged DS naming
-                // algorithm 253 downgrades any zone to Insecure.
+                // algorithm 253 downgrades any zone to Insecure. And the check
+                // so far is only half of the authentication — the parent's keys
+                // are still the ones the response offered — so the walk goes on
+                // up to the anchor rather than returning here, where a DS signed
+                // with a key made up for the parent was reason enough. Outside
+                // every anchor there is nothing to go on up to, and the answer
+                // stays what it was.
                 if (!HasUsableDelegationSigner(dsRecords))
-                    return DNSSECValidationResult.Insecure;
+                {
+
+                    if (!CoveredByATrustAnchor(DomainName.Parse(currentZone + ".")))
+                        return DNSSECValidationResult.Insecure;
+
+                    outcome             = DNSSECValidationResult.Insecure;
+                    currentZone         = parentZone;
+                    currentKeyResponse  = keyResponses[parentZone];
+                    continue;
+                }
 
                 // At least one usable DS has to name a key of the zone, and that
                 // key has to have signed the zone's DNSKEY RRset. A DS that names
@@ -1216,6 +1269,124 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             // Chain walk depth exceeded
             return DNSSECValidationResult.Indeterminate;
+
+        }
+
+        #endregion
+
+        #region (private) ProveNoDelegationSigner(Zone, DSResponse, KeyResponses, Now, CancellationToken)
+
+        /// <summary>
+        /// Check the proof that came with an answer holding no DS for the zone:
+        /// NSEC or NSEC3 records, signed by the parent, that show an unsigned
+        /// delegation (RFC 4035 §5.2, RFC 5155 §8.6, RFC 6840 §4.4).
+        /// </summary>
+        /// <param name="Zone">The zone whose DS was asked for.</param>
+        /// <param name="DSResponse">The response to the DS query.</param>
+        /// <param name="KeyResponses">The DNSKEY responses fetched so far during this walk, by zone; the parent's is added.</param>
+        /// <param name="Now">The time the signatures are checked against.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        /// <returns>
+        /// Insecure and the parent zone whose keys signed the proof, when the
+        /// proof holds — conditionally on those keys, which the caller has yet
+        /// to authenticate. Bogus when it does not, Indeterminate when the
+        /// parent's keys could not be fetched.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// The proof has to come from one zone, and from one strictly above the
+        /// child. A proof assembled from two zones proves nothing about either —
+        /// the closest encloser matched in one, and an opt-out span of another
+        /// covering the next closer name, add up to an opt-out the parent never
+        /// published. Every record is therefore verified against the keys of
+        /// the one zone that signed them all, and a record no key of that zone
+        /// signed is not read. And the child cannot speak for its own
+        /// delegation: its apex NSEC never lists DS, because DS does not live
+        /// there.
+        /// </para>
+        /// <para>
+        /// An NSEC or NSEC3 RRset counts once one of its signatures verifies
+        /// (RFC 4035 §5.3.3); the proof is read from those alone, as in
+        /// <see cref="ValidateDenialAsync"/>.
+        /// </para>
+        /// </remarks>
+        private async Task<(DNSSECValidationResult Result, String? Parent)> ProveNoDelegationSigner(String                       Zone,
+                                                                                                    DNSInfo                      DSResponse,
+                                                                                                    Dictionary<String, DNSInfo>  KeyResponses,
+                                                                                                    DateTimeOffset               Now,
+                                                                                                    CancellationToken            CancellationToken)
+        {
+
+            var authorities  = DSResponse.Authorities.ToList();
+            var denialSigs   = authorities.OfType<RRSIG>().
+                                           Where(rrsig => rrsig.TypeCovered is DNSResourceRecordTypes.NSEC
+                                                                            or DNSResourceRecordTypes.NSEC3).
+                                           ToList();
+
+            var signers      = denialSigs.Select(rrsig => Normalize(rrsig.SignerName.FullName)).
+                                          Distinct().
+                                          ToList();
+
+            // Nothing signed, or signed by more than one zone — and then there
+            // is no telling whose keys the proof is to be read with.
+            if (signers.Count != 1)
+                return (DNSSECValidationResult.Bogus, null);
+
+            var parent = signers[0];
+
+            if (parent == Zone || !IsAtOrBelow(Zone, parent))
+                return (DNSSECValidationResult.Bogus, null);
+
+            if (!KeyResponses.TryGetValue(parent, out var parentKeyResponse))
+            {
+
+                parentKeyResponse = await dnsClient.Query(
+                                              DomainName.Parse(parent + "."),
+                                              [DNSResourceRecordTypes.DNSKEY],
+                                              CancellationToken: CancellationToken
+                                          ).ConfigureAwait(false);
+
+                if (!parentKeyResponse.IsValid)
+                    return (DNSSECValidationResult.Indeterminate, null);
+
+                KeyResponses[parent] = parentKeyResponse;
+
+            }
+
+            var parentKeys = ApexKeys(parentKeyResponse, parent);
+            var verified   = new List<IDNSResourceRecord>();
+
+            foreach (var rrSetSigs in denialSigs.GroupBy(rrsig => (Owner: Normalize(rrsig.DomainName.FullName), rrsig.TypeCovered)))
+            {
+
+                // A zone can deny only names inside it.
+                if (!IsAtOrBelow(rrSetSigs.Key.Owner, parent))
+                    continue;
+
+                var rrSet = authorities.OfType<ADNSResourceRecord>().
+                                        Where(rr => rr.Type == rrSetSigs.Key.TypeCovered &&
+                                                    Normalize(rr.DomainName.FullName) == rrSetSigs.Key.Owner).
+                                        Cast<IDNSResourceRecord>().
+                                        ToList();
+
+                if (rrSet.Count > 0 &&
+                    rrSetSigs.Any(rrsig => WithinValidityWindow(rrsig, Now) &&
+                                           VerifiedByOneOf(rrSet, rrsig, parentKeys)))
+                    verified.AddRange(rrSet);
+
+            }
+
+            return DenialOfExistenceValidator.VerifyNoDelegationSigner(DomainName.Parse(Zone + "."), verified) switch {
+
+                DenialOfExistence.NoDataForType  => (DNSSECValidationResult.Insecure, parent),
+
+                // RFC 5155 §8.6: an opt-out span says the delegation may be
+                // unsigned, and an unsigned one is what the child then is.
+                DenialOfExistence.OptedOut       => (DNSSECValidationResult.Insecure, parent),
+
+                _                                => (DNSSECValidationResult.Bogus,    null)
+
+            };
 
         }
 
