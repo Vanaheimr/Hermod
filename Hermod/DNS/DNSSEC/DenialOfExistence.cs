@@ -103,6 +103,164 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (static) VerifyNoDelegationSigner(Child, Records)
+
+        /// <summary>
+        /// Check whether the given records, all from the parent zone, prove that
+        /// the delegation to <paramref name="Child"/> is unsigned: that there is
+        /// a delegation there and no DS for it (RFC 4035 §5.2), or that it lies
+        /// in an opt-out span (RFC 5155 §8.6).
+        /// </summary>
+        /// <param name="Child">The zone whose DS was asked for.</param>
+        /// <param name="Records">The verified NSEC or NSEC3 records of the parent's answer.</param>
+        /// <returns>
+        /// <see cref="DenialOfExistence.NoDataForType"/> for a proven unsigned
+        /// delegation, <see cref="DenialOfExistence.OptedOut"/> for one inside an
+        /// opt-out span, and <see cref="DenialOfExistence.NotProven"/> otherwise.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// "No DS here" is not enough, which is why this is more than
+        /// <see cref="Verify"/> with the type set to DS. RFC 6840 §4.4: the
+        /// validator "MUST check for the presence of the NS bit in the matching
+        /// NSEC (or NSEC3) RR (proving that there is, indeed, a delegation)", and
+        /// for the absence of the SOA bit, which marks the child's own apex —
+        /// whose NSEC never lists DS, because DS does not live there. Without
+        /// these, the genuine NSEC of any ordinary name, www.example.com. say,
+        /// proves that it has no DS, and an attacker who invents a zone cut
+        /// there and signs with their own key gets Insecure instead of Bogus.
+        /// </para>
+        /// <para>
+        /// An opt-out span is believed only below a closest encloser that is
+        /// not itself a delegation (RFC 6840 §4.1). A zone says nothing about
+        /// the names under a zone cut inside it; otherwise com.'s opt-out spans,
+        /// which cover nearly every hash there is, would prove every zone below
+        /// every signed .com delegation unsigned.
+        /// </para>
+        /// </remarks>
+        public static DenialOfExistence VerifyNoDelegationSigner(DomainName                       Child,
+                                                                 IEnumerable<IDNSResourceRecord>  Records)
+        {
+
+            var records = Records.ToArray();
+            var verdict = Verify(Child, DNSResourceRecordTypes.DS, records);
+
+            switch (verdict)
+            {
+
+                case DenialOfExistence.NoDataForType:
+
+                    // The record at the child's own name, not one at a wildcard
+                    // that a NODATA can also be read from.
+                    var match = BitMapAt(Child, records);
+
+                    return match is not null && IsDelegation(match)
+                               ? DenialOfExistence.NoDataForType
+                               : DenialOfExistence.NotProven;
+
+                case DenialOfExistence.OptedOut:
+
+                    var closestEncloser = ClosestEncloserBitMap(Child, records);
+
+                    return closestEncloser is not null &&
+                           !IsDelegation(closestEncloser) &&
+                           !ADNSResourceRecord.TypeBitMapContains(closestEncloser, DNSResourceRecordTypes.DNAME)
+                               ? DenialOfExistence.OptedOut
+                               : DenialOfExistence.NotProven;
+
+                // A parent that says the child does not exist at all is not
+                // saying that it is unsigned; the keys came from somewhere else.
+                default:
+                    return DenialOfExistence.NotProven;
+
+            }
+
+        }
+
+        #endregion
+
+        #region (private static) BitMapAt(Name, Records) / ClosestEncloserBitMap(Name, Records) / IsDelegation(BitMap)
+
+        /// <summary>
+        /// The type bitmap of the NSEC owned by, or the NSEC3 matching, exactly
+        /// this name — or null if the records hold none.
+        /// </summary>
+        private static Byte[]? BitMapAt(DomainName            Name,
+                                        IDNSResourceRecord[]  Records)
+        {
+
+            var nsec3s = UsableNSEC3s(Records);
+
+            if (nsec3s.Length > 0)
+                return FindMatch(Name, nsec3s, nsec3s[0])?.TypeBitMaps;
+
+            return Records.OfType<NSEC>().
+                           FirstOrDefault(nsec => CompareCanonical(nsec.DomainName.ToString(), Name.FullName) == 0)?.
+                           TypeBitMaps;
+
+        }
+
+        /// <summary>
+        /// The type bitmap of the NSEC3 matching the closest encloser of the
+        /// name (RFC 5155 §8.3), or null if the records prove none.
+        /// </summary>
+        private static Byte[]? ClosestEncloserBitMap(DomainName            Name,
+                                                     IDNSResourceRecord[]  Records)
+        {
+
+            var nsec3s = UsableNSEC3s(Records);
+
+            if (nsec3s.Length == 0)
+                return null;
+
+            var labels = Name.FullName.TrimEnd('.').Split('.');
+
+            for (var skip = 1; skip <= labels.Length; skip++)
+            {
+
+                var match = FindMatch(DomainName.ParseLenient(String.Join('.', labels.Skip(skip)) + "."), nsec3s, nsec3s[0]);
+
+                if (match is not null)
+                    return match.TypeBitMaps;
+
+            }
+
+            return null;
+
+        }
+
+        /// <summary>
+        /// The NSEC3 records sharing the first one's parameters (RFC 5155 §8.2),
+        /// or none if its hash algorithm is unknown.
+        /// </summary>
+        private static NSEC3[] UsableNSEC3s(IDNSResourceRecord[] Records)
+        {
+
+            var nsec3s = Records.OfType<NSEC3>().ToArray();
+
+            if (nsec3s.Length == 0 || !IsSupportedHashAlgorithm(nsec3s[0].HashAlgorithm))
+                return [];
+
+            var reference = nsec3s[0];
+
+            return nsec3s.Where(nsec3 => nsec3.HashAlgorithm == reference.HashAlgorithm &&
+                                         nsec3.Iterations    == reference.Iterations    &&
+                                         nsec3.Salt.SequenceEqual(reference.Salt)).
+                          ToArray();
+
+        }
+
+        /// <summary>
+        /// Whether a type bitmap marks a zone cut seen from the parent's side:
+        /// NS without SOA.
+        /// </summary>
+        private static Boolean IsDelegation(Byte[] BitMap)
+
+            =>  ADNSResourceRecord.TypeBitMapContains(BitMap, DNSResourceRecordTypes.NS) &&
+               !ADNSResourceRecord.TypeBitMapContains(BitMap, DNSResourceRecordTypes.SOA);
+
+        #endregion
+
 
         #region (private static) VerifyNSEC3(QName, QType, Records)
 
@@ -199,6 +357,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                ? DenialOfExistence.NotProven
                                : DenialOfExistence.NoDataForType;
             }
+
+            // An empty non-terminal owns no NSEC: it exists only because a name
+            // below it does. The NSEC whose span holds it names that descendant
+            // as its next name, and that is the proof the name exists and holds
+            // nothing — the way Unbound reads it. Read as a covering NSEC
+            // instead, it made the name one that does not exist, and every DS
+            // query for a label between a zone and a delegation below it
+            // unprovable.
+            var queryName = QName.FullName.TrimEnd('.').ToLowerInvariant();
+
+            if (queryName.Length > 0 &&
+                Records.Any(nsec => Covers(nsec, QName.FullName) &&
+                                    nsec.NextDomainName.FullName.TrimEnd('.').ToLowerInvariant().EndsWith("." + queryName, StringComparison.Ordinal)))
+                return DenialOfExistence.NoDataForType;
 
             // §5.4 — NXDOMAIN: one NSEC covering QNAME, and one covering the
             // wildcard that could otherwise have synthesised it.

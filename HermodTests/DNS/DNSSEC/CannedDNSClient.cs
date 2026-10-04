@@ -26,12 +26,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
 
     /// <summary>
     /// Answers each (name, type) with the records registered for it, and with an
-    /// empty NOERROR otherwise.
+    /// empty NOERROR otherwise. The authority section of a (name, type) — where a
+    /// negative answer carries its NSEC or NSEC3 proof — can be registered too.
     /// </summary>
     internal sealed class CannedDNSClient : IDNSClient
     {
 
-        private readonly Dictionary<(String, DNSResourceRecordTypes), IDNSResourceRecord[]> answers = [];
+        private readonly Dictionary<(String, DNSResourceRecordTypes), IDNSResourceRecord[]> answers      = [];
+        private readonly Dictionary<(String, DNSResourceRecordTypes), IDNSResourceRecord[]> authorities  = [];
 
         private static readonly DNSServerConfig origin = new (IPv4Address.Localhost, IPPort.DNS);
 
@@ -41,6 +43,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
         public CannedDNSClient Answer(String Name, DNSResourceRecordTypes Type, params IDNSResourceRecord[] Records)
         {
             answers[(Key(Name), Type)] = Records;
+            return this;
+        }
+
+        public CannedDNSClient Authority(String Name, DNSResourceRecordTypes Type, params IDNSResourceRecord[] Records)
+        {
+            authorities[(Key(Name), Type)] = Records;
             return this;
         }
 
@@ -73,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
                    RecursionAvailable:     true,
                    ResponseCode:           DNSResponseCodes.NoError,
                    Answers:                Types.SelectMany(type => answers.TryGetValue((Key(Name), type), out var records) ? records : []).ToArray(),
-                   Authorities:            [],
+                   Authorities:            Types.SelectMany(type => authorities.TryGetValue((Key(Name), type), out var records) ? records : []).ToArray(),
                    AdditionalRecords:      [],
                    IsValid:                true,
                    IsTimeout:              false,

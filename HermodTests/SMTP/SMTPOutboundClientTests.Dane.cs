@@ -61,11 +61,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public DS                TrustAnchor  { get; }
             public Boolean           DnssecOK     { get; set; }
 
+            /// <param name="SignedAddress">
+            /// Whether the host is signed. An unsigned one lies outside the anchor:
+            /// an unsigned A record inside the anchored zone is not an unsigned host
+            /// but a stripped signature (RFC 4035 §4.3), and Bogus.
+            /// </param>
             public SignedDns(String Zone = "localhost", Boolean SignedAddress = true)
             {
                 zone         = Zone;
                 Key          = DNSSECSigningKey.Generate(DomainName.ParseLenient(Zone), 13, KeySigningKey: true);
-                TrustAnchor  = Key.DelegationSigner();
+                var ds       = Key.DelegationSigner();
+                TrustAnchor  = SignedAddress
+                                   ? ds
+                                   : new DS(DomainName.Parse("elsewhere.example"), DNSQueryClasses.IN, ds.TimeToLive, ds.KeyTag, ds.Algorithm, ds.DigestType, ds.Digest);
                 Answer(Zone, DNSResourceRecordTypes.DNSKEY, true, Key.DNSKEY);
                 Answer(Zone, DNSResourceRecordTypes.A,      SignedAddress, new A(DomainName.Parse(Zone), DNSQueryClasses.IN, TimeSpan.FromHours(1), IPv4Address.Parse("127.0.0.1")));
             }

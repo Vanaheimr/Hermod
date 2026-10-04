@@ -697,6 +697,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 // Check per-type NODATA cache: if all requested types are cached as NODATA,
                 // return the cached result without hitting the network.
+                //
+                // The NODATA response itself, where it was kept: the entry for the
+                // name is whatever response for it was cached last, and that is
+                // often a positive answer for another type. Handed out for a NODATA
+                // hit, it lost the authority section, and with it the signed NSEC
+                // proof — the DS query of an unsigned delegation, which a validator
+                // reads the proof from, came back without one from the second
+                // lookup on, and a proven insecure zone turned Bogus.
                 if (resourceRecordTypes.All(type => DNSCache.IsNoData(DNSServiceName, type)))
                 {
                     logger.LogDebug(
@@ -705,7 +713,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         resourceRecordTypes.AggregateWith(", ")
                     );
 
-                    return cachedResults;
+                    return resourceRecordTypes.Count == 1 &&
+                           DNSCache.TryGetNoData(DNSServiceName, resourceRecordTypes[0], out var noDataResponse) &&
+                           noDataResponse is not null
+                               ? noDataResponse
+                               : cachedResults;
                 }
 
                 // The RRset asked for, with its signatures and the aliases leading
@@ -914,7 +926,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     DNSCache.AddNoData(
                                         DNSServiceName,
                                         recordType,
-                                        noDataTTL
+                                        noDataTTL,
+                                        firstResponse
                                     );
                                 }
 

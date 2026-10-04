@@ -42,7 +42,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         // Keyed by "<name>|<type>". Case-insensitive because names now keep the case they
         // arrived in (RFC 1035 §2.3.3) while still being the same name (RFC 4343) — an
         // ordinal comparer would file "EXAMPLE.com" and "example.com" as separate entries.
-        private readonly ConcurrentDictionary<String, DateTimeOffset>        noDataCache    = new(StringComparer.OrdinalIgnoreCase);
+        //
+        // The response is kept with the entry, because it is the answer: its authority
+        // section holds the SOA and, signed, the NSEC or NSEC3 proof of the absence.
+        private readonly ConcurrentDictionary<String, (DateTimeOffset EndOfLife, DNSInfo? Response)>  noDataCache  = new(StringComparer.OrdinalIgnoreCase);
         private readonly Timer                                                cleanUpTimer;
         private readonly Object                                               cleanUpLock    = new();
 
@@ -747,7 +750,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region AddNoData    (DomainName, RecordType, TTL)
+        #region AddNoData    (DomainName, RecordType, TTL, Response = null)
 
         /// <summary>
         /// Cache a NODATA response (NoError with no matching answers) for
@@ -757,14 +760,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DomainName">The queried domain name.</param>
         /// <param name="RecordType">The record type that returned no data.</param>
         /// <param name="TTL">The time to cache this NODATA entry.</param>
+        /// <param name="Response">The NODATA response itself, to be handed out again on a cache hit.</param>
         public void AddNoData(DNSServiceName           DomainName,
                               DNSResourceRecordTypes   RecordType,
-                              TimeSpan                 TTL)
+                              TimeSpan                 TTL,
+                              DNSInfo?                 Response   = null)
         {
 
             var key = $"{DomainName}|{(UInt16) RecordType}";
 
-            noDataCache[key] = Timestamp.Now + TTL;
+            noDataCache[key] = (Timestamp.Now + TTL, Response);
 
         }
 
@@ -780,18 +785,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="RecordType">The record type to check.</param>
         public Boolean IsNoData(DNSServiceName           DomainName,
                                 DNSResourceRecordTypes   RecordType)
+
+            => TryGetNoData(DomainName, RecordType, out _);
+
+        #endregion
+
+        #region TryGetNoData (DomainName, RecordType, out Response)
+
+        /// <summary>
+        /// Check whether a NODATA response is cached for the given domain and
+        /// record type, and get that response if it was cached with the entry.
+        /// </summary>
+        /// <param name="DomainName">The queried domain name.</param>
+        /// <param name="RecordType">The record type to check.</param>
+        /// <param name="Response">The NODATA response, or null if the entry was cached without one.</param>
+        public Boolean TryGetNoData(DNSServiceName           DomainName,
+                                    DNSResourceRecordTypes   RecordType,
+                                    out DNSInfo?             Response)
         {
 
             var key = $"{DomainName}|{(UInt16) RecordType}";
 
-            if (noDataCache.TryGetValue(key, out var endOfLife))
+            if (noDataCache.TryGetValue(key, out var entry))
             {
-                if (endOfLife > Timestamp.Now)
+
+                if (entry.EndOfLife > Timestamp.Now)
+                {
+                    Response = entry.Response;
                     return true;
+                }
 
                 noDataCache.TryRemove(key, out _);
+
             }
 
+            Response = null;
             return false;
 
         }
@@ -959,7 +987,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     // Clean up expired NODATA entries
                     var expiredNoDataEntries = noDataCache.
-                                                   Where(entry => entry.Value < now).
+                                                   Where(entry => entry.Value.EndOfLife < now).
                                                    ToArray();
 
                     foreach (var expiredNoDataEntry in expiredNoDataEntries)
