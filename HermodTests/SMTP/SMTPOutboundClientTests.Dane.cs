@@ -118,16 +118,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
         /// <summary>
-        /// A trust anchor - a CA - and a server certificate it issued for the given name.
+        /// A trust anchor - an intermediate CA under a root of its own, as a public CA's intermediate
+        /// is - and a server certificate it issued for the given name. The anchor is what the server
+        /// sends along: a self-signed root is not sent on every platform (.NET on Linux leaves it
+        /// out of the chain), an intermediate is.
         /// </summary>
         private static (X509Certificate2 TrustAnchor, X509Certificate2 Server) IssuedBy(String ServerName)
         {
 
-            using var caKey   = RSA.Create(2048);
-            var caRequest     = new CertificateRequest("CN=DANE trust anchor", caKey, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-            caRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+            using var rootKey     = RSA.Create(2048);
+            var rootRequest       = new CertificateRequest("CN=DANE test root", rootKey, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            rootRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+            rootRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, true));
+            using var root        = rootRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-10), DateTimeOffset.UtcNow.AddDays(3));
+
+            using var caKey       = RSA.Create(2048);
+            var caRequest         = new CertificateRequest("CN=DANE trust anchor", caKey, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            caRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, true));
             caRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, true));
-            using var ca      = caRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(2));
+            using var caIssued    = caRequest.Create(root, DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(2), RandomNumberGenerator.GetBytes(8));
+            using var ca          = caIssued.CopyWithPrivateKey(caKey);
 
             using var key     = RSA.Create(2048);
             var request       = new CertificateRequest($"CN={ServerName}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
