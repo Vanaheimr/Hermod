@@ -35,37 +35,45 @@ public sealed partial record MtaStsPolicy
     public DateTimeOffset  FetchedAt   { get; init; } = Timestamp.Now;
     public String?         PolicyId    { get; init; }
     public Boolean         IsValid
-        => Mode != MtaStsMode.None &&
-           Timestamp.Now - FetchedAt < MaxAge;
-
+        => Mode != MtaStsMode.None && IsFresh;
 
     /// <summary>
-    /// Check if an MX host matches the policy
+    /// Whether the policy is younger than its max_age (RFC 8461 §3.2): it may be used from the cache.
+    /// </summary>
+    public Boolean         IsFresh
+        => Timestamp.Now - FetchedAt < MaxAge;
+
+    /// <summary>
+    /// Whether an MX host is one the policy allows (RFC 8461 §4.1): a pattern names it exactly, or
+    /// "*." stands for exactly its left-most label - "*.example.com" matches "mail.example.com",
+    /// but not "example.com" nor "foo.bar.example.com". Case does not matter, nor a trailing dot.
     /// </summary>
     public bool MatchesMx(string mxHost)
     {
-        foreach (var pattern in MxPatterns)
+
+        var host = mxHost.TrimEnd('.');
+
+        foreach (var rawPattern in MxPatterns)
         {
+
+            var pattern = rawPattern.TrimEnd('.');
+
             if (pattern.StartsWith("*."))
             {
-                // Wildcard match: *.example.com matches mail.example.com
-                var suffix = pattern[1..]; // .example.com
-                if (mxHost.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) ||
-                    mxHost.Equals(pattern[2..], StringComparison.OrdinalIgnoreCase))
-                {
+                var suffix = pattern[1..];          // ".example.com"
+                if (host.Length > suffix.Length &&
+                    host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) &&
+                    !host[..^suffix.Length].Contains('.'))
                     return true;
-                }
             }
-            else
-            {
-                // Exact match
-                if (mxHost.Equals(pattern, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
+
+            else if (host.Equals(pattern, StringComparison.OrdinalIgnoreCase))
+                return true;
+
         }
+
         return false;
+
     }
 
     public static MtaStsPolicy None => new() { Mode = MtaStsMode.None };

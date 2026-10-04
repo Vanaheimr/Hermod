@@ -65,7 +65,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         /// <summary>
         /// The HTTP handler that fetches MTA-STS policies (RFC 8461 §3.3) - for a proxy, or a policy
-        /// host whose certificate the system does not trust.
+        /// host whose certificate the system does not trust. By default one that follows no
+        /// redirects; with any handler, a policy reached through a redirect is not taken.
         /// </summary>
         public          HttpMessageHandler?  MtaStsHttpHandler  { get; init; }
 
