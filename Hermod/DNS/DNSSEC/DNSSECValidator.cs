@@ -504,7 +504,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     var chainResult = await WalkChainOfTrust(
                                                rrsig.SignerName,
                                                dnskeys,
-                                               matchingKey,
                                                CancellationToken
                                            ).ConfigureAwait(false);
 
@@ -623,7 +622,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var chainResult = await WalkChainOfTrust(
                                            rrsig.SignerName,
                                            dnskeys,
-                                           matchingKey,
                                            CancellationToken
                                        ).ConfigureAwait(false);
 
@@ -867,61 +865,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region (private) WalkChainOfTrust(SignerName, DNSKeys, SigningKey, CancellationToken)
+        #region (private) WalkChainOfTrust(SignerName, DNSKeys, CancellationToken)
 
         /// <summary>
         /// Walk the chain of trust from the signer zone up to a trust anchor.
         /// </summary>
         private async Task<DNSSECValidationResult> WalkChainOfTrust(DomainName         SignerName,
                                                                     List<DNSKEY>       DNSKeys,
-                                                                    DNSKEY             SigningKey,
                                                                     CancellationToken  CancellationToken)
         {
 
             var currentZone     = SignerName.FullName;
             var currentDNSKeys  = DNSKeys;
-            var currentKey      = SigningKey;
 
             // Limit chain walk depth to prevent infinite loops
             for (var depth = 0; depth < 20; depth++)
             {
 
-                // Check if the current key is a trust anchor
-                var keyTag = ComputeKeyTag(currentKey);
-
+                // Which of the zone's keys an anchor or a DS names is decided by key
+                // tag, algorithm and digest, and by nothing else. RFC 4035 §5.2 asks
+                // for "a DNSKEY RR in the child zone's apex DNSKEY RRset" — any of
+                // them — and RFC 4034 §2.1.1 rules out the one shortcut that suggests
+                // itself: the SEP bit "is only intended to be a hint to zone signing
+                // or debugging software", and "validators MUST NOT alter their
+                // behavior during the signature validation process in any way based
+                // on the setting of this bit".
+                //
+                // This used to pick "the" key-signing key as the first published key
+                // with the SEP bit and the algorithm carried up, and test the anchor
+                // and the DS against that one key. A zone publishes two SEP keys for
+                // as long as a KSK rollover lasts, and whenever the standby key came
+                // first every name under the zone was Bogus — org. did, with keys 725
+                // and 26974 and the root's DS naming 26974.
                 foreach (var anchor in trustAnchors)
                 {
-                    if (anchor.KeyTag    == keyTag &&
-                        anchor.Algorithm == currentKey.Algorithm)
-                    {
-                        // Verify the trust anchor DS against the key
-                        if (VerifyDS(currentKey, anchor))
-                            return DNSSECValidationResult.Secure;
-                    }
-                }
-
-                // If the signing key is a ZSK (Zone Signing Key), we need to find the KSK
-                // that signed the DNSKEY RRSet and verify the DS for the KSK.
-                // A KSK has bit 8 (Secure Entry Point) set: Flags & 0x0001 == 1
-                var ksk = currentDNSKeys.FirstOrDefault(
-                              key => (key.Flags & 0x0001) == 1 &&
-                                     key.Algorithm == currentKey.Algorithm
-                          );
-
-                if (ksk is null)
-                    ksk = currentKey;
-
-                var kskKeyTag = ComputeKeyTag(ksk);
-
-                // Check if the KSK is a trust anchor
-                foreach (var anchor in trustAnchors)
-                {
-                    if (anchor.KeyTag    == kskKeyTag &&
-                        anchor.Algorithm == ksk.Algorithm)
-                    {
-                        if (VerifyDS(ksk, anchor))
-                            return DNSSECValidationResult.Secure;
-                    }
+                    if (currentDNSKeys.Any(key => ComputeKeyTag(key) == anchor.KeyTag    &&
+                                                  key.Algorithm       == anchor.Algorithm &&
+                                                  VerifyDS(key, anchor)))
+                        return DNSSECValidationResult.Secure;
                 }
 
                 // Walk to the parent zone and fetch the DS record
@@ -957,8 +938,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (!HasUsableDelegationSigner(dsRecords))
                     return DNSSECValidationResult.Insecure;
 
-                // Verify the KSK against at least one DS record
-                var dsVerified = dsRecords.Any(ds => VerifyDS(ksk, ds));
+                // At least one DS has to name one of the zone's keys
+                var dsVerified = dsRecords.Any(ds => currentDNSKeys.Any(key => ComputeKeyTag(key) == ds.KeyTag    &&
+                                                                               key.Algorithm       == ds.Algorithm &&
+                                                                               VerifyDS(key, ds)));
 
                 if (!dsVerified)
                     return DNSSECValidationResult.Bogus;
@@ -1005,7 +988,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // Move up the chain
                 currentZone    = parentZone;
                 currentDNSKeys = parentDnskeys;
-                currentKey     = parentSigningKey;
 
             }
 
