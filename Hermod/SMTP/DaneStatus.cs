@@ -50,6 +50,12 @@ public enum DaneStatus
     /// <summary>
     /// TLSA records were returned but the zone is not DNSSEC-signed, so they are not authenticated and (per RFC 7672 §2.2) not usable for DANE.
     /// </summary>
-    Insecure
+    Insecure,
+
+    /// <summary>
+    /// A lookup failed - an error code, a timeout, no answer (RFC 7672 §2.1.2): whether DANE applies cannot be known, so the
+    /// server MUST be treated as unreachable and delivery deferred.
+    /// </summary>
+    LookupFailed
 
 }
