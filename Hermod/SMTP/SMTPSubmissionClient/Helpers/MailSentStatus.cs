@@ -32,7 +32,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         UnknownError,
         ExceptionOccurred,
         TLSUnavailable,     // TLS was required (STARTTLS), but not offered, refused, or the handshake failed; nothing was sent in cleartext
-        EightBitNotSupported // the message has 8-bit content and the server does not offer 8BITMIME (RFC 6152 §3); nothing was sent
+        EightBitNotSupported, // the message has 8-bit content and the server does not offer 8BITMIME (RFC 6152 §3); nothing was sent
+        PartiallySent        // the server accepted the message for some recipients and refused the others; SMTPSendResult.Recipients says which
     }
 
 }
