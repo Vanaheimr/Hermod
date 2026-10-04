@@ -21,6 +21,7 @@ using System.Net;
 using System.Text;
 using System.Buffers;
 using System.Security.Cryptography.X509Certificates;
+using System.Net.Security;
 using System.Security.Authentication;
 using System.Runtime.CompilerServices;
 
@@ -105,6 +106,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// This server speaks HTTP/1.1, and says so when a client asks over
+        /// ALPN (RFC 7301). Nothing offered it until 2026-10-04, so a client
+        /// that sent the extension — which curl and every browser do — got no
+        /// answer and had to assume.
+        /// </summary>
+        /// <remarks>
+        /// Only http/1.1, deliberately: this server does not speak h2, and ALPN
+        /// is the one place where saying so is unambiguous. A client that offers
+        /// h2 and http/1.1 now gets http/1.1 selected instead of being left to
+        /// guess from the absence of an answer.
+        /// </remarks>
+        public override IEnumerable<SslApplicationProtocol>  TLSApplicationProtocols
+            => [ SslApplicationProtocol.Http11 ];
 
         /// <summary>
         /// The buffer size for the TCP stream.

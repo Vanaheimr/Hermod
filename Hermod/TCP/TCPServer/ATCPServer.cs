@@ -20,6 +20,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Collections.Concurrent;
+using System.Net.Security;
 using System.Security.Authentication;
 using System.Runtime.CompilerServices;
 
@@ -216,6 +217,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator    { get; set; }
         public LocalCertificateSelectionHandler?                         LocalCertificateSelector      { get; }
         public SslProtocols?                                             AllowedTLSProtocols           { get; }
+
+        /// <summary>
+        /// The application protocols this server offers for ALPN (RFC 7301).
+        /// Nothing, for a TCP server as such: claiming an application protocol
+        /// is for whatever speaks one, and AHTTPServer overrides this.
+        /// </summary>
+        public virtual IEnumerable<SslApplicationProtocol>               TLSApplicationProtocols
+            => [];
         public Boolean                                                   ClientCertificateRequired     { get; }
         public Boolean                                                   CheckCertificateRevocation    { get; }
 

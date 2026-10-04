@@ -139,11 +139,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPHostname  HostHeader
 
             => HTTPHostname.From(
-                   Host,
+                   WithoutZoneID(Host),
                    Port.HasValue && Port != Scheme?.DefaultPort
                        ? Port.Value
                        : null
                );
+
+        #region (private static) WithoutZoneID(Host)
+
+        /// <summary>
+        /// A bracketed IPv6 literal without its zone identifier, and anything
+        /// else unchanged.
+        /// </summary>
+        /// <remarks>
+        /// RFC 6874, Section 3: "URIs including a ZoneID have no meaning
+        /// outside the originating node. It would therefore be highly
+        /// desirable for a browser to remove the ZoneID from a URI before
+        /// including that URI in an HTTP request."
+        ///
+        /// Highly desirable rather than required — that section says of itself
+        /// that it makes no normative statements. It is still the right answer:
+        /// "%25en1" names an interface of this machine, and the host it is sent
+        /// to has no interface of that name and no use for the knowledge.
+        /// </remarks>
+        private static URLHost WithoutZoneID(URLHost Host)
+        {
+
+            var text = Host.ToString();
+
+            if (!text.StartsWith('[') || !text.EndsWith(']'))
+                return Host;
+
+            var separator = text.IndexOf('%');
+
+            return separator < 0
+                       ? Host
+                       : URLHost.Parse($"{text[..separator]}]");
+
+        }
+
+        #endregion
 
         /// <summary>
         /// The path.

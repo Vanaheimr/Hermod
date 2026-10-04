@@ -1588,6 +1588,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     // never saw the added ones. One definition, three readers.
                     var allowedMethods = parsedRequest.AllowedMethods.ToList();
 
+                    #region TRACE, which this server does not implement — and says so once
+
+                    // RFC 9110 §9.3.8 asks the final recipient to reflect the request
+                    // back as the content of a 200. This server does not, deliberately,
+                    // and §9.1 makes that a choice rather than a defect: every method
+                    // but GET and HEAD is OPTIONAL.
+                    //
+                    // The reason is the same paragraph's other half. A TRACE response
+                    // carries the request's fields back, so the recipient "SHOULD
+                    // exclude any request fields that are likely to contain sensitive
+                    // data" — a judgement about which of Authorization, Cookie and
+                    // whatever an application invented is sensitive, made by the
+                    // library, wrong once and silently. Cross-Site Tracing was that
+                    // mistake in the browsers of 2003, and modern ones forbid the
+                    // method outright rather than trust the answer.
+                    //
+                    // So the answer is 501 and not the 405 routing would have given:
+                    // §9.1 puts a method "unrecognized or not implemented" on the 501
+                    // side and keeps 405 for one "recognized and implemented, but not
+                    // allowed for the target resource". Not implementing TRACE is this
+                    // server's decision for every resource at once, and a 405 would
+                    // invite a client to look for a resource that allows it.
+                    //
+                    // An application that registers a TRACE handler has decided
+                    // otherwise and never reaches this: RequestHandlers is then not
+                    // null, which is also why this sits after routing rather than
+                    // before it.
+                    if (parsedRequest.RequestHandlers is null &&
+                        Request.HTTPMethod == HTTPMethod.TRACE)
+                    {
+                        httpResponse ??= new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode  = HTTPStatusCode.NotImplemented,
+                                             Server          = HTTPServerName,
+                                             Date            = Timestamp.Now,
+                                             ContentType     = HTTPContentType.Text.PLAIN,
+                                             Content         = "TRACE is not implemented by this server.\r\n".ToUTF8Bytes(),
+                                             Connection      = ConnectionType.KeepAlive
+                                         }.AsImmutable;
+                    }
+
+                    #endregion
+
                     // The automatic OPTIONS answer is not an error and must not carry
                     // the error body: RFC 9110 §15.3.5 forbids content on a 204, and a
                     // JSON description would desynchronise every client that believes it.
