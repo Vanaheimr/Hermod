@@ -286,11 +286,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                 TimeSpan.FromMilliseconds(_config.ReadTimeoutMs),
                                                 TimeSpan.FromMilliseconds(_config.WriteTimeoutMs));
 
+            // Whether the session can still be ended with QUIT: from the greeting on, until the
+            // connection is lost, a read times out, or a TLS handshake fails halfway.
+            var sessionOpen = false;
+
             try
             {
 
                 // Read greeting
                 var greeting = await connection.ReadReplyAsync(ct);
+                sessionOpen  = true;
                 if (greeting.Code != 220)
                     return ParseResponse(greeting.ToString(), mxHost);
 
@@ -347,6 +352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         }
                         catch (AuthenticationException ex)
                         {
+                            sessionOpen = false;     // half a handshake: neither TLS nor cleartext
                             // A rejected/mismatched certificate under enforced TLS (including a DANE
                             // TLSA mismatch) must not be bypassed: defer instead of downgrading.
                             var why = daneActive ? "DANE TLSA mismatch" : "certificate validation failed";
@@ -453,23 +459,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 await connection.WriteAsync(DataOctets(messageContent), ct);
                 var finalResponse = await connection.ReadReplyAsync(ct);
 
-                // QUIT (best effort)
-                try
-                {
-                    await connection.WriteLineAsync("QUIT", ct);
-                    await connection.ReadReplyAsync(ct);
-                }
-                catch
-                {
-                    // Ignore QUIT errors
-                }
-
                 return ParseResponse(finalResponse.ToString(), mxHost) with { RemoteSupportsDsn = supportsDsn };
 
             }
+            catch
+            {
+                // A lost connection, a timeout: nothing to say QUIT on.
+                sessionOpen = false;
+                throw;
+            }
             finally
             {
+
+                // RFC 5321 §4.1.1.10: "The sender MUST NOT intentionally close the transmission
+                // channel until it sends a QUIT command, and it SHOULD wait until it receives the
+                // reply" - after a refused MAIL, RCPT, DATA or message, a refused STARTTLS or EHLO,
+                // as after a delivery. Best effort: the reply changes nothing about the result.
+                if (sessionOpen)
+                {
+                    try
+                    {
+                        await connection.WriteLineAsync("QUIT", ct);
+                        await connection.ReadReplyAsync(ct);
+                    }
+                    catch
+                    {
+                        // the next hop is gone already
+                    }
+                }
+
                 client.Close();
+
             }
         }
 
