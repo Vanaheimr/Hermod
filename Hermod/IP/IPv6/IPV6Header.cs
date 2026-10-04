@@ -182,35 +182,24 @@ public class Ipv6Header : AProtocolHeader
     static public Ipv6Header? Create(byte[] ipv6Packet, ref int bytesCopied)
     {
         Ipv6Header ipv6Header = new Ipv6Header();
-        byte[] addressBytes = new byte[16];
-        uint tempVal = 0, tempVal2 = 0;
 
         // Ensure byte array is large enough to contain an IPv6 header
         if (ipv6Packet.Length < Ipv6Header.Ipv6HeaderLength)
             return null;
 
-        tempVal = ipv6Packet[0];
-        tempVal = (tempVal >> 4) & 0xF;
-        ipv6Header.ipVersion = (byte)tempVal;
+        // RFC 8200 §3: version (4 bits), traffic class (8 bits), flow label (20 bits)
+        ipv6Header.ipVersion = (byte)((ipv6Packet[0] >> 4) & 0xF);
+        ipv6Header.ipTrafficClass = (byte)(((ipv6Packet[0] & 0xF) << 4) | ((ipv6Packet[1] >> 4) & 0xF));
 
-        tempVal = ipv6Packet[0];
-        tempVal = (tempVal & 0xF) >> 4;
-        ipv6Header.ipTrafficClass = (byte)(tempVal | (uint)((ipv6Packet[1] >> 4) & 0xF));
+        // The setters keep these fields in network byte order
+        ipv6Header.Flow = (uint)(((ipv6Packet[1] & 0xF) << 16) | (ipv6Packet[2] << 8) | ipv6Packet[3]);
+        ipv6Header.PayloadLength = (ushort)((ipv6Packet[4] << 8) | ipv6Packet[5]);
 
-        tempVal2 = ipv6Packet[1];
-        tempVal2 = (tempVal2 & 0xF) << 16;
-        tempVal = ipv6Packet[2];
-        tempVal = tempVal << 8;
-        ipv6Header.ipFlow = tempVal2 | tempVal | ipv6Packet[3];
+        ipv6Header.ipNextHeader = ipv6Packet[6];
+        ipv6Header.ipHopLimit = ipv6Packet[7];
 
-        ipv6Header.ipNextHeader = ipv6Packet[4];
-        ipv6Header.ipHopLimit = ipv6Packet[5];
-
-        Array.Copy(ipv6Packet, 6, addressBytes, 0, 16);
-        ipv6Header.SourceAddress = new IPv6Address(addressBytes);
-
-        Array.Copy(ipv6Packet, 24, addressBytes, 0, 16);
-        ipv6Header.DestinationAddress = new IPv6Address(addressBytes);
+        ipv6Header.SourceAddress = new IPv6Address(ipv6Packet.AsSpan(8, 16));
+        ipv6Header.DestinationAddress = new IPv6Address(ipv6Packet.AsSpan(24, 16));
 
         bytesCopied = Ipv6Header.Ipv6HeaderLength;
 
@@ -237,8 +226,6 @@ public class Ipv6Header : AProtocolHeader
         ipv6Packet[offset++] = (byte)((uint)((ipTrafficClass << 4) & 0xF0) | (uint)((Flow >> 16) & 0xF));
         ipv6Packet[offset++] = (byte)((Flow >> 8) & 0xFF);
         ipv6Packet[offset++] = (byte)(Flow & 0xFF);
-
-        Console.WriteLine("Next header = {0}", ipNextHeader);
 
         byteValue = BitConverter.GetBytes(ipPayloadLength);
         Array.Copy(byteValue, 0, ipv6Packet, offset, byteValue.Length);
