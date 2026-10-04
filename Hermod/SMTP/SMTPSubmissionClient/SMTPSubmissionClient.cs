@@ -55,8 +55,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         // Per-command read/response timeout — bounds how long a silent server can stall us.
         private readonly TimeSpan              commandTimeout;
 
+        // What was read from the server and not yet taken as a reply: the start of the next one, or,
+        // with commands pipelined (RFC 2920), the next replies. Octets, so that a UTF-8 character
+        // split across TCP segments is decoded whole.
+        private          Byte[]                replyBuffer         = new Byte[16 * 1024];
+        private          Int32                 replyBuffered;
+
+        // A reply longer than this is not one.
+        private const    Int32                 MaxReplyLength      = 1024 * 1024;
+
         // Whether the server sent anything behind the last reply that was read.
-        private Boolean                        dataAfterLastReply;
+        private Boolean                        dataAfterLastReply  => replyBuffered > 0;
 
         private readonly ILogger<SMTPSubmissionClient>   smtpLogger;
 
@@ -345,13 +354,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             // A single SMTP reply may be multi-line (RFC 5321 §4.2.1): every line but the last has a
             // '-' after the status code, the final line a ' '. It may arrive split across several TCP
-            // segments, so keep reading until the reply is complete.
-            var sb        = new StringBuilder();
-            var buf       = new Byte[64 * 1024];
-            var replyEnd  = -1;
+            // segments - anywhere, also inside a UTF-8 character - so octets are collected until the
+            // reply is complete, and only the complete reply is decoded. What came behind it stays in
+            // the buffer for the next call.
+            Int32 replyEnd;
 
-            while (true)
+            while ((replyEnd = EndOfFirstReply(replyBuffer.AsSpan(0, replyBuffered))) < 0)
             {
+
+                if (replyBuffered == replyBuffer.Length)
+                {
+                    if (replyBuffer.Length >= MaxReplyLength)
+                        throw new SMTPClientException($"SMTP reply longer than {MaxReplyLength} octets");
+                    Array.Resize(ref replyBuffer, replyBuffer.Length * 2);
+                }
 
                 Int32 nread;
 
@@ -365,7 +381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                     try
                     {
-                        nread = await stream.ReadAsync(buf.AsMemory(0, buf.Length), cts.Token).ConfigureAwait(false);
+                        nread = await stream.ReadAsync(replyBuffer.AsMemory(replyBuffered), cts.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) when (cts.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
                     {
@@ -383,27 +399,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 if (nread <= 0)
                     throw new SMTPConnectionClosedException();
 
-                sb.Append(Encoding.UTF8.GetString(buf, 0, nread));
-
-                // The reply ends with its first final line, not with whatever the read happened to
-                // return. Waiting for the buffer to *end* in a final line hung until the command
-                // timeout when a server sent anything behind the reply in the same segment - on Linux
-                // a "220 Ready to start TLS" and the bytes after it regularly arrive in one read.
-                replyEnd = EndOfFirstReply(sb.ToString());
-                if (replyEnd >= 0)
-                    break;
+                replyBuffered += nread;
 
             }
 
-            var text = sb.ToString();
+            // The reply ends with its first final line, not with whatever the read happened to
+            // return: on Linux a "220 Ready to start TLS" and the bytes after it regularly arrive in
+            // one read, and pipelined replies (RFC 2920) arrive together by design.
+            var text = Encoding.UTF8.GetString(replyBuffer, 0, replyEnd);
 
-            // This client does not pipeline, so nothing may follow a reply. What did is discarded,
-            // and the caller may ask whether there was any (see STARTTLS).
-            dataAfterLastReply = replyEnd < text.Length;
+            replyBuffered -= replyEnd;
+            Array.Copy(replyBuffer, replyEnd, replyBuffer, 0, replyBuffered);
 
             var responses = new List<SMTPExtendedResponse>();
 
-            foreach (var line in text[..replyEnd].Split("\r\n").Where(line => line.IsNotNullOrEmpty()))
+            foreach (var line in text.Split("\r\n").Where(line => line.IsNotNullOrEmpty()))
             {
 
                 var statusCodeChars  = line.TakeWhile(b => b != ' ' && b != '-').ToArray();
@@ -431,10 +441,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #region (private static) EndOfFirstReply                (Text)
 
         /// <summary>
-        /// The index just behind the CRLF of the first final reply line in the given text
+        /// The index just behind the CR LF of the first final reply line in the given octets
         /// (three digits followed by a space or nothing, RFC 5321 §4.2.1), or -1 while there is none.
         /// </summary>
-        private static Int32 EndOfFirstReply(String Text)
+        internal static Int32 EndOfFirstReply(ReadOnlySpan<Byte> Octets)
         {
 
             var start = 0;
@@ -442,21 +452,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             while (true)
             {
 
-                var eol = Text.IndexOf("\r\n", start, StringComparison.Ordinal);
+                var eol = Octets[start..].IndexOf("\r\n"u8);
                 if (eol < 0)
                     return -1;
 
-                var line = Text[start..eol];
+                var line = Octets.Slice(start, eol);
 
-                if (line.Length >= 3 && line.Take(3).All(Char.IsDigit) &&
-                    (line.Length == 3 || line[3] == ' '))
-                    return eol + 2;
+                if (line.Length >= 3 && Char.IsAsciiDigit((Char) line[0]) && Char.IsAsciiDigit((Char) line[1]) && Char.IsAsciiDigit((Char) line[2]) &&
+                    (line.Length == 3 || line[3] == (Byte) ' '))
+                    return start + eol + 2;
 
-                start = eol + 2;
+                start += eol + 2;
 
             }
 
         }
+
+        /// <summary>
+        /// Forget whatever was read behind the last reply - on a new connection, and when the
+        /// stream changes under the reader (STARTTLS).
+        /// </summary>
+        private void DiscardPendingReplies()
+            => replyBuffered = 0;
 
         #endregion
 
@@ -853,6 +870,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     {
 
                     var connectionResult = await ReconnectAsync(cancellationToken).ConfigureAwait(false);
+                    DiscardPendingReplies();
 
                     if (connectionResult.IsFailure)
                     {
@@ -970,6 +988,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             break;
                                         }
 
+                                        DiscardPendingReplies();
                                         var startTLSResult = await StartTLS(cancellationToken).ConfigureAwait(false);
 
                                         if (startTLSResult.IsFailure || !IsTLSActive)
