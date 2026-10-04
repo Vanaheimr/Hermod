@@ -62,6 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private Boolean                        _extendedSmtp;   // true after EHLO (ESMTP), false after HELO
         private readonly SmtpAuthManager       _authManager    = new (userStore, logger);
         private Boolean                        _inAuthExchange;
+        private Boolean                        _timedOut;       // the client was idle past SessionTimeout; 421 sent
         private X509Certificate2?              _clientCertificate;
 
         // DSN support (RFC 3461)
@@ -185,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     else
                         await ProcessCommandAsync(command, args, ct);
 
-                    if (_state == SMTPSessionState.Quit)
+                    if (_state == SMTPSessionState.Quit || _timedOut)
                         break;
 
                     // Check for too many invalid commands
@@ -1006,11 +1007,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         /// </summary>
         private async Task<Boolean> ReadChunkAsync(Int64 size, Stream? destination, CancellationToken ct)
         {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             try
             {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 cts.CancelAfter(config.SessionTimeout);
                 return await _reader.ReadExactlyAsync(size, destination, cts.Token);
+            }
+            catch (OperationCanceledException) when (cts.IsCancellationRequested && !ct.IsCancellationRequested)
+            {
+                await SayTimeoutAsync();
+                return false;
             }
             catch
             {
@@ -1419,16 +1425,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
         private async Task<SMTPLine?> ReadLineAsync(Int32 maxLength, CancellationToken ct)
         {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             try
             {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 cts.CancelAfter(config.SessionTimeout);
                 return await _reader.ReadLineAsync(maxLength, cts.Token);
+            }
+            catch (OperationCanceledException) when (cts.IsCancellationRequested && !ct.IsCancellationRequested)
+            {
+                await SayTimeoutAsync();
+                return null;
             }
             catch
             {
                 return null;
             }
+        }
+
+        /// <summary>
+        /// The client was idle past <see cref="SMTPServerConfig.SessionTimeout"/> (RFC 5321
+        /// §4.5.3.2), waiting for a command, a data line or a chunk. §3.8 allows closing without
+        /// a word after such a timeout; saying "421" first, as §3.8 has it for a server that must
+        /// end the session (and as Postfix does), tells the client that the server gave up rather
+        /// than that the network broke. Best effort: a client that is gone does not hear it.
+        /// </summary>
+        private async Task SayTimeoutAsync()
+        {
+
+            _timedOut = true;
+
+            try
+            {
+                await SendResponseAsync(421, $"4.4.2 {config.Hostname} Error: timeout exceeded, closing connection");
+            }
+            catch
+            {
+                // the client is gone as well
+            }
+
         }
 
         private static readonly UTF8Encoding StrictUtf8 = new (encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
