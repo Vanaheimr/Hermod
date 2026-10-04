@@ -185,6 +185,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         ///
         /// Call this periodically (e.g. daily) to keep trust anchors current.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The RRset is authenticated before any key in it counts for anything.
+        /// RFC 5011 §2.2 lets a new key start its hold-down only when it appears in
+        /// a DNSKEY RRset "validly signed by a trust anchor", and §2.1 accepts a
+        /// revocation only from "a self-signed RRSet": the revoked key itself has
+        /// to have signed it.
+        /// </para>
+        /// <para>
+        /// This used to say it validated the RRset and verified no signature at
+        /// all. Every SEP key in whatever answer came back started a hold-down,
+        /// and every REVOKE flag was believed: an attacker on the path for thirty
+        /// days planted a trust anchor of their own, and one forged answer removed
+        /// a genuine one.
+        /// </para>
+        /// <para>
+        /// A set nothing authenticates changes nothing — no hold-down starts, none
+        /// runs out, and none is cut short by a key that seems to be missing from
+        /// it. A set authenticated only by a revoked anchor's own signature is
+        /// believed about that revocation and about nothing else in it: a revoked
+        /// key "MUST NOT" be used "for any other purpose except to validate the
+        /// RRSIG it signed over the DNSKEY RRSet specifically for the purpose of
+        /// validating the revocation".
+        /// </para>
+        /// </remarks>
         /// <param name="Now">
         /// The time to measure RFC 5011 §2.4.1's add hold-down against; the current
         /// time when omitted. One reading serves the whole probe, both for the keys
@@ -213,68 +238,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (!response.IsValid)
                     return false;
 
-                var dnskeys  = response.Answers.OfType<DNSKEY>().ToList();
-                var modified = false;
+                // Only the keys at the root's apex make up the RRset, and only the
+                // root's own signatures over it can authenticate it.
+                var dnskeys        = ApexKeys(response, String.Empty);
+                var signatures     = Signatures(response, String.Empty, DNSResourceRecordTypes.DNSKEY).
+                                         Where(rrsig => Normalize(rrsig.SignerName.FullName).Length == 0).
+                                         ToList();
+
+                // RFC 5011 §2.2: signed by a key an existing trust anchor names.
+                var authenticated  = KeySetSignedByAKeyNamedBy(dnskeys, signatures, trustAnchors, now);
+
+                // RFC 5011 §2.1: a revocation counts only if the revoked key signed
+                // the RRset itself — only its holder can revoke it. In a set that is
+                // not otherwise authenticated, that signature still speaks for a key
+                // that is an anchor here, and for none other: a stranger's revoked
+                // key would otherwise bar a genuine key that shares its tag.
+                var revocations    = dnskeys.Where(key => IsSecureEntryPoint(key)                       &&
+                                                          (key.Flags & RevokeFlag) != 0                 &&
+                                                          SelfSigned(dnskeys, signatures, key, now)     &&
+                                                          (authenticated ||
+                                                           trustAnchors.Any(anchor => Names(anchor, Unrevoked(key))))).
+                                             ToList();
+
+                if (!authenticated && revocations.Count == 0)
+                    return false;
+
+                var modified       = false;
+
+                foreach (var key in revocations)
+                {
+
+                    // This anchor was stored while the REVOKE bit was clear. The key
+                    // tag is a checksum over the whole DNSKEY RDATA, Flags included,
+                    // so setting REVOKE changes it — matching on the revoked key's
+                    // current tag can never find the stored anchor, and the revocation
+                    // would be silently ignored while the compromised key stayed
+                    // trusted. Compare against the key as it was before it was revoked,
+                    // by digest: a tag is a checksum anyone can collide with.
+                    var liveKey    = Unrevoked(key);
+                    var keyId      = (ComputeKeyTag(key),     key.Algorithm);
+                    var liveKeyId  = (ComputeKeyTag(liveKey), key.Algorithm);
+
+                    if (trustAnchors.RemoveAll(anchor => Names(anchor, liveKey) || Names(anchor, key)) > 0)
+                        modified = true;
+
+                    // Remember it under both identities, so the key cannot be
+                    // re-admitted when it is next published without the REVOKE bit.
+                    revokedAnchors.Add(liveKeyId);
+                    revokedAnchors.Add(keyId);
+
+                    // Also remove from pending
+                    pendingAnchors.Remove(liveKeyId);
+                    pendingAnchors.Remove(keyId);
+
+                }
+
+                // A revocation vouches for the revoked key and for nothing else in
+                // the RRset it came in.
+                if (!authenticated)
+                    return modified;
 
                 foreach (var key in dnskeys)
                 {
 
                     var keyTag    = ComputeKeyTag(key);
                     var keyId     = (keyTag, key.Algorithm);
-                    var isSEP     = (key.Flags & 0x0001) == 1;   // Secure Entry Point (KSK)
-                    var isRevoked = (key.Flags & RevokeFlag) != 0;   // RFC 5011 §2.1
-
-                    // Process revocations
-                    if (isRevoked && isSEP)
-                    {
-
-                        // RFC 5011 §2.1: this anchor was stored while the REVOKE bit was
-                        // clear. The key tag is a checksum over the whole DNSKEY RDATA,
-                        // Flags included, so setting REVOKE changes it — matching on the
-                        // revoked key's current tag can never find the stored anchor, and
-                        // the revocation would be silently ignored while the compromised
-                        // key stayed trusted. Compare against the tag the key had before
-                        // it was revoked.
-                        var liveKeyTag = ComputeKeyTag(
-                                             (UInt16) (key.Flags & ~RevokeFlag),
-                                             key.Protocol,
-                                             key.Algorithm,
-                                             key.PublicKey
-                                         );
-
-                        var liveKeyId  = (liveKeyTag, key.Algorithm);
-
-                        // Remove from active trust anchors
-                        var removed = trustAnchors.RemoveAll(
-                                          a => (a.KeyTag == liveKeyTag || a.KeyTag == keyTag) &&
-                                                a.Algorithm == key.Algorithm
-                                      );
-
-                        if (removed > 0)
-                            modified = true;
-
-                        // Remember it under both identities, so the key cannot be
-                        // re-admitted when it is next published without the REVOKE bit.
-                        revokedAnchors.Add(liveKeyId);
-                        revokedAnchors.Add(keyId);
-
-                        // Also remove from pending
-                        pendingAnchors.Remove(liveKeyId);
-                        pendingAnchors.Remove(keyId);
-
-                        continue;
-
-                    }
 
                     // Process new KSKs (SEP bit set, not revoked)
-                    if (isSEP)
+                    if (IsSecureEntryPoint(key) && (key.Flags & RevokeFlag) == 0)
                     {
 
                         // Check if this key is already a trust anchor
-                        var isExisting = trustAnchors.Any(
-                                             a => a.KeyTag    == keyTag &&
-                                                  a.Algorithm == key.Algorithm
-                                         );
+                        var isExisting = trustAnchors.Any(anchor => Names(anchor, key));
 
                         if (!isExisting && !revokedAnchors.Contains(keyId))
                         {
@@ -341,6 +376,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 return false;
             }
+
+        }
+
+        /// <summary>
+        /// Whether the key carries the Secure Entry Point flag (RFC 4034 §2.1.1),
+        /// which RFC 5011 takes to mark the keys that are trust anchor candidates.
+        /// </summary>
+        private static Boolean IsSecureEntryPoint(DNSKEY Key)
+            => (Key.Flags & 0x0001) != 0;
+
+        /// <summary>
+        /// The key as it was published before its REVOKE bit was set — the form
+        /// a trust anchor for it was stored in.
+        /// </summary>
+        private static DNSKEY Unrevoked(DNSKEY Key)
+
+            => new (DomainName.ParseLenient(Key.DomainName.FullName),
+                    Key.Class,
+                    Key.TimeToLive,
+                    (UInt16) (Key.Flags & ~RevokeFlag),
+                    Key.Protocol,
+                    Key.Algorithm,
+                    Key.PublicKey);
+
+        /// <summary>
+        /// Whether the key itself made one of the valid signatures over the RRset
+        /// it is part of — RFC 5011 §2.1's "self-signed RRSet".
+        /// </summary>
+        private Boolean SelfSigned(List<DNSKEY>    Keys,
+                                   List<RRSIG>     Signatures,
+                                   DNSKEY          Key,
+                                   DateTimeOffset  Now)
+        {
+
+            var rrSet = Keys.Cast<IDNSResourceRecord>().ToList();
+
+            return Signatures.Any(rrsig => WithinValidityWindow(rrsig, Now) &&
+                                           VerifiedByOneOf(rrSet, rrsig, [ Key ]));
 
         }
 
