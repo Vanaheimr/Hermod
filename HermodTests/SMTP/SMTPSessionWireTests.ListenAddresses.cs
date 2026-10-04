@@ -70,6 +70,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public async ValueTask DisposeAsync() => await Stop();
         }
 
+        /// <summary>
+        /// Whether ::1 can be bound here. Socket.OSSupportsIPv6 is not enough: a container may have
+        /// the IPv6 stack and IPv6 switched off on its interfaces, and the test would fail on the
+        /// bind instead of being skipped.
+        /// </summary>
+        private static Boolean IPv6LoopbackUsable()
+        {
+            try
+            {
+                using var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+                socket.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.IPv6Loopback, 0));
+                return true;
+            }
+            catch (SocketException)
+            {
+                return false;
+            }
+        }
+
         private static async Task<String> GreetingFrom(System.Net.IPEndPoint EndPoint)
         {
             using var tcp    = new TcpClient(EndPoint.AddressFamily);
@@ -104,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         public async Task The_server_listens_on_IPv6()
         {
 
-            Assume.That(Socket.OSSupportsIPv6, "no IPv6 on this host");
+            Assume.That(IPv6LoopbackUsable(), "no IPv6 loopback on this host");
 
             var (server, stop) = await ListeningOn(System.Net.IPAddress.IPv6Loopback);
             await using var _  = stop;
@@ -122,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         public async Task IPv4_and_IPv6_loopback_together()
         {
 
-            Assume.That(Socket.OSSupportsIPv6, "no IPv6 on this host");
+            Assume.That(IPv6LoopbackUsable(), "no IPv6 loopback on this host");
 
             var (server, stop) = await ListeningOn(System.Net.IPAddress.Loopback, System.Net.IPAddress.IPv6Loopback);
             await using var _  = stop;
