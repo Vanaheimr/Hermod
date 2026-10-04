@@ -18,7 +18,7 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public class HTTPRequestHandlersX(HTTPAPI                                    HTTPAPI,
+    public class HTTPRequestHandlers(HTTPAPI                                    HTTPAPI,
                                       HTTPDelegate?                              RequestHandler,
                                       OnHTTPRequestLogDelegate2?                 HTTPRequestLogger,
                                       OnHTTPResponseLogDelegate2?                HTTPResponseLogger,

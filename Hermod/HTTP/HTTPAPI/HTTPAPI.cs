@@ -696,7 +696,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            var requestHandle = new HTTPRequestHandlersX(
+            var requestHandle = new HTTPRequestHandlers(
                                     this,
                                     HTTPDelegate,
                                     HTTPRequestLogger,
