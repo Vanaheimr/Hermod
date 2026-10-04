@@ -282,19 +282,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// connection as an <see cref="SMTPConnectionClosedException"/>, and a caller cancellation
         /// propagates as an <see cref="OperationCanceledException"/>.
         /// </summary>
-        protected async Task SendCommandAsync(String             Command,
-                                              CancellationToken  CancellationToken   = default)
+        protected Task SendCommandAsync(String             Command,
+                                        CancellationToken  CancellationToken   = default)
+
+            => SendOctetsAsync(Encoding.UTF8.GetBytes(Command + "\r\n"), Command, CancellationToken);
+
+
+        /// <summary>
+        /// Send several commands in one write, without waiting for replies in between - a
+        /// PIPELINING group (RFC 2920 §3.1). The caller reads one reply per command, in order.
+        /// </summary>
+        protected Task SendCommandsAsync(IEnumerable<String>  Commands,
+                                         CancellationToken    CancellationToken   = default)
+        {
+            var commands = Commands.ToArray();
+            return SendOctetsAsync(Encoding.UTF8.GetBytes(String.Concat(commands.Select(command => command + "\r\n"))),
+                                   String.Join(" | ", commands),
+                                   CancellationToken);
+        }
+
+
+        /// <summary>
+        /// Write octets as they are, within the command timeout.
+        /// </summary>
+        /// <param name="Octets">What to send.</param>
+        /// <param name="LogText">What to log for it.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        protected async Task SendOctetsAsync(Byte[]             Octets,
+                                             String             LogText,
+                                             CancellationToken  CancellationToken   = default)
         {
 
-            var CommandBytes = Encoding.UTF8.GetBytes(Command + "\r\n");
-            var stream       = ActiveStream ?? throw new SMTPConnectionClosedException("SMTP client is not connected.");
+            var stream = ActiveStream ?? throw new SMTPConnectionClosedException("SMTP client is not connected.");
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
             cts.CancelAfter(commandTimeout);
 
             try
             {
-                await stream.WriteAsync(CommandBytes, cts.Token).ConfigureAwait(false);
+                await stream.WriteAsync(Octets, cts.Token).ConfigureAwait(false);
                 await stream.FlushAsync(cts.Token).           ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cts.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
@@ -310,7 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             smtpLogger.LogTrace("SMTP command to {RemoteSocket}: {Command}",
                                 RemoteSocket,
-                                Command);
+                                LogText);
 
         }
 
@@ -1214,7 +1240,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // permanent failure. There is no converter here - re-encoding would also
                                     // break DKIM and OpenPGP signatures over the content - so it is the second,
                                     // before anything is sent.
+                                    // BINARYMIME carries 8-bit content as well, over BDAT (RFC 3030 §3).
                                     if (!Capabilities.HasFlag(SmtpCapabilities.EightBitMime) &&
+                                        !(Capabilities.HasFlag(SmtpCapabilities.BinaryMime) && Capabilities.HasFlag(SmtpCapabilities.Chunking)) &&
                                         messageLines.Any(line => line.Any(c => c > (Char) 0x7F)))
                                     {
                                         smtpLogger.LogWarning("The message has 8-bit content and {RemoteHost} does not offer 8BITMIME; not sent", RemoteHost);
@@ -1224,10 +1252,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #endregion
 
-                                    #region MAIL FROM:
+                                    #region MAIL FROM: / RCPT TO:
 
                                     // Record the transport security state at the moment we submit the message.
                                     tlsActive        = IsTLSActive;
+
+                                    // RFC 3030: with CHUNKING the message goes as BDAT, which BODY=BINARYMIME needs.
+                                    var useChunking  = Capabilities.HasFlag(SmtpCapabilities.Chunking);
 
                                     // A transaction has exactly one MAIL FROM (RFC 5321 §3.3).
                                     var mailFrom     = EMailEnvelop.MailFrom.FirstOrDefault();
@@ -1238,8 +1269,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     if (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
                                         mailFromCommand += " BODY=8BITMIME";
-                                    else if (Capabilities.HasFlag(SmtpCapabilities.BinaryMime))
-                                        mailFromCommand += " BODY=BINARYMIME";
+                                    else if (Capabilities.HasFlag(SmtpCapabilities.BinaryMime) && useChunking)
+                                        mailFromCommand += " BODY=BINARYMIME";      // RFC 3030 §3: never with DATA
 
                                     if (needsUtf8)
                                         mailFromCommand += " SMTPUTF8";
@@ -1256,83 +1287,139 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     if (EMailEnvelop.RequireTls && supportsRequireTls)
                                         mailFromCommand += " REQUIRETLS";
 
-                                    var mailFromResponse = await SendCommandAndWaitForResponseAsync(mailFromCommand, cancellationToken).ConfigureAwait(false);
-                                    if (mailFromResponse.StatusCode != SMTPStatusCodes.Ok)
-                                        throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
-
-                                    #endregion
-
-                                    #region RCPT TO(s):
-
                                     // RCPT TO:<user@example.com>  (+ NOTIFY/ORCPT when DSN was requested and supported)
-                                    // 250 2.1.5 Ok
-                                    var dsnSupported = Capabilities.HasFlag(SmtpCapabilities.Dsn);
-                                    foreach (var rcpt in EMailEnvelop.RcptTo)
-                                    {
+                                    var dsnSupported  = Capabilities.HasFlag(SmtpCapabilities.Dsn);
+                                    var rcptCommands  = EMailEnvelop.RcptTo.Select(rcpt => (Recipient: rcpt,
+                                                                                            Command:   "RCPT TO:<" + rcpt.Address.ToString() + ">" +
+                                                                                                       DsnCommands.RcptToParams(EMailEnvelop.Dsn, rcpt.Address.ToString(), dsnSupported))).
+                                                                            ToArray();
 
-                                        var rcptToResponse = await SendCommandAndWaitForResponseAsync(
-                                                                 "RCPT TO:<" + rcpt.Address.ToString() + ">" +
-                                                                 DsnCommands.RcptToParams(EMailEnvelop.Dsn, rcpt.Address.ToString(), dsnSupported),
-                                                                 cancellationToken).ConfigureAwait(false);
+                                    // Each recipient's reply is recorded; the transaction goes on only when all
+                                    // were accepted.
+                                    void Accept(EMailAddress Recipient, SMTPExtendedResponse Response)
+                                    {
 
                                         recipientResults.Add(
                                             new SMTPRecipientResult(
-                                                rcpt.Address,
-                                                rcptToResponse.StatusCode,
-                                                rcptToResponse.Response,
-                                                SMTPSendResult.ExtractEnhancedStatusCode(rcptToResponse.Response)
+                                                Recipient.Address,
+                                                Response.StatusCode,
+                                                Response.Response,
+                                                SMTPSendResult.ExtractEnhancedStatusCode(Response.Response)
                                             )
                                         );
 
-                                        switch (rcptToResponse.StatusCode)
+                                    }
+
+                                    static void Check(EMailAddress Recipient, SMTPExtendedResponse Response)
+                                    {
+                                        switch (Response.StatusCode)
                                         {
 
                                             case SMTPStatusCodes.UserNotLocalWillForward:
                                             case SMTPStatusCodes.Ok:
                                                 break;
 
-                                            case SMTPStatusCodes.UserNotLocalTryAlternatePath:
-                                            case SMTPStatusCodes.MailboxNameNotAllowed:
-                                            case SMTPStatusCodes.MailboxUnavailable:
-                                            case SMTPStatusCodes.MailboxBusy:
-                                                throw new SMTPClientException        (rcpt.Address.ToString() + " => " + rcptToResponse.StatusCode);
-
                                             case SMTPStatusCodes.AuthenticationRequired:
-                                                throw new UnauthorizedAccessException(rcpt.Address.ToString() + " => " + rcptToResponse.StatusCode);
+                                                throw new UnauthorizedAccessException(Recipient.Address.ToString() + " => " + Response.StatusCode);
 
                                             default:
-                                                throw new SMTPClientException        (rcpt.Address.ToString() + " => " + rcptToResponse.StatusCode);
+                                                throw new SMTPClientException        (Recipient.Address.ToString() + " => " + Response.StatusCode);
 
+                                        }
+                                    }
+
+                                    if (Capabilities.HasFlag(SmtpCapabilities.Pipelining))
+                                    {
+
+                                        // RFC 2920 §3.1: MAIL and RCPT may go out as one group, without waiting for each
+                                        // reply - one round trip for the envelope instead of one per command. DATA is
+                                        // not part of the group: whether it is sent depends on the RCPT replies. All
+                                        // replies are read, also after a refusal, so that none is left to be taken for
+                                        // the next command's (RFC 2920 §3.2).
+                                        await SendCommandsAsync([ mailFromCommand, .. rcptCommands.Select(rcpt => rcpt.Command) ], cancellationToken).ConfigureAwait(false);
+
+                                        var mailFromResponse = (await ReadSMTPResponsesAsync(cancellationToken).ConfigureAwait(false)).First();
+
+                                        var rcptResponses    = new List<SMTPExtendedResponse>();
+                                        foreach (var _ in rcptCommands)
+                                            rcptResponses.Add((await ReadSMTPResponsesAsync(cancellationToken).ConfigureAwait(false)).First());
+
+                                        if (mailFromResponse.StatusCode != SMTPStatusCodes.Ok)
+                                            throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
+
+                                        for (var i = 0; i < rcptCommands.Length; i++)
+                                            Accept(rcptCommands[i].Recipient, rcptResponses[i]);
+
+                                        for (var i = 0; i < rcptCommands.Length; i++)
+                                            Check (rcptCommands[i].Recipient, rcptResponses[i]);
+
+                                    }
+
+                                    else
+                                    {
+
+                                        var mailFromResponse = await SendCommandAndWaitForResponseAsync(mailFromCommand, cancellationToken).ConfigureAwait(false);
+                                        if (mailFromResponse.StatusCode != SMTPStatusCodes.Ok)
+                                            throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
+
+                                        // 250 2.1.5 Ok
+                                        foreach (var (recipient, command) in rcptCommands)
+                                        {
+                                            var rcptToResponse = await SendCommandAndWaitForResponseAsync(command, cancellationToken).ConfigureAwait(false);
+                                            Accept(recipient, rcptToResponse);
+                                            Check (recipient, rcptToResponse);
                                         }
 
                                     }
 
                                     #endregion
 
-                                    #region Mail DATA
+                                    #region Mail DATA / BDAT
 
-                                    // The encoded MIME text lines must not be longer than 76 characters!
+                                    // The complete RFC 5322 message (headers, blank line, body) in its canonical
+                                    // serialized order — NOT reconstructed from the header dictionary (whose order
+                                    // is not guaranteed and would break DKIM).
+                                    SMTPExtendedResponse _FinishedResponse;
 
-                                    // 354 End data with <CR><LF>.<CR><LF>
-                                    var dataResponse = await SendCommandAndWaitForResponseAsync("DATA", cancellationToken).ConfigureAwait(false);
-                                    if (dataResponse.StatusCode != SMTPStatusCodes.StartMailInput)
-                                        throw new SMTPClientException("SMTP DATA command error: " + dataResponse.ToString());
+                                    if (useChunking)
+                                    {
 
-                                    // Send the complete RFC 5322 message (headers, blank line, body) in its
-                                    // canonical serialized order — NOT reconstructed from the header dictionary
-                                    // (whose order is not guaranteed and would break DKIM). Dot-stuffed.
-                                    if (messageLines.Length > 0)
-                                        await SendDataAsync(messageLines, cancellationToken).ConfigureAwait(false);
+                                        // RFC 3030 §2: the message as one chunk, BDAT <size> LAST - octets as they are,
+                                        // no dot-stuffing, no 354 to wait for. The size is the one declared on MAIL.
+                                        await SendOctetsAsync([ .. Encoding.ASCII.GetBytes($"BDAT {messageBytes} LAST\r\n"),
+                                                                .. Encoding.UTF8.GetBytes(String.Concat(messageLines.Select(line => line + "\r\n"))) ],
+                                                              $"BDAT {messageBytes} LAST",
+                                                              cancellationToken).ConfigureAwait(false);
+
+                                        _FinishedResponse = (await ReadSMTPResponsesAsync(cancellationToken).ConfigureAwait(false)).First();
+                                        if (_FinishedResponse.StatusCode != SMTPStatusCodes.Ok)
+                                            throw new SMTPClientException("SMTP BDAT command error: " + _FinishedResponse.ToString());
+
+                                    }
+
+                                    else
+                                    {
+
+                                        // 354 End data with <CR><LF>.<CR><LF>
+                                        var dataResponse = await SendCommandAndWaitForResponseAsync("DATA", cancellationToken).ConfigureAwait(false);
+                                        if (dataResponse.StatusCode != SMTPStatusCodes.StartMailInput)
+                                            throw new SMTPClientException("SMTP DATA command error: " + dataResponse.ToString());
+
+                                        // Dot-stuffed.
+                                        if (messageLines.Length > 0)
+                                            await SendDataAsync(messageLines, cancellationToken).ConfigureAwait(false);
+
+                                        // .
+                                        // 250 2.0.0 Ok: queued as 83398728027
+                                        _FinishedResponse = await SendCommandAndWaitForResponseAsync(".", cancellationToken).ConfigureAwait(false);
+                                        if (_FinishedResponse.StatusCode != SMTPStatusCodes.Ok)
+                                            throw new SMTPClientException("SMTP DATA '.' command error: " + _FinishedResponse.ToString());
+
+                                    }
 
                                     #endregion
 
-                                    #region End-of-DATA
-
-                                    // .
-                                    // 250 2.0.0 Ok: queued as 83398728027
-                                    var _FinishedResponse = await SendCommandAndWaitForResponseAsync(".", cancellationToken).ConfigureAwait(false);
-                                    if (_FinishedResponse.StatusCode != SMTPStatusCodes.Ok)
-                                        throw new SMTPClientException("SMTP DATA '.' command error: " + _FinishedResponse.ToString());
+                                    #region End of data
 
                                     // The authoritative final acknowledgement ("250 2.0.0 Ok: queued as ...").
                                     finalResponse = _FinishedResponse;
