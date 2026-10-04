@@ -721,8 +721,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     if      (IPAddress.IsIPv4(hostname))
                         ResolvedIPAddresses.Add(IPv4Address.Parse(hostname));
 
-                    else if (IPAddress.IsIPv6(hostname))
-                        ResolvedIPAddresses.Add(IPv6Address.Parse(hostname));
+                    // TryParseURIHost rather than TryParse, because this text came
+                    // out of an URL: RFC 6874 has the "%" before a zone identifier
+                    // percent-encoded there, so fe80::a%en1 is written
+                    // http://[fe80::a%25en1]. The plain parser splits at the first
+                    // "%" and read the zone of that URL as "25en1" — a link-local
+                    // address dialled through an interface that does not exist, and
+                    // a success rather than a failure, which is the worse of the
+                    // two.
+                    else if (IPv6Address.TryParseURIHost(hostname, out var ipv6FromURI))
+                        ResolvedIPAddresses.Add(ipv6FromURI);
 
                     // "localhost" stays 127.0.0.1 - a client that names no
                     // preference asks for PreferIPv6, and must still reach the

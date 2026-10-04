@@ -60,6 +60,13 @@ reference is; the seventh is inside commented-out code under
 - HTTP framing and semantics are identical after the TCP or TLS stream has been
   established; TLS protocol-version and certificate policy are separate from
   HTTP/1.x conformance.
+- An IPv6 zone identifier in a URL is understood, since 2026-10-04: RFC 6874
+  has the `%` percent-encoded there, so `fe80::a%en1` is written
+  `http://[fe80::a%25en1]`. The plain address parser splits at the first `%`
+  and read that zone as `25en1` — a success with the wrong answer rather than
+  a refusal. The `Host` field is sent without the zone, which §3 calls "highly
+  desirable" rather than required: it names an interface of this machine, and
+  the peer has no use for it.
 - A client makes the DNS client it was handed none of when it first asks for
   one. Since 2026-10-03: the default searches the machine's network
   configuration for resolvers, which was 38.3 ms of the 39.4 ms a fresh client

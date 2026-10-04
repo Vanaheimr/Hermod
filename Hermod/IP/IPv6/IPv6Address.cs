@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -361,6 +361,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+
+        #region TryParseURIHost   (Text, out IPv6Address)
+
+        /// <summary>
+        /// Try to parse the host of an URI as an IPv6 address, zone identifier
+        /// and all: RFC 6874.
+        /// </summary>
+        /// <remarks>
+        /// A zone identifier is attached to an address with "%", and "%" in an
+        /// URI "MUST be percent-encoded and represented in the form %25"
+        /// (RFC 6874, Section 2). So the scoped address fe80::a%en1 appears in
+        /// an URI as http://[fe80::a%25en1], and a ZoneID may itself carry
+        /// percent-encoded characters.
+        ///
+        /// This is a separate method and not a flag on TryParse because the two
+        /// forms collide: bare, "fe80::1%25" is Windows naming interface index
+        /// 25, and in an URI the very same text is an address with an empty
+        /// ZoneID. Decoding inside TryParse would quietly turn every numeric
+        /// Windows zone into something else.
+        ///
+        /// A bare "%" is accepted here as well, which Section 3 suggests rather
+        /// than requires — "be liberal with what you accept", so that an
+        /// address pasted out of a ping command works. That section is
+        /// explicitly non-normative.
+        /// </remarks>
+        /// <param name="Text">The host of an URI, with or without its brackets.</param>
+        /// <param name="IPv6Address">The parsed IPv6 address.</param>
+        public static Boolean TryParseURIHost(String Text, out IPv6Address IPv6Address)
+        {
+
+            IPv6Address = default;
+
+            if (String.IsNullOrWhiteSpace(Text))
+                return false;
+
+            var text = Text.Trim();
+
+            if (text.StartsWith('[') && text.EndsWith(']'))
+                text = text[1..^1].Trim();
+
+            var separator = text.IndexOf('%');
+
+            if (separator < 0)
+                return TryParse(text, out IPv6Address);
+
+            var address  = text[..separator];
+            var rest     = text[separator..];
+
+            // "%25" is the encoded separator; a bare "%" is the liberal form.
+            var zone     = rest.StartsWith("%25", StringComparison.Ordinal)
+                               ? rest[3..]
+                               : rest[1..];
+
+            // ZoneID = 1*( unreserved / pct-encoded ), so an empty one is not
+            // a ZoneID: "[fe80::a%25]" is malformed rather than unscoped.
+            if (zone.Length == 0)
+                return false;
+
+            // The ZoneID's own percent-encoding, which Section 2 allows "for
+            // compatibility with existing devices" that use characters outside
+            // the unreserved set.
+            try
+            {
+                zone = Uri.UnescapeDataString(zone);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            if (zone.Length == 0 || zone.Contains('%'))
+                return false;
+
+            return TryParse($"{address}%{zone}", out IPv6Address);
+
+        }
+
+        #endregion
 
         #region TryParse          (Text, out IPv6Address)
 
