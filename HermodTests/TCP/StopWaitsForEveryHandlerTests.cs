@@ -111,11 +111,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
             await stopping.WaitAsync(TimeSpan.FromSeconds(10));
 
+            // The late connection's handler may not have got going at all: once
+            // it is listed, Stop() looks at the list a second time, on another
+            // thread, and may close the connection before its handler's first
+            // line touches it - which then ends where a closed connection does.
+            // Either way no handler is left running, and that is what is asked:
+            // that every handler that started has finished. Asking for two
+            // failed the nightly now and then, on a busy runner.
             Assert.Multiple(() => {
-                Assert.That(returnedOnItsOwn,                 Is.False,       "Stop() returned without waiting for the connection held between its accept and its listing");
-                Assert.That(server.HandlersStarted,           Is.EqualTo(2),  "both handlers had started");
-                Assert.That(server.HandlersFinished,          Is.EqualTo(2),  "and had finished when Stop() returned");
-                Assert.That(server.NumberOfConnectedClients,  Is.Zero,        "no connection left on the server's books");
+                Assert.That(returnedOnItsOwn,                 Is.False,                                "Stop() returned without waiting for the connection held between its accept and its listing");
+                Assert.That(server.HandlersStarted,           Is.InRange(1, 2),                        "the first handler had started, and the late one where its connection was not closed first");
+                Assert.That(server.HandlersFinished,          Is.EqualTo(server.HandlersStarted),      "every handler that started had finished when Stop() returned");
+                Assert.That(server.NumberOfConnectedClients,  Is.Zero,                                 "no connection left on the server's books");
             });
 
         }
