@@ -1340,8 +1340,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                                                                        DsnCommands.RcptToParams(EMailEnvelop.Dsn, rcpt.Address.ToString(), dsnSupported))).
                                                                             ToArray();
 
-                                    // Each recipient's reply is recorded; the transaction goes on only when all
-                                    // were accepted.
+                                    // Each recipient's reply is recorded. RFC 5321 §3.3: recipients are accepted or
+                                    // refused one by one - the message goes to those accepted, and the result says
+                                    // who was refused. Only when nobody was accepted does the transaction end here.
                                     void Accept(EMailAddress Recipient, SMTPExtendedResponse Response)
                                     {
 
@@ -1355,6 +1356,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         );
 
                                     }
+
+                                    static Boolean IsAccepted(SMTPExtendedResponse Response)
+                                        => Response.StatusCode is SMTPStatusCodes.Ok or SMTPStatusCodes.UserNotLocalWillForward;
 
                                     static void Check(EMailAddress Recipient, SMTPExtendedResponse Response)
                                     {
@@ -1396,8 +1400,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         for (var i = 0; i < rcptCommands.Length; i++)
                                             Accept(rcptCommands[i].Recipient, rcptResponses[i]);
 
-                                        for (var i = 0; i < rcptCommands.Length; i++)
-                                            Check (rcptCommands[i].Recipient, rcptResponses[i]);
+                                        if (!rcptResponses.Any(IsAccepted))
+                                            Check(rcptCommands[0].Recipient, rcptResponses[0]);
 
                                     }
 
@@ -1409,12 +1413,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
 
                                         // 250 2.1.5 Ok
+                                        var rcptResponses = new List<SMTPExtendedResponse>();
                                         foreach (var (recipient, command) in rcptCommands)
                                         {
                                             var rcptToResponse = await SendCommandAndWaitForResponseAsync(command, cancellationToken).ConfigureAwait(false);
                                             Accept(recipient, rcptToResponse);
-                                            Check (recipient, rcptToResponse);
+                                            rcptResponses.Add(rcptToResponse);
                                         }
+
+                                        if (!rcptResponses.Any(IsAccepted))
+                                            Check(rcptCommands[0].Recipient, rcptResponses[0]);
 
                                     }
 
@@ -1473,7 +1481,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     #endregion
 
                                     // The message is the server's now (RFC 5321 §6.1); QUIT below cannot undo that.
-                                    result = MailSentStatus.ok;
+                                    // For every recipient, or for those accepted.
+                                    result = recipientResults.All(recipient => recipient.StatusCode is SMTPStatusCodes.Ok or SMTPStatusCodes.UserNotLocalWillForward)
+                                                 ? MailSentStatus.ok
+                                                 : MailSentStatus.PartiallySent;
 
                                     break;
 

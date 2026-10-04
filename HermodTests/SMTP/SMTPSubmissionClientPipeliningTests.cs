@@ -274,10 +274,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         /// <summary>
         /// Each pipelined reply belongs to its command: a refused RCPT in the middle is reported
-        /// for that recipient, and the transaction is not continued.
+        /// for that recipient, and the others get the message (RFC 5321 §3.3).
         /// </summary>
         [Test]
-        public async Task A_refused_RCPT_in_a_pipelined_group_is_its_own_and_ends_the_transaction()
+        public async Task A_refused_RCPT_in_a_pipelined_group_is_its_own_and_the_others_get_the_message()
         {
 
             using var server = new Server(line => line.Contains("<b@pipe.test>") ? "550 5.1.1 no such user" : null,
@@ -285,10 +285,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             var result = await Send(server, "a@pipe.test", "b@pipe.test", "c@pipe.test");
 
-            Assert.That(result.Status, Is.Not.EqualTo(MailSentStatus.ok));
+            Assert.That(result.Status, Is.EqualTo(MailSentStatus.PartiallySent));
             Assert.That(result.Recipients.Select(recipient => (UInt16) recipient.StatusCode),
                         Is.EqualTo(new UInt16[] { 250, 550, 250 }));
-            Assert.That(server.Commands, Has.None.EqualTo("DATA").And.None.StartsWith("BDAT"));
+            Assert.That(server.Commands, Has.Some.EqualTo("DATA"));
+
+        }
+
+
+        /// <summary>
+        /// The same without PIPELINING: the client goes on with the next RCPT after a refusal.
+        /// </summary>
+        [Test]
+        public async Task A_refused_RCPT_does_not_stop_the_message_for_the_others()
+        {
+
+            using var server = new Server(line => line.Contains("<b@pipe.test>") ? "550 5.1.1 no such user" : null,
+                                          "8BITMIME", "SIZE 1000000");
+
+            var result = await Send(server, "a@pipe.test", "b@pipe.test", "c@pipe.test");
+
+            Assert.That(result.Status,    Is.EqualTo(MailSentStatus.PartiallySent));
+            Assert.That(result.IsSuccess, Is.False, "not everyone has the message");
+            Assert.That(result.Recipients.Select(recipient => (UInt16) recipient.StatusCode),
+                        Is.EqualTo(new UInt16[] { 250, 550, 250 }));
+            Assert.That(server.Commands.Count(command => command.StartsWith("RCPT")), Is.EqualTo(3));
+            Assert.That(server.Commands, Has.Some.EqualTo("DATA"));
+
+        }
+
+
+        /// <summary>
+        /// Nobody accepted: nothing to send, and the attempt failed as before.
+        /// </summary>
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Every_RCPT_refused_ends_the_transaction(Boolean Pipelining)
+        {
+
+            using var server = Pipelining
+                                   ? new Server(line => line.StartsWith("RCPT") ? "550 5.1.1 no such user" : null, "PIPELINING", "8BITMIME", "SIZE 1000000")
+                                   : new Server(line => line.StartsWith("RCPT") ? "550 5.1.1 no such user" : null, "8BITMIME", "SIZE 1000000");
+
+            var result = await Send(server, "a@pipe.test", "b@pipe.test");
+
+            Assert.That(result.Status,     Is.Not.EqualTo(MailSentStatus.ok).And.Not.EqualTo(MailSentStatus.PartiallySent));
+            Assert.That(result.Recipients, Has.Count.EqualTo(2));
+            Assert.That(server.Commands,   Has.None.EqualTo("DATA").And.None.StartsWith("BDAT"));
 
         }
 
