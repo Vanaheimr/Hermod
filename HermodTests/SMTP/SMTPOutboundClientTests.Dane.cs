@@ -19,6 +19,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -155,7 +156,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         /// sends along: a self-signed root is not sent on every platform (.NET on Linux leaves it
         /// out of the chain), an intermediate is.
         /// </summary>
-        private static (X509Certificate2 TrustAnchor, X509Certificate2 Server) IssuedBy(String ServerName)
+        /// <param name="ServerName">The name the server certificate is issued for.</param>
+        /// <param name="UnreachableIssuerUrl">Give the anchor an AIA "CA Issuers" URL nobody answers (TEST-NET-1), as a public CA's intermediate has one - a platform that tries to download its issuer while building the chain waits there.</param>
+        private static (X509Certificate2 TrustAnchor, X509Certificate2 Server) IssuedBy(String ServerName, Boolean UnreachableIssuerUrl = false)
         {
 
             using var rootKey     = RSA.Create(2048);
@@ -168,6 +171,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             var caRequest         = new CertificateRequest("CN=DANE trust anchor", caKey, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
             caRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, true));
             caRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, true));
+            if (UnreachableIssuerUrl)
+                caRequest.CertificateExtensions.Add(new X509AuthorityInformationAccessExtension(null, [ "http://192.0.2.1/root.crt" ]));
             using var caIssued    = caRequest.Create(root, DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(2), RandomNumberGenerator.GetBytes(8));
             using var ca          = caIssued.CopyWithPrivateKey(caKey);
 
@@ -347,6 +352,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             var result = await SendWithDane(nextHop, dns);
 
             Assert.That(result.Status, Is.EqualTo(SendStatus.Success), result.ResponseText);
+
+        }
+
+
+
+        [Test(Description = "RFC 7672 §3.1.2: DANE-TA authenticates against the chain the server presents - it does not wait for the platform to download issuers from the network, nor depend on whether that worked")]
+        public async Task DANE_TA_does_not_wait_for_certificate_downloads()
+        {
+
+            var (anchor, server) = IssuedBy("localhost", UnreachableIssuerUrl: true);
+            using var nextHop = new NextHop(Certificate: server, Chain: [ anchor ]);
+            using var dns     = new SignedDns();
+            dns.Answer($"_{nextHop.Port}._tcp.localhost", DNSResourceRecordTypes.TLSA, true, Tlsa(nextHop.Port, TLSA_CertificateUsage.DANE_TA, anchor));
+
+            var stopwatch = Stopwatch.StartNew();
+            var result    = await SendWithDane(nextHop, dns);
+
+            Assert.Multiple(() => {
+                Assert.That(result.Status,       Is.EqualTo(SendStatus.Success), result.ResponseText);
+                Assert.That(stopwatch.Elapsed,   Is.LessThan(TimeSpan.FromSeconds(10)), "no waiting for http://192.0.2.1/ - which takes some 15 s on Windows");
+            });
 
         }
 
