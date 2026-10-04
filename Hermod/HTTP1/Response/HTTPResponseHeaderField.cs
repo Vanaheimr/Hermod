@@ -252,6 +252,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Strict-Transport-Security
+
+        /// <summary>
+        /// The HSTS policy this host asserts: how long a user agent is to reach
+        /// it over HTTPS only, and whether that covers its subdomains.
+        /// </summary>
+        /// <remarks>
+        /// Typed since 2026-10-04. Emitting the text has been possible all
+        /// along through SecurityHeaderOptions; what this adds is a value that
+        /// can be read and that refuses what RFC 6797 Section 6.1 refuses - a
+        /// field without max-age, a directive appearing twice, a value that is
+        /// not delta-seconds. Enforcing a policy nobody stated is the outcome
+        /// that strictness prevents.
+        ///
+        /// Sending it stays the application's decision, and Hermod's default
+        /// stays "nothing": a policy is a promise about every future request to
+        /// a host, and only the application knows whether the host can keep it.
+        /// </remarks>
+        /// <example>Strict-Transport-Security: max-age=63072000; includeSubDomains</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc6797.html#section-6.1"/>
+        public static readonly HTTPResponseHeaderField<StrictTransportSecurity> StrictTransportSecurity
+
+            = new ("Strict-Transport-Security",
+                   RequestPathSemantic.EndToEnd,
+                   StringParser:     HTTP.StrictTransportSecurity.TryParse,
+                   ValueSerializer:  policy => policy.ToString());
+
+        #endregion
+
         #region Keep-Alive
 
         /// <summary>

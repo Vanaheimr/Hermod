@@ -474,6 +474,17 @@ allows extension fields. This includes content negotiation, representation
 metadata, authorization, CORS fields, cookies, conditional request fields,
 ETags, range-related fields, and WebDAV fields.
 
+`Strict-Transport-Security` is typed since 2026-10-04: `StrictTransportSecurity`
+carries `max-age`, `includeSubDomains` and the non-standard `preload`, parses
+what RFC 6797 §6.1 permits and refuses what it does not — a field without
+`max-age`, a directive appearing twice, a value that is not `delta-seconds` —
+while ignoring unrecognised directives, as §6.1 item 5 requires. Emitting the
+text was already possible through `SecurityHeaderOptions`; what was missing was
+a value anything could read. **Whether to send it stays the application's
+decision and the default stays "nothing"**: a policy is a promise about every
+future request to a host, and a host that promises and then loses its
+certificate has locked its own users out.
+
 Timestamps go through `HTTPDate` (RFC 9110 §5.6.7), which since 2026-10-03
 accepts **all three** HTTP-date formats — the preferred IMF-fixdate and the
 obsolete RFC 850 and `asctime()` ones, which a recipient MUST accept — and
