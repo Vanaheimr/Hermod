@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this.__dkimSigner     = _dkimSigner;
             this._dnsClient       = dnsClient;
             this._logger          = logger;
-            this._mtaStsResolver  = new MtaStsResolver(dnsClient, logger);
+            this._mtaStsResolver  = new MtaStsResolver(dnsClient, logger, config.MtaStsHttpHandler);
             this._daneResolver    = config.EnableDane
                                         ? new DaneResolver(dnsClient, logger)
                                         : null;
@@ -86,15 +86,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     messageContent = __dkimSigner.SignMessage(messageContent);
                 }
 
-                // Check MTA-STS policy
-                var mtaStsPolicy  = await _mtaStsResolver.GetPolicyAsync(targetDomain, ct);
+                // MTA-STS (RFC 8461). §3.4: through a smart host, "compliant senders MUST treat the
+                // smart host domain as the Policy Domain" - the recipient domain's policy names its
+                // own MX hosts, not the relay we hand the message to. An address literal has none.
+                var policyDomain  = _config.SmartHost ?? targetDomain;
+                var mtaStsPolicy  = System.Net.IPAddress.TryParse(policyDomain.Trim('[', ']'), out _)
+                                        ? MtaStsPolicy.None
+                                        : await _mtaStsResolver.GetPolicyAsync(policyDomain, ct);
                 var enforceTls    = requireTls ||
                                     mtaStsPolicy.Mode == MtaStsMode.Enforce ||
                                     _config.RequireStartTls;
 
                 if (mtaStsPolicy.Mode != MtaStsMode.None)
                 {
-                    _logger.Log(LogLevel.Info, $"MTA-STS policy for {targetDomain}: {mtaStsPolicy.Mode}");
+                    _logger.Log(LogLevel.Info, $"MTA-STS policy for {policyDomain}: {mtaStsPolicy.Mode}");
                 }
 
                 // Determine target hosts
@@ -132,18 +137,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                     _logger.Log(LogLevel.Debug, $"MX records for {targetDomain}: {String.Join(", ", mxHosts.Select(m => $"{m.Host}:{m.Priority}"))}");
 
-                    // If MTA-STS is in enforce mode, filter MX hosts to match policy
-                    if (mtaStsPolicy.Mode == MtaStsMode.Enforce && mtaStsPolicy.MxPatterns.Count > 0)
-                    {
-                        var filteredHosts = mxHosts.Where(mx => mtaStsPolicy.MatchesMx(mx.Host)).ToList();
-                        if (filteredHosts.Count == 0)
-                        {
-                            _logger.Log(LogLevel.Error, $"No MX hosts match MTA-STS policy for {targetDomain}");
-                            return SendResult.PermFail(550, "MTA-STS policy violation: no matching MX hosts");
-                        }
-                        mxHosts = filteredHosts;
-                    }
+                }
 
+                // RFC 8461 §5: under an "enforce" policy no delivery to a host the policy does not
+                // name (§4.1) - the smart host included. And "a compliant MTA MUST NOT permanently
+                // fail to deliver messages before checking, via DNS, for the presence of an updated
+                // policy ... MTAs SHOULD treat such failures as transient errors": the TXT record
+                // was looked at for this attempt, and the next attempt looks again.
+                if (mtaStsPolicy.Mode == MtaStsMode.Enforce)
+                {
+                    var allowed = mxHosts.Where(mx => mtaStsPolicy.MatchesMx(mx.Host)).ToList();
+                    if (allowed.Count == 0)
+                    {
+                        _logger.Log(LogLevel.Error, $"MTA-STS policy of {policyDomain} allows none of {String.Join(", ", mxHosts.Select(mx => mx.Host))}");
+                        return SendResult.TempFail(451, $"4.7.5 MTA-STS policy of {policyDomain} allows none of its MX hosts");
+                    }
+                    mxHosts = allowed;
                 }
 
                 // Try each MX host in priority order

@@ -63,6 +63,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public          Boolean  EnableDane           { get; init; } = false;
 
+        /// <summary>
+        /// The HTTP handler that fetches MTA-STS policies (RFC 8461 §3.3) - for a proxy, or a policy
+        /// host whose certificate the system does not trust. By default one that follows no
+        /// redirects; with any handler, a policy reached through a redirect is not taken.
+        /// </summary>
+        public          HttpMessageHandler?  MtaStsHttpHandler  { get; init; }
+
         public          String?  SmartHost            { get; init; }  // Optional relay host
         public          UInt16   SmartHostPort        { get; init; } = 25;
         public          String?  SmartHostUsername    { get; init; }
