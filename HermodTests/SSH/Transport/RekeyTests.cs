@@ -243,6 +243,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Rekey_DoesNotLetADataPacketInterleave
+
+        /// <summary>
+        /// A send issued while a key re-exchange is in flight waits for it: no non-KEX packet may
+        /// appear between our KEXINIT and our NEWKEYS.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Two reasons this is worth pinning. Framing: SendPacketAsync advances the send sequence
+        /// number and the cipher state, so a second sender slipping in can produce packets whose MACs
+        /// do not match what the peer computes — the very failure strict KEX exists to make detectable,
+        /// arriving by accident rather than by attack. Interop: OpenSSH 10.4 lists under "Potentially
+        /// incompatible changes" that it now disconnects "if the peer sends non-KEX messages during a
+        /// post-authentication key re-exchange".
+        /// </para>
+        /// <para>
+        /// The rekey is <i>parked</i> rather than raced, which is what makes this deterministic: the
+        /// client sends its KEXINIT and then waits for the server's, and nothing reads the server end
+        /// until this test chooses to, so the exchange stays open for as long as is needed. Without the
+        /// transport's send lock the send below completes in microseconds — which is precisely what is
+        /// asserted here not to happen.
+        /// </para>
+        /// </remarks>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task Rekey_DoesNotLetADataPacketInterleave(CancellationToken CancellationToken)
+        {
+
+            var (c, s) = await HandshakeAsync(null, CancellationToken);
+
+            using var _c = c;
+            using var _s = s;
+
+            var payload = TrafficPayload(64);
+
+            // 1. The client starts a rekey and parks: its KEXINIT is on the wire, the server's is not.
+            var rekey = c.RekeyAsync(CancellationToken).AsTask();
+
+            // 2. Another task tries to push ordinary traffic into that window.
+            var send  = c.SendPacketAsync(payload, CancellationToken).AsTask();
+
+            // 3. Neither may get through. Half a second is no proof of a lock, but an unserialized send
+            //    finishes here in microseconds, so it separates the two outcomes reliably.
+            await Task.Delay(500, CancellationToken).ConfigureAwait(false);
+
+            Assert.Multiple(() => {
+                Assert.That(rekey.IsCompleted, Is.False, "the rekey must still be waiting for the peer's KEXINIT");
+                Assert.That(send.IsCompleted,  Is.False, "a data packet must not be sent during a key exchange");
+            });
+
+            // 4. Now let the server play its part, which releases both.
+            var peerKexInit = await s.ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+
+            Assert.That((SshMessageNumber) peerKexInit[0], Is.EqualTo(SshMessageNumber.KexInit),
+                        "the first thing the server sees must be the KEXINIT, not the data packet");
+
+            await s.RespondToRekeyAsync(peerKexInit, CancellationToken).ConfigureAwait(false);
+            await rekey.ConfigureAwait(false);
+            await send.ConfigureAwait(false);
+
+            // 5. Only now does the data arrive — after NEWKEYS, and therefore under the new keys.
+            var received = await s.ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+
+            Assert.Multiple(() => {
+                Assert.That(c.KeyExchangeCount, Is.EqualTo(2),      "the rekey completed");
+                Assert.That(received,           Is.EqualTo(payload), "the deferred packet arrived intact afterwards");
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

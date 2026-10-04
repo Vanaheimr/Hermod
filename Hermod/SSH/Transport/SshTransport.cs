@@ -75,6 +75,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         // always-legal SSH_MSG_IGNORE / DEBUG / UNIMPLEMENTED while the exchange is in flight.
         private Boolean              keyExchangeInProgress;
 
+        // The class remark above calls this transport single-writer. This field is what makes that
+        // true, rather than a request to whoever calls it: every send passes through it, and a key
+        // exchange holds it for the whole exchange, so no other packet can interleave with KEX traffic.
+        //
+        // Two reasons, one older than the other. Framing: SendPacketAsync mutates sendSequenceNumber
+        // and the send cipher's state, so two concurrent senders can emit packets whose sequence
+        // numbers and MACs do not match what the peer computes — the very failure strict KEX exists to
+        // make detectable, arriving by accident instead of by attack. Interop: OpenSSH 10.4 lists under
+        // "Potentially incompatible changes" that it now disconnects "if the peer sends non-KEX
+        // messages during a post-authentication key re-exchange", so a data packet slipping into a
+        // rekey stopped being merely untidy and became a dropped connection.
+        //
+        // Holding a SEND lock across the exchange's receives is deliberate and cannot deadlock: a peer
+        // drives a key exchange to completion without waiting on our channel data — that quiescence is
+        // exactly what OpenSSH now enforces.
+        private readonly SemaphoreSlim sendLock = new (1, 1);
+
         #endregion
 
         #region Properties
@@ -240,9 +257,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         /// <summary>
         /// Frame, encrypt and flush one packet under the current send cipher, advancing the send
-        /// sequence number.
+        /// sequence number. Serialized against every other send and against a key exchange in flight,
+        /// so a caller may send from any task without coordinating with the rest.
         /// </summary>
         public async ValueTask SendPacketAsync(ReadOnlyMemory<Byte> Payload, CancellationToken CancellationToken = default)
+        {
+
+            await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
+
+            try     { await WritePacketAsync(Payload, CancellationToken).ConfigureAwait(false); }
+            finally { sendLock.Release(); }
+
+        }
+
+        /// <summary>
+        /// The write itself, for the one caller that already holds <c>sendLock</c>: the key exchange,
+        /// which has to emit several packets in sequence without letting anything in between them.
+        /// </summary>
+        private async ValueTask WritePacketAsync(ReadOnlyMemory<Byte> Payload, CancellationToken CancellationToken = default)
         {
 
             SshPacketFraming.WritePacket(pipe.Output, sendCipher, Payload.Span, sendSequenceNumber, sendMac);
@@ -338,6 +370,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             // instead of skipping them (see ReceivePacketAsync).
             keyExchangeInProgress = true;
 
+            // Held for the whole exchange, so nothing can send between our KEXINIT and our NEWKEYS.
+            // See the field's remark for why that is a framing matter as well as an interop one.
+            await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
+
             try
             {
 
@@ -345,7 +381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var localKexInit = KexInitMessage.CreateLocal(isServer, ciphers, macs, keyExchanges,
                                                           isServer ? [.. hostKey!.AlgorithmNames] : hostKeyAlgorithms);
             var iLocal = localKexInit.Encode();
-            await SendPacketAsync(iLocal, CancellationToken).ConfigureAwait(false);
+            await WritePacketAsync(iLocal, CancellationToken).ConfigureAwait(false);
 
             // 2. Obtain the peer's KEXINIT (already read on a peer-initiated rekey, else read it now).
             var iRemote = PeerKexInit ?? await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
@@ -390,14 +426,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 h               = ExchangeHashCalc.Compute(kex.HashAlgorithm, vC, vS, iC, iS, kS, qC, qS, kEncoded);
 
                 var signature   = hostKey!.Sign(negotiated.HostKey, h);
-                await SendPacketAsync(SshKexCore.BuildEcdhReply(kS, qS, signature), CancellationToken).ConfigureAwait(false);
+                await WritePacketAsync(SshKexCore.BuildEcdhReply(kS, qS, signature), CancellationToken).ConfigureAwait(false);
 
             }
             else
             {
 
                 var qC          = kex.StartClient();
-                await SendPacketAsync(SshKexCore.BuildEcdhInit(qC), CancellationToken).ConfigureAwait(false);
+                await WritePacketAsync(SshKexCore.BuildEcdhInit(qC), CancellationToken).ConfigureAwait(false);
 
                 var reply                   = await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
                 var (kServer, qS, sigBlob)  = SshKexCore.ParseEcdhReply(reply);
@@ -441,7 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             // 5. NEWKEYS: our own is the last packet under the old send keys; the peer's is the last
             //    under the old receive keys. Swap each direction independently, right after the boundary.
             var newKeysMessage = new Byte[] { (Byte) SshMessageNumber.NewKeys };
-            await SendPacketAsync(newKeysMessage, CancellationToken).ConfigureAwait(false);
+            await WritePacketAsync(newKeysMessage, CancellationToken).ConfigureAwait(false);
             SwapSend(newSendCipher, newSendMac, negotiated.StrictKex);
 
             var newKeys = await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
@@ -466,13 +502,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (IsInitial && isServer && negotiated.ExtensionInfo)
             {
                 var extInfo = ExtInfoMessage.ForServerSigAlgs(serverSignatureAlgorithms);
-                await SendPacketAsync(extInfo.Encode(), CancellationToken).ConfigureAwait(false);
+                await WritePacketAsync(extInfo.Encode(), CancellationToken).ConfigureAwait(false);
             }
 
             }
             finally
             {
                 keyExchangeInProgress = false;
+                sendLock.Release();
             }
 
         }
@@ -561,6 +598,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             DisposeCipher(receiveCipher);
             sendMac?.Dispose();
             receiveMac?.Dispose();
+            sendLock.Dispose();
         }
 
         #endregion
