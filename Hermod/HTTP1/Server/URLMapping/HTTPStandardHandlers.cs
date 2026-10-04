@@ -235,23 +235,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       String                         ResourcePath,
                                                       String                         DefaultFilename       = "index.html",
                                                       Func<String, String, String>?  HTMLTemplateHandler   = null)
+        {
 
-            => ExportFolderDelegate(
-                   URLTemplate,
-                   DefaultServerName,
-                   filePath => {
+            // Resolved once and closed with a separator: a relative ResourcePath
+            // compared as written against the absolute paths below refused
+            // every file, and a root without the separator let a sibling that
+            // shares its prefix ("site-secrets" beside "site") count as inside.
+            var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(ResourcePath)) + Path.DirectorySeparatorChar;
 
-                       // Resolve full path to avoid directory/path traversal attacks!
-                       var fullPath = Path.GetFullPath(Path.Combine(ResourcePath, filePath.Replace('/', Path.DirectorySeparatorChar)));
+            return ExportFolderDelegate(
+                       URLTemplate,
+                       DefaultServerName,
+                       filePath => {
 
-                       return fullPath.StartsWith(ResourcePath, StringComparison.OrdinalIgnoreCase)
-                                           ? File.OpenRead(fullPath)
-                                           : null;
+                           var fullPath = ResolveInside(root, filePath);
 
-                   },
-                   DefaultFilename,
-                   HTMLTemplateHandler
-               );
+                           // File.Exists is false for a directory and for a device
+                           // name as well, so both are a 404 like any other miss.
+                           return fullPath is not null && File.Exists(fullPath)
+                                      ? File.OpenRead(fullPath)
+                                      : null;
+
+                       },
+                       DefaultFilename,
+                       HTMLTemplateHandler
+                   );
+
+        }
+
+        #endregion
+
+        #region (private static) ResolveInside             (Root, RelativePath)
+
+        /// <summary>
+        /// The full path of RelativePath below Root, or null when it does not
+        /// name something below Root.
+        /// </summary>
+        /// <remarks>
+        /// The request parser already refuses dot-segments, backslashes and
+        /// encoded separators, so "../" never arrives here over HTTP/1.1. A
+        /// colon does: "C:secret.txt" is a drive-relative path, which
+        /// Path.Combine treats as rooted and returns in place of the root, and
+        /// Windows then resolves against the current directory of drive C:.
+        /// "a.txt::$DATA" is an alternate data stream of a.txt. Neither names a
+        /// file below the root, and on Windows no file name can contain a
+        /// colon, so it is refused there outright.
+        /// </remarks>
+        /// <param name="Root">The absolute root, ending in a directory separator.</param>
+        /// <param name="RelativePath">The URL-decoded path below the root.</param>
+        private static String? ResolveInside(String  Root,
+                                             String  RelativePath)
+        {
+
+            if (OperatingSystem.IsWindows() && RelativePath.Contains(':'))
+                return null;
+
+            // Path.Join rather than Path.Combine: Join never discards Root.
+            var fullPath = Path.GetFullPath(Path.Join(Root, RelativePath.Replace('/', Path.DirectorySeparatorChar)));
+
+            return fullPath.StartsWith(Root, OperatingSystem.IsWindows()
+                                                 ? StringComparison.OrdinalIgnoreCase
+                                                 : StringComparison.Ordinal)
+                       ? fullPath
+                       : null;
+
+        }
 
         #endregion
 
@@ -408,15 +456,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    catch (Exception e)
                    {
 
+                       // To the log and not to the client: the message of an
+                       // I/O exception carries the absolute path on the server.
+                       Logger.LogError(e, "Could not serve {Path}", httpRequest.Path);
+
                        return Task.FromResult(
                                   new HTTPResponse.Builder(httpRequest) {
                                       HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                                       Server          = DefaultServerName,
                                       Date            = Timestamp.Now,
-                                      ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                      Content         = JSONObject.Create(
-                                                            new JProperty("message", e.Message)
-                                                        ).ToUTF8Bytes(),
+                                      ContentLength   = 0,
                                       CacheControl    = "no-cache",
                                       Connection      = ConnectionType.KeepAlive
                                   }.AsImmutable
@@ -1341,7 +1390,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPServer">An HTTP server.</param>
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="URLTemplate">An URL template.</param>
-        /// <param name="ResourceFilenameBuilder">The path to the file within the assembly.</param>
+        /// <param name="ResourceFilenameBuilder">Builds the file-system path from the URL parameters, which it receives as the request carried them, not URL-decoded. Whatever it returns is opened as it is: unlike MapFileSystemFolder, this method has no root to keep the result inside, so that is the builder's job - and on Windows a parameter such as "C:name" is a drive-relative path that Path.Combine puts in place of any directory before it.</param>
         /// <param name="DefaultFile">If an error occurs, return this file.</param>
         /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extension.</param>
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
