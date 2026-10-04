@@ -461,6 +461,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
+        #region (private) EndSessionAsync(SayQuit, CancellationToken)
+
+        /// <summary>
+        /// End an attempt, delivered or not. RFC 5321 §4.1.1.10: "The sender MUST NOT
+        /// intentionally close the transmission channel until it sends a QUIT command, and it
+        /// SHOULD wait until it receives the reply" - so QUIT whenever the session still carries
+        /// one, then close the connection: left open, it held a session slot on the server until
+        /// the next Send or Dispose. QUIT is best effort; its reply changes nothing about the
+        /// attempt's result.
+        /// </summary>
+        private async Task EndSessionAsync(Boolean            SayQuit,
+                                           CancellationToken  CancellationToken)
+        {
+
+            if (SayQuit)
+            {
+                try
+                {
+
+                    var quitResponse = await SendCommandAndWaitForResponseAsync("QUIT", CancellationToken).ConfigureAwait(false);
+
+                    if (quitResponse.StatusCode != SMTPStatusCodes.ServiceClosingTransmissionChannel)
+                        smtpLogger.LogDebug("SMTP server {RemoteHost} answered QUIT with {StatusCode} {Response}",
+                                            RemoteHost, (UInt16) quitResponse.StatusCode, quitResponse.Response);
+
+                }
+                catch (Exception e)
+                {
+                    smtpLogger.LogDebug(e, "SMTP server {RemoteHost} did not answer QUIT", RemoteHost);
+                }
+            }
+
+            await CloseConnection().ConfigureAwait(false);
+
+        }
+
+        #endregion
+
         #region (internal) EhloLine(Line)
 
         /// <summary>
@@ -849,6 +887,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     finalResponse = null;
                     tlsActive     = false;
                     authenticated = false;
+
+                    // Whether the session can still be ended with QUIT: from the greeting on, until
+                    // the connection is lost or its stream can no longer be trusted.
+                    var sessionOpen = false;
+
                     try
                     {
 
@@ -877,6 +920,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                             // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
                             var LoginResponse       = await ReadSMTPResponsesAsync(cancellationToken).ConfigureAwait(false);
+                            sessionOpen             = true;
 
                             switch (LoginResponse.First().StatusCode)
                             {
@@ -964,6 +1008,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         // on the path - into the place where the handshake belongs.
                                         if (dataAfterLastReply)
                                         {
+                                            sessionOpen = false;     // the stream is not the server's alone
                                             smtpLogger.LogWarning("SMTP server {RemoteHost} sent data behind its STARTTLS reply, before the TLS handshake; not sending in cleartext",
                                                                   RemoteHost);
                                             result = MailSentStatus.TLSUnavailable;
@@ -974,6 +1019,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         if (startTLSResult.IsFailure || !IsTLSActive)
                                         {
+                                            sessionOpen = false;     // half a handshake: neither TLS nor cleartext
                                             smtpLogger.LogWarning("STARTTLS handshake with {RemoteHost} failed: {Errors}; not sending in cleartext",
                                                                   RemoteHost, startTLSResult.Errors.AggregateWith(", "));
                                             result = MailSentStatus.TLSUnavailable;
@@ -1320,16 +1366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #endregion
 
-                                    #region QUIT
-
-                                    // QUIT
-                                    // 221 2.0.0 Bye
-                                    var _QuitResponse = await SendCommandAndWaitForResponseAsync("QUIT", cancellationToken).ConfigureAwait(false);
-                                    if (_QuitResponse.StatusCode != SMTPStatusCodes.ServiceClosingTransmissionChannel)
-                                        throw new SMTPClientException("SMTP QUIT command error: " + _QuitResponse.ToString());
-
-                                    #endregion
-
+                                    // The message is the server's now (RFC 5321 §6.1); QUIT below cannot undo that.
                                     result = MailSentStatus.ok;
 
                                     break;
@@ -1346,19 +1383,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     catch (SMTPTimeoutException e)
                     {
                         smtpLogger.LogWarning(e, "SMTP server did not respond in time.");
-                        result = MailSentStatus.Timeout;
+                        result      = MailSentStatus.Timeout;
+                        sessionOpen = false;     // a late reply would be taken for the QUIT's
                     }
                     catch (SMTPConnectionClosedException e)
                     {
                         // "Mean" case: the server dropped the TCP connection. Detected immediately.
                         smtpLogger.LogWarning(e, "SMTP server closed the connection unexpectedly.");
-                        result = MailSentStatus.ConnectionClosed;
+                        result      = MailSentStatus.ConnectionClosed;
+                        sessionOpen = false;
                     }
                     catch (Exception e)
                     {
                         smtpLogger.LogError(e, "SMTP send failed.");
                         result = MailSentStatus.ExceptionOccurred;
                     }
+
+                    await EndSessionAsync(sessionOpen, cancellationToken).ConfigureAwait(false);
 
                     // Retry only transient TRANSPORT failures (a dropped/stalled connection or a failed
                     // connect), bounded by NumberOfRetries. Protocol rejections, auth failures, an
