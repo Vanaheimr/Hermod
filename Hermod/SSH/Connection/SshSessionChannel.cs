@@ -275,7 +275,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 else
                 {
 
-                    if (type is "x11-req" or "auth-agent-req@openssh.com")
+                    // X11 and agent forwarding are refused rather than served, and the refusal is
+                    // audited because it is a decision and not an absence: an operator asking why
+                    // their agent does not forward should find the answer in the log.
+                    //
+                    // Both spellings of the agent request. draft-ietf-sshm-ssh-agent assigns the
+                    // unsuffixed "agent-req" (§5.2) and OpenSSH 10.3 implements it. The vendor name
+                    // stays the one actually in use, because the draft permits the standard name only
+                    // where support was advertised through EXT_INFO and we advertise nothing but
+                    // server-sig-algs — so a conformant 10.3 peer still sends the @openssh.com
+                    // spelling. The second string is therefore defensive rather than load-bearing: a
+                    // peer that sends it anyway should still leave a trace instead of being refused in
+                    // silence. ("agent-connect", the channel the server opens back, cannot be audited
+                    // here — the multiplexer refuses unknown channel types without an audit sink at
+                    // all, for every type, which is a wider gap than this one.)
+                    if (type is "x11-req" or "auth-agent-req@openssh.com" or "agent-req")
                         await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, type, "", "not served"), CancellationToken).ConfigureAwait(false);
 
                     if (request.Value.WantReply)

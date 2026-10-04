@@ -186,6 +186,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region DeniedAgentForwarding_IsAuditedUnderBothSpellings
+
+        /// <summary>
+        /// Agent forwarding is refused under either name it can arrive as, and the refusal is audited
+        /// in both cases.
+        /// </summary>
+        /// <remarks>
+        /// draft-ietf-sshm-ssh-agent assigns the unsuffixed <c>agent-req</c> and OpenSSH 10.3
+        /// implements it alongside <c>auth-agent-req@openssh.com</c>. The refusal itself never depended
+        /// on the name — an unhandled request is answered with a failure whatever it is called — so what
+        /// is pinned here is the <i>audit</i>: a denial nobody can see in the log is indistinguishable
+        /// from a feature that was never asked for.
+        /// </remarks>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task DeniedAgentForwarding_IsAuditedUnderBothSpellings(CancellationToken CancellationToken)
+        {
+
+            var (client, server, clientTransport, serverTransport) = await ConnectedPairAsync(CancellationToken);
+
+            var denied = new List<String>();
+            var sink   = new DelegateAuditSink((@event, ct) => {
+                             if (@event is PolicyDeniedEvent policy)
+                                 lock (denied)
+                                     denied.Add(policy.PolicyType);
+                             return ValueTask.CompletedTask;
+                         });
+
+            await using (client)
+            await using (server)
+            using (clientTransport)
+            using (serverTransport)
+            {
+
+                server.ChannelAcceptor = _ => new ValueTask<Boolean>(true);
+                client.Start();
+                server.Start();
+
+                var serving = Task.Run(async () => {
+                                  var channel = await server.AcceptChannelAsync(CancellationToken);
+                                  await SshSessionChannel.ServeAsync(
+                                            channel,
+                                            new SshSessionInfo("", "hermoduser", "", null, null, null, null, SshSessionRestrictions.None),
+                                            async (context, ct) => { await context.WriteAsync("done", ct); return 0; },
+                                            null,
+                                            null,
+                                            sink,
+                                            CancellationToken,
+                                            CancellationToken);
+                              }, CancellationToken);
+
+                var session = await client.OpenChannelAsync("session", null, CancellationToken);
+
+                var vendorAnswered   = await session.SendRequestAsync("auth-agent-req@openssh.com", true, [], CancellationToken);
+                var standardAnswered = await session.SendRequestAsync("agent-req",                  true, [], CancellationToken);
+
+                // The channel stays usable: a refused request is an answer, not a fault.
+                await session.SendRequestAsync("exec", false, EncodeString("after-agent-req"), CancellationToken);
+                await serving;
+
+                Assert.Multiple(() => {
+
+                    Assert.That(vendorAnswered,   Is.False, "auth-agent-req@openssh.com must be refused");
+                    Assert.That(standardAnswered, Is.False, "agent-req must be refused too");
+
+                    lock (denied)
+                        Assert.That(denied,
+                                    Is.SupersetOf(new[] { "auth-agent-req@openssh.com", "agent-req" }),
+                                    "both spellings must reach the audit log — a silent denial cannot be told from a feature nobody asked for");
+
+                });
+
+            }
+
+        }
+
+        #endregion
+
         #region (private) encoders
 
         private static Byte[] EncodeString(String Value)
