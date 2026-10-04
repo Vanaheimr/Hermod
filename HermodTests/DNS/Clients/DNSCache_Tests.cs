@@ -364,6 +364,108 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #endregion
 
+        #region (private) Signed apex records
+
+        private static DNSKEY CreateDNSKEY(Byte Filler)
+
+            => new (
+                   DomainName.Parse("signed.example.com"),
+                   DNSQueryClasses.IN,
+                   TimeSpan.FromHours(1),
+                   257,
+                   3,
+                   13,
+                   [.. Enumerable.Repeat(Filler, 64)]
+               );
+
+        private static DS CreateDS()
+
+            => new (
+                   DomainName.Parse("signed.example.com"),
+                   DNSQueryClasses.IN,
+                   TimeSpan.FromHours(1),
+                   1111,
+                   13,
+                   2,
+                   [.. Enumerable.Repeat((Byte) 0x44, 32)]
+               );
+
+        private static RRSIG CreateRRSIG(DNSResourceRecordTypes  TypeCovered,
+                                         UInt16                  KeyTag,
+                                         String                  SignerName)
+
+            => new (
+                   DomainName.Parse("signed.example.com"),
+                   DNSQueryClasses.IN,
+                   TimeSpan.FromHours(1),
+                   TypeCovered,
+                   13,
+                   3,
+                   3600,
+                   (UInt32) DateTimeOffset.UtcNow.AddDays(14).ToUnixTimeSeconds(),
+                   (UInt32) DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeSeconds(),
+                   KeyTag,
+                   DomainName.Parse(SignerName),
+                   [.. Enumerable.Repeat((Byte) 0x5A, 64)]
+               );
+
+        #endregion
+
+        #region Merge_Keeps_The_Signature_Of_Each_RRset()
+
+        /// <summary>
+        /// A zone apex holds two signed RRsets a validator fetches one after the
+        /// other: the DNSKEY RRset, signed by the zone, and the DS RRset, signed by
+        /// its parent. Merged by type alone, the RRSIG that came with the DS replaced
+        /// the one that came with the DNSKEY — they are both of type RRSIG — and the
+        /// DNSKEY RRset was served from then on as if unsigned (RFC 4035 §4.5).
+        /// </summary>
+        [Test]
+        public void Merge_Keeps_The_Signature_Of_Each_RRset()
+        {
+
+            using var cache  = new DNSCache();
+            var domainName   = DNSServiceName.Parse("signed.example.com");
+
+            cache.Add(domainName, CreateResponse(DNSResponseCodes.NoError, [ CreateDNSKEY(0x11), CreateRRSIG(DNSResourceRecordTypes.DNSKEY, 1111, "signed.example.com") ]));
+            cache.Add(domainName, CreateResponse(DNSResponseCodes.NoError, [ CreateDS(),         CreateRRSIG(DNSResourceRecordTypes.DS,     2222, "example.com")        ]));
+
+            var signatures   = cache.GetDNSInfo(domainName)!.Answers.OfType<RRSIG>().ToArray();
+
+            Assert.That(signatures.Select(signature => signature.TypeCovered),
+                        Is.EquivalentTo(new[] { DNSResourceRecordTypes.DNSKEY, DNSResourceRecordTypes.DS }),
+                        "each RRset keeps the one signature it arrived with");
+
+        }
+
+        #endregion
+
+        #region Merge_Replaces_A_Signature_Together_With_Its_RRset()
+
+        /// <summary>
+        /// The other half: a fresh copy of an RRset brings its own signature, and the
+        /// old signature leaves with the old RRset rather than staying behind beside
+        /// the new one.
+        /// </summary>
+        [Test]
+        public void Merge_Replaces_A_Signature_Together_With_Its_RRset()
+        {
+
+            using var cache  = new DNSCache();
+            var domainName   = DNSServiceName.Parse("signed.example.com");
+
+            cache.Add(domainName, CreateResponse(DNSResponseCodes.NoError, [ CreateDNSKEY(0x11), CreateRRSIG(DNSResourceRecordTypes.DNSKEY, 1111, "signed.example.com") ]));
+            cache.Add(domainName, CreateResponse(DNSResponseCodes.NoError, [ CreateDNSKEY(0x22), CreateRRSIG(DNSResourceRecordTypes.DNSKEY, 3333, "signed.example.com") ]));
+
+            var answers      = cache.GetDNSInfo(domainName)!.Answers.ToArray();
+
+            Assert.That(answers.OfType<RRSIG> ().Select(signature => signature.KeyTag),         Is.EqualTo(new UInt16[] { 3333 }));
+            Assert.That(answers.OfType<DNSKEY>().Select(key       => key.PublicKey[0]),         Is.EqualTo(new Byte[]   { 0x22 }));
+
+        }
+
+        #endregion
+
         #region Remove_By_DomainName()
 
         [Test]
