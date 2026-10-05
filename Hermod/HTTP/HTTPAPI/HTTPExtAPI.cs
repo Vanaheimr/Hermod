@@ -1513,9 +1513,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         /// <summary>
-        /// The current hash value of the API.
+        /// The hash of the last line of the database file of this API: the
+        /// parent of the next line written to it.
         /// </summary>
-        public String                         CurrentDatabaseHashValue           { get; protected set; }
+        /// <remarks>
+        /// Each database file is a hash chain of its own - this one, the
+        /// password file and the password resets file. The first line of a
+        /// file names no parent, each further line the hash of the line before
+        /// it in the same file, and a start goes on from each file's last line.
+        /// So each file can be checked without the others, and the database
+        /// file without the password hashes. Until 2026-10 they shared one
+        /// value: a line of a file written before then may name a line of
+        /// another file as its parent, or after a restart the last line of the
+        /// password file.
+        /// </remarks>
+        public String                         CurrentDatabaseHashValue
+        {
+            get           => HashValueOf(DatabaseFileName);
+            protected set => databaseHashValues[ChainKey(DatabaseFileName)] = value;
+        }
+
+        /// <summary>
+        /// The hash of the last line of each database file, by its full path.
+        /// </summary>
+        private readonly ConcurrentDictionary<String, String> databaseHashValues = new();
 
         /// <summary>
         /// Disable external notifications.
@@ -2475,8 +2496,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        IdleTimeout:      SessionIdleTimeout,
                                                        MaximumLifetime:  this.MaxSignInSessionLifetime
                                                    );
-
-            this.CurrentDatabaseHashValue        = "";
 
             foreach (var remoteAuthServer in RemoteAuthServers ?? [])
             {
@@ -11893,7 +11912,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     jsonProperty.Value is JObject jsonObject)
                                 {
 
-                                    CurrentDatabaseHashValue = jsonLine?["sha256hash"]?["hashValue"]?.Value<String>() ?? "";
+                                    GoesOnFrom(databaseFileName, jsonLine);
 
                                     await ProcessEventDelegate(
                                               jsonCommand,
@@ -11955,7 +11974,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             jsonLine                  = JObject.Parse(line);
                             jsonCommand               = (jsonLine.First as JProperty)?.Name;
                             jsonObject                = (jsonLine.First as JProperty)?.Value as JObject;
-                            CurrentDatabaseHashValue  =  jsonLine["sha256hash"]?["hashValue"]?.Value<String>();
+                            GoesOnFrom(HTTPAPIPath + DefaultPasswordFile, jsonLine);
 
                             if (jsonCommand is not null &&
                                 jsonCommand.IsNotNullOrEmpty() &&
@@ -12117,7 +12136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             jsonLine                  = JObject.Parse(line);
                             jsonCommand               = (jsonLine.First as JProperty)?.Name;
                             jsonObject                = (jsonLine.First as JProperty)?.Value as JObject;
-                            //CurrentDatabaseHashValue  =  JSONLine["sha256hash"]?["hashValue"]?.Value<String>();
+                            GoesOnFrom(HTTPAPIPath + DefaultPasswordResetsFile, jsonLine);
 
                             if (jsonCommand is not null &&
                                 jsonCommand.IsNotNullOrEmpty() &&
@@ -13698,7 +13717,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (protected internal) WriteToDatabaseFile(DatabaseFile, MessageType, JSONData, EventTrackingId, ...)
 
         /// <summary>
-        /// Write data to a database file.
+        /// Write data to a database file, as the next link of its hash chain:
+        /// the line names the hash of the file's last line as its parent and
+        /// carries its own hash, taken over the line without it.
         /// </summary>
         /// <param name="DatabaseFile">The database file.</param>
         /// <param name="MessageType">The type of the message.</param>
@@ -13718,45 +13739,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    var now                   = Timestamp.Now;
-                    var userId                = CurrentUserId ?? CurrentAsyncLocalUserId.Value ?? Robot?.Id;
-
-                    var jsonMessage           = JSONObject.Create(
-
-                                                          new JProperty(MessageType.ToString(),  JSONData),
-                                                          new JProperty("eventTrackingId",       (EventTrackingId ?? EventTracking_Id.New).ToString()),
-
-                                                    userId.HasValue
-                                                        ? new JProperty("userId",                userId.Value.ToString())
-                                                        : null,
-
-                                                          new JProperty("systemId",              SystemId.    ToString()),
-                                                          new JProperty("timestamp",             now.ToISO8601()),
-
-                                                          new JProperty("sha256hash",            JSONObject.Create(
-                                                              new JProperty("nonce",                 Guid.NewGuid().ToString().Replace("-", "")),
-                                                              new JProperty("parentHash",            CurrentDatabaseHashValue)
-                                                          ))
-
-                                                );
-
-                    CurrentDatabaseHashValue  = SHA256.HashData(
-                                                    Encoding.Unicode.GetBytes(jsonMessage.ToString(Newtonsoft.Json.Formatting.None))
-                                                ).Select(value => String.Format("{0:x2}", value)).
-                                                  Aggregate();
-
-                    (jsonMessage["sha256hash"] as JObject)?.Add(new JProperty("hashValue",  CurrentDatabaseHashValue));
-
-
                     #region Write to database file
 
                     if (!DisableLogging)
                     {
 
+                        var databaseFile  = DatabaseFile ?? DatabaseFileName;
+                        var userId        = CurrentUserId ?? CurrentAsyncLocalUserId.Value ?? Robot?.Id;
+
+                        await LogFileSemaphore.WaitAsync();
+
                         try
                         {
 
-                            await LogFileSemaphore.WaitAsync();
+                            // Under the lock: users, groups and organizations
+                            // are each locked on their own, and two lines that
+                            // took the same parent, or were written in another
+                            // order than they were chained, broke the chain.
+                            var jsonMessage  = JSONObject.Create(
+
+                                                         new JProperty(MessageType.ToString(),  JSONData),
+                                                         new JProperty("eventTrackingId",       (EventTrackingId ?? EventTracking_Id.New).ToString()),
+
+                                                   userId.HasValue
+                                                       ? new JProperty("userId",                userId.Value.ToString())
+                                                       : null,
+
+                                                         new JProperty("systemId",              SystemId.    ToString()),
+                                                         new JProperty("timestamp",             Timestamp.Now.ToISO8601()),
+
+                                                         new JProperty("sha256hash",            JSONObject.Create(
+                                                             new JProperty("nonce",                 Guid.NewGuid().ToString().Replace("-", "")),
+                                                             new JProperty("parentHash",            HashValueOf(databaseFile))
+                                                         ))
+
+                                               );
+
+                            var hashValue    = SHA256.HashData(
+                                                   Encoding.Unicode.GetBytes(jsonMessage.ToString(Newtonsoft.Json.Formatting.None))
+                                               ).Select(value => String.Format("{0:x2}", value)).
+                                                 Aggregate();
+
+                            (jsonMessage["sha256hash"] as JObject)?.Add(new JProperty("hashValue",  hashValue));
 
                             var retry       = 0;
                             var maxRetries  = 23;
@@ -13768,9 +13792,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 {
 
                                     File.AppendAllText(
-                                        DatabaseFile ?? DatabaseFileName,
+                                        databaseFile,
                                         jsonMessage.ToString(Newtonsoft.Json.Formatting.None) + Environment.NewLine
                                     );
+
+                                    // Only a line that is in the file is the
+                                    // parent of the next one.
+                                    databaseHashValues[ChainKey(databaseFile)] = hashValue;
 
                                     retry = maxRetries;
 
@@ -13813,6 +13841,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
         }
+
+        #endregion
+
+        #region (protected internal) HashValueOf(DatabaseFile)
+
+        /// <summary>
+        /// The hash of the last line of the given database file, the parent of
+        /// its next line: none for a file without lines yet.
+        /// </summary>
+        /// <param name="DatabaseFile">The database file.</param>
+        protected internal String HashValueOf(String DatabaseFile)
+
+            => databaseHashValues.TryGetValue(ChainKey(DatabaseFile), out var hashValue)
+                   ? hashValue
+                   : "";
+
+        #endregion
+
+        #region (private) GoesOnFrom(DatabaseFile, JSONLine)
+
+        /// <summary>
+        /// A line read back from the given database file at a start: the next
+        /// line written to that file names its hash as its parent.
+        /// </summary>
+        /// <param name="DatabaseFile">The database file the line was read from.</param>
+        /// <param name="JSONLine">The line.</param>
+        private void GoesOnFrom(String    DatabaseFile,
+                                JObject?  JSONLine)
+        {
+
+            // A line without a hash, written by hand, say, is no link.
+            if (JSONLine?["sha256hash"]?["hashValue"]?.Value<String>() is String hashValue &&
+                hashValue.IsNotNullOrEmpty())
+            {
+                databaseHashValues[ChainKey(DatabaseFile)] = hashValue;
+            }
+
+        }
+
+        #endregion
+
+        #region (private static) ChainKey(DatabaseFile)
+
+        /// <summary>
+        /// The key of the hash chain of the given database file: its full path,
+        /// so that any name of the file finds the same chain.
+        /// </summary>
+        /// <param name="DatabaseFile">The database file.</param>
+        private static String ChainKey(String DatabaseFile)
+
+            => Path.GetFullPath(DatabaseFile);
 
         #endregion
 
