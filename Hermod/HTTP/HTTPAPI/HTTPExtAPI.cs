@@ -8792,6 +8792,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+
+            #region ~/users/{UserId}/SSHKeys
+
+            RegisterSSHKeyURLTemplates();
+
+            #endregion
+
             #endregion
 
             #region ~/userGroups
@@ -12528,6 +12535,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
+                #region SSH keys
+
+                case "addSSHKey":
+                case "removeSSHKey":
+
+                    if (!ProcessSSHKeyEvent(Command, Data, out errorResponse))
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
+
+                    break;
+
+                #endregion
+
                 #region Create user
 
                 case "createUser":
@@ -12680,12 +12699,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         users.TryRemove(user.Id, out _);
 
-                        // Its API keys and passkeys likewise, which name it by
-                        // id too: a deletion writes a line for each of them
-                        // before this one now, a database written before it
-                        // did not.
+                        // Its API keys, passkeys and SSH keys likewise, which
+                        // name it by id too: a deletion writes a line for each
+                        // of them before this one now, a database written
+                        // before it did not.
                         ForgetAPIKeys (user.Id);
                         ForgetPasskeys(user.Id);
+                        ForgetSSHKeys (user.Id);
 
                     }
 
@@ -17378,6 +17398,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        );
 
             await RemoveAllPasskeys(User, eventTrackingId, CurrentUserId);
+
+            // And its SSH keys: left there, they signed in the next account
+            // made under the same id.
+            await RemoveAllSSHKeys (User, eventTrackingId, CurrentUserId);
 
             await WriteToDatabaseFile(
                       deleteUser_MessageType,

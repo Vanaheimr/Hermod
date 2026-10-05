@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Text;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -108,33 +109,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Parse a single <c>authorized_keys</c> line (options optional).
         /// </summary>
         public static Boolean TryParseLine(String Line, out AuthorizedKey? Entry)
+
+            => TryParseLine(Line, out Entry, out _);
+
+        #endregion
+
+        #region TryParseLine(Line, out Entry, out Refused)
+
+        /// <summary>
+        /// Parse a single <c>authorized_keys</c> line (options optional), and
+        /// say why a line is refused: a key that cannot be read, a
+        /// <c>from=</c> entry that is no address or CIDR block, a validity
+        /// timestamp that cannot be read, or an option that cannot be enforced.
+        /// </summary>
+        /// <remarks>
+        /// The reason is for whoever handed the line in - an account adding a
+        /// key - where a file read at sign-in has nobody to tell and drops it.
+        /// </remarks>
+        public static Boolean TryParseLine(String                                    Line,
+                                           [NotNullWhen(true)]  out AuthorizedKey?   Entry,
+                                           [NotNullWhen(false)] out String?          Refused)
         {
 
             Entry = null;
 
-            var (first, rest) = SplitFirstToken(Line);
+            var trimmed = Line.Trim();
+
+            if (trimmed.Length == 0)
+            {
+                Refused = "The line is empty.";
+                return false;
+            }
+
+            var (first, rest) = SplitFirstToken(trimmed);
 
             // No options: the line starts directly with a key type.
             if (IsKeyType(first))
-                return SshPublicKey.TryParse(Line, out var bareKey) && Build(bareKey!, [], out Entry);
+            {
+
+                if (!SshPublicKey.TryParse(trimmed, out var bareKey))
+                {
+                    Refused = $"The key of type '{first}' cannot be read.";
+                    return false;
+                }
+
+                return Build(bareKey!, [], out Entry, out Refused);
+
+            }
 
             // Otherwise the first token is the option list and the rest is the key.
             if (!SshPublicKey.TryParse(rest, out var key))
+            {
+                Refused = rest.Length == 0 || !IsKeyType(SplitFirstToken(rest).First)
+                              ? "No public key was found: a line is the key - 'ssh-ed25519 AAAA... comment' - with its options, if any, in front of it."
+                              : $"The key of type '{SplitFirstToken(rest).First}' cannot be read.";
                 return false;
+            }
 
-            return Build(key!, SplitOptions(first), out Entry);
+            return Build(key!, SplitOptions(first), out Entry, out Refused);
 
         }
 
         #endregion
 
 
-        #region (private) Build(Key, Options, out Entry)
+        #region (private) Build(Key, Options, out Entry, out Refused)
 
-        private static Boolean Build(SshPublicKey Key, IReadOnlyList<String> Options, out AuthorizedKey? Entry)
+        private static Boolean Build(SshPublicKey                              Key,
+                                     IReadOnlyList<String>                     Options,
+                                     [NotNullWhen(true)]  out AuthorizedKey?   Entry,
+                                     [NotNullWhen(false)] out String?          Refused)
         {
 
-            Entry = null;
+            Entry    = null;
+            Refused  = null;
 
             var isCa         = false;
             var principals   = new List<String>();
@@ -166,16 +214,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     foreach (var entry in f.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                     {
                         if (!TryParseCidr(entry, out var cidr))
+                        {
+                            Refused = $"from= takes addresses and CIDR blocks only, and '{entry}' is neither: a host name pattern or a negation cannot be held to.";
                             return false;
+                        }
                         sources.Add(cidr);
                     }
                 }
 
+                // A timestamp that cannot be read threw out of the whole parse,
+                // and with it every other line of the file.
                 else if (TryOptionValue(option, "not-before", out var nb))
-                    notBefore = AuthorizedKey.ParseTimestamp(nb);
+                {
+                    if (!TryParseTimestamp(nb, out var at))
+                    {
+                        Refused = $"not-before=\"{nb}\" is no time: YYYYMMDD[HHMM[SS]][Z] or ISO 8601.";
+                        return false;
+                    }
+                    notBefore = at;
+                }
 
                 else if (TryOptionValue(option, "not-after", out var na) || TryOptionValue(option, "expiry-time", out na))
-                    notAfter = AuthorizedKey.ParseTimestamp(na);
+                {
+                    if (!TryParseTimestamp(na, out var at))
+                    {
+                        Refused = $"{option.Split('=')[0]}=\"{na}\" is no time: YYYYMMDD[HHMM[SS]][Z] or ISO 8601.";
+                        return false;
+                    }
+                    notAfter = at;
+                }
 
                 else if (String.Equals(option, "restrict", StringComparison.OrdinalIgnoreCase))
                 {
@@ -199,9 +266,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     { /* restricts a feature this implementation does not offer at all */ }
 
                 else
+                {
                     // An option we cannot enforce must not be silently dropped: it was written to take
                     // access away, so honouring the line without it would grant more than intended.
+                    Refused = $"The option '{option.Split('=')[0]}' cannot be held to here, and a key is not let in with less than its line says.";
                     return false;
+                }
 
             }
 
@@ -218,6 +288,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             return true;
 
+        }
+
+        #endregion
+
+        #region (private) TryParseTimestamp(Value, out Timestamp)
+
+        private static Boolean TryParseTimestamp(String Value, out DateTimeOffset Timestamp)
+        {
+            try
+            {
+                Timestamp = AuthorizedKey.ParseTimestamp(Value);
+                return true;
+            }
+            catch (Exception e) when (e is FormatException or ArgumentOutOfRangeException or OverflowException)
+            {
+                Timestamp = default;
+                return false;
+            }
         }
 
         #endregion
