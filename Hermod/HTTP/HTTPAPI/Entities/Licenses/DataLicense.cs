@@ -69,8 +69,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// An Open Data license.
     /// </summary>
     public class DataLicense : IEquatable<DataLicense>,
-                                   IComparable<DataLicense>,
-                                   IComparable
+                               IComparable<DataLicense>,
+                               IComparable
     {
 
         #region Data
