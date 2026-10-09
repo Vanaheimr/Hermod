@@ -78,6 +78,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public String?         CreatedBy      { get; }
 
+        /// <summary>
+        /// Whether the key is switched off: kept, and shown, but nobody signs
+        /// in with it until it is switched on again.
+        /// </summary>
+        public Boolean         IsDisabled     { get; }
+
         #endregion
 
         #region Constructor(s)
@@ -86,7 +92,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            AuthorizedKey   Key,
                            String?         Label,
                            DateTimeOffset  Created,
-                           String?         CreatedBy)
+                           String?         CreatedBy,
+                           Boolean         IsDisabled   = false)
         {
 
             this.Fingerprint  = SshFingerprint.Sha256(Key.PublicKey.Blob);
@@ -95,8 +102,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Label        = Label;
             this.Created      = Created;
             this.CreatedBy    = CreatedBy;
+            this.IsDisabled   = IsDisabled;
 
         }
+
+        #endregion
+
+
+        #region SwitchedTo(IsDisabled)
+
+        /// <summary>
+        /// This key, switched off or on: everything else as it is.
+        /// </summary>
+        /// <param name="IsDisabled">Whether it is to be off.</param>
+        public UserSSHKey SwitchedTo(Boolean IsDisabled)
+
+            => new (Line,
+                    Key,
+                    Label,
+                    Created,
+                    CreatedBy,
+                    IsDisabled);
 
         #endregion
 
@@ -203,6 +229,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
+            if (JSON["isDisabled"]?.Value<Boolean?>() == true)
+                SSHKey = SSHKey.SwitchedTo(true);
+
             ErrorResponse = null;
             return true;
 
@@ -230,6 +259,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    CreatedBy is not null
                        ? new JProperty("createdBy", CreatedBy)
+                       : null,
+
+                   // Only where it is off: a key that is on is written as it
+                   // was before keys could be switched off.
+                   IsDisabled
+                       ? new JProperty("isDisabled", true)
                        : null
 
                );

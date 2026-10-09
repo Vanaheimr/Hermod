@@ -273,6 +273,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region A_Key_Switched_Off_Lets_Nobody_In_Until_Switched_On_After_A_Restart_Too
+
+        /// <summary>
+        /// A key switched off stays with its user, said to be off, and lets
+        /// nobody in - after a restart too - until it is switched on again.
+        /// Switching it the way it is already writes nothing; a key that is not
+        /// there is not switched.
+        /// </summary>
+        [Test]
+        public async Task A_Key_Switched_Off_Lets_Nobody_In_Until_Switched_On_After_A_Restart_Too()
+        {
+
+            var key          = SshHostKey.GenerateEd25519();
+            var other        = SshHostKey.GenerateEd25519();
+            var fingerprint  = SshFingerprint.Sha256(key.PublicKeyBlob);
+
+            var api          = await StartAPI();
+            var hank         = await NewUser(api, "hank");
+
+            await api.AddSSHKey(hank, KeyLine(key), "laptop");
+            await api.AddSSHKey(hank, KeyLine(other));
+
+            var off      = await api.DisableSSHKey(hank.Id, fingerprint, CurrentUserId: User_Id.Parse("root"));
+            var twice    = await api.DisableSSHKey(hank.Id, fingerprint);
+            var nothing  = await api.DisableSSHKey(hank.Id, SshFingerprint.Sha256(SshHostKey.GenerateEd25519().PublicKeyBlob));
+
+            Assert.Multiple(() => {
+                Assert.That(off?.IsDisabled,                                                    Is.True);
+                Assert.That(off?.Label,                                                         Is.EqualTo("laptop"), "switching it off lost its label");
+                Assert.That(twice?.IsDisabled,                                                  Is.True);
+                Assert.That(nothing,                                                            Is.Null, "a key that is not there was switched");
+                Assert.That(api.FindSSHKey(hank.Id, key.  PublicKeyBlob, DateTimeOffset.UtcNow), Is.Null,     "the key switched off lets hank in");
+                Assert.That(api.FindSSHKey(hank.Id, other.PublicKeyBlob, DateTimeOffset.UtcNow), Is.Not.Null, "the other key went off with it");
+                Assert.That(api.GetSSHKeys(hank.Id).Select(sshKey => sshKey.IsDisabled),         Is.EquivalentTo(new[] { true, false }), "the key switched off is gone, not off");
+                Assert.That(DatabaseLines().Count(line => line.Contains("\"disableSSHKey\"")),    Is.EqualTo(1), "switched off twice, written twice");
+                Assert.That(JObject.Parse(DatabaseLines().Single(line => line.Contains("\"disableSSHKey\"")))["userId"]?.Value<String>(),
+                                                                                                Is.EqualTo("root"), "who switched it off is not written");
+            });
+
+            var again = await StartAPI();
+
+            Assert.Multiple(() => {
+                Assert.That(again.FindSSHKey(hank.Id, key.PublicKeyBlob, DateTimeOffset.UtcNow), Is.Null, "the next start switched the key on");
+                Assert.That(again.TryGetSSHKey(hank.Id, fingerprint, out var held) && held.IsDisabled, Is.True, "the next start lost that it is off");
+            });
+
+            var on = await again.EnableSSHKey(hank.Id, fingerprint);
+
+            Assert.Multiple(() => {
+                Assert.That(on?.IsDisabled,                                                        Is.False);
+                Assert.That(again.FindSSHKey(hank.Id, key.PublicKeyBlob, DateTimeOffset.UtcNow),   Is.Not.Null, "switched on, and the key lets nobody in");
+            });
+
+            var third = await StartAPI();
+
+            Assert.That(third.FindSSHKey(hank.Id, key.PublicKeyBlob, DateTimeOffset.UtcNow), Is.Not.Null, "the next start switched the key off again");
+
+        }
+
+        #endregion
+
         #region A_Key_Added_And_Removed_Are_Links_Of_The_Hash_Chain
 
         /// <summary>
@@ -411,6 +472,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                     Assert.That(listAsAdmin.  Status,  Is.EqualTo(HttpStatusCode.OK), listAsAdmin.  Body);
                     Assert.That(revokeAsAdmin.Status,  Is.EqualTo(HttpStatusCode.OK), revokeAsAdmin.Body);
                     Assert.That(api.GetSSHKeys(hank.Id), Is.Empty);
+                });
+
+            }
+            finally
+            {
+                await Stop(server, client);
+            }
+
+        }
+
+        #endregion
+
+        #region The_Owner_Switches_A_Key_Off_And_On_Over_HTTP
+
+        /// <summary>
+        /// SET users/{UserId}/SSHKeys/{Fingerprint} with "isDisabled": the
+        /// owner switches a key off and on, and the list says which it is.
+        /// Nobody else may, a key that is not there is 404, and a request that
+        /// does not say which way is 400.
+        /// </summary>
+        [Test]
+        public async Task The_Owner_Switches_A_Key_Off_And_On_Over_HTTP()
+        {
+
+            var key                    = SshHostKey.GenerateEd25519();
+            var path                   = $"users/hank/SSHKeys/{UserSSHKey.FingerprintInURL(SshFingerprint.Sha256(key.PublicKeyBlob))}";
+            var (server, api, client)  = await StartServer();
+
+            try
+            {
+
+                var hank  = await NewAccount(api, "hank");
+                await NewAccount(api, "kim");
+
+                await api.AddSSHKey(hank, KeyLine(key));
+
+                var off      = await Send(client, "SET", "hank", path, new JObject(new JProperty("isDisabled", true)));
+                var offDoor  = api.FindSSHKey(hank.Id, key.PublicKeyBlob, DateTimeOffset.UtcNow);
+                var listed   = await Send(client, "GET", "hank", "users/hank/SSHKeys");
+
+                var on       = await Send(client, "SET", "hank", path, new JObject(new JProperty("isDisabled", false)));
+                var onDoor   = api.FindSSHKey(hank.Id, key.PublicKeyBlob, DateTimeOffset.UtcNow);
+
+                var byKim    = await Send(client, "SET", "kim",  path, new JObject(new JProperty("isDisabled", true)));
+                var unsaid   = await Send(client, "SET", "hank", path, new JObject());
+                var unknown  = await Send(client, "SET", "hank", $"users/hank/SSHKeys/{UserSSHKey.FingerprintInURL(SshFingerprint.Sha256(SshHostKey.GenerateEd25519().PublicKeyBlob))}",
+                                          new JObject(new JProperty("isDisabled", true)));
+
+                Assert.Multiple(() => {
+                    Assert.That(off.Status,                                                      Is.EqualTo(HttpStatusCode.OK),          off.Body);
+                    Assert.That(JObject.Parse(off.Body)["isDisabled"]?.Value<Boolean>(),          Is.True,                                "the answer does not say it is off");
+                    Assert.That(offDoor,                                                         Is.Null,                                "switched off, said the route, and the key lets hank in");
+                    Assert.That(listed.Status,                                                   Is.EqualTo(HttpStatusCode.OK),          listed.Body);
+                    Assert.That(JArray.Parse(listed.Body).Single()["isDisabled"]?.Value<Boolean>(), Is.True,                             "the list does not say it is off");
+                    Assert.That(on.Status,                                                       Is.EqualTo(HttpStatusCode.OK),          on.Body);
+                    Assert.That(onDoor,                                                          Is.Not.Null,                            "switched on, said the route, and the key lets nobody in");
+                    Assert.That(byKim.Status,                                                    Is.EqualTo(HttpStatusCode.Forbidden),   byKim.Body);
+                    Assert.That(unsaid.Status,                                                   Is.EqualTo(HttpStatusCode.BadRequest),  unsaid.Body);
+                    Assert.That(unknown.Status,                                                  Is.EqualTo(HttpStatusCode.NotFound),    unknown.Body);
+                    Assert.That(api.FindSSHKey(hank.Id, key.PublicKeyBlob, DateTimeOffset.UtcNow), Is.Not.Null,                         "kim switched it off");
                 });
 
             }

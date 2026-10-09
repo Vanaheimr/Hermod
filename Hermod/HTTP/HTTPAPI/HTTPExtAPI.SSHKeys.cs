@@ -85,6 +85,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static NotificationMessageType  addSSHKey_MessageType       = NotificationMessageType.Parse("addSSHKey");
         public static NotificationMessageType  removeSSHKey_MessageType    = NotificationMessageType.Parse("removeSSHKey");
+        public static NotificationMessageType  disableSSHKey_MessageType   = NotificationMessageType.Parse("disableSSHKey");
+        public static NotificationMessageType  enableSSHKey_MessageType    = NotificationMessageType.Parse("enableSSHKey");
 
         private readonly ConcurrentDictionary<User_Id, ConcurrentDictionary<String, UserSSHKey>>  sshKeys = [];
 
@@ -136,8 +138,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The key of the given user an SSH client offers - by its public key
         /// blob - where it may sign in at the given time: not one that only
-        /// vouches for certificates, and only within its not-before and
-        /// expiry-time. Null where there is none.
+        /// vouches for certificates, not one switched off, and only within its
+        /// not-before and expiry-time. Null where there is none.
         /// </summary>
         /// <param name="UserId">A user identification.</param>
         /// <param name="PublicKeyBlob">The public key blob the client offers.</param>
@@ -152,6 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             foreach (var key in userKeys.Values)
                 if (!key.Key.IsCertAuthority &&
+                    !key.IsDisabled &&
                      key.Key.Matches(PublicKeyBlob) &&
                      key.Key.IsValidAt(At))
                 {
@@ -254,6 +257,98 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region DisableSSHKey(UserId, Fingerprint, EventTrackingId = null, CurrentUserId = null)
+
+        /// <summary>
+        /// Switch the key with the given fingerprint of the given user off: it
+        /// stays, but nobody signs in with it from this moment on, until it is
+        /// switched on again. The key as it is now, or null where the user has
+        /// no such key.
+        /// </summary>
+        /// <param name="UserId">The user.</param>
+        /// <param name="Fingerprint">The fingerprint of the key, "SHA256:...".</param>
+        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
+        public Task<UserSSHKey?> DisableSSHKey(User_Id            UserId,
+                                               String             Fingerprint,
+                                               EventTracking_Id?  EventTrackingId   = null,
+                                               User_Id?           CurrentUserId     = null)
+
+            => SwitchSSHKey(UserId, Fingerprint, true,  EventTrackingId, CurrentUserId);
+
+        #endregion
+
+        #region EnableSSHKey (UserId, Fingerprint, EventTrackingId = null, CurrentUserId = null)
+
+        /// <summary>
+        /// Switch the key with the given fingerprint of the given user on
+        /// again. The key as it is now, or null where the user has no such key.
+        /// </summary>
+        /// <param name="UserId">The user.</param>
+        /// <param name="Fingerprint">The fingerprint of the key, "SHA256:...".</param>
+        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
+        public Task<UserSSHKey?> EnableSSHKey(User_Id            UserId,
+                                              String             Fingerprint,
+                                              EventTracking_Id?  EventTrackingId   = null,
+                                              User_Id?           CurrentUserId     = null)
+
+            => SwitchSSHKey(UserId, Fingerprint, false, EventTrackingId, CurrentUserId);
+
+        #endregion
+
+        #region (private) SwitchSSHKey(UserId, Fingerprint, IsDisabled, EventTrackingId, CurrentUserId)
+
+        /// <summary>
+        /// Switch a key off or on, written to the database file with who did
+        /// it - or nothing written, where it is that way already.
+        /// </summary>
+        private async Task<UserSSHKey?> SwitchSSHKey(User_Id            UserId,
+                                                     String             Fingerprint,
+                                                     Boolean            IsDisabled,
+                                                     EventTracking_Id?  EventTrackingId,
+                                                     User_Id?           CurrentUserId)
+        {
+
+            while (true)
+            {
+
+                if (!sshKeys.TryGetValue(UserId, out var userKeys) ||
+                    !userKeys.TryGetValue(Fingerprint, out var sshKey))
+                {
+                    return null;
+                }
+
+                if (sshKey.IsDisabled == IsDisabled)
+                    return sshKey;
+
+                var switched = sshKey.SwitchedTo(IsDisabled);
+
+                // Another switch, or a removal, came between the look and
+                // this: look again rather than undo it.
+                if (!userKeys.TryUpdate(Fingerprint, switched, sshKey))
+                    continue;
+
+                await WriteToDatabaseFile(
+                          IsDisabled
+                              ? disableSSHKey_MessageType
+                              : enableSSHKey_MessageType,
+                          new JObject(
+                              new JProperty("userId",       UserId.ToString()),
+                              new JProperty("fingerprint",  Fingerprint)
+                          ),
+                          EventTrackingId,
+                          CurrentUserId
+                      );
+
+                return switched;
+
+            }
+
+        }
+
+        #endregion
+
 
         #region (private) RemoveAllSSHKeys(User, EventTrackingId, CurrentUserId)
 
@@ -331,6 +426,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     return true;
 
+                case "disableSSHKey":
+                case "enableSSHKey":
+
+                    if (sshKeys.TryGetValue(userId, out var keysToSwitch) &&
+                        keysToSwitch.TryGetValue(Data["fingerprint"]?.Value<String>() ?? "", out var keyToSwitch))
+                    {
+                        keysToSwitch[keyToSwitch.Fingerprint] = keyToSwitch.SwitchedTo(Command == "disableSSHKey");
+                    }
+
+                    return true;
+
                 default:
                     ErrorResponse = $"Unknown SSH key command '{Command}'!";
                     return false;
@@ -357,9 +463,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (private) RegisterSSHKeyURLTemplates()
 
         /// <summary>
-        /// GET, ADD and DELETE ~/users/{UserId}/SSHKeys: what a user may do with
-        /// their own keys, and whoever may impersonate them with theirs - as with
-        /// the API keys.
+        /// GET, ADD, SET and DELETE ~/users/{UserId}/SSHKeys: what a user may do
+        /// with their own keys, and whoever may impersonate them with theirs - as
+        /// with the API keys.
         /// </summary>
         private void RegisterSSHKeyURLTemplates()
         {
@@ -486,6 +592,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 HTTPStatusCode.NotFound,
                                                 JSONObject.Create(new JProperty("description", $"'{user.Id}' has no key {fingerprint}.")),
                                                 [ HTTPMethod.DELETE ]).AsImmutable;
+
+                });
+
+            #endregion
+
+            #region SET         ~/users/{UserId}/SSHKeys/{Fingerprint}
+
+            // -----------------------------------------------------------------------------------------------------------------
+            // curl -v -X SET -H "Content-Type: application/json" -d '{"isDisabled":true}' \
+            //      http://127.0.0.1:2100/users/ahzf/SSHKeys/7xq3Vb...-_ (Base64url)
+            // -----------------------------------------------------------------------------------------------------------------
+            AddHandler(
+                HTTPMethod.SET,
+                HTTPPath.Root + ("users/{UserId}/SSHKeys/{" + SSHKeyFingerprintParameter + "}"),
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: async Request => {
+
+                    if (!MayManageSSHKeysOf(Request, out var user, out var refusal, [ HTTPMethod.SET, HTTPMethod.DELETE ], out var httpUser))
+                        return refusal.AsImmutable;
+
+                    if (!Request.TryGetURLParameter(SSHKeyFingerprintParameter, out var fingerprintText) ||
+                        fingerprintText.IsNullOrEmpty())
+                    {
+                        return SSHKeyResponse(Request,
+                                              HTTPStatusCode.BadRequest,
+                                              JSONObject.Create(new JProperty("description", "Missing fingerprint!")),
+                                              [ HTTPMethod.SET, HTTPMethod.DELETE ]).AsImmutable;
+                    }
+
+                    if (!Request.TryParseJSONObjectRequestBody(out var json, out var bodyRefusal))
+                        return bodyRefusal!.AsImmutable;
+
+                    // Said, not assumed: a body that forgot it switches nothing.
+                    if (json["isDisabled"]?.Type != JTokenType.Boolean)
+                        return SSHKeyResponse(Request,
+                                              HTTPStatusCode.BadRequest,
+                                              JSONObject.Create(new JProperty("description", "Missing 'isDisabled': true to switch the key off, false to switch it on.")),
+                                              [ HTTPMethod.SET, HTTPMethod.DELETE ]).AsImmutable;
+
+                    var fingerprint  = UserSSHKey.FingerprintFromURL(fingerprintText);
+
+                    var switched     = json["isDisabled"]!.Value<Boolean>()
+                                           ? await DisableSSHKey(user.Id, fingerprint, Request.EventTrackingId, httpUser.Id)
+                                           : await EnableSSHKey (user.Id, fingerprint, Request.EventTrackingId, httpUser.Id);
+
+                    return (switched is not null
+
+                               ? SSHKeyResponse(Request,
+                                                HTTPStatusCode.OK,
+                                                switched.ToJSON(),
+                                                [ HTTPMethod.SET, HTTPMethod.DELETE ])
+
+                               : SSHKeyResponse(Request,
+                                                HTTPStatusCode.NotFound,
+                                                JSONObject.Create(new JProperty("description", $"'{user.Id}' has no key {fingerprint}.")),
+                                                [ HTTPMethod.SET, HTTPMethod.DELETE ])
+
+                           ).AsImmutable;
 
                 });
 

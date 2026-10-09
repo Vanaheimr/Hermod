@@ -21,6 +21,8 @@ using System.Net;
 using System.Text;
 using System.Net.Http.Headers;
 
+using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -436,6 +438,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region The_Owner_Switches_A_Key_Off_And_On_Over_HTTP()
+
+        /// <summary>
+        /// SET users/{UserId}/APIKeys/{APIKeyId} with "isDisabled", as the
+        /// owner: a key switched off opens no door, and stays off after a
+        /// restart; switched on again, it opens it. Nobody else may, a key that
+        /// is not there is 404, and a request that does not say which way is
+        /// 400.
+        /// </summary>
+        [Test]
+        public async Task The_Owner_Switches_A_Key_Off_And_On_Over_HTTP()
+        {
+
+            var keyId                  = APIKey_Id.Parse("hanks-key-0123456789abcdef");
+            var path                   = $"users/hank/APIKeys/{keyId}";
+            var (server, api, client)  = await StartServer();
+
+            try
+            {
+
+                var hank = await NewAccount(api, "hank");
+                var kim  = await NewAccount(api, "kim");
+                var kims = APIKey_Id.Parse("kims-key-0123456789abcdef");
+
+                await NewAPIKey(api, new APIKey(keyId, hank.Id));
+                await NewAPIKey(api, new APIKey(kims,  kim.Id));
+
+                var off      = await Send(client, "SET", "hank", path, new JObject(new JProperty("isDisabled", true)));
+                var offHeld  = HeldKey(api, keyId).IsDisabled;
+                var offDoor  = KeyedInAs(api, keyId);
+
+                var on       = await Send(client, "SET", "hank", path, new JObject(new JProperty("isDisabled", false)));
+                var onDoor   = KeyedInAs(api, keyId);
+
+                var byKim    = await Send(client, "SET", "kim",  path, new JObject(new JProperty("isDisabled", true)));
+                var unsaid   = await Send(client, "SET", "hank", path, new JObject());
+                var unknown  = await Send(client, "SET", "hank", "users/hank/APIKeys/nobodys-key-0123456789abcdef", new JObject(new JProperty("isDisabled", true)));
+                var notHanks = await Send(client, "SET", "hank", $"users/hank/APIKeys/{kims}",                       new JObject(new JProperty("isDisabled", true)));
+
+                Assert.Multiple(() => {
+                    Assert.That(off.Status,                                     Is.EqualTo(HttpStatusCode.OK),          off.Body);
+                    Assert.That(JObject.Parse(off.Body)["isDisabled"]?.Value<Boolean>(), Is.True,                     "the answer does not say it is off");
+                    Assert.That(offHeld,                                        Is.True,                                "switched off, said the route, and it is not");
+                    Assert.That(offDoor,                                        Is.Null,                                "switched off, and the key still opens the door");
+                    Assert.That(on.Status,                                      Is.EqualTo(HttpStatusCode.OK),          on.Body);
+                    Assert.That(onDoor,                                         Is.EqualTo("hank"),                     "switched on again, and the key opens nothing");
+                    Assert.That(byKim.Status,                                   Is.EqualTo(HttpStatusCode.Forbidden),   byKim.Body);
+                    Assert.That(unsaid.Status,                                  Is.EqualTo(HttpStatusCode.BadRequest),  unsaid.Body);
+                    Assert.That(unknown.Status,                                 Is.EqualTo(HttpStatusCode.NotFound),    unknown.Body);
+                    Assert.That(notHanks.Status,                                Is.EqualTo(HttpStatusCode.NotFound),    "kim's key under hank: " + notHanks.Body);
+                    Assert.That(HeldKey(api, keyId).IsDisabled,                 Is.False,                               "kim switched it off");
+                    Assert.That(HeldKey(api, kims).IsDisabled,                  Is.False,                               "hank switched kim's key off");
+                });
+
+                var offAgain = await Send(client, "SET", "hank", path, new JObject(new JProperty("isDisabled", true)));
+
+                Assert.That(offAgain.Status, Is.EqualTo(HttpStatusCode.OK), offAgain.Body);
+
+            }
+            finally
+            {
+                await Stop(server, client);
+            }
+
+            var again = await StartAPI();
+
+            Assert.Multiple(() => {
+                Assert.That(HeldKey(again, keyId).IsDisabled,  Is.True,  "the next start switched it on");
+                Assert.That(KeyedInAs(again, keyId),           Is.Null,  "after a restart the key switched off opens the door");
+            });
+
+        }
+
+        #endregion
+
 
         #region (private) Helpers
 
@@ -539,9 +616,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var user  = await NewUser(API, Name);
-            var acme  = new Organization(Organization_Id.Parse("acme"), I18NString.Create("ACME"));
+            var acme  = API.GetOrganization(Organization_Id.Parse("acme")) as Organization
+                            ?? new Organization(Organization_Id.Parse("acme"), I18NString.Create("ACME"));
 
-            Assert.That((await API.AddOrganization(acme)).Result,                                                     Is.EqualTo(CommandResult.Success));
+            if (!API.OrganizationExists(acme.Id))
+                Assert.That((await API.AddOrganization(acme)).Result,                                                 Is.EqualTo(CommandResult.Success));
+
             Assert.That((await API.AddUserToOrganization(user, User2OrganizationEdgeLabel.IsMember, acme)).IsSuccess,  Is.True);
 
             return user;
@@ -607,6 +687,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                 "Basic",
                                                 Convert.ToBase64String(Encoding.UTF8.GetBytes($"{UserId}:{Password}"))
                                             );
+
+            using var response = await Client.SendAsync(request);
+
+            return (response.StatusCode, await response.Content.ReadAsStringAsync());
+
+        }
+
+        /// <summary>
+        /// A request below accounts/ as the given user, with HTTP Basic Auth.
+        /// </summary>
+        private static async Task<(HttpStatusCode Status, String Body)> Send(HttpClient  Client,
+                                                                             String      Method,
+                                                                             String      UserId,
+                                                                             String      Path,
+                                                                             JObject?    Body = null)
+        {
+
+            using var request = new HttpRequestMessage(new HttpMethod(Method), $"accounts/{Path}");
+
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            request.Headers.Authorization = new AuthenticationHeaderValue(
+                                                "Basic",
+                                                Convert.ToBase64String(Encoding.UTF8.GetBytes($"{UserId}:{Password}"))
+                                            );
+
+            if (Body is not null)
+                request.Content = new StringContent(Body.ToString(), Encoding.UTF8, "application/json");
 
             using var response = await Client.SendAsync(request);
 

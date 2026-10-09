@@ -8811,6 +8811,101 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region SET         ~/users/{UserId}/APIKeys/{APIKeyId}
+
+            // ------------------------------------------------------------------------------------------
+            // curl -v -X SET -H "Content-Type: application/json" -d '{"isDisabled":true}' \
+            //      http://127.0.0.1:2100/users/ahzf/APIKeys/abcdefgh
+            // ------------------------------------------------------------------------------------------
+            AddHandler(
+                              HTTPMethod.SET,
+                              HTTPPath.Root + "users/{UserId}/APIKeys/{APIKeyId}",
+                              HTTPContentType.Application.JSON_UTF8,
+                              HTTPDelegate: async Request => {
+
+                                  HTTPResponse.Builder Answer(HTTPStatusCode StatusCode, JObject Content)
+
+                                      => new (Request) {
+                                             HTTPStatusCode             = StatusCode,
+                                             Server                     = HTTPServer?.HTTPServerName,
+                                             Date                       = Timestamp.Now,
+                                             AccessControlAllowOrigin   = "*",
+                                             AccessControlAllowMethods  = [ HTTPMethod.SET, HTTPMethod.DELETE ],
+                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                             Content                    = Content.ToUTF8Bytes(),
+                                             Connection                 = ConnectionType.KeepAlive,
+                                             Vary                       = "Accept"
+                                         };
+
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                  if (!TryGetHTTPUser(Request,
+                                                      out var httpUser,
+                                                      out _,
+                                                      out var httpResponseBuilder,
+                                                      Recursive: true))
+                                  {
+                                      return httpResponseBuilder;
+                                  }
+
+                                  if (!Request.ParseUser(this,
+                                                         out var userId,
+                                                         out var user,
+                                                         out httpResponseBuilder))
+                                  {
+                                      return httpResponseBuilder;
+                                  }
+
+                                  if (httpUser.Id != userId && !CanImpersonate(httpUser, user))
+                                      return Answer(HTTPStatusCode.Forbidden,
+                                                    JSONObject.Create(new JProperty("description", "This operation is not allowed!"))).AsImmutable;
+
+                                  // Somebody else's key is answered as no key at all: whose
+                                  // keys there are is nothing a user is told by trying.
+                                  if (!Request.TryGetURLParameter(HTTPExtAPIExtensions.APIKeyIdParameter, out var apiKeyIdText) ||
+                                       APIKey_Id.TryParse(apiKeyIdText) is not APIKey_Id apiKeyId                                ||
+                                       apiKeyId.IsNullOrEmpty                                                                    ||
+                                      !TryGetAPIKey(apiKeyId, out var apiKey)                                                    ||
+                                       apiKey is null                                                                            ||
+                                       apiKey.UserId != userId)
+                                  {
+                                      return Answer(HTTPStatusCode.NotFound,
+                                                    JSONObject.Create(new JProperty("description", "Unknown API key!"))).AsImmutable;
+                                  }
+
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out var bodyRefusal))
+                                      return bodyRefusal!.AsImmutable;
+
+                                  // Said, not assumed: a body that forgot it switches nothing.
+                                  if (json["isDisabled"]?.Type != JTokenType.Boolean)
+                                      return Answer(HTTPStatusCode.BadRequest,
+                                                    JSONObject.Create(new JProperty("description", "Missing 'isDisabled': true to switch the key off, false to switch it on."))).AsImmutable;
+
+                                  var isDisabled = json["isDisabled"]!.Value<Boolean>();
+
+                                  if (apiKey.IsDisabled == isDisabled)
+                                      return Answer(HTTPStatusCode.OK, apiKey.ToJSON()).AsImmutable;
+
+                                  var result = await UpdateAPIKey(apiKey,
+                                                                  builder => builder.IsDisabled = isDisabled,
+                                                                  null,
+                                                                  Request.EventTrackingId,
+                                                                  httpUser.Id);
+
+                                  return (result.Result == CommandResult.Success && result.APIKey is not null
+
+                                             ? Answer(HTTPStatusCode.OK,
+                                                      result.APIKey.ToJSON())
+
+                                             : Answer(HTTPStatusCode.FailedDependency,
+                                                      JSONObject.Create(new JProperty("description", result.Description.ToJSON())))
+
+                                         ).AsImmutable;
+
+                              });
+
+            #endregion
+
 
             #region ~/users/{UserId}/SSHKeys
 
@@ -12558,6 +12653,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 case "addSSHKey":
                 case "removeSSHKey":
+                case "disableSSHKey":
+                case "enableSSHKey":
 
                     if (!ProcessSSHKeyEvent(Command, Data, out errorResponse))
                         DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
