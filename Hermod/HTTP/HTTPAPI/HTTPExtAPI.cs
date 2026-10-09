@@ -1344,7 +1344,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public  const              Byte                                          DefaultMinUserNameLength                = 3;
         public  const              Byte                                          DefaultMinUserGroupIdLength             = 4;
         public  const              UInt16                                        DefaultMinAPIKeyLength                  = 20;
-        public  const              Byte                                          DefaultMinOrganizationIdLength          = 4;
+        // Three, because an organization is often called by its initials - a
+        // "PKI", a "CPO", an "MSP" - and its identifier is no secret either.
+        public  const              Byte                                          DefaultMinOrganizationIdLength          = 3;
         public  const              Byte                                          DefaultMinOrganizationGroupIdLength     = 4;
         public  const              Byte                                          DefaultMinNotificationMessageIdLength   = 8;
 
