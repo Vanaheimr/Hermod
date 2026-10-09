@@ -16322,10 +16322,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                       CurrentUserId
                   );
 
-            if (users.TryRemove(User.Id, out var oldUser))
+            // Linked while the old one still stands, then put in its place in
+            // one step: a request signed in by a session finds its account by
+            // the session's user id, and one that came while the account was
+            // taken out to be put back found nobody - 401, and the page that
+            // had just saved its account signed out.
+            if (users.TryGetValue(User.Id, out var oldUser))
                 User.CopyAllLinkedDataFrom(oldUser);
 
-            users.TryAdd(User.Id, User);
+            users[User.Id] = User;
             var now = Timestamp.Now;
 
             if (oldUser is null)
@@ -16770,9 +16775,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                       CurrentUserId
                   );
 
-            users.TryRemove(OldUser.Id, out _);
+            // Linked first, then in the old one's place in one step - never
+            // neither there, see addOrUpdateUser.
             NewUser.CopyAllLinkedDataFrom(OldUser);
-            users.TryAdd(NewUser.Id, NewUser);
+            users[NewUser.Id] = NewUser;
 
             var now = Timestamp.Now;
 
@@ -16967,12 +16973,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                       CurrentUserId
                   );
 
-            users.TryRemove(User.Id, out _);
             // The builder does not carry the API; without this a second update of the
             // same account failed with "not attached to this API".
             updatedUser.API = this;
+
+            // Linked first, then in the old one's place in one step - never
+            // neither there, see addOrUpdateUser.
             updatedUser.CopyAllLinkedDataFrom(User);
-            users.TryAdd(updatedUser.Id, updatedUser);
+            users[updatedUser.Id] = updatedUser;
 
             var now = Timestamp.Now;
 
