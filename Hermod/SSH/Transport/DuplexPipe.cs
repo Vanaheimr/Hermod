@@ -43,6 +43,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public PipeWriter  Output    { get; }
 
         /// <summary>
+        /// Cut the connection under whatever is reading or writing it - for a
+        /// socket, closing its stream - so that a write a peer will never take
+        /// fails rather than waits. Null where there is nothing to cut.
+        /// </summary>
+        public Action?     Abort     { get; init; }
+
+        /// <summary>
         /// Create a duplex pipe from a reader and a writer.
         /// </summary>
         public DuplexPipe(PipeReader Input, PipeWriter Output)
@@ -57,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// transport over a tunneled channel stream (the ProxyJump / SSH-over-SSH mechanism).
         /// </summary>
         public static IDuplexPipe FromStream(Stream Stream)
-            => new DuplexPipe(PipeReader.Create(Stream), PipeWriter.Create(Stream));
+            => new DuplexPipe(PipeReader.Create(Stream), PipeWriter.Create(Stream)) { Abort = Stream.Dispose };
 
 
         /// <summary>

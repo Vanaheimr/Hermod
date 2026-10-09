@@ -131,8 +131,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
             if (!authenticated)
             {
+                await transport.CloseOutputAsync().ConfigureAwait(false);
                 transport.Dispose();
-                await CloseAsync(pipe).ConfigureAwait(false);
+                await CloseInputAsync(pipe).ConfigureAwait(false);
                 throw new SshAuthenticationException("None of the supplied credentials were accepted.");
             }
 
@@ -260,15 +261,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
             }
 
             await mux.DisposeAsync().ConfigureAwait(false);
+
+            // The writer is completed by the transport, after the send in flight - a window adjust,
+            // the DISCONNECT above - is done with it: completed under it, its buffers went back to the
+            // pool every connection rents from while still being written into.
+            await transport.CloseOutputAsync().ConfigureAwait(false);
             transport.Dispose();
-            await CloseAsync(pipe).ConfigureAwait(false);
+            await CloseInputAsync(pipe).ConfigureAwait(false);
 
         }
 
-        private static async ValueTask CloseAsync(IDuplexPipe Pipe)
+        private static async ValueTask CloseInputAsync(IDuplexPipe Pipe)
         {
-            try { await Pipe.Output.CompleteAsync().ConfigureAwait(false); } catch { }
-            try { await Pipe.Input. CompleteAsync().ConfigureAwait(false); } catch { }
+            try { await Pipe.Input.CompleteAsync().ConfigureAwait(false); } catch { }
         }
 
         #endregion

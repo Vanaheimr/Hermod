@@ -549,11 +549,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                 Authenticated(Connection);
 
-                transport?.Dispose();
-
                 // The pipe owns the socket and closes it on completion — without this the connection would
-                // linger for as long as the process lives.
-                await CloseAsync(Pipe).ConfigureAwait(false);
+                // linger for as long as the process lives. Where there is a transport, it completes the
+                // writer, after the send in flight is done with it: completed under a window adjust or a
+                // DISCONNECT, its buffers went back to the pool every connection rents from while still
+                // being written into.
+                if (transport is not null)
+                {
+                    await transport.CloseOutputAsync().ConfigureAwait(false);
+                    transport.Dispose();
+                    try { await Pipe.Input.CompleteAsync().ConfigureAwait(false); } catch { }
+                }
+                else
+                    await CloseAsync(Pipe).ConfigureAwait(false);
 
                 await EmitAsync(audit, new ConnectionClosedEvent(DateTimeOffset.UtcNow)).ConfigureAwait(false);
 

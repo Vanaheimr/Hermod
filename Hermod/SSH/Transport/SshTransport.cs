@@ -92,6 +92,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         // exactly what OpenSSH now enforces.
         private readonly SemaphoreSlim sendLock = new (1, 1);
 
+        // Set under sendLock by CloseOutputAsync: nothing is written into the pipe after it is
+        // completed - completing gives its buffers back to the pool every connection rents from.
+        private Boolean outputClosed;
+        private Int32   closingOutput;
+
         #endregion
 
         #region Properties
@@ -277,11 +282,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private async ValueTask WritePacketAsync(ReadOnlyMemory<Byte> Payload, CancellationToken CancellationToken = default)
         {
 
-            SshPacketFraming.WritePacket(pipe.Output, sendCipher, Payload.Span, sendSequenceNumber, sendMac);
-            await pipe.Output.FlushAsync(CancellationToken).ConfigureAwait(false);
+            if (outputClosed)
+                throw new SshConnectionClosedException("The connection is closed: nothing more is sent on it.");
 
+            SshPacketFraming.WritePacket(pipe.Output, sendCipher, Payload.Span, sendSequenceNumber, sendMac);
+
+            // Counted once it is sealed into the pipe, not once it is flushed: a flush cut off by its
+            // token leaves the packet in the pipe, and it goes out with the next flush - which carried
+            // it under the same number, and the peer read the next packet with the wrong one.
             unchecked { sendSequenceNumber++; }   // wraps at 2^32 (RFC 4253 §6.4)
 
+            await pipe.Output.FlushAsync(CancellationToken).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region CloseOutputAsync(Within = null)
+
+        /// <summary>
+        /// Close the sending half: once the send in flight is done with the pipe - or, where it is not
+        /// within the given time, once the connection is cut off under it - the pipe's writer is
+        /// completed, and every send after is refused without touching it.
+        /// </summary>
+        /// <remarks>
+        /// Completing a pipe writer gives its buffers back to the pool, and the pool is shared by every
+        /// connection of the process. Completed while a window adjust or a DISCONNECT was still being
+        /// written into it, a buffer went back in use - or twice - and a later connection of another
+        /// test read a packet whose bytes had changed after they were sealed: a bad Poly1305 tag.
+        /// </remarks>
+        /// <param name="Within">How long the send in flight is waited for, first, and again after the
+        /// connection is cut off; two seconds where nothing is said.</param>
+        public async ValueTask CloseOutputAsync(TimeSpan? Within = null)
+        {
+
+            if (Interlocked.Exchange(ref closingOutput, 1) == 1)
+                return;
+
+            var within  = Within ?? TimeSpan.FromSeconds(2);
+            var held    = await TakeSendLock(within).ConfigureAwait(false);
+
+            if (!held && pipe is DuplexPipe { Abort: { } abort })
+            {
+
+                try   { abort(); }
+                catch { }
+
+                held = await TakeSendLock(within).ConfigureAwait(false);
+
+            }
+
+            // A send that will not end even now keeps its buffers: never given back, rather than
+            // given back under it.
+            if (!held)
+                return;
+
+            try
+            {
+                outputClosed = true;
+                try   { await pipe.Output.CompleteAsync().ConfigureAwait(false); }
+                catch { }
+            }
+            finally
+            {
+                sendLock.Release();
+            }
+
+        }
+
+        private async ValueTask<Boolean> TakeSendLock(TimeSpan Within)
+        {
+            try
+            {
+                return await sendLock.WaitAsync(Within).ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                return false;
+            }
         }
 
         #endregion
