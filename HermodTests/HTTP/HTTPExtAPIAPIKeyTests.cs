@@ -514,6 +514,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         #endregion
 
 
+        #region Another_Users_Account_Is_Forbidden_Not_Unauthorized()
+
+        /// <summary>
+        /// GET users/{UserId} of another account is 403, as SET of it is: the
+        /// one asking is signed in, and may not. It said 401, which tells a
+        /// page that its session is gone - and the page signs out.
+        /// </summary>
+        [Test]
+        public async Task Another_Users_Account_Is_Forbidden_Not_Unauthorized()
+        {
+
+            var (server, api, client) = await StartServer();
+
+            try
+            {
+
+                await NewAccount(api, "hank");
+                await NewAccount(api, "kim");
+
+                var own      = await Send(client, "GET", "kim",  "users/kim");
+                var other    = await Send(client, "GET", "kim",  "users/hank");
+                var setOther = await Send(client, "SET", "kim",  "users/hank", new JObject(
+                                                                                   new JProperty("@id",       "hank"),
+                                                                                   new JProperty("@context",  "https://opendata.social/contexts/UsersAPI/user"),
+                                                                                   new JProperty("name",      new JObject(new JProperty("en", "Kim was here"))),
+                                                                                   new JProperty("email",     "kim@example.test")
+                                                                               ));
+
+                Assert.Multiple(() => {
+                    Assert.That(own.Status,       Is.EqualTo(HttpStatusCode.OK),         own.Body);
+                    Assert.That(other.Status,     Is.EqualTo(HttpStatusCode.Forbidden),  "another account read: " + other.Body);
+                    Assert.That(other.Body,       Does.Not.Contain("hank@example.test"), "another account's details were given");
+                    Assert.That(setOther.Status,  Is.EqualTo(HttpStatusCode.Forbidden),  "another account saved: " + setOther.Body);
+                });
+
+            }
+            finally
+            {
+                await Stop(server, client);
+            }
+
+        }
+
+        #endregion
+
+
         #region (private) Helpers
 
         /// <summary>

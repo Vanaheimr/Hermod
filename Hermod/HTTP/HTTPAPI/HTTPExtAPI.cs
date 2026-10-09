@@ -7021,10 +7021,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #endregion
 
 
+                                  // 403, as SET of the same account says: the one asking is
+                                  // signed in, and may not. 401 told a page its session was
+                                  // gone, and the page signed out.
                                   if (httpUser != user && !CanImpersonate(httpUser, user, Access_Levels.ReadOnly))
                                       return Task.FromResult(
                                                  new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode             = HTTPStatusCode.Unauthorized,
+                                                     HTTPStatusCode             = HTTPStatusCode.Forbidden,
                                                      Server                     = HTTPServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
