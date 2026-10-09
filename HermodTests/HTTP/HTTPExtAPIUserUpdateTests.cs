@@ -50,7 +50,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// it - the edges to its groups and organizations, the last thing done
         /// before it takes the old one's place - whether its id finds anybody.
         /// </summary>
-        private sealed class Looking(HTTPExtAPI  API,
+        /// <remarks>
+        /// Asks the store it is given, not User.API: that is set by the store
+        /// as it saves, and a test of the store should not lean on it.
+        /// </remarks>
+        private sealed class Looking(HTTPExtAPI  Accounts,
                                      User_Id     Id,
                                      String      Name)
 
@@ -66,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             public override void CopyAllLinkedDataFromBase(User OldUser)
             {
-                FoundWhileCopying = API.TryGetUser(Id, out var found) && found is not null;
+                FoundWhileCopying = Accounts.TryGetUser(Id, out var found) && found is not null;
                 base.CopyAllLinkedDataFromBase(OldUser);
             }
 
