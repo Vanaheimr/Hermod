@@ -228,7 +228,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 #region Parse Id             [mandatory]
 
-                if (!JSON.ParseMandatory("id",
+                // Written as "@id" by ToJSON(); "id" is still read.
+                if (!JSON.ParseMandatory(JSON.ContainsKey("@id") ? "@id" : "id",
                                          "Open Source license identification",
                                          OpenSourceLicense_Id.TryParse,
                                          out OpenSourceLicense_Id Id,
