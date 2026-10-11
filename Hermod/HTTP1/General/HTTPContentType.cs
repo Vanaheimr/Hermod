@@ -420,6 +420,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public static HTTPContentType DNSJson                { get; }
                 = Register("application", "dns-json",                   null,    null, null, "json");
 
+            /// <summary>
+            /// CBOR, the Concise Binary Object Representation of RFC 8949.
+            /// </summary>
+            /// <remarks>
+            /// No character set: RFC 8949 §9.5 registers this media type without parameters,
+            /// and its text strings are UTF-8 by definition.
+            /// </remarks>
+            public static HTTPContentType CBOR                   { get; }
+                = Register("application", "cbor",                       null,    null, null, "cbor");
+
             public static HTTPContentType GEXF_UTF8              { get; }
                 = Register("application", "gexf+xml",                   "utf-8", null, null, "gexf");
             public static HTTPContentType GRAPHML_UTF8           { get; }
