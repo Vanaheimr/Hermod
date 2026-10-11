@@ -75,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                      IComparable
     {
 
-        #region Source
+        #region Data
 
         /// <summary>
         /// The JSON-LD context of the object.
@@ -156,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region (static) Parse   (JSON, CustomOpenSourceLicenseParser = null)
+        #region (static) Parse    (JSON, CustomOpenSourceLicenseParser = null)
 
         /// <summary>
         /// Parse the given JSON representation of an Open Source license.
@@ -182,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (static) TryParse(JSON, out OpenSourceLicense, out ErrorResponse, CustomOpenSourceLicenseParser = null)
+        #region (static) TryParse (JSON, out OpenSourceLicense, out ErrorResponse, CustomOpenSourceLicenseParser = null)
 
         // Note: The following is needed to satisfy pattern matching delegates! Do not refactor it!
 
@@ -277,8 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                     );
 
                 if (CustomOpenSourceLicenseParser is not null)
-                    OpenSourceLicense = CustomOpenSourceLicenseParser(JSON,
-                                                                      OpenSourceLicense);
+                    OpenSourceLicense = CustomOpenSourceLicenseParser(JSON, OpenSourceLicense);
 
                 return true;
 
