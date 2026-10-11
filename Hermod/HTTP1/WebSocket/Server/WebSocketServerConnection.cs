@@ -61,6 +61,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private readonly  ConcurrentDictionary<String, Object?>  customData             = [];
 
         /// <summary>
+        /// Counts the connections made so far, so every connection gets a
+        /// number of its own.
+        /// </summary>
+        private static    Int64                                  lastSerialNumber;
+
+        /// <summary>
+        /// This connection's number: what orders two connections whose sockets
+        /// are the same, see CompareTo.
+        /// </summary>
+        private readonly  Int64                                  serialNumber           = Interlocked.Increment(ref lastSerialNumber);
+
+        /// <summary>
         /// The TCP connection, when this connection owns one.
         /// </summary>
         /// <remarks>
@@ -1164,7 +1176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             if (WebSocketConnection1 is null)
-                throw new ArgumentNullException(nameof(WebSocketConnection2), "The given HTTP WebSocket server connection must not be null!");
+                throw new ArgumentNullException(nameof(WebSocketConnection1), "The given HTTP WebSocket server connection must not be null!");
 
             return WebSocketConnection1.CompareTo(WebSocketConnection2) < 0;
 
@@ -1200,7 +1212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             if (WebSocketConnection1 is null)
-                throw new ArgumentNullException(nameof(WebSocketConnection2), "The given HTTP WebSocket server connection must not be null!");
+                throw new ArgumentNullException(nameof(WebSocketConnection1), "The given HTTP WebSocket server connection must not be null!");
 
             return WebSocketConnection1.CompareTo(WebSocketConnection2) > 0;
 
@@ -1248,13 +1260,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Compares two HTTP WebSocket server connections.
         /// </summary>
         /// <param name="WebSocketConnection">An HTTP WebSocket server connection to compare with.</param>
+        /// <remarks>
+        /// Orders by the local socket, then the remote socket, and where both
+        /// are the same - a client that came back from the same port, or two
+        /// connections whose sockets were not to be had - by which connection
+        /// was made first. So only a connection compares to itself as 0, as
+        /// Equals has it.
+        /// </remarks>
         public Int32 CompareTo(WebSocketServerConnection? WebSocketConnection)
         {
 
             if (WebSocketConnection is null)
                 throw new ArgumentNullException(nameof(WebSocketConnection), "The given HTTP WebSocket server connection must not be null!");
 
-            return LocalSocket.CompareTo(WebSocketConnection.LocalSocket);
+            var c = LocalSocket. CompareTo(WebSocketConnection.LocalSocket);
+
+            if (c == 0)
+                c = RemoteSocket.CompareTo(WebSocketConnection.RemoteSocket);
+
+            if (c == 0)
+                c = serialNumber.CompareTo(WebSocketConnection.serialNumber);
+
+            return c;
 
         }
 
@@ -1283,10 +1310,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Compares two HTTP WebSocket server connections for equality.
         /// </summary>
         /// <param name="WebSocketConnection">An HTTP WebSocket server connection to compare with.</param>
+        /// <remarks>
+        /// <b>A connection equals only itself.</b> Every connection a server
+        /// accepted has the server's own address as its local socket, so that
+        /// alone made all of them one, and even both sockets together name
+        /// one connection only for as long as it is open: a client that comes
+        /// back from the same port would be taken for the one before it.
+        /// </remarks>
         public Boolean Equals(WebSocketServerConnection? WebSocketConnection)
 
-            => WebSocketConnection is not null &&
-                   LocalSocket.Equals(WebSocketConnection.LocalSocket);
+            => ReferenceEquals(this, WebSocketConnection);
 
         #endregion
 
@@ -1299,7 +1332,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public override Int32 GetHashCode()
 
-            => LocalSocket.GetHashCode();
+            => HashCode.Combine(LocalSocket, RemoteSocket);
 
         #endregion
 
