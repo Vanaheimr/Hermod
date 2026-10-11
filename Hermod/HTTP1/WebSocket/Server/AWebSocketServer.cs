@@ -882,7 +882,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             Logger.LogDebug("Removing HTTP WebSocket connection with {RemoteSocket}.", Connection.RemoteSocket);
 
-            return webSocketConnections.Remove(Connection.RemoteSocket, out _);
+            return ForgetConnection(Connection);
+
+        }
+
+        #endregion
+
+        #region (private) ForgetConnection (Connection)
+
+        /// <summary>
+        /// Take the given connection off the books - if it is still the one
+        /// they have for its remote socket.
+        /// </summary>
+        /// <param name="Connection">An HTTP WebSocket connection.</param>
+        /// <remarks>
+        /// The books are kept by remote socket, and a client that comes back
+        /// from the same port gets the entry of the connection before it. That
+        /// one is cleaned up when its loop ends, which can be after the new one
+        /// came in, and removing by remote socket alone then removed the new
+        /// connection instead: no longer listed, no longer counted against its
+        /// address, while it went on running.
+        /// </remarks>
+        private Boolean ForgetConnection(WebSocketServerConnection Connection)
+        {
+
+            while (webSocketConnections.TryGetValue(Connection.RemoteSocket, out var weakReference))
+            {
+
+                if (!weakReference.TryGetTarget(out var registeredConnection) ||
+                    !ReferenceEquals(registeredConnection, Connection))
+                {
+                    return false;
+                }
+
+                // Removes the entry only while it still is this very weak reference,
+                // or else looks again what took its place in the meantime.
+                if (webSocketConnections.TryRemove(KeyValuePair.Create(Connection.RemoteSocket, weakReference)))
+                    return true;
+
+            }
+
+            return false;
 
         }
 
@@ -1399,16 +1439,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 webSocketConnection.MaxBackpressure         = MaxBackpressure;
                                                 webSocketConnection.BackpressureBehaviour   = BackpressureBehaviour;
 
-                                                if (!webSocketConnections.TryAdd(webSocketConnection.RemoteSocket,
-                                                                                 new WeakReference<WebSocketServerConnection>(webSocketConnection)))
-                                                {
-
-                                                    webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
-
-                                                    webSocketConnections.TryAdd   (webSocketConnection.RemoteSocket,
-                                                                                   new WeakReference<WebSocketServerConnection>(webSocketConnection));
-
-                                                }
+                                                // A connection still on the books from the same remote socket
+                                                // is one that has not been cleaned up yet: this one takes its
+                                                // place, and ForgetConnection leaves it here when the old one
+                                                // gets round to it.
+                                                webSocketConnections[webSocketConnection.RemoteSocket] = new WeakReference<WebSocketServerConnection>(webSocketConnection);
 
                                                 #endregion
 
@@ -2551,7 +2586,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                   : receivedCloseCode
                                                                           );
 
-                                                                    webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+                                                                    ForgetConnection(webSocketConnection);
 
                                                                     break;
 
@@ -2572,7 +2607,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                                 await webSocketConnection.Close(failConnection.Value);
 
-                                                                webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+                                                                ForgetConnection(webSocketConnection);
 
                                                                 break;
 
@@ -2605,7 +2640,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                             await webSocketConnection.Close(suggestedCloseCode);
 
-                                                            webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+                                                            ForgetConnection(webSocketConnection);
 
                                                             break;
 
@@ -2666,7 +2701,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                               WebSocketFrame.ClosingStatusCode.ProtocolError
                                                           );
 
-                                                webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+                                                ForgetConnection(webSocketConnection);
 
                                                 #region OnTCPConnectionClosed
 
@@ -2708,7 +2743,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             // first. The close sends no close frame: whatever went wrong
                                             // may have gone wrong before any 101, where a frame would be
                                             // garbage in an HTTP response.
-                                            webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+                                            ForgetConnection(webSocketConnection);
 
                                             await webSocketConnection.Close();
 
