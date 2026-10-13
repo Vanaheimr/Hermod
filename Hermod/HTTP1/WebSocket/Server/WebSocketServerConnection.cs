@@ -154,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The HTTP WebSocket server.
         /// </summary>
-        public AWebSocketServer         WebSocketServer               { get; }
+        public AWebSocketEndpoint       WebSocketServer               { get; }
 
         /// <summary>
         /// The TCP connection the server accepted, for a WebSocket server on a
@@ -368,7 +368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPRequest">An optional HTTP request of this web socket connection. Can also be attached later.</param>
         /// <param name="HTTPResponse">An optional HTTP response of this web socket connection. Can also be attached later.</param>
         /// <param name="CustomData">Optional custom data to be stored within this web socket connection.</param>
-        public WebSocketServerConnection(AWebSocketServer                             WebSocketServer,
+        public WebSocketServerConnection(AWebSocketEndpoint                           WebSocketServer,
                                          TcpClient                                    TcpClient,
                                          SslStream?                                   TLSStream,
                                          X509Certificate2?                            ClientCertificate            = null,
@@ -445,7 +445,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// backpressure, the close handshake and the timeouts all work through
         /// the stream and never asked what was underneath it.
         /// </remarks>
-        public WebSocketServerConnection(AWebSocketServer                             WebSocketServer,
+        public WebSocketServerConnection(AWebSocketEndpoint                           WebSocketServer,
                                          Stream                                       NetworkStream,
                                          IPSocket                                     LocalSocket,
                                          IPSocket                                     RemoteSocket,

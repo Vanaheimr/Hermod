@@ -26,7 +26,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// Puts a WebSocket server on an HTTP path.
+    /// Puts a WebSocket endpoint on an HTTP path.
     /// </summary>
     /// <remarks>
     /// <b>One listener, one certificate, one port, several paths.</b> Until this
@@ -38,18 +38,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// and <c>/upload</c> takes a PUT, and no client should have to be told two
     /// numbers.
     ///
+    /// <b>No TCP server behind it.</b> What goes on a path is an
+    /// <see cref="AWebSocketEndpoint"/>: the protocol without a listener, a DNS
+    /// client, a timer or a warden, and without a port bound for nothing. A
+    /// server, an endpoint with a listener of its own, can go on a path as well.
+    ///
     /// <b>The handshake is not here.</b> This decides whether a request is
     /// asking for an upgrade and, if so, hands the connection to
-    /// <see cref="AWebSocketServer.AcceptUpgradedConnectionAsync"/> along with
-    /// the request that asked - and the WebSocket server's own, single
+    /// <see cref="AWebSocketEndpoint.AcceptUpgradedConnectionAsync"/> along with
+    /// the request that asked - and the endpoint's own, single
     /// implementation of RFC 6455 section 4.2.1 does the rest: validate, choose
     /// the subprotocol, negotiate permessage-deflate, write the 101. Two copies
     /// of a security handshake is how one of them ends up a version behind.
     ///
     /// <b>Nor is the firewall.</b> The TCP connection the request arrived on
-    /// goes along as well, and the WebSocket server asks its handlers of
-    /// OnValidateTCPConnection about it as though it had accepted the
-    /// connection itself - which on a port of its own it would have.
+    /// goes along as well, and the endpoint asks its handlers of
+    /// OnValidateTCPConnection about it, with the HTTP server that accepted it
+    /// as the TCP server - as a server asks about the ones it accepts itself.
     /// </remarks>
     public static class WebSocketUpgrade
     {
@@ -95,11 +100,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// An HTTP handler that turns this path into a WebSocket endpoint.
         /// </summary>
         /// <param name="WebSocketServer">
-        /// The WebSocket server that will speak on the connection. It must
-        /// <b>not</b> be started: it is never going to accept anything itself,
-        /// it is only being lent its protocol. Its handlers of
-        /// OnValidateTCPConnection are still asked about every connection, when
-        /// it is handed over.
+        /// The WebSocket endpoint that will speak on the connection, e.g. a
+        /// <see cref="WebSocketEndpoint"/>. Its handlers of OnValidateTCPConnection
+        /// are asked about every connection, when it is handed over. A server
+        /// works as well, and need not be started.
         /// </param>
         /// <example>
         /// <code>
@@ -108,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///                HTTPDelegate: WebSocketUpgrade.For(webSocketServer));
         /// </code>
         /// </example>
-        public static HTTPDelegate For(AWebSocketServer WebSocketServer)
+        public static HTTPDelegate For(AWebSocketEndpoint WebSocketServer)
 
             => request => {
 

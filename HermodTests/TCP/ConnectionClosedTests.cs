@@ -156,8 +156,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
         /// <summary>
         /// What a server reported about its connections, through the events of
-        /// ATCPServer - which an AWebSocketServer hides behind events of its own
-        /// of the same names.
+        /// ATCPServer - for an AWebSocketServer those of its TCP listener, as it
+        /// has events of its own of the same names.
         /// </summary>
         private sealed class Reports
         {
@@ -165,6 +165,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
             private readonly ConcurrentQueue<(String ConnectionId, ConnectionClosedBy ClosedBy, String EventTrackingId)>  closed    = new();
             private readonly ConcurrentDictionary<String, String>                                                    opened    = new();
             private readonly ConcurrentQueue<String>                                                                  sequence  = new();
+
+            /// <summary>
+            /// What the TCP listener of a WebSocket server reported.
+            /// </summary>
+            public Reports(AWebSocketServer Server)
+                : this(Server.TCPListener)
+            { }
 
             public Reports(ATCPServer Server)
             {
@@ -370,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
         /// <summary>
         /// A client, connected to the given server.
         /// </summary>
-        private static async Task<TcpClient> ConnectTo(ATCPServer Server)
+        private static async Task<TcpClient> ConnectTo(ITCPServer Server)
         {
 
             var client = new TcpClient();

@@ -151,13 +151,19 @@ server.OnTextMessageReceived += async (timestamp, srv, connection, frame, eventT
 
 ### On an HTTP path
 
-A WebSocket no longer needs a TCP server of its own. `WebSocketUpgrade.For`
-turns any `AWebSocketServer` into an HTTP handler, so one listener, one
-certificate and one port can serve frames at one path and ordinary HTTP at
-another:
+A WebSocket no longer needs a TCP server of its own. `AWebSocketEndpoint` is
+the protocol alone - handshake, frames, pings, close, authentication,
+subprotocols, `permessage-deflate`, backpressure and their events - without a
+listener, a DNS client, a timer or a warden, and without a port bound for
+nothing. `AWebSocketServer` is an endpoint with a TCP listener of its own, which
+it owns rather than is; its TCP and TLS settings and events are its own as they
+always were, and `TCPListener` is the listener itself. `WebSocketUpgrade.For`
+turns any endpoint into an HTTP handler, so one listener, one certificate and
+one port can serve frames at one path and ordinary HTTP at another, and as many
+endpoints as there are paths cost no more than their connections:
 
 ```csharp
-var webSocketServer = new WebSocketServer(AutoStart: false);   // never accepts anything itself
+var webSocketServer = new WebSocketEndpoint(RequireAuthentication: false);   // no TCP server at all
 
 var httpServer      = await HTTPServer.StartNew();
 var api             = httpServer.AddHTTPAPI();
@@ -181,9 +187,9 @@ validates it, chooses the subprotocol, negotiates `permessage-deflate` and
 writes the 101. Two copies of a security handshake is how one of them comes to
 be a version behind.
 
-**The firewall is asked too.** A lent server accepts no connection of its own,
+**The firewall is asked too.** An endpoint accepts no connection of its own,
 and its `OnValidateTCPConnection` handlers are asked all the same: at the hand-over,
-about the TCP connection the HTTP server accepted - after that server's TLS and
+about the TCP connection the HTTP server accepted, with that server as the TCP server - after that server's TLS and
 after the request that asked for the upgrade, rather than before them as on a
 port of its own. The verdict is the same either way: the first refusal among
 all answers, and a handler that throws has refused. A refused client is answered
@@ -191,8 +197,9 @@ all answers, and a handler that throws has refused. A refused client is answered
 `503` where a handler was called off while it was being asked, as for the
 handshake's own validators; why it was refused goes to
 `OnNewTCPConnectionRejected`, not to the client. What
-belongs to a listener stays with the one that listens: a lent server's own TLS
-settings and `MaxClientConnections` are never used, the HTTP server's are.
+belongs to a listener stays with the one that listens: the HTTP server's TLS
+settings and `MaxClientConnections` are used, and a server put on a path does not
+use its own.
 
 Underneath it: `HTTPResponse.UpgradeWorker`, a response that says "101, and here
 is who takes over". `AHTTPServer` runs it *instead of* sending the response —

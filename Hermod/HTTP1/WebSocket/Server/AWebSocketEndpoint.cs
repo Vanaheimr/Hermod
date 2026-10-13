@@ -1,0 +1,3388 @@
+﻿/*
+ * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#region Usings
+
+using System.Text;
+using System.Text.Unicode;
+using System.Net;
+using System.Net.Sockets;
+using System.Net.Security;
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using System.Security.Authentication;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
+using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+
+#endregion
+
+namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
+{
+
+    /// <summary>
+    /// Extensions methods for HTTP WebSocket servers.
+    /// </summary>
+    public static class AWebSocketServerExtensions
+    {
+
+        #region BroadcastTextMessage   (this WebSocketServer, Message,                    EventTrackingId = null, CancellationToken = default)
+
+        public static Task BroadcastTextMessage(this WebSocketServer  WebSocketServer,
+                                                String                Message,
+                                                EventTracking_Id?     EventTrackingId     = null,
+                                                CancellationToken     CancellationToken   = default)
+        {
+
+            if (WebSocketServer is null)
+                return Task.CompletedTask;
+
+            var connections = WebSocketServer.WebSocketConnections.ToArray();
+
+            return Task.WhenAll(
+                       connections.
+                           Select(connection => WebSocketServer.SendTextMessage(
+                                                    connection,
+                                                    Message,
+                                                    EventTrackingId,
+                                                    CancellationToken
+                                                ))
+                   );
+
+        }
+
+        #endregion
+
+        #region BroadcastJSONMessage   (this WebSocketServer, Message, Formatting = None, EventTrackingId = null, CancellationToken = default)
+
+        public static Task BroadcastJSONMessage(this WebSocketServer        WebSocketServer,
+                                                JObject                     Message,
+                                                Newtonsoft.Json.Formatting  Formatting          = Newtonsoft.Json.Formatting.None,
+                                                EventTracking_Id?           EventTrackingId     = null,
+                                                CancellationToken           CancellationToken   = default)
+        {
+
+            if (WebSocketServer is null)
+                return Task.CompletedTask;
+
+            var connections = WebSocketServer.WebSocketConnections.ToArray();
+
+            return Task.WhenAll(
+                       connections.
+                           Select(connection => WebSocketServer.SendTextMessage(
+                                                    connection,
+                                                    Message.ToString(Formatting),
+                                                    EventTrackingId,
+                                                    CancellationToken
+                                                ))
+                   );
+
+        }
+
+
+        public static Task BroadcastJSONMessage(this WebSocketServer        WebSocketServer,
+                                                JArray                      Message,
+                                                Newtonsoft.Json.Formatting  Formatting          = Newtonsoft.Json.Formatting.None,
+                                                EventTracking_Id?           EventTrackingId     = null,
+                                                CancellationToken           CancellationToken   = default)
+        {
+
+            if (WebSocketServer is null)
+                return Task.CompletedTask;
+
+            var connections = WebSocketServer.WebSocketConnections.ToArray();
+
+            return Task.WhenAll(
+                       connections.
+                           Select(connection => WebSocketServer.SendTextMessage(
+                                                    connection,
+                                                    Message.ToString(Formatting),
+                                                    EventTrackingId,
+                                                    CancellationToken
+                                                ))
+                   );
+
+        }
+
+        #endregion
+
+        #region BroadcastBinaryMessage (this WebSocketServer, Message,                    EventTrackingId = null, CancellationToken = default)
+
+        public static Task BroadcastBinaryMessage(this WebSocketServer  WebSocketServer,
+                                                  Byte[]                Message,
+                                                  EventTracking_Id?     EventTrackingId     = null,
+                                                  CancellationToken     CancellationToken   = default)
+        {
+
+            if (WebSocketServer is null)
+                return Task.CompletedTask;
+
+            var connections = WebSocketServer.WebSocketConnections.ToArray();
+
+            return Task.WhenAll(
+                       connections.
+                           Select(connection => WebSocketServer.SendBinaryMessage(
+                                                    connection,
+                                                    Message,
+                                                    EventTrackingId,
+                                                    CancellationToken
+                                                ))
+                   );
+
+        }
+
+        #endregion
+
+    }
+
+
+    /// <summary>
+    /// A WebSocket endpoint: the protocol of RFC 6455 on connections somebody else accepted,
+    /// without a TCP server of its own.
+    /// </summary>
+    /// <remarks>
+    /// <b>The protocol, and nothing but.</b> The handshake, the frames, pings, the close handshake,
+    /// authentication, subprotocols, permessage-deflate, backpressure and every event of them live here;
+    /// where the connections come from does not. An HTTP server hands them over on one of its paths
+    /// (see <c>WebSocketUpgrade.For</c>), and the endpoint binds no port, makes no listener, no DNS
+    /// client, no timer and no warden - an application with a WebSocket per tenant, per roaming network
+    /// or per anything has as many of them as it likes on one port.
+    ///
+    /// <b>A server is an endpoint that listens.</b> <see cref="AWebSocketServer"/> adds a TCP listener of
+    /// its own, and everything said here holds for it alike.
+    /// </remarks>
+    public abstract class AWebSocketEndpoint : IAsyncDisposable,
+                                               IDisposable
+    {
+
+        #region Data
+
+        private readonly  HashSet<String>                                                           secWebSocketProtocols         = [];
+
+        private readonly  ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>  webSocketConnections          = [];
+
+        public readonly   TimeSpan                                                                  DefaultWebSocketPingEvery     = TimeSpan.FromSeconds(30);
+
+        private const     String                                                                    LogfileName                   = "HTTPWebSocketServer.log";
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Return an enumeration of all currently connected HTTP WebSocket connections.
+        /// </summary>
+        public IEnumerable<WebSocketServerConnection>  WebSocketConnections
+        {
+            get
+            {
+
+                var webSocketConnectionsList = new List<WebSocketServerConnection>();
+
+                foreach (var weakReference in webSocketConnections.Values)
+                {
+                    if (weakReference.TryGetTarget(out var webSocketConnection) &&
+                        webSocketConnection is not null &&
+                        webSocketConnection.IsClosed == false)
+                    {
+                        webSocketConnectionsList.Add(webSocketConnection);
+                    }
+                }
+
+                return webSocketConnectionsList;
+
+            }
+        }
+
+        /// <summary>
+        /// The HTTP service name.
+        /// </summary>
+        public String                                                          HTTPServiceName                 { get; }
+
+        public List<X509Certificate2>                                          TrustedClientCertificates       { get; } = [];
+        public List<X509Certificate2>                                          TrustedCertificatAuthorities    { get; } = [];
+
+        /// <summary>
+        /// An optional description of this endpoint.
+        /// </summary>
+        public I18NString                                                      Description                     { get; }
+
+        /// <summary>
+        /// Builds the identification of a connection handed over without one, e.g. by a test harness.
+        /// </summary>
+        public ConnectionIdBuilder                                             ConnectionIdBuilder             { get; }
+
+        /// <summary>
+        /// The supported secondary web socket protocols.
+        /// </summary>
+        public IEnumerable<String>                                             SecWebSocketProtocols
+            => secWebSocketProtocols;
+
+        /// <summary>
+        /// Whether to offer the "permessage-deflate" (RFC 7692) message compression
+        /// extension to connecting clients. Disabled by default.
+        /// </summary>
+        public Boolean                                                         EnablePerMessageDeflate       { get; set; }
+
+        /// <summary>
+        /// In strict mode, reject the WebSocket opening handshake with a
+        /// '400 Bad Request' when the client offers one or more subprotocols but
+        /// none of them is contained in <see cref="SecWebSocketProtocols"/>.
+        /// When false (the default), the handshake completes without a
+        /// 'Sec-WebSocket-Protocol' response header, as permitted by RFC 6455
+        /// Section 4.1, and the client may then close the connection itself.
+        /// Only effective when the server actually declares supported subprotocols;
+        /// a client that offers no subprotocol at all is never rejected by this.
+        /// </summary>
+        public Boolean                                                         RequireMatchingSubprotocol    { get; set; }
+
+        /// <summary>
+        /// Disable web socket pings.
+        /// </summary>
+        public Boolean                                                         DisableWebSocketPings         { get; set; }
+
+        /// <summary>
+        /// The web socket ping interval.
+        /// </summary>
+        public TimeSpan                                                        WebSocketPingEvery            { get; set; }
+
+        /// <summary>
+        /// The number of consecutive web socket ping intervals without any received
+        /// frame (data, pong or otherwise) after which the connection is considered
+        /// dead and closed locally (zombie/half-open connection detection).
+        /// Zero disables the check. Default: 3 (≈ 3 × WebSocketPingEvery of silence).
+        /// </summary>
+        public UInt32                                                          MaxOutstandingPings           { get; set; } = 3;
+
+
+        public UInt64?                                                         MaxTextMessageSizeIn          { get; set; } = WebSocketFrame.DefaultMaxPayloadSize;
+        public UInt64?                                                         MaxTextMessageSizeOut         { get; set; }
+        public UInt64?                                                         MaxTextFragmentLengthIn       { get; set; }
+        public UInt64?                                                         MaxTextFragmentLengthOut      { get; set; }
+
+        public UInt64?                                                         MaxBinaryMessageSizeIn        { get; set; } = WebSocketFrame.DefaultMaxPayloadSize;
+        public UInt64?                                                         MaxBinaryMessageSizeOut       { get; set; }
+        public UInt64?                                                         MaxBinaryFragmentLengthIn     { get; set; }
+        public UInt64?                                                         MaxBinaryFragmentLengthOut    { get; set; }
+
+
+        #region Handshake hardening (Slowloris / connection-flood / CSWSH)
+
+        /// <summary>
+        /// The maximum time from accepting a TCP connection until a complete WebSocket
+        /// opening-handshake request must have been received. Guards against
+        /// Slowloris-style peers that open a connection and then send the handshake
+        /// very slowly (or never). <see cref="TimeSpan.Zero"/> disables the check.
+        /// Default: 10 seconds.
+        /// </summary>
+        public TimeSpan                                                        HandshakeTimeout              { get; set; } = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// The maximum size (in bytes) of the buffered HTTP opening-handshake request.
+        /// A peer sending an unterminated or oversized header block has its connection
+        /// dropped. Zero disables the check. Default: 65536 (64 KB).
+        /// </summary>
+        public UInt32                                                          MaxHandshakeRequestSize       { get; set; } = 64 * 1024;
+
+        /// <summary>
+        /// The maximum number of concurrent connections allowed from a single remote
+        /// IP address; additional connections from that address are dropped. Zero
+        /// disables the check (the default), because clients may legitimately be
+        /// aggregated behind a shared NAT/proxy address — set this only where that is
+        /// not the case.
+        /// </summary>
+        public UInt32                                                          MaxConnectionsPerIP           { get; set; }
+
+        /// <summary>
+        /// An optional allow-list of acceptable HTTP 'Origin' request-header values
+        /// (Cross-Site WebSocket Hijacking protection). When non-empty, a handshake
+        /// carrying an 'Origin' header whose value is not in this set is rejected with
+        /// '403 Forbidden'. A request WITHOUT an 'Origin' header is always accepted, as
+        /// non-browser clients (e.g. OCPP charging stations) do not send one. Empty
+        /// (the default) disables the check. Matching is case-insensitive.
+        /// </summary>
+        public HashSet<String>                                                 AllowedOrigins                { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        #endregion
+
+        #region Backpressure
+
+        /// <summary>
+        /// The maximum number of outgoing bytes that may be queued and in-flight per
+        /// connection (the send backpressure) before <see cref="BackpressureBehaviour"/>
+        /// is applied; guards against a slow peer making the server accumulate unbounded
+        /// memory. Zero (the default) disables the check. Applied to every new connection.
+        /// </summary>
+        public UInt64                                                          MaxBackpressure               { get; set; }
+
+        /// <summary>
+        /// What a connection does when a send would exceed <see cref="MaxBackpressure"/>.
+        /// Default: close the connection (1009 Message Too Big).
+        /// </summary>
+        public WebSocketBackpressureBehaviour                                  BackpressureBehaviour         { get; set; } = WebSocketBackpressureBehaviour.CloseConnection;
+
+        #endregion
+
+
+        /// <summary>
+        /// An additional delay between sending each byte to the networking stack.
+        /// This is intended for debugging other web socket stacks.
+        /// </summary>
+        public TimeSpan?                                                       SlowNetworkSimulationDelay    { get; set; }
+
+
+        /// <summary>
+        /// Logins and passwords for HTTP Basic Authentication.
+        /// </summary>
+        public ConcurrentDictionary<String , SecurePassword>                   ClientLogins                  { get; } = [];
+
+        /// <summary>
+        /// Logins and TOTP config (shared secrets, ...) for HTTP TOTP Authentication.
+        /// </summary>
+        public ConcurrentDictionary<String , TOTPConfig>                       ClientTOTPConfig              { get; } = [];
+
+
+        public Boolean                                                         RequireAuthentication         { get; set; }
+
+
+        /// <summary>
+        /// The attached debug logger.
+        /// </summary>
+        public ILogger                                                         Logger                        { get; }
+
+        /// <summary>
+        /// The attached logger factory.
+        /// </summary>
+        public ILoggerFactory                                                  LoggerFactory                 { get; }
+
+        #endregion
+
+        #region Events
+
+        /// <summary>
+        /// An event sent whenever a new TCP connection has to be let in or kept
+        /// out, before anything else of this server sees it: when it is accepted
+        /// on this server's own port, and when an HTTP server this server is lent
+        /// to hands it over. The first refusal among all answers keeps it out, and
+        /// so does a handler that throws.
+        /// </summary>
+        public event OnValidateTCPConnectionDelegate?                   OnValidateTCPConnection;
+
+        /// <summary>
+        /// An event sent whenever a new TCP connection was accepted.
+        /// </summary>
+        public event OnNewTCPConnectionDelegate?                        OnNewTCPConnection;
+
+        /// <summary>
+        /// An event sent whenever a new TLS connection was accepted.
+        /// </summary>
+        public event OnNewTLSConnectionDelegate?                        OnNewTLSConnection;
+
+        /// <summary>
+        /// An event sent whenever a TCP connection was closed.
+        /// </summary>
+        public event OnTCPConnectionClosedDelegate?                     OnTCPConnectionClosed;
+
+        /// <summary>
+        /// An event sent whenever a new TCP connection was kept out: by OnValidateTCPConnection, or on a
+        /// server's own port by its listener. The sender is the TCP server that accepted the connection -
+        /// the HTTP server for one handed over.
+        /// </summary>
+        public event NewTCPConnectionRejectedDelegate?                  OnNewTCPConnectionRejected;
+
+
+        /// <summary>
+        /// An event sent whenever a HTTP request was received.
+        /// </summary>
+        public event HTTPRequestLogDelegate?                            OnHTTPRequest;
+
+        /// <summary>
+        /// An event sent whenever the HTTP headers of a new web socket connection
+        /// need to be validated or filtered by an upper layer application logic.
+        /// </summary>
+        public event OnValidateWebSocketConnectionDelegate?             OnValidateWebSocketConnection;
+
+        /// <summary>
+        /// An event sent whenever the client sent a list of supported subprotocols
+        /// and the server should select one of them.
+        /// </summary>
+        public       SubprotocolSelectorDelegate?                       SubprotocolSelector;
+
+        /// <summary>
+        /// An event sent whenever an upgrade has passed every check and is about to
+        /// be answered with 101 Switching Protocols - before that answer is sent, so
+        /// that whatever has to be in place by the time the peer knows it is
+        /// connected, such as its registration, is in place.
+        /// </summary>
+        /// <remarks>
+        /// Nothing can be sent on the connection yet: a frame sent now waits until
+        /// the 101 has gone out. So a handler must not wait for a send of its own on
+        /// this connection - the 101 is only sent once every handler has returned.
+        /// </remarks>
+        public event OnNewWebSocketConnectionDelegate?                  OnWebSocketConnectionAccepted;
+
+        /// <summary>
+        /// An event sent whenever the HTTP connection switched successfully to web socket.
+        /// </summary>
+        public event OnNewWebSocketConnectionDelegate?                  OnNewWebSocketConnection;
+
+        /// <summary>
+        /// An event sent whenever a response to a HTTP request was sent.
+        /// </summary>
+        public event HTTPResponseLogDelegate?                           OnHTTPResponse;
+
+
+        /// <summary>
+        /// An event sent whenever a web socket frame was received.
+        /// </summary>
+        public event OnWebSocketFrameDelegate?                          OnWebSocketFrameReceived;
+
+        /// <summary>
+        /// An event sent whenever a web socket frame was sent.
+        /// </summary>
+        public event OnWebSocketFrameDelegate?                          OnWebSocketFrameSent;
+
+
+        /// <summary>
+        /// An event sent whenever a text message was sent.
+        /// </summary>
+        public event OnWebSocketServerTextMessageSentDelegate?          OnTextMessageSent;
+
+        ///// <summary>
+        ///// An event sent whenever a text message was received.
+        ///// </summary>
+        //public event OnWebSocketServerTextMessageReceivedDelegate?      OnTextMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a binary message was sent.
+        /// </summary>
+        public event OnWebSocketServerBinaryMessageSentDelegate?        OnBinaryMessageSent;
+
+        ///// <summary>
+        ///// An event sent whenever a binary message was received.
+        ///// </summary>
+        //public event OnWebSocketServerBinaryMessageReceivedDelegate?    OnBinaryMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a web socket ping frame was sent.
+        /// </summary>
+        public event OnWebSocketServerPingMessageSentDelegate?          OnPingMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a web socket ping frame was received.
+        /// </summary>
+        public event OnWebSocketServerPingMessageReceivedDelegate?      OnPingMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a web socket pong frame was sent.
+        /// </summary>
+        public event OnWebSocketServerPongMessageSentDelegate?          OnPongMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a web socket pong frame was received.
+        /// </summary>
+        public event OnWebSocketServerPongMessageReceivedDelegate?      OnPongMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a web socket close frame was sent.
+        /// </summary>
+        public event OnWebSocketServerCloseMessageSentDelegate?         OnCloseMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a web socket close frame was received.
+        /// </summary>
+        public event OnWebSocketServerCloseMessageReceivedDelegate?     OnCloseMessageReceived;
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new WebSocket endpoint.
+        /// </summary>
+        /// <param name="HTTPServiceName">An optional HTTP service name.</param>
+        /// <param name="Description">An optional description of this endpoint.</param>
+        /// <param name="RequireAuthentication">Whether clients must authenticate; by default they must.</param>
+        /// <param name="SecWebSocketProtocols">The supported subprotocols, e.g. "ocpp2.1".</param>
+        /// <param name="SubprotocolSelector">An optional selector of the subprotocol among those a client offers.</param>
+        /// <param name="DisableWebSocketPings">Whether to send no pings.</param>
+        /// <param name="WebSocketPingEvery">The ping interval; 30 seconds by default.</param>
+        /// <param name="SlowNetworkSimulationDelay">An optional delay between the bytes sent, for debugging other stacks.</param>
+        /// <param name="ConnectionIdBuilder">Builds the identification of a connection handed over without one.</param>
+        /// <param name="LoggerFactory">An optional logger factory.</param>
+        public AWebSocketEndpoint(String?                       HTTPServiceName              = null,
+                                  I18NString?                   Description                  = null,
+
+                                  Boolean?                      RequireAuthentication        = true,
+                                  IEnumerable<String>?          SecWebSocketProtocols        = null,
+                                  SubprotocolSelectorDelegate?  SubprotocolSelector          = null,
+                                  Boolean                       DisableWebSocketPings        = false,
+                                  TimeSpan?                     WebSocketPingEvery           = null,
+                                  TimeSpan?                     SlowNetworkSimulationDelay   = null,
+
+                                  ConnectionIdBuilder?          ConnectionIdBuilder          = null,
+                                  ILoggerFactory?               LoggerFactory                = null)
+
+        {
+
+            this.HTTPServiceName             = HTTPServiceName            ?? "GraphDefined HTTP WebSocket Service v2.0";
+            this.Description                 = Description                ?? I18NString.Empty;
+
+            this.RequireAuthentication       = RequireAuthentication      ?? true;
+            this.secWebSocketProtocols       = SecWebSocketProtocols is not null
+                                                   ? [.. SecWebSocketProtocols]
+                                                   : [];
+            this.SubprotocolSelector         = SubprotocolSelector;
+
+            this.DisableWebSocketPings       = DisableWebSocketPings;
+            this.WebSocketPingEvery          = WebSocketPingEvery ?? DefaultWebSocketPingEvery;
+            this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
+
+            this.ConnectionIdBuilder         = ConnectionIdBuilder        ?? ((sender, timestamp, localSocket, remoteSocket) => $"{remoteSocket} -> {localSocket}");
+
+            this.LoggerFactory               = LoggerFactory              ?? NullLoggerFactory.Instance;
+            this.Logger                      = this.LoggerFactory.CreateLogger(GetType().FullName ?? nameof(AWebSocketEndpoint));
+
+        }
+
+        #endregion
+
+
+        #region SendTextMessage    (Connection, TextMessage,    ...)
+
+        /// <summary>
+        /// Send a text web socket frame.
+        /// </summary>
+        /// <param name="Connection">The web socket connection.</param>
+        /// <param name="TextMessage">The text message to send.</param>
+        /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
+        public Task<SentStatus> SendTextMessage(WebSocketServerConnection  Connection,
+                                                String                     TextMessage,
+                                                EventTracking_Id?          EventTrackingId     = null,
+                                                CancellationToken          CancellationToken   = default)
+
+            => SendWebSocketFrame(
+                   Connection,
+                   Connection.PerMessageDeflate is not null
+                       ? WebSocketFrame.TextRaw(
+                             Connection.PerMessageDeflate.Compress(TextMessage.ToUTF8Bytes()),
+                             Rsv1: WebSocketFrame.Rsv.On
+                         )
+                       : WebSocketFrame.Text(TextMessage),
+                   EventTrackingId,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region SendBinaryMessage  (Connection, BinaryMessage,  ...)
+
+        /// <summary>
+        /// Send a binary web socket frame.
+        /// </summary>
+        /// <param name="Connection">The web socket connection.</param>
+        /// <param name="BinaryMessage">The binary message to send.</param>
+        /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
+        public Task<SentStatus> SendBinaryMessage(WebSocketServerConnection  Connection,
+                                                  Byte[]                     BinaryMessage,
+                                                  EventTracking_Id?          EventTrackingId     = null,
+                                                  CancellationToken          CancellationToken   = default)
+
+            => SendWebSocketFrame(
+                   Connection,
+                   Connection.PerMessageDeflate is not null
+                       ? WebSocketFrame.Binary(
+                             Connection.PerMessageDeflate.Compress(BinaryMessage),
+                             Rsv1: WebSocketFrame.Rsv.On
+                         )
+                       : WebSocketFrame.Binary(BinaryMessage),
+                   EventTrackingId,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region SendWebSocketFrame (Connection, WebSocketFrame, ...)
+
+        /// <summary>
+        /// Send a web socket frame.
+        /// </summary>
+        /// <param name="Connection">The web socket connection.</param>
+        /// <param name="WebSocketFrame">The web socket frame to send.</param>
+        /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
+        public async Task<SentStatus> SendWebSocketFrame(WebSocketServerConnection  Connection,
+                                                         WebSocketFrame             WebSocketFrame,
+                                                         EventTracking_Id?          EventTrackingId     = null,
+                                                         CancellationToken          CancellationToken   = default)
+        {
+
+            EventTrackingId ??= EventTracking_Id.New;
+
+            var sentStatus = await Connection.SendWebSocketFrame(
+                                       WebSocketFrame,
+                                       CancellationToken
+                                   );
+
+            #region Send OnWebSocketFrameSent event
+
+            await SendOnWebSocketFrameSent(
+                      Timestamp.Now,
+                      Connection,
+                      EventTrackingId,
+                      WebSocketFrame,
+                      CancellationToken
+                  );
+
+            #endregion
+
+            #region Send OnTextMessageSent    event
+
+            if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
+                await OnTextMessageSent.InvokeAllAsync(
+                          handler => handler(
+                                         Timestamp.Now,
+                                         this,
+                                         Connection,
+                                         WebSocketFrame,
+                                         EventTrackingId,
+                                         WebSocketFrame.Payload.ToUTF8String(),
+                                         sentStatus,
+                                         CancellationToken
+                                     ),
+                          Logger
+                      );
+
+            #endregion
+
+            #region Send OnBinaryMessageSent  event
+
+            if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
+                await OnBinaryMessageSent.InvokeAllAsync(
+                          handler => handler(
+                                         Timestamp.Now,
+                                         this,
+                                         Connection,
+                                         WebSocketFrame,
+                                         EventTrackingId,
+                                         WebSocketFrame.Payload,
+                                         sentStatus,
+                                         CancellationToken
+                                     ),
+                          Logger
+                      );
+
+            #endregion
+
+            #region Send OnPingMessageSent    event
+
+            if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Ping)
+                await OnPingMessageSent.InvokeAllAsync(
+                          handler => handler(
+                                         Timestamp.Now,
+                                         this,
+                                         Connection,
+                                         WebSocketFrame,
+                                         EventTrackingId,
+                                         WebSocketFrame.Payload,
+                                         sentStatus,
+                                         CancellationToken
+                                     ),
+                          Logger
+                      );
+
+            #endregion
+
+            #region Send OnPongMessageSent    event
+
+            if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Pong)
+                await OnPongMessageSent.InvokeAllAsync(
+                          handler => handler(
+                                         Timestamp.Now,
+                                         this,
+                                         Connection,
+                                         WebSocketFrame,
+                                         EventTrackingId,
+                                         WebSocketFrame.Payload,
+                                         sentStatus,
+                                         CancellationToken
+                                     ),
+                          Logger
+                      );
+
+            #endregion
+
+            #region Send OnCloseMessageSent   event
+
+            if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Close)
+                await OnCloseMessageSent.InvokeAllAsync(
+                          handler => handler(
+                                         Timestamp.Now,
+                                         this,
+                                         Connection,
+                                         WebSocketFrame,
+                                         EventTrackingId,
+                                         WebSocketFrame.GetClosingStatusCode(),
+                                         WebSocketFrame.GetClosingReason(),
+                                         sentStatus,
+                                         CancellationToken
+                                     ),
+                          Logger
+                      );
+
+            #endregion
+
+            return sentStatus;
+
+        }
+
+        #endregion
+
+        #region RemoveConnection   (Connection)
+
+        /// <summary>
+        /// Remove the given web socket connection.
+        /// </summary>
+        /// <param name="Connection">An HTTP WebSocket connection.</param>
+        public Boolean RemoveConnection(WebSocketServerConnection Connection)
+        {
+
+            Logger.LogDebug("Removing HTTP WebSocket connection with {RemoteSocket}.", Connection.RemoteSocket);
+
+            return ForgetConnection(Connection);
+
+        }
+
+        #endregion
+
+        #region (private) ForgetConnection (Connection)
+
+        /// <summary>
+        /// Take the given connection off the books - if it is still the one
+        /// they have for its remote socket.
+        /// </summary>
+        /// <param name="Connection">An HTTP WebSocket connection.</param>
+        /// <remarks>
+        /// The books are kept by remote socket, and a client that comes back
+        /// from the same port gets the entry of the connection before it. That
+        /// one is cleaned up when its loop ends, which can be after the new one
+        /// came in, and removing by remote socket alone then removed the new
+        /// connection instead: no longer listed, no longer counted against its
+        /// address, while it went on running.
+        /// </remarks>
+        private Boolean ForgetConnection(WebSocketServerConnection Connection)
+        {
+
+            while (webSocketConnections.TryGetValue(Connection.RemoteSocket, out var weakReference))
+            {
+
+                if (!weakReference.TryGetTarget(out var registeredConnection) ||
+                    !ReferenceEquals(registeredConnection, Connection))
+                {
+                    return false;
+                }
+
+                // Removes the entry only while it still is this very weak reference,
+                // or else looks again what took its place in the meantime.
+                if (webSocketConnections.TryRemove(KeyValuePair.Create(Connection.RemoteSocket, weakReference)))
+                    return true;
+
+            }
+
+            return false;
+
+        }
+
+        #endregion
+
+
+        #region AddOrUpdateHTTPBasicAuth(Username, Password)
+
+        /// <summary>
+        /// Add the given HTTP Basic Authentication password for the given username.
+        /// </summary>
+        /// <param name="Username">The unique identification of the username.</param>
+        /// <param name="Password">The password of the charging station.</param>
+        public HTTPBasicAuthentication AddOrUpdateHTTPBasicAuth(String Username,
+                                                                String Password)
+        {
+
+            ClientLogins.AddOrUpdate(
+                             Username,
+                             SecurePassword.Create(Password),
+                             (chargingStationId, password) => SecurePassword.Create(Password)
+                         );
+
+            return HTTPBasicAuthentication.Create(
+                       Username,
+                       Password
+                   );
+
+        }
+
+        #endregion
+
+        #region RemoveHTTPBasicAuth     (Username)
+
+        /// <summary>
+        /// Remove the given HTTP Basic Authentication for the given username.
+        /// </summary>
+        /// <param name="Username">The unique identification of the username.</param>
+        public Boolean RemoveHTTPBasicAuth(String Username)
+        {
+
+            if (ClientLogins.ContainsKey(Username))
+                return ClientLogins.TryRemove(Username, out _);
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region (protected virtual) AuthenticateAsync(Connection, Request, CancellationToken)
+
+        /// <summary>
+        /// Who the client asking for an upgrade is, if it is anybody this server
+        /// knows: its login, or null. Asked only when RequireAuthentication is set,
+        /// and only after the OnValidateWebSocketConnection handlers and the checks
+        /// of the handshake itself have let the request through. A login lets the
+        /// upgrade happen and becomes the connection's Login; null refuses it with
+        /// 401 Unauthorized.
+        /// </summary>
+        /// <remarks>
+        /// What this knows by default: HTTP Basic credentials in ClientLogins, and a
+        /// raw TOTP in ClientTOTPConfig. A server that knows its clients by something
+        /// else - a client certificate, a store of its own, credentials in the query
+        /// string - overrides it, and asks the base for whatever it keeps of these.
+        /// What an override throws refuses the upgrade too, with 500 - or with 503
+        /// where it threw only because its token was cancelled, see CalledOff.
+        /// </remarks>
+        /// <param name="Connection">The connection asking for the upgrade, with its client certificate, if there is one.</param>
+        /// <param name="Request">The HTTP request asking for the upgrade.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        /// <returns>The login of the authenticated client, or null.</returns>
+        protected virtual Task<String?> AuthenticateAsync(WebSocketServerConnection  Connection,
+                                                          HTTPRequest                Request,
+                                                          CancellationToken          CancellationToken)
+        {
+
+            if (Request.Authorization is HTTPBasicAuthentication basicAuthentication &&
+                ClientLogins.TryGetValue(basicAuthentication.Username, out var storedPassword) &&
+                storedPassword.Verify(basicAuthentication.Password))
+            {
+                return Task.FromResult<String?>(basicAuthentication.Username);
+            }
+
+            if (Request.Authorization is HTTPTOTPAuthentication totpAuthentication &&
+                ClientTOTPConfig.TryGetValue(totpAuthentication.Login, out var config))
+            {
+
+                // SslStream does not expose TLS exporter material here. Reject a
+                // channel-bound credential rather than verify an unbound token.
+                if (config.UseTLSExporterMaterial == true ||
+                    totpAuthentication.Type != TOTPHTTPHeaderType.RAW)
+                    return Task.FromResult<String?>(null);
+
+                try
+                {
+
+                    var (previous, current, next, _, _) = TOTPGenerator.GenerateTOTPs(
+                                                             config.SharedSecret,
+                                                             config.ValidityTime,
+                                                             config.Length,
+                                                             config.Alphabet,
+                                                             Timestamp.Now,
+                                                             null,
+                                                             config.HashAlgorithm
+                                                         );
+
+                    if (MatchesToken(totpAuthentication.TOTP, previous) ||
+                        MatchesToken(totpAuthentication.TOTP, current)  ||
+                        MatchesToken(totpAuthentication.TOTP, next))
+                    {
+                        return Task.FromResult<String?>(totpAuthentication.Login);
+                    }
+
+                }
+                catch (ArgumentException)
+                {
+                    // Invalid server-side TOTP configuration must fail closed.
+                }
+
+            }
+
+            return Task.FromResult<String?>(null);
+
+        }
+
+        #endregion
+
+        #region (private static)    MatchesToken(Supplied, Expected)
+
+        /// <summary>
+        /// Whether a TOTP a client sent is one this server generated, compared
+        /// in a time that does not depend on where the two differ.
+        /// </summary>
+        /// <param name="Supplied">The TOTP the client sent.</param>
+        /// <param name="Expected">A TOTP this server generated.</param>
+        private static Boolean MatchesToken(String  Supplied,
+                                            String  Expected)
+
+            => Supplied.Length == Expected.Length &&
+               CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(Supplied),
+                                                       Encoding.UTF8.GetBytes(Expected));
+
+        #endregion
+
+
+        public void AddSecWebSocketProtocol(String Protocol)
+        {
+            secWebSocketProtocols.Add(Protocol);
+        }
+
+
+        #region AcceptUpgradedConnectionAsync(NetworkStream, LocalSocket, RemoteSocket, RequestBytes, ...)
+
+        /// <summary>
+        /// Takes over a connection somebody else accepted and speaks WebSocket
+        /// on it.
+        /// </summary>
+        /// <param name="NetworkStream">The stream, already through TLS if there is any.</param>
+        /// <param name="LocalSocket">Where this end is.</param>
+        /// <param name="RemoteSocket">Where the other end is.</param>
+        /// <param name="RequestBytes">
+        /// The bytes of the HTTP request that asked for the upgrade, exactly as
+        /// they would have arrived here.
+        /// </param>
+        /// <param name="ClientCertificate">The certificate the other end presented, if any.</param>
+        /// <param name="TCPConnection">
+        /// The TCP connection the stream belongs to, where the caller has one:
+        /// what ValidateConnection, and through it every handler of
+        /// OnValidateTCPConnection, is asked about.
+        /// </param>
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
+        /// <remarks>
+        /// <b>For a WebSocket mounted on an HTTP path</b> - see
+        /// <c>WebSocketUpgrade</c>. An HTTP server has accepted the connection,
+        /// done the TLS and read the request; from the path it knows this is a
+        /// WebSocket, and it hands the stream over here.
+        ///
+        /// <b>The connection is validated first, as though it had been accepted
+        /// here.</b> On a port of its own this server asks ValidateConnection -
+        /// and through it every handler of OnValidateTCPConnection - before a
+        /// byte of HTTP is read. A connection that is handed over was accepted
+        /// elsewhere, so the same question is asked at the hand-over instead:
+        /// after the HTTP server's TLS and after the request that asked for the
+        /// upgrade, but before anything else of this server's has seen the
+        /// connection. It used not to be asked at all, and a handler meant as a
+        /// firewall kept nobody out of a server lent to a path - without a word
+        /// said about it.
+        ///
+        /// <b>The handshake is not redone and not duplicated.</b> The request is
+        /// handed back in as bytes and the ordinary loop parses it, validates
+        /// it against RFC 6455 section 4.2.1, negotiates the subprotocol and
+        /// permessage-deflate, and writes the 101 itself - the same code, once.
+        /// Two copies of a security handshake is how one of them comes to be a
+        /// version behind, and this one refuses connections for a living.
+        ///
+        /// What that costs is that the request is reconstructed from what was
+        /// parsed rather than passed through byte for byte. Nothing in the
+        /// handshake reads anything the parse did not keep, and a client asking
+        /// for an upgrade waits for the 101 before it says anything else, so
+        /// there is nothing after the request to lose.
+        /// </remarks>
+        public async Task AcceptUpgradedConnectionAsync(Stream             NetworkStream,
+                                                        IPSocket           LocalSocket,
+                                                        IPSocket           RemoteSocket,
+                                                        Byte[]             RequestBytes,
+                                                        X509Certificate2?  ClientCertificate   = null,
+                                                        TCPConnection?     TCPConnection       = null,
+                                                        CancellationToken  CancellationToken   = default)
+        {
+
+            #region Validate the connection, as though it had been accepted here
+
+            var eventTrackingId = EventTracking_Id.New;
+
+            ConnectionFilterResponse verdict;
+
+            if (TCPConnection is not null)
+                verdict = await ValidateConnection(
+                                    Timestamp.Now,
+                                    TCPConnection.TCPServer,
+                                    TCPConnection,
+                                    eventTrackingId,
+                                    CancellationToken
+                                );
+
+            // Nobody is asking, so there is nothing to decide.
+            else if (OnValidateTCPConnection is null)
+                verdict = ConnectionFilterResponse.Accepted();
+
+            // Somebody is, and there is nothing to show them: whoever handed the
+            // stream over did not say which connection it belongs to. A handler
+            // that is there to look at the connection cannot look, and that is
+            // a refusal for the same reason a handler that fails is one - a
+            // filter that could not decide whether a connection may come in has
+            // not said that it may.
+            else
+            {
+
+                Logger.LogWarning("Refusing the WebSocket connection handed over from {RemoteSocket}: {EventName} has handlers, and there is no TCP connection to show them.",
+                                  RemoteSocket,
+                                  nameof(OnValidateTCPConnection));
+
+                verdict = ConnectionFilterResponse.Rejected($"{nameof(OnValidateTCPConnection)} has handlers, and a connection handed over without its TCP connection cannot be shown to them.");
+
+            }
+
+            #endregion
+
+            #region Answer a refusal: 403 Forbidden - or 503, where it was called off
+
+            if (verdict.Result == ConnectionFilterResult.Rejected)
+            {
+
+                // Answered, and not reset as on a port of its own. There the
+                // connection is refused before a byte of HTTP is read; here the
+                // handshake has been read, and the client is waiting for an HTTP
+                // answer - which is what it gets for every other refusal on this
+                // path. RFC 6455, section 4.2.2: a server that does not wish to
+                // accept a connection answers the handshake with an HTTP error,
+                // and 403 Forbidden is the RFC's own example.
+                //
+                // Unless the refusal is a handler's that was called off while it
+                // was being asked - see AskTCPConnectionValidator. Nobody said
+                // no, the server is going away, and the answer says so as it does
+                // for a validation or an authentication called off: 503, not now.
+                //
+                // Why goes to OnNewTCPConnectionRejected and not into the answer:
+                // the reason can carry the message of a handler that failed, and
+                // a firewall does not explain itself to whoever it keeps out.
+                var calledOff  = verdict is CalledOffTCPValidation;
+
+                // For the HTTP server, which reports the connection closed once
+                // it is done with it: by a filter rule, as on a port of its own -
+                // unless nobody said no, and the server is going away.
+                if (!calledOff)
+                    TCPConnection?.RecordClosedBy(ConnectionClosedBy.FilterRule);
+
+                var refusal    = new HTTPResponse.Builder(
+                                     Timestamp.Now,
+                                     eventTrackingId,
+                                     TimeSpan.Zero,
+                                     new HTTPSource(),
+                                     LocalSocket,
+                                     RemoteSocket,
+                                     ConnectionType.Close,
+                                     calledOff
+                                         ? HTTPStatusCode.ServiceUnavailable
+                                         : HTTPStatusCode.Forbidden
+                                 ) {
+                                     Server       = HTTPServiceName,
+                                     ContentType  = HTTPContentType.Text.PLAIN,
+                                     Content      = (calledOff
+                                                         ? "The WebSocket upgrade was called off."
+                                                         : "The connection was refused.").ToUTF8Bytes()
+                                 }.AsImmutable;
+
+                // Written with a deadline of its own, and not with the token of
+                // the hand-over: where that was cancelled - which is what calls a
+                // validation off - an answer written with it is never written at
+                // all. Three seconds, as for every write on a WebSocket
+                // connection; for a few dozen bytes on a socket that is not
+                // stuck, it is not waited for.
+                using var writeTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+
+                try
+                {
+
+                    // The whole message: with a body, EntirePDU is header, empty
+                    // line and body.
+                    await NetworkStream.WriteAsync(refusal.EntirePDU.ToUTF8Bytes(), writeTimeout.Token);
+                    await NetworkStream.FlushAsync(writeTimeout.Token);
+
+                }
+                catch (Exception e)
+                {
+                    Logger.LogDebug(e, "Could not answer the refused WebSocket connection from {RemoteSocket}.", RemoteSocket);
+                }
+
+                // And closed, as the answer says it will be - the way a
+                // connection that was let in is closed when its loop ends: the
+                // stream, and no more. The socket is closed by whoever opened it,
+                // which for a WebSocket on an HTTP path is the HTTP server; it
+                // gets the stream back closed after every session anyway. Left
+                // open, a caller that is not the HTTP server of this library had
+                // a client waiting for a close it had been promised.
+                try
+                {
+                    NetworkStream.Close();
+                }
+                catch
+                { }
+
+                // The TCP server that accepted it, or this one when it is a server itself.
+                await SendNewTCPConnectionRejected(
+                          TCPConnection?.TCPServer ?? this as ITCPServer,
+                          Timestamp.Now,
+                          eventTrackingId,
+                          RemoteSocket,
+                          TCPConnection?.ConnectionId ?? ConnectionIdBuilder(this, Timestamp.Now, LocalSocket, RemoteSocket),
+                          verdict.Reason
+                      );
+
+                return;
+
+            }
+
+            #endregion
+
+            await RunConnectionAsync(
+                      new WebSocketServerConnection(
+
+                          WebSocketServer:              this,
+
+                          // The request that asked for the upgrade goes in front of
+                          // the stream, so the loop below reads it exactly as it
+                          // would have read it off the socket itself. See
+                          // PrefixedStream for why it is not handed to the loop as
+                          // a starting buffer instead.
+                          NetworkStream:                new PrefixedStream(RequestBytes, NetworkStream),
+                          LocalSocket:                  LocalSocket,
+                          RemoteSocket:                 RemoteSocket,
+                          ClientCertificate:            ClientCertificate,
+
+                          HTTPRequest:                  null,
+                          HTTPResponse:                 null,
+
+                          MaxTextMessageSizeIn:         MaxTextMessageSizeIn,
+                          MaxTextMessageSizeOut:        MaxTextMessageSizeOut,
+                          MaxTextFragmentLengthIn:      MaxTextFragmentLengthIn,
+                          MaxTextFragmentLengthOut:     MaxTextFragmentLengthOut,
+
+                          MaxBinaryMessageSizeIn:       MaxBinaryMessageSizeIn,
+                          MaxBinaryMessageSizeOut:      MaxBinaryMessageSizeOut,
+                          MaxBinaryFragmentLengthIn:    MaxBinaryFragmentLengthIn,
+                          MaxBinaryFragmentLengthOut:   MaxBinaryFragmentLengthOut,
+
+                          SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
+
+                      ),
+                      CancellationToken
+                  );
+
+        }
+
+        #endregion
+
+        #region (protected) RunConnectionAsync(WebSocketConnection, SeedBytes, token)
+
+        /// <summary>
+        /// The handshake and the frame loop, for a connection however it was
+        /// come by.
+        /// </summary>
+        protected async Task RunConnectionAsync(WebSocketServerConnection  webSocketConnection,
+                                                CancellationToken          token)
+        {
+
+            var x = Task.Factory.StartNew(async () => {
+
+                                        // Linked to the connection as well as to the server, and the
+                                        // first of the two is not a nicety.
+                                        //
+                                        // Close() lays the connection down and then cancels this token.
+                                        // For a connection that owns its socket that is belt and braces -
+                                        // closing the socket makes a pending read fail at once. For a
+                                        // connection that was handed a stream it is the only thing that
+                                        // works: disposing a stream does not necessarily end a read that
+                                        // is already in flight, so without this the loop sits there until
+                                        // the next ping interval and only then notices. Ten seconds,
+                                        // measured - and in that time a server that has just thrown
+                                        // somebody off still believes they are connected.
+                                        //
+                                        // Out here rather than with the rest of the loop's data, so that
+                                        // the finally at the bottom can reach it on every way out.
+                                        var cts2 = CancellationTokenSource.CreateLinkedTokenSource(
+                                                       token,
+                                                       webSocketConnection.CancellationTokenSource.Token
+                                                   );
+
+                                        try
+                                        {
+
+                                            {
+
+                                                #region Data
+
+                                                Boolean        IsStillHTTP      = true;
+                                                String?        httpMethod       = null;
+                                                Byte[]         bytes            = [];
+                                                Byte[]         bytesLeftOver    = [];
+                                                HTTPResponse?  httpResponse     = null;
+                                                var            pingCounter      = 1UL;
+
+                                                var token2                      = cts2.Token;
+                                                var lastWebSocketPingTimestamp  = Timestamp.Now;
+                                                var lastActivityTimestamp       = Timestamp.Now;
+                                                var handshakeStart              = Timestamp.Now;
+                                                var sendErrors                  = 0;
+
+                                                WebSocketFrame.Opcodes? fragmentOpcode      = null;
+                                                var                     fragmentPayload     = new MemoryStream();
+                                                var                     fragmentCompressed  = false;
+                                                var                     utf8Validator       = new IncrementalUtf8Validator();
+
+                                                #endregion
+
+                                                #region Per-IP connection limit (connection-flood / Slowloris protection)
+
+                                                if (MaxConnectionsPerIP > 0)
+                                                {
+
+                                                    var remoteIP        = webSocketConnection.RemoteSocket.IPAddress;
+                                                    var sameIPConnCount = webSocketConnections.Keys.Count(socket => socket.IPAddress.Equals(remoteIP));
+
+                                                    if (sameIPConnCount >= MaxConnectionsPerIP)
+                                                    {
+                                                        Logger.LogWarning(
+                                                            "Rejecting WebSocket connection from {RemoteSocket}: per-IP connection limit ({Limit}) reached.",
+                                                            webSocketConnection.RemoteSocket,
+                                                            MaxConnectionsPerIP
+                                                        );
+                                                        await webSocketConnection.Close();
+                                                        return;
+                                                    }
+
+                                                }
+
+                                                #endregion
+
+                                                #region Config web socket connection
+
+                                                webSocketConnection.ReadTimeout             = TimeSpan.FromSeconds(20);
+                                                webSocketConnection.WriteTimeout            = TimeSpan.FromSeconds(3);
+                                                webSocketConnection.MaxBackpressure         = MaxBackpressure;
+                                                webSocketConnection.BackpressureBehaviour   = BackpressureBehaviour;
+
+                                                // A connection still on the books from the same remote socket
+                                                // is one that has not been cleaned up yet: this one takes its
+                                                // place, and ForgetConnection leaves it here when the old one
+                                                // gets round to it.
+                                                webSocketConnections[webSocketConnection.RemoteSocket] = new WeakReference<WebSocketServerConnection>(webSocketConnection);
+
+                                                #endregion
+
+                                                #region Send OnNewTCPConnection event
+
+                                                await OnNewTCPConnection.InvokeAllAsync(
+                                                          handler => handler(
+                                                                         Timestamp.Now,
+                                                                         this,
+                                                                         webSocketConnection,
+                                                                         EventTracking_Id.New,
+                                                                         token2
+                                                                     ),
+                                                          Logger
+                                                      );
+
+                                                #endregion
+
+                                                #region Send OnNewTLSConnection event
+
+                                                if (webSocketConnection.ClientCertificate is not null)
+                                                    await OnNewTLSConnection.InvokeAllAsync(
+                                                              handler => handler(
+                                                                             Timestamp.Now,
+                                                                             this,
+                                                                             webSocketConnection,
+                                                                             EventTracking_Id.New,
+                                                                             token
+                                                                         ),
+                                                              Logger
+                                                          );
+
+                                                #endregion
+
+                                                while (!token2.IsCancellationRequested &&
+                                                       !webSocketConnection.IsClosed &&
+                                                        sendErrors < 3)
+                                                {
+
+                                                    #region Main loop: asynchronously waiting for data... and sending a regular web socket ping
+
+                                                    if (bytes.Length == 0)
+                                                    {
+
+                                                        var readBuffer  = new Byte[64 * 1024];
+                                                        var read        = 0;
+                                                        var readTimeout = false;
+
+                                                        // Instead of busy-polling DataAvailable, asynchronously wait for
+                                                        // data with a timeout equal to the ping cadence. On timeout a ping
+                                                        // is sent; otherwise the received bytes are processed below.
+                                                        using (var readCts = CancellationTokenSource.CreateLinkedTokenSource(token2))
+                                                        {
+
+                                                            if (IsStillHTTP && HandshakeTimeout > TimeSpan.Zero)
+                                                            {
+                                                                // During the opening handshake bound the wait by the handshake
+                                                                // deadline (Slowloris protection), independent of the ping cadence.
+                                                                var untilDeadline = (handshakeStart + HandshakeTimeout) - Timestamp.Now;
+                                                                readCts.CancelAfter(untilDeadline > TimeSpan.Zero ? untilDeadline : TimeSpan.FromMilliseconds(1));
+                                                            }
+                                                            else if (!DisableWebSocketPings)
+                                                            {
+                                                                var untilNextPing = (lastWebSocketPingTimestamp + WebSocketPingEvery) - Timestamp.Now;
+                                                                readCts.CancelAfter(untilNextPing > TimeSpan.Zero ? untilNextPing : TimeSpan.FromMilliseconds(1));
+                                                            }
+
+                                                            try
+                                                            {
+                                                                read = await webSocketConnection.ReadAsync(readBuffer, readCts.Token);
+                                                            }
+                                                            catch (OperationCanceledException) when (!token2.IsCancellationRequested)
+                                                            {
+                                                                readTimeout = true;
+                                                            }
+                                                            catch (Exception e)
+                                                            {
+
+                                                                // A reset, or a socket closed under the read - and
+                                                                // whoever closed it here has said so before.
+                                                                if (e is IOException or SocketException)
+                                                                    webSocketConnection.RecordClosedBy(ConnectionClosedBy.Client);
+
+                                                                Logger.LogDebug(e, "Read error on WebSocket connection {RemoteSocket}.", webSocketConnection.RemoteSocket);
+                                                                break;
+
+                                                            }
+
+                                                        }
+
+                                                        #region Send a regular web socket "ping" on read timeout
+
+                                                        if (readTimeout)
+                                                        {
+
+                                                            // While still in the opening-handshake phase, a read timeout means
+                                                            // the handshake deadline was exceeded (Slowloris protection): drop
+                                                            // the connection. Pings are meaningless before the upgrade.
+                                                            if (IsStillHTTP)
+                                                            {
+
+                                                                if (HandshakeTimeout > TimeSpan.Zero)
+                                                                {
+                                                                    Logger.LogWarning(
+                                                                        "WebSocket opening handshake from {RemoteSocket} timed out after {Timeout}; closing connection.",
+                                                                        webSocketConnection.RemoteSocket,
+                                                                        HandshakeTimeout
+                                                                    );
+                                                                    await webSocketConnection.Close();
+                                                                    break;
+                                                                }
+
+                                                                // Handshake timeout disabled: keep waiting for the request.
+                                                                continue;
+
+                                                            }
+
+                                                            // Zombie/half-open detection: if no frame (data or pong) has been
+                                                            // received within MaxOutstandingPings ping intervals, the peer is
+                                                            // gone even though Socket.Poll cannot see the half-open TCP connection.
+                                                            // Tear the connection down locally (no close frame to a dead peer;
+                                                            // 1006 is reserved and must not be sent on the wire, RFC 6455 Section 7.4.1).
+                                                            if (!DisableWebSocketPings &&
+                                                                MaxOutstandingPings > 0 &&
+                                                                Timestamp.Now - lastActivityTimestamp > TimeSpan.FromTicks(WebSocketPingEvery.Ticks * MaxOutstandingPings))
+                                                            {
+                                                                Logger.LogWarning(
+                                                                    "WebSocket connection to {RemoteSocket} timed out (no data or pong for {Silence}); closing dead connection.",
+                                                                    webSocketConnection.RemoteSocket,
+                                                                    Timestamp.Now - lastActivityTimestamp
+                                                                );
+                                                                break;
+                                                            }
+
+                                                            if (!DisableWebSocketPings)
+                                                            {
+
+                                                                var eventTrackingId  = EventTracking_Id.New;
+                                                                var payload          = $"{pingCounter++}:{UUIDv7.Generate()}";
+                                                                var frame            = WebSocketFrame.Ping(payload.ToUTF8Bytes());
+                                                                var sentStatus       = await SendWebSocketFrame(
+                                                                                                 webSocketConnection,
+                                                                                                 frame,
+                                                                                                 eventTrackingId,
+                                                                                                 token2
+                                                                                             );
+
+                                                                if      (sentStatus == SentStatus.Success)
+                                                                { }
+                                                                else if (sentStatus == SentStatus.FatalError)
+                                                                {
+                                                                    await webSocketConnection.Close(
+                                                                              WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                                          );
+                                                                }
+                                                                else
+                                                                {
+                                                                    sendErrors++;
+                                                                    Logger.LogWarning(
+                                                                        "WebSocket connection to {RemoteSocket}: Ping failed ({SendErrors}).",
+                                                                        webSocketConnection.RemoteSocket,
+                                                                        sendErrors
+                                                                    );
+                                                                }
+
+                                                                lastWebSocketPingTimestamp = Timestamp.Now;
+
+                                                            }
+
+                                                            continue;
+
+                                                        }
+
+                                                        #endregion
+
+                                                        // A read of zero bytes means the remote endpoint closed the TCP connection!
+                                                        if (read == 0)
+                                                        {
+                                                            webSocketConnection.RecordClosedBy(ConnectionClosedBy.Client);
+                                                            break;
+                                                        }
+
+                                                        // Any received bytes prove the peer is alive (liveness for zombie detection).
+                                                        lastActivityTimestamp = Timestamp.Now;
+
+                                                        bytes = new Byte[bytesLeftOver.Length + read];
+
+                                                        if (bytesLeftOver.Length > 0)
+                                                            Array.Copy(bytesLeftOver, 0, bytes, 0, bytesLeftOver.Length);
+
+                                                        Array.Copy(readBuffer, 0, bytes, bytesLeftOver.Length, read);
+
+                                                        // Bound the buffered opening-handshake request (a peer sending an
+                                                        // unterminated or oversized header block is dropped, Slowloris protection).
+                                                        if (IsStillHTTP &&
+                                                            MaxHandshakeRequestSize > 0 &&
+                                                            (UInt64) bytes.Length > MaxHandshakeRequestSize)
+                                                        {
+                                                            Logger.LogWarning(
+                                                                "WebSocket opening handshake from {RemoteSocket} exceeded the maximum request size of {MaxSize} bytes; closing connection.",
+                                                                webSocketConnection.RemoteSocket,
+                                                                MaxHandshakeRequestSize
+                                                            );
+                                                            await webSocketConnection.Close();
+                                                            break;
+                                                        }
+
+                                                        // The handshake is parsed once its header has ended, and not
+                                                        // before. A read returns what has arrived, and that need not be
+                                                        // all that was sent: a slow link, a TLS record boundary or a
+                                                        // proxy passing on what it has can split a request anywhere.
+                                                        // Parsed from its first part, a request was refused for the
+                                                        // header fields still on their way - "The 'Connection: Upgrade'
+                                                        // header is missing!" - or did not parse at all. So what has
+                                                        // arrived is kept, and read on to, until the empty line that
+                                                        // ends the header is in.
+                                                        //
+                                                        // Bounded as reading was before: the size check above sees all
+                                                        // that is kept, and every read in the meantime ends at the
+                                                        // handshake deadline, which runs from the start of the
+                                                        // connection and does not move. And only a request that can
+                                                        // still become a "GET " is waited for; anything else is turned
+                                                        // away below, at once, as it always was.
+                                                        if (IsStillHTTP)
+                                                        {
+
+                                                            if (IsAnUnfinishedGET(bytes))
+                                                            {
+                                                                bytesLeftOver  = bytes;
+                                                                bytes          = [];
+                                                                continue;
+                                                            }
+
+                                                            bytesLeftOver = [];
+
+                                                        }
+
+                                                        httpMethod = IsStillHTTP && bytes.Length >= 4
+                                                                         ? Encoding.UTF8.GetString(bytes, 0, 4)
+                                                                         : String.Empty;
+
+                                                    }
+
+                                                    #endregion
+
+
+                                                    #region A web socket handshake...
+
+                                                    if (httpMethod == "GET ")
+                                                    {
+
+                                                        #region Parse HTTP request...
+
+                                                        var sharedSubprotocols   = Enumerable.Empty<String>();
+                                                        var selectedSubprotocol  = String.Empty;
+
+                                                        // GET / HTTP/1.1
+                                                        // Host:                    127.0.0.1:51693
+                                                        // Connection:              Upgrade
+                                                        // Upgrade:                 websocket
+                                                        // Sec-WebSocket-Key:       I7uShTZm0dkbf5TqbL7QGg==
+                                                        // Sec-WebSocket-Protocol:  ocpp2.0.1, ocpp2.1
+                                                        // Sec-WebSocket-Version:   13
+                                                        // Authorization:           Basic Z3c6Z3cyY3NtczFfMTIzNDU2Nzg=
+                                                        // X-OCPP-NetworkingMode:   OverlayNetwork
+
+                                                        // GET / HTTP/1.1
+                                                        // Host:                    127.0.0.1:51535
+                                                        // Connection:              Upgrade
+                                                        // Upgrade:                 websocket
+                                                        // Sec-WebSocket-Key:       UxdM/tiYhE4N7VhSAwX84w==
+                                                        // Sec-WebSocket-Version:   13
+                                                        // Authorization:           Basic Z3c6Z3cyY3NtczJfMTIzNDU2Nzg=
+                                                        // X-OCPP-NetworkingMode:   OverlayNetwork
+
+                                                        // With the sockets of the connection and the certificate the
+                                                        // client showed in its TLS handshake. Parsed from its bytes
+                                                        // alone, the request said localhost:443 at both ends, and no
+                                                        // client certificate, whatever its connection knew - and the
+                                                        // validators and AuthenticateAsync, which ask the request,
+                                                        // were told so. A request of an HTTP server has always had
+                                                        // both.
+                                                        if (HTTPRequest.TryParse(bytes,
+                                                                                 out var httpRequest,
+                                                                                 HTTPSource:         new HTTPSource(webSocketConnection.RemoteSocket),
+                                                                                 LocalSocket:        webSocketConnection.LocalSocket,
+                                                                                 RemoteSocket:       webSocketConnection.RemoteSocket,
+                                                                                 ClientCertificate:  webSocketConnection.ClientCertificate,
+                                                                                 CancellationToken:  token2))
+                                                        {
+
+                                                            // Login stays null until an authentication gives it a
+                                                            // name. An address in it could not be told from a login.
+                                                            webSocketConnection.HTTPRequest = httpRequest;
+
+                                                            #region Log OnHTTPRequest
+
+                                                            await LogEvent(
+                                                                      OnHTTPRequest,
+                                                                      loggingDelegate => loggingDelegate.Invoke(
+                                                                          Timestamp.Now,
+                                                                          this,
+                                                                          httpRequest,
+                                                                          token2
+                                                                      )
+                                                                  );
+
+                                                            #endregion
+
+                                                            #region OnValidateWebSocketConnection
+
+                                                            // Not InvokeAllAsync, and not an oversight. This is not a
+                                                            // notification but a decision: what the handlers return is
+                                                            // the answer to whether this upgrade happens at all.
+                                                            // InvokeAllAsync returns Task and swallows what a handler
+                                                            // throws, which here would turn "the validator failed,
+                                                            // therefore refuse" into "the validator failed, therefore
+                                                            // let them in". Nor may it simply propagate: each handler
+                                                            // is asked through AskValidator, which says why.
+                                                            var onValidateWebSocketConnection = OnValidateWebSocketConnection;
+                                                            if (onValidateWebSocketConnection is not null)
+                                                            {
+
+                                                                var httpResponseTasks = await Task.WhenAll(onValidateWebSocketConnection.GetInvocationList().
+                                                                                                   Cast<OnValidateWebSocketConnectionDelegate>().
+                                                                                                   Select(validator => AskValidator(validator,
+                                                                                                                                    webSocketConnection,
+                                                                                                                                    httpRequest,
+                                                                                                                                    token2))).
+                                                                                                   ConfigureAwait(false);
+
+                                                                // The first refusal, and not the first answer: a server
+                                                                // built on this one registers a validator of its own in
+                                                                // its constructor, so it is always asked first, and
+                                                                // taking its "null, go ahead" as the verdict made every
+                                                                // validator added afterwards decorative - a second lock
+                                                                // fitted to the door and never engaged.
+                                                                httpResponse = httpResponseTasks.FirstOrDefault(response => response is not null);
+
+                                                            }
+
+                                                            #endregion
+
+                                                            #region In case of a successful request
+
+                                                            #region Validate the WebSocket upgrade handshake (RFC 6455 Section 4.2.1)
+
+                                                            if (httpResponse is null)
+                                                            {
+
+                                                                var connectionHeader  = httpRequest.GetHeaderField("Connection") ?? "";
+                                                                var upgradeHeader     = httpRequest.GetHeaderField("Upgrade")    ?? "";
+                                                                var secWebSocketKey   = httpRequest.SecWebSocketKey;
+                                                                var secWSVersion      = httpRequest.GetHeaderField("Sec-WebSocket-Version") ?? "";
+
+                                                                String? handshakeError = null;
+
+                                                                if (!upgradeHeader.Split(',').Any(v => v.Trim().Equals("websocket", StringComparison.OrdinalIgnoreCase)))
+                                                                    handshakeError = "The 'Upgrade: websocket' header is missing!";
+
+                                                                else if (!connectionHeader.Split(',').Any(v => v.Trim().Equals("Upgrade", StringComparison.OrdinalIgnoreCase)))
+                                                                    handshakeError = "The 'Connection: Upgrade' header is missing!";
+
+                                                                // The Sec-WebSocket-Key must be a base64-encoded 16 byte value.
+                                                                else if (secWebSocketKey.IsNullOrEmpty() ||
+                                                                         !TryDecodeBase64(secWebSocketKey, out var keyBytes) ||
+                                                                         keyBytes.Length != 16)
+                                                                    handshakeError = "The 'Sec-WebSocket-Key' header is missing or invalid!";
+
+                                                                if (handshakeError is not null)
+                                                                {
+                                                                    httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                                                                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                                                                       Server          = HTTPServiceName,
+                                                                                       Connection      = ConnectionType.Close,
+                                                                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                                                                       Content         = handshakeError.ToUTF8Bytes()
+                                                                                   }.AsImmutable;
+                                                                }
+
+                                                                // Only WebSocket version 13 is supported (RFC 6455 Section 4.4).
+                                                                else if (secWSVersion.Trim() != "13")
+                                                                {
+                                                                    httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                                                                       HTTPStatusCode       = HTTPStatusCode.UpgradeRequired,
+                                                                                       Server               = HTTPServiceName,
+                                                                                       Connection           = ConnectionType.Close,
+                                                                                       SecWebSocketVersion  = "13",
+                                                                                       ContentType          = HTTPContentType.Text.PLAIN,
+                                                                                       Content              = $"Unsupported Sec-WebSocket-Version '{secWSVersion}', only version 13 is supported!".ToUTF8Bytes()
+                                                                                   }.AsImmutable;
+                                                                }
+
+                                                                // N6: In strict mode, reject the handshake when the client offered
+                                                                // subprotocols but none of them is supported. RFC 6455 Section 4.1
+                                                                // permits completing without a 'Sec-WebSocket-Protocol' header, but
+                                                                // OCPP deployments usually prefer to reject a peer that speaks no
+                                                                // known subprotocol rather than accept a connection the client must
+                                                                // immediately close again.
+                                                                else if (RequireMatchingSubprotocol &&
+                                                                         SecWebSocketProtocols.Any() &&
+                                                                         httpRequest.SecWebSocketProtocol.Any() &&
+                                                                        !httpRequest.SecWebSocketProtocol.Any(protocol => SecWebSocketProtocols.Contains(protocol)))
+                                                                {
+                                                                    httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                                                                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                                                                       Server          = HTTPServiceName,
+                                                                                       Connection      = ConnectionType.Close,
+                                                                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                                                                       Content         = $"None of the requested WebSocket subprotocols ({httpRequest.SecWebSocketProtocol.AggregateWith(", ")}) is supported; expected one of: {SecWebSocketProtocols.AggregateWith(", ")}!".ToUTF8Bytes()
+                                                                                   }.AsImmutable;
+                                                                }
+
+                                                                // Cross-Site WebSocket Hijacking protection: if an Origin allow-list
+                                                                // is configured, reject a handshake carrying an 'Origin' header whose
+                                                                // value is not allow-listed. A request without an 'Origin' header is
+                                                                // accepted (non-browser clients such as OCPP stations do not send one).
+                                                                else if (AllowedOrigins.Count > 0 &&
+                                                                         httpRequest.GetHeaderField("Origin") is String requestOrigin &&
+                                                                        !requestOrigin.IsNullOrEmpty() &&
+                                                                        !AllowedOrigins.Contains(requestOrigin))
+                                                                {
+                                                                    httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                                                                       HTTPStatusCode  = HTTPStatusCode.Forbidden,
+                                                                                       Server          = HTTPServiceName,
+                                                                                       Connection      = ConnectionType.Close,
+                                                                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                                                                       Content         = $"The HTTP 'Origin' header value '{requestOrigin}' is not allowed!".ToUTF8Bytes()
+                                                                                   }.AsImmutable;
+                                                                }
+
+                                                            }
+
+                                                            #endregion
+
+                                                            #region Authenticate the client, when the server requires it
+
+                                                            if (RequireAuthentication &&
+                                                                (httpResponse is null || httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols))
+                                                            {
+
+                                                                String? authenticatedLogin        = null;
+                                                                var     authenticationFailed      = false;
+                                                                var     authenticationCalledOff   = false;
+
+                                                                // An override is somebody else's code. What it throws
+                                                                // refuses the upgrade like a null would, but answered,
+                                                                // and as the server's fault: a client may try a 500
+                                                                // again, where a 401 tells it not to. Unless it threw
+                                                                // only because its token was cancelled: then the upgrade
+                                                                // was called off, and nothing failed - see CalledOff.
+                                                                try
+                                                                {
+                                                                    authenticatedLogin = await AuthenticateAsync(webSocketConnection,
+                                                                                                                 httpRequest,
+                                                                                                                 token2);
+                                                                }
+                                                                catch (OperationCanceledException) when (token2.IsCancellationRequested)
+                                                                {
+                                                                    Logger.LogDebug("Authenticating the WebSocket upgrade from {RemoteSocket} was called off.",
+                                                                                    webSocketConnection.RemoteSocket);
+                                                                    authenticationCalledOff = true;
+                                                                }
+                                                                catch (Exception e)
+                                                                {
+                                                                    Logger.LogError(e,
+                                                                                    "Exception while authenticating the WebSocket upgrade from {RemoteSocket}.",
+                                                                                    webSocketConnection.RemoteSocket);
+                                                                    authenticationFailed = true;
+                                                                }
+
+                                                                if (authenticatedLogin is not null)
+                                                                    webSocketConnection.Login = authenticatedLogin;
+
+                                                                else if (authenticationCalledOff)
+                                                                    httpResponse = CalledOff(httpRequest);
+
+                                                                else
+                                                                {
+
+                                                                    var refusal = new HTTPResponse.Builder(httpRequest) {
+                                                                                      HTTPStatusCode  = authenticationFailed
+                                                                                                            ? HTTPStatusCode.InternalServerError
+                                                                                                            : HTTPStatusCode.Unauthorized,
+                                                                                      Server          = HTTPServiceName,
+                                                                                      Connection      = ConnectionType.Close,
+                                                                                      ContentType     = HTTPContentType.Text.PLAIN,
+                                                                                      Content         = (authenticationFailed
+                                                                                                            ? "WebSocket authentication failed."
+                                                                                                            : "WebSocket authentication required.").ToUTF8Bytes()
+                                                                                  };
+
+                                                                    if (!authenticationFailed && !ClientLogins.IsEmpty)
+                                                                        refusal.WWWAuthenticate = WWWAuthenticate.Basic("WebSocket");
+
+                                                                    httpResponse = refusal.AsImmutable;
+
+                                                                }
+
+                                                            }
+
+                                                            #endregion
+
+                                                            if (httpResponse is null)
+                                                            {
+
+                                                                // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
+                                                                // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
+                                                                // 3. Compute SHA-1 and Base64 hash of the new value
+                                                                // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
+    #pragma warning disable SCS0006 // Weak hashing function.
+                                                                var swk              = webSocketConnection.HTTPRequest?.SecWebSocketKey;
+                                                                var swka             = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                                                                var swkaSHA1BASE64   = Convert.ToBase64String(System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka)));
+    #pragma warning restore SCS0006 // Weak hashing function.
+
+                                                                sharedSubprotocols   = httpRequest.SecWebSocketProtocol.Where(protocol => SecWebSocketProtocols.Contains(protocol));
+                                                                selectedSubprotocol  = SubprotocolSelector?.Invoke(this, webSocketConnection, sharedSubprotocols) ??
+                                                                                           httpRequest.SecWebSocketProtocol.FirstOrDefault(protocol => SecWebSocketProtocols.Contains(protocol));
+
+                                                                #region Negotiate the 'permessage-deflate' extension (RFC 7692)
+
+                                                                String? secWebSocketExtensions = null;
+
+                                                                if (EnablePerMessageDeflate &&
+                                                                    WebSocketPerMessageDeflate.TryNegotiateAsServer(
+                                                                        httpRequest.GetHeaderField("Sec-WebSocket-Extensions"),
+                                                                        out var perMessageDeflate,
+                                                                        out var deflateResponseHeader
+                                                                    ))
+                                                                {
+                                                                    webSocketConnection.PerMessageDeflate = perMessageDeflate;
+                                                                    secWebSocketExtensions                = deflateResponseHeader;
+                                                                }
+
+                                                                #endregion
+
+
+                                                                // HTTP/1.1 101 Switching Protocols
+                                                                // Connection:              Upgrade
+                                                                // Upgrade:                 websocket
+                                                                // Sec-WebSocket-Accept:    s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+                                                                // Sec-WebSocket-Protocol:  ocpp2.1
+                                                                // Sec-WebSocket-Version:   13
+                                                                var httpResponseBuilder = new HTTPResponse.Builder(httpRequest) {
+                                                                                           HTTPStatusCode        = HTTPStatusCode.SwitchingProtocols,
+                                                                                           Server                = HTTPServiceName,
+                                                                                           Connection            = ConnectionType.Upgrade,
+                                                                                           Upgrade               = "websocket",
+                                                                                           SecWebSocketAccept    = swkaSHA1BASE64,
+                                                                                           SecWebSocketProtocol  = selectedSubprotocol,
+                                                                                           SecWebSocketVersion   = "13"
+                                                                                       };
+
+                                                                if (secWebSocketExtensions is not null)
+                                                                    httpResponseBuilder.SetHeaderField("Sec-WebSocket-Extensions", secWebSocketExtensions);
+
+                                                                httpResponse         = httpResponseBuilder.AsImmutable;
+
+                                                            }
+
+                                                            #endregion
+
+                                                        }
+
+                                                        httpResponse ??= new HTTPResponse.Builder(
+
+                                                                             Timestamp.Now,
+                                                                             EventTracking_Id.New,
+                                                                             TimeSpan.Zero,
+
+                                                                             new HTTPSource(),
+                                                                             webSocketConnection.LocalSocket,
+                                                                             webSocketConnection.RemoteSocket,
+                                                                             ConnectionType.Close,
+
+                                                                             HTTPStatusCode.BadRequest
+
+                                                                         ) {
+                                                                             Server = HTTPServiceName
+                                                                         }.AsImmutable;
+
+                                                        #endregion
+
+                                                        #region An answer that is not a 101 closes the connection - and says so
+
+                                                        // Only a 101 keeps the connection open, and then not for HTTP. Any other
+                                                        // answer is the last thing said on it. This loop reads one request, and it
+                                                        // has nobody to hand the connection on to who could read another: for a
+                                                        // WebSocket on an HTTP path that would be the HTTP server, and the HTTP
+                                                        // server closes the connection once this server is done with it. A client
+                                                        // that kept the connection for its next request - to another of that
+                                                        // server's paths, as like as not - would have been answered by this
+                                                        // handshake instead.
+                                                        //
+                                                        // Every refusal of this server's own says Connection: close, and so does
+                                                        // every validator that knows to. One that does not - a 401 that challenges
+                                                        // the client to authenticate, say - used to be taken for an upgrade: the
+                                                        // connection was announced as a new WebSocket connection, and the client's
+                                                        // next request, read as a frame, drew a close frame. It is sent saying close
+                                                        // now, and the connection is closed after it. RFC 9112 asks as much of a
+                                                        // server that does not keep a connection for another request, in every
+                                                        // response but a 1xx (section 9.3), and of one that means to close it
+                                                        // (section 9.6). The rest of the answer stays as its validator made it.
+                                                        if (httpResponse.HTTPStatusCode != HTTPStatusCode.SwitchingProtocols &&
+                                                           !httpResponse.IsConnectionClose)
+                                                        {
+                                                            httpResponse = SayingClose(httpResponse);
+                                                        }
+
+                                                        #endregion
+
+                                                        #region Send OnWebSocketConnectionAccepted event
+
+                                                        // Before the 101 goes out, not after it. A peer that has read the 101
+                                                        // may send at once and be sent to at once, so whatever it takes for this
+                                                        // server to know the connection - its registration, its route - has to
+                                                        // be done by then, or the first request either way can find it unknown.
+                                                        if (httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols)
+                                                            await LogEvent(
+                                                                      OnWebSocketConnectionAccepted,
+                                                                      loggingDelegate => loggingDelegate.Invoke(
+                                                                          Timestamp.Now,
+                                                                          this,
+                                                                          webSocketConnection,
+                                                                          sharedSubprotocols,
+                                                                          selectedSubprotocol,
+                                                                          EventTracking_Id.New,
+                                                                          token2
+                                                                      )
+                                                                  );
+
+                                                        #endregion
+
+                                                        #region Send HTTP response
+
+                                                        webSocketConnection.HTTPResponse = httpResponse;
+
+                                                        var success = await webSocketConnection.Send(OnTheWire(httpResponse));
+
+                                                        // Only a 101 that went out opens the connection for frames. Any other
+                                                        // answer is the last thing said on it, see above, and so is a 101 that
+                                                        // could not be sent.
+                                                        if (success == SentStatus.Success &&
+                                                            httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols)
+                                                        {
+                                                            webSocketConnection.UpgradeAnswered();
+                                                        }
+
+                                                        await LogEvent(
+                                                                  OnHTTPResponse,
+                                                                  loggingDelegate => loggingDelegate.Invoke(
+                                                                      Timestamp.Now,
+                                                                      this,
+                                                                      httpRequest,
+                                                                      httpResponse,
+                                                                      token2
+                                                                  )
+                                                              );
+
+                                                        #endregion
+
+                                                        // Upgraded where a 101 went out that does not say close, and nowhere
+                                                        // else. Everything that did not say close used to count as an upgrade.
+                                                        if (success != SentStatus.Success ||
+                                                            httpResponse.HTTPStatusCode != HTTPStatusCode.SwitchingProtocols ||
+                                                            httpResponse.IsConnectionClose)
+                                                        {
+
+                                                            // A close frame only where there is a WebSocket to close:
+                                                            // after a 101 that went out. Before one, the client is
+                                                            // still reading HTTP, and a frame is octets after the
+                                                            // answer - and where the answer has no Content-Length, it
+                                                            // is the close that ends its body, so a close frame,
+                                                            // 88 02 03 EA, was the body of the refusal. What ends a
+                                                            // refusal is the close of the connection, and nothing else.
+                                                            if (success == SentStatus.Success &&
+                                                                httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols)
+                                                                await webSocketConnection.Close(
+                                                                          WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                                      );
+
+                                                            else
+                                                                await webSocketConnection.Close();
+
+                                                        }
+
+                                                        else
+                                                        {
+
+                                                            #region Send OnNewWebSocketConnection event
+
+                                                            await LogEvent(
+                                                                      OnNewWebSocketConnection,
+                                                                      loggingDelegate => loggingDelegate.Invoke(
+                                                                          Timestamp.Now,
+                                                                          this,
+                                                                          webSocketConnection,
+                                                                          sharedSubprotocols,
+                                                                          selectedSubprotocol,
+                                                                          EventTracking_Id.New,
+                                                                          token2
+                                                                      )
+                                                                  );
+
+                                                            #endregion
+
+                                                            IsStillHTTP = false;
+                                                            bytes = [];
+
+                                                        }
+
+                                                    }
+
+                                                    #endregion
+
+                                                    #region ...or a web socket frame...
+
+                                                    else if (IsStillHTTP == false &&
+                                                             bytes.Length > 0)
+                                                    {
+
+                                                        var parseResult = WebSocketFrame.Parse(bytes.AsSpan(),
+                                                                                               out var frame,
+                                                                                               out var frameLength,
+                                                                                               out var errorResponse,
+                                                                                               out var suggestedCloseCode,
+                                                                                               Logger:    Logger,
+                                                                                               AllowRsv1: webSocketConnection.PerMessageDeflate is not null);
+
+                                                        if (parseResult == WebSocketFrame.ParseResult.Success &&
+                                                            frame is not null)
+                                                        {
+
+                                                            // RFC 6455 Section 5.1: Client-to-server frames MUST be masked
+                                                            if (!frame.IsMasked)
+                                                            {
+                                                                Logger.LogWarning(
+                                                                    "Received unmasked frame from {RemoteSocket}, closing connection (RFC 6455 violation).",
+                                                                    webSocketConnection.RemoteSocket
+                                                                );
+                                                                await webSocketConnection.Close(WebSocketFrame.ClosingStatusCode.ProtocolError);
+                                                                break;
+                                                            }
+
+                                                            var now = Timestamp.Now;
+                                                            webSocketConnection.LastReceivedTimestamp = now;
+                                                            webSocketConnection.IncFramesReceivedCounter();
+
+                                                            if (frame.IsFinal)
+                                                                webSocketConnection.IncMessagesReceivedCounter();
+
+                                                            #region OnWebSocketFrameReceived
+
+                                                            await LogEvent(
+                                                                      OnWebSocketFrameReceived,
+                                                                      loggingDelegate => loggingDelegate.Invoke(
+                                                                          now,
+                                                                          this,
+                                                                          webSocketConnection,
+                                                                          frame.EventTrackingId,
+                                                                          frame,
+                                                                          token2
+                                                                      )
+                                                                  );
+
+                                                            #endregion
+
+                                                            WebSocketFrame.ClosingStatusCode? failConnection = null;
+
+                                                            switch (frame.Opcode)
+                                                            {
+
+                                                                #region Text   message received
+
+                                                                case WebSocketFrame.Opcodes.Text:
+
+                                                                    // RFC 6455 Section 5.4: A new data frame within
+                                                                    // a fragmented message must fail the connection!
+                                                                    if (fragmentOpcode is not null)
+                                                                    {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                                        break;
+                                                                    }
+
+                                                                    // The accumulated message size must not exceed the configured limit.
+                                                                    if (MaxTextMessageSizeIn.HasValue &&
+                                                                        (UInt64) frame.Payload.Length > MaxTextMessageSizeIn.Value)
+                                                                    {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                                        break;
+                                                                    }
+
+                                                                    if (frame.IsFinal)
+                                                                    {
+
+                                                                        var textPayload = frame.Payload;
+
+                                                                        // permessage-deflate (RFC 7692): decompress a compressed message.
+                                                                        if (frame.IsCompressed && webSocketConnection.PerMessageDeflate is not null)
+                                                                        {
+                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(textPayload, out textPayload, out _, out var textExceededSizeLimit, MaxTextMessageSizeIn))
+                                                                            {
+                                                                                failConnection = textExceededSizeLimit
+                                                                                                     ? WebSocketFrame.ClosingStatusCode.MessageTooBig
+                                                                                                     : WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                                break;
+                                                                            }
+                                                                        }
+
+                                                                        // RFC 6455 Section 8.1
+                                                                        if (!Utf8.IsValid(textPayload))
+                                                                        {
+                                                                            failConnection = WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                            break;
+                                                                        }
+
+                                                                        try
+                                                                        {
+
+                                                                            await ProcessTextMessage(
+                                                                                      now,
+                                                                                      this,
+                                                                                      webSocketConnection,
+                                                                                      frame.EventTrackingId,
+                                                                                      frame,
+                                                                                      textPayload.ToUTF8String(),
+                                                                                      token2
+                                                                                  );
+
+                                                                        }
+                                                                        catch (Exception e)
+                                                                        {
+                                                                            Logger.LogError(e, "Exception while processing text WebSocket message.");
+                                                                        }
+
+                                                                    }
+                                                                    else
+                                                                    {
+
+                                                                        fragmentOpcode      = WebSocketFrame.Opcodes.Text;
+                                                                        fragmentCompressed  = frame.IsCompressed && webSocketConnection.PerMessageDeflate is not null;
+                                                                        fragmentPayload.SetLength(0);
+                                                                        fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+
+                                                                        // A compressed message can only be UTF-8 validated after decompression.
+                                                                        if (!fragmentCompressed)
+                                                                        {
+                                                                            utf8Validator.Reset();
+                                                                            if (!utf8Validator.Append(frame.Payload, false))
+                                                                                failConnection = WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                        }
+
+                                                                    }
+
+                                                                    break;
+
+                                                                #endregion
+
+                                                                #region Binary message received
+
+                                                                case WebSocketFrame.Opcodes.Binary:
+
+                                                                    // RFC 6455 Section 5.4: A new data frame within
+                                                                    // a fragmented message must fail the connection!
+                                                                    if (fragmentOpcode is not null)
+                                                                    {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                                        break;
+                                                                    }
+
+                                                                    // The accumulated message size must not exceed the configured limit.
+                                                                    if (MaxBinaryMessageSizeIn.HasValue &&
+                                                                        (UInt64) frame.Payload.Length > MaxBinaryMessageSizeIn.Value)
+                                                                    {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                                        break;
+                                                                    }
+
+                                                                    if (frame.IsFinal)
+                                                                    {
+
+                                                                        var binaryPayload = frame.Payload;
+
+                                                                        // permessage-deflate (RFC 7692): decompress a compressed message.
+                                                                        if (frame.IsCompressed && webSocketConnection.PerMessageDeflate is not null)
+                                                                        {
+                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(binaryPayload, out binaryPayload, out _, out var binaryExceededSizeLimit, MaxBinaryMessageSizeIn))
+                                                                            {
+                                                                                failConnection = binaryExceededSizeLimit
+                                                                                                     ? WebSocketFrame.ClosingStatusCode.MessageTooBig
+                                                                                                     : WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                                break;
+                                                                            }
+                                                                        }
+
+                                                                        try
+                                                                        {
+
+                                                                            await ProcessBinaryMessage(
+                                                                                      now,
+                                                                                      this,
+                                                                                      webSocketConnection,
+                                                                                      frame.EventTrackingId,
+                                                                                      frame,
+                                                                                      binaryPayload,
+                                                                                      token2
+                                                                                  );
+
+                                                                        }
+                                                                        catch (Exception e)
+                                                                        {
+                                                                            Logger.LogError(e, "Exception while processing binary WebSocket message.");
+                                                                        }
+
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        fragmentOpcode      = WebSocketFrame.Opcodes.Binary;
+                                                                        fragmentCompressed  = frame.IsCompressed && webSocketConnection.PerMessageDeflate is not null;
+                                                                        fragmentPayload.SetLength(0);
+                                                                        fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+                                                                    }
+
+                                                                    break;
+
+                                                                #endregion
+
+                                                                #region Continuation message received
+
+                                                                case WebSocketFrame.Opcodes.Continuation:
+
+                                                                    if (fragmentOpcode is null)
+                                                                    {
+                                                                        Logger.LogWarning(
+                                                                            "Received Continuation frame from {RemoteSocket} without preceding Text/Binary frame.",
+                                                                            webSocketConnection.RemoteSocket
+                                                                        );
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.ProtocolError;
+                                                                        break;
+                                                                    }
+
+                                                                    // The accumulated message size must not exceed the configured
+                                                                    // limit. This is checked BEFORE buffering, to bound the memory
+                                                                    // used by a maliciously fragmented message (RFC 6455 Section 7.4.1, 1009)!
+                                                                    var maxFragmentedSize = fragmentOpcode == WebSocketFrame.Opcodes.Text
+                                                                                                ? MaxTextMessageSizeIn
+                                                                                                : MaxBinaryMessageSizeIn;
+
+                                                                    if (maxFragmentedSize.HasValue &&
+                                                                        (UInt64) fragmentPayload.Length + (UInt64) frame.Payload.Length > maxFragmentedSize.Value)
+                                                                    {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.MessageTooBig;
+                                                                        break;
+                                                                    }
+
+                                                                    fragmentPayload.Write(frame.Payload, 0, frame.Payload.Length);
+
+                                                                    // RFC 6455 Section 8.1: Fail fast on invalid UTF-8! (Only for
+                                                                    // uncompressed messages; a compressed message can only be
+                                                                    // validated after decompression at the final frame.)
+                                                                    if (fragmentOpcode == WebSocketFrame.Opcodes.Text &&
+                                                                        !fragmentCompressed &&
+                                                                        !utf8Validator.Append(frame.Payload, frame.IsFinal))
+                                                                    {
+                                                                        failConnection = WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                        break;
+                                                                    }
+
+                                                                    if (frame.IsFinal)
+                                                                    {
+
+                                                                        var completePayload = fragmentPayload.ToArray();
+
+                                                                        // permessage-deflate (RFC 7692): decompress the reassembled message.
+                                                                        if (fragmentCompressed && webSocketConnection.PerMessageDeflate is not null)
+                                                                        {
+                                                                            if (!webSocketConnection.PerMessageDeflate.TryDecompress(completePayload, out completePayload, out _, out var fragmentExceededSizeLimit, maxFragmentedSize))
+                                                                            {
+                                                                                failConnection = fragmentExceededSizeLimit
+                                                                                                     ? WebSocketFrame.ClosingStatusCode.MessageTooBig
+                                                                                                     : WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                                break;
+                                                                            }
+                                                                        }
+
+                                                                        // RFC 6455 Section 8.1: Validate the decompressed text message.
+                                                                        if (fragmentOpcode == WebSocketFrame.Opcodes.Text &&
+                                                                            fragmentCompressed &&
+                                                                            !Utf8.IsValid(completePayload))
+                                                                        {
+                                                                            failConnection = WebSocketFrame.ClosingStatusCode.InvalidPayloadData;
+                                                                            break;
+                                                                        }
+
+                                                                        try
+                                                                        {
+
+                                                                            if (fragmentOpcode == WebSocketFrame.Opcodes.Text)
+                                                                            {
+                                                                                await ProcessTextMessage(
+                                                                                          now,
+                                                                                          this,
+                                                                                          webSocketConnection,
+                                                                                          frame.EventTrackingId,
+                                                                                          frame,
+                                                                                          completePayload.ToUTF8String(),
+                                                                                          token2
+                                                                                      );
+                                                                            }
+                                                                            else if (fragmentOpcode == WebSocketFrame.Opcodes.Binary)
+                                                                            {
+                                                                                await ProcessBinaryMessage(
+                                                                                          now,
+                                                                                          this,
+                                                                                          webSocketConnection,
+                                                                                          frame.EventTrackingId,
+                                                                                          frame,
+                                                                                          completePayload,
+                                                                                          token2
+                                                                                      );
+                                                                            }
+
+                                                                        }
+                                                                        catch (Exception e)
+                                                                        {
+                                                                            Logger.LogError(e, "Exception while processing continuation WebSocket frame.");
+                                                                        }
+
+                                                                        fragmentOpcode      = null;
+                                                                        fragmentCompressed  = false;
+                                                                        fragmentPayload.SetLength(0);
+
+                                                                    }
+
+                                                                    break;
+
+                                                                #endregion
+
+                                                                #region Ping   message received
+
+                                                                case WebSocketFrame.Opcodes.Ping:
+
+                                                                    await LogEvent(
+                                                                        OnPingMessageReceived,
+                                                                        loggingDelegate => loggingDelegate.Invoke(
+                                                                            now,
+                                                                            this,
+                                                                            webSocketConnection,
+                                                                            frame,
+                                                                            frame.EventTrackingId,
+                                                                            frame.Payload,
+                                                                            token2
+                                                                        )
+                                                                    );
+
+                                                                    #region Send Pong
+
+                                                                    var sentStatus = await SendWebSocketFrame(
+                                                                                               webSocketConnection,
+                                                                                               WebSocketFrame.Pong(frame.Payload),
+                                                                                               frame.EventTrackingId
+                                                                                           );
+
+                                                                    if (sentStatus == SentStatus.Success)
+                                                                    {
+                                                                        sendErrors = 0;
+                                                                    }
+                                                                    else if (sentStatus == SentStatus.FatalError)
+                                                                    {
+                                                                        await webSocketConnection.Close(
+                                                                                  WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                                              );
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        sendErrors++;
+                                                                        Logger.LogWarning(
+                                                                            "HTTP WebSocket connection {RemoteSocket} sending a Pong frame failed ({SendErrors}).",
+                                                                            webSocketConnection.RemoteSocket,
+                                                                            sendErrors
+                                                                        );
+                                                                    }
+
+                                                                    #endregion
+
+                                                                    break;
+
+                                                                #endregion
+
+                                                                #region Pong   message received
+
+                                                                case WebSocketFrame.Opcodes.Pong:
+
+                                                                    await LogEvent(
+                                                                        OnPongMessageReceived,
+                                                                        loggingDelegate => loggingDelegate.Invoke(
+                                                                            now,
+                                                                            this,
+                                                                            webSocketConnection,
+                                                                            frame,
+                                                                            frame.EventTrackingId,
+                                                                            frame.Payload,
+                                                                            token2
+                                                                        )
+                                                                    );
+
+                                                                    break;
+
+                                                                #endregion
+
+                                                                #region Close  message received
+
+                                                                case WebSocketFrame.Opcodes.Close:
+
+                                                                    await LogEvent(
+                                                                        OnCloseMessageReceived,
+                                                                        loggingDelegate => loggingDelegate.Invoke(
+                                                                            now,
+                                                                            this,
+                                                                            webSocketConnection,
+                                                                            frame,
+                                                                            frame.EventTrackingId,
+                                                                            frame.GetClosingStatusCode(),
+                                                                            frame.GetClosingReason(),
+                                                                            token2
+                                                                        )
+                                                                    );
+
+                                                                    // The close handshake demands that we send a close frame back,
+                                                                    // echoing the received close status code (RFC 6455 Section 5.5.1)!
+                                                                    var receivedCloseCode = frame.GetClosingStatusCode();
+
+                                                                    // The client closed, and the server only answers.
+                                                                    webSocketConnection.RecordClosedBy(ConnectionClosedBy.Client);
+
+                                                                    await webSocketConnection.Close(
+                                                                              receivedCloseCode == WebSocketFrame.ClosingStatusCode.NoStatusReceived
+                                                                                  ? WebSocketFrame.ClosingStatusCode.NormalClosure
+                                                                                  : receivedCloseCode
+                                                                          );
+
+                                                                    ForgetConnection(webSocketConnection);
+
+                                                                    break;
+
+                                                                #endregion
+
+                                                            }
+
+                                                            #region Fail the connection on protocol violations
+
+                                                            if (failConnection.HasValue)
+                                                            {
+
+                                                                Logger.LogWarning(
+                                                                    "Failing WebSocket connection to {RemoteSocket} with close code {CloseCode}.",
+                                                                    webSocketConnection.RemoteSocket,
+                                                                    failConnection.Value
+                                                                );
+
+                                                                await webSocketConnection.Close(failConnection.Value);
+
+                                                                ForgetConnection(webSocketConnection);
+
+                                                                break;
+
+                                                            }
+
+                                                            #endregion
+
+                                                            if ((UInt64) bytes.Length == frameLength)
+                                                                bytes = [];
+
+                                                            else
+                                                            {
+                                                                // The buffer might contain additional web socket frames...
+                                                                var newBytes = new Byte[(UInt64) bytes.Length - frameLength];
+                                                                Array.Copy(bytes, (Int32) frameLength, newBytes, 0, newBytes.Length);
+                                                                bytes = newBytes;
+                                                            }
+
+                                                            bytesLeftOver = [];
+
+                                                        }
+                                                        else if (parseResult == WebSocketFrame.ParseResult.ProtocolViolation)
+                                                        {
+
+                                                            Logger.LogWarning(
+                                                                "WebSocket protocol violation from {RemoteSocket}: {ErrorResponse}",
+                                                                webSocketConnection.RemoteSocket,
+                                                                errorResponse
+                                                            );
+
+                                                            await webSocketConnection.Close(suggestedCloseCode);
+
+                                                            ForgetConnection(webSocketConnection);
+
+                                                            break;
+
+                                                        }
+                                                        else
+                                                        {
+                                                            bytesLeftOver = bytes;
+                                                            bytes = [];
+                                                        }
+
+                                                    }
+
+                                                    #endregion
+
+                                                    #region ...0 bytes read...
+
+                                                    else if (bytes.Length == 0)
+                                                    {
+                                                        // Some kind of network error...
+                                                    }
+
+                                                    #endregion
+
+                                                    #region ...some other crap!
+
+                                                    // Can e.g. be web crawlers etc.pp
+
+                                                    else
+                                                    {
+
+                                                        Logger.LogWarning(
+                                                            "Closing invalid TCP connection from {RemoteSocket}.",
+                                                            webSocketConnection.RemoteSocket
+                                                        );
+
+                                                        // Without a close frame. Only a connection that still speaks HTTP gets
+                                                        // here - on an upgraded one the octets are read as frames above - and
+                                                        // whatever its client sent, a HEAD or a TLS handshake on the plain port,
+                                                        // a close frame is the one thing it certainly cannot read.
+                                                        await webSocketConnection.Close();
+
+                                                    }
+
+                                                    #endregion
+
+                                                }
+
+                                                // However the loop ended - and without a close frame where no 101 has
+                                                // gone out: a client that hung up before it asked, a read that failed, a
+                                                // server that is shutting down. IsStillHTTP is false only after a 101 was
+                                                // sent, as every other answer closes the connection above, and a
+                                                // connection that was closed there is not closed again here.
+                                                if (IsStillHTTP)
+                                                    await webSocketConnection.Close();
+
+                                                else
+                                                    await webSocketConnection.Close(
+                                                              WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                          );
+
+                                                ForgetConnection(webSocketConnection);
+
+                                                #region OnTCPConnectionClosed
+
+
+                                                await LogEvent(
+                                                          OnTCPConnectionClosed,
+                                                          loggingDelegate => loggingDelegate.Invoke(
+                                                              Timestamp.Now,
+                                                              this,
+                                                              webSocketConnection,
+                                                              EventTracking_Id.New,
+                                                              "closed!",
+                                                              token2
+                                                          )
+                                                      );
+
+                                                #endregion
+
+                                            }
+
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            Logger.LogError(e, "Exception in HTTP WebSocket server connection loop.");
+                                        }
+                                        finally
+                                        {
+
+                                            // However the loop ended. The way out after it - close the
+                                            // connection, take it off the books - is only reached where
+                                            // the loop ends as planned. An exception went past it and
+                                            // left the connection in webSocketConnections for as long as
+                                            // the server ran: listed by WebSocketConnections for as long
+                                            // as anything still held it, and counted against its address
+                                            // by MaxConnectionsPerIP for good.
+                                            //
+                                            // Both are no-ops for a connection that did get out the
+                                            // planned way, and the bookkeeping, which cannot fail, goes
+                                            // first. The close sends no close frame: whatever went wrong
+                                            // may have gone wrong before any 101, where a frame would be
+                                            // garbage in an HTTP response.
+                                            ForgetConnection(webSocketConnection);
+
+                                            await webSocketConnection.Close();
+
+                                            // And the loop's own token source disposed, because a linked token
+                                            // source stays registered on the tokens it was linked to until it is
+                                            // disposed, and one of them belongs to whichever server accepted the
+                                            // connection - this one, or an HTTP server that lent it - and lives as
+                                            // long as that server does. Undisposed, every connection the server
+                                            // ever handled stays on it: this source, a callback node on either
+                                            // side and, behind the one on the connection's side, the connection's
+                                            // own token source. About 350 bytes a connection, measured, for as
+                                            // long as the server runs.
+                                            //
+                                            // Close() above has cancelled it by now, whichever way the loop ended,
+                                            // and it is cancelled here all the same rather than taken on trust: a
+                                            // source disposed without having been cancelled can never be cancelled
+                                            // any more, and disposing unlinks it from the server's token too, so
+                                            // whatever a handler had started on its token would wait for ever.
+                                            //
+                                            // Whoever still holds the token afterwards - a handler that passed it
+                                            // on to work of its own, a send still under way - can go on asking it
+                                            // whether it is cancelled and registering on it, and a registration on
+                                            // a cancelled token runs at once. Only its WaitHandle is gone: that
+                                            // throws once the source is disposed.
+                                            try
+                                            {
+                                                cts2.Cancel();
+                                            }
+                                            catch
+                                            {
+                                                // What a registration on the token throws is its own affair,
+                                                // just as when Close() cancels it on the ordinary way out.
+                                            }
+
+                                            cts2.Dispose();
+
+                                        }
+
+                                    },
+                                    token);
+
+            await x.Unwrap().ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region (private) AskValidator(Validator, Connection, Request, CancellationToken)
+
+        /// <summary>
+        /// What one OnValidateWebSocketConnection handler says to an upgrade:
+        /// null to let it happen, or the answer that refuses it.
+        /// </summary>
+        /// <remarks>
+        /// A handler is somebody else's code, and what it throws refuses the
+        /// upgrade as well - a validator that failed must never let anybody in -
+        /// but answered, and as the server's fault: 500. Left to propagate, it
+        /// ended the connection loop instead. The client was hung up on without
+        /// an answer, and the connection stayed on the server's books. And a
+        /// client with a reconnect policy may come back after a 500, where a
+        /// 401 or a 403 tells it not to.
+        ///
+        /// The 500 is this handler's refusal, in its place among the others:
+        /// the first refusal is still the answer. A client that an earlier
+        /// handler refuses with 401 is told 401, whether or not a later one
+        /// threw.
+        ///
+        /// A handler that throws only because its token was cancelled has not
+        /// failed: the upgrade was called off while it was being asked, see
+        /// CalledOff. Its own cancellations - a lookup of its own that timed
+        /// out - are failures like any other.
+        /// </remarks>
+        /// <param name="Validator">The handler to ask.</param>
+        /// <param name="Connection">The connection asking for the upgrade.</param>
+        /// <param name="Request">The HTTP request asking for the upgrade.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        private async Task<HTTPResponse?> AskValidator(OnValidateWebSocketConnectionDelegate  Validator,
+                                                       WebSocketServerConnection              Connection,
+                                                       HTTPRequest                            Request,
+                                                       CancellationToken                      CancellationToken)
+        {
+
+            try
+            {
+                return await Validator(Timestamp.Now,
+                                       this,
+                                       Connection,
+                                       EventTracking_Id.New,
+                                       CancellationToken);
+            }
+            catch (OperationCanceledException) when (CancellationToken.IsCancellationRequested)
+            {
+
+                Logger.LogDebug("Validating the WebSocket upgrade from {RemoteSocket} was called off.",
+                                Connection.RemoteSocket);
+
+                return CalledOff(Request);
+
+            }
+            catch (Exception e)
+            {
+
+                Logger.LogError(e,
+                                "Exception while validating the WebSocket upgrade from {RemoteSocket}.",
+                                Connection.RemoteSocket);
+
+                return new HTTPResponse.Builder(Request) {
+                           HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                           Server          = HTTPServiceName,
+                           Connection      = ConnectionType.Close,
+                           ContentType     = HTTPContentType.Text.PLAIN,
+                           Content         = "WebSocket connection validation failed.".ToUTF8Bytes()
+                       }.AsImmutable;
+
+            }
+
+        }
+
+        #endregion
+
+        #region (private) CalledOff(Request)
+
+        /// <summary>
+        /// The answer to an upgrade that was called off while somebody else's
+        /// code - a validator, an authentication - was being asked about it.
+        /// </summary>
+        /// <remarks>
+        /// The server is going away, or the connection is being closed, and the
+        /// code that was asked threw only because it was told to stop. That is
+        /// no failure of its own and nothing to log as an error, and the answer
+        /// says what it is: 503, not now, rather than the 500 of code that
+        /// failed. A client with a reconnect policy tries either again after its
+        /// backoff. Where the connection is gone already, nobody reads it.
+        /// </remarks>
+        /// <param name="Request">The HTTP request asking for the upgrade.</param>
+        private HTTPResponse CalledOff(HTTPRequest Request)
+
+            => new HTTPResponse.Builder(Request) {
+                   HTTPStatusCode  = HTTPStatusCode.ServiceUnavailable,
+                   Server          = HTTPServiceName,
+                   Connection      = ConnectionType.Close,
+                   ContentType     = HTTPContentType.Text.PLAIN,
+                   Content         = "The WebSocket upgrade was called off.".ToUTF8Bytes()
+               }.AsImmutable;
+
+        #endregion
+
+        #region (private static) SayingClose(Response)
+
+        /// <summary>
+        /// The given answer, saying that the connection closes after it.
+        /// </summary>
+        /// <remarks>
+        /// For an answer to an upgrade that is not a 101 and does not say close
+        /// itself - see RunConnectionAsync, where any answer but a 101 is the
+        /// last thing said on its connection.
+        ///
+        /// Everything else about the answer stays as its validator made it,
+        /// field for field and with its body. Only what would contradict the
+        /// close goes: a "keep-alive" among the connection options, and the
+        /// Keep-Alive field that belongs to it. Every other connection option
+        /// stays - an "Upgrade" in particular, which RFC 9110, section 7.8, asks
+        /// of every message that carries an Upgrade field, as a 426 Upgrade
+        /// Required does.
+        /// </remarks>
+        /// <param name="Response">An answer that is not a 101, and does not say close.</param>
+        private static HTTPResponse SayingClose(HTTPResponse Response)
+        {
+
+            var headerLines        = new List<String> { Response.FirstPDULine };
+            var connectionOptions  = new List<String>();
+
+            foreach (var line in Response.RawHTTPHeader.Split('\n').Skip(1))
+            {
+
+                var headerLine  = line.TrimEnd('\r');
+                var colon       = headerLine.IndexOf(':');
+                var fieldName   = colon > 0
+                                      ? headerLine[..colon].Trim()
+                                      : String.Empty;
+
+                if (fieldName.Equals("Connection", StringComparison.OrdinalIgnoreCase))
+                    connectionOptions.AddRange(
+                        headerLine[(colon + 1)..].
+                            Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).
+                            Where(option => !option.Equals("keep-alive", StringComparison.OrdinalIgnoreCase))
+                    );
+
+                else if (!fieldName.Equals("Keep-Alive", StringComparison.OrdinalIgnoreCase) &&
+                         headerLine.Length > 0)
+                    headerLines.Add(headerLine);
+
+            }
+
+            connectionOptions.Add("close");
+            headerLines.Add($"Connection: {String.Join(", ", connectionOptions)}");
+
+            return new HTTPResponse(
+                       Response.Timestamp,
+                       Response.HTTPSource,
+                       Response.LocalSocket,
+                       Response.RemoteSocket,
+                       String.Join("\r\n", headerLines),
+                       Response.HTTPRequest,
+                       Response.HTTPBody,
+                       SubprotocolResponse:  Response.SubprotocolResponse,
+                       EventTrackingId:      Response.EventTrackingId,
+                       Runtime:              Response.Runtime,
+                       CancellationToken:    Response.CancellationToken
+                   );
+
+        }
+
+        #endregion
+
+        #region (private static) OnTheWire(Response)
+
+        /// <summary>
+        /// The answer to an upgrade request as it goes on the wire: the header,
+        /// the empty line that ends it, and the body as the octets it is.
+        /// </summary>
+        /// <remarks>
+        /// Not EntirePDU with an empty line of its own after it, which is what it
+        /// was. With a body, EntirePDU already ends in the empty line and the
+        /// body, so four octets followed every answer that had one, and its
+        /// Content-Length did not count them. And EntirePDU is a string: a body
+        /// that is not UTF-8 went out with every invalid sequence replaced, and
+        /// no longer as long as its Content-Length said.
+        ///
+        /// A 101 has no body, and goes out octet for octet as it did.
+        /// </remarks>
+        /// <param name="Response">The answer to the upgrade request.</param>
+        private static Byte[] OnTheWire(HTTPResponse Response)
+
+            => [ .. $"{Response.RawHTTPHeader.Trim()}\r\n\r\n".ToUTF8Bytes(),
+                 .. Response.HTTPBody ?? [] ];
+
+        #endregion
+
+        #region ValidateConnection(Timestamp, Server, Connection, EventTrackingId, CancellationToken)
+
+        /// <summary>
+        /// Validate a new TCP connection via the WebSocket server's legacy validation event.
+        /// </summary>
+        /// <remarks>
+        /// The first refusal among all answers is the verdict, and a handler
+        /// that throws has refused: a filter that could not decide whether a
+        /// connection may come in has not said that it may.
+        ///
+        /// Asked about a connection accepted on this server's own port, and about
+        /// one an HTTP server hands over to a server lent to one of its paths -
+        /// see AcceptUpgradedConnectionAsync. Either way the handlers are shown
+        /// the TcpClient the client is connected to, which on a lent server is
+        /// the HTTP server's, and either way the verdict is reached the same way.
+        /// </remarks>
+        public virtual async Task<ConnectionFilterResponse> ValidateConnection(DateTimeOffset     Timestamp,
+                                                                               ITCPServer         Server,
+                                                                               TCPConnection      Connection,
+                                                                               EventTracking_Id   EventTrackingId,
+                                                                               CancellationToken  CancellationToken)
+        {
+
+            // Not InvokeAllAsync, and for the same reason as
+            // OnValidateWebSocketConnection above: what comes back decides
+            // whether the connection is accepted, and an invoker that returns
+            // Task and swallows exceptions cannot carry a refusal.
+            var onValidateTCPConnection = OnValidateTCPConnection;
+            if (onValidateTCPConnection is null)
+                return ConnectionFilterResponse.Accepted();
+
+            // Each handler is asked on its own, and one that fails has refused
+            // in its own place in the line. Asked all together, the first to
+            // throw failed Task.WhenAll, and its failure became the verdict -
+            // over the reason of a handler before it that had refused in so
+            // many words.
+            var responses = await Task.WhenAll(
+                                      onValidateTCPConnection.GetInvocationList().
+                                          OfType<OnValidateTCPConnectionDelegate>().
+                                          Select(validator => AskTCPConnectionValidator(
+                                                                  validator,
+                                                                  Timestamp,
+                                                                  Connection,
+                                                                  EventTrackingId,
+                                                                  CancellationToken
+                                                              )).
+                                          ToArray()
+                                  ).ConfigureAwait(false);
+
+            // The first refusal, and not the first answer - as for
+            // OnValidateWebSocketConnection, and for the same reason: a
+            // handler that says yes does not outvote one after it that
+            // says no. And a refusal is what an answer's Result says it
+            // is. This used to compare the first answer with a Rejected()
+            // made for the comparison, and ConnectionFilterResponse is a
+            // class that does not say what makes two of them equal - so
+            // that asked whether the answer was the very object just made,
+            // which it never was, and every connection was let in,
+            // whatever its handlers had said.
+            return responses.FirstOrDefault(response => response.Result == ConnectionFilterResult.Rejected)
+                       ?? ConnectionFilterResponse.Accepted();
+
+        }
+
+        #endregion
+
+        #region (private) AskTCPConnectionValidator(Validator, Timestamp, Connection, EventTrackingId, CancellationToken)
+
+        /// <summary>
+        /// Ask one handler of OnValidateTCPConnection about a new TCP connection.
+        /// A handler that throws, or that answers nothing, has refused it.
+        /// </summary>
+        /// <remarks>
+        /// A handler that throws only because its token was cancelled has not
+        /// failed: the connection was called off while it was being asked, by
+        /// the server going away or the hand-over being given up - the rule
+        /// CalledOff states for the validators and the authentication of the
+        /// handshake. That is no error to log, and its refusal says what it is,
+        /// so that a hand-over can answer it 503 rather than 403. A cancellation
+        /// of the handler's own, with that token untouched, is a failure like
+        /// any other.
+        /// </remarks>
+        /// <param name="Validator">The handler to ask.</param>
+        /// <param name="Timestamp">The timestamp of the validation.</param>
+        /// <param name="Connection">The TCP connection to validate.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A cancellation token to cancel the validation.</param>
+        private async Task<ConnectionFilterResponse> AskTCPConnectionValidator(OnValidateTCPConnectionDelegate  Validator,
+                                                                               DateTimeOffset                   Timestamp,
+                                                                               TCPConnection                    Connection,
+                                                                               EventTracking_Id                 EventTrackingId,
+                                                                               CancellationToken                CancellationToken)
+        {
+
+            try
+            {
+
+                ConnectionFilterResponse? response = await Validator.Invoke(
+                                                               Timestamp,
+                                                               this,
+                                                               Connection.TCPClient,
+                                                               EventTrackingId,
+                                                               CancellationToken
+                                                           ).ConfigureAwait(false);
+
+                // The delegate does not allow a null answer, and nothing
+                // prevents one. It is no yes either.
+                return response ?? ConnectionFilterResponse.Rejected($"{nameof(OnValidateTCPConnection)} gave no answer.");
+
+            }
+            catch (OperationCanceledException) when (CancellationToken.IsCancellationRequested)
+            {
+
+                Logger.LogDebug("Validating the TCP connection from {RemoteSocket} was called off.",
+                                Connection.RemoteSocket);
+
+                // Still no yes, so still a refusal - but one that says it was
+                // called off, rather than one a handler meant.
+                return new CalledOffTCPValidation();
+
+            }
+            catch (Exception e)
+            {
+
+                Logger.LogError(e, "Exception while invoking {EventName}.", nameof(OnValidateTCPConnection));
+
+                // Refused, and not waved through. This used to log the exception
+                // and let the connection in - the very thing the comment in
+                // ValidateConnection warns of. A handler that throws has not
+                // said that the connection may come in, and a filter that lets
+                // in whatever it failed to look at is no filter. What went wrong
+                // goes into the reason, because the logger is optional and the
+                // event raised for the refusal may be all there is.
+                return ConnectionFilterResponse.Rejected($"{nameof(OnValidateTCPConnection)} failed: {e.Message}");
+
+            }
+
+        }
+
+        #endregion
+
+        #region (private class) CalledOffTCPValidation
+
+        /// <summary>
+        /// The refusal of a handler of OnValidateTCPConnection that was called
+        /// off while it was being asked - see AskTCPConnectionValidator.
+        /// </summary>
+        /// <remarks>
+        /// A type of its own, so that a hand-over can tell it from a refusal a
+        /// handler meant, and answer it 503 rather than 403. Told apart by its
+        /// type, and not by comparing it with an instance kept for the purpose:
+        /// comparing a ConnectionFilterResponse with one made for the comparison
+        /// is how OnValidateTCPConnection once refused nothing at all.
+        /// </remarks>
+        private sealed class CalledOffTCPValidation : ConnectionFilterResponse
+        {
+
+            public CalledOffTCPValidation()
+
+                : base(ConnectionFilterResult.Rejected,
+                       $"{nameof(AWebSocketEndpoint.OnValidateTCPConnection)} was called off.")
+
+            { }
+
+        }
+
+        #endregion
+
+        #region Shutdown(Message = null, Wait = true)
+
+        /// <summary>
+        /// Shutdown the HTTP WebSocket listener, telling every client so first.
+        /// </summary>
+        /// <remarks>
+        /// Every connection is sent a close frame - 1001, going away, with the
+        /// message as its reason - before it ends. Close() sends one only where
+        /// it is given a status or a reason, and this used to give it neither,
+        /// so every client found out from a connection that broke rather than
+        /// from the server.
+        ///
+        /// Every connection that has been upgraded, that is. The server lists a
+        /// connection from the moment it accepts it, and one still waiting for
+        /// its answer is closed without a close frame: its client reads HTTP,
+        /// and Close() sends none before a 101.
+        ///
+        /// All at once rather than one after another: a close frame is a send,
+        /// a send can hang, and each close gives up on it after
+        /// WebSocketServerConnection.DefaultCloseTimeout - which, one connection
+        /// after another, would add up.
+        /// </remarks>
+        /// <param name="Message">What every client is told, as the reason of its close frame; cut where it is longer than a close frame can carry.</param>
+        /// <param name="Wait">Wait until the server finally shutted down.</param>
+        public async Task Shutdown(String?  Message   = null,
+                                   Boolean  Wait      = true)
+        {
+
+            var reason = CloseReason(Message);
+
+            await Task.WhenAll(
+                      WebSocketConnections.
+                          ToArray().
+                          Select(webSocketConnection => webSocketConnection.Close(
+                                                            WebSocketFrame.ClosingStatusCode.GoingAway,
+                                                            reason
+                                                        ))
+                  );
+
+            await StopAcceptingAsync();
+
+        }
+
+        /// <summary>
+        /// As much of a message as the reason of a close frame can carry.
+        /// </summary>
+        /// <remarks>
+        /// A close frame is a control frame, and a control frame's payload is at
+        /// most 125 bytes (RFC 6455, 5.5): two of status and 123 of reason. A
+        /// longer reason makes a frame the client has to fail the connection
+        /// over, so it is cut to fit - where a character ends, because half a
+        /// character is no UTF-8 either.
+        /// </remarks>
+        private static String? CloseReason(String? Message)
+        {
+
+            if (Message is null)
+                return null;
+
+            var bytes   = 0;
+            var length  = 0;
+
+            foreach (var rune in Message.EnumerateRunes())
+            {
+
+                if (bytes + rune.Utf8SequenceLength > 123)
+                    break;
+
+                bytes  += rune.Utf8SequenceLength;
+                length += rune.Utf16SequenceLength;
+
+            }
+
+            return Message[..length];
+
+        }
+
+        #endregion
+
+
+        #region (protected virtual) StopAcceptingAsync()
+
+        /// <summary>
+        /// Stop taking new connections, after Shutdown() said goodbye to the open ones:
+        /// nothing to do for an endpoint, which takes what it is handed; a server stops its listener.
+        /// </summary>
+        protected virtual Task StopAcceptingAsync()
+            => Task.CompletedTask;
+
+        #endregion
+
+        #region (protected) SendNewTCPConnectionRejected(TCPServer, Timestamp, EventTrackingId, RemoteSocket, ConnectionId, Reason = null)
+
+        /// <summary>
+        /// Tell of a TCP connection kept out, with the TCP server that accepted it as the sender;
+        /// a connection handed over without one is only logged.
+        /// </summary>
+        protected async Task SendNewTCPConnectionRejected(ITCPServer?       TCPServer,
+                                                          DateTimeOffset    Timestamp,
+                                                          EventTracking_Id  EventTrackingId,
+                                                          IPSocket          RemoteSocket,
+                                                          String            ConnectionId,
+                                                          I18NString?       Reason   = null)
+        {
+
+            if (TCPServer is null)
+            {
+                Logger.LogDebug("The connection {ConnectionId} from {RemoteSocket} was kept out: {Reason}", ConnectionId, RemoteSocket, Reason?.ToString());
+                return;
+            }
+
+            await LogEvent(
+                      OnNewTCPConnectionRejected,
+                      loggingDelegate => loggingDelegate.Invoke(
+                                             TCPServer,
+                                             Timestamp,
+                                             EventTrackingId,
+                                             RemoteSocket,
+                                             ConnectionId,
+                                             Reason
+                                         )
+                  );
+
+        }
+
+        #endregion
+
+        #region DisposeAsync() / Dispose()
+
+        private Int32 disposed;
+
+        /// <summary>
+        /// Close every connection, telling its client that the endpoint goes away.
+        /// </summary>
+        public virtual async ValueTask DisposeAsync()
+        {
+
+            if (Interlocked.Exchange(ref disposed, 1) == 1)
+                return;
+
+            await Shutdown();
+
+            GC.SuppressFinalize(this);
+
+        }
+
+        /// <summary>
+        /// Close every connection, telling its client that the endpoint goes away.
+        /// </summary>
+        public void Dispose()
+        {
+            DisposeAsync().AsTask().GetAwaiter().GetResult();
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
+
+        #region (virtual) ProcessTextMessage   (RequestTimestamp, Connection, TextMessage,   ...)
+
+        /// <summary>
+        /// The default HTTP WebSocket text message processor.
+        /// </summary>
+        /// <param name="RequestTimestamp">The timestamp of the request message.</param>
+        /// <param name="Connection">The web socket connection.</param>
+        /// <param name="TextMessage">The web socket text message.</param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
+        public virtual Task ProcessTextMessage(DateTimeOffset             Timestamp,
+                                               AWebSocketEndpoint         Server,
+                                               WebSocketServerConnection  Connection,
+                                               EventTracking_Id           EventTrackingId,
+                                               WebSocketFrame             TextFrame,
+                                               String                     TextMessage,
+                                               CancellationToken          CancellationToken)
+
+            => Task.CompletedTask;
+
+            //=> Task.FromResult(
+            //       new WebSocketTextMessageResponse(
+            //           RequestTimestamp,
+            //           TextMessage,
+            //           Timestamp.Now,
+            //           "No text message handler found!!",
+            //           EventTrackingId,
+            //           CancellationToken
+            //       )
+            //   );
+
+        #endregion
+
+        #region (virtual) ProcessBinaryMessage (RequestTimestamp, Connection, BinaryMessage, ...)
+
+        /// <summary>
+        /// The default HTTP WebSocket binary message processor.
+        /// </summary>
+        /// <param name="RequestTimestamp">The timestamp of the request message.</param>
+        /// <param name="Connection">The web socket connection.</param>
+        /// <param name="BinaryMessage">The web socket binary message.</param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
+        public virtual Task ProcessBinaryMessage(DateTimeOffset             Timestamp,
+                                                 AWebSocketEndpoint         Server,
+                                                 WebSocketServerConnection  Connection,
+                                                 EventTracking_Id           EventTrackingId,
+                                                 WebSocketFrame             BinaryFrame,
+                                                 Byte[]                     BinaryMessage,
+                                                 CancellationToken          CancellationToken)
+
+            => Task.CompletedTask;
+
+            //=> Task.FromResult(
+            //       new WebSocketBinaryMessageResponse(
+            //           RequestTimestamp,
+            //           BinaryMessage,
+            //           Timestamp.Now,
+            //           "No binary message handler found!".ToUTF8Bytes(),
+            //           EventTrackingId,
+            //           CancellationToken
+            //       )
+            //   );
+
+        #endregion
+
+
+        #region (protected) SendOnWebSocketFrameSent(Timestamp, Connection, EventTrackingId, Frame,         CancellationToken)
+
+        /// <summary>
+        /// Send an OnWebSocketFrameSent event
+        /// </summary>
+        /// <remarks>
+        /// Raised through InvokeAllAsync, like the events next to it in
+        /// SendWebSocketFrame, and no longer by calling the event itself. A
+        /// multicast delegate that returns a Task hands back the task of its
+        /// last subscriber, and only that one. The subscribers before it were
+        /// started and never waited for: the send returned while they were
+        /// still at work, and what they threw afterwards nobody ever saw. And a
+        /// subscriber that threw before it had a task to return ended the call
+        /// there, so that the subscribers behind it were never called at all.
+        ///
+        /// <b>Without the ten seconds</b> the call used to be given, and not ten
+        /// seconds per subscriber either. WaitAsync does not stop a subscriber;
+        /// it only stops waiting for it - after ten seconds, or the moment the
+        /// sender's token is cancelled. A subscriber given up on went on running,
+        /// unobserved, alongside the subscribers of the next frame, and with a
+        /// token whose owner was done with it: for a keep-alive ping that is the
+        /// connection loop's own, cancelled when the connection ends, which is
+        /// exactly when the wait gave up. A bound per subscriber would do the
+        /// same, one subscriber at a time.
+        ///
+        /// Nor did the bound spare the sender much. The events raised right
+        /// after this one, from the same send - OnTextMessageSent,
+        /// OnBinaryMessageSent, OnPingMessageSent and the rest - have no such
+        /// bound. OnTextMessageSent and OnBinaryMessageSent had the same ten
+        /// seconds once, and lost them when they moved to a shared invoker;
+        /// this event was left behind. A subscriber that hangs there has held
+        /// up the send all along. A subscriber that is slow makes the send slow,
+        /// which is where it shows, and one that must not take long has the
+        /// token to stop itself with.
+        /// </remarks>
+        protected Task SendOnWebSocketFrameSent(DateTimeOffset             Timestamp,
+                                                WebSocketServerConnection  Connection,
+                                                EventTracking_Id           EventTrackingId,
+                                                WebSocketFrame             Frame,
+                                                CancellationToken          CancellationToken)
+
+            => OnWebSocketFrameSent.InvokeAllAsync(
+                   handler => handler(
+                                  Timestamp,
+                                  this,
+                                  Connection,
+                                  EventTrackingId,
+                                  Frame,
+                                  CancellationToken
+                              ),
+                   Logger
+               );
+
+        #endregion
+
+
+        #region (private) LogEvent(Logger, LogHandler, ...)
+
+        /// <remarks>
+        /// <c>EventName</c> is passed on rather than left to the compiler a
+        /// second time: down there the call site is this method, so
+        /// <c>CallerArgumentExpression</c> would fill in "Logger" for every
+        /// event there is.
+        /// </remarks>
+        protected Task LogEvent<TDelegate>(TDelegate?                                       Logger,
+                                         Func<TDelegate, Task>                              LogHandler,
+                                         [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                         [CallerMemberName()]                       String  Command     = "")
+
+            where TDelegate : Delegate
+
+            => Logger.InvokeAllAsync(
+                   LogHandler,
+                   (exception, eventName) => HandleErrors($"WebSocketClient: {Command}.{eventName}", exception),
+                   EventName
+               );
+
+        #endregion
+
+        #region (private static) TryDecodeBase64(Text, out Bytes)
+
+        /// <summary>
+        /// Try to decode the given base64 text into a byte array.
+        /// </summary>
+        private static Boolean TryDecodeBase64(String Text, out Byte[] Bytes)
+        {
+            try
+            {
+                Bytes = Convert.FromBase64String(Text.Trim());
+                return true;
+            }
+            catch
+            {
+                Bytes = [];
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region (private static) IsAnUnfinishedGET(Bytes)
+
+        /// <summary>
+        /// Whether the given bytes are the beginning of a GET request whose
+        /// header has not ended yet: a request to read on for.
+        /// </summary>
+        /// <remarks>
+        /// A header ends with an empty line - a line feed, then another, with or
+        /// without a carriage return between the two. Not only CRLF CRLF:
+        /// HTTPRequest.TryParse takes a bare line feed for the end of a line, as
+        /// RFC 9112 section 2.2 lets a recipient do, and a request that ends its
+        /// lines that way was answered when it arrived in one read. Waiting for
+        /// a CRLF CRLF that never comes would leave it to time out instead.
+        ///
+        /// What can no longer become "GET " is not a request to wait for. The
+        /// loop turns it away as soon as it has been read, as it always has,
+        /// rather than holding the connection open until the deadline.
+        /// </remarks>
+        /// <param name="Bytes">What has arrived of the request so far.</param>
+        private static Boolean IsAnUnfinishedGET(ReadOnlySpan<Byte> Bytes)
+        {
+
+            var get    = "GET "u8;
+            var soFar  = Math.Min(Bytes.Length, get.Length);
+
+            if (!get.StartsWith(Bytes[..soFar]))
+                return false;
+
+            return Bytes.IndexOf("\n\n"u8)   < 0 &&
+                   Bytes.IndexOf("\n\r\n"u8) < 0;
+
+        }
+
+        #endregion
+
+        #region (private) HandleErrors(Caller, ExceptionOccurred)
+
+        private Task HandleErrors(String     Caller,
+                                  Exception  ExceptionOccurred)
+        {
+
+            Logger.LogError(ExceptionOccurred, "{Caller}", Caller);
+
+            return Task.CompletedTask;
+
+        }
+
+        #endregion
+
+
+    }
+
+}

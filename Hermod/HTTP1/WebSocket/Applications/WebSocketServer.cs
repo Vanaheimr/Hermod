@@ -170,7 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
         public async override Task ProcessTextMessage(DateTimeOffset             RequestTimestamp,
-                                                      AWebSocketServer           Server,
+                                                      AWebSocketEndpoint         Server,
                                                       WebSocketServerConnection  Connection,
                                                       EventTracking_Id           EventTrackingId,
                                                       WebSocketFrame             TextFrame,
@@ -206,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
         public async override Task ProcessBinaryMessage(DateTimeOffset             RequestTimestamp,
-                                                        AWebSocketServer           Server,
+                                                        AWebSocketEndpoint         Server,
                                                         WebSocketServerConnection  Connection,
                                                         EventTracking_Id           EventTrackingId,
                                                         WebSocketFrame             BinaryFrame,

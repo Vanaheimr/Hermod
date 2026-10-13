@@ -502,7 +502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// A validator that refuses the upgrade with 403.
         /// </summary>
         private static Task<HTTPResponse?> Refuses(DateTimeOffset             Timestamp,
-                                                   AWebSocketServer           Server,
+                                                   AWebSocketEndpoint         Server,
                                                    WebSocketServerConnection  Connection,
                                                    EventTracking_Id           EventTrackingId,
                                                    CancellationToken          CancellationToken)
@@ -518,7 +518,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// A validator that throws right where it is called.
         /// </summary>
         private static Task<HTTPResponse?> Throws(DateTimeOffset             Timestamp,
-                                                  AWebSocketServer           Server,
+                                                  AWebSocketEndpoint         Server,
                                                   WebSocketServerConnection  Connection,
                                                   EventTracking_Id           EventTrackingId,
                                                   CancellationToken          CancellationToken)

@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             { }
 
             public override async Task ProcessTextMessage(DateTimeOffset             Timestamp,
-                                                          AWebSocketServer           Server,
+                                                          AWebSocketEndpoint         Server,
                                                           WebSocketServerConnection  Connection,
                                                           EventTracking_Id           EventTrackingId,
                                                           WebSocketFrame             TextFrame,
