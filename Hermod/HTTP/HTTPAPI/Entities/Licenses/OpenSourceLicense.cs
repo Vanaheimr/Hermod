@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The JSON-LD context of the object.
         /// </summary>
-        public const String JSONLDContext = "https://opendata.social/contexts/wwcp+json/dataLicenses";
+        public const String JSONLDContext = "https://opendata.social/contexts/wwcp+json/openSourceLicenses";
 
         #endregion
 
