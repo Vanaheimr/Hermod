@@ -91,7 +91,7 @@ public class ServerCertificateStoreTests
     {
         using ServerCertificate shortLived = ServerCertificate.CreateSelfSigned("localhost", TimeSpan.FromDays(13));
 
-        TimeSpan lifetime = shortLived.Certificate.NotAfter - shortLived.Certificate.NotBefore;
+        TimeSpan lifetime = shortLived.Certificate.NotAfter.ToUniversalTime() - shortLived.Certificate.NotBefore.ToUniversalTime();
         Assert.That(lifetime, Is.EqualTo(TimeSpan.FromDays(13)).Within(TimeSpan.FromSeconds(2)),
                     "13 days total — WebTransport's serverCertificateHashes refuses more than 14.");
         Assert.That(shortLived.Certificate.NotBefore.ToUniversalTime(), Is.LessThan(DateTime.UtcNow),
