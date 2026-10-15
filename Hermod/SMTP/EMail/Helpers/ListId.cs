@@ -57,10 +57,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
 
         /// <summary>
-        /// The string value of a mailing list identification.
+        /// The string value of a mailing list identification: "Name &lt;id&gt;", or
+        /// "&lt;id&gt;" for a list without a name.
         /// </summary>
         public String  Value
-            => $"{Name} <{Identification}>";
+            => Name.Length > 0
+                   ? $"{Name} <{Identification}>"
+                   : $"<{Identification}>";
 
         #endregion
 
@@ -104,32 +107,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region (static) TryParse (Text, out ListId)
 
         /// <summary>
-        /// Try to parse a mailing list identification from a string.
+        /// Try to parse a mailing list identification from a string: a List-Id
+        /// header value as RFC 2919 §3 writes it - an optional name and the id in
+        /// angle brackets, "Hermod developers &lt;hermod-dev.lists.example.org&gt;" -
+        /// or, as some lists send it, the bare id.
         /// </summary>
+        /// <remarks>
+        /// The id is a dot-atom with no "@" in it: it names a list, not a mailbox.
+        /// This used to be matched with the e-mail address pattern, which wants an
+        /// "@" - so no real List-Id was ever recognised. The name is decoded (RFC
+        /// 2047) and unquoted.
+        /// </remarks>
         /// <param name="Text">A string representation of a mailing list identification.</param>
-        /// <param name="ListId">The parsed e-mail message identification.</param>
+        /// <param name="ListId">The parsed mailing list identification.</param>
         public static Boolean TryParse(String                           Text,
                                        [NotNullWhen(true)] out ListId?  ListId)
         {
 
-            var r = SimpleEMailAddress.SimpleEMail_RegEx.Match(Text.Trim());
+            ListId = null;
+
+            if (String.IsNullOrWhiteSpace(Text))
+                return false;
+
+            var text = Text.Trim();
+            var r    = ListIdPattern.Match(text);
 
             if (r.Success)
             {
 
-                ListId = new ListId(
-                             r.Groups[0].Value,
-                             r.Groups[1].Value
-                         );
+                var name = EncodedWords.Decode(r.Groups[1].Value).Trim();
 
+                if (name.Length >= 2 && name[0] == '"' && name[^1] == '"')
+                    name = name[1..^1].Replace("\\\"", "\"").Replace("\\\\", "\\");
+
+                ListId = new ListId(name, r.Groups[2].Value.Trim());
                 return true;
 
             }
 
-            ListId = null;
+            if (BareIdPattern.IsMatch(text))
+            {
+                ListId = new ListId("", text);
+                return true;
+            }
+
             return false;
 
         }
+
+        private static readonly Regex ListIdPattern  = new (@"^(.*?)\s*<([^<>\s@]+\.[^<>\s@]+)>\s*$", RegexOptions.CultureInvariant);
+        private static readonly Regex BareIdPattern  = new (@"^[^<>\s@""]+\.[^<>\s@""]+$",           RegexOptions.CultureInvariant);
 
         #endregion
 

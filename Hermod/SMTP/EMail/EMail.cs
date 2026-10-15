@@ -116,7 +116,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     case "to":         this.To         = EMailAddressList.Parse(kvp.Value); break;
                     case "cc":         this.Cc         = EMailAddressList.Parse(kvp.Value); break;
                     case "bcc":        this.Bcc        = EMailAddressList.Parse(kvp.Value); break;
-                    case "replyto":    this.ReplyTo    = EMailAddressList.Parse(kvp.Value); break;
+                    // The field is "Reply-To" (RFC 5322 §3.6.2); "replyto" matched nothing.
+                    case "reply-to":   this.ReplyTo    = EMailAddressList.Parse(kvp.Value); break;
                     case "subject":    this.Subject    =                        kvp.Value ; break;
                     case "date":       this.Date       = DateTimeOffset.  Parse(kvp.Value); break;
                     case "message-id": this.MessageId  = Message_Id.      Parse(kvp.Value); break;

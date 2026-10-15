@@ -162,7 +162,7 @@ public static class MailAddressParser
 
     // Split at the separator only at the top level (not inside quotes, angle brackets,
     // parentheses, or domain-literal brackets).
-    private static List<String> SplitTopLevel(String s, Char sep)
+    internal static List<String> SplitTopLevel(String s, Char sep)
     {
 
         var parts   = new List<String>();
@@ -211,7 +211,7 @@ public static class MailAddressParser
     }
 
     // Remove RFC 5322 comments (nested parentheses), honoring quoted strings and escapes.
-    private static String StripComments(String s)
+    internal static String StripComments(String s)
     {
 
         var sb      = new StringBuilder(s.Length);

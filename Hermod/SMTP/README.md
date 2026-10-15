@@ -42,7 +42,7 @@ Last verified: **2026-10-15**
 | [RFC 1870](https://www.rfc-editor.org/rfc/rfc1870.html), SMTP SIZE | Implemented: advertised with the configured maximum; a declared `SIZE=` above it is refused with `552` at `MAIL` (§6.1); the submission/relay client declares `SIZE=` on `MAIL FROM` and pre-checks the server's limit. |
 | [RFC 6152](https://www.rfc-editor.org/rfc/rfc6152.html), 8BITMIME | Implemented: 8-bit content accepted; `BODY=8BITMIME` emitted when advertised. The submission client does not send 8-bit content to a server without 8BITMIME: there is no 7-bit conversion, so it ends with `MailSentStatus.EightBitNotSupported` before `MAIL` (RFC 6152 §3, second option). |
 | [RFC 6531](https://www.rfc-editor.org/rfc/rfc6531.html), SMTPUTF8 | Implemented and regression-tested: UTF-8 preserved end-to-end on `DATA` and `BDAT` and in `MAIL`/`RCPT` addresses (§3.3); the client emits `SMTPUTF8` only when an address or the message actually needs it. |
-| [RFC 6532](https://www.rfc-editor.org/rfc/rfc6532.html), Internationalized headers | Partial: UTF-8 header content is carried transparently; RFC 2047 encoded-word normalization is not fully implemented. |
+| [RFC 6532](https://www.rfc-editor.org/rfc/rfc6532.html), Internationalized headers | Partial: UTF-8 header content is carried transparently, and `MimeMessage` reads 8-bit header fields as UTF-8 when they are and as Windows-1252 when they are not. Writing (RFC 2047 encoding in the builders) is not implemented yet. |
 | [RFC 2034](https://www.rfc-editor.org/rfc/rfc2034.html), Enhanced status codes | Implemented: `ENHANCEDSTATUSCODES` advertised; `x.y.z` codes on responses. |
 | [RFC 3463](https://www.rfc-editor.org/rfc/rfc3463.html), Enhanced status code structure | Implemented: enhanced codes are parsed from replies and surfaced per-recipient and per-transaction in the submission client's `SMTPSendResult`. |
 | [RFC 3030](https://www.rfc-editor.org/rfc/rfc3030.html), CHUNKING / BDAT (+ BINARYMIME) | Implemented and regression-tested: binary-safe `BDAT` chunking, no dot-stuffing; a refused `BDAT` still consumes its chunk (§2), so the chunk is never read as commands. `DATA` after `BDAT` in the same transaction is `503` (§2). On a submission port `BDAT` needs authentication exactly as `DATA` does. `BINARYMIME` is modeled on the client. |
@@ -96,11 +96,14 @@ Last verified: **2026-10-15**
 
 | Specification | Hermod support |
 |---|---|
-| [RFC 2045](https://www.rfc-editor.org/rfc/rfc2045.html)–[2049](https://www.rfc-editor.org/rfc/rfc2049.html), MIME | Implemented: typed compose/parse of text, HTML, `multipart/alternative`, `multipart/mixed`, attachments, and `multipart/report`. |
+| [RFC 2045](https://www.rfc-editor.org/rfc/rfc2045.html)–[2049](https://www.rfc-editor.org/rfc/rfc2049.html), MIME | Implemented and regression-tested. Composing: text, HTML, `multipart/alternative`, `multipart/mixed`, attachments and `multipart/report` (`EMail` + builders). Reading: `MimeMessage` parses the octets of any message into a tree of `MimePart`s, numbered as IMAP numbers sections (RFC 3501 §6.4.5). It handles every multipart (mixed, alternative, related with `start`, digest, signed, encrypted, report), embedded `message/rfc822`, base64 and quoted-printable, charsets via the code pages (WHATWG fallbacks for missing, `us-ascii` and wrong charsets), and the text and HTML to show. Attachments, inline resources (`cid:`) and PGP/MIME control parts are told apart. Every part keeps its octets as they arrived (`MimePart.Raw`). Lenient where mail is broken (unclosed multiparts, bare LF, unreadable Content-Types), bounded where leniency would be an attack (`MaxDepth` 32, `MaxParts` 2000). |
 | [RFC 1847](https://www.rfc-editor.org/rfc/rfc1847.html), Security multiparts | Implemented and regression-tested: `multipart/signed` and `multipart/encrypted`; signature verification runs against the **raw on-the-wire bytes** preserved at parse time, not a re-serialization. |
 | [RFC 3156](https://www.rfc-editor.org/rfc/rfc3156.html), MIME Security with OpenPGP | Implemented and cross-validated (GnuPG): compose (sign / sign+encrypt, all `To`+`Cc` recipients) and inbound verify / decrypt / decrypt-and-verify. There is deliberately no encrypt-without-sign mode. |
 | [RFC 4880](https://www.rfc-editor.org/rfc/rfc4880.html), OpenPGP message format | Implemented via Bouncy Castle: detached signatures, PKESK-per-recipient encryption, one-pass signature verification. |
-| [RFC 2047](https://www.rfc-editor.org/rfc/rfc2047.html), Encoded-word headers | Partial (see RFC 6532 above). |
+| [RFC 2047](https://www.rfc-editor.org/rfc/rfc2047.html), Encoded-word headers | Decoding implemented and regression-tested (`EncodedWords.Decode`, used by `MimeMessage` for unstructured fields, display names and parameter values): B and Q, white space between encoded words dropped (§6.2), adjacent words in one charset decoded together, the RFC 2231 §5 language suffix accepted, undecodable words kept as they are. Encoding when composing is not implemented yet. |
+| [RFC 2231](https://www.rfc-editor.org/rfc/rfc2231.html), MIME parameter values | Implemented and regression-tested (`MimeParameters`): continuations (`name*0`, `name*1*`), charset and language with percent-encoded octets, the extended value winning over the plain one; RFC 2047 words in plain parameter values (how most mail programs name attachments) are decoded too. |
+| [RFC 2919](https://www.rfc-editor.org/rfc/rfc2919.html), List-Id | Implemented and regression-tested: `ListId.TryParse` reads an optional (encoded, quoted) name and the id in angle brackets, or a bare id. |
+| [RFC 5322](https://www.rfc-editor.org/rfc/rfc5322.html) §3.3/§4.3, Date and time | Implemented and regression-tested (`MimeDate`): comments, missing or wrong day names, two- and three-digit years, missing seconds, the obsolete zone names, `+hh:mm`, asctime order. |
 
 ## Transport and ports
 
@@ -127,7 +130,7 @@ or advertised extension applies to the roles noted here, not automatically to al
 | Inbound server | `SMTPServer` + `SMTPSession` | Accept connections on 25/587/465, run the transaction state machine, authenticate (SASL), evaluate SPF/DKIM/DMARC/ARC, write trace + `Authentication-Results`, store or relay. |
 | Relay client (MTA→MTA) | `SMTPOutboundClient` | MX lookup, opportunistic/enforced TLS, DANE/MTA-STS, DKIM signing, delivery; driven by `MailSender` and the persistent queue. |
 | Submission client (app→MSA) | `ISMTPSubmissionClient` / `SMTPSubmissionClient` | Hand a typed message to one configured submission server over TLS with SASL AUTH (SCRAM-SHA-256 preferred, never cleartext); fully-async transport with fast-fail connection detection, bounded retries, and a detailed `SMTPSendResult`. |
-| Message model | `EMail` + builders + `OpenPGP` | Compose/parse MIME and OpenPGP; DSN/MDN request and generation; importance/priority. |
+| Message model | `EMail` + builders + `OpenPGP`; `MimeMessage` | Compose MIME and OpenPGP; read any message (`MimeMessage`, `MailboxAddress`, `MimeDate`); DSN/MDN request and generation; importance/priority. |
 
 ## Commands and EHLO extensions
 
@@ -215,9 +218,10 @@ vectors, and live domains — not only self-consistency.
 | **DNS** | Live queries via the Hermod `DNSClient` against real domains. |
 | **Inbound session** | Raw-socket wire tests (`SMTPSessionWireTests`) for line endings, smuggling variants, BDAT chunk consumption, submission-port authentication, the session state `STARTTLS` discards, session limits, the verification switches, the octets handed to the store, recipient checks at `RCPT` and a failing store; the whole server is additionally run against the external [SMTPConformanceTests](https://github.com/Vanaheimr/SMTPConformanceTests) suite (RFC-by-RFC, plus swaks, smtplib, openssl and Postfix smtp-sink). |
 
-The committed SMTP regression suite (`HermodTests/SMTP/`) contains **441 passing
+The committed SMTP regression suite (`HermodTests/SMTP/`) contains **499 passing
 tests, 0 failed, 0 skipped** as of the verification date, covering the message
-builders and OpenPGP (`EMailBuilderTests`), MDN (`MdnTests`, `MdnStorageTests`),
+builders and OpenPGP (`EMailBuilderTests`), reading messages (`MimeMessageTests`),
+MDN (`MdnTests`, `MdnStorageTests`),
 DSN (`DsnTests`), priority (`PriorityTests`), `MAIL`/`RCPT` parameters
 (`ESMTPParametersTests`), the inbound session on the wire
 (`SMTPSessionWireTests`), relayed parameters (`SMTPRelayParameterTests`), null MX
@@ -254,8 +258,8 @@ explicit:
   8-bit body that is not UTF-8 is relayed altered and its DKIM signature does not
   verify.
 - **SPF `exp=` and `ptr` evaluation** are not implemented (`ptr` is deprecated).
-- **Header internationalization** (RFC 2047 encoded-words / full RFC 6532) is only
-  partially handled.
+- **Header internationalization when composing:** RFC 2047 encoding and folding
+  of header fields in the builders are not implemented yet; reading decodes them.
 - **Operational gaps:** no mail-loop/`Received`-hop-count limit, no
   metrics/alerting; queue durability is not battle-tested.
 - **A demonstration user store** (`FileUserStore`, a flat file): passwords are
