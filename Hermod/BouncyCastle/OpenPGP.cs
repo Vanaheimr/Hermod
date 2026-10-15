@@ -172,8 +172,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ReadSecretKeyRing(Text)
 
+        /// <summary>
+        /// The secret key ring in the given text - armored, as GnuPG, OpenPGP.js and
+        /// every key file have it, or binary - with a key that can sign.
+        /// </summary>
+        /// <remarks>
+        /// Through the decoder stream like every other reader here: given to the
+        /// key ring as it was, the armor's text was read as packets, and an armored
+        /// secret key - the usual kind - failed with "doesn't start with secret key
+        /// tag".
+        /// </remarks>
         public static PgpSecretKeyRing ReadSecretKeyRing(String Text)
-            => new PgpSecretKeyRing(Text.ToMemoryStream());
+            => ReadSecretKeyRing(Text.ToMemoryStream())
+                   ?? throw new ArgumentException("The given text holds no secret key ring.");
 
         #endregion
 
@@ -210,15 +221,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ReadSecretKey(Text)
 
+        /// <summary>
+        /// The secret key in the given text that can sign: the primary key, or the
+        /// signing subkey of a primary key that only certifies, as a key made for
+        /// signing on a smartcard often has it.
+        /// </summary>
         public static PgpSecretKey? ReadSecretKey(String Text)
-            => ReadSecretKeyRing(Text.ToMemoryStream())?.GetSecretKeys().Cast<PgpSecretKey>().First();
+            => ReadSecretKey(Text.ToMemoryStream());
 
         #endregion
 
         #region ReadSecretKey(InputStream)
 
         public static PgpSecretKey? ReadSecretKey(Stream InputStream)
-            => ReadSecretKeyRing(InputStream)?.GetSecretKeys().Cast<PgpSecretKey>().First();
+            => ReadSecretKeyRing(InputStream)?.GetSecretKeys().Cast<PgpSecretKey>().FirstOrDefault(key => key.IsSigningKey && MaySign(key.PublicKey));
+
+        #endregion
+
+        #region MaySign(PublicKey)
+
+        /// <summary>
+        /// Whether a key is meant to sign: what the key flags of its self-signature
+        /// say (RFC 4880 §5.2.3.21) - for the primary key its certification, for a
+        /// subkey its binding signature. BouncyCastle's IsSigningKey asks only
+        /// whether the algorithm could, and an Ed25519 primary key that only
+        /// certifies could - the signing subkey beside it is the one to use.
+        /// A key whose signatures say nothing about flags - an old one - may sign
+        /// when its algorithm can.
+        /// </summary>
+        public static Boolean MaySign(PgpPublicKey PublicKey)
+        {
+
+            Int32? flags = null;
+
+            foreach (var signature in PublicKey.GetSignatures().Cast<PgpSignature>())
+            {
+
+                if (!signature.HasSubpackets)
+                    continue;
+
+                var hashed = signature.GetHashedSubPackets();
+
+                if (hashed is not null && hashed.HasSubpacket(SignatureSubpacketTag.KeyFlags))
+                    flags = (flags ?? 0) | hashed.GetKeyFlags();
+
+            }
+
+            return flags is null
+                       ? PublicKey.Algorithm is not (PublicKeyAlgorithmTag.ElGamalEncrypt or PublicKeyAlgorithmTag.ECDH or PublicKeyAlgorithmTag.RsaEncrypt)
+                       : (flags.Value & PgpKeyFlags.CanSign) != 0;
+
+        }
 
         #endregion
 
