@@ -35,6 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private readonly SMTPServerConfig            serverConfig;
         private readonly RateLimitConfig             _rateLimitConfig;
         private readonly IMailStorage                _storage;
+        private readonly IRecipientValidator?        _recipientValidator;
         private readonly IDNSClient                   dnsClient;
         private readonly DNSVerifier                 _dnsVerifier;
         private readonly IUserStore                  _userStore;
@@ -66,17 +67,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private readonly ConcurrentBag<Task>         _sessionTasks = [];
         private readonly CancellationTokenSource     _cts = new();
 
-        public SMTPServer(SMTPServerConfig  ServerConfig,
-                          IDNSClient         DNSClient,
-                          ILogger?          logger            = null,
-                          IUserStore?       userStore         = null,
-                          IMailQueue?       mailQueue         = null,
-                          RateLimitConfig?  rateLimitConfig   = null,
-                          IMailStorage?     mailStorage       = null)
+        /// <param name="recipientValidator">Decides at RCPT whether a recipient on a local domain
+        /// exists; without one every such address is accepted (catch-all). See
+        /// <see cref="IRecipientValidator"/>.</param>
+        public SMTPServer(SMTPServerConfig      ServerConfig,
+                          IDNSClient            DNSClient,
+                          ILogger?              logger               = null,
+                          IUserStore?           userStore            = null,
+                          IMailQueue?           mailQueue            = null,
+                          RateLimitConfig?      rateLimitConfig      = null,
+                          IMailStorage?         mailStorage          = null,
+                          IRecipientValidator?  recipientValidator   = null)
 
         {
 
             this.serverConfig        = ServerConfig;
+            this._recipientValidator = recipientValidator;
             this._rateLimitConfig    = rateLimitConfig ?? new RateLimitConfig();
             this._logger             = logger          ?? new ConsoleLogger();
             this.dnsClient           = DNSClient;
@@ -153,7 +159,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             _logger.Log(LogLevel.Info, $"Mail storage: {Path.GetFullPath(serverConfig.MailStoragePath)}");
             _logger.Log(LogLevel.Info, $"STARTTLS: {(_certificate is not null ? "Available" : "Not configured")}");
             _logger.Log(LogLevel.Info, $"AUTH mechanisms: PLAIN, LOGIN, SCRAM-SHA-256, EXTERNAL");
-            _logger.Log(LogLevel.Info, $"Local domains: {string.Join(", ", serverConfig.LocalDomains)}");
+            _logger.Log(LogLevel.Info, serverConfig.LocalDomainCheck is not null
+                                           ? "Local domains: decided at runtime (LocalDomainCheck)"
+                                           : $"Local domains: {string.Join(", ", serverConfig.LocalDomains)}");
             _logger.Log(LogLevel.Info, $"Relay auth required: {serverConfig.RequireAuthForRelay}");
             _logger.Log(LogLevel.Info, $"Verification: SPF={serverConfig.VerifySpf} DKIM={serverConfig.VerifyDkim} DMARC={serverConfig.VerifyDmarc}");
             _logger.Log(LogLevel.Info, $"Rate limiting: {_rateLimitConfig.MaxConnectionsPerIp} conn/IP, {_rateLimitConfig.MaxAuthAttemptsPerIpPerHour} auth/hr");
@@ -301,7 +309,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                         _logger,
                                         implicitTls,
                                         _dmarcReportService,
-                                        _tlsRptIngestor
+                                        _tlsRptIngestor,
+                                        _recipientValidator
                                     );
 
                     var task      = session.HandleAsync(ct);

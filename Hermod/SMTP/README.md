@@ -19,7 +19,7 @@ SPF/DKIM/DMARC/ARC/DANE/TLS-RPT engines, the outbound client and queue) stays in
 and worked API examples — lives in a separate repository, the deployable server
 instance: [**Vanaheimr/SMTPServerCLI** → `README.md`](https://github.com/Vanaheimr/SMTPServerCLI/blob/master/README.md).
 
-Last verified: **2026-10-03**
+Last verified: **2026-10-15**
 
 ## Support levels
 
@@ -155,6 +155,21 @@ TLS state). See the [core transport](#core-smtp--esmtp-transport) and
   `550 5.5.2` after the end of data, or — with `RejectBareLineEndings = false` —
   is normalized to CR LF inside the one message.
 - A connection lost before the end of `DATA` delivers nothing.
+- What the mail store receives is the message as the octets that arrived
+  (`EMailMessage.RawBytes`), after dot-unstuffing and with this hop's trace headers
+  in front - on `DATA` as on `BDAT`. An 8-bit body that is not UTF-8 is stored as
+  it was sent; `RawMessage` is its UTF-8 decoding, for parsing only. The default
+  `FileMailStorage` writes the octets.
+- A recipient on a local domain can be checked at `RCPT` by an
+  `IRecipientValidator`: a mailbox that does not exist is `550 5.1.1`, one that
+  cannot be checked right now (or a validator that throws) `451 4.3.0`.
+  `postmaster` is never asked about (RFC 5321 §4.5.1), relayed recipients are the
+  relay rules' business. Without a validator every local address is accepted.
+- Which domains are local is `LocalDomains`, or - for domains that change while
+  the server runs - `LocalDomainCheck`, asked at every `RCPT`.
+- A mail store that throws is `451 4.3.0` for the message, and the session goes
+  on; nothing has been relayed at that point, so the client's retry duplicates
+  nothing.
 - A refused `BDAT` (out of sequence, unauthenticated on a submission port, too
   large, rate-limited) reads and discards its announced octets before answering
   (RFC 3030 §2).
@@ -198,9 +213,9 @@ vectors, and live domains — not only self-consistency.
 | **TLS-RPT** | Aggregation + RFC 8460 §4 JSON round-trip (outbound); closed-loop gzip/JSON ingestion (inbound); live `_smtp._tls` lookup. |
 | **Submission client** | SCRAM-SHA-256 crypto cross-validated against the server credential generator; a scriptable in-process fake server (Autobahn-style "mean" connection drops/stalls detected in < 10 s, never a 60 s hang; a TLS handshake the server never answers, after STARTTLS or on an implicit TLS port, ends after the command timeout); a live STARTTLS+SCRAM end-to-end send; a hanging server aborted promptly on caller cancellation. |
 | **DNS** | Live queries via the Hermod `DNSClient` against real domains. |
-| **Inbound session** | Raw-socket wire tests (`SMTPSessionWireTests`) for line endings, smuggling variants, BDAT chunk consumption, submission-port authentication, the session state `STARTTLS` discards, session limits and the verification switches; the whole server is additionally run against the external [SMTPConformanceTests](https://github.com/Vanaheimr/SMTPConformanceTests) suite (RFC-by-RFC, plus swaks, smtplib, openssl and Postfix smtp-sink). |
+| **Inbound session** | Raw-socket wire tests (`SMTPSessionWireTests`) for line endings, smuggling variants, BDAT chunk consumption, submission-port authentication, the session state `STARTTLS` discards, session limits, the verification switches, the octets handed to the store, recipient checks at `RCPT` and a failing store; the whole server is additionally run against the external [SMTPConformanceTests](https://github.com/Vanaheimr/SMTPConformanceTests) suite (RFC-by-RFC, plus swaks, smtplib, openssl and Postfix smtp-sink). |
 
-The committed SMTP regression suite (`HermodTests/SMTP/`) contains **186 passing
+The committed SMTP regression suite (`HermodTests/SMTP/`) contains **441 passing
 tests, 0 failed, 0 skipped** as of the verification date, covering the message
 builders and OpenPGP (`EMailBuilderTests`), MDN (`MdnTests`, `MdnStorageTests`),
 DSN (`DsnTests`), priority (`PriorityTests`), `MAIL`/`RCPT` parameters
@@ -227,11 +242,17 @@ transport-security, and email-authentication standards. These boundaries are
 explicit:
 
 - **Not a hardened production MX.** There is no anti-spam / anti-abuse layer
-  (greylisting, DNSBL/RBL, content scoring, reputation); recipients are accepted
-  catch-all with no mailbox-existence check (backscatter risk); the parsers
+  (greylisting, DNSBL/RBL, content scoring, reputation); without an
+  `IRecipientValidator`, recipients are accepted catch-all with no
+  mailbox-existence check (backscatter risk); the parsers
   process untrusted input and have not been fuzzed or security-audited.
 - **No mailbox access protocol.** Inbound mail is stored as flat `.eml` files;
   IMAP/POP/Maildir and quota are out of scope.
+- **8-bit content beyond the store:** the octets that arrived reach the mail
+  store unchanged, but DKIM/ARC verification, the relay queue
+  (`QueuedMail.MessageContent`) and DSNs still work on the UTF-8 decoding, so an
+  8-bit body that is not UTF-8 is relayed altered and its DKIM signature does not
+  verify.
 - **SPF `exp=` and `ptr` evaluation** are not implemented (`ptr` is deprecated).
 - **Header internationalization** (RFC 2047 encoded-words / full RFC 6532) is only
   partially handled.

@@ -64,9 +64,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     AddHeader("X-MX-Records", string.Join(", ", v.MxRecords));
             }
 
-            var fullMessage = metadata.ToString() + message.RawMessage;
-            // Write UTF-8 without BOM so the stored .eml starts with the first header byte.
-            await File.WriteAllTextAsync(filePath, fullMessage, new UTF8Encoding(false), ct);
+            // The metadata as UTF-8 without BOM, so the stored .eml starts with the first header
+            // byte, followed by the message exactly as it arrived: an 8-bit body that is not
+            // UTF-8 must not come out of the store as U+FFFD.
+            var metadataBytes = Encoding.UTF8.GetBytes(metadata.ToString());
+            var messageBytes  = message.GetBytes();
+            var fullMessage   = new Byte[metadataBytes.Length + messageBytes.Length];
+            metadataBytes.CopyTo(fullMessage, 0);
+            messageBytes. CopyTo(fullMessage, metadataBytes.Length);
+
+            await File.WriteAllBytesAsync(filePath, fullMessage, ct);
 
             logger.Log(LogLevel.Info, $"Stored message: {filePath}");
             return filePath;

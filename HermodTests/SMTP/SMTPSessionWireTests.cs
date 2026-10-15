@@ -76,13 +76,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             public readonly ConcurrentQueue<String>                                      Messages  = new();
+            public readonly ConcurrentQueue<Byte[]?>                                     RawBytes  = new();
             public readonly ConcurrentQueue<(String From, IReadOnlyList<String> To)>     Envelopes = new();
+
+            /// <summary>
+            /// When set, the next store throws it - a full disk, a database that is away.
+            /// </summary>
+            public Exception? Failure;
 
             public Task<String> StoreAsync(EMailMessage message, String envelopeFrom, IEnumerable<String> envelopeTo, CancellationToken ct = default)
             {
+
+                if (Interlocked.Exchange(ref Failure, null) is { } failure)
+                    throw failure;
+
                 Messages.Enqueue(message.RawMessage);
+                RawBytes.Enqueue(message.RawBytes);
                 Envelopes.Enqueue((envelopeFrom, [.. envelopeTo]));
                 return Task.FromResult("memory");
+
             }
 
         }
@@ -105,11 +117,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             /// <param name="RateLimits">Default: the server's, except that a failed AUTH is answered at once.</param>
             /// <param name="Configure">Changes to the server configuration below.</param>
+            /// <param name="RecipientValidator">Decides at RCPT whether a local recipient exists; none means catch-all.</param>
             public Server(Boolean                                    RejectBareLineEndings  = true,
                           Int32                                      MaxMessageSize         = 64 * 1024,
                           RateLimitConfig?                           RateLimits             = null,
                           IDNSClient?                                DNS                    = null,
-                          Func<SMTPServerConfig, SMTPServerConfig>?  Configure              = null)
+                          Func<SMTPServerConfig, SMTPServerConfig>?  Configure              = null,
+                          IRecipientValidator?                       RecipientValidator     = null)
             {
 
                 directory       = Directory.CreateTempSubdirectory("hermod-smtp-").FullName;
@@ -132,8 +146,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 server          = new SMTPServer(Configure?.Invoke(config) ?? config,
                                                  DNS ?? new NoDNS(),
                                                  new QuietLogger(),
-                                                 rateLimitConfig: RateLimits ?? new RateLimitConfig { AuthFailDelayMs = 0 },
-                                                 mailStorage:     Storage);
+                                                 rateLimitConfig:     RateLimits ?? new RateLimitConfig { AuthFailDelayMs = 0 },
+                                                 mailStorage:         Storage,
+                                                 recipientValidator:  RecipientValidator);
 
                 // Start() runs the accept loops for the server's lifetime.
                 running    = server.Start();

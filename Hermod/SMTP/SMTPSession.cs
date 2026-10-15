@@ -43,7 +43,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                     ILogger             logger,
                                     Boolean             implicitTls        = false,
                                     DmarcReportService? dmarcReportService = null,
-                                    TlsRptIngestor?     tlsRptIngestor     = null)
+                                    TlsRptIngestor?     tlsRptIngestor     = null,
+                                    IRecipientValidator? recipientValidator = null)
     {
 
         private Stream                         _stream         = client.GetStream();
@@ -273,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     break;
 
                 case "RCPT":
-                    await HandleRcptToAsync(args);
+                    await HandleRcptToAsync(args, ct);
                     break;
 
                 case "DATA":
@@ -681,7 +682,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
         }
 
-        private async Task HandleRcptToAsync(String args)
+        private async Task HandleRcptToAsync(String args, CancellationToken ct)
         {
 
             if (_state < SMTPSessionState.MailFrom)
@@ -762,8 +763,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
             else
             {
+
+                // A local recipient that does not exist is refused here, so that the sending
+                // server bounces it - not accepted and bounced by us afterwards, to a sender that
+                // is, for spam, somebody else. Postmaster is never asked about: RFC 5321 §4.5.1
+                // requires it to exist on every domain this server delivers for.
+                if (recipientValidator is not null && !isOwnPostmaster && !IsPostmaster(recipient))
+                {
+
+                    RecipientCheck check;
+
+                    try
+                    {
+                        check = await recipientValidator.CheckAsync(recipient, ct);
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Log(LogLevel.Error, $"Recipient check for {recipient} failed: {ex.Message}");
+                        check = RecipientCheck.TryLater;
+                    }
+
+                    switch (check)
+                    {
+
+                        case RecipientCheck.Unknown:
+                            logger.Log(LogLevel.Info, $"Unknown local recipient {recipient} refused (from {_clientIp})");
+                            await SendResponseAsync(550, $"5.1.1 <{recipient}>: Recipient address rejected: no such mailbox");
+                            return;
+
+                        case RecipientCheck.TryLater:
+                            await SendResponseAsync(451, "4.3.0 Recipient cannot be checked right now, try again later");
+                            return;
+
+                    }
+
+                }
+
                 _localRcptTo.Add(recipient);
                 logger.Log(LogLevel.Debug, $"Local recipient: {recipient}");
+
             }
 
             // Submission port (587) requires auth for all mail per RFC 6409
@@ -904,14 +946,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
-            // The reader uses Latin1 (1 char == 1 wire byte). Reconstruct the original
-            // bytes and decode them as UTF-8 so SMTPUTF8/8BITMIME content is preserved
-            // (mirrors the BDAT path). ASCII content is unaffected.
-            var rawMessage = Encoding.UTF8.GetString(
-                                 Encoding.Latin1.GetBytes(messageBuilder.ToString())
-                             );
-
-            await ProcessReceivedMessageAsync(rawMessage, ct);
+            // The reader uses Latin1 (1 char == 1 wire byte), so this gives back exactly the
+            // octets that arrived - UTF-8 or not. They are decoded for parsing only; what is
+            // stored is these octets (mirrors the BDAT path).
+            await ProcessReceivedMessageAsync(Encoding.Latin1.GetBytes(messageBuilder.ToString()), ct);
 
         }
 
@@ -984,13 +1022,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             if (isLast)
             {
-                // Process the complete message
-                // Message content is typically UTF-8 encoded
-                var rawMessage = Encoding.UTF8.GetString(_bdatBuffer.ToArray());
+                // Process the complete message, as the octets that arrived.
+                var rawBytes = _bdatBuffer.ToArray();
                 _bdatBuffer.SetLength(0);
                 _inBdatSequence = false;
 
-                await ProcessReceivedMessageAsync(rawMessage, ct);
+                await ProcessReceivedMessageAsync(rawBytes, ct);
             }
             else
             {
@@ -1026,12 +1063,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
 
         /// <summary>
-        /// Process a received message (from DATA or BDAT)
+        /// Process a received message (from DATA or BDAT), given as the octets that arrived.
         /// </summary>
-        private async Task ProcessReceivedMessageAsync(String rawMessage, CancellationToken ct)
+        private async Task ProcessReceivedMessageAsync(Byte[] rawBytes, CancellationToken ct)
         {
 
-            var message   = EMailMessage.Parse(rawMessage);
+            var message     = EMailMessage.Parse(rawBytes);
+            var rawMessage  = message.RawMessage;
 
             // Perform DNS verification (for inbound mail from other servers)
             var senderDomain = ExtractDomain(_mailFrom ?? "");
@@ -1136,8 +1174,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (dmarcQuarantine)
                 traceHeaders += "X-DMARC-Quarantine: true\r\n";
 
-            var stampedRaw     = traceHeaders + rawMessage;
-            var stampedMessage = EMailMessage.Parse(stampedRaw);
+            // The trace headers go in front of the octets that arrived, not of their decoding:
+            // a body in ISO-8859-1 stays ISO-8859-1, and a signature over it stays valid.
+            var traceBytes     = Encoding.UTF8.GetBytes(traceHeaders);
+            var stampedBytes   = new Byte[traceBytes.Length + rawBytes.Length];
+            traceBytes.CopyTo(stampedBytes, 0);
+            rawBytes.  CopyTo(stampedBytes, traceBytes.Length);
+
+            var stampedMessage = EMailMessage.Parse(stampedBytes);
+            var stampedRaw     = stampedMessage.RawMessage;
             stampedMessage.Verification = verification;
 
             // Determine what to do with the message
@@ -1151,7 +1196,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             string? filePath = null;
             if (hasLocalRecipients)
             {
-                filePath = await storage.StoreAsync(stampedMessage, _mailFrom ?? "<>", _localRcptTo, ct);
+
+                // A store that fails - a full disk, a database away - is a temporary failure of
+                // this server, and the client is told so: 451, and it tries again later. Before,
+                // the exception ended the session without a reply, which a client can only read
+                // as a dropped connection. Nothing has been relayed yet at this point, so a
+                // retry duplicates nothing.
+                try
+                {
+                    filePath = await storage.StoreAsync(stampedMessage, _mailFrom ?? "<>", _localRcptTo, ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.Log(LogLevel.Error, $"Storing the message from {_mailFrom} failed: {ex.Message}");
+                    await SendResponseAsync(451, "4.3.0 Requested action aborted: local error in processing");
+                    ResetTransaction();
+                    return;
+                }
+
                 logger.Log(LogLevel.Info, $"Stored locally: {Path.GetFileName(filePath)}");
 
                 // TLS-RPT (RFC 8460) inbound: if this is a TLS report delivered to our rua
@@ -1361,6 +1427,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         {
             var atIndex = email.IndexOf('@');
             return atIndex > 0 ? email[(atIndex + 1)..] : "";
+        }
+
+        // "postmaster@" any domain: the local part is compared without regard to case (RFC 5321
+        // §4.5.1, "a case-insensitive local name"). The last "@" ends the local part, which may
+        // itself contain one when it is quoted.
+        private static Boolean IsPostmaster(String address)
+        {
+            var atIndex = address.LastIndexOf('@');
+            return atIndex > 0 && address[..atIndex].Equals("postmaster", StringComparison.OrdinalIgnoreCase);
         }
 
         // The header block of a raw message (everything up to the first empty line), used for

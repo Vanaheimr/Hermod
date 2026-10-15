@@ -102,6 +102,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public HashSet<String>   LocalDomains               { get; init; } = ["localhost", "localhost.localdomain"];
 
         /// <summary>
+        /// Decides whether a domain is local, instead of <see cref="LocalDomains"/>: for a server
+        /// whose domains change while it runs - managed in a web interface, say - and which
+        /// should not have to restart, and drop the sessions in flight, for a new one.
+        /// Called for every RCPT, with the domain as the client sent it; it must be thread-safe
+        /// and answer without regard to case.
+        /// </summary>
+        public Func<String, Boolean>?  LocalDomainCheck      { get; init; }
+
+        /// <summary>
         /// Require authentication for relaying to external domains.
         /// MUST be true in production to prevent becoming an open relay!
         /// </summary>
@@ -168,14 +177,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
 
         /// <summary>
-        /// Check if a domain is local (case-insensitive)
+        /// Check if a domain is local (case-insensitive): <see cref="LocalDomainCheck"/> when
+        /// there is one, otherwise <see cref="LocalDomains"/>.
         /// </summary>
         public          Boolean  IsLocalDomain(String domain)
 
-             => LocalDomains.Contains(
-                    domain,
-                    StringComparer.OrdinalIgnoreCase
-                );
+             => LocalDomainCheck is not null
+                    ? LocalDomainCheck(domain)
+                    : LocalDomains.Contains(
+                          domain,
+                          StringComparer.OrdinalIgnoreCase
+                      );
 
     }
 
