@@ -285,6 +285,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => (UInt32) clientChannels.Count;
 
         /// <summary>
+        /// The id of the newest event submitted so far - 0 before the first.
+        /// </summary>
+        /// <remarks>
+        /// "Now", for a client that is not to be told what happened before it
+        /// came: whoever takes its state after reading this, and then asks for
+        /// the events greater than it, misses nothing and is told nothing twice
+        /// that the state did not have already. An id is given to an event only
+        /// when it is submitted, after whatever it tells of has happened.
+        /// </remarks>
+        public UInt64                                LastEventId
+            => (UInt64) Interlocked.Read(ref IdCounter);
+
+        /// <summary>
         /// Maximum number of cached events.
         /// </summary>
         public UInt32                                MaxNumberOfCachedEvents    { get; }

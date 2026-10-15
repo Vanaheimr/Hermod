@@ -245,6 +245,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region AClientThatComesNowIsToldWhatHappensFromNowOn()
+
+        /// <summary>
+        /// LastEventId is "now": a client that starts from it is not told the
+        /// history, and is told everything after.
+        /// </summary>
+        [Test]
+        public async Task AClientThatComesNowIsToldWhatHappensFromNowOn()
+        {
+
+            var source = httpAPI.AddEventSource<String>(
+                             HTTPEventSource_Id.Parse("now"),
+                             MaxNumberOfCachedEvents:  100,
+                             EnableLogging:            false
+                         );
+
+            Assert.That(source.LastEventId, Is.EqualTo(0), "Nothing was submitted yet.");
+
+            for (var i = 1; i <= 3; i++)
+                await source.SubmitEvent("test", $"before {i}");
+
+            var now = source.LastEventId;
+
+            Assert.That(now, Is.EqualTo(3));
+
+            using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+            var delivered = new List<String>();
+
+            var consumer = Task.Run(async () => {
+                await foreach (var httpEvent in source.GetAllEventsGreater("a-client", now, cancellation.Token))
+                {
+                    delivered.Add(httpEvent.Data);
+                    if (delivered.Count == 2)
+                        break;
+                }
+            }, cancellation.Token);
+
+            await source.SubmitEvent("test", "after 1");
+            await source.SubmitEvent("test", "after 2");
+
+            await consumer.WaitAsync(TimeSpan.FromSeconds(30));
+
+            Assert.Multiple(() => {
+                Assert.That(delivered,          Is.EqualTo(new[] { "after 1", "after 2" }), "A client that came now was told the past, or not the present.");
+                Assert.That(source.LastEventId, Is.EqualTo(5));
+            });
+
+        }
+
+        #endregion
+
         #region AClientThatGivesUpDuringTheReplayLeavesNothingBehind()
 
         /// <summary>
