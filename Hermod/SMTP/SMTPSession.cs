@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                     SMTPServerConfig    config,
                                     IMailStorage        storage,
                                     DNSVerifier         dnsVerifier,
-                                    X509Certificate2?   certificate,
+                                    SMTPServerCertificates? certificates,
                                     IUserStore          userStore,
                                     IMailQueue?         mailQueue,
                                     Boolean             isSubmissionPort,
@@ -101,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 // established before the greeting — there is no plaintext STARTTLS exchange.
                 if (implicitTls)
                 {
-                    if (certificate is null)
+                    if (certificates is null)
                     {
                         logger.Log(LogLevel.Error, "Implicit-TLS connection but no certificate configured; closing");
                         return;
@@ -336,7 +336,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 "SMTPUTF8"   // RFC 6531 - Internationalized Email
             };
 
-            if (certificate is not null && !_tlsActive)
+            // Asked now and not at the start of the session: a certificate that arrived while
+            // the server runs is offered from the next EHLO on.
+            if (!_tlsActive && certificates?.Available == true)
                 extensions.Add("STARTTLS");
 
             // REQUIRETLS only available after STARTTLS (RFC 8689)
@@ -481,7 +483,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private async Task HandleStartTlsAsync(CancellationToken ct)
         {
 
-            if (certificate is null)
+            if (certificates?.Available != true)
             {
                 await SendResponseAsync(454, "4.7.0 TLS not available");
                 return;
@@ -530,14 +532,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             var sslStream = new SslStream(_stream, false, ValidateClientCertificate);
 
+            // The certificate is chosen when the client has said which name it wants (SNI), and
+            // asked for anew at every handshake - see SMTPServerConfig.ServerCertificateSelector.
+            // It comes with its intermediates, which an MTA does not go and fetch the way a
+            // browser does.
             await sslStream.AuthenticateAsServerAsync(
-                new SslServerAuthenticationOptions
-                {
-                    ServerCertificate = certificate,
-                    ClientCertificateRequired = false,  // Optional client cert for EXTERNAL auth
-                    EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 |
-                                          System.Security.Authentication.SslProtocols.Tls13
+                (stream, clientHello, state, token) => {
+
+                    var context = certificates?.ContextFor(clientHello.ServerName)
+                                      ?? throw new System.Security.Authentication.AuthenticationException(
+                                             $"No server certificate for '{clientHello.ServerName}'.");
+
+                    return ValueTask.FromResult(new SslServerAuthenticationOptions {
+                               ServerCertificateContext   = context,
+                               ClientCertificateRequired  = false,  // Optional client cert for EXTERNAL auth
+                               EnabledSslProtocols        = System.Security.Authentication.SslProtocols.Tls12 |
+                                                            System.Security.Authentication.SslProtocols.Tls13
+                           });
+
                 },
+                null,
                 ct
             );
 

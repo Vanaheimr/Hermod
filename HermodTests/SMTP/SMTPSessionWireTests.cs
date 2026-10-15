@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -202,17 +203,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             private readonly StringBuilder  pending = new();
 
             /// <summary>
-            /// The client half of the TLS handshake, after the server's 220 to STARTTLS.
-            /// The server's self-signed certificate is accepted.
+            /// The client half of the TLS handshake, after the server's 220 to STARTTLS - or
+            /// first thing on an implicit-TLS port. The server's self-signed certificate is
+            /// accepted, and returned.
             /// </summary>
-            public async Task StartTlsAsync()
+            /// <param name="TargetHost">The name the client asks for (SNI).</param>
+            public async Task<X509Certificate2?> StartTlsAsync(String TargetHost = "mx.hermod.test")
             {
 
                 Assert.That(pending.Length, Is.Zero, "nothing may follow the 220 to STARTTLS");
 
                 var tls = new SslStream(stream, leaveInnerStreamOpen: false, (_, _, _, _) => true);
-                await tls.AuthenticateAsClientAsync("mx.hermod.test");
+                await tls.AuthenticateAsClientAsync(TargetHost);
                 stream  = tls;
+
+                return tls.RemoteCertificate is { } certificate
+                           ? X509CertificateLoader.LoadCertificate(certificate.GetRawCertData())
+                           : null;
+
+            }
+
+            /// <summary>
+            /// A command, and every line of its reply - the keywords of an EHLO, say.
+            /// </summary>
+            public async Task<(Int32 Code, List<String> Lines)> CommandLinesAsync(String line)
+            {
+
+                await SendAsync(line + "\r\n");
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                var lines     = new List<String>();
+                var buffer    = new Byte[4096];
+
+                while (true)
+                {
+
+                    var text = pending.ToString();
+                    var end  = text.IndexOf("\r\n", StringComparison.Ordinal);
+
+                    while (end >= 0)
+                    {
+                        var replyLine = text[..end];
+                        pending.Remove(0, end + 2);
+                        lines.Add(replyLine.Length > 4 ? replyLine[4..] : "");
+                        if (replyLine.Length < 4 || replyLine[3] != '-')
+                            return (Int32.Parse(replyLine[..3]), lines);
+                        text = pending.ToString();
+                        end  = text.IndexOf("\r\n", StringComparison.Ordinal);
+                    }
+
+                    var read = await stream.ReadAsync(buffer, cts.Token);
+
+                    if (read == 0)
+                        throw new IOException("The server closed the connection.");
+
+                    pending.Append(Encoding.ASCII.GetString(buffer, 0, read));
+
+                }
 
             }
 

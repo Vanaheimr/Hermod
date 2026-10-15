@@ -84,7 +84,7 @@ Last verified: **2026-10-15**
 
 | Specification | Hermod support |
 |---|---|
-| [RFC 7208](https://www.rfc-editor.org/rfc/rfc7208.html), SPF | Implemented and cross-validated: `all`/`ip4`/`ip6`/`a`/`mx`/`exists`/`include` + `redirect`; the 10-lookup limit; full macro expansion (§7), validated against the §7.4 vectors. `ptr` parsed/counted but not evaluated (deprecated §5.5); `exp=` not implemented. Hard `-all` rejected at the end of `DATA` / `BDAT`. Switched off by `VerifySpf = false`. |
+| [RFC 7208](https://www.rfc-editor.org/rfc/rfc7208.html), SPF | Implemented and cross-validated: `all`/`ip4`/`ip6`/`a`/`mx`/`exists`/`include` + `redirect`; the 10-lookup limit; full macro expansion (§7), validated against the §7.4 vectors. `ptr` parsed/counted but not evaluated (deprecated §5.5); `exp=` not implemented. Hard `-all` rejected at the end of `DATA` / `BDAT`. Switched off by `VerifySpf = false`. `DNSVerifier.CheckSpfAsync` evaluates a domain's record for a given address - the question its owner asks before anybody else does. |
 | [RFC 6376](https://www.rfc-editor.org/rfc/rfc6376.html), DKIM | Implemented and cross-validated (both directions with `dkimpy`): one shared canonicalizer over raw bytes (`simple`/`relaxed` exact), UTF-8-correct hashing, bottom-up `h=`, empty-body handling. Signing (`rsa-sha256`) and verification; a broken signature is advisory (§6.1), left to DMARC. Signatures never carry the `l=` body-length tag (§8.2). Verification is reported unless `VerifyDkim = false`. |
 | [RFC 7489](https://www.rfc-editor.org/rfc/rfc7489.html), DMARC | Implemented and cross-validated: policy lookup with organizational-domain fallback (embedded Public Suffix List), identifier alignment (relaxed/strict, SPF and DKIM), `pct` sampling, `p`/`sp` enforcement, all switched off by `VerifyDmarc = false`. Aggregate (RUA) + forensic (RUF) report generation is **opt-in**, with external-destination consent (§7.1). |
 | [RFC 8617](https://www.rfc-editor.org/rfc/rfc8617.html), ARC | Implemented and cross-validated (both directions with `dkimpy`): chain validation (`arc=pass\|fail\|none`) on every inbound message, and sealing (AAR+AMS+AS) provided as a forwarder component. |
@@ -113,6 +113,18 @@ Last verified: **2026-10-15**
   server runs without elevated privileges.
 - STARTTLS (RFC 3207) and implicit TLS (RFC 8314) share one handshake path;
   TLS 1.2 / 1.3.
+- The server certificate is asked for at every handshake
+  (`SMTPServerConfig.ServerCertificateSelector`, with the SNI name), so a
+  certificate renewed while the server runs is presented from the next
+  connection on, and one server can present different certificates for
+  different names. While the selector has none, `STARTTLS` is not offered (and
+  is `454`). `ServerCertificateFile` is such a selector over files - certbot's
+  `fullchain.pem` and `privkey.pem` (RSA or ECDSA) or PKCS#12 - read again when
+  their content changes; half of a renewal (the certificate replaced, the key
+  not yet) keeps the certificate before. `CertificatePath` (with
+  `CertificateKeyPath` for PEM) reads one certificate once. Either way the
+  intermediates are sent along: an MTA does not fetch a missing one the way a
+  browser does.
 - Outbound relay uses opportunistic TLS by default and enforced TLS under
   MTA-STS `enforce`, REQUIRETLS, DANE, or an explicit flag — enforced modes defer
   delivery rather than downgrade.
@@ -216,9 +228,10 @@ vectors, and live domains — not only self-consistency.
 | **TLS-RPT** | Aggregation + RFC 8460 §4 JSON round-trip (outbound); closed-loop gzip/JSON ingestion (inbound); live `_smtp._tls` lookup. |
 | **Submission client** | SCRAM-SHA-256 crypto cross-validated against the server credential generator; a scriptable in-process fake server (Autobahn-style "mean" connection drops/stalls detected in < 10 s, never a 60 s hang; a TLS handshake the server never answers, after STARTTLS or on an implicit TLS port, ends after the command timeout); a live STARTTLS+SCRAM end-to-end send; a hanging server aborted promptly on caller cancellation. |
 | **DNS** | Live queries via the Hermod `DNSClient` against real domains. |
-| **Inbound session** | Raw-socket wire tests (`SMTPSessionWireTests`) for line endings, smuggling variants, BDAT chunk consumption, submission-port authentication, the session state `STARTTLS` discards, session limits, the verification switches, the octets handed to the store, recipient checks at `RCPT` and a failing store; the whole server is additionally run against the external [SMTPConformanceTests](https://github.com/Vanaheimr/SMTPConformanceTests) suite (RFC-by-RFC, plus swaks, smtplib, openssl and Postfix smtp-sink). |
+| **Inbound session** | Raw-socket wire tests (`SMTPSessionWireTests`) for line endings, smuggling variants, BDAT chunk consumption, submission-port authentication, the session state `STARTTLS` discards, session limits, the verification switches, the octets handed to the store, recipient checks at `RCPT` and a failing store,
+the certificate chosen per handshake (renewal without restart, SNI, none yet, implicit TLS, PEM as certbot writes it); the whole server is additionally run against the external [SMTPConformanceTests](https://github.com/Vanaheimr/SMTPConformanceTests) suite (RFC-by-RFC, plus swaks, smtplib, openssl and Postfix smtp-sink). |
 
-The committed SMTP regression suite (`HermodTests/SMTP/`) contains **499 passing
+The committed SMTP regression suite (`HermodTests/SMTP/`) contains **505 passing
 tests, 0 failed, 0 skipped** as of the verification date, covering the message
 builders and OpenPGP (`EMailBuilderTests`), reading messages (`MimeMessageTests`),
 MDN (`MdnTests`, `MdnStorageTests`),

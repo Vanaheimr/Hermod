@@ -49,8 +49,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public          Boolean   EnableImplicitTls         { get; init; } = true;
         public          String    MailStoragePath           { get; init; } = "./mailstore";
+
+        /// <summary>
+        /// The server certificate, read once at start: a PKCS#12 file, or a PEM file with
+        /// the certificate and its intermediates (certbot's fullchain.pem) - the key then in
+        /// <see cref="CertificateKeyPath"/> or in the same file. For a certificate that is
+        /// renewed while the server runs, see <see cref="ServerCertificateSelector"/>.
+        /// </summary>
         public          String?   CertificatePath           { get; init; }
+
+        /// <summary>
+        /// For a PEM <see cref="CertificatePath"/>: the file with the private key (certbot's
+        /// privkey.pem); null when it is in the certificate file.
+        /// </summary>
+        public          String?   CertificateKeyPath        { get; init; }
+
+        /// <summary>
+        /// For a PKCS#12 <see cref="CertificatePath"/>: its password.
+        /// </summary>
         public          String?   CertificatePassword       { get; init; }
+
+        /// <summary>
+        /// Asked at every TLS handshake - STARTTLS and implicit TLS - for the certificate to
+        /// present and its intermediates, with the name the client asked for (SNI; null when
+        /// it named none). So a certificate renewed while the server runs is presented from
+        /// the next handshake on, and one server can present different certificates for
+        /// different names. An answer of null means no TLS for now: STARTTLS is not offered,
+        /// and an implicit-TLS connection is closed. Takes precedence over
+        /// <see cref="CertificatePath"/>. <see cref="ServerCertificateFile.Selector"/> is one.
+        /// </summary>
+        public Func<String?, ServerCertificateChain?>?  ServerCertificateSelector  { get; init; }
         public          TimeSpan  SessionTimeout            { get; init; } = TimeSpan.FromMinutes(5);
         public          Int32     MaxMessageSize            { get; init; } = 25 * 1024 * 1024; // 25 MB
         public          Int32     MaxRecipients             { get; init; } = 100;

@@ -19,7 +19,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Security;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 #endregion
 
@@ -135,6 +137,187 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                            OfType<X509Certificate2>().
                                                            Select(certificate => certificate.Thumbprint))
                                   );
+
+        }
+
+        #endregion
+
+
+        #region (static) Load    (CertificatePath, KeyPath = null, Password = null)
+
+        /// <summary>
+        /// A chain out of files, whichever of the two usual forms they are in:
+        /// PEM - what certbot and most certificate authorities hand out - or
+        /// PKCS#12.
+        /// </summary>
+        /// <param name="CertificatePath">A PEM file with the certificate and its intermediates (certbot's fullchain.pem), or a PKCS#12 file.</param>
+        /// <param name="KeyPath">For PEM: the file with the private key (certbot's privkey.pem); null when it is in the certificate file.</param>
+        /// <param name="Password">For PKCS#12: its password, if it has one.</param>
+        /// <remarks>
+        /// Told apart by what is in the file, not by its name: a PEM file is
+        /// text and starts with "-----BEGIN", whatever it is called.
+        /// </remarks>
+        public static ServerCertificateChain Load(String   CertificatePath,
+                                                  String?  KeyPath    = null,
+                                                  String?  Password   = null)
+
+            => FromOctets(File.ReadAllBytes(CertificatePath),
+                          KeyPath is not null ? File.ReadAllBytes(KeyPath) : null,
+                          Password,
+                          CertificatePath);
+
+        #endregion
+
+        #region (static) FromOctets(CertificateOctets, KeyOctets = null, Password = null, Source = null)
+
+        /// <summary>
+        /// A chain out of the content of such files: PEM when it is text that
+        /// starts with "-----BEGIN", PKCS#12 otherwise.
+        /// </summary>
+        public static ServerCertificateChain FromOctets(Byte[]   CertificateOctets,
+                                                        Byte[]?  KeyOctets   = null,
+                                                        String?  Password    = null,
+                                                        String?  Source      = null)
+
+            => LooksLikePem(CertificateOctets)
+                   ? FromPem(Encoding.UTF8.GetString(CertificateOctets),
+                             KeyOctets is not null ? Encoding.UTF8.GetString(KeyOctets) : null,
+                             Source)
+                   : FromPkcs12(CertificateOctets, Password, Source);
+
+        #endregion
+
+        #region (static) FromPem (CertificatesPem, KeyPem = null, Source = null)
+
+        /// <summary>
+        /// A chain out of PEM text: the certificates - the server's own and its
+        /// intermediates, in any order - and the private key of the server's,
+        /// as RSA or ECDSA, PKCS#1, SEC 1 or PKCS#8.
+        /// </summary>
+        /// <param name="CertificatesPem">The CERTIFICATE blocks, as in certbot's fullchain.pem.</param>
+        /// <param name="KeyPem">The private key; null when it is among the certificates' text.</param>
+        /// <param name="Source">Where it came from, for the message of an exception.</param>
+        /// <remarks>
+        /// The server's certificate is the one the key belongs to - not simply
+        /// the first, so that a file in another order does not hand a client an
+        /// intermediate as the server's certificate. And a key that belongs to
+        /// none of them is said in words: it is what a renewal looks like that
+        /// has replaced one file but not yet the other.
+        /// </remarks>
+        public static ServerCertificateChain FromPem(String   CertificatesPem,
+                                                     String?  KeyPem   = null,
+                                                     String?  Source   = null)
+        {
+
+            var source        = Source is not null ? $"'{Source}'" : "the PEM text";
+            var certificates  = new X509Certificate2Collection();
+
+            certificates.ImportFromPem(CertificatesPem);
+
+            if (certificates.Count == 0)
+                throw new CryptographicException($"{source} holds no certificate.");
+
+            var keyPem = KeyPem ?? CertificatesPem;
+
+            foreach (var candidate in certificates)
+            {
+
+                X509Certificate2 withKey;
+
+                try
+                {
+                    withKey = X509Certificate2.CreateFromPem(candidate.ExportCertificatePem(), keyPem);
+                }
+                catch (CryptographicException)
+                {
+                    // Not this one's key - or no key at all, which the end says.
+                    continue;
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
+
+                var leaf = Persisted(withKey);
+
+                return new ServerCertificateChain(
+                           leaf,
+                           certificates.Where(certificate => certificate.Thumbprint != leaf.Thumbprint)
+                       );
+
+            }
+
+            throw new CryptographicException(KeyPem is null && !CertificatesPem.Contains("PRIVATE KEY", StringComparison.Ordinal)
+                                                 ? $"{source} holds no private key, and none was given."
+                                                 : $"The private key does not belong to any certificate in {source} - " +
+                                                   "half of a renewal, or a key and a certificate of different issues.");
+
+        }
+
+        #endregion
+
+        #region (static) FromPkcs12(Octets, Password = null, Source = null)
+
+        /// <summary>
+        /// A chain out of PKCS#12: the certificate with the private key, and
+        /// whatever other certificates came with it as its intermediates.
+        /// </summary>
+        public static ServerCertificateChain FromPkcs12(Byte[]   Octets,
+                                                        String?  Password   = null,
+                                                        String?  Source     = null)
+        {
+
+            var certificates = X509CertificateLoader.LoadPkcs12Collection(
+                                   Octets,
+                                   Password,
+                                   X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable
+                               );
+
+            var leaf = certificates.FirstOrDefault(certificate => certificate.HasPrivateKey)
+                           ?? throw new CryptographicException($"{(Source is not null ? $"'{Source}'" : "The PKCS#12 data")} holds no certificate with a private key.");
+
+            return new ServerCertificateChain(
+                       leaf,
+                       certificates.Where(certificate => certificate.Thumbprint != leaf.Thumbprint)
+                   );
+
+        }
+
+        #endregion
+
+        #region (private static) LooksLikePem(Octets) / Persisted(Certificate)
+
+        private static Boolean LooksLikePem(ReadOnlySpan<Byte> Octets)
+        {
+
+            var text = Octets.Length >= 3 && Octets[0] == 0xEF && Octets[1] == 0xBB && Octets[2] == 0xBF
+                           ? Octets[3..]
+                           : Octets;
+
+            while (text.Length > 0 && (text[0] is (Byte) ' ' or (Byte) '\t' or (Byte) '\r' or (Byte) '\n'))
+                text = text[1..];
+
+            return text.StartsWith("-----BEGIN"u8);
+
+        }
+
+        /// <summary>
+        /// The certificate with a key a TLS server can use everywhere.
+        /// </summary>
+        /// <remarks>
+        /// A key read from PEM is ephemeral, and SChannel on Windows refuses to
+        /// present a certificate whose key is not in a key store. Through
+        /// PKCS#12 it is; elsewhere the round trip changes nothing and is left
+        /// out.
+        /// </remarks>
+        private static X509Certificate2 Persisted(X509Certificate2 Certificate)
+        {
+
+            if (!OperatingSystem.IsWindows())
+                return Certificate;
+
+            using (Certificate)
+                return X509CertificateLoader.LoadPkcs12(Certificate.Export(X509ContentType.Pkcs12), null, X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable);
 
         }
 

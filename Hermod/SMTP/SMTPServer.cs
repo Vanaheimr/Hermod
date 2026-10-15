@@ -41,7 +41,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private readonly IUserStore                  _userStore;
         private readonly IMailQueue?                 _mailQueue;
         private readonly ConnectionTracker           _connectionTracker;
-        private readonly X509Certificate2?           _certificate;
+        private readonly SMTPServerCertificates?     _certificates;
+        private readonly ServerCertificateChain?     _ownCertificate;   // read from CertificatePath: this server's to dispose
         private readonly DmarcReportService?         _dmarcReportService;
         private readonly TlsRptIngestor?             _tlsRptIngestor;
         private readonly ILogger                     _logger;
@@ -102,14 +103,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (ServerConfig.EnableAutoMdn && _mailQueue is not null)
                 _logger.Log(LogLevel.Info, "Automatic MDN (read receipt) generation on local delivery is enabled");
 
-            if (ServerConfig.CertificatePath is not null)
+            // The certificate: asked for at every handshake, so that one renewed while the
+            // server runs is presented from the next connection on - or read once from a file.
+            if (ServerConfig.ServerCertificateSelector is not null)
+                _certificates = new SMTPServerCertificates(ServerConfig.ServerCertificateSelector, _logger);
+
+            else if (ServerConfig.CertificatePath is not null)
             {
 
-                _certificate = ServerConfig.CertificatePassword is not null
-                    ? X509CertificateLoader.LoadPkcs12FromFile     (ServerConfig.CertificatePath, ServerConfig.CertificatePassword)
-                    : X509CertificateLoader.LoadCertificateFromFile(ServerConfig.CertificatePath);
+                _ownCertificate  = ServerCertificateChain.Load(ServerConfig.CertificatePath,
+                                                               ServerConfig.CertificateKeyPath,
+                                                               ServerConfig.CertificatePassword);
 
-                _logger.Log(LogLevel.Info, $"Loaded certificate: {_certificate.Subject}");
+                _certificates    = SMTPServerCertificates.Of(_ownCertificate, _logger);
+
+                _logger.Log(LogLevel.Info, $"Loaded certificate: {_ownCertificate}");
 
             }
 
@@ -152,12 +160,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         public async Task Start(CancellationToken ct = default)
         {
 
-            var implicitTlsEnabled = serverConfig.EnableImplicitTls && _certificate is not null;
+            // With a selector the port is bound even while it has no certificate to give yet:
+            // one may come - from certbot, say - and then the port is there.
+            var implicitTlsEnabled = serverConfig.EnableImplicitTls && _certificates is not null;
 
             _logger.Log(LogLevel.Info, $"Starting SMTP server on ports {serverConfig.Port} and {serverConfig.SubmissionPort}"
                                      + (implicitTlsEnabled ? $" and {serverConfig.ImplicitTlsPort} (implicit TLS)" : ""));
             _logger.Log(LogLevel.Info, $"Mail storage: {Path.GetFullPath(serverConfig.MailStoragePath)}");
-            _logger.Log(LogLevel.Info, $"STARTTLS: {(_certificate is not null ? "Available" : "Not configured")}");
+            _logger.Log(LogLevel.Info, $"STARTTLS: {(_certificates is null ? "Not configured" : _certificates.Available ? "Available" : "Configured, no certificate yet")}");
             _logger.Log(LogLevel.Info, $"AUTH mechanisms: PLAIN, LOGIN, SCRAM-SHA-256, EXTERNAL");
             _logger.Log(LogLevel.Info, serverConfig.LocalDomainCheck is not null
                                            ? "Local domains: decided at runtime (LocalDomainCheck)"
@@ -300,7 +310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                         serverConfig,
                                         _storage,
                                         _dnsVerifier,
-                                        _certificate,
+                                        _certificates,
                                         _userStore,
                                         _mailQueue,
                                         isSubmissionPort,
@@ -350,7 +360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         {
             await Stop();
             _cts.         Dispose();
-            _certificate?.Dispose();
+            _ownCertificate?.Certificate.Dispose();
         }
 
     }

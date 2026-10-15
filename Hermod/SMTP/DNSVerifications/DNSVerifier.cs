@@ -114,6 +114,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         // Mutable lookup budget shared across the whole (recursive) evaluation.
         private sealed class SpfLookupState { public int Lookups; }
 
+        /// <summary>
+        /// What the SPF record of a domain says about mail from the given address - asked
+        /// by whoever publishes it, before anybody else does: "does my record let my own
+        /// server send?" Evaluated as for a MAIL FROM of postmaster@ the domain.
+        /// </summary>
+        /// <param name="Domain">The domain whose SPF record is evaluated.</param>
+        /// <param name="ClientIp">The address mail would come from.</param>
+        /// <param name="HeloHostname">The name that server greets with, for %{h} macros; the domain by default.</param>
+        /// <returns>The result, and the record it came from (null when there is none).</returns>
+        public Task<(SPFResult Result, String? Record)> CheckSpfAsync(String                Domain,
+                                                                      System.Net.IPAddress  ClientIp,
+                                                                      String?               HeloHostname   = null,
+                                                                      CancellationToken     ct             = default)
+
+            => VerifySpfAsync(Domain, ClientIp, $"postmaster@{Domain}", HeloHostname ?? Domain, ct);
+
         private async Task<(SPFResult Result, string? Record)> VerifySpfAsync(
             string               domain,
             System.Net.IPAddress clientIp,
