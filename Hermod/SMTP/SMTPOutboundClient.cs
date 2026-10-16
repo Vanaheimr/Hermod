@@ -117,8 +117,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         messageContent = signer.SignMessage(messageContent);
                 }
 
-                // The way out: the one of the From: domain, or the configuration's.
-                var route         = (fromDomain is not null ? _smartHostFor?.Invoke(fromDomain) : null) ?? SmartHostRoute.Of(_config);
+                // The way out: the one of the From: domain; for a message forwarded here - its From:
+                // of elsewhere, its envelope sender of here - the one of the envelope sender's domain,
+                // whose SPF the next hop asks; or the configuration's.
+                var senderDomain  = envelopeFrom.LastIndexOf('@') is var at and > 0 ? envelopeFrom[(at + 1)..] : null;
+                var route         = (fromDomain   is not null ? _smartHostFor?.Invoke(fromDomain) : null) ??
+                                    (senderDomain is not null && !senderDomain.Equals(fromDomain, StringComparison.OrdinalIgnoreCase)
+                                         ? _smartHostFor?.Invoke(senderDomain)
+                                         : null) ??
+                                    SmartHostRoute.Of(_config);
 
                 // MTA-STS (RFC 8461). §3.4: through a smart host, "compliant senders MUST treat the
                 // smart host domain as the Policy Domain" - the recipient domain's policy names its

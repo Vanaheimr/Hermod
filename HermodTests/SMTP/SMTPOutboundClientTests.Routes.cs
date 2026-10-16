@@ -88,6 +88,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test]
+        public async Task A_forwarded_message_leaves_through_the_way_of_its_envelope_sender()
+        {
+
+            using var server  = new NextHop(Extensions: [ "8BITMIME" ]);   // the server's
+            using var own     = new NextHop(Extensions: [ "8BITMIME" ]);   // example.org's provider
+
+            var client = new SMTPOutboundClient(new SmtpOutboundConfig {
+                                                    LocalHostname   = "relay.hermod.test",
+                                                    SmartHost       = "127.0.0.1",
+                                                    SmartHostPort   = server.Port,
+                                                    ConnectTimeoutMs  = 3_000,
+                                                    ReadTimeoutMs     = 5_000,
+                                                    WriteTimeoutMs    = 3_000
+                                                },
+                                                null,
+                                                new NoDNS(),
+                                                new QuietLogger(),
+                                                smartHostFor: domain => domain == "example.org"
+                                                                            ? new SmartHostRoute("127.0.0.1", own.Port)
+                                                                            : null);
+
+            // Written elsewhere, forwarded by anna@example.org - and a bounce, from nobody.
+            var forwarded = await client.SendAsync("next.example", "anna@example.org", [ "you@next.example" ], Message("carl@elsewhere.example"));
+            var notice    = await client.SendAsync("next.example", "",                 [ "you@next.example" ], Message("carl@elsewhere.example"));
+
+            await Task.Delay(100);
+
+            Assert.Multiple(() => {
+                Assert.That(forwarded.Status,  Is.EqualTo(SendStatus.Success), forwarded.ResponseText);
+                Assert.That(notice.Status,     Is.EqualTo(SendStatus.Success), notice.ResponseText);
+                Assert.That(own.   Commands.Count(command => command.StartsWith("MAIL")), Is.EqualTo(1), "the forward through example.org's relay");
+                Assert.That(server.Commands.Count(command => command.StartsWith("MAIL")), Is.EqualTo(1), "the notice through the server's");
+            });
+
+        }
+
     }
 
 }
