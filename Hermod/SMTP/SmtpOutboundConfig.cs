@@ -76,6 +76,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public          String?  SmartHostPassword    { get; init; }
 
         /// <summary>
+        /// Whether the smart host credentials may be sent without TLS - for a relay on the
+        /// loopback, never one across a network. Without it, a smart host that offers no
+        /// STARTTLS gets no password, and the message waits.
+        /// </summary>
+        public          Boolean  SmartHostAuthWithoutTls  { get; init; }
+
+        /// <summary>
         /// The DNSSEC trust anchors DANE validates against - for a private signed zone, or a test.
         /// By default the IANA root key.
         /// </summary>

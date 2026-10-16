@@ -489,6 +489,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region DKIM Verification
 
+        /// <summary>
+        /// The DKIM signatures of a message as it is - the first that holds, or why
+        /// none does - without SPF, DMARC, ARC or the MX lookup VerifyAsync makes:
+        /// for whoever wants to know whether a message they signed will be found
+        /// signed, before it leaves.
+        /// </summary>
+        /// <param name="RawMessage">The message, CRLF and all.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public Task<(DkimResult Result, string? Details, string? Domain)> VerifyDkimAsync(Byte[]             RawMessage,
+                                                                                          CancellationToken  CancellationToken = default)
+
+            => VerifyDkimAsync(EMailMessage.Parse(RawMessage), CancellationToken);
+
         private async Task<(DkimResult Result, string? Details, string? Domain)> VerifyDkimAsync(
             EMailMessage      message,
             CancellationToken ct)

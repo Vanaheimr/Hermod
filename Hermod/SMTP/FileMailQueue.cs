@@ -228,13 +228,13 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
 
     public async Task<QueuedMail?> GetByIdAsync(string id, CancellationToken ct = default)
     {
-        var filePath = GetFilePath(_queuePath, id);
-        if (!File.Exists(filePath))
-        {
-            filePath = GetFilePath(_failedPath, id);
-            if (!File.Exists(filePath))
-                return null;
-        }
+        // Pending, failed - or delivered: whoever asks how a message fared asks after that too.
+        var filePath = new[] { _queuePath, _failedPath, _deliveredPath }.
+                           Select(path => GetFilePath(path, id)).
+                           FirstOrDefault(File.Exists);
+
+        if (filePath is null)
+            return null;
 
         var json = await File.ReadAllTextAsync(filePath, ct);
         return JsonSerializer.Deserialize<QueuedMail>(json, JsonOptions);

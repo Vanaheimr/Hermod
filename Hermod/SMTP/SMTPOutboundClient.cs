@@ -36,21 +36,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         private readonly SmtpOutboundConfig    _config;
         private readonly DkimSigner?           __dkimSigner;
+        private readonly Func<String, DkimSigner?>? _dkimSignerFor;
         private readonly MtaStsResolver        _mtaStsResolver;
         private readonly DaneResolver?         _daneResolver;
         private readonly Action<TlsRptEvent>?  _tlsRptRecorder;
         private readonly IDNSClient            _dnsClient;
         private readonly ILogger               _logger;
 
-        public SMTPOutboundClient(SmtpOutboundConfig    config,
-                                  DkimSigner?           _dkimSigner,
-                                  IDNSClient            dnsClient,
-                                  ILogger               logger,
-                                  Action<TlsRptEvent>?  tlsRptRecorder   = null)
+        /// <param name="dkimSignerFor">
+        /// The DKIM signer for the domain of a message's From: address, or null for one this
+        /// server does not sign for - so that every domain is signed with its own key (H5).
+        /// When it gives none, the one signer above is asked, if there is one.
+        /// </param>
+        public SMTPOutboundClient(SmtpOutboundConfig          config,
+                                  DkimSigner?                 _dkimSigner,
+                                  IDNSClient                  dnsClient,
+                                  ILogger                     logger,
+                                  Action<TlsRptEvent>?        tlsRptRecorder   = null,
+                                  Func<String, DkimSigner?>?  dkimSignerFor    = null)
         {
 
             this._config          = config;
             this.__dkimSigner     = _dkimSigner;
+            this._dkimSignerFor   = dkimSignerFor;
             this._dnsClient       = dnsClient;
             this._logger          = logger;
             this._mtaStsResolver  = new MtaStsResolver(dnsClient, logger, config.MtaStsHttpHandler);
@@ -84,10 +92,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             try
             {
 
-                // Sign message with DKIM if signer is configured
-                if (__dkimSigner is not null)
+                // DKIM: with the key of the From: domain - unless the message carries a signature of
+                // that domain already, made before it was queued, so that the copy its sender kept
+                // is the message that was sent.
+                var fromDomain = DkimSigning.FromDomain(messageContent);
+                var signer     = (fromDomain is not null ? _dkimSignerFor?.Invoke(fromDomain) : null) ?? __dkimSigner;
+
+                if (signer is not null && !(fromDomain is not null && DkimSigning.IsSignedBy(messageContent, fromDomain)))
                 {
-                    messageContent = __dkimSigner.SignMessage(messageContent);
+                    messageContent = signer.SignMessage(messageContent);
                 }
 
                 // MTA-STS (RFC 8461). §3.4: through a smart host, "compliant senders MUST treat the
@@ -322,6 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // Read greeting
                 var greeting = await connection.ReadReplyAsync(ct);
                 sessionOpen  = true;
+                var secured  = false;
                 if (greeting.Code != 220)
                     return ParseResponse(greeting.ToString(), mxHost);
 
@@ -400,6 +414,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                         // Whatever was read in cleartext behind the 220 is discarded (RFC 3207 §4.2).
                         connection.SwitchTo(sslStream);
+                        secured = true;
 
                         _logger.Log(LogLevel.Debug,
                             $"TLS established with {mxHost}: {sslStream.SslProtocol}{(daneActive ? " (DANE-authenticated)" : "")}");
@@ -433,9 +448,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         mxHost);
                 }
 
-                // AUTH if smarthost credentials provided
+                // AUTH if smarthost credentials provided - never in cleartext across a network: a
+                // password sent so is a password given away (RFC 4954 §4).
                 if (_config.SmartHost is not null && _config.SmartHostUsername is not null)
                 {
+
+                    if (!secured && !_config.SmartHostAuthWithoutTls)
+                        return SendResult.TempFail(454, $"No TLS with {mxHost}: the credentials for the smart host are not sent in cleartext", mxHost);
+
                     var authResult = await AuthenticateAsync(connection, extensions, ct);
                     if (!authResult.StartsWith("235"))
                     {

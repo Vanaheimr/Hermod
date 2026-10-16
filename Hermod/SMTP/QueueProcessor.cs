@@ -50,6 +50,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private Task?                    _retryCheckTask;
 
         public Boolean  IsRunning { get; private set; }
+
+        /// <summary>
+        /// A queued message changed: it is being delivered, deferred, delivered or failed - or
+        /// a copy was queued for the recipients that refused it for now. Called after the queue
+        /// knows; what a handler throws is logged and changes nothing.
+        /// </summary>
+        public event Action<QueuedMail>? OnStatusChanged;
         public UInt32   ActiveDeliveries
             => queueProcessorConfig.MaxConcurrentDeliveries - (UInt32) _deliverySemaphore.CurrentCount;
 
@@ -149,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         // Defer for later
                         mail.Status     = QueueItemStatus.Deferred;
                         mail.NextRetry  = Timestamp.Now.AddSeconds(queueProcessorConfig.DomainCooldownSeconds);
-                        await mailQueue.UpdateAsync(mail, ct);
+                        await UpdateAsync(mail, ct);
                         continue;
 
                     }
@@ -252,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 // Mark as processing
                 mail.Status = QueueItemStatus.Processing;
-                await mailQueue.UpdateAsync(mail, ct);
+                await UpdateAsync(mail, ct);
 
                 logger.Log(LogLevel.Info, $"→ Delivering {mail.Id} to {mail.TargetDomain} (attempt {mail.RetryCount + 1})");
 
@@ -281,7 +288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 mail.NextRetry = RetryCalculator.GetNextRetryTime(mail.RetryCount);
                 mail.Status = QueueItemStatus.Deferred;
 
-                await mailQueue.UpdateAsync(mail, ct);
+                await UpdateAsync(mail, ct);
 
             }
         }
@@ -308,7 +315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     mail.RemoteMx        = result.RemoteMx;
                     mail.RemoteResponse  = result.ResponseText;
 
-                    await mailQueue.UpdateAsync(mail, ct);
+                    await UpdateAsync(mail, ct);
 
                     // Relayed status notification (RFC 3461) — only if NOTIFY=SUCCESS was requested and
                     // the next hop did not advertise DSN (else it owns the delivered notification).
@@ -326,7 +333,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             $"✗ Giving up on {mail.Id} after {mail.RetryCount} attempts: {mail.LastError}");
                     
                         mail.Status = QueueItemStatus.Failed;
-                        await mailQueue.UpdateAsync(mail, ct);
+                        await UpdateAsync(mail, ct);
                     
                         await bounceHandler.SendBounceAsync(mail, result, ct);
                     }
@@ -338,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         logger.Log(LogLevel.Warning, 
                             $"↻ Deferred {mail.Id}: {mail.LastError} (retry #{mail.RetryCount} at {mail.NextRetry:HH:mm:ss})");
 
-                        await mailQueue.UpdateAsync(mail, ct);
+                        await UpdateAsync(mail, ct);
 
                         // Send delay notification if applicable
                         if (queueProcessorConfig.SendDelayNotifications && 
@@ -359,7 +366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     mail.LastError = $"{result.ResponseCode} {result.ResponseText}";
                     mail.RemoteMx = result.RemoteMx;
 
-                    await mailQueue.UpdateAsync(mail, ct);
+                    await UpdateAsync(mail, ct);
 
                     await bounceHandler.SendBounceAsync(mail, result, ct);
                     break;
@@ -397,7 +404,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 mail.LastError    = $"{result.ResponseCode} {result.ResponseText}";
             }
 
-            await mailQueue.UpdateAsync(mail, ct);
+            await UpdateAsync(mail, ct);
 
             if (accepted.Length > 0)
                 await bounceHandler.SendRelayNotificationAsync(CopyFor(mail, accepted, "delivered"), result.RemoteSupportsDsn, ct);
@@ -418,9 +425,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 retry.Status     = QueueItemStatus.Deferred;
 
                 await mailQueue.EnqueueAsync(retry, ct);
+                Changed(retry);
 
             }
 
+        }
+
+        /// <summary>
+        /// The queue learns of the change first, then whoever listens.
+        /// </summary>
+        private async Task UpdateAsync(QueuedMail mail, CancellationToken ct)
+        {
+            await mailQueue.UpdateAsync(mail, ct);
+            Changed(mail);
+        }
+
+        private void Changed(QueuedMail mail)
+        {
+            try
+            {
+                OnStatusChanged?.Invoke(mail);
+            }
+            catch (Exception e)
+            {
+                logger.Log(LogLevel.Warning, $"QueueProcessor: a listener failed for {mail.Id}: {e.Message}");
+            }
         }
 
         /// <summary>

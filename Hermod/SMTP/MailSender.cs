@@ -125,6 +125,62 @@ public sealed class MailSender
 
     #endregion
 
+    #region SendAsync(EnvelopeFrom, Recipients, Message, ...)
+
+    /// <summary>
+    /// Queue a message given as it is to be sent - written by MimeMessageBuilder, signed by
+    /// DKIM, PGP/MIME made in a browser - for the given envelope: one queue item per
+    /// recipient domain. The message is not touched; what is queued is what was given.
+    /// </summary>
+    /// <param name="EnvelopeFrom">The reverse path (MAIL FROM).</param>
+    /// <param name="Recipients">The forward paths (RCPT TO).</param>
+    /// <param name="Message">The message, CRLF and all - 7-bit, or the next hop has to offer 8BITMIME.</param>
+    /// <param name="Dsn">What delivery status notifications to ask for, or none.</param>
+    /// <param name="RequireTls">Whether every hop has to use TLS (RFC 8689).</param>
+    /// <param name="CancellationToken">An optional cancellation token.</param>
+    public async Task<IReadOnlyList<String>> SendAsync(String               EnvelopeFrom,
+                                                       IEnumerable<String>  Recipients,
+                                                       String               Message,
+                                                       DsnParameters?       Dsn                 = null,
+                                                       Boolean              RequireTls          = false,
+                                                       CancellationToken    CancellationToken   = default)
+    {
+
+        var recipients = Recipients.Where(recipient => recipient.Contains('@')).ToList();
+
+        if (recipients.Count == 0)
+            throw new ArgumentException("A message without recipients (RCPT TO) goes nowhere.", nameof(Recipients));
+
+        var ids = new List<String>();
+
+        foreach (var byDomain in recipients.GroupBy(recipient => recipient[(recipient.LastIndexOf('@') + 1)..].TrimEnd('.').ToLowerInvariant()))
+        {
+
+            var id = UUIDv7.Generate().ToString("N");
+
+            await mailQueue.EnqueueAsync(new QueuedMail {
+                Id              = id,
+                EnvelopeFrom    = EnvelopeFrom,
+                EnvelopeTo      = [ .. byDomain ],
+                MessageContent  = Message,
+                TargetDomain    = byDomain.Key,
+                RequireTls      = RequireTls,
+                Notify          = Dsn?.Notify ?? DsnNotify.Never,
+                Ret             = Dsn?.Ret,
+                EnvId           = Dsn?.EnvId
+            }, CancellationToken).ConfigureAwait(false);
+
+            ids.Add(id);
+            logger.Log(LogLevel.Info, $"MailSender: queued {id} to {byDomain.Key} ({byDomain.Count()} recipient(s))");
+
+        }
+
+        return ids;
+
+    }
+
+    #endregion
+
     #region SendAsync(EMail, ...)
 
     /// <summary>
