@@ -40,10 +40,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
     /// <param name="RpName">The name shown by the authenticator.</param>
     /// <param name="Origins">The allowed origins, e.g. "http://localhost:8080".</param>
     /// <param name="RequireUserVerification">Whether the authenticator must verify the user (PIN, biometrics) every time.</param>
+    /// <param name="ConfirmWithPassword">Whether a new passkey needs the account's password: a session left open, or taken, then cannot add a way into the account that outlives a change of the password.</param>
     public sealed record WebAuthnSettings(String                 RpId,
                                           String                 RpName,
                                           IReadOnlyList<String>  Origins,
-                                          Boolean                RequireUserVerification = false);
+                                          Boolean                RequireUserVerification  = false,
+                                          Boolean                ConfirmWithPassword      = false);
 
 
     /// <summary>

@@ -125,7 +125,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         private static async Task<(HTTPServer Server, HTTPExtAPI API, HttpClient Client, String Directory)> StartAsync(Boolean                            WithTemplates         = false,
                                                                                                                        SelfSignUpAPI.OnSignedUpDelegate?  OnSignedUp            = null,
-                                                                                                                       PasswordQualityCheckDelegate?      PasswordQualityCheck  = null)
+                                                                                                                       PasswordQualityCheckDelegate?      PasswordQualityCheck  = null,
+                                                                                                                       Boolean                            PasskeysWithPassword  = false)
         {
 
             var directory  = Path.Combine(Path.GetTempPath(), $"hermod-auth-{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
@@ -143,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                  MinUserNameLength:     1,
                                  HTTPCookiePath:        "/",
                                  UseSecureCookies:      false,
-                                 WebAuthnSettings:      new WebAuthnSettings("localhost", "Hermod Tests", [ origin ])
+                                 WebAuthnSettings:      new WebAuthnSettings("localhost", "Hermod Tests", [ origin ], ConfirmWithPassword: PasskeysWithPassword)
                              );
 
             await api.LoadDatabase();
@@ -1791,6 +1792,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 (status, _) = await browser.Call(HttpMethod.Delete, $"accounts/auth/passkeys/{authenticator.CredentialIdText}");
                 Assert.That(status,                     Is.EqualTo(HttpStatusCode.NoContent));
                 Assert.That(api.GetPasskeys(erin),      Is.Empty);
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
+        #region Passkeys_Need_The_Password_Where_The_Settings_Say_So()
+
+        /// <summary>
+        /// With ConfirmWithPassword a session alone adds no passkey: the register
+        /// options want the account's password - behind the sign-in's rate limits.
+        /// </summary>
+        [Test]
+        public async Task Passkeys_Need_The_Password_Where_The_Settings_Say_So()
+        {
+
+            var (server, api, client, directory) = await StartAsync(PasskeysWithPassword: true);
+
+            try
+            {
+
+                using var authenticator = new WebAuthnTests.SoftwareAuthenticator();
+
+                var origin   = $"http://localhost:{server.TCPPort}";
+                var browser  = new Browser(client);
+                var erin     = User_Id.Parse("erin");
+
+                Assert.That((await SignUp(browser, "erin")).Status,  Is.EqualTo(HttpStatusCode.Created));
+
+                // The session alone, or a wrong password: no ceremony.
+                var (status, json) = await browser.Call(HttpMethod.Post, "accounts/auth/passkeys/register/options", new { });
+                Assert.That(status,                                     Is.EqualTo(HttpStatusCode.Forbidden));
+                Assert.That(json?["ceremonyId"],                        Is.Null);
+
+                (status, _) = await browser.Call(HttpMethod.Post, "accounts/auth/passkeys/register/options", new { password = "Correct-Horse-2" });
+                Assert.That(status,                                     Is.EqualTo(HttpStatusCode.Forbidden));
+
+                // With it: as before.
+                (status, json) = await browser.Call(HttpMethod.Post, "accounts/auth/passkeys/register/options", new { password = "Correct-Horse-1" });
+                Assert.That(status,                                     Is.EqualTo(HttpStatusCode.OK));
+
+                (status, _) = await browser.Call(HttpMethod.Post, "accounts/auth/passkeys/register", new {
+                                  ceremonyId  = json?["ceremonyId"]?.ToString(),
+                                  name        = "Test key",
+                                  credential  = authenticator.Register(json?["publicKey"]?["challenge"]?.ToString()!, Origin: origin)
+                              });
+                Assert.That(status,                                     Is.EqualTo(HttpStatusCode.Created));
+                Assert.That(api.GetPasskeys(erin).Count(),              Is.EqualTo(1));
+
+                // Guessing it from an open session runs into the sign-in's limits - and then the right one waits too.
+                var limited = false;
+
+                for (var i = 0; i < 15 && !limited; i++)
+                    limited = (await browser.Call(HttpMethod.Post, "accounts/auth/passkeys/register/options", new { password = $"guess-{i}" })).Status == HttpStatusCode.TooManyRequests;
+
+                Assert.That(limited,                                    Is.True);
+                Assert.That((await browser.Call(HttpMethod.Post, "accounts/auth/passkeys/register/options", new { password = "Correct-Horse-1" })).Status,
+                            Is.EqualTo(HttpStatusCode.TooManyRequests));
 
             }
             finally

@@ -338,11 +338,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (private) PasskeyRegisterOptions(Request)
 
-        private Task<HTTPResponse> PasskeyRegisterOptions(HTTPRequest Request)
+        private async Task<HTTPResponse> PasskeyRegisterOptions(HTTPRequest Request)
         {
 
             if (!TryGetSignedInUser(Request, out var user, out _, out var unauthorized))
-                return Task.FromResult(unauthorized);
+                return unauthorized;
+
+            // A new way into the account: with its password, where the settings ask for it
+            // ({ "password": "..." }) - behind the same door as the password change: the
+            // rate limits of the sign-in, and the bound on password checks at once. The
+            // ceremony that follows is this account's alone, and used once.
+            if (WebAuthnSettings!.ConfirmWithPassword)
+            {
+
+                if (!Request.TryParseJSONObjectRequestBody(out var json, out var errorResponse))
+                    return errorResponse.AsImmutable;
+
+                var password = json.Value<String>("password") ?? "";
+
+                if (CheckPasswordRateLimit(Request, "auth/passkeys/register", loginIPRateLimiter, user.Id.ToString(), loginAccountRateLimiter) is { } limited)
+                    return limited.AsImmutable;
+
+                if (await WaitForAPasswordVerifier(Request) is { } busy)
+                    return busy.AsImmutable;
+
+                Boolean verified;
+
+                try
+                {
+                    verified = password.Length > 0 && VerifyPassword(user.Id, password);
+                }
+                finally
+                {
+                    ReleaseAPasswordVerifier();
+                }
+
+                if (!verified)
+                    return AuthError(Request, HTTPStatusCode.Forbidden, "The password is wrong.");
+
+            }
 
             var ceremony = PasskeyCeremonies.Create(CeremonyType.Registration, user.Id);
             var options  = WebAuthnCeremonies.CreationOptions(
@@ -354,14 +388,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                GetPasskeys(user.Id)
                            );
 
-            return Task.FromResult(
-                       AuthJSON(
-                           Request,
-                           HTTPStatusCode.OK,
-                           new JObject(
-                               new JProperty("ceremonyId",  ceremony.Id),
-                               new JProperty("publicKey",   options.ToJSON())
-                           )
+            return AuthJSON(
+                       Request,
+                       HTTPStatusCode.OK,
+                       new JObject(
+                           new JProperty("ceremonyId",  ceremony.Id),
+                           new JProperty("publicKey",   options.ToJSON())
                        )
                    );
 
