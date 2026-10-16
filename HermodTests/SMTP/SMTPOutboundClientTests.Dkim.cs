@@ -42,22 +42,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #region (private) DKIM keys and a DNS that has their records
 
-        private sealed record Key(String Domain, String Selector, String PrivatePem, String PublicBase64)
+        private sealed record Key(String Domain, String Selector, String PrivatePem, String PublicBase64, String KeyType = "rsa")
         {
 
+            public DkimConfig Config
+                => new () {
+                       Domain          = Domain,
+                       Selector        = Selector,
+                       PrivateKeyPem   = PrivatePem,
+                       SignedHeaders   = "from:to:subject:date:message-id"
+                   };
+
             public DkimSigner Signer
-                => new (new DkimConfig {
-                            Domain          = Domain,
-                            Selector        = Selector,
-                            PrivateKeyPem   = PrivatePem,
-                            SignedHeaders   = "from:to:subject:date:message-id"
-                        },
-                        new QuietLogger());
+                => new (Config, new QuietLogger());
 
             public static Key Make(String Domain)
             {
                 using var rsa = RSA.Create(2048);
                 return new Key(Domain, "test", rsa.ExportPkcs8PrivateKeyPem(), Convert.ToBase64String(rsa.ExportSubjectPublicKeyInfo()));
+            }
+
+            public static Key MakeEd25519(String Domain, String Selector = "teste")
+            {
+                var pem              = DkimKeyMaterial.NewEd25519Pem();
+                var (type, publicKey) = DkimKeyMaterial.RecordOf(pem);
+                return new Key(Domain, Selector, pem, publicKey, type);
             }
 
         }
@@ -78,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public Task<DNSInfo> Query(DNSServiceName DNSServiceName, IEnumerable<DNSResourceRecordTypes> ResourceRecordTypes, TimeSpan? Timeout = null,
                                        Boolean? RecursionDesired = true, Boolean? ForceUpdate = false, CancellationToken CancellationToken = default)
                 => Task.FromResult(Answer(Keys.Where (key => DNSServiceName.ToString().TrimEnd('.').Equals($"{key.Selector}._domainkey.{key.Domain}", StringComparison.OrdinalIgnoreCase)).
-                                                Select(key => new TXT(DNSServiceName, DNSQueryClasses.IN, TimeSpan.FromHours(1), $"v=DKIM1; k=rsa; p={key.PublicBase64}"))));
+                                                Select(key => new TXT(DNSServiceName, DNSQueryClasses.IN, TimeSpan.FromHours(1), $"v=DKIM1; k={key.KeyType}; p={key.PublicBase64}"))));
 
             public void Dispose() { }
 
@@ -126,6 +135,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(DkimSigning.FromDomain("From: a@x.example, b@y.example\r\n\r\nx\r\n"), Is.Null, "two authors align with nobody");
 
             });
+
+        }
+
+        [Test]
+        public async Task An_Ed25519_signature_is_made_and_verified_alone_and_beside_RSA()
+        {
+
+            var ed25519   = Key.MakeEd25519("example.org");
+            var rsa       = Key.Make("example.org");
+            var verifier  = new DNSVerifier(new DkimDNS(ed25519, rsa), new QuietLogger());
+
+            var alone     = ed25519.Signer.SignMessage(Message());
+            var both      = new DkimSigner([ rsa.Config, ed25519.Config ], new QuietLogger()).SignMessage(Message());
+            var changed   = alone.Replace("hello", "hallo");
+
+            // The record of the Ed25519 key with an RSA key's algorithm: refused, not mixed up.
+            var mismatch  = alone.Replace("a=ed25519-sha256", "a=rsa-sha256");
+
+            var good      = await verifier.VerifyDkimAsync(Encoding.ASCII.GetBytes(alone));
+            var bad       = await verifier.VerifyDkimAsync(Encoding.ASCII.GetBytes(changed));
+            var mixed     = await verifier.VerifyDkimAsync(Encoding.ASCII.GetBytes(mismatch));
+
+            // Each of the two signatures holds on its own: without the other, it still passes.
+            var rsaAlone  = await verifier.VerifyDkimAsync(Encoding.ASCII.GetBytes(Unfolded(both, "a=ed25519-sha256")));
+            var edAlone   = await verifier.VerifyDkimAsync(Encoding.ASCII.GetBytes(Unfolded(both, "a=rsa-sha256")));
+
+            Assert.Multiple(() => {
+
+                Assert.That(DkimKeyMaterial.IsEd25519(ed25519.PrivatePem),  Is.True);
+                Assert.That(DkimKeyMaterial.IsEd25519(rsa.PrivatePem),      Is.False);
+                Assert.That(Convert.FromBase64String(ed25519.PublicBase64), Has.Length.EqualTo(32), "the record carries the 32 octets of the key (RFC 8463)");
+
+                Assert.That(alone,          Does.Contain("a=ed25519-sha256; "));
+                Assert.That(good.Result,    Is.EqualTo(DkimResult.Pass), good.Details);
+                Assert.That(bad.Result,     Is.EqualTo(DkimResult.Fail));
+                Assert.That(mixed.Result,   Is.EqualTo(DkimResult.Fail), mixed.Details);
+
+                Assert.That(both.Split("DKIM-Signature:").Length - 1, Is.EqualTo(2), "a signature per key");
+                Assert.That(rsaAlone.Result, Is.EqualTo(DkimResult.Pass), rsaAlone.Details);
+                Assert.That(edAlone.Result,  Is.EqualTo(DkimResult.Pass), edAlone.Details);
+
+            });
+
+        }
+
+        /// <summary>
+        /// The message without the DKIM-Signature that names the given text - its
+        /// folded lines with it.
+        /// </summary>
+        private static String Unfolded(String Message, String Naming)
+        {
+
+            var lines   = Message.Split("\r\n");
+            var kept    = new List<String>();
+            var skip    = false;
+
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("DKIM-Signature:", StringComparison.Ordinal))
+                    skip = line.Contains(Naming, StringComparison.Ordinal);
+                else if (!line.StartsWith('\t') && !line.StartsWith(' '))
+                    skip = false;
+
+                if (!skip)
+                    kept.Add(line);
+            }
+
+            return String.Join("\r\n", kept);
 
         }
 

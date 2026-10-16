@@ -24,6 +24,9 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Buffers;
 
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Crypto.Signers;
+
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -586,16 +589,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             try
             {
                 var publicKeyBytes = Convert.FromBase64String(publicKeyBase64);
-                var signatureBytes = Convert.FromBase64String(signature.Replace(" ", "").Replace("\r", "").Replace("\n", ""));
-
-                using var rsa = RSA.Create();
-                rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+                var signatureBytes = Convert.FromBase64String(signature.Replace(" ", "").Replace("\r", "").Replace("\n", "").Replace("\t", ""));
 
                 var signedHeaders = dkimParams.GetValueOrDefault("h", "").Split(':');
                 var signingInput  = DkimCanonicalization.BuildHeaderHashInput(fields, signedHeaders, dkimField, headerCanon);
 
-                var hashAlgorithm = algorithm.Contains("sha256") ? HashAlgorithmName.SHA256 : HashAlgorithmName.SHA1;
-                var isValid       = rsa.VerifyData(MessageOctets.ToOctets(signingInput), signatureBytes, hashAlgorithm, RSASignaturePadding.Pkcs1);
+                var keyType       = dkimRecordParams.GetValueOrDefault("k", "rsa").ToLowerInvariant();
+                Boolean isValid;
+
+                // Ed25519 (RFC 8463): the key is its 32 octets, the signature is over the
+                // SHA-256 hash of the input - and the algorithm has to be the key's.
+                if (algorithm.Equals("ed25519-sha256", StringComparison.OrdinalIgnoreCase) || keyType == "ed25519")
+                {
+
+                    if (!algorithm.Equals("ed25519-sha256", StringComparison.OrdinalIgnoreCase) || keyType != "ed25519")
+                        return (DkimResult.Fail, $"The signature is {algorithm}, the key in DNS is {keyType}");
+
+                    if (publicKeyBytes.Length != Ed25519PublicKeyParameters.KeySize)
+                        return (DkimResult.Fail, "An Ed25519 key in DNS has 32 octets");
+
+                    var hash     = SHA256.HashData(MessageOctets.ToOctets(signingInput));
+                    var verifier = new Ed25519Signer();
+                    verifier.Init(false, new Ed25519PublicKeyParameters(publicKeyBytes, 0));
+                    verifier.BlockUpdate(hash, 0, hash.Length);
+                    isValid      = verifier.VerifySignature(signatureBytes);
+
+                }
+                else
+                {
+
+                    using var rsa = RSA.Create();
+                    rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+
+                    var hashAlgorithm = algorithm.Contains("sha256") ? HashAlgorithmName.SHA256 : HashAlgorithmName.SHA1;
+                    isValid           = rsa.VerifyData(MessageOctets.ToOctets(signingInput), signatureBytes, hashAlgorithm, RSASignaturePadding.Pkcs1);
+
+                }
 
                 return isValid
                     ? (DkimResult.Pass, $"DKIM signature valid for domain {domain}")
