@@ -285,6 +285,33 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Everything that still waits to be delivered - due now or later, being delivered
+    /// now, or deferred - the next first: what an administrator asks after, where
+    /// <see cref="GetPendingAsync"/> is what the queue processor takes now.
+    /// </summary>
+    public async Task<IReadOnlyList<QueuedMail>> GetWaitingAsync(int maxItems = 1000, CancellationToken ct = default)
+    {
+        var result = new List<QueuedMail>();
+
+        foreach (var file in Directory.GetFiles(_queuePath, "*.json"))
+        {
+            try
+            {
+                var json = await File.ReadAllTextAsync(file, ct);
+                var mail = JsonSerializer.Deserialize<QueuedMail>(json, JsonOptions);
+                if (mail is not null)
+                    result.Add(mail);
+            }
+            catch (Exception e) when (e is IOException or JsonException)
+            {
+                // Being written or moved just now, or not a queue item.
+            }
+        }
+
+        return [.. result.OrderBy(mail => mail.NextRetry).Take(maxItems)];
+    }
+
     public Task<int> GetQueueLengthAsync(CancellationToken ct = default)
     {
         var count = Directory.GetFiles(_queuePath, "*.json").Length;

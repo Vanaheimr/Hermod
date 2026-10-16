@@ -193,6 +193,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test]
+        public async Task Waiting_mail_is_all_mail_not_yet_delivered_the_next_first()
+        {
+
+            var dir   = Path.Combine(Path.GetTempPath(), "hermod-wait-" + UUIDv7.Generate().ToString("N"));
+            using var queue = new FileMailQueue(dir, new NullSmtpLogger());
+
+            try
+            {
+
+                var sender = new MailSender(queue, new NullSmtpLogger());
+                var ids    = await sender.SendAsync("me@example.com", [ "a@example.org", "b@example.net" ], "Subject: s\r\n\r\nb\r\n");
+
+                // One deferred for an hour, which the queue processor would not take now.
+                var later  = (await queue.GetByIdAsync(ids[1]))!;
+                later.Status    = QueueItemStatus.Deferred;
+                later.NextRetry = Timestamp.Now.AddHours(1);
+                await queue.UpdateAsync(later);
+
+                var waiting = await queue.GetWaitingAsync();
+                var due     = await queue.GetPendingAsync();
+
+                Assert.That(waiting.Select(mail => mail.Id), Is.EqualTo(new[] { ids[0], ids[1] }), "both, the next first");
+                Assert.That(due.    Select(mail => mail.Id), Is.EqualTo(new[] { ids[0] }),         "only what is due now");
+
+            }
+            finally
+            {
+                try { Directory.Delete(dir, recursive: true); } catch { }
+            }
+
+        }
+
         #endregion
 
     }

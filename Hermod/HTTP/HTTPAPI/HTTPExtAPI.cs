@@ -18767,15 +18767,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 loginPasswords[user.Id] = new LoginPassword(user.Id, newPassword);
 
-                await SMTPClient.Send(
-                          PasswordChangedEMailCreator(
-                              user,
-                              user.EMail,
-                              //"https://" + Request.Host.SimpleString,
-                              DefaultLanguage,
-                              eventTrackingId
-                          )
-                      );
+                // As _ChangePassword: an API without notifications sends none - and does not
+                // fail here, after the new password was written and before the reset is ended.
+                if (!DisableNotifications)
+                    await SMTPClient.Send(
+                              PasswordChangedEMailCreator(
+                                  user,
+                                  user.EMail,
+                                  //"https://" + Request.Host.SimpleString,
+                                  DefaultLanguage,
+                                  eventTrackingId
+                              )
+                          );
 
             }
 
