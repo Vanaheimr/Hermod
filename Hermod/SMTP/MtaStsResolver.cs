@@ -19,6 +19,7 @@
 
 using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -63,11 +64,15 @@ public sealed partial class MtaStsResolver : IDisposable
     /// the system does not trust. By default one that follows no redirects (RFC 8461 §3.3).
     /// Whichever it is, a policy reached through a redirect is not taken.
     /// </param>
-    public MtaStsResolver(IDNSClient dnsClient, ILogger logger, HttpMessageHandler? httpHandler = null)
+    /// <param name="allowAddress">
+    /// Which addresses the default handler may fetch a policy from - <see cref="PublicAddresses.IsPublic"/>
+    /// for the internet's only - or null for any. A handler given above is taken as it is.
+    /// </param>
+    public MtaStsResolver(IDNSClient dnsClient, ILogger logger, HttpMessageHandler? httpHandler = null, Func<System.Net.IPAddress, Boolean>? allowAddress = null)
     {
         _dnsClient = dnsClient;
         _logger = logger;
-        _httpClient = new HttpClient(httpHandler ?? CreateDefaultHandler(), disposeHandler: httpHandler is null)
+        _httpClient = new HttpClient(httpHandler ?? CreateDefaultHandler(allowAddress), disposeHandler: httpHandler is null)
         {
             Timeout                       = TimeSpan.FromSeconds(30),
             MaxResponseContentBufferSize  = MaxPolicySize
@@ -79,8 +84,48 @@ public sealed partial class MtaStsResolver : IDisposable
     /// RFC 8461 §3.3: "HTTP 3xx redirects MUST NOT be followed, and HTTP caching ... MUST NOT be
     /// used" - HttpClient does no HTTP caching, and this handler follows no redirects.
     /// </summary>
-    internal static HttpMessageHandler CreateDefaultHandler()
-        => new SocketsHttpHandler { AllowAutoRedirect = false };
+    /// <param name="allowAddress">
+    /// Which addresses it may connect to, or null for any. Asked at every connection, with the
+    /// addresses the name has then - and so without a proxy, which would be connected to instead.
+    /// </param>
+    internal static HttpMessageHandler CreateDefaultHandler(Func<System.Net.IPAddress, Boolean>? allowAddress = null)
+    {
+
+        var handler = new SocketsHttpHandler { AllowAutoRedirect = false };
+
+        if (allowAddress is not null)
+        {
+
+            handler.UseProxy        = false;
+            handler.ConnectCallback = async (context, ct) => {
+
+                var addresses = await PublicAddresses.ResolveAsync(context.DnsEndPoint.Host, ct);
+                var allowed   = addresses.Where(allowAddress).ToArray();
+
+                if (allowed.Length == 0)
+                    throw new HttpRequestException($"{context.DnsEndPoint.Host} has no public address ({String.Join(", ", addresses.Select(address => address.ToString()))})");
+
+                // Either family: a dual-mode socket where there is IPv6.
+                var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+
+                try
+                {
+                    await socket.ConnectAsync(allowed, context.DnsEndPoint.Port, ct);
+                    return new NetworkStream(socket, ownsSocket: true);
+                }
+                catch
+                {
+                    socket.Dispose();
+                    throw;
+                }
+
+            };
+
+        }
+
+        return handler;
+
+    }
 
     /// <summary>
     /// The MTA-STS policy of a Policy Domain: the one its TXT record announces, fetched when it is

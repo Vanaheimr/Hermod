@@ -70,6 +70,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public          HttpMessageHandler?  MtaStsHttpHandler  { get; init; }
 
+        /// <summary>
+        /// Deliver to the internet's addresses only (<see cref="PublicAddresses.IsPublic"/>): an MX
+        /// host - or the domain itself, when it has no MX, or an address literal - whose addresses
+        /// are this host's, its network's or otherwise reserved (127.0.0.1, 10.x, fd00::/8, and such
+        /// an IPv4 address inside NAT64, 6to4 or Teredo) is not connected to, and MTA-STS policies
+        /// are fetched from public addresses only, without a proxy. Otherwise whoever owns a domain
+        /// could lead this server into its own network - by sending it mail to answer, or to bounce.
+        /// When no MX host of a domain has a public address, the message bounces (5.4.4).
+        /// A smart host is exempt: it is configured, not named by a stranger, and may well be on
+        /// this machine. Default false.
+        /// </summary>
+        public          Boolean  PublicAddressesOnly  { get; init; }
+
+        /// <summary>
+        /// Which addresses count as public under <see cref="PublicAddressesOnly"/> - for tests,
+        /// which have no other address than the loopback.
+        /// </summary>
+        internal        Func<System.Net.IPAddress, Boolean>  IsPublicAddress  { get; init; } = PublicAddresses.IsPublic;
+
+        /// <summary>
+        /// The port of an MX host - 25 (RFC 5321 §4.5.4.2); another only for tests, which cannot listen there.
+        /// </summary>
+        internal        UInt16   MxPort               { get; init; } = 25;
+
         public          String?  SmartHost            { get; init; }  // Optional relay host
         public          UInt16   SmartHostPort        { get; init; } = 25;
         public          String?  SmartHostUsername    { get; init; }

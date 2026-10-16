@@ -18,7 +18,9 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 
@@ -31,18 +33,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 /// Each queued mail is stored as a JSON file.
 /// Uses Channel&lt;T&gt; for zero-latency producer-consumer pattern.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Every entry is written to a temporary file beside it, flushed to the disk and renamed over
+/// the old one: a crash leaves the entry as it was or as it is now, never half of it. What a
+/// crash leaves in between is tidied when the queue opens again - a stray temporary file is
+/// removed, an entry that was being delivered is tried again, and one that had reached
+/// delivered or failed is not delivered twice.
+/// </para>
+/// <para>
+/// An entry that cannot be read is said so in the log as an error and set aside into
+/// <c>queue/corrupt</c>, where it waits for an administrator (<see cref="GetSetAside"/>),
+/// instead of being skipped over and over without a word.
+/// </para>
+/// <para>
+/// Delivered mail is kept without its content - who it went to, where and when, for whoever
+/// asks how it fared - and only for <see cref="DeliveredRetention"/>; failed mail is kept as it
+/// was, for <see cref="FailedRetention"/>. Neither stays for ever with its text and the blind
+/// copies' recipients.
+/// </para>
+/// </remarks>
 public sealed class FileMailQueue : IMailQueue, IDisposable
 {
+
+    /// <summary>
+    /// How long delivered mail is remembered, if not said otherwise: a week.
+    /// </summary>
+    public static readonly TimeSpan DefaultDeliveredRetention = TimeSpan.FromDays(7);
+
+    /// <summary>
+    /// How long failed mail is kept, if not said otherwise: thirty days.
+    /// </summary>
+    public static readonly TimeSpan DefaultFailedRetention    = TimeSpan.FromDays(30);
+
     private readonly string _queuePath;
     private readonly string _failedPath;
     private readonly string _deliveredPath;
+    private readonly string _corruptPath;
     private readonly ILogger _logger;
     private readonly SemaphoreSlim _lock = new(1, 1);
-    
+
     // Event channels
     private readonly Channel<QueuedMail> _newMailChannel;
     private readonly Channel<bool> _retryCheckChannel;
     private readonly Timer _retryTimer;
+    private readonly Timer _purgeTimer;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -53,16 +88,38 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
     public ChannelReader<QueuedMail> NewMailReader => _newMailChannel.Reader;
     public ChannelReader<bool> RetryCheckReader => _retryCheckChannel.Reader;
 
-    public FileMailQueue(string basePath, ILogger logger)
+    /// <summary>
+    /// How long a delivered mail is remembered - without its content - before it is deleted.
+    /// </summary>
+    public TimeSpan DeliveredRetention { get; }
+
+    /// <summary>
+    /// How long a failed mail is kept before it is deleted.
+    /// </summary>
+    public TimeSpan FailedRetention { get; }
+
+    /// <summary>
+    /// A new queue below the given path, or the one that is there.
+    /// </summary>
+    /// <param name="basePath">The directory below which "queue" is.</param>
+    /// <param name="logger">Where it says what it does.</param>
+    /// <param name="deliveredRetention">How long delivered mail is remembered (default a week).</param>
+    /// <param name="failedRetention">How long failed mail is kept (default thirty days).</param>
+    public FileMailQueue(string basePath, ILogger logger, TimeSpan? deliveredRetention = null, TimeSpan? failedRetention = null)
     {
         _queuePath = Path.Combine(basePath, "queue", "pending");
         _failedPath = Path.Combine(basePath, "queue", "failed");
         _deliveredPath = Path.Combine(basePath, "queue", "delivered");
+        _corruptPath = Path.Combine(basePath, "queue", "corrupt");
         _logger = logger;
+
+        DeliveredRetention = deliveredRetention ?? DefaultDeliveredRetention;
+        FailedRetention = failedRetention ?? DefaultFailedRetention;
 
         Directory.CreateDirectory(_queuePath);
         Directory.CreateDirectory(_failedPath);
         Directory.CreateDirectory(_deliveredPath);
+        Directory.CreateDirectory(_corruptPath);
 
         // Create unbounded channels for notifications
         _newMailChannel = Channel.CreateUnbounded<QueuedMail>(new UnboundedChannelOptions
@@ -70,12 +127,16 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
             SingleReader = false,
             SingleWriter = false
         });
-        
+
         _retryCheckChannel = Channel.CreateUnbounded<bool>(new UnboundedChannelOptions
         {
             SingleReader = true,
             SingleWriter = false
         });
+
+        // Tidy what a crash left, then load the pending mails - before anybody asks the queue anything.
+        Recover();
+        Purge(Timestamp.Now);
 
         // Timer to periodically check for deferred mails ready for retry
         _retryTimer = new Timer(
@@ -85,54 +146,90 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
             TimeSpan.FromMinutes(1)     // Check every minute
         );
 
-        // Load existing pending mails on startup
-        _ = LoadExistingMailsAsync();
+        // ...and to forget delivered and failed mail once their time is up.
+        _purgeTimer = new Timer(
+            _ => PurgeQuietly(),
+            null,
+            TimeSpan.FromHours(1),
+            TimeSpan.FromHours(1)
+        );
     }
 
-    private async Task LoadExistingMailsAsync()
+    #region Recover()
+
+    /// <summary>
+    /// What a crash may have left: temporary files, an entry that was being delivered, an entry
+    /// that reached delivered or failed while its pending one was not yet deleted. Then every
+    /// mail that is due is told to whoever delivers.
+    /// </summary>
+    private void Recover()
     {
-        try
+        foreach (var folder in new[] { _queuePath, _failedPath, _deliveredPath })
         {
-            var files = Directory.GetFiles(_queuePath, "*.json");
-            if (files.Length > 0)
+            foreach (var temporary in Directory.GetFiles(folder, ".*.tmp"))
             {
-                _logger.Log(LogLevel.Info, $"Loading {files.Length} existing queued mails...");
-                
-                foreach (var file in files)
-                {
-                    try
-                    {
-                        var json = await File.ReadAllTextAsync(file);
-                        var mail = JsonSerializer.Deserialize<QueuedMail>(json, JsonOptions);
-                        
-                        if (mail is not null && 
-                            mail.Status is QueueItemStatus.Pending or QueueItemStatus.Deferred &&
-                            mail.NextRetry <= Timestamp.Now)
-                        {
-                            await _newMailChannel.Writer.WriteAsync(mail);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Log(LogLevel.Warning, $"Failed to load queue file {file}: {ex.Message}");
-                    }
-                }
+                try { File.Delete(temporary); } catch { }
             }
         }
-        catch (Exception ex)
+
+        var now = Timestamp.Now;
+        var ready = new List<QueuedMail>();
+
+        foreach (var file in Directory.GetFiles(_queuePath, "*.json"))
         {
-            _logger.Log(LogLevel.Error, $"Failed to load existing mails: {ex.Message}");
+            try
+            {
+                var mail = Read(file);
+                if (mail is null)
+                    continue;
+
+                if (File.Exists(GetFilePath(_deliveredPath, mail.Id)) ||
+                    File.Exists(GetFilePath(_failedPath, mail.Id)))
+                {
+                    // It was moved, but the old one not yet deleted: it is done.
+                    _logger.Log(LogLevel.Warning, $"Queued mail {mail.Id} had been delivered or had failed already - not delivered again.");
+                    File.Delete(file);
+                    continue;
+                }
+
+                if (mail.Status == QueueItemStatus.Processing)
+                {
+                    // It was being delivered when the process ended: whether it arrived, nobody knows.
+                    // Twice is better than never (RFC 5321 §6.1).
+                    _logger.Log(LogLevel.Warning, $"Queued mail {mail.Id} was being delivered when the queue was last closed - it is tried again.");
+                    mail.Status = QueueItemStatus.Pending;
+                    mail.NextRetry = now;
+                    WriteFile(file, Serialize(mail));
+                }
+
+                if (mail.Status is QueueItemStatus.Pending or QueueItemStatus.Deferred &&
+                    mail.NextRetry <= now)
+                {
+                    ready.Add(mail);
+                }
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                _logger.Log(LogLevel.Error, $"Queue file {file} could not be taken up again: {e.Message}");
+            }
         }
+
+        if (ready.Count > 0)
+            _logger.Log(LogLevel.Info, $"Loading {ready.Count} existing queued mails...");
+
+        foreach (var mail in ready)
+            _newMailChannel.Writer.TryWrite(mail);
     }
+
+    #endregion
 
     public async Task EnqueueAsync(QueuedMail mail, CancellationToken ct = default)
     {
         var filePath = GetFilePath(_queuePath, mail.Id);
-        var json = JsonSerializer.Serialize(mail, JsonOptions);
-        
-        await File.WriteAllTextAsync(filePath, json, ct);
+
+        await WriteFileAsync(filePath, Serialize(mail), ct);
         _logger.Log(LogLevel.Info, $"Queued mail {mail.Id} to {mail.TargetDomain} ({mail.EnvelopeTo.Length} recipients)");
-        
+
         // Notify consumers immediately via channel
         await _newMailChannel.Writer.WriteAsync(mail, ct);
     }
@@ -155,21 +252,13 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
             // delivered first; within the same priority keep FIFO by readiness (NextRetry).
             foreach (var file in Directory.GetFiles(_queuePath, "*.json"))
             {
-                try
-                {
-                    var json = await File.ReadAllTextAsync(file, ct);
-                    var mail = JsonSerializer.Deserialize<QueuedMail>(json, JsonOptions);
+                var mail = await ReadAsync(file, ct);
 
-                    if (mail is not null &&
-                        mail.Status is QueueItemStatus.Pending or QueueItemStatus.Deferred &&
-                        mail.NextRetry <= now)
-                    {
-                        candidates.Add(mail);
-                    }
-                }
-                catch (Exception ex)
+                if (mail is not null &&
+                    mail.Status is QueueItemStatus.Pending or QueueItemStatus.Deferred &&
+                    mail.NextRetry <= now)
                 {
-                    _logger.Log(LogLevel.Warning, $"Failed to read queue file {file}: {ex.Message}");
+                    candidates.Add(mail);
                 }
             }
 
@@ -200,21 +289,13 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
                 if (result.Count >= maxItems)
                     break;
 
-                try
-                {
-                    var json = await File.ReadAllTextAsync(file, ct);
-                    var mail = JsonSerializer.Deserialize<QueuedMail>(json, JsonOptions);
+                var mail = await ReadAsync(file, ct);
 
-                    if (mail is not null && 
-                        mail.Status == QueueItemStatus.Deferred &&
-                        mail.NextRetry <= now)
-                    {
-                        result.Add(mail);
-                    }
-                }
-                catch
+                if (mail is not null &&
+                    mail.Status == QueueItemStatus.Deferred &&
+                    mail.NextRetry <= now)
                 {
-                    // Skip invalid files
+                    result.Add(mail);
                 }
             }
 
@@ -229,15 +310,13 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
     public async Task<QueuedMail?> GetByIdAsync(string id, CancellationToken ct = default)
     {
         // Pending, failed - or delivered: whoever asks how a message fared asks after that too.
-        var filePath = new[] { _queuePath, _failedPath, _deliveredPath }.
-                           Select(path => GetFilePath(path, id)).
-                           FirstOrDefault(File.Exists);
+        foreach (var path in new[] { _queuePath, _failedPath, _deliveredPath })
+        {
+            if (await ReadAsync(GetFilePath(path, id), ct) is { } mail)
+                return mail;
+        }
 
-        if (filePath is null)
-            return null;
-
-        var json = await File.ReadAllTextAsync(filePath, ct);
-        return JsonSerializer.Deserialize<QueuedMail>(json, JsonOptions);
+        return null;
     }
 
     public async Task UpdateAsync(QueuedMail mail, CancellationToken ct = default)
@@ -247,22 +326,26 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
         {
             var sourcePath = GetFilePath(_queuePath, mail.Id);
             string targetPath;
+            byte[] content;
 
             switch (mail.Status)
             {
                 case QueueItemStatus.Failed:
                     targetPath = GetFilePath(_failedPath, mail.Id);
+                    content = Serialize(mail);
                     break;
                 case QueueItemStatus.Delivered:
+                    // Who it went to, where and when - not what it said.
                     targetPath = GetFilePath(_deliveredPath, mail.Id);
+                    content = SerializeWithoutContent(mail);
                     break;
                 default:
                     targetPath = sourcePath;
+                    content = Serialize(mail);
                     break;
             }
 
-            var json = JsonSerializer.Serialize(mail, JsonOptions);
-            await File.WriteAllTextAsync(targetPath, json, ct);
+            await WriteFileAsync(targetPath, content, ct);
 
             // Move file if status changed
             if (targetPath != sourcePath && File.Exists(sourcePath))
@@ -276,13 +359,19 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
         }
     }
 
-    public Task RemoveAsync(string id, CancellationToken ct = default)
+    public async Task RemoveAsync(string id, CancellationToken ct = default)
     {
-        var filePath = GetFilePath(_queuePath, id);
-        if (File.Exists(filePath))
-            File.Delete(filePath);
-
-        return Task.CompletedTask;
+        await _lock.WaitAsync(ct);
+        try
+        {
+            var filePath = GetFilePath(_queuePath, id);
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     /// <summary>
@@ -296,17 +385,8 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
 
         foreach (var file in Directory.GetFiles(_queuePath, "*.json"))
         {
-            try
-            {
-                var json = await File.ReadAllTextAsync(file, ct);
-                var mail = JsonSerializer.Deserialize<QueuedMail>(json, JsonOptions);
-                if (mail is not null)
-                    result.Add(mail);
-            }
-            catch (Exception e) when (e is IOException or JsonException)
-            {
-                // Being written or moved just now, or not a queue item.
-            }
+            if (await ReadAsync(file, ct) is { } mail)
+                result.Add(mail);
         }
 
         return [.. result.OrderBy(mail => mail.NextRetry).Take(maxItems)];
@@ -327,21 +407,259 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
 
         foreach (var file in files)
         {
-            try
-            {
-                var json = await File.ReadAllTextAsync(file, ct);
-                var mail = JsonSerializer.Deserialize<QueuedMail>(json, JsonOptions);
-                if (mail is not null)
-                    result.Add(mail);
-            }
-            catch
-            {
-                // Skip invalid files
-            }
+            if (await ReadAsync(file, ct) is { } mail)
+                result.Add(mail);
         }
 
         return result;
     }
+
+    #region GetSetAside()
+
+    /// <summary>
+    /// The files that could not be read and were set aside, the newest first: an administrator
+    /// looks at them, mends or deletes them; the queue does not touch them again.
+    /// </summary>
+    public IReadOnlyList<string> GetSetAside()
+
+        => [.. new DirectoryInfo(_corruptPath).
+                   GetFiles().
+                   OrderByDescending(file => file.LastWriteTimeUtc).
+                   Select(file => file.FullName)];
+
+    #endregion
+
+    #region Purge(Now)
+
+    /// <summary>
+    /// Delete what was delivered longer ago than <see cref="DeliveredRetention"/> and what
+    /// failed longer ago than <see cref="FailedRetention"/>. Runs when the queue opens and
+    /// every hour; what was set aside stays.
+    /// </summary>
+    /// <param name="now">The time to count from.</param>
+    /// <returns>How many entries were deleted.</returns>
+    public int Purge(DateTimeOffset now)
+    {
+        _lock.Wait();
+        try
+        {
+            var deleted = 0;
+
+            foreach (var (folder, retention) in new[] { (_deliveredPath, DeliveredRetention), (_failedPath, FailedRetention) })
+            {
+                foreach (var file in new DirectoryInfo(folder).GetFiles("*.json"))
+                {
+                    // The time it was written there is the time it was delivered or failed.
+                    if (now.UtcDateTime - file.LastWriteTimeUtc > retention)
+                    {
+                        try
+                        {
+                            file.Delete();
+                            deleted++;
+                        }
+                        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                        {
+                            _logger.Log(LogLevel.Warning, $"Queue file {file.FullName} could not be deleted: {e.Message}");
+                        }
+                    }
+                }
+            }
+
+            if (deleted > 0)
+                _logger.Log(LogLevel.Info, $"Forgot {deleted} delivered or failed mails older than their time in the queue.");
+
+            return deleted;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    private void PurgeQuietly()
+    {
+        try
+        {
+            Purge(Timestamp.Now);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Closed meanwhile.
+        }
+        catch (Exception e)
+        {
+            _logger.Log(LogLevel.Warning, $"Delivered and failed mails could not be tidied: {e.Message}");
+        }
+    }
+
+    #endregion
+
+    #region (private) Reading and writing
+
+    private static byte[] Serialize(QueuedMail mail)
+        => JsonSerializer.SerializeToUtf8Bytes(mail, JsonOptions);
+
+    /// <summary>
+    /// The entry without the message: its text and its octets are gone, the envelope and how
+    /// it fared remain.
+    /// </summary>
+    private static byte[] SerializeWithoutContent(QueuedMail mail)
+    {
+        var json = JsonSerializer.SerializeToNode(mail, JsonOptions)!.AsObject();
+
+        json[nameof(QueuedMail.MessageContent)] = "";
+        json.Remove(nameof(QueuedMail.MessageOctets));
+
+        return JsonSerializer.SerializeToUtf8Bytes(json, JsonOptions);
+    }
+
+    /// <summary>
+    /// The entry in the given file; null if there is none (any more) or it cannot be read -
+    /// then it is set aside.
+    /// </summary>
+    private async Task<QueuedMail?> ReadAsync(string file, CancellationToken ct)
+    {
+        string json;
+
+        try
+        {
+            // Shared for writing and deleting, so that the entry can be replaced or moved meanwhile.
+            await using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous);
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            json = await reader.ReadToEndAsync(ct);
+        }
+        catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // Delivered, moved or taken out just now.
+            return null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            _logger.Log(LogLevel.Error, $"Queue file {file} cannot be read now: {e.Message}");
+            return null;
+        }
+
+        return Parse(file, json);
+    }
+
+    private QueuedMail? Read(string file)
+    {
+        string json;
+
+        try
+        {
+            using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            json = reader.ReadToEnd();
+        }
+        catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            _logger.Log(LogLevel.Error, $"Queue file {file} cannot be read now: {e.Message}");
+            return null;
+        }
+
+        return Parse(file, json);
+    }
+
+    private QueuedMail? Parse(string file, string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<QueuedMail>(json, JsonOptions)
+                       ?? throw new JsonException("The file holds no queue entry.");
+        }
+        catch (Exception e)
+        {
+            SetAside(file, e.Message);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// A file that is no queue entry - broken by a crash before entries were written atomically,
+    /// by the disk, or by hand - goes where nothing reads it, and the log says so loudly: the mail
+    /// in it is not delivered.
+    /// </summary>
+    private void SetAside(string file, string reason)
+    {
+        var folder = Path.GetFileName(Path.GetDirectoryName(file)) ?? "queue";
+        var target = Path.Combine(_corruptPath, $"{Timestamp.Now.UtcDateTime:yyyyMMddTHHmmssZ}-{folder}-{Path.GetFileName(file)}");
+
+        try
+        {
+            if (File.Exists(target))
+                target = Path.Combine(_corruptPath, $"{Timestamp.Now.UtcDateTime:yyyyMMddTHHmmssZ}-{folder}-{Guid.NewGuid():N}-{Path.GetFileName(file)}");
+
+            File.Move(file, target);
+
+            _logger.Log(LogLevel.Error, $"Queue file {file} cannot be read ({reason}) - set aside as {target}. The mail in it is not delivered until somebody mends it and puts it back.");
+        }
+        catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // Replaced or moved meanwhile.
+        }
+        catch (Exception e)
+        {
+            _logger.Log(LogLevel.Error, $"Queue file {file} cannot be read ({reason}) and could not be set aside: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// The entry goes to a temporary file beside it, is flushed to the disk, and then renamed
+    /// over the old one: it is there as it was or as it is now, never half.
+    /// </summary>
+    private static async Task WriteFileAsync(string path, byte[] content, CancellationToken ct)
+    {
+        var temporary = TemporaryPathFor(path);
+
+        try
+        {
+            await using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous))
+            {
+                await stream.WriteAsync(content, ct);
+                await stream.FlushAsync(ct);
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Move(temporary, path, overwrite: true);
+        }
+        catch
+        {
+            try { File.Delete(temporary); } catch { }
+            throw;
+        }
+    }
+
+    private static void WriteFile(string path, byte[] content)
+    {
+        var temporary = TemporaryPathFor(path);
+
+        try
+        {
+            using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                stream.Write(content);
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Move(temporary, path, overwrite: true);
+        }
+        catch
+        {
+            try { File.Delete(temporary); } catch { }
+            throw;
+        }
+    }
+
+    // Starts with a dot and ends in .tmp: no "*.json" ever lists it.
+    private static string TemporaryPathFor(string path)
+        => Path.Combine(Path.GetDirectoryName(path) ?? ".", $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+
+    #endregion
 
     private static string GetFilePath(string folder, string id)
     {
@@ -352,6 +670,7 @@ public sealed class FileMailQueue : IMailQueue, IDisposable
     public void Dispose()
     {
         _retryTimer.Dispose();
+        _purgeTimer.Dispose();
         _newMailChannel.Writer.Complete();
         _retryCheckChannel.Writer.Complete();
         _lock.Dispose();

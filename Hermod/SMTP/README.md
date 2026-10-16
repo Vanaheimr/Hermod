@@ -128,6 +128,20 @@ Last verified: **2026-10-15**
 - Outbound relay uses opportunistic TLS by default and enforced TLS under
   MTA-STS `enforce`, REQUIRETLS, DANE, or an explicit flag — enforced modes defer
   delivery rather than downgrade.
+- With `SmtpOutboundConfig.PublicAddressesOnly`, the relay connects to the
+  internet's addresses only (`PublicAddresses.IsPublic`: no loopback, private,
+  link-local, shared or reserved address, nor one of them inside NAT64, 6to4 or
+  Teredo): an MX host - or the domain or address literal itself - is resolved
+  first and connected to at its public addresses alone; a domain none of whose
+  MX hosts has one bounces with `550 5.4.4`. MTA-STS policies are then fetched
+  from public addresses only, without a proxy. A smart host is exempt.
+- The file queue (`FileMailQueue`) writes every entry atomically (temporary
+  file, flushed to the disk, renamed over the old one), tidies what a crash left
+  when it opens (temporary files; a mail that was being delivered is tried
+  again; one that reached delivered or failed is not delivered twice), sets an
+  unreadable entry aside into `queue/corrupt` with an error in the log
+  (`GetSetAside`), keeps delivered mail without its content for
+  `DeliveredRetention` (7 days) and failed mail for `FailedRetention` (30 days).
 - All DNS (TXT, MX, A/AAAA, PTR, MTA-STS, TLSA, and DNSSEC RRSIG/DNSKEY/DS) goes
   through the injected Hermod `DNSClient`; there are no `nslookup`/`dig`
   subprocesses or `System.Net.Dns` calls in the active code.
@@ -239,14 +253,16 @@ vectors, and live domains — not only self-consistency.
 | **Inbound session** | Raw-socket wire tests (`SMTPSessionWireTests`) for line endings, smuggling variants, BDAT chunk consumption, submission-port authentication, the session state `STARTTLS` discards, session limits, the verification switches, the octets handed to the store, recipient checks at `RCPT` and a failing store,
 the certificate chosen per handshake (renewal without restart, SNI, none yet, implicit TLS, PEM as certbot writes it); the whole server is additionally run against the external [SMTPConformanceTests](https://github.com/Vanaheimr/SMTPConformanceTests) suite (RFC-by-RFC, plus swaks, smtplib, openssl and Postfix smtp-sink). |
 
-The committed SMTP regression suite (`HermodTests/SMTP/`) contains **505 passing
+The committed SMTP regression suite (`HermodTests/SMTP/`) contains **604 passing
 tests, 0 failed, 0 skipped** as of the verification date, covering the message
 builders and OpenPGP (`EMailBuilderTests`), reading messages (`MimeMessageTests`),
 MDN (`MdnTests`, `MdnStorageTests`),
 DSN (`DsnTests`), priority (`PriorityTests`), `MAIL`/`RCPT` parameters
 (`ESMTPParametersTests`), the inbound session on the wire
 (`SMTPSessionWireTests`), relayed parameters (`SMTPRelayParameterTests`), null MX
-(`SMTPOutboundNullMxTests`), the user store (`FileUserStoreTests`), and the
+(`SMTPOutboundNullMxTests`), delivery to public addresses only
+(`SMTPOutboundClientTests.PublicAddresses`), the file queue
+(`FileMailQueueTests`), the user store (`FileUserStoreTests`), and the
 submission client (`SMTPSubmissionClientTests`, `SMTPSubmissionClientWireTests`,
 `SMTPSubmissionClientStartTlsTests`, `SMTPSubmissionClientTlsScramTests`,
 `SMTPSubmissionClientHeloFallbackTests`, `SMTPSubmissionClient8BitTests`). The
@@ -275,7 +291,8 @@ explicit:
   IMAP/POP/Maildir and quota are out of scope.
 - **SPF `exp=` and `ptr` evaluation** are not implemented (`ptr` is deprecated).
 - **Operational gaps:** no mail-loop/`Received`-hop-count limit, no
-  metrics/alerting; queue durability is not battle-tested.
+  metrics/alerting; queue entries are written atomically, but queue durability
+  is not battle-tested.
 - **A demonstration user store** (`FileUserStore`, a flat file): passwords are
   checked against salted PBKDF2 SCRAM keys, with an unsalted SHA-256 column only
   as a fallback for accounts without them; a missing file is created with no

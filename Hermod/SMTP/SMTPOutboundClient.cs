@@ -69,7 +69,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this._smartHostFor    = smartHostFor;
             this._dnsClient       = dnsClient;
             this._logger          = logger;
-            this._mtaStsResolver  = new MtaStsResolver(dnsClient, logger, config.MtaStsHttpHandler);
+            this._mtaStsResolver  = new MtaStsResolver(dnsClient,
+                                                       logger,
+                                                       config.MtaStsHttpHandler,
+                                                       config.PublicAddressesOnly ? config.IsPublicAddress : null);
             this._daneResolver    = config.EnableDane
                                         ? new DaneResolver(dnsClient,
                                                            logger,
@@ -199,6 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // Try each MX host in priority order
                 Exception?  lastException  = null;
                 SendResult? lastResult     = null;
+                var         notPublic      = new List<String>();
 
                 foreach (var mx in mxHosts.OrderBy(m => m.Priority))
                 {
@@ -209,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                route,
                                                route.Host is not null
                                                    ? route.Port
-                                                   : (UInt16) 25,
+                                                   : _config.MxPort,
                                                envelopeFrom,
                                                recipients,
                                                messageContent,
@@ -240,12 +244,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         lastResult = result;
                         _logger.Log(LogLevel.Warning, $"MX {mx.Host} temp failed: {result.ResponseCode} {result.ResponseText}");
                     }
+                    catch (NoPublicAddressException ex)
+                    {
+                        notPublic.Add(ex.Message);
+                        _logger.Log(LogLevel.Warning, $"MX {ex.Message} - not connected to");
+                    }
                     catch (Exception ex)
                     {
                         lastException = ex;
                         _logger.Log(LogLevel.Warning, $"MX {mx.Host} connection failed: {ex.Message}");
                     }
                 }
+
+                // Every MX host leads into a network that is not the internet's: there is no way to
+                // this domain from here, now or at the next attempt - unless its DNS changes, which
+                // its owner learns sooner from a bounce than after days of retries.
+                if (notPublic.Count == mxHosts.Count)
+                    return SendResult.PermFail(550, $"5.4.4 No MX host of {targetDomain} has a public address: {String.Join("; ", notPublic)}");
 
                 // All MX hosts failed: the last answer as it was - with its recipients' answers.
                 return lastResult
@@ -274,6 +289,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         IReadOnlyCollection<RecipientDsn> recipientDsns,
                                                         CancellationToken   ct)
         {
+
+            // The internet's addresses only, when so configured - for an MX host, never for a smart
+            // host. Asked before anything else is looked up for this host; connected to are then
+            // these addresses, not the name, which could have others a moment later.
+            System.Net.IPAddress[]? addresses = null;
+
+            if (route.Host is null && _config.PublicAddressesOnly)
+            {
+
+                var all   = await PublicAddresses.ResolveAsync(mxHost, ct);
+                addresses = [.. all.Where(_config.IsPublicAddress)];
+
+                if (addresses.Length == 0)
+                    throw new NoPublicAddressException($"{mxHost} has no public address ({String.Join(", ", all.Select(address => address.ToString()))})");
+
+            }
 
             // DANE (RFC 7672): resolve DNSSEC-validated TLSA records for this MX host up front.
             // A "bogus" result means the destination advertises DANE but the records cannot be
@@ -334,7 +365,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             connectCts.CancelAfter((Int32) _config.ConnectTimeoutMs);
 
             _logger.Log(LogLevel.Debug, $"Connecting to {mxHost}:{port}");
-            await client.ConnectAsync(mxHost, port, connectCts.Token);
+
+            if (addresses is not null)
+                await client.ConnectAsync(addresses, port, connectCts.Token);
+            else
+                await client.ConnectAsync(mxHost, port, connectCts.Token);
 
             // TLS-RPT session context (RFC 8460): remember the peer/local IPs and record the
             // outcome under the policy type that governs this session.
@@ -780,6 +815,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             return NonAscii(headerEnd < 0 ? messageContent : messageContent[..headerEnd]);
 
         }
+
+        /// <summary>
+        /// An MX host whose addresses are none of the internet's.
+        /// </summary>
+        private sealed class NoPublicAddressException(String Message) : Exception(Message);
 
         /// <summary>
         /// Whether a host is this machine: localhost, or a loopback address.
