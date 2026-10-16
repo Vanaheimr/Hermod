@@ -1320,6 +1320,27 @@ public sealed class HTTP11AuditRegressionTests
     }
 
     [Test]
+    public void InMemoryTokenBucket_Full_Makes_Room_With_Buckets_That_Filled_Up_Again()
+    {
+        // Many keys that tried once must not lock out every key that has not tried yet:
+        // a bucket that has filled up again knows nothing a new one would not.
+        var limiter = new InMemoryTokenBucketRateLimiter(
+                           Capacity:        2,
+                           RefillPeriod:    TimeSpan.FromSeconds(10),
+                           MaximumBuckets:  2,
+                           BucketLifetime:  TimeSpan.FromMinutes(10)
+                       );
+        var timestamp = DateTimeOffset.UtcNow;
+
+        Assert.That(limiter.TryAcquire("one",   timestamp).Allowed, Is.True);
+        Assert.That(limiter.TryAcquire("two",   timestamp).Allowed, Is.True);
+        Assert.That(limiter.TryAcquire("three", timestamp.AddSeconds(1)).Allowed, Is.False, "full, and nobody has filled up again");
+
+        Assert.That(limiter.TryAcquire("three", timestamp.AddSeconds(6)).Allowed, Is.True,  "refilled buckets make room");
+        Assert.That(limiter.TryAcquire("one",   timestamp.AddSeconds(6)).Allowed, Is.True,  "and one that comes back starts full, as it would have been");
+    }
+
+    [Test]
     public async Task Fixed_Port_Any_Listener_Must_Be_Constructible()
     {
         // A port chosen in advance, as this test is about a fixed one - port 0

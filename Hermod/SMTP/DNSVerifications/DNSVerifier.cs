@@ -57,13 +57,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                              Boolean               checkDmarc  = true)
         {
 
-            var spfTask   = checkSpf  || checkDmarc
+            // Without a domain - a null reverse-path and a HELO that names none - there is no SPF
+            // to ask; DKIM and DMARC still are.
+            var spfTask   = (checkSpf || checkDmarc) && !String.IsNullOrEmpty(senderDomain)
                                 ? VerifySpfAsync(senderDomain, clientIp, mailFrom, heloHostname, ct)
                                 : Task.FromResult<(SPFResult Result, String? Record)>((SPFResult.None, null));
             var dkimTask  = checkDkim || checkDmarc
                                 ? VerifyDkimAsync(message, ct)
                                 : Task.FromResult<(DkimResult Result, String? Details, String? Domain)>((DkimResult.None, null, null));
-            var mxTask    = GetMxRecordsAsync(senderDomain, ct);
+            var mxTask    = !String.IsNullOrEmpty(senderDomain)
+                                ? GetMxRecordsAsync(senderDomain, ct)
+                                : Task.FromResult<String[]>([]);
             var arcTask   = VerifyArcAsync(message, ct);
 
             await Task.WhenAll(spfTask, dkimTask, mxTask, arcTask);

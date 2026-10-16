@@ -66,6 +66,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String?  FrameOptions               { get; init; } = "DENY";
 
         /// <summary>
+        /// The Cross-Origin-Opener-Policy for HTML documents - "same-origin" cuts
+        /// every tab opened from another site off from this one - or null to send
+        /// none (a page that signs in through a popup of another site needs none).
+        /// </summary>
+        public String?  CrossOriginOpenerPolicy    { get; init; } = null;
+
+        /// <summary>
         /// The Strict-Transport-Security for every response, or null to send
         /// none. Set it only when the server actually speaks TLS.
         /// </summary>
@@ -134,6 +141,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Options.FrameOptions is { Length: > 0 } frames)
                 Builder.SetHeaderField("X-Frame-Options", frames);
+
+            if (Options.CrossOriginOpenerPolicy is { Length: > 0 } opener)
+                Builder.SetHeaderField("Cross-Origin-Opener-Policy", opener);
 
             return Builder;
 

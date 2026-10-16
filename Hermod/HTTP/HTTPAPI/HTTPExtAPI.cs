@@ -2666,6 +2666,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Password endpoint rate limiting
 
+        /// <summary>
+        /// The address of the client a request comes from, where the TCP peer is not it -
+        /// behind a reverse proxy, which says so in a header of its own (X-Forwarded-For,
+        /// X-Real-IP). Null, or a function that answers null, takes the TCP peer. Set it
+        /// only behind a proxy that sets the header itself: anyone else can write one.
+        /// </summary>
+        public Func<HTTPRequest, System.Net.IPAddress?>? ClientAddressOf { get; set; }
+
+        /// <summary>
+        /// Whom a request is counted against when it guesses passwords: the client's
+        /// address - an IPv6 one by its /64, which one host has to itself.
+        /// </summary>
+        internal String ClientKeyOf(HTTPRequest Request)
+        {
+
+            var address = ClientAddressOf?.Invoke(Request);
+
+            if (address is null && !System.Net.IPAddress.TryParse(Request.RemoteSocket.IPAddress.ToString(), out address))
+                return Request.RemoteSocket.IPAddress.ToString();
+
+            if (address.IsIPv4MappedToIPv6)
+                address = address.MapToIPv4();
+
+            if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+            {
+                var octets = address.GetAddressBytes();
+                Array.Clear(octets, 8, 8);
+                return new System.Net.IPAddress(octets) + "/64";
+            }
+
+            return address.ToString();
+
+        }
+
         internal HTTPResponse.Builder? CheckPasswordRateLimit(HTTPRequest                         Request,
                                                                String                             Endpoint,
                                                                InMemoryTokenBucketRateLimiter     ClientRateLimiter,
@@ -2674,7 +2708,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var clientDecision = ClientRateLimiter.TryAcquire(
-                                     Endpoint + "|ip|" + Request.RemoteSocket.IPAddress
+                                     Endpoint + "|ip|" + ClientKeyOf(Request)
                                  );
 
             if (!clientDecision.Allowed)
@@ -3801,6 +3835,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         }
                     }
                 }
+
+                // Nobody of that name still costs a hash, as at the JSON sign-in: the time
+                // of the answer must not say whether an account exists.
+                else
+                    unknownLoginPassword.Verify(basicAuth.Password);
 
                 #endregion
 

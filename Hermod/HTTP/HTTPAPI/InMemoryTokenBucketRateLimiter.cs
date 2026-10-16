@@ -162,12 +162,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (buckets.TryGetValue(Key, out existingBucket))
                     return existingBucket;
 
+                // Full: the buckets that have filled up again carry nothing a new one would
+                // not - they go first, so that many keys that tried once do not lock out
+                // every key that has not tried yet. Only when none has, nobody new gets in.
+                if (buckets.Count >= maximumBuckets)
+                    EvictRefilledBuckets(Timestamp);
+
                 if (buckets.Count >= maximumBuckets)
                     return null;
 
                 var newBucket = new Bucket(Timestamp, capacity);
                 buckets.TryAdd(Key, newBucket);
                 return newBucket;
+
+            }
+
+        }
+
+
+        private void EvictRefilledBuckets(DateTimeOffset Timestamp)
+        {
+
+            foreach (var pair in buckets)
+            {
+
+                var bucket = pair.Value;
+
+                lock (bucket.SyncRoot)
+                {
+                    if (bucket.Tokens + (Timestamp - bucket.LastRefill).TotalSeconds * refillTokensPerSecond >= capacity)
+                        buckets.TryRemove(new KeyValuePair<String, Bucket>(pair.Key, bucket));
+                }
 
             }
 

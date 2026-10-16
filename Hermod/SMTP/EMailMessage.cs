@@ -111,8 +111,9 @@ public sealed class EMailMessage
 
                 switch (name.ToLowerInvariant())
                 {
+                    // The first From: field, as every reader of the header takes it.
                     case "from":
-                        message.From = MailAddressParser.ParseSingle(value);
+                        message.From ??= MailAddressParser.ParseSingle(value);
                         break;
                     case "to":
                         message.To.AddRange(MailAddressParser.ParseAddressList(value));

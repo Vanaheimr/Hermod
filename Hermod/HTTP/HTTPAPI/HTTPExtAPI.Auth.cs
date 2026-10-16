@@ -289,7 +289,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ValidatePassword(newPassword) is { } problem)
                 return AuthError(Request, HTTPStatusCode.BadRequest, problem);
 
-            if (!VerifyPassword(user.Id, currentPassword))
+            // A door to the password like the sign-in: a session left open must not be
+            // a way to guess the password behind it, nor many requests at once a way to
+            // keep everybody's sign-in waiting for the password check.
+            if (CheckPasswordRateLimit(Request, "auth/password", loginIPRateLimiter, user.Id.ToString(), loginAccountRateLimiter) is { } limited)
+                return limited.AsImmutable;
+
+            if (await WaitForAPasswordVerifier(Request) is { } busy)
+                return busy.AsImmutable;
+
+            Boolean verified;
+
+            try
+            {
+                verified = VerifyPassword(user.Id, currentPassword);
+            }
+            finally
+            {
+                ReleaseAPasswordVerifier();
+            }
+
+            if (!verified)
                 return AuthError(Request, HTTPStatusCode.Forbidden, "The current password is wrong.");
 
             var result = await ChangePassword(

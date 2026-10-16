@@ -313,7 +313,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
 
             // DANE mandates TLS to this MX (RFC 7672 §2.2), authenticated when a record is usable.
-            var mustEnforceTls = enforceTls || daneTls;
+            // Credentials go to a smart host over TLS whose certificate is valid for its name only -
+            // never to whoever answers STARTTLS on the way - unless cleartext was allowed outright.
+            // SmartHostAuthWithoutTls is for a smart host on this machine - the loopback - and not
+            // for a way that leads across a network, whoever configured it.
+            var cleartextAuth  = _config.SmartHostAuthWithoutTls && IsLoopback(route.Host);
+            var authenticating = route.Host is not null && route.Username is not null && !cleartextAuth;
+            var mustEnforceTls = enforceTls || daneTls || authenticating;
 
             // RFC 7672 §3.2.3: the reference identifiers of a DANE-TA(2) name check - the host, and
             // for an MX host the next-hop domain.
@@ -481,7 +487,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 if (route.Host is not null && route.Username is not null)
                 {
 
-                    if (!secured && !_config.SmartHostAuthWithoutTls)
+                    if (!secured && !cleartextAuth)
                         return SendResult.TempFail(454, $"No TLS with {mxHost}: the credentials for the smart host are not sent in cleartext", mxHost);
 
                     var authResult = await AuthenticateAsync(connection, extensions, route, ct);
@@ -774,6 +780,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             return NonAscii(headerEnd < 0 ? messageContent : messageContent[..headerEnd]);
 
         }
+
+        /// <summary>
+        /// Whether a host is this machine: localhost, or a loopback address.
+        /// </summary>
+        private static Boolean IsLoopback(String? Host)
+
+            => Host is not null &&
+               (Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                System.Net.IPAddress.TryParse(Host.Trim('[', ']'), out var address) && System.Net.IPAddress.IsLoopback(address));
 
         private static SendResult ParseResponse(String response, String? mx)
         {

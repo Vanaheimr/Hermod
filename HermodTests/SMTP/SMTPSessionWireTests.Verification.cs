@@ -158,6 +158,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
+        /// <summary>
+        /// Send one message with the given envelope sender and header; the reply to its end of data.
+        /// </summary>
+        private static async Task<(Int32 Code, String Text)> Send(Server Server, String MailFrom, String Header, String Helo = "client.example")
+        {
+
+            using var wire = await Server.ConnectAsync();
+
+            Assert.That(await wire.CommandAsync($"EHLO {Helo}"),                Is.EqualTo(250));
+            Assert.That(await wire.CommandAsync($"MAIL FROM:<{MailFrom}>"),     Is.EqualTo(250));
+            Assert.That(await wire.CommandAsync("RCPT TO:<alice@hermod.test>"), Is.EqualTo(250));
+            Assert.That(await wire.CommandAsync("DATA"),                        Is.EqualTo(354));
+            await wire.SendAsync(Header + "Subject: checked\r\n\r\nbody\r\n.\r\n");
+
+            return await wire.ReplyAsync();
+
+        }
+
+
+        [Test]
+        public async Task A_message_naming_more_than_one_author_is_rejected()
+        {
+
+            // DMARC passes on whichever From: it reads; the reader is shown the other.
+            await using var server = new Server(DNS: new TxtDNS());
+
+            var twoFields     = await Send(server, "sender@client.example", "From: Chef <ceo@victim.example>\r\nFrom: sender@client.example\r\n");
+            var twoAddresses  = await Send(server, "sender@client.example", "From: ceo@victim.example, sender@client.example\r\n");
+            var one           = await Send(server, "sender@client.example", "From: Sender <sender@client.example>\r\n");
+            var none          = await Send(server, "sender@client.example", "");
+
+            Assert.Multiple(() => {
+                Assert.That(twoFields.Code,    Is.EqualTo(550));
+                Assert.That(twoFields.Text,    Does.StartWith("5.7.1 ").And.Contain("one From: address"));
+                Assert.That(twoAddresses.Code, Is.EqualTo(550));
+                Assert.That(one.Code,          Is.EqualTo(250));
+                Assert.That(none.Code,         Is.EqualTo(250), "no author names nobody: nothing for DMARC to pass on");
+            });
+
+        }
+
+
+        [Test]
+        public async Task A_null_sender_is_checked_on_its_From_and_its_HELO()
+        {
+
+            // A "bounce" in the name of a domain with p=reject; another from a HELO whose SPF says -all.
+            await using var rejecting = new Server(DNS: new TxtDNS(DmarcReject));
+            await using var hardFail  = new Server(DNS: new TxtDNS(SpfHardFail));
+            await using var watching  = new Server(DNS: new TxtDNS(("_dmarc.client.example", "v=DMARC1; p=none")));
+
+            var forged   = await Send(rejecting, "", "From: sender@client.example\r\n");
+            var helo     = await Send(hardFail,  "", "From: someone@elsewhere.example\r\n");
+            var bare     = await Send(watching,  "", "From: sender@client.example\r\n", Helo: "[192.0.2.1]");
+
+            Assert.Multiple(() => {
+
+                Assert.That(forged.Code,  Is.EqualTo(550), "DMARC of the From: domain, as for any other message");
+                Assert.That(forged.Text,  Does.Contain("DMARC"));
+
+                Assert.That(helo.Code,    Is.EqualTo(550), "SPF of the HELO identity (RFC 7208 §2.4)");
+                Assert.That(helo.Text,    Does.StartWith("5.7.23 "));
+
+                Assert.That(bare.Code,    Is.EqualTo(250));
+                Assert.That(AuthenticationResults(watching), Does.Contain("spf=none").And.Contain("dmarc=fail"), "checked, and said so - not left without a word");
+
+            });
+
+        }
+
+
         [Test]
         public async Task With_every_check_off_Authentication_Results_says_none()
         {

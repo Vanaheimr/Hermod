@@ -171,7 +171,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                         continue;
                     }
 
-                    logger.Log(LogLevel.Debug, $"C: {line}");
+                    // What the client says - but no credentials: an AUTH line carries them in base64
+                    // (PLAIN's initial response), the lines of the exchange carry nothing else.
+                    logger.Log(LogLevel.Debug, _inAuthExchange
+                                                   ? "C: (credentials)"
+                                                   : line.StartsWith("AUTH ", StringComparison.OrdinalIgnoreCase) && line.IndexOf(' ', 5) is var space and > 0
+                                                         ? $"C: {line[..space]} (credentials)"
+                                                         : $"C: {line}");
 
                     // Handle AUTH exchange specially
                     if (_inAuthExchange)
@@ -1085,18 +1091,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var message     = EMailMessage.Parse(rawBytes);
             var rawMessage  = message.RawMessage;
 
-            // Perform DNS verification (for inbound mail from other servers)
-            var senderDomain = ExtractDomain(_mailFrom ?? "");
+            // One author, or none (RFC 5322 §3.6): DMARC is anchored on the From: domain and a
+            // reader is shown the From: address. Two From: fields, or two addresses in one, would
+            // let DMARC pass on the one while the reader sees the other (RFC 7489 §6.6.1).
+            if (!_authManager.IsAuthenticated && !HasOneAuthorAtMost(message))
+            {
+                logger.Log(LogLevel.Warning, $"More than one From: address in a message from {_mailFrom} ({_clientIp}); rejected");
+                await SendResponseAsync(550, "5.7.1 A message may name one From: address only (RFC 5322 3.6, RFC 7489 6.6.1)");
+                ResetTransaction();
+                return;
+            }
+
+            // Perform DNS verification (for inbound mail from other servers). A null reverse-path -
+            // a bounce, a receipt - or one without a domain is checked on the HELO identity
+            // (RFC 7208 §2.4, RFC 7489 §4.1); DKIM and DMARC are checked on every message, as
+            // anybody can write any From: into a bounce.
+            var mailFromDomain = ExtractDomain(_mailFrom ?? "");
+            var heloDomain     = IsDomainName(_heloHostname) ? _heloHostname.TrimEnd('.') : "";
+            var senderDomain   = mailFromDomain.Length > 0 ? mailFromDomain : heloDomain;
             DnsVerificationResult? verification = null;
             var dmarcQuarantine = false;
 
-            if (!String.IsNullOrEmpty(senderDomain) && !_authManager.IsAuthenticated)
+            if (!_authManager.IsAuthenticated)
             {
                 // Only verify external mail (not from authenticated local users)
                 verification = await dnsVerifier.VerifyAsync(
                     senderDomain,
                     _clientIp,
-                    _mailFrom ?? "",
+                    mailFromDomain.Length > 0 ? _mailFrom ?? "" : "",
                     _heloHostname,
                     message,
                     ct,
@@ -1443,6 +1465,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var atIndex = email.IndexOf('@');
             return atIndex > 0 ? email[(atIndex + 1)..] : "";
         }
+
+        /// <summary>
+        /// Whether the message names at most one author: no more than one From: field, and no
+        /// more than one address in it.
+        /// </summary>
+        private static Boolean HasOneAuthorAtMost(EMailMessage Message)
+        {
+
+            var fields = Message.Headers.Where(header => header.Key.Equals("From", StringComparison.OrdinalIgnoreCase)).ToArray();
+
+            return fields.Length == 0 ||
+                   fields.Length == 1 && MailAddressParser.ParseAddressList(fields[0].Value).Count <= 1;
+
+        }
+
+        /// <summary>
+        /// Whether a HELO/EHLO argument is a domain name - not an address literal, not a bare word.
+        /// </summary>
+        private static Boolean IsDomainName(String? Hostname)
+
+            => Hostname is not null &&
+               !System.Net.IPAddress.TryParse(Hostname.Trim('[', ']'), out _) &&
+               System.Text.RegularExpressions.Regex.IsMatch(Hostname.TrimEnd('.'), @"^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z][A-Za-z0-9-]{0,61}[A-Za-z0-9]$");
 
         // "postmaster@" any domain: the local part is compared without regard to case (RFC 5321
         // §4.5.1, "a case-insensitive local name"). The last "@" ends the local part, which may
