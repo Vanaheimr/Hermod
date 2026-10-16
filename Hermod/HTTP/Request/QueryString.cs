@@ -96,11 +96,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// An HTTP Query String.
     /// </summary>
+    /// <remarks>
+    /// Every value is kept whole, as it was given: a single value, e.g. of GetString(…), CreateStringFilter(…) or
+    /// GetDouble(…), is the whole value of the last parameter of its name, commas and all - a search for "Jena, Nord"
+    /// searches for "Jena, Nord", not for "Nord". A list, e.g. of GetStrings(…) or CreateMultiFilter(…), is the parts of
+    /// every parameter of its name, separated by commas, each trimmed: ?expand=a,b&amp;expand=c is a, b and c.
+    /// A query string is split at "&amp;" and each parameter at its first "=" before they are decoded, so an encoded
+    /// "&amp;", "=" or "?" is part of a value.
+    /// </remarks>
     public class QueryString : IEnumerable<KeyValuePair<String, IEnumerable<Object>>>
     {
 
         #region Data
 
+        /// <summary>
+        /// The values of every parameter, each whole, in the order they were given.
+        /// </summary>
         private        readonly ConcurrentDictionary<String, List<String>>  internalDictionary   = [];
 
         /// <summary>
@@ -116,7 +127,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private                 Int64                                       insertionCounter;
 
         private static readonly Char[]                                      AndSign              = ['&'];
-        private static readonly Char[]                                      EqualsSign           = ['='];
         private static readonly Char[]                                      CommaSign            = [','];
 
         private const           String                                      exclamationMark      = "!";
@@ -135,36 +145,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Text is not null && Text.IsNotNullOrEmpty())
             {
 
-                Text = HttpUtility.UrlDecode(Text.Trim());
+                // Split before decoding: an encoded "?", "&" or "=" is part of a value, not a separator.
+                Text = Text.Trim();
 
                 var position = Text.IndexOf('?');
                 if (position >= 0)
                     Text = Text.Remove(0, position + 1);
 
-                if (Text.IsNotNullOrEmpty())
+                foreach (var parameter in Text.Split(AndSign, StringSplitOptions.RemoveEmptyEntries))
                 {
-                    foreach (var keyValuePair in Text.Split(AndSign, StringSplitOptions.RemoveEmptyEntries))
-                    {
 
-                        var split = keyValuePair.Split(EqualsSign, StringSplitOptions.RemoveEmptyEntries);
+                    // At its first "=": a value may hold one as well, e.g. base64 with its padding.
+                    var equalsAt  = parameter.IndexOf('=');
+                    var key       = HttpUtility.UrlDecode(equalsAt >= 0 ? parameter[..equalsAt] : parameter);
 
-                        switch (split.Length)
-                        {
+                    if (key.IsNullOrEmpty())
+                        continue;
 
-                            case 1:
-                                Add(split[0],
-                                    "");
-                                break;
+                    Add(key,
+                        equalsAt >= 0
+                            ? HttpUtility.UrlDecode(parameter[(equalsAt + 1)..])
+                            : "");
 
-                            case 2:
-                                Add(split[0],
-                                    split[1].Split (CommaSign, StringSplitOptions.RemoveEmptyEntries).
-                                             Select(_ => _.Trim()));
-                                break;
-
-                        }
-
-                    }
                 }
 
             }
@@ -198,6 +200,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Key,
                    _ => Interlocked.Increment(ref insertionCounter)
                );
+
+        #endregion
+
+        #region (private static) PartsOf(Values)
+
+        /// <summary>
+        /// The parts of the given values, separated by commas, each trimmed, without empty ones.
+        /// </summary>
+        /// <param name="Values">Values as they were given.</param>
+        private static IEnumerable<String> PartsOf(IEnumerable<String> Values)
+
+            => Values.SelectMany(value => value.Split(CommaSign, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)).
+                      Where     (part  => part.Length > 0);
 
         #endregion
 
@@ -404,7 +419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 internalDictionary.TryUpdate(
                                        Key,
-                                       list.RemoveAndReturnList(Value),
+                                       WithoutValue(list, Value),
                                        list
                                    );
             }
@@ -443,7 +458,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var newList = oldList.ToList();
 
                 foreach (var value in Values)
-                    newList.Remove(value);
+                    newList = WithoutValue(newList, value);
 
                 internalDictionary.TryUpdate(
                                        Key,
@@ -455,6 +470,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return this;
 
         }
+
+        #endregion
+
+
+        #region (private static) WithoutValue(Values, Value)
+
+        /// <summary>
+        /// The given values without the given one: a value equal to it, or a part of a value, the others kept.
+        /// </summary>
+        private static List<String> WithoutValue(List<String>  Values,
+                                                 String        Value)
+
+            => [.. Values.Where (value => value != Value).
+                          Select(value => {
+                                     var parts = PartsOf([ value ]).ToArray();
+                                     return parts.Contains(Value)
+                                                ? String.Join(",", parts.Where(part => part != Value))
+                                                : value;
+                                 }).
+                          Where (value => value.Length > 0)];
 
         #endregion
 
@@ -514,7 +549,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 values is not null &&
                 values.Count  > 0)
             {
-                return values.SelectMany(item => item.ToString()?.Split(CommaSign, StringSplitOptions.RemoveEmptyEntries) ?? []);
+                return PartsOf(values);
             }
 
             return [];
@@ -1572,7 +1607,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var includes = new List<TEnum>();
                 var excludes = new List<TEnum>();
 
-                foreach (var Value in values)
+                foreach (var Value in PartsOf(values))
                 {
 
                     var value = Value?.ToString();
@@ -1629,7 +1664,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var includes = new List<T>();
                 var excludes = new List<T>();
 
-                foreach (var Value in values)
+                foreach (var Value in PartsOf(values))
                 {
 
                     var value = Value?.ToString();
@@ -1675,17 +1710,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region GetEnumerator()
 
+        /// <summary>
+        /// Every parameter with the parts of its values, as GetStrings(…) gives them.
+        /// </summary>
         public IEnumerator<KeyValuePair<String, IEnumerable<Object>>> GetEnumerator()
 
             => OrderedParameters.
-                   Select(v => new KeyValuePair<String, IEnumerable<Object>>(v.Key, v.Value)).
+                   Select(v => new KeyValuePair<String, IEnumerable<Object>>(v.Key, PartsOf(v.Value).ToArray())).
                    GetEnumerator();
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 
-            => OrderedParameters.
-                   Select(v => new KeyValuePair<String, IEnumerable<Object>>(v.Key, v.Value)).
-                   GetEnumerator();
+            => GetEnumerator();
 
         #endregion
 
