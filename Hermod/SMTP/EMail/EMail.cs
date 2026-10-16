@@ -101,30 +101,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region (private)  EMail(MailHeaders)
 
-        private EMail(IEnumerable<KeyValuePair<String, String>> MailHeaders)
+        /// <param name="MailHeaders">The header fields.</param>
+        /// <param name="ParseHeaders">Whether From, To, Subject... are to be read from them - not when a builder wrote them, and has them.</param>
+        private EMail(IEnumerable<KeyValuePair<String, String>> MailHeaders,
+                      Boolean                                   ParseHeaders   = true)
         {
+
+            this.To       = EMailAddressList.Empty;
+            this.Cc       = EMailAddressList.Empty;
+            this.Bcc      = EMailAddressList.Empty;
+            this.ReplyTo  = EMailAddressList.Empty;
+            this.Subject  = "";
 
             foreach (var kvp in MailHeaders)
             {
 
                 headers.TryAdd(kvp.Key, kvp.Value);
 
+                if (!ParseHeaders)
+                    continue;
+
                 switch (kvp.Key.ToLower())
                 {
 
-                    case "from":       this.From       = EMailAddress.    Parse(kvp.Value); break;
-                    case "to":         this.To         = EMailAddressList.Parse(kvp.Value); break;
-                    case "cc":         this.Cc         = EMailAddressList.Parse(kvp.Value); break;
-                    case "bcc":        this.Bcc        = EMailAddressList.Parse(kvp.Value); break;
+                    case "from":       this.From       = Mailboxes(kvp.Value).FirstOrDefault() ?? EMailAddress.Parse(kvp.Value); break;
+                    case "to":         this.To         = EMailAddressList.Create(Mailboxes(kvp.Value)); break;
+                    case "cc":         this.Cc         = EMailAddressList.Create(Mailboxes(kvp.Value)); break;
+                    case "bcc":        this.Bcc        = EMailAddressList.Create(Mailboxes(kvp.Value)); break;
                     // The field is "Reply-To" (RFC 5322 §3.6.2); "replyto" matched nothing.
-                    case "reply-to":   this.ReplyTo    = EMailAddressList.Parse(kvp.Value); break;
-                    case "subject":    this.Subject    =                        kvp.Value ; break;
-                    case "date":       this.Date       = DateTimeOffset.  Parse(kvp.Value); break;
-                    case "message-id": this.MessageId  = Message_Id.      Parse(kvp.Value); break;
+                    case "reply-to":   this.ReplyTo    = EMailAddressList.Create(Mailboxes(kvp.Value)); break;
+                    case "subject":    this.Subject    = EncodedWords.Decode(kvp.Value); break;
+                    case "date":       this.Date       = ParseDate(kvp.Value) ?? default; break;
+                    case "message-id": this.MessageId  = Message_Id.TryParse(kvp.Value.Trim()); break;
 
                 }
 
             }
+
+        }
+
+        /// <summary>
+        /// The mailboxes of an address header - display names decoded, a name with a
+        /// comma in quotes one name - as the MIME reader reads them.
+        /// </summary>
+        private static IEnumerable<EMailAddress> Mailboxes(String HeaderValue)
+
+            => MailboxAddress.ParseList(HeaderValue).
+                              Select(mailbox => SimpleEMailAddress.TryParse(mailbox.Address) is SimpleEMailAddress address
+                                                    ? new EMailAddress(address, mailbox.Name)
+                                                    : null).
+                              Where (address => address is not null).
+                              Cast<EMailAddress>().
+                              ToArray();
+
+        /// <summary>
+        /// A date as RFC 5322 §3.3 has it - "Fri, 16 Oct 2026 09:30:00 +0200" - or as
+        /// anything else .NET reads; none, when it is neither.
+        /// </summary>
+        private static DateTimeOffset? ParseDate(String Text)
+        {
+
+            // A comment after the zone - "(CEST)" - goes, and "+0200" becomes the "+02:00" .NET reads.
+            var text = System.Text.RegularExpressions.Regex.Replace(Text, @"\s*\([^)]*\)\s*$", "").Trim();
+                text = System.Text.RegularExpressions.Regex.Replace(text, @"([+-])(\d\d)(\d\d)$", "$1$2:$3");
+
+            if (DateTimeOffset.TryParseExact(text,
+                                             [ "ddd, d MMM yyyy HH:mm:ss zzz", "d MMM yyyy HH:mm:ss zzz", "ddd, d MMM yyyy HH:mm zzz" ],
+                                             System.Globalization.CultureInfo.InvariantCulture,
+                                             System.Globalization.DateTimeStyles.AllowWhiteSpaces,
+                                             out var date) ||
+                DateTimeOffset.TryParse(text, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out date))
+            {
+                return date;
+            }
+
+            return null;
 
         }
 
@@ -162,7 +213,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                        EncodeBodyparts().
                        // Copy only everything which is not related to the e-mail body!
                        MailHeaders.Where(header => !header.Key.StartsWith("content", StringComparison.CurrentCultureIgnoreCase)).
-                       Concat(MailBuilder.Body?.MailHeaders ?? []))
+                       Concat(MailBuilder.Body?.MailHeaders ?? []),
+                   ParseHeaders: false)
 
         {
 
@@ -497,7 +549,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 "--" + boundary,
                 "Content-Type: text/plain; charset=utf-8",
                 "",
-                $"This is a return receipt for the mail you sent to {notifyTo}.",
+                $"This is a return receipt for the mail you sent to {reporter}.",
                 $"It was {disposition.Type.ToString().ToLowerInvariant()}.",
                 "",
 
@@ -538,9 +590,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Return a string representation of this e-mail.
         /// </summary>
-        public IEnumerable<String> ToText()
+        /// <param name="IncludeBcc">Whether a Bcc: header is written: for the copy the sender keeps, not for what is sent - the blind copies are recipients of the envelope.</param>
+        public IEnumerable<String> ToText(Boolean IncludeBcc = true)
 
             => headers.
+                   Where (kvp => IncludeBcc || !kvp.Key.Equals("Bcc", StringComparison.OrdinalIgnoreCase)).
                    Select(kvp => kvp.Key + ": " + kvp.Value).
                    Concat([ "" ]).
                    Concat(Body.ToText(false));

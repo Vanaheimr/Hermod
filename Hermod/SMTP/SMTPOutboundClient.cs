@@ -37,6 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private readonly SmtpOutboundConfig    _config;
         private readonly DkimSigner?           __dkimSigner;
         private readonly Func<String, DkimSigner?>? _dkimSignerFor;
+        private readonly Func<String, SmartHostRoute?>? _smartHostFor;
         private readonly MtaStsResolver        _mtaStsResolver;
         private readonly DaneResolver?         _daneResolver;
         private readonly Action<TlsRptEvent>?  _tlsRptRecorder;
@@ -48,17 +49,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// server does not sign for - so that every domain is signed with its own key (H5).
         /// When it gives none, the one signer above is asked, if there is one.
         /// </param>
-        public SMTPOutboundClient(SmtpOutboundConfig          config,
-                                  DkimSigner?                 _dkimSigner,
-                                  IDNSClient                  dnsClient,
-                                  ILogger                     logger,
-                                  Action<TlsRptEvent>?        tlsRptRecorder   = null,
-                                  Func<String, DkimSigner?>?  dkimSignerFor    = null)
+        /// <param name="smartHostFor">
+        /// The way out for the domain of a message's From: address - directly, or through a smart
+        /// host of its own - or null for the way of the configuration: so that a domain whose SPF
+        /// names its provider's relay leaves through that relay, and the others as the server does.
+        /// </param>
+        public SMTPOutboundClient(SmtpOutboundConfig              config,
+                                  DkimSigner?                     _dkimSigner,
+                                  IDNSClient                      dnsClient,
+                                  ILogger                         logger,
+                                  Action<TlsRptEvent>?            tlsRptRecorder   = null,
+                                  Func<String, DkimSigner?>?      dkimSignerFor    = null,
+                                  Func<String, SmartHostRoute?>?  smartHostFor     = null)
         {
 
             this._config          = config;
             this.__dkimSigner     = _dkimSigner;
             this._dkimSignerFor   = dkimSignerFor;
+            this._smartHostFor    = smartHostFor;
             this._dnsClient       = dnsClient;
             this._logger          = logger;
             this._mtaStsResolver  = new MtaStsResolver(dnsClient, logger, config.MtaStsHttpHandler);
@@ -84,7 +92,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                   DsnParameters?     dsn          = null,
                                                   SByte              priority     = 0,
                                                   CancellationToken  ct           = default,
-                                                  IReadOnlyCollection<RecipientDsn>? recipientDsns = null)
+                                                  IReadOnlyCollection<RecipientDsn>? recipientDsns = null,
+                                                  Byte[]?            messageOctets = null)
         {
 
             var startTime = Timestamp.Now;
@@ -95,18 +104,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // DKIM: with the key of the From: domain - unless the message carries a signature of
                 // that domain already, made before it was queued, so that the copy its sender kept
                 // is the message that was sent.
-                var fromDomain = DkimSigning.FromDomain(messageContent);
+                // A message given as octets is signed - and sent - as exactly those octets.
+                var asText     = messageOctets is not null ? MessageOctets.ToText(messageOctets) : messageContent;
+                var fromDomain = DkimSigning.FromDomain(asText);
                 var signer     = (fromDomain is not null ? _dkimSignerFor?.Invoke(fromDomain) : null) ?? __dkimSigner;
 
-                if (signer is not null && !(fromDomain is not null && DkimSigning.IsSignedBy(messageContent, fromDomain)))
+                if (signer is not null && !(fromDomain is not null && DkimSigning.IsSignedBy(asText, fromDomain)))
                 {
-                    messageContent = signer.SignMessage(messageContent);
+                    if (messageOctets is not null)
+                        messageOctets  = signer.SignOctets(messageOctets);
+                    else
+                        messageContent = signer.SignMessage(messageContent);
                 }
+
+                // The way out: the one of the From: domain, or the configuration's.
+                var route         = (fromDomain is not null ? _smartHostFor?.Invoke(fromDomain) : null) ?? SmartHostRoute.Of(_config);
 
                 // MTA-STS (RFC 8461). §3.4: through a smart host, "compliant senders MUST treat the
                 // smart host domain as the Policy Domain" - the recipient domain's policy names its
                 // own MX hosts, not the relay we hand the message to. An address literal has none.
-                var policyDomain  = _config.SmartHost ?? targetDomain;
+                var policyDomain  = route.Host ?? targetDomain;
                 var mtaStsPolicy  = System.Net.IPAddress.TryParse(policyDomain.Trim('[', ']'), out _)
                                         ? MtaStsPolicy.None
                                         : await _mtaStsResolver.GetPolicyAsync(policyDomain, ct);
@@ -122,11 +139,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // Determine target hosts
                 IReadOnlyList<MxRecord> mxHosts;
 
-                if (_config.SmartHost is not null)
+                if (route.Host is not null)
                 {
                     // Use smarthost relay
-                    mxHosts = [new MxRecord(_config.SmartHost, 0)];
-                    _logger.Log(LogLevel.Debug, $"Using smarthost: {_config.SmartHost}");
+                    mxHosts = [new MxRecord(route.Host, 0)];
+                    _logger.Log(LogLevel.Debug, $"Using smarthost: {route}");
                 }
                 else
                 {
@@ -182,12 +199,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     {
                         var result = await TrySendToMxAsync(
                                                mx.Host,
-                                               _config.SmartHost is not null
-                                                   ? _config.SmartHostPort
+                                               route,
+                                               route.Host is not null
+                                                   ? route.Port
                                                    : (UInt16) 25,
                                                envelopeFrom,
                                                recipients,
                                                messageContent,
+                                               messageOctets,
                                                enforceTls,
                                                requireTls,
                                                targetDomain,
@@ -233,10 +252,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         }
 
         private async Task<SendResult> TrySendToMxAsync(String              mxHost,
+                                                        SmartHostRoute      route,
                                                         UInt16              port,
                                                         String              envelopeFrom,
                                                         String[]            recipients,
                                                         String              messageContent,
+                                                        Byte[]?             messageOctets,
                                                         Boolean             enforceTls,
                                                         Boolean             requireTls,
                                                         String              policyDomain,
@@ -289,7 +310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             // RFC 7672 §3.2.3: the reference identifiers of a DANE-TA(2) name check - the host, and
             // for an MX host the next-hop domain.
-            IReadOnlyCollection<String> referenceIdentifiers = _config.SmartHost is null
+            IReadOnlyCollection<String> referenceIdentifiers = route.Host is null
                                                                    ? [ mxHost, policyDomain ]
                                                                    : [ mxHost ];
 
@@ -450,13 +471,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 // AUTH if smarthost credentials provided - never in cleartext across a network: a
                 // password sent so is a password given away (RFC 4954 §4).
-                if (_config.SmartHost is not null && _config.SmartHostUsername is not null)
+                if (route.Host is not null && route.Username is not null)
                 {
 
                     if (!secured && !_config.SmartHostAuthWithoutTls)
                         return SendResult.TempFail(454, $"No TLS with {mxHost}: the credentials for the smart host are not sent in cleartext", mxHost);
 
-                    var authResult = await AuthenticateAsync(connection, extensions, ct);
+                    var authResult = await AuthenticateAsync(connection, extensions, route, ct);
                     if (!authResult.StartsWith("235"))
                     {
                         return ParseResponse(authResult, mxHost);
@@ -470,8 +491,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // What the message needs of the next hop, and whether it offers it. A message it
                 // cannot take is not handed over in a form it did not ask for: no 7-bit conversion,
                 // which would break DKIM and OpenPGP signatures over the content.
-                var needsSmtpUtf8  = NeedsSmtpUtf8(envelopeFrom, recipients, messageContent);
-                var has8Bit        = messageContent.Any(c => c > '\x7F');
+                var needsSmtpUtf8  = NeedsSmtpUtf8(envelopeFrom, recipients, messageOctets is not null ? MessageOctets.ToText(MessageOctets.Header(messageOctets)) : messageContent);
+                var has8Bit        = messageOctets is not null ? MessageOctets.Has8Bit(messageOctets) : messageContent.Any(c => c > '\x7F');
 
                 // RFC 6531 §3.2: a message that needs SMTPUTF8 goes only to a server that offers it.
                 if (needsSmtpUtf8 && !extensions.ContainsKey("SMTPUTF8"))
@@ -545,7 +566,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     return ParseResponse(dataResponse.ToString(), mxHost);
 
                 // Send message content with dot-stuffing, and end with <CRLF>.<CRLF>
-                await connection.WriteAsync(DataOctets(messageContent), ct);
+                await connection.WriteAsync(messageOctets is not null ? MessageOctets.Data(messageOctets) : DataOctets(messageContent), ct);
                 var finalResponse = await connection.ReadReplyAsync(ct);
 
                 // The message was taken for the accepted recipients; what became of the others goes
@@ -590,6 +611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         private async Task<String> AuthenticateAsync(SMTPConnection                       connection,
                                                      IReadOnlyDictionary<String, String>  extensions,
+                                                     SmartHostRoute                       route,
                                                      CancellationToken                    ct)
         {
 
@@ -607,7 +629,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (mechanisms.Contains("PLAIN"))
             {
 
-                var authString = $"\0{_config.SmartHostUsername}\0{_config.SmartHostPassword}";
+                var authString = $"\0{route.Username}\0{route.Password}";
                 var authBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
 
                 await connection.WriteLineAsync($"AUTH PLAIN {authBase64}", ct);
@@ -623,12 +645,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 if (response.Code != 334)
                     return response.ToString();
 
-                await connection.WriteLineAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(_config.SmartHostUsername!)), ct);
+                await connection.WriteLineAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(route.Username!)), ct);
                 response = await connection.ReadReplyAsync(ct);
                 if (response.Code != 334)
                     return response.ToString();
 
-                await connection.WriteLineAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(_config.SmartHostPassword!)), ct);
+                await connection.WriteLineAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(route.Password!)), ct);
                 return (await connection.ReadReplyAsync(ct)).ToString();
             }
 

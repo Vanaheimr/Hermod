@@ -39,6 +39,11 @@ public sealed class QueuedMail
     public required String    EnvelopeFrom      { get; init; }
     public required String[]  EnvelopeTo        { get; init; }
     public required String    MessageContent    { get; init; }
+
+    // The message as the octets it is - when it was given as octets: relayed as it arrived, an 8-bit
+    // body in a charset other than UTF-8 included. Then this is what is signed and sent, and
+    // MessageContent - its UTF-8 decoding - is only there to be read.
+    public Byte[]?            MessageOctets     { get; init; }
     public required String    TargetDomain      { get; init; }
     public DateTimeOffset     QueuedAt          { get; init; }  = Timestamp.Now;
     public DateTimeOffset     NextRetry         { get; set;  }  = Timestamp.Now;

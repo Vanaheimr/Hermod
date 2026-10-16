@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Text;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 
@@ -89,7 +91,7 @@ public sealed class MailSender
 
         // Serialize the composed message to the RFC 5322 wire format. CRLF is forced here (never
         // Environment.NewLine); dot-stuffing is applied later by the outbound client, not now.
-        var messageContent = String.Join("\r\n", EMailEnvelop.Mail.ToText());
+        var messageContent = String.Join("\r\n", EMailEnvelop.Mail.ToText(IncludeBcc: false));
 
         var ids = new List<String>();
 
@@ -138,12 +140,35 @@ public sealed class MailSender
     /// <param name="Dsn">What delivery status notifications to ask for, or none.</param>
     /// <param name="RequireTls">Whether every hop has to use TLS (RFC 8689).</param>
     /// <param name="CancellationToken">An optional cancellation token.</param>
-    public async Task<IReadOnlyList<String>> SendAsync(String               EnvelopeFrom,
-                                                       IEnumerable<String>  Recipients,
-                                                       String               Message,
-                                                       DsnParameters?       Dsn                 = null,
-                                                       Boolean              RequireTls          = false,
-                                                       CancellationToken    CancellationToken   = default)
+    public Task<IReadOnlyList<String>> SendAsync(String               EnvelopeFrom,
+                                                 IEnumerable<String>  Recipients,
+                                                 String               Message,
+                                                 DsnParameters?       Dsn                 = null,
+                                                 Boolean              RequireTls          = false,
+                                                 CancellationToken    CancellationToken   = default)
+
+        => Queue(EnvelopeFrom, Recipients, Message, null, Dsn, RequireTls, CancellationToken);
+
+    /// <summary>
+    /// Queue a message given as octets - an 8-bit body in whatever charset it is in -
+    /// for the given envelope: signed and sent as exactly these octets.
+    /// </summary>
+    public Task<IReadOnlyList<String>> SendAsync(String               EnvelopeFrom,
+                                                 IEnumerable<String>  Recipients,
+                                                 Byte[]               Message,
+                                                 DsnParameters?       Dsn                 = null,
+                                                 Boolean              RequireTls          = false,
+                                                 CancellationToken    CancellationToken   = default)
+
+        => Queue(EnvelopeFrom, Recipients, Encoding.UTF8.GetString(Message), Message, Dsn, RequireTls, CancellationToken);
+
+    private async Task<IReadOnlyList<String>> Queue(String               EnvelopeFrom,
+                                                    IEnumerable<String>  Recipients,
+                                                    String               Message,
+                                                    Byte[]?              Octets,
+                                                    DsnParameters?       Dsn,
+                                                    Boolean              RequireTls,
+                                                    CancellationToken    CancellationToken)
     {
 
         var recipients = Recipients.Where(recipient => recipient.Contains('@')).ToList();
@@ -163,6 +188,7 @@ public sealed class MailSender
                 EnvelopeFrom    = EnvelopeFrom,
                 EnvelopeTo      = [ .. byDomain ],
                 MessageContent  = Message,
+                MessageOctets   = Octets,
                 TargetDomain    = byDomain.Key,
                 RequireTls      = RequireTls,
                 Notify          = Dsn?.Notify ?? DsnNotify.Never,
@@ -231,7 +257,7 @@ public sealed class MailSender
         if (recipients.Count == 0)
             throw new ArgumentException("The e-mail envelope has no recipients (RCPT TO).", nameof(EMailEnvelop));
 
-        var messageContent = String.Join("\r\n", EMailEnvelop.Mail.ToText());
+        var messageContent = String.Join("\r\n", EMailEnvelop.Mail.ToText(IncludeBcc: false));
 
         var results = new List<DirectSendResult>();
 

@@ -82,25 +82,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                    };
 
                 return new EMailBodypart(
-                           EMailBuilder:     this,
-                           Content:          [ "This is a multi-part message in MIME format." ],
-                           NestedBodyparts:  [
-
-                                                 new EMailBodypart(
-                                                     ContentTypeBuilder:       AMail => new MailContentType(MailContentTypes.text_plain) { CharSet = "utf-8" },
-                                                     ContentTransferEncoding:  this.ContentTransferEncoding,
-                                                     ContentLanguage:          this.ContentLanguage,
-                                                     Content:                  PlainText.Split(TextLineSplitter, StringSplitOptions.None)
-                                                 ),
-
-                                                 new EMailBodypart(
-                                                     ContentTypeBuilder:       AMail => new MailContentType(MailContentTypes.text_html)  { CharSet = "utf-8" },
-                                                     ContentTransferEncoding:  this.ContentTransferEncoding,
-                                                     ContentLanguage:          this.ContentLanguage,
-                                                     Content:                  HTMLText. Split(TextLineSplitter, StringSplitOptions.None)
-                                                 )
-
-                                             ]
+                           ContentTypeBuilder:       AMail => new MailContentType(MailContentTypes.multipart_alternative),
+                           ContentTransferEncoding:  "7bit",
+                           Content:                  [ "This is a multi-part message in MIME format." ],
+                           NestedBodyparts:          [
+                                                         Part(MailContentTypes.text_plain, PlainText!),
+                                                         Part(MailContentTypes.text_html,  HTMLText)
+                                                     ]
                        );
 
             }
@@ -116,10 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                        CharSet = "utf-8"
                                    };
 
-                return new EMailBodypart(
-                           EMailBuilder:  this,
-                           Content:       HTMLText.Split(TextLineSplitter, StringSplitOptions.None)
-                       );
+                return Part(MailContentTypes.text_html, HTMLText);
 
             }
 
@@ -134,10 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                        CharSet = "utf-8"
                                    };
 
-                return new EMailBodypart(
-                           EMailBuilder:  this,
-                           Content:       PlainText.Split(TextLineSplitter, StringSplitOptions.None)
-                       );
+                return Part(MailContentTypes.text_plain, PlainText!);
 
             }
 
@@ -152,10 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                        CharSet = "utf-8"
                                    };
 
-                return new EMailBodypart(
-                           EMailBuilder:  this,
-                           Content:       []
-                       );
+                return Part(MailContentTypes.text_plain, "");
 
             }
 
@@ -165,6 +144,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
+
+        #region (private) Part(ContentType, Text)
+
+        /// <summary>
+        /// A part of text with its Content-Type - its own, not the one the builder had
+        /// before (or none at all) - in UTF-8, quoted-printable when it is not 7-bit.
+        /// </summary>
+        private EMailBodypart Part(MailContentTypes ContentType, String Text)
+        {
+
+            var (transferEncoding, lines) = EncodeText(Text);
+
+            return new EMailBodypart(
+                       ContentTypeBuilder:       AMail => new MailContentType(ContentType) { CharSet = "utf-8" },
+                       ContentTransferEncoding:  transferEncoding,
+                       ContentLanguage:          ContentLanguage,
+                       Content:                  lines
+                   );
+
+        }
+
+        #endregion
 
         #region (implicit operator) HTMLEMailBuilder => EMail
 

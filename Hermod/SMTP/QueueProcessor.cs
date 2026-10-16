@@ -272,7 +272,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     new DsnParameters(mail.Notify, mail.Ret, mail.EnvId),
                     mail.Priority,
                     ct,
-                    mail.RecipientDsns
+                    mail.RecipientDsns,
+                    mail.MessageOctets
                 );
 
                 await HandleDeliveryResultAsync(mail, result, ct);
@@ -463,6 +464,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                    EnvelopeFrom    = mail.EnvelopeFrom,
                    EnvelopeTo      = recipients,
                    MessageContent  = mail.MessageContent,
+                   MessageOctets   = mail.MessageOctets,
                    TargetDomain    = mail.TargetDomain,
                    QueuedAt        = mail.QueuedAt,
                    RequireTls      = mail.RequireTls,

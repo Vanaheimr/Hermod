@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Text;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -67,13 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 return;
             }
 
-            await EnqueueReportAsync(new DsnGenerator(config).Generate(originalMail.EnvelopeFrom,
-                                                                       originalMail.EnvId,
-                                                                       originalMail.Ret,
-                                                                       originalMail.QueuedAt,
-                                                                       originalMail.MessageContent,
-                                                                       recipients),
-                                     originalMail.EnvelopeFrom, "bounce", ct);
+            await EnqueueReportAsync(originalMail, originalMail.QueuedAt, recipients, "bounce", ct);
 
             logger.Log(LogLevel.Info, $"Queued bounce message for {originalMail.EnvelopeFrom}");
 
@@ -111,8 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (recipients.Count == 0)
                 return;
 
-            await EnqueueReportAsync(new DsnGenerator(config).Generate(mail.EnvelopeFrom, mail.EnvId, mail.Ret, mail.QueuedAt, mail.MessageContent, recipients),
-                                     mail.EnvelopeFrom, "dsn", ct);
+            await EnqueueReportAsync(mail, mail.QueuedAt, recipients, "dsn", ct);
 
             logger.Log(LogLevel.Info, $"Queued relayed DSN for {mail.EnvelopeFrom}");
 
@@ -123,13 +118,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// finally delivered to one or more local mailboxes, for each recipient that requested
         /// NOTIFY=SUCCESS. No-op otherwise.
         /// </summary>
-        public async Task SendLocalDeliveryNotificationAsync(
+        public Task SendLocalDeliveryNotificationAsync(
             String                     envelopeFrom,
             IEnumerable<RecipientDsn>  localRecipients,
             String                     originalMessage,
             String?                    envId,
             DsnRet?                    ret,
             CancellationToken          ct = default)
+
+            => SendLocalDeliveryNotificationAsync(envelopeFrom, localRecipients, originalMessage, null, envId, ret, ct);
+
+        /// <summary>
+        /// The same for a message given as the octets that arrived.
+        /// </summary>
+        public Task SendLocalDeliveryNotificationAsync(
+            String                     envelopeFrom,
+            IEnumerable<RecipientDsn>  localRecipients,
+            Byte[]                     originalOctets,
+            String?                    envId,
+            DsnRet?                    ret,
+            CancellationToken          ct = default)
+
+            => SendLocalDeliveryNotificationAsync(envelopeFrom, localRecipients, Encoding.UTF8.GetString(originalOctets), originalOctets, envId, ret, ct);
+
+        private async Task SendLocalDeliveryNotificationAsync(
+            String                     envelopeFrom,
+            IEnumerable<RecipientDsn>  localRecipients,
+            String                     originalMessage,
+            Byte[]?                    originalOctets,
+            String?                    envId,
+            DsnRet?                    ret,
+            CancellationToken          ct)
         {
 
             if (IsNullReversePath(envelopeFrom))
@@ -144,8 +163,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (recipients.Count == 0)
                 return;
 
-            await EnqueueReportAsync(new DsnGenerator(config).Generate(envelopeFrom, envId, ret, Timestamp.Now, originalMessage, recipients),
-                                     envelopeFrom, "dsn", ct);
+            var generator = new DsnGenerator(config);
+
+            if (originalOctets is not null)
+                await EnqueueReportAsync(generator.GenerateOctets(envelopeFrom, envId, ret, Timestamp.Now, originalOctets, recipients), envelopeFrom, "dsn", ct);
+            else
+                await EnqueueReportAsync(generator.Generate(envelopeFrom, envId, ret, Timestamp.Now, originalMessage, recipients), envelopeFrom, "dsn", ct);
 
             logger.Log(LogLevel.Info, $"Queued delivered DSN for {envelopeFrom} ({String.Join(", ", recipients.Select(recipient => recipient.Recipient))})");
 
@@ -179,8 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (recipients.Count == 0)
                 return;
 
-            await EnqueueReportAsync(new DsnGenerator(config).Generate(mail.EnvelopeFrom, mail.EnvId, mail.Ret, mail.QueuedAt, mail.MessageContent, recipients),
-                                     mail.EnvelopeFrom, "delay", ct);
+            await EnqueueReportAsync(mail, mail.QueuedAt, recipients, "delay", ct);
 
             logger.Log(LogLevel.Info, $"Queued delay notification for {mail.EnvelopeFrom}");
 
@@ -188,6 +210,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
 
         #region Helpers
+
+        /// <summary>
+        /// A report on a queued message - with the octets of the message, when it has them:
+        /// an 8-bit message in another charset than UTF-8 is returned as it was sent.
+        /// </summary>
+        private Task EnqueueReportAsync(QueuedMail mail, DateTimeOffset arrival, IReadOnlyList<DsnRecipient> recipients, String kind, CancellationToken ct)
+
+            => mail.MessageOctets is { } octets
+                   ? EnqueueReportAsync(new DsnGenerator(config).GenerateOctets(mail.EnvelopeFrom, mail.EnvId, mail.Ret, arrival, octets, recipients), mail.EnvelopeFrom, kind, ct)
+                   : EnqueueReportAsync(new DsnGenerator(config).Generate(mail.EnvelopeFrom, mail.EnvId, mail.Ret, arrival, mail.MessageContent, recipients), mail.EnvelopeFrom, kind, ct);
+
+        private Task EnqueueReportAsync(Byte[] dsnOctets, String originalSender, String kind, CancellationToken ct)
+            => queue.EnqueueAsync(new QueuedMail
+               {
+                   Id              = $"{kind}-{UUIDv7.Generate():N}",
+                   EnvelopeFrom    = "",
+                   EnvelopeTo      = [originalSender],
+                   MessageContent  = Encoding.UTF8.GetString(dsnOctets),
+                   MessageOctets   = dsnOctets,
+                   TargetDomain    = ExtractDomain(originalSender),
+                   QueuedAt        = Timestamp.Now,
+                   NextRetry       = Timestamp.Now
+               }, ct);
 
         // RFC 3461 §6.1: a report has a null reverse-path, and goes to the reverse-path of the
         // message it reports on. No RET, and no NOTIFY but NEVER - none here.

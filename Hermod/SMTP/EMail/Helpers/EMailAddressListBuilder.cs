@@ -64,7 +64,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #endregion
 
 
-        public static EMailAddressListBuilder  Empty  { get; } = new();
+        /// <summary>
+        /// A new, empty list - a new one every time: a list is added to, and one
+        /// shared by every builder had sent the recipients of one mail with the next.
+        /// </summary>
+        public static EMailAddressListBuilder  Empty
+            => new();
 
         public static EMailAddressListBuilder Create(params EMailAddress[] EMailAddressListBuilder)
             => new (EMailAddressListBuilder);

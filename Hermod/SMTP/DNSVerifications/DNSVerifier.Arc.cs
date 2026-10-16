@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// the message carries no ARC headers, Pass when the chain is intact, Fail otherwise.
         /// </summary>
         public Task<ArcResult> VerifyArcAsync(EMailMessage message, CancellationToken ct = default)
-            => new ArcValidator(ResolveDkimPublicKeyAsync, Logger).ValidateAsync(message.RawMessage, ct);
+            => new ArcValidator(ResolveDkimPublicKeyAsync, Logger).ValidateAsync(message.GetBytes(), ct);
 
         // Resolve the base64 p= public key for a (domain, selector) from the DKIM key record.
         private async Task<string?> ResolveDkimPublicKeyAsync(string domain, string selector, CancellationToken ct)

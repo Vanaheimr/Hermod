@@ -19,6 +19,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 using Org.BouncyCastle.Bcpg;
 using Org.BouncyCastle.Bcpg.OpenPgp;
@@ -411,35 +412,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                         throw new Exception("Invalid email!");
                     }
 
-                    if (From is not null)
-                        SetEMailHeader("From",                       From.ToString());
+                    // The headers as RFC 5322 and RFC 2047 have them: display names and a subject that
+                    // are not ASCII as encoded words, a display name with a comma or a quote in quotes,
+                    // long lines folded; message ids in angle brackets, the date with its numeric zone.
+                    // No Bcc: the blind copies are recipients of the envelope (EMailEnvelop) - a header
+                    // would have shown them to everybody.
+                    SetEMailHeader("From",                           AddressHeader("From", [ From ]));
 
                     if (To. Any())
-                        SetEMailHeader("To",                         To.  ToString());
+                        SetEMailHeader("To",                         AddressHeader("To", To));
 
                     if (Cc. Any())
-                        SetEMailHeader("Cc",                         Cc.  ToString());
+                        SetEMailHeader("Cc",                         AddressHeader("Cc", Cc));
 
-                    if (Bcc.Any())
-                        SetEMailHeader("Bcc",                        Bcc. ToString());
+                    MailHeaders.TryRemove("Bcc", out _);
 
                     if (ReplyTo.Any())
-                        SetEMailHeader("Reply-To",                   ReplyTo.ToString());
+                        SetEMailHeader("Reply-To",                   AddressHeader("Reply-To", ReplyTo));
 
-                    if (Subject.IsNotNullOrEmpty())
-                        SetEMailHeader("Subject",                    Subject);
+                    SetEMailHeader("Subject",                        HeaderValue("Subject", MimeEncoding.UnstructuredHeader("Subject", Subject!)));
 
                     if (Date.HasValue)
-                        SetEMailHeader("Date",                       Date.Value.ToString("r"));
+                        SetEMailHeader("Date",                       MimeEncoding.Date(Date.Value));
 
-                    if (MessageId.HasValue)
-                        SetEMailHeader("Message-ID",                 MessageId.Value.ToString());
+                    MessageId ??= Message_Id.Parse(MimeEncoding.NewMessageId(From.Address.Domain));
+                    SetEMailHeader("Message-ID",                     $"<{MessageId}>");
 
                     if (Reference.HasValue)
-                        SetEMailHeader("In-Reply-To",                Reference.Value.ToString());
+                        SetEMailHeader("In-Reply-To",                $"<{Reference}>");
 
                     if (References.Count > 0)
-                        SetEMailHeader("References",                 References.AggregateWith(" "));
+                        SetEMailHeader("References",                 HeaderValue("References", MimeEncoding.Fold("References", References.Select(id => ($"<{id}>", false)))));
 
                     if (ListId             is not null)
                         SetEMailHeader("List-ID",                    ListId.Value.ToString());
@@ -448,7 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                         SetEMailHeader("List-Post",                  $"<mailto:{ListPost}>");
 
                     if (DispositionNotificationTo is not null)
-                        SetEMailHeader("Disposition-Notification-To", DispositionNotificationTo.ToString());
+                        SetEMailHeader("Disposition-Notification-To", AddressHeader("Disposition-Notification-To", [ DispositionNotificationTo ]));
 
                     // Message importance (RFC 2156 + the de-facto X-* headers). Only stamp High/Low;
                     // Normal is the default and adds no headers.
@@ -489,6 +492,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #endregion
 
+            #region (private) AddressHeader(Name, Addresses) / HeaderValue(Name, Line)
+
+            /// <summary>
+            /// The value of an address header, as the MIME writer writes it.
+            /// </summary>
+            private static String AddressHeader(String Name, IEnumerable<EMailAddress> Addresses)
+
+                => HeaderValue(Name, MimeEncoding.MailboxListHeader(Name, Addresses.Select(address => new MailboxAddress(address.OwnerName, address.Address.ToString()))));
+
+            /// <summary>
+            /// The value of a header line the MIME writer wrote - "Name: value" - folded as it was.
+            /// </summary>
+            private static String HeaderValue(String Name, String Line)
+                => Line[(Name.Length + 2)..];
+
+            #endregion
+
+            #region (protected) EncodeText(Text)
+
+            /// <summary>
+            /// Text as the lines of a body part, in UTF-8: as it is when it is 7-bit
+            /// ASCII in short lines, quoted-printable when it is not - and labelled
+            /// as what it is.
+            /// </summary>
+            protected static (String TransferEncoding, String[] Lines) EncodeText(String Text)
+            {
+
+                var octets = Encoding.UTF8.GetBytes(Text);
+
+                return MimeEncoding.NeedsEncoding(octets)
+                           ? ("quoted-printable", Encoding.ASCII.GetString(MimeEncoding.QuotedPrintable(octets)).Split("\r\n"))
+                           : ("7bit",             Text.Split(TextLineSplitter, StringSplitOptions.None));
+
+            }
+
+            #endregion
+
             #region (protected, abstract) EncodeBodyparts()
 
             /// <summary>
@@ -519,8 +559,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 else
                     bodypartToBeSecured  = new EMailBodypart(
-                                               ContentTypeBuilder:       AEMail => new MailContentType(MailContentTypes.multipart_mixed) { CharSet = "utf-8" }.GenerateMIMEBoundary(),
-                                               ContentTransferEncoding:  "8bit",
+                                               ContentTypeBuilder:       AEMail => new MailContentType(MailContentTypes.multipart_mixed).GenerateMIMEBoundary(),
+                                               ContentTransferEncoding:  "7bit",
                                                Content:                  [ "This is a multi-part message in MIME format." ],
                                                NestedBodyparts:          new EMailBodypart[] {
                                                                              _EncodeBodyparts()
@@ -570,9 +610,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                             SignTheMail    = true;
                         }
 
+                        // Encrypted only when every recipient can read it - one without a key had got
+                        // a message nobody could open for them - and not with blind copies, whose keys
+                        // the ciphertext had named to everybody (see EMailSecurity.encrypt).
                         if (SignTheMail &&
-                            (!To.Any() | To.Any(v => v.PublicKeyRing is not null && v.PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Count != 0)) &&
-                            (!Cc.Any() | Cc.Any(v => v.PublicKeyRing is not null && v.PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Count != 0)))
+                            !Bcc.Any() &&
+                            To.Concat(Cc).All(v => v.PublicKeyRing is not null && v.PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Count != 0))
                         {
                             EncryptTheMail = true;
                         }
@@ -590,6 +633,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                         {
                             throw new ApplicationException("Can not sign and encrypt the e-mail!");
                         }
+
+                        // A ciphertext names the keys it is encrypted to: one for everybody had shown
+                        // the blind copies to everybody. They need ciphertexts of their own - PgpMime
+                        // and MimeMessageBuilder write those.
+                        if (Bcc.Any())
+                            throw new ApplicationException("Blind copies of an encrypted e-mail need a ciphertext of their own!");
 
                         // Note: the encryption path always signs as well (OpenPGP.EncryptSignAndZip), so
                         // "encrypt-only" is not a distinct case in this implementation — encrypting implies
@@ -645,15 +694,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
                     // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
                     body = new EMailBodypart(ContentTypeBuilder:          AMail => new MailContentType(MailContentTypes.multipart_encrypted) {
-                                                                               Protocol = "application/pgp-encrypted",
-                                                                               CharSet  = "utf-8",
+                                                                               Protocol = "application/pgp-encrypted"
                                                                            },
-                                              ContentTransferEncoding:     "8bit",
+                                              ContentTransferEncoding:     "7bit",
                                               NestedBodyparts:             [
 
-                                                                               new EMailBodypart(ContentTypeBuilder:   AMail => new MailContentType(MailContentTypes.application_pgp__encrypted) { CharSet = "utf-8" },
+                                                                               // The control part: "Version: 1" (RFC 3156 §4) - no file, and no signature.
+                                                                               new EMailBodypart(ContentTypeBuilder:   AMail => new MailContentType(MailContentTypes.application_pgp__encrypted),
                                                                                                  ContentDescription:   "PGP/MIME version identification",
-                                                                                                 ContentDisposition:   ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\"",
                                                                                                  Content:              [ "Version: 1" ]),
 
                                                                                new EMailBodypart(ContentTypeBuilder:   AMail => new MailContentType(MailContentTypes.application_octet__stream) { CharSet = "utf-8" },
@@ -691,12 +739,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                     // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
                     // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
+                    // micalg names the hash the signature was made with (RFC 3156 §5): pgp-sha256 for
+                    // SHA-256 - not pgp-sha512 whatever it was.
                     body = new EMailBodypart(ContentTypeBuilder:          AMail => new MailContentType(MailContentTypes.multipart_signed) {
-                                                                               MicAlg    = "pgp-sha512",
-                                                                               Protocol  = "application/pgp-signature",
-                                                                               CharSet   = "utf-8",
+                                                                               MicAlg    = "pgp-" + HashAlgorithm.ToString().ToLowerInvariant(),
+                                                                               Protocol  = "application/pgp-signature"
                                                                            },
-                                              ContentTransferEncoding:     "8bit",
+                                              ContentTransferEncoding:     "7bit",
                                               NestedBodyparts:             [
 
                                                                                bodypartToBeSecured,

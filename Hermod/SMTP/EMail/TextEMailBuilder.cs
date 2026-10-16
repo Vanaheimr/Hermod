@@ -51,14 +51,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region (protected, override) _EncodeBodyparts()
 
+        /// <summary>
+        /// The text in UTF-8: 7bit when it is ASCII in short lines, quoted-printable
+        /// when it is not - encoded, where it had only been labelled so, and an "=" in
+        /// it had been read as an escape.
+        /// </summary>
         protected override EMailBodypart _EncodeBodyparts()
+        {
 
-            => new (
-                   ContentTypeBuilder:       mail => new MailContentType(MailContentTypes.text_plain) { CharSet = "utf-8" },//"ISO-8859-15",
-                   ContentTransferEncoding:  "quoted-printable",//"8bit",
-                   ContentLanguage:          ContentLanguage,
-                   Content:                  Text.Split(TextLineSplitter, StringSplitOptions.None)
-               );
+            var (transferEncoding, lines) = EncodeText(Text);
+
+            return new (
+                       ContentTypeBuilder:       mail => new MailContentType(MailContentTypes.text_plain) { CharSet = "utf-8" },
+                       ContentTransferEncoding:  transferEncoding,
+                       ContentLanguage:          ContentLanguage,
+                       Content:                  lines
+                   );
+
+        }
 
         #endregion
 

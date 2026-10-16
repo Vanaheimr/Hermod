@@ -49,6 +49,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// returned unchanged (unsigned).
         /// </summary>
         public string SignMessage(string message)
+            => Sign(message, Encoding.UTF8);
+
+        /// <summary>
+        /// Prepend a DKIM-Signature header to a message given as octets - signed over
+        /// exactly those octets, whatever charset an 8-bit body is in. On any error
+        /// the message is returned unchanged (unsigned).
+        /// </summary>
+        public Byte[] SignOctets(Byte[] Message)
+            => MessageOctets.ToOctets(Sign(MessageOctets.ToText(Message), Encoding.Latin1));
+
+        /// <param name="octets">How the text becomes the octets on the wire: UTF-8 for text, Latin-1 for octets read as text.</param>
+        private string Sign(string message, Encoding octets)
         {
             try
             {
@@ -62,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 // Body hash over the original wire octets (UTF-8), not ASCII.
                 var canonBody    = DkimCanonicalization.CanonicalizeBody(body, bodyCanon);
-                var bodyHash     = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(canonBody)));
+                var bodyHash     = Convert.ToBase64String(SHA256.HashData(octets.GetBytes(canonBody)));
 
                 // Only advertise/sign headers that are actually present.
                 var signedNames  = _config.SignedHeaders.Split(':').
@@ -79,7 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var signingInput = DkimCanonicalization.BuildHeaderHashInput(fields, signedNames, dkimField, headerCanon);
 
                 var signature    = _privateKey.SignData(
-                                        Encoding.UTF8.GetBytes(signingInput),
+                                        octets.GetBytes(signingInput),
                                         HashAlgorithmName.SHA256,
                                         RSASignaturePadding.Pkcs1
                                     );

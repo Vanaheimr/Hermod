@@ -90,12 +90,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailEnvelop(AbstractEMail.Builder MailBuilder)
         {
 
-            MailBuilder.EncodeBodyparts();
-
-                             // ToDo: Deep cloning!
-            this.MailFrom  = EMailAddressList.Create(MailBuilder.From);
-            this.RcptTo    = EMailAddressList.Create(MailBuilder.To);
-            this.Mail      = new EMail(MailBuilder);
+            // As AsImmutable writes it - with its From, To and Subject, which a mail made by
+            // new EMail(MailBuilder) alone had not had - encoded once.
+            this.Mail      = MailBuilder.AsImmutable;
+            this.MailFrom  = EMailAddressList.Create(MailBuilder.From!);
+            this.RcptTo    = Recipients(Mail);
 
         }
 
@@ -111,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         {
 
             this.MailFrom  = EMailAddressList.Create(EMail.From);
-            this.RcptTo    = EMailAddressList.Create(EMail.To);
+            this.RcptTo    = Recipients(EMail);
             this.Mail      = EMail;
 
         }
@@ -162,11 +161,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             this.RemoteSocket  = RemoteSocket;
             this.MailFrom      = MailFrom;
             this.RcptTo        = RcptTo;
-            this.Mail          = new EMail(MailBuilder);
+            this.Mail          = MailBuilder.AsImmutable;
 
         }
 
         #endregion
+
+        #endregion
+
+
+        #region (private static) Recipients(EMail)
+
+        /// <summary>
+        /// Everybody the mail is for: To, Cc - and Bcc, the blind copies, whom only the
+        /// envelope names. Each once.
+        /// </summary>
+        private static EMailAddressList Recipients(EMail EMail)
+
+            => EMailAddressList.Create(EMail.To.
+                                             Concat(EMail.Cc).
+                                             Concat(EMail.Bcc).
+                                             DistinctBy(recipient => recipient.Address.ToString().ToLowerInvariant()));
 
         #endregion
 

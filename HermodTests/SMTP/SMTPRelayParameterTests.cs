@@ -148,6 +148,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 return await ReplyAsync();
             }
 
+            /// <summary>
+            /// The message as these octets, and the final dot.
+            /// </summary>
+            public async Task<Int32> DataAsync(Byte[] Octets)
+            {
+                await stream.WriteAsync(Octets);
+                await stream.WriteAsync(".\r\n"u8.ToArray());
+                return await ReplyAsync();
+            }
+
             public async Task StartTlsAsync()
             {
                 Assert.That(await CommandAsync("STARTTLS"), Is.EqualTo(220));
@@ -245,6 +255,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                     Assert.That(other.RequireTls,                                   Is.True);
                     Assert.That(other.RecipientDsns.Select(r => r.Recipient),       Is.EqualTo(new[] { "dave@other.example" }));
 
+                });
+
+            }
+            finally
+            {
+                try { await server.DisposeAsync(); }                    catch { }
+                try { await running.WaitAsync(TimeSpan.FromSeconds(5)); } catch { }
+                try { Directory.Delete(directory, recursive: true); }   catch { }
+            }
+
+        }
+
+        [Test]
+        public async Task A_relayed_8bit_message_is_queued_as_the_octets_that_arrived()
+        {
+
+            var directory = Directory.CreateTempSubdirectory("hermod-relay-").FullName;
+            var pfx       = Path.Combine(directory, "server.pfx");
+
+            using (var rsa = RSA.Create(2048))
+            {
+                var request = new CertificateRequest("CN=localhost", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
+                File.WriteAllBytes(pfx, certificate.Export(X509ContentType.Pfx, "test"));
+            }
+
+            var queue  = new RecordingQueue();
+            var port   = FreePort();
+            var server = new SMTPServer(new SMTPServerConfig {
+                                            Hostname             = "mx.hermod.test",
+                                            Port                 = port,
+                                            SubmissionPort       = FreePort(),
+                                            EnableImplicitTls    = false,
+                                            MailStoragePath      = directory,
+                                            CertificatePath      = pfx,
+                                            CertificatePassword  = "test",
+                                            LocalDomains         = [ "hermod.test" ],
+                                            RequireAuthForRelay  = false
+                                        },
+                                        new NoDNS(),
+                                        new QuietLogger(),
+                                        mailQueue:   queue,
+                                        mailStorage: new NullStorage());
+
+            var running = server.Start();
+
+            // ISO-8859-1, not UTF-8: as UTF-8, every umlaut is invalid.
+            var message = Encoding.Latin1.GetBytes("From: sender@client.example\r\n" +
+                                                   "Subject: relay\r\n" +
+                                                   "Content-Type: text/plain; charset=iso-8859-1\r\n" +
+                                                   "Content-Transfer-Encoding: 8bit\r\n" +
+                                                   "\r\n" +
+                                                   "Grüße aus Köln\r\n");
+
+            try
+            {
+
+                TcpClient? tcp = null;
+                for (var attempt = 0; tcp is null; attempt++)
+                {
+                    try                                          { tcp = new TcpClient("127.0.0.1", port); }
+                    catch (SocketException) when (attempt < 50) { await Task.Delay(20); }
+                }
+
+                using var client = new Client(tcp);
+
+                Assert.That(await client.ReplyAsync(),                                         Is.EqualTo(220));
+                Assert.That(await client.CommandAsync("EHLO client.example"),                  Is.EqualTo(250));
+                Assert.That(await client.CommandAsync("MAIL FROM:<sender@client.example> BODY=8BITMIME"), Is.EqualTo(250));
+                Assert.That(await client.CommandAsync("RCPT TO:<bob@elsewhere.example>"),     Is.EqualTo(250));
+                Assert.That(await client.CommandAsync("DATA"),                                 Is.EqualTo(354));
+                Assert.That(await client.DataAsync(message),                                   Is.EqualTo(250));
+
+                var queued = queue.Queued.Single();
+
+                Assert.Multiple(() => {
+                    Assert.That(queued.MessageOctets,                                  Is.Not.Null, "queued as octets");
+                    Assert.That(queued.MessageOctets!.AsSpan().EndsWith(message),      Is.True,     "the octets that arrived, a Received: header in front of them");
+                    Assert.That(queued.MessageContent,                                 Does.Contain("Gr��e"), "only what is there to be read is the UTF-8 decoding");
                 });
 
             }

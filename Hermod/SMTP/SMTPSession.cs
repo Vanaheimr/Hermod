@@ -1247,7 +1247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     var localDsns = _recipientDsns.Where(r => _localRcptTo.Contains(r.Recipient)).ToList();
                     if (localDsns.Any(r => r.ReportsSuccess))
                         await new BounceHandler(config, mailQueue, logger).SendLocalDeliveryNotificationAsync(
-                            _mailFrom ?? "", localDsns, stampedRaw, _dsnEnvId, _dsnRet, ct);
+                            _mailFrom ?? "", localDsns, stampedBytes, _dsnEnvId, _dsnRet, ct);
                 }
             }
 
@@ -1281,6 +1281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                         EnvelopeFrom = _mailFrom ?? "",
                         EnvelopeTo = domainGroup.ToArray(),
                         MessageContent = stampedRaw,
+                        MessageOctets  = stampedBytes,
                         TargetDomain = domainGroup.Key,
                         QueuedAt = Timestamp.Now,
                         NextRetry = Timestamp.Now,

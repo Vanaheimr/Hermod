@@ -307,6 +307,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test]
+        public async Task A_delivered_DSN_returns_the_octets_of_an_8bit_message()
+        {
+
+            var queue    = new CapturingQueue();
+            var handler  = new BounceHandler(Config, queue, Logger);
+            // A delivered DSN returns the header (RFC 3461 §6.2) - here one with 8-bit octets in it.
+            var header   = System.Text.Encoding.Latin1.GetBytes("Subject: Grüße aus Köln\r\nContent-Type: text/plain; charset=iso-8859-1\r\n");
+            Byte[] original = [ .. header, .. System.Text.Encoding.Latin1.GetBytes("\r\nGrüße\r\n") ];
+
+            await handler.SendLocalDeliveryNotificationAsync(
+                "sender@remote.org", [ new RecipientDsn { Recipient = "you@example.com", Notify = DsnNotify.Success } ], original, envId: null, ret: DsnRet.Full);
+
+            var dsn = queue.Enqueued.Single();
+
+            Assert.That(dsn.MessageOctets, Is.Not.Null);
+            Assert.That(dsn.MessageOctets!.AsSpan().IndexOf(header), Is.GreaterThan(0), "the header as it arrived, octet for octet");
+            Assert.That(dsn.MessageContent, Does.Contain("Action: delivered"));
+
+        }
+
         #endregion
 
     }

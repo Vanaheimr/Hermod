@@ -19,6 +19,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Channels;
 
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
@@ -110,7 +111,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         /// Queue one message for the given recipients, let the QueueProcessor deliver it to the next
         /// hop, and return the queue and the message afterwards.
         /// </summary>
-        private static async Task<(MemoryQueue Queue, QueuedMail Original)> Relay(NextHop NextHop, params String[] To)
+        private static Task<(MemoryQueue Queue, QueuedMail Original)> Relay(NextHop NextHop, params String[] To)
+            => RelayOctets(NextHop, null, To);
+
+        /// <summary>
+        /// The same for a message given as octets.
+        /// </summary>
+        private static async Task<(MemoryQueue Queue, QueuedMail Original)> RelayOctets(NextHop NextHop, Byte[]? Octets, params String[] To)
         {
 
             var queue     = new MemoryQueue();
@@ -125,7 +132,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                 Id              = $"relay-{Guid.NewGuid():N}",
                                 EnvelopeFrom    = "sender@client.example",
                                 EnvelopeTo      = To,
-                                MessageContent  = "From: sender@client.example\r\nSubject: relay\r\n\r\nhello\r\n",
+                                MessageContent  = Octets is not null ? Encoding.UTF8.GetString(Octets) : "From: sender@client.example\r\nSubject: relay\r\n\r\nhello\r\n",
+                                MessageOctets   = Octets,
                                 TargetDomain    = "next.example"
                             };
 

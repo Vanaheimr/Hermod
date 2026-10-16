@@ -30,6 +30,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     public static class EMailBuilderExtensionMethods
     {
 
+        #region (private) Base64Lines(Octets)
+
+        /// <summary>
+        /// Octets as the lines of a base64 body part: 76 characters each (RFC 2045 §6.8) -
+        /// not one line of the whole file, which no line of a message may be (RFC 5322 §2.1.1).
+        /// </summary>
+        private static String[] Base64Lines(Byte[] Octets)
+
+            => System.Text.Encoding.ASCII.GetString(MimeEncoding.Base64(Octets)).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+
+        #endregion
+
+
         #region AddAttachment(this MailBuilder, ByteArray, Filename, ContentType = GlobalMIMETypes.text_plain, ContentLanguage = null)
 
         /// <summary>
@@ -66,9 +79,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                            ContentTypeBuilder:       AMail => new MailContentType(ContentType) { CharSet = "utf-8" },
                            ContentTransferEncoding:  "base64",
                            ContentLanguage:          ContentLanguage,
-                           Content:                  [ Convert.ToBase64String(ByteArray) ]
+                           Content:                  Base64Lines(ByteArray)
                        ).
-                       SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\"")
+                       SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; " + MimeEncoding.Parameter("filename", Filename))
                    );
 
         }
@@ -111,9 +124,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     ContentTypeBuilder:       AMail => new MailContentType(ContentType) { CharSet = "utf-8" },
                     ContentTransferEncoding:  "base64",
                     ContentLanguage:          ContentLanguage,
-                    Content:                  [ Convert.ToBase64String(memoryStream.ToArray()) ]
+                    Content:                  Base64Lines(memoryStream.ToArray())
                 ).
-                SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\"")
+                SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; " + MimeEncoding.Parameter("filename", Filename))
 
             );
 
@@ -153,9 +166,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     ContentTypeBuilder:       AMail => new MailContentType(ContentType) { CharSet = "utf-8" },
                     ContentTransferEncoding:  "base64",
                     ContentLanguage:          ContentLanguage,
-                    Content:                  [ Convert.ToBase64String(File.ReadAllBytes(FileInfo.FullName)) ]
+                    Content:                  Base64Lines(File.ReadAllBytes(FileInfo.FullName))
                 ).
-                SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + FileInfo.Name + "\"")
+                SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; " + MimeEncoding.Parameter("filename", FileInfo.Name))
 
             );
 

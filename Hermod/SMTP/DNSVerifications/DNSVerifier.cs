@@ -509,8 +509,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             try
             {
                 // Parse the raw message so canonicalization sees the original bytes
-                // (message.Headers are already unfolded/trimmed and unusable for DKIM).
-                var (headerBlock, body) = DkimCanonicalization.Split(message.RawMessage);
+                // (message.Headers are already unfolded/trimmed and unusable for DKIM) - its
+                // octets, read one character per octet: the UTF-8 decoding would have made
+                // U+FFFD of an 8-bit body in another charset, and the hash another one.
+                var (headerBlock, body) = DkimCanonicalization.Split(MessageOctets.ToText(message.GetBytes()));
                 var fields              = DkimCanonicalization.ParseFields(headerBlock);
                 var dkimFields          = fields.Where(f => f.Name.Equals("DKIM-Signature", StringComparison.OrdinalIgnoreCase)).ToList();
 
@@ -569,9 +571,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var algorithm = dkimParams.GetValueOrDefault("a", "rsa-sha256");
             var (headerCanon, bodyCanon) = ParseCanonicalization(dkimParams.GetValueOrDefault("c", "simple/simple"));
 
-            // Body hash over the wire octets (UTF-8), via the shared canonicalizer.
+            // Body hash over the wire octets, via the shared canonicalizer.
             var canonicalizedBody = DkimCanonicalization.CanonicalizeBody(body, bodyCanon);
-            var bodyBytes         = Encoding.UTF8.GetBytes(canonicalizedBody);
+            var bodyBytes         = MessageOctets.ToOctets(canonicalizedBody);
             var computedBodyHash  = Convert.ToBase64String(
                                         algorithm.Contains("sha256")
                                             ? SHA256.HashData(bodyBytes)
@@ -593,7 +595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var signingInput  = DkimCanonicalization.BuildHeaderHashInput(fields, signedHeaders, dkimField, headerCanon);
 
                 var hashAlgorithm = algorithm.Contains("sha256") ? HashAlgorithmName.SHA256 : HashAlgorithmName.SHA1;
-                var isValid       = rsa.VerifyData(Encoding.UTF8.GetBytes(signingInput), signatureBytes, hashAlgorithm, RSASignaturePadding.Pkcs1);
+                var isValid       = rsa.VerifyData(MessageOctets.ToOctets(signingInput), signatureBytes, hashAlgorithm, RSASignaturePadding.Pkcs1);
 
                 return isValid
                     ? (DkimResult.Pass, $"DKIM signature valid for domain {domain}")

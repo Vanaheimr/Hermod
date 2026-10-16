@@ -38,6 +38,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region ValidateAsync(rawMessage)
 
+        /// <summary>
+        /// How the text of the message becomes the octets that were hashed: UTF-8 for a
+        /// message given as text, Latin-1 for one given as octets.
+        /// </summary>
+        private Encoding octets = Encoding.UTF8;
+
+        /// <summary>
+        /// The ARC chain of a message given as the octets that arrived - exactly those,
+        /// whatever charset an 8-bit body is in.
+        /// </summary>
+        public Task<ArcResult> ValidateAsync(Byte[] RawMessage, CancellationToken ct = default)
+            => new ArcValidator(publicKeyResolver, logger) { octets = Encoding.Latin1 }.ValidateAsync(MessageOctets.ToText(RawMessage), ct);
+
         public async Task<ArcResult> ValidateAsync(String rawMessage, CancellationToken ct = default)
         {
             try
@@ -114,8 +127,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var sha256    = algorithm.Contains("sha256");
             var canonBody = DkimCanonicalization.CanonicalizeBody(body, bodyCanon);
             var computed  = Convert.ToBase64String(sha256
-                                ? SHA256.HashData(Encoding.UTF8.GetBytes(canonBody))
-                                : SHA1.HashData(Encoding.UTF8.GetBytes(canonBody)));
+                                ? SHA256.HashData(octets.GetBytes(canonBody))
+                                : SHA1.HashData(octets.GetBytes(canonBody)));
             if (computed != bodyHash)
                 return false;
 
@@ -150,14 +163,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region (private) RsaVerify
 
-        private static bool RsaVerify(string publicKeyBase64, string signingInput, string signatureBase64, HashAlgorithmName hash)
+        private bool RsaVerify(string publicKeyBase64, string signingInput, string signatureBase64, HashAlgorithmName hash)
         {
             try
             {
                 using var rsa = RSA.Create();
                 rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(publicKeyBase64), out _);
                 var sig = Convert.FromBase64String(signatureBase64.Replace(" ", "").Replace("\r", "").Replace("\n", "").Replace("\t", ""));
-                return rsa.VerifyData(Encoding.UTF8.GetBytes(signingInput), sig, hash, RSASignaturePadding.Pkcs1);
+                return rsa.VerifyData(octets.GetBytes(signingInput), sig, hash, RSASignaturePadding.Pkcs1);
             }
             catch
             {

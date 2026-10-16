@@ -624,7 +624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 EMailEnvelop.RcptTo.  Any(a => NonAscii(a.Address.ToString())))
                 return true;
 
-            return EMailEnvelop.Mail is not null && EMailEnvelop.Mail.ToText().Any(NonAscii);
+            return EMailEnvelop.Mail is not null && EMailEnvelop.Mail.ToText(IncludeBcc: false).Any(NonAscii);
 
         }
 
@@ -1269,7 +1269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     }
 
                                     // Serialize once, so we can declare/verify SIZE (RFC 1870) and send the body.
-                                    var messageLines  = WireLines(EMailEnvelop.Mail?.ToText() ?? []);
+                                    var messageLines  = WireLines(EMailEnvelop.Mail?.ToText(IncludeBcc: false) ?? []);
                                     var messageBytes  = MessageSize(messageLines);
 
                                     if (serverMaxSize > 0 && messageBytes > serverMaxSize)

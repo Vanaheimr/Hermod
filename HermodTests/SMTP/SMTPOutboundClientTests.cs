@@ -88,6 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             private readonly X509Certificate2?        certificate;
             private readonly X509Certificate2[]       chain;
             private readonly Boolean                  requireTls;
+            private readonly Encoding                 encoding;
             private          Boolean                  inTls;
 
             public readonly ConcurrentQueue<String>   Commands  = new();
@@ -105,14 +106,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             /// <param name="Certificate">Offer STARTTLS with this certificate.</param>
             /// <param name="RequireTls">Inside TLS, offer REQUIRETLS (RFC 8689).</param>
             /// <param name="Chain">The certificates to send along with the certificate - its issuers.</param>
+            /// <param name="Octets">Read the lines one character per octet (Latin-1), not as UTF-8: what arrived, exactly.</param>
             public NextHop(Func<String, String?>?  Reply        = null,
                            String                  Greeting     = "220 next.hop ESMTP",
                            String[]?               Extensions   = null,
                            Boolean                 Silent       = false,
                            X509Certificate2?       Certificate  = null,
                            Boolean                 RequireTls   = false,
-                           X509Certificate2[]?     Chain        = null)
+                           X509Certificate2[]?     Chain        = null,
+                           Boolean                 Octets       = false)
             {
+                encoding     = Octets ? Encoding.Latin1 : Encoding.UTF8;
                 reply        = line => Reply?.Invoke(line) ?? Default(line);
                 greeting     = Greeting;
                 extensions   = Extensions ?? [ "PIPELINING", "8BITMIME", "SIZE 10485760", "DSN", "SMTPUTF8", "ENHANCEDSTATUSCODES" ];
@@ -171,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
                     using var client = Client;
                     Stream    stream = client.GetStream();
-                    var       reader = new StreamReader(stream, Encoding.UTF8);
+                    var       reader = new StreamReader(stream, encoding);
 
                     if (silent)
                     {
@@ -218,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                       ServerCertificateContext = SslStreamCertificateContext.Create(certificate, [.. chain], offline: true)
                                   });
                             stream   = tls;
-                            reader   = new StreamReader(tls, Encoding.UTF8);
+                            reader   = new StreamReader(tls, encoding);
                             inTls    = true;
                             TlsUsed  = true;
                             continue;

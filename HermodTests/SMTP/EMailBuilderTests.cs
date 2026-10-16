@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// without an OpenPGP signature (RFC 3156). The PGP key pair is generated in-test.
     /// </summary>
     [TestFixture]
-    public class EMailBuilderTests
+    public partial class EMailBuilderTests
     {
 
         private const String Passphrase = "s3cr3t-test-passphrase";

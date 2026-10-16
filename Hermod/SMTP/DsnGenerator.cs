@@ -153,6 +153,37 @@ public sealed partial class DsnGenerator
                            String                       OriginalMessage,
                            IReadOnlyList<DsnRecipient>  Recipients)
     {
+        var (before, original, after) = Parts(OriginalFrom, EnvId, Ret, ArrivalDate, OriginalMessage, Recipients);
+        return before + original + after;
+    }
+
+    /// <summary>
+    /// The same report as octets, for a message given as the octets it is: what is
+    /// returned of it - the whole message, or its header - is exactly those octets,
+    /// whatever charset an 8-bit body is in. The rest of the report is UTF-8.
+    /// </summary>
+    public Byte[] GenerateOctets(String                       OriginalFrom,
+                                 String?                      EnvId,
+                                 DsnRet?                      Ret,
+                                 DateTimeOffset               ArrivalDate,
+                                 Byte[]                       OriginalOctets,
+                                 IReadOnlyList<DsnRecipient>  Recipients)
+    {
+        var (before, original, after) = Parts(OriginalFrom, EnvId, Ret, ArrivalDate, MessageOctets.ToText(OriginalOctets), Recipients);
+        return [ .. Encoding.UTF8.GetBytes(before), .. MessageOctets.ToOctets(original), .. Encoding.UTF8.GetBytes(after) ];
+    }
+
+    /// <summary>
+    /// The report in three: what comes before what is returned of the message, that,
+    /// and what comes after.
+    /// </summary>
+    private (String Before, String Original, String After) Parts(String                       OriginalFrom,
+                                                                 String?                      EnvId,
+                                                                 DsnRet?                      Ret,
+                                                                 DateTimeOffset               ArrivalDate,
+                                                                 String                       OriginalMessage,
+                                                                 IReadOnlyList<DsnRecipient>  Recipients)
+    {
 
         if (Recipients.Count == 0)
             throw new ArgumentException("A DSN reports on at least one recipient.", nameof(Recipients));
@@ -244,13 +275,18 @@ public sealed partial class DsnGenerator
         if ((wholeMessage ? message : header).Any(c => c > '\x7F'))
             Line("Content-Transfer-Encoding: 8bit");
         Line();
-        dsn.Append(wholeMessage ? message : header);
+
+        var before   = dsn.ToString();
+        var returned = wholeMessage ? message : header;
+
+        dsn.Clear();
+
         if (wholeMessage && !message.EndsWith("\r\n"))
             Line();
 
         Line($"--{boundary}--");
 
-        return dsn.ToString();
+        return (before, returned, dsn.ToString());
 
     }
 
