@@ -43,9 +43,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         /// user store is users.txt in its mail storage directory, and Configure runs before
         /// the server and its store are built; further changes go to Configure.
         /// </summary>
+        // With a queue: a relayed recipient has somewhere to go, and is taken once signed in.
         private static Server ServerWithSubmissionUser(Func<SMTPServerConfig, SMTPServerConfig>? Configure = null)
 
-            => new (Configure: config => {
+            => new (WithQueue: true, Configure: config => {
 
                         var credentials = ScramCredentialGenerator.Generate(SubmissionPassword);
 

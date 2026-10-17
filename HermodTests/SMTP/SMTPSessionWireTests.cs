@@ -121,12 +121,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             /// <param name="RateLimits">Default: the server's, except that a failed AUTH is answered at once.</param>
             /// <param name="Configure">Changes to the server configuration below.</param>
             /// <param name="RecipientValidator">Decides at RCPT whether a local recipient exists; none means catch-all.</param>
+            /// <param name="UserStore">Who signs in; none: the server's file store in its directory.</param>
+            /// <param name="Submission">Where a signed-in client's message goes; none: stored or queued by the server.</param>
+            /// <param name="WithQueue">A queue for relayed mail - which nothing empties; without one, nothing is relayed.</param>
             public Server(Boolean                                    RejectBareLineEndings  = true,
                           Int32                                      MaxMessageSize         = 64 * 1024,
                           RateLimitConfig?                           RateLimits             = null,
                           IDNSClient?                                DNS                    = null,
                           Func<SMTPServerConfig, SMTPServerConfig>?  Configure              = null,
-                          IRecipientValidator?                       RecipientValidator     = null)
+                          IRecipientValidator?                       RecipientValidator     = null,
+                          IUserStore?                                UserStore              = null,
+                          IMailSubmission?                           Submission             = null,
+                          Boolean                                    WithQueue              = false)
             {
 
                 directory       = Directory.CreateTempSubdirectory("hermod-smtp-").FullName;
@@ -149,9 +155,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 server          = new SMTPServer(Configure?.Invoke(config) ?? config,
                                                  DNS ?? new NoDNS(),
                                                  new QuietLogger(),
+                                                 userStore:           UserStore,
+                                                 // Relayed mail waits there; nothing takes it out.
+                                                 mailQueue:           WithQueue ? new FileMailQueue(directory, new QuietLogger()) : null,
                                                  rateLimitConfig:     RateLimits ?? new RateLimitConfig { AuthFailDelayMs = 0 },
                                                  mailStorage:         Storage,
-                                                 recipientValidator:  RecipientValidator);
+                                                 recipientValidator:  RecipientValidator,
+                                                 mailSubmission:      Submission);
 
                 // Start() runs the accept loops for the server's lifetime.
                 running    = server.Start();

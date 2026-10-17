@@ -40,7 +40,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         /// The question cannot be answered right now: RCPT is answered 451 4.3.0, and the sending
         /// server tries again later.
         /// </summary>
-        TryLater
+        TryLater,
+
+        /// <summary>
+        /// The mailbox exists, but has no room left: RCPT is answered 452 4.2.2 (RFC 3463
+        /// "mailbox full"), and the sending server tries again later - by then its owner may
+        /// have made room. Not 552: RFC 5321 §4.5.3.1.10 asks for the temporary reply at RCPT.
+        /// </summary>
+        Full
 
     }
 

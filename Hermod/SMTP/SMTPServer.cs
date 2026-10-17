@@ -36,6 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private readonly RateLimitConfig             _rateLimitConfig;
         private readonly IMailStorage                _storage;
         private readonly IRecipientValidator?        _recipientValidator;
+        private readonly IMailSubmission?            _mailSubmission;
         private readonly IDNSClient                   dnsClient;
         private readonly DNSVerifier                 _dnsVerifier;
         private readonly IUserStore                  _userStore;
@@ -78,12 +79,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                           IMailQueue?           mailQueue            = null,
                           RateLimitConfig?      rateLimitConfig      = null,
                           IMailStorage?         mailStorage          = null,
-                          IRecipientValidator?  recipientValidator   = null)
+                          IRecipientValidator?  recipientValidator   = null,
+                          IMailSubmission?      mailSubmission       = null)
 
         {
 
             this.serverConfig        = ServerConfig;
             this._recipientValidator = recipientValidator;
+            this._mailSubmission     = mailSubmission;
             this._rateLimitConfig    = rateLimitConfig ?? new RateLimitConfig();
             this._logger             = logger          ?? new ConsoleLogger();
             this.dnsClient           = DNSClient;
@@ -168,7 +171,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                      + (implicitTlsEnabled ? $" and {serverConfig.ImplicitTlsPort} (implicit TLS)" : ""));
             _logger.Log(LogLevel.Info, $"Mail storage: {Path.GetFullPath(serverConfig.MailStoragePath)}");
             _logger.Log(LogLevel.Info, $"STARTTLS: {(_certificates is null ? "Not configured" : _certificates.Available ? "Available" : "Configured, no certificate yet")}");
-            _logger.Log(LogLevel.Info, $"AUTH mechanisms: PLAIN, LOGIN, SCRAM-SHA-256, EXTERNAL");
+            _logger.Log(LogLevel.Info, $"AUTH mechanisms: {(serverConfig.AuthMechanisms is { } mechanisms ? String.Join(", ", mechanisms) : "PLAIN, LOGIN, SCRAM-SHA-256, EXTERNAL")}" +
+                                       (serverConfig.AuthOnMtaPort ? "" : " - on the submission ports only"));
             _logger.Log(LogLevel.Info, serverConfig.LocalDomainCheck is not null
                                            ? "Local domains: decided at runtime (LocalDomainCheck)"
                                            : $"Local domains: {string.Join(", ", serverConfig.LocalDomains)}");
@@ -320,7 +324,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                         implicitTls,
                                         _dmarcReportService,
                                         _tlsRptIngestor,
-                                        _recipientValidator
+                                        _recipientValidator,
+                                        _mailSubmission
                                     );
 
                     var task      = session.HandleAsync(ct);

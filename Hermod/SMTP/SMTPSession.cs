@@ -44,7 +44,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                     Boolean             implicitTls        = false,
                                     DmarcReportService? dmarcReportService = null,
                                     TlsRptIngestor?     tlsRptIngestor     = null,
-                                    IRecipientValidator? recipientValidator = null)
+                                    IRecipientValidator? recipientValidator = null,
+                                    IMailSubmission?    mailSubmission     = null)
     {
 
         private Stream                         _stream         = client.GetStream();
@@ -361,9 +362,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 extensions.Add("REQUIRETLS");
 
             // Advertise AUTH mechanisms - not before TLS when TLS is required: AUTH would be 530.
-            var authMechanisms = config.RequireStartTls && !_tlsActive
+            var authMechanisms = config.RequireStartTls && !_tlsActive || !AuthOffered
                                      ? []
-                                     : _authManager.GetAvailableMechanisms(_tlsActive).ToList();
+                                     : OfferedMechanisms();
             if (authMechanisms.Count > 0)
                 extensions.Add($"AUTH {String.Join(' ', authMechanisms)}");
 
@@ -374,11 +375,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
         }
 
+        // AUTH where mail programs send - and on the MTA port only where the configuration says so.
+        private Boolean AuthOffered
+            => isSubmissionPort || config.AuthOnMtaPort;
+
+        // What the auth manager could do now, as far as the configuration lets it.
+        private List<String> OfferedMechanisms()
+            => [ .. _authManager.GetAvailableMechanisms(_tlsActive).
+                                 Where(mechanism => config.AuthMechanisms is null ||
+                                                    config.AuthMechanisms.Contains(mechanism, StringComparer.OrdinalIgnoreCase)) ];
+
         private async Task HandleAuthAsync(String args, CancellationToken ct)
         {
             if (_state < SMTPSessionState.Greeted)
             {
                 await SendResponseAsync(503, "5.5.1 Say HELO/EHLO first");
+                return;
+            }
+
+            // Not offered here: on the MTA port, other servers deliver and nobody signs in.
+            if (!AuthOffered)
+            {
+                await SendResponseAsync(502, "5.5.1 AUTH is not offered on this port - mail programs send on the submission port");
                 return;
             }
 
@@ -406,7 +424,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
 
             var mechanism = parts[0].ToUpperInvariant();
-        
+
+            // A mechanism the configuration leaves out is one this server does not know.
+            if (config.AuthMechanisms is { } allowed && !allowed.Contains(mechanism, StringComparer.OrdinalIgnoreCase))
+            {
+                await SendResponseAsync(504, "5.5.4 Unrecognized authentication type");
+                return;
+            }
+
             // PLAIN and LOGIN should require TLS (but allow SCRAM without)
             if (!_tlsActive && (mechanism == "PLAIN" || mechanism == "LOGIN"))
             {
@@ -679,6 +704,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // A signed-in account sends from addresses that are its own (RFC 6409 §6.1):
+            // the application says which - at MAIL already, so that the mail program hears it.
+            if (_authManager.IsAuthenticated && mailSubmission is not null &&
+                await mailSubmission.CheckSenderAsync(_authManager.AuthenticatedUser ?? "", match.Groups[1].Value) is { } senderRefused)
+            {
+                await SendResponseAsync(senderRefused.Code, senderRefused.Text);
+                return;
+            }
+
             _mailFrom = match.Groups[1].Value;
             _smtpUtf8 = mailParameters.ContainsKey("SMTPUTF8");
 
@@ -787,6 +821,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     return;
                 }
 
+                // Somewhere for it to go: the queue, or the application a signed-in client's mail
+                // is handed to. Without either, the recipient was taken and the message dropped.
+                if (mailQueue is null && (mailSubmission is null || !_authManager.IsAuthenticated))
+                {
+                    logger.Log(LogLevel.Warning, $"Relay to {recipient} refused: this server relays nothing (from {_clientIp})");
+                    await SendResponseAsync(550, "5.7.1 Relay not available on this server");
+                    return;
+                }
+
                 _remoteRcptTo.Add(recipient);
                 logger.Log(LogLevel.Debug, $"Remote recipient (relay): {recipient}");
             }
@@ -826,6 +869,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
                         case RecipientCheck.TryLater:
                             await SendResponseAsync(451, "4.3.0 Recipient cannot be checked right now, try again later");
+                            return;
+
+                        case RecipientCheck.Full:
+                            logger.Log(LogLevel.Info, $"Full mailbox of {recipient} refused for now (from {_clientIp})");
+                            await SendResponseAsync(452, $"4.2.2 <{recipient}>: Mailbox full, try again later");
                             return;
 
                     }
@@ -1269,6 +1317,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var stampedMessage = EMailMessage.Parse(stampedBytes);
             var stampedRaw     = stampedMessage.RawMessage;
             stampedMessage.Verification = verification;
+
+            // A signed-in client's message is the application's (RFC 6409): all of it, every
+            // recipient - here and elsewhere - with the account. Neither stored nor queued here.
+            if (_authManager.IsAuthenticated && mailSubmission is not null)
+            {
+
+                SMTPRefusal? refusal;
+
+                try
+                {
+                    refusal = await mailSubmission.SubmitAsync(stampedMessage, _authManager.AuthenticatedUser ?? "", _mailFrom ?? "", [ .. _rcptTo ], ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.Log(LogLevel.Error, $"Submitting the message of {_authManager.AuthenticatedUser} failed: {ex.Message}");
+                    await SendResponseAsync(451, "4.3.0 Requested action aborted: local error in processing");
+                    ResetTransaction();
+                    return;
+                }
+
+                if (refusal is not null)
+                    await SendResponseAsync(refusal.Code, refusal.Text);
+
+                else
+                {
+                    logger.Log(LogLevel.Info, $"Submitted by {_authManager.AuthenticatedUser}: {_rcptTo.Count} recipient(s)");
+                    await SendResponseAsync(250, "2.0.0 OK: Message accepted for delivery");
+                }
+
+                ResetTransaction();
+                return;
+
+            }
 
             // Determine what to do with the message
             var hasLocalRecipients = _localRcptTo.Count > 0;

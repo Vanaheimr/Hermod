@@ -60,8 +60,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 var authcid = parts[1];  // Authentication identity (username)
                 var password = parts[2];
 
-                // Use authzid if provided, otherwise authcid
-                var username = string.IsNullOrEmpty(authzid) ? authcid : authzid;
+                // The password is the authentication identity's (RFC 4616 §2). Acting as somebody
+                // else - an authzid of another - is nothing this server grants: refused, instead of
+                // checking that password against the other's, as it was.
+                if (!string.IsNullOrEmpty(authzid) && !authzid.Equals(authcid, StringComparison.OrdinalIgnoreCase))
+                {
+                    logger.Log(LogLevel.Warning, $"PLAIN auth: '{authcid}' asked to act as '{authzid}' - refused");
+                    return new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Authentication credentials invalid");
+                }
+
+                var username = authcid;
 
                 if (await userStore.ValidatePasswordAsync(username, password, ct))
                 {

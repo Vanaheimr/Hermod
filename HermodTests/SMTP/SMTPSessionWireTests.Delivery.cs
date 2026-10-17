@@ -58,6 +58,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 if (recipient.StartsWith("busy@", StringComparison.OrdinalIgnoreCase))
                     return Task.FromResult(RecipientCheck.TryLater);
 
+                if (recipient.StartsWith("full@", StringComparison.OrdinalIgnoreCase))
+                    return Task.FromResult(RecipientCheck.Full);
+
                 return Task.FromResult(Known.Contains(recipient, StringComparer.OrdinalIgnoreCase)
                                            ? RecipientCheck.Accept
                                            : RecipientCheck.Unknown);
@@ -211,6 +214,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(await wire.CommandAsync($"RCPT TO:<{Recipient}>"),            Is.EqualTo(250));
 
             Assert.That(mailboxes.Asked, Is.Empty);
+
+        }
+
+        [Test]
+        public async Task A_full_mailbox_is_refused_for_now_and_the_others_are_not()
+        {
+
+            await using var server = new Server(RecipientValidator: new Mailboxes("alice@hermod.test"));
+            using var wire         = await server.ConnectAsync();
+
+            Assert.That(await wire.CommandAsync("EHLO client.example"),               Is.EqualTo(250));
+            Assert.That(await wire.CommandAsync("MAIL FROM:<sender@client.example>"), Is.EqualTo(250));
+
+            await wire.SendAsync("RCPT TO:<full@hermod.test>\r\n");
+            var full  = await wire.ReplyAsync();
+            var alice = await wire.CommandAsync("RCPT TO:<alice@hermod.test>");
+
+            Assert.Multiple(() => {
+                Assert.That(full.Code,  Is.EqualTo(452), "temporary: the sender tries again, by then there may be room (RFC 5321 §4.5.3.1.10)");
+                Assert.That(full.Text,  Does.StartWith("4.2.2 ").And.Contain("full@hermod.test"));
+                Assert.That(alice,      Is.EqualTo(250), "the transaction goes on");
+            });
 
         }
 

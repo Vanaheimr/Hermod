@@ -47,7 +47,7 @@ Last verified: **2026-10-15**
 | [RFC 3463](https://www.rfc-editor.org/rfc/rfc3463.html), Enhanced status code structure | Implemented: enhanced codes are parsed from replies and surfaced per-recipient and per-transaction in the submission client's `SMTPSendResult`. |
 | [RFC 3030](https://www.rfc-editor.org/rfc/rfc3030.html), CHUNKING / BDAT (+ BINARYMIME) | Implemented and regression-tested: binary-safe `BDAT` chunking, no dot-stuffing; a refused `BDAT` still consumes its chunk (§2), so the chunk is never read as commands. `DATA` after `BDAT` in the same transaction is `503` (§2). On a submission port `BDAT` needs authentication exactly as `DATA` does. `BINARYMIME` is modeled on the client. |
 | [RFC 2920](https://www.rfc-editor.org/rfc/rfc2920.html), PIPELINING | Implemented and regression-tested: command groups are read from a buffered, pipeline-safe reader and answered in wire order; buffered plaintext is discarded across `STARTTLS` (RFC 3207 §4.2 injection defense). |
-| [RFC 6409](https://www.rfc-editor.org/rfc/rfc6409.html), Message submission | Implemented and regression-tested: submission ports require authentication before a message is accepted, by `DATA` or `BDAT` (`530 5.7.0`); the submission client is a first-class MSA client. |
+| [RFC 6409](https://www.rfc-editor.org/rfc/rfc6409.html), Message submission | Implemented and regression-tested: submission ports require authentication before a message is accepted, by `DATA` or `BDAT` (`530 5.7.0`); the submission client is a first-class MSA client. With an `IMailSubmission`, the message of a signed-in client goes to the application whole - every recipient, here and elsewhere, the account - instead of being stored or queued by the server, and the application is asked about the sender at `MAIL` already (§6.1). A relayed recipient with nowhere to go - no queue, no application - is `550 5.7.1` at `RCPT`, not taken and dropped. |
 | [RFC 3848](https://www.rfc-editor.org/rfc/rfc3848.html), ESMTP transmission types | Implemented: `with` protocol names `ESMTP`/`ESMTPS`/`ESMTPA`/`ESMTPSA` in the `Received:` header reflect TLS and auth state. |
 | [RFC 3461](https://www.rfc-editor.org/rfc/rfc3461.html), Delivery Status Notifications (extension) | Implemented and regression-tested: `ENVID`/`RET`/`NOTIFY`/`ORCPT` parsed inbound and emitted outbound only when the peer advertises `DSN`. A relayed message keeps `ENVID` and `RET`, and each recipient its own `NOTIFY` and its received `ORCPT` (§5.2.1). |
 | [RFC 3464](https://www.rfc-editor.org/rfc/rfc3464.html), DSN message format | Implemented: failure / delay / **success** `multipart/report; report-type=delivery-status` reports, with the RFC 3461-correct `delivered` vs `relayed` action. |
@@ -61,8 +61,8 @@ Last verified: **2026-10-15**
 
 | Specification | Hermod support |
 |---|---|
-| [RFC 4954](https://www.rfc-editor.org/rfc/rfc4954.html), SMTP AUTH | Implemented and regression-tested: mechanism set depends on TLS state; the AUTH result is checked; submission requires authentication. A client response that is not base64 is `501 5.5.2`; `=` is the empty response (§4). A completed AUTH lasts for the session: `RSET` keeps it, and a second `AUTH` is `503`. `STARTTLS` ends it (RFC 3207 §4.2): an `AUTH` from before the upgrade does not carry into TLS. |
-| [RFC 4616](https://www.rfc-editor.org/rfc/rfc4616.html), PLAIN | Implemented; refused in cleartext (`538`). |
+| [RFC 4954](https://www.rfc-editor.org/rfc/rfc4954.html), SMTP AUTH | Implemented and regression-tested: mechanism set depends on TLS state; the AUTH result is checked; submission requires authentication. A client response that is not base64 is `501 5.5.2`; `=` is the empty response (§4). A completed AUTH lasts for the session: `RSET` keeps it, and a second `AUTH` is `503`. `STARTTLS` ends it (RFC 3207 §4.2): an `AUTH` from before the upgrade does not carry into TLS. `SMTPServerConfig.AuthMechanisms` limits what is offered and taken (a user store without SCRAM keys leaves SCRAM out), and `AuthOnMtaPort = false` offers AUTH on the submission ports only - on 25 it is `502`. |
+| [RFC 4616](https://www.rfc-editor.org/rfc/rfc4616.html), PLAIN | Implemented; refused in cleartext (`538`). The password is the authentication identity's; an authorization identity of somebody else is refused. |
 | draft-murchison-sasl-login, LOGIN | Implemented; refused in cleartext. |
 | [RFC 7677](https://www.rfc-editor.org/rfc/rfc7677.html) / [RFC 5802](https://www.rfc-editor.org/rfc/rfc5802.html), SCRAM-SHA-256 | Implemented and cross-validated: server and client halves interoperate; the password is never transmitted; server signature verified (mutual auth). Live STARTTLS+SCRAM end-to-end test. |
 | [RFC 2195](https://www.rfc-editor.org/rfc/rfc2195.html), CRAM-MD5 | Model/API support on the submission client (offered as a fallback mechanism). |
@@ -200,7 +200,8 @@ TLS state). See the [core transport](#core-smtp--esmtp-transport) and
   canonicalization leaves byte-exact.
 - A recipient on a local domain can be checked at `RCPT` by an
   `IRecipientValidator`: a mailbox that does not exist is `550 5.1.1`, one that
-  cannot be checked right now (or a validator that throws) `451 4.3.0`.
+  cannot be checked right now (or a validator that throws) `451 4.3.0`, one
+  that is full `452 4.2.2` - the sender tries again later.
   `postmaster` is never asked about (RFC 5321 §4.5.1), relayed recipients are the
   relay rules' business. Without a validator every local address is accepted.
 - Which domains are local is `LocalDomains`, or - for domains that change while

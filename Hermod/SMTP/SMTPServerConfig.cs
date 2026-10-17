@@ -151,6 +151,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public DnsBlocklistConfig?  DnsBlocklists           { get; init; }
 
         /// <summary>
+        /// The SASL mechanisms offered and taken - PLAIN, LOGIN, SCRAM-SHA-256, EXTERNAL -
+        /// or null for all of them. A user store that keeps no SCRAM keys leaves SCRAM out:
+        /// a mail program that chose it could never sign in.
+        /// </summary>
+        public IReadOnlyList<String>?  AuthMechanisms        { get; init; }
+
+        /// <summary>
+        /// Whether AUTH is offered on the MTA port (25) too, where other servers deliver
+        /// - or on the submission ports only, where mail programs send.
+        /// </summary>
+        public Boolean              AuthOnMtaPort           { get; init; } = true;
+
+        /// <summary>
         /// Require authentication on submission port (587) even for local delivery.
         /// RFC 6409 recommends this.
         /// </summary>
