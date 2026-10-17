@@ -307,6 +307,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #endregion
 
+            #region COMMIT  /commit
+
+            httpAPI.AddHandler(HTTPPath.Root + "commit",
+                               HTTPMethod:   HTTPMethod.COMMIT,
+                               HTTPDelegate: request => Task.FromResult(
+                                                                         new HTTPResponse.Builder(request) {
+                                                                             HTTPStatusCode             = HTTPStatusCode.Created,
+                                                                             Server                     = "Hermod Test Server",
+                                                                             Date                       = Timestamp.Now,
+                                                                             AccessControlAllowOrigin   = "*",
+                                                                             AccessControlAllowMethods  = [ HTTPMethod.COMMIT ],
+                                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                                                             Content                    = request.HTTPBody,
+                                                                             Connection                 = ConnectionType.Close
+                                                                         }.AsImmutable));
+
+            #endregion
+
             #region QUERY   /query
 
             httpAPI.AddHandler(HTTPPath.Root + "query",

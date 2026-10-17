@@ -592,6 +592,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region COMMIT_JSON_in_HTTPBody()
+
+        /// <summary>
+        /// COMMIT sends its content as the body of a COMMIT request, as POST would, and the server
+        /// answers with what it committed.
+        /// </summary>
+        [Test]
+        public async Task COMMIT_JSON_in_HTTPBody()
+        {
+
+            var changeSet               = """{"@id":"cs-1","changes":[]}""";
+            await using var httpClient  = new HTTPClient(URL.Parse($"http://127.0.0.1:{httpServer.TCPPort}"));
+            var httpResponse            = await httpClient.COMMIT(
+                                                    HTTPPath.Root + "commit",
+                                                    Content:      changeSet.ToUTF8Bytes(),
+                                                    ContentType:  HTTPContentType.Application.JSON_UTF8
+                                                ).ConfigureAwait(false);
+
+            var request                 = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            Assert.Multiple(() => {
+                Assert.That(request,                            Does.Contain("COMMIT /commit HTTP/1.1"));
+                Assert.That(request,                            Does.Contain("Content-Type: application/json; charset=utf-8"));
+                Assert.That(request,                            Does.Contain($"Content-Length: {changeSet.Length}"));
+                Assert.That(httpResponse.HTTPStatusCode,        Is.EqualTo(HTTPStatusCode.Created));
+                Assert.That(httpResponse.HTTPBodyAsUTF8String,  Is.EqualTo(changeSet));
+            });
+
+        }
+
+        #endregion
+
         #region MIRROR_RandomString_in_HTTPBody()
 
         [Test]

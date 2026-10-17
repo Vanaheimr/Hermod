@@ -195,6 +195,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(HTTPMethod.PUT.    IsIdempotent, Is.True);
             Assert.That(HTTPMethod.DELETE. IsIdempotent, Is.True);
 
+            // Committing the same change again changes nothing more.
+            Assert.That(HTTPMethod.COMMIT. IsSafe,       Is.False);
+            Assert.That(HTTPMethod.COMMIT. IsIdempotent, Is.True);
+            Assert.That(HTTPMethod.Parse("COMMIT"),      Is.SameAs(HTTPMethod.COMMIT));
+
             Assert.That(HTTPMethod.GET.    ToString(),   Is.EqualTo("GET"));
 
         }

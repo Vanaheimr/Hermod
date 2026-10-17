@@ -741,6 +741,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                   Description:  "Mirror a resource"
               );
 
+
+        /// <summary>
+        /// Commit a change, e.g. a change set to a history. Not safe, as it changes the resource;
+        /// idempotent, as committing the same change again changes nothing more.
+        /// </summary>
+        public static HTTPMethod  COMMIT            { get; }
+
+            = Register(
+                 "COMMIT",
+                  IsSafe:        false,
+                  IsIdempotent:  true,
+                  Description:  "Commit a change set to a history"
+              );
+
         #endregion
 
 

@@ -287,7 +287,9 @@ Built-in method values include:
   `PROPPATCH`, and `UNLOCK`.
 - Standard `QUERY` according to RFC 10008.
 - Hermod/application extension methods such as `MIRROR`, `SEARCH`, `EXISTS`,
-  `COUNT`, `FILTER`, `STATUS`, `PATCH`, and others declared by `HTTPMethod`.
+  `COUNT`, `FILTER`, `STATUS`, `PATCH`, and others declared by `HTTPMethod`;
+  `COMMIT`, not safe but idempotent, commits a change set to a history, with
+  the client extension `COMMIT(path, content, contentType)`.
 - Additional application methods can be parsed and registered with their safe
   and idempotent metadata.
 

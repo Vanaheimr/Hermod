@@ -473,6 +473,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region COMMIT  (Path, Content, ...)
+
+        /// <summary>
+        /// Send an HTTP COMMIT request: commit the given content, e.g. a change set to a history.
+        /// </summary>
+        public static Task<HTTPResponse> COMMIT(this IHTTPClient              HTTPClient,
+                                                HTTPPath                      Path,
+                                                Byte[]                        Content,
+                                                HTTPContentType?              ContentType                           = null,
+                                                QueryString?                  QueryString                           = null,
+                                                AcceptTypes?                  Accept                                = null,
+                                                IHTTPAuthentication?          Authentication                        = null,
+                                                String?                       UserAgent                             = null,
+                                                ConnectionType?               Connection                            = null,
+                                                TimeSpan?                     RequestTimeout                        = null,
+                                                EventTracking_Id?             EventTrackingId                       = null,
+                                                Byte                          NumberOfRetry                         = 0,
+                                                UInt16?                       MaxNumberOfRetries                    = null,
+                                                Action<HTTPRequest.Builder>?  RequestBuilder                        = null,
+
+                                                Boolean?                      ConsumeRequestChunkedTEImmediately    = null,
+                                                Boolean?                      ConsumeResponseChunkedTEImmediately   = null,
+
+                                                ClientRequestLogHandler?      RequestLogDelegate                    = null,
+                                                ClientResponseLogHandler?     ResponseLogDelegate                   = null,
+                                                CancellationToken             CancellationToken                     = default)
+
+            => HTTPClient.RunRequest(
+
+                   HTTPMethod.COMMIT,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   Content,
+                   ContentType,
+                   UserAgent,
+                   Connection,
+                   MaxNumberOfRetries,
+                   RequestBuilder,
+
+                   ConsumeRequestChunkedTEImmediately,
+                   ConsumeResponseChunkedTEImmediately,
+
+                   EventTrackingId,
+                   RequestTimeout,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+        #endregion
+
 
 
         // RFC 9110 / RFC 9112 - HTTP/1.1
