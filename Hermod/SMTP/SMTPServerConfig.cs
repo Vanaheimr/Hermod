@@ -145,6 +145,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public          Boolean  RequireAuthForRelay        { get; init; } = true;
 
         /// <summary>
+        /// The DNS blocklists asked about clients that are not signed in, and what a
+        /// client gets that one names - none: no list is asked.
+        /// </summary>
+        public DnsBlocklistConfig?  DnsBlocklists           { get; init; }
+
+        /// <summary>
         /// Require authentication on submission port (587) even for local delivery.
         /// RFC 6409 recommends this.
         /// </summary>

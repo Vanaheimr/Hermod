@@ -79,6 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public readonly ConcurrentQueue<String>                                      Messages  = new();
             public readonly ConcurrentQueue<Byte[]?>                                     RawBytes  = new();
             public readonly ConcurrentQueue<(String From, IReadOnlyList<String> To)>     Envelopes = new();
+            public readonly ConcurrentQueue<DnsVerificationResult?>                      Verifications = new();
 
             /// <summary>
             /// When set, the next store throws it - a full disk, a database that is away.
@@ -94,6 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Messages.Enqueue(message.RawMessage);
                 RawBytes.Enqueue(message.RawBytes);
                 Envelopes.Enqueue((envelopeFrom, [.. envelopeTo]));
+                Verifications.Enqueue(message.Verification);
                 return Task.FromResult("memory");
 
             }

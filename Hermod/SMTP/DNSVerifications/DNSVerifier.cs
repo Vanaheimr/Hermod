@@ -63,8 +63,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                 ? VerifySpfAsync(senderDomain, clientIp, mailFrom, heloHostname, ct)
                                 : Task.FromResult<(SPFResult Result, String? Record)>((SPFResult.None, null));
             var dkimTask  = checkDkim || checkDmarc
-                                ? VerifyDkimAsync(message, ct)
-                                : Task.FromResult<(DkimResult Result, String? Details, String? Domain)>((DkimResult.None, null, null));
+                                ? VerifyDkimSignaturesAsync(message, ct)
+                                : Task.FromResult<(DkimResult Result, String? Details, String? Domain, IReadOnlyList<String> Passing)>((DkimResult.None, null, null, []));
             var mxTask    = !String.IsNullOrEmpty(senderDomain)
                                 ? GetMxRecordsAsync(senderDomain, ct)
                                 : Task.FromResult<String[]>([]);
@@ -75,28 +75,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // DMARC is anchored on the RFC5322.From domain (RFC 7489 §6.6.1) and needs the
             // SPF/DKIM results to compute identifier alignment, so it runs after the others.
             var fromDomain = DomainOf(message.From);
+            var dkim       = dkimTask.Result;
             var dmarc      = checkDmarc
                                  ? await VerifyDmarcAsync(
                                              fromDomain,
                                              senderDomain,             // envelope MAIL FROM domain (SPF-authenticated)
                                              spfTask.Result.Result,
-                                             dkimTask.Result.Result,
-                                             dkimTask.Result.Domain,   // d= of the passing DKIM signature
+                                             dkim.Result,
+                                             dkim.Passing,             // d= of every signature that holds
                                              ct
                                          )
                                  : (DmarcResult.None, null, null);
 
+            // Whether the author's own domain signed it: aligned as its DMARC record asks, and
+            // relaxed where it has none. The signature named is then the author's, not one a
+            // mail service put before it.
+            var authors    = dkim.Passing.FirstOrDefault(domain => IsAligned(domain, fromDomain, strict: false));
+            var aligned    = dmarc.Detail?.DkimAligned ?? authors is not null;
+            var named      = dmarc.Detail is { DkimAligned: true } detail
+                                 ? detail.DkimDomain
+                                 : authors ?? dkim.Domain;
+
             return new DnsVerificationResult(
-                checkSpf  ? spfTask.Result.Result   : SPFResult.None,
-                checkSpf  ? spfTask.Result.Record   : null,
-                checkDkim ? dkimTask.Result.Result  : DkimResult.None,
-                checkDkim ? dkimTask.Result.Details : null,
+                checkSpf  ? spfTask.Result.Result      : SPFResult.None,
+                checkSpf  ? spfTask.Result.Record      : null,
+                checkDkim ? dkim.Result                : DkimResult.None,
+                checkDkim ? dkim.Details               : null,
                 dmarc.Result,
                 dmarc.Policy,
                 mxTask.Result,
-                checkDkim ? dkimTask.Result.Domain  : null,
+                checkDkim ? named                      : null,
                 dmarc.Detail,
-                arcTask.Result
+                arcTask.Result,
+                aligned
             );
 
         }
@@ -438,11 +449,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         // Build the reverse-DNS query name: "4.3.2.1.in-addr.arpa" / nibble-reversed "...ip6.arpa".
         private static String BuildReverseName(System.Net.IPAddress ip)
+
+            => ReversedName(ip) + (ip.AddressFamily == AddressFamily.InterNetwork ? ".in-addr.arpa" : ".ip6.arpa");
+
+        // "4.3.2.1" / the 32 nibbles of an IPv6 address, the last first - for reverse DNS and
+        // the blocklists alike (RFC 5782 §2.1, §2.4).
+        private static String ReversedName(System.Net.IPAddress ip)
         {
             var bytes = ip.GetAddressBytes();
 
             if (ip.AddressFamily == AddressFamily.InterNetwork)
-                return String.Join('.', bytes.Reverse()) + ".in-addr.arpa";
+                return String.Join('.', bytes.Reverse());
 
             var sb = new StringBuilder();
             for (var i = bytes.Length - 1; i >= 0; i--)
@@ -450,8 +467,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 sb.Append((bytes[i] & 0x0F).ToString("x")).Append('.');
                 sb.Append((bytes[i] >> 4)  .ToString("x")).Append('.');
             }
-            sb.Append("ip6.arpa");
-            return sb.ToString();
+            return sb.ToString(0, sb.Length - 1);
         }
 
         private static bool IpMatchesCidr(System.Net.IPAddress ip, string cidr)
@@ -504,12 +520,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         /// <param name="RawMessage">The message, CRLF and all.</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
-        public Task<(DkimResult Result, string? Details, string? Domain)> VerifyDkimAsync(Byte[]             RawMessage,
-                                                                                          CancellationToken  CancellationToken = default)
+        public async Task<(DkimResult Result, string? Details, string? Domain)> VerifyDkimAsync(Byte[]             RawMessage,
+                                                                                                CancellationToken  CancellationToken = default)
+        {
+            var (result, details, domain, _) = await VerifyDkimSignaturesAsync(EMailMessage.Parse(RawMessage), CancellationToken);
+            return (result, details, domain);
+        }
 
-            => VerifyDkimAsync(EMailMessage.Parse(RawMessage), CancellationToken);
+        // RFC 6376 §6.1 lets a verifier limit the signatures it tries; each costs a DNS query.
+        private const Int32 MaxDkimSignatures = 10;
 
-        private async Task<(DkimResult Result, string? Details, string? Domain)> VerifyDkimAsync(
+        /// <summary>
+        /// Every DKIM signature of a message, not only the first that holds: DMARC passes
+        /// on any that is aligned with the From: domain (RFC 7489 §4.2), and the signature
+        /// of a mail service often comes before the author's own.
+        /// </summary>
+        /// <returns>The first that holds - or, when none does, the last tried and why it
+        /// failed - and the d= of every one that holds.</returns>
+        private async Task<(DkimResult Result, string? Details, string? Domain, IReadOnlyList<String> Passing)> VerifyDkimSignaturesAsync(
             EMailMessage      message,
             CancellationToken ct)
         {
@@ -524,26 +552,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var dkimFields          = fields.Where(f => f.Name.Equals("DKIM-Signature", StringComparison.OrdinalIgnoreCase)).ToList();
 
                 if (dkimFields.Count == 0)
-                    return (DkimResult.None, "No DKIM signature found", null);
+                    return (DkimResult.None, "No DKIM signature found", null, []);
 
+                (DkimResult Result, string? Details, string? Domain)? first = null;
                 (DkimResult Result, string? Details) last = (DkimResult.Fail, "All DKIM signatures failed verification");
                 string? lastDomain = null;
+                var passing = new List<String>();
 
-                foreach (var dkimField in dkimFields)
+                foreach (var dkimField in dkimFields.Take(MaxDkimSignatures))
                 {
+
                     // d= of the signature being evaluated (for Authentication-Results header.d).
-                    lastDomain = ParseDkimHeader(dkimField.RawValue).GetValueOrDefault("d");
-                    last = await VerifySingleDkimSignature(dkimField, fields, body, ct);
-                    if (last.Result == DkimResult.Pass)
-                        return (last.Result, last.Details, lastDomain);
+                    var domain = ParseDkimHeader(dkimField.RawValue).GetValueOrDefault("d");
+                    var result = await VerifySingleDkimSignature(dkimField, fields, body, ct);
+
+                    if (result.Result == DkimResult.Pass)
+                    {
+                        first ??= (result.Result, result.Details, domain);
+                        if (!String.IsNullOrEmpty(domain))
+                            passing.Add(domain);
+                    }
+                    else
+                    {
+                        last       = result;
+                        lastDomain = domain;
+                    }
+
                 }
 
-                return (last.Result, last.Details, lastDomain);
+                return first is { } pass
+                           ? (pass.Result, pass.Details, pass.Domain, passing)
+                           : (last.Result, last.Details, lastDomain,  passing);
             }
             catch (Exception ex)
             {
                 Logger.Log(LogLevel.Warning, $"DKIM verification error: {ex.Message}");
-                return (DkimResult.TempError, ex.Message, null);
+                return (DkimResult.TempError, ex.Message, null, []);
             }
         }
 
@@ -698,14 +742,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="spfAuthDomain">The MAIL FROM domain SPF authenticated.</param>
         /// <param name="spfResult">The SPF result.</param>
         /// <param name="dkimResult">The DKIM result.</param>
-        /// <param name="dkimDomain">The d= domain of the evaluated (passing) DKIM signature.</param>
+        /// <param name="dkimPassing">The d= domain of every DKIM signature that holds.</param>
         private async Task<(DmarcResult Result, string? Policy, DmarcEvaluation? Detail)> VerifyDmarcAsync(
-            string            fromDomain,
-            string            spfAuthDomain,
-            SPFResult         spfResult,
-            DkimResult        dkimResult,
-            string?           dkimDomain,
-            CancellationToken ct)
+            string                 fromDomain,
+            string                 spfAuthDomain,
+            SPFResult              spfResult,
+            DkimResult             dkimResult,
+            IReadOnlyList<String>  dkimPassing,
+            CancellationToken      ct)
         {
             try
             {
@@ -739,7 +783,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                  ? dmarc.SubdomainPolicy
                                  : dmarc.Policy;
 
-                // --- identifier alignment (RFC 7489 §3.1) ---
+                // --- identifier alignment (RFC 7489 §3.1) - any DKIM signature that holds will do (§4.2) ---
+                var dkimDomain  = dkimPassing.FirstOrDefault(domain => IsAligned(domain, fromDomain, dmarc.StrictDkim)) ??
+                                  dkimPassing.FirstOrDefault();
                 var spfAligned  = spfResult  == SPFResult.Pass  && IsAligned(spfAuthDomain, fromDomain, dmarc.StrictSpf);
                 var dkimAligned = dkimResult == DkimResult.Pass && IsAligned(dkimDomain,    fromDomain, dmarc.StrictDkim);
 

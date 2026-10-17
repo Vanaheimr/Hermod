@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Security.Cryptography;
+
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
@@ -241,6 +243,136 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(AuthenticationResults(server), Is.EqualTo("Authentication-Results: mx.hermod.test; none\r\n"));
 
         }
+
+
+        #region Forwarded mail: SPF fails, the author's DKIM signature holds
+
+        /// <summary>
+        /// A DKIM key of a domain - its signer and its record in DNS.
+        /// </summary>
+        private sealed record DkimKey(DkimSigner Signer, (String Name, String Text) Record)
+        {
+
+            public static DkimKey Make(String Domain)
+            {
+
+                using var rsa = RSA.Create(2048);
+
+                var config = new DkimConfig {
+                                 Domain         = Domain,
+                                 Selector       = "test",
+                                 PrivateKeyPem  = rsa.ExportPkcs8PrivateKeyPem(),
+                                 SignedHeaders  = "from:to:subject:date:message-id"
+                             };
+
+                return new DkimKey(new DkimSigner(config, new QuietLogger()),
+                                   ($"test._domainkey.{Domain}", $"v=DKIM1; k=rsa; p={Convert.ToBase64String(rsa.ExportSubjectPublicKeyInfo())}"));
+
+            }
+
+        }
+
+        private static String Letter()
+
+            => "From: Sender <sender@client.example>\r\n" +
+               "To: alice@hermod.test\r\n" +
+               "Subject: forwarded\r\n" +
+               "Date: Sat, 17 Oct 2026 20:00:00 +0200\r\n" +
+               $"Message-ID: <{Guid.NewGuid():N}@client.example>\r\n" +
+               "\r\n" +
+               "body\r\n";
+
+        /// <summary>
+        /// Send a message as it is, from sender@client.example as before it was forwarded;
+        /// the reply to its end of data.
+        /// </summary>
+        private static async Task<(Int32 Code, String Text)> SendAsIs(Server Server, String Message)
+        {
+
+            using var wire = await Server.ConnectAsync();
+
+            Assert.That(await wire.CommandAsync("EHLO forwarder.example"),           Is.EqualTo(250));
+            Assert.That(await wire.CommandAsync("MAIL FROM:<sender@client.example>"), Is.EqualTo(250));
+            Assert.That(await wire.CommandAsync("RCPT TO:<alice@hermod.test>"),       Is.EqualTo(250));
+            Assert.That(await wire.CommandAsync("DATA"),                              Is.EqualTo(354));
+            await wire.SendAsync(Message + ".\r\n");
+
+            return await wire.ReplyAsync();
+
+        }
+
+
+        [Test]
+        public async Task A_forwarded_message_its_author_signed_is_not_rejected_for_failing_SPF()
+        {
+
+            // Another server forwards it: SPF of client.example says -all for that server,
+            // but client.example's own signature holds - with p=reject and without DMARC.
+            var key            = DkimKey.Make("client.example");
+            await using var withDmarc     = new Server(DNS: new TxtDNS(SpfHardFail, DmarcReject, key.Record));
+            await using var withoutDmarc  = new Server(DNS: new TxtDNS(SpfHardFail, key.Record));
+
+            var dmarc          = await SendAsIs(withDmarc,    key.Signer.SignMessage(Letter()));
+            var noDmarc        = await SendAsIs(withoutDmarc, key.Signer.SignMessage(Letter()));
+
+            Assert.Multiple(() => {
+
+                Assert.That(dmarc.Code,                            Is.EqualTo(250), dmarc.Text);
+                Assert.That(AuthenticationResults(withDmarc),      Does.Contain("spf=fail").And.Contain("dkim=pass header.d=client.example").And.Contain("dmarc=pass"),
+                                                                   "SPF failed, and says so");
+
+                Assert.That(noDmarc.Code,                          Is.EqualTo(250), noDmarc.Text);
+                Assert.That(AuthenticationResults(withoutDmarc),   Does.Contain("spf=fail").And.Contain("dkim=pass header.d=client.example").And.Contain("dmarc=none"));
+
+            });
+
+        }
+
+
+        [Test]
+        public async Task An_SPF_hard_fail_is_still_rejected_when_the_author_did_not_sign()
+        {
+
+            // Signed by a mail service alone, or by the author before somebody changed it.
+            var author         = DkimKey.Make("client.example");
+            var mailer         = DkimKey.Make("mailer.example");
+            await using var server = new Server(DNS: new TxtDNS(SpfHardFail, author.Record, mailer.Record));
+
+            var otherDomain    = await SendAsIs(server, mailer.Signer.SignMessage(Letter()));
+            var changed        = await SendAsIs(server, author.Signer.SignMessage(Letter()).Replace("body", "bodY"));
+
+            Assert.Multiple(() => {
+                Assert.That(otherDomain.Code,  Is.EqualTo(550));
+                Assert.That(otherDomain.Text,  Does.StartWith("5.7.23 "));
+                Assert.That(changed.Code,      Is.EqualTo(550));
+                Assert.That(changed.Text,      Does.StartWith("5.7.23 "));
+                Assert.That(server.Storage.Messages, Is.Empty);
+            });
+
+        }
+
+
+        [Test]
+        public async Task DMARC_passes_on_the_authors_signature_behind_a_mail_services()
+        {
+
+            // The mail service signs last, so its signature comes first; DMARC passes on
+            // any signature that holds and is aligned (RFC 7489 §4.2), not on the first alone.
+            var author         = DkimKey.Make("client.example");
+            var mailer         = DkimKey.Make("mailer.example");
+            await using var server = new Server(DNS: new TxtDNS(DmarcReject, author.Record, mailer.Record));
+
+            var reply          = await SendAsIs(server, mailer.Signer.SignMessage(author.Signer.SignMessage(Letter())));
+
+            Assert.Multiple(() => {
+                Assert.That(reply.Code,                     Is.EqualTo(250), reply.Text);
+                Assert.That(AuthenticationResults(server),  Does.Contain("dkim=pass header.d=client.example").And.Contain("dmarc=pass"),
+                                                            "the author's signature is the one named");
+            });
+
+        }
+
+        #endregion
 
     }
 

@@ -87,6 +87,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         // Rate limiting
         private readonly SessionCounters       _counters        = new();
 
+        // DNS blocklists (RFC 5782): asked once a connection, when first needed.
+        private Task<IReadOnlyList<DnsBlocklisting>>? _blocklistings;
+
+        private Task<IReadOnlyList<DnsBlocklisting>> BlocklistingsAsync(CancellationToken ct)
+
+            => _blocklistings ??= config.DnsBlocklists is { } blocklists && !_authManager.IsAuthenticated
+                                      ? dnsVerifier.CheckBlocklistsAsync(_clientIp, blocklists, ct)
+                                      : Task.FromResult<IReadOnlyList<DnsBlocklisting>>([]);
+
 
 
         public async Task HandleAsync(CancellationToken ct)
@@ -823,6 +832,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
                 }
 
+                // A client a DNS blocklist names, where that refuses it: all but the
+                // postmaster, who must be reachable even for it (RFC 5321 §4.5.1).
+                if (config.DnsBlocklists is { Action: DnsBlocklistAction.Reject } && !_authManager.IsAuthenticated &&
+                    !isOwnPostmaster && !IsPostmaster(recipient) &&
+                    await BlocklistingsAsync(ct) is [ var listing, .. ])
+                {
+                    logger.Log(LogLevel.Info, $"{_clientIp} is on the DNS blocklist {listing.Zone} ({listing.Answer}): {recipient} refused");
+                    await SendResponseAsync(554, $"5.7.1 Service unavailable; client host [{_clientIp}] blocked using {listing.Zone}");
+                    return;
+                }
+
                 _localRcptTo.Add(recipient);
                 logger.Log(LogLevel.Debug, $"Local recipient: {recipient}");
 
@@ -1111,6 +1131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var senderDomain   = mailFromDomain.Length > 0 ? mailFromDomain : heloDomain;
             DnsVerificationResult? verification = null;
             var dmarcQuarantine = false;
+            IReadOnlyList<DnsBlocklisting> blocklistings = [];
 
             if (!_authManager.IsAuthenticated)
             {
@@ -1126,6 +1147,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     checkDkim:  config.VerifyDkim,
                     checkDmarc: config.VerifyDmarc
                 );
+
+                // The DNS blocklists that name the client: marked, for the storage to decide -
+                // where they refuse, only what came for the postmaster gets this far.
+                if (config.DnsBlocklists is not null && _localRcptTo.Count > 0)
+                    blocklistings = await BlocklistingsAsync(ct);
+
+                if (blocklistings.Count > 0)
+                    verification = verification with { Blocklists = [.. blocklistings.Select(listing => listing.Zone)] };
+
                 message.Verification = verification;
 
                 LogVerificationResult(verification);
@@ -1150,12 +1180,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 }
 
                 // === SPF HARD-FAIL REJECT ===
+                // Only when nothing else vouches for the author. A message another server
+                // forwarded fails SPF for the domain of its envelope, while the author's own
+                // DKIM signature still holds and DMARC passes on it - rejected on SPF first,
+                // it would never get there (RFC 7489 §10.1). Without such a signature, "-all"
+                // means what it says (RFC 7208 §8.4).
                 if (verification.Spf == SPFResult.Fail)
                 {
-                    logger.Log(LogLevel.Warning, $"SPF hard-fail for {_mailFrom} from {_clientIp}");
-                    await SendResponseAsync(550, $"5.7.23 SPF validation failed: {senderDomain} does not authorize {_clientIp}");
-                    ResetTransaction();
-                    return;
+
+                    if (!verification.DkimAligned)
+                    {
+                        logger.Log(LogLevel.Warning, $"SPF hard-fail for {_mailFrom} from {_clientIp}");
+                        await SendResponseAsync(550, $"5.7.23 SPF validation failed: {senderDomain} does not authorize {_clientIp}");
+                        ResetTransaction();
+                        return;
+                    }
+
+                    logger.Log(LogLevel.Info, $"SPF hard-fail for {_mailFrom} from {_clientIp}, but the author's DKIM signature ({verification.DkimDomain}) holds - forwarded, not rejected");
+
                 }
 
                 // === DKIM ===
@@ -1166,6 +1208,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     logger.Log(LogLevel.Info, $"DKIM verification failed for message from {_mailFrom} (advisory, not rejecting)");
 
                 // === DMARC POLICY ENFORCEMENT ===
+                // A valid ARC chain spares nothing here: anybody can seal one, and without a
+                // list of sealers this server trusts - whom to trust is the receiver's choice
+                // (RFC 8617) - it says only that somebody did. The lists that would break the
+                // signature of a p=reject author mostly write a From: of their own and pass
+                // DMARC on that (Mailman's DMARC mitigation, Google Groups).
                 if (verification.Dmarc == DmarcResult.Fail)
                 {
 
@@ -1209,6 +1256,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             traceHeaders += await BuildReceivedHeaderAsync(ct);
             if (dmarcQuarantine)
                 traceHeaders += "X-DMARC-Quarantine: true\r\n";
+            if (blocklistings.Count > 0)
+                traceHeaders += $"X-DNSBL: {String.Join(", ", blocklistings.Select(listing => $"{listing.Zone}={listing.Answer}"))}\r\n";
 
             // The trace headers go in front of the octets that arrived, not of their decoding:
             // a body in ISO-8859-1 stays ISO-8859-1, and a signature over it stays valid.
