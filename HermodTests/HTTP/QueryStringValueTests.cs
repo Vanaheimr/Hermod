@@ -176,6 +176,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region A timestamp
+
+        [Test]
+        public void A_timestamp_whose_plus_was_not_encoded_keeps_its_offset()
+        {
+
+            // A "+" not encoded as %2B is a space in a query string: the offset must not be lost, nor the filter.
+            var queryString = QueryString.Parse("?since=2026-10-17T12:00:00+02:00&until=2026-10-17T12:00:00.250+0530&at=2026-10-17T12:00+02");
+
+            Assert.That(queryString.GetDateTime("since"),  Is.EqualTo(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.FromHours(2))));
+            Assert.That(queryString.GetDateTime("until"),  Is.EqualTo(new DateTimeOffset(2026, 10, 17, 12, 0, 0, 250, TimeSpan.FromMinutes(330))));
+            Assert.That(queryString.GetDateTime("at"),     Is.EqualTo(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.FromHours(2))));
+
+            var times  = new[] { DateTimeOffset.Parse("2026-10-17T09:59:00Z"), DateTimeOffset.Parse("2026-10-17T10:01:00Z") };
+            var after  = times.Where(queryString.CreateDateTimeFilter<DateTimeOffset>("since", (time, since) => time >= since)).ToArray();
+
+            Assert.That(after, Is.EqualTo(new[] { times[1] }));
+
+        }
+
+        [Test]
+        public void An_encoded_plus_a_negative_offset_and_UTC_are_read_as_ever()
+        {
+
+            var queryString = QueryString.Parse("?a=2026-10-17T12:00:00%2B02:00&b=2026-10-17T12:00:00-03:00&c=2026-10-17T12:00:00Z&d=2026-10-17T12:00:00");
+
+            Assert.That(queryString.GetDateTime("a"), Is.EqualTo(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.FromHours( 2))));
+            Assert.That(queryString.GetDateTime("b"), Is.EqualTo(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.FromHours(-3))));
+            Assert.That(queryString.GetDateTime("c"), Is.EqualTo(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.Zero)));
+
+            // Without an offset in UTC.
+            Assert.That(queryString.GetDateTime("d"), Is.EqualTo(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.Zero)));
+
+        }
+
+        [Test]
+        public void A_timestamp_is_read_alike_whatever_culture_the_server_runs_in()
+        {
+
+            var culture = CultureInfo.CurrentCulture;
+
+            try
+            {
+
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+
+                var queryString = QueryString.Parse("?a=2026-10-17T12:00:00.5Z&b=Sat,%2017%20Oct%202026%2012:00:00%20GMT");
+
+                Assert.That(queryString.TryGetDateTime("a", out var a), Is.True);
+                Assert.That(a, Is.EqualTo(new DateTimeOffset(2026, 10, 17, 12, 0, 0, 500, TimeSpan.Zero)));
+
+                // RFC 1123, commas and all, now that a value is kept whole.
+                Assert.That(queryString.GetDateTime("b"), Is.EqualTo(new DateTimeOffset(2026, 10, 17, 12, 0, 0, TimeSpan.Zero)));
+
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = culture;
+            }
+
+        }
+
+        #endregion
+
         #region A list is the parts
 
         [Test]

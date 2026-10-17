@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Text.RegularExpressions;
 using System.Web;
 using System.Text;
 using System.Globalization;
@@ -522,6 +523,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private static Boolean TryParseDecimal(String? Text, out Decimal Number)
 
             => Decimal.TryParse(Text, RealNumberStyles, CultureInfo.InvariantCulture, out Number);
+
+        #endregion
+
+        #region (private static) TryParseTimestamp(Text, out Timestamp)
+
+        /// <summary>
+        /// The offset of a timestamp whose "+" a query string decoded as a space, as it decodes every "+" not encoded
+        /// as %2B: "2026-10-17T12:00:00 02:00" of ?since=2026-10-17T12:00:00+02:00.
+        /// </summary>
+        private static readonly Regex OffsetWithoutItsPlus = new (@"^(?<time>.*\d{2}:\d{2}(:\d{2}(\.\d+)?)?) (?<offset>\d{2}(:?\d{2})?)$",
+                                                                  RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Parse the given text as a timestamp, as everywhere on the wire, whatever culture the server runs in; without
+        /// an offset in UTC. An offset whose "+" became a space is one again: else the timestamp was no timestamp, and a
+        /// filter by it was silently left out.
+        /// </summary>
+        private static Boolean TryParseTimestamp(String? Text, out DateTimeOffset Timestamp)
+        {
+
+            var text = Text?.Trim() ?? "";
+
+            if (OffsetWithoutItsPlus.Match(text) is { Success: true } match)
+                text = $"{match.Groups["time"].Value}+{match.Groups["offset"].Value}";
+
+            return DateTimeOffset.TryParse(text,
+                                           CultureInfo.InvariantCulture,
+                                           DateTimeStyles.AssumeUniversal,
+                                           out Timestamp);
+
+        }
 
         #endregion
 
@@ -1307,7 +1339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (TryGetString(ParameterName, out var value) &&
-                DateTimeOffset.TryParse(value, null, DateTimeStyles.AssumeUniversal, out var timestamp))
+                TryParseTimestamp(value, out var timestamp))
             {
                 return timestamp;
             }
@@ -1328,7 +1360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (TryGetString(ParameterName, out var value) &&
-                DateTimeOffset.TryParse(value, null, DateTimeStyles.AssumeUniversal, out var timestamp))
+                TryParseTimestamp(value, out var timestamp))
             {
                 return timestamp;
             }
@@ -1351,7 +1383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (TryGetString(ParameterName, out var value) &&
-                DateTimeOffset.TryParse(value, null, DateTimeStyles.AssumeUniversal, out var timestamp))
+                TryParseTimestamp(value, out var timestamp))
             {
                 Timestamp = timestamp;
                 return true;
@@ -1378,7 +1410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (FilterDelegate is not null &&
                 TryGetString(ParameterName, out var value) &&
-                DateTimeOffset.TryParse(value, null, DateTimeStyles.AssumeUniversal, out var timestamp))
+                TryParseTimestamp(value, out var timestamp))
             {
                 return item => FilterDelegate(item, timestamp);
             }
