@@ -1866,6 +1866,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region ConfirmPassword_Is_A_Door_Of_Its_Own_With_The_SignIns_Limits()
+
+        /// <summary>
+        /// ConfirmPassword for a step of an application's own - a device password, say:
+        /// the right password confirms, a wrong or empty one is 403, and guessing runs
+        /// into the sign-in's limits for the step, after which the right one waits too.
+        /// </summary>
+        [Test]
+        public async Task ConfirmPassword_Is_A_Door_Of_Its_Own_With_The_SignIns_Limits()
+        {
+
+            var (server, api, client, directory) = await StartAsync();
+
+            try
+            {
+
+                api.AddHandler(HTTPPath.Root + "confirm",
+                               async request => {
+
+                                   if (!api.TryGetSignedInUser(request, out var user, out _, out var unauthorized) || user is null)
+                                       return unauthorized ?? HTTPExtAPI.AuthError(request, HTTPStatusCode.Unauthorized, "Sign in.");
+
+                                   var json = JObject.Parse(request.HTTPBodyAsUTF8String ?? "{}");
+
+                                   return await api.ConfirmPassword(request, user, json.Value<String>("password") ?? "", "test/confirm")
+                                              ?? HTTPExtAPI.AuthError(request, HTTPStatusCode.OK, "Confirmed.");
+
+                               },
+                               HTTPMethod.POST);
+
+                var browser = new Browser(client);
+
+                Assert.That((await SignUp(browser, "fred")).Status,                                                         Is.EqualTo(HttpStatusCode.Created));
+
+                Assert.That((await browser.Call(HttpMethod.Post, "accounts/confirm", new { password = "Correct-Horse-1" })).Status,  Is.EqualTo(HttpStatusCode.OK));
+                Assert.That((await browser.Call(HttpMethod.Post, "accounts/confirm", new { password = "Correct-Horse-2" })).Status,  Is.EqualTo(HttpStatusCode.Forbidden));
+                Assert.That((await browser.Call(HttpMethod.Post, "accounts/confirm", new { password = "" })).Status,                 Is.EqualTo(HttpStatusCode.Forbidden));
+
+                var limited = false;
+
+                for (var i = 0; i < 15 && !limited; i++)
+                    limited = (await browser.Call(HttpMethod.Post, "accounts/confirm", new { password = $"guess-{i}" })).Status == HttpStatusCode.TooManyRequests;
+
+                Assert.That(limited,                                                                                        Is.True);
+                Assert.That((await browser.Call(HttpMethod.Post, "accounts/confirm", new { password = "Correct-Horse-1" })).Status,  Is.EqualTo(HttpStatusCode.TooManyRequests));
+
+            }
+            finally
+            {
+                await StopAsync(server, client, directory);
+            }
+
+        }
+
+        #endregion
+
         #region Unknown_Paths_Answer_404()
 
         [Test]

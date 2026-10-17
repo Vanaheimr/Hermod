@@ -354,27 +354,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!Request.TryParseJSONObjectRequestBody(out var json, out var errorResponse))
                     return errorResponse.AsImmutable;
 
-                var password = json.Value<String>("password") ?? "";
-
-                if (CheckPasswordRateLimit(Request, "auth/passkeys/register", loginIPRateLimiter, user.Id.ToString(), loginAccountRateLimiter) is { } limited)
-                    return limited.AsImmutable;
-
-                if (await WaitForAPasswordVerifier(Request) is { } busy)
-                    return busy.AsImmutable;
-
-                Boolean verified;
-
-                try
-                {
-                    verified = password.Length > 0 && VerifyPassword(user.Id, password);
-                }
-                finally
-                {
-                    ReleaseAPasswordVerifier();
-                }
-
-                if (!verified)
-                    return AuthError(Request, HTTPStatusCode.Forbidden, "The password is wrong.");
+                if (await ConfirmPassword(Request, user, json.Value<String>("password") ?? "", "auth/passkeys/register") is { } refused)
+                    return refused;
 
             }
 
@@ -817,6 +798,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    StatusCode,
                    new JObject(new JProperty("description", Description))
                );
+
+        #endregion
+
+        #region ConfirmPassword(Request, User, Password, Endpoint)
+
+        /// <summary>
+        /// Whether the account's own password was given - for a step a session alone
+        /// must not take, like a new way into the account that would outlive a change
+        /// of the password. Null when it was; otherwise the response to give: 429 for
+        /// too many guesses - the sign-in's limits, per client and per account, for
+        /// the step - 503 when no password verifier is free, 403 when the password is
+        /// wrong or empty.
+        /// </summary>
+        /// <param name="Request">The request, whose client the guesses count against.</param>
+        /// <param name="User">The account.</param>
+        /// <param name="Password">What was given as its password.</param>
+        /// <param name="Endpoint">The name of the step: what its guesses are counted under.</param>
+        public async Task<HTTPResponse?> ConfirmPassword(HTTPRequest  Request,
+                                                         IUser        User,
+                                                         String       Password,
+                                                         String       Endpoint)
+        {
+
+            if (CheckPasswordRateLimit(Request, Endpoint, loginIPRateLimiter, User.Id.ToString(), loginAccountRateLimiter) is { } limited)
+                return limited.AsImmutable;
+
+            if (await WaitForAPasswordVerifier(Request) is { } busy)
+                return busy.AsImmutable;
+
+            Boolean verified;
+
+            try
+            {
+                verified = Password.Length > 0 && VerifyPassword(User.Id, Password);
+            }
+            finally
+            {
+                ReleaseAPasswordVerifier();
+            }
+
+            return verified
+                       ? null
+                       : AuthError(Request, HTTPStatusCode.Forbidden, "The password is wrong.");
+
+        }
 
         #endregion
 
