@@ -34,6 +34,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
+        /// <summary>
+        /// The Resolution Delay of RFC 8305 §3: how long the addresses of one family, having arrived first, wait
+        /// for those of the other before they are used: 50 ms, as the RFC recommends.
+        /// </summary>
+        public static readonly TimeSpan DefaultResolutionDelay = TimeSpan.FromMilliseconds(50);
+
         private static readonly ConcurrentDictionary<Type, DNSResourceRecordTypes> typeIdCache = new();
 
         private static DNSResourceRecordTypes GetResourceRecordType<T>() where T : ADNSResourceRecord
@@ -417,6 +423,183 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Union(ipv6Addresses.Distinct().Select(v => v as IIPAddress));
 
         }
+
+        #endregion
+
+
+        #region Query_IPAddressesToConnect (DomainName,      ResolutionDelay = null, Timeout = null, ...)
+
+        /// <summary>
+        /// The addresses to connect to the given name, IPv6 first, with the Resolution Delay of RFC 8305 §3
+        /// ("Happy Eyeballs Version 2"): asked for AAAA and A at once, and not waiting for a family that does not
+        /// answer once the other has.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Query_IPAddresses waits for both answers, so a name server that never answers for one family - an AAAA
+        /// query dropped on the way, a resolver that only knows the A record - keeps the caller for the whole
+        /// timeout, although the addresses of the other family are long known. Measured in Norn: a key exchange
+        /// with a budget of 10 s waited for an AAAA answer that never came, the A record of the name in the cache,
+        /// and failed.
+        /// </para>
+        /// <para>
+        /// As RFC 8305 §3 says: once the first positive answer of one family has arrived, the other is waited for
+        /// the Resolution Delay, 50 ms by default, and no longer. A negative answer - no addresses, a name error, a
+        /// timeout, a failure - is no reason to stop waiting: the other family is then waited for as long as it
+        /// takes. The addresses are returned IPv6 first, then IPv4, each in the order they were given, for a caller
+        /// that tries them in turn (RFC 8305 §4 in short: the families are not interleaved).
+        /// </para>
+        /// <para>
+        /// Unlike the RFC, which starts connecting over IPv6 at once when the AAAA answer is first and adds the IPv4
+        /// addresses as they arrive, this returns once: an AAAA answer that is first waits the Resolution Delay for
+        /// the A answer as well, so that a caller has the IPv4 addresses to fall back on when IPv6 does not get
+        /// through - the IPv6 addresses still come first. Addresses arriving after the delay are not added; the
+        /// query that is still out is cancelled.
+        /// </para>
+        /// </remarks>
+        /// <param name="IDNSClient">A DNS client.</param>
+        /// <param name="DomainName">The name to connect to.</param>
+        /// <param name="ResolutionDelay">How long the family that has not answered is waited for once the other has; 50 ms by default.</param>
+        /// <param name="Timeout">The timeout of each of the two queries.</param>
+        /// <param name="RecursionDesired">Whether recursion is desired.</param>
+        /// <param name="ForceUpdate">Whether to ask the name servers rather than the cache.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        public static Task<IEnumerable<IIPAddress>>
+
+            Query_IPAddressesToConnect(this IDNSClient    IDNSClient,
+                                       DomainName         DomainName,
+                                       TimeSpan?          ResolutionDelay     = null,
+                                       TimeSpan?          Timeout             = null,
+                                       Boolean?           RecursionDesired    = null,
+                                       Boolean?           ForceUpdate         = false,
+                                       CancellationToken  CancellationToken   = default)
+
+                => Query_IPAddressesToConnect(IDNSClient,
+                                              DNSServiceName.Parse(DomainName.FullName),
+                                              ResolutionDelay,
+                                              Timeout,
+                                              RecursionDesired,
+                                              ForceUpdate,
+                                              CancellationToken);
+
+        #endregion
+
+        #region Query_IPAddressesToConnect (DNSServiceName,  ResolutionDelay = null, Timeout = null, ...)
+
+        /// <summary>
+        /// The addresses to connect to the given name, IPv6 first, with the Resolution Delay of RFC 8305 §3:
+        /// see <see cref="Query_IPAddressesToConnect(IDNSClient, DomainName, TimeSpan?, TimeSpan?, Boolean?, Boolean?, CancellationToken)"/>.
+        /// </summary>
+        public static async Task<IEnumerable<IIPAddress>>
+
+            Query_IPAddressesToConnect(this IDNSClient    IDNSClient,
+                                       DNSServiceName     DNSServiceName,
+                                       TimeSpan?          ResolutionDelay     = null,
+                                       TimeSpan?          Timeout             = null,
+                                       Boolean?           RecursionDesired    = null,
+                                       Boolean?           ForceUpdate         = false,
+                                       CancellationToken  CancellationToken   = default)
+
+        {
+
+            CancellationToken.ThrowIfCancellationRequested();
+
+            // Not disposed: the query still out when the addresses are returned is cancelled by it, and may look
+            // at its token after that.
+            var queries        = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
+            // RFC 8305 §3: the AAAA query first, the A query immediately after it.
+            var ipv6Lookup     = IDNSClient.Query_IPv6Addresses(DNSServiceName, Timeout, RecursionDesired, ForceUpdate, queries.Token);
+            var ipv4Lookup     = IDNSClient.Query_IPv4Addresses(DNSServiceName, Timeout, RecursionDesired, ForceUpdate, queries.Token);
+
+            try
+            {
+
+                var first      = await Task.WhenAny(ipv6Lookup, ipv4Lookup).ConfigureAwait(false);
+                var other      = first == ipv6Lookup ? (Task) ipv4Lookup : ipv6Lookup;
+                var positive   = first == ipv6Lookup
+                                     ? AddressesOf(ipv6Lookup).Any()
+                                     : AddressesOf(ipv4Lookup).Any();
+
+                // A positive answer first: the other family is waited for the Resolution Delay, and no longer.
+                // A negative one, or none: the other is all there may be, and is waited for as long as it takes.
+                if (positive)
+                    await Task.WhenAny(other, Task.Delay(ResolutionDelay ?? DefaultResolutionDelay, CancellationToken)).ConfigureAwait(false);
+
+                else
+                    await Task.WhenAny(other).ConfigureAwait(false);
+
+                CancellationToken.ThrowIfCancellationRequested();
+
+                return [ .. AddressesOf(ipv6Lookup).Distinct(),
+                         .. AddressesOf(ipv4Lookup).Distinct() ];
+
+            }
+            finally
+            {
+
+                // The query still out is not waited for, and its end is not left unobserved.
+                queries.Cancel();
+
+                foreach (var lookup in new Task[] { ipv6Lookup, ipv4Lookup })
+                    if (!lookup.IsCompleted)
+                        _ = lookup.ContinueWith(task => _ = task.Exception, TaskContinuationOptions.OnlyOnFaulted);
+
+            }
+
+        }
+
+        #endregion
+
+        #region Query_IPAddressesToConnect (RemoteURL,       ResolutionDelay = null, Timeout = null, ...)
+
+        /// <summary>
+        /// The addresses to connect to the host of the given URL, IPv6 first, with the Resolution Delay of
+        /// RFC 8305 §3: see <see cref="Query_IPAddressesToConnect(IDNSClient, DomainName, TimeSpan?, TimeSpan?, Boolean?, Boolean?, CancellationToken)"/>.
+        /// A host that is an IP address is that address, without a query.
+        /// </summary>
+        public static async Task<IEnumerable<IIPAddress>>
+
+            Query_IPAddressesToConnect(this IDNSClient    IDNSClient,
+                                       URL                RemoteURL,
+                                       TimeSpan?          ResolutionDelay     = null,
+                                       TimeSpan?          Timeout             = null,
+                                       Boolean?           RecursionDesired    = null,
+                                       Boolean?           ForceUpdate         = false,
+                                       CancellationToken  CancellationToken   = default)
+
+        {
+
+            if (RemoteURL.Host.IPAddress is IIPAddress ipAddress)
+                return [ ipAddress ];
+
+            if (RemoteURL.Host.DomainName is null)
+                return [];
+
+            return await IDNSClient.Query_IPAddressesToConnect(RemoteURL.Host.DomainName,
+                                                               ResolutionDelay,
+                                                               Timeout,
+                                                               RecursionDesired,
+                                                               ForceUpdate,
+                                                               CancellationToken).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region (private static) AddressesOf<T>(Lookup)
+
+        /// <summary>
+        /// The addresses the given lookup has ended with; none while it is running, or when it failed or was
+        /// cancelled.
+        /// </summary>
+        private static IEnumerable<IIPAddress> AddressesOf<T>(Task<IEnumerable<T>> Lookup)
+
+            where T : IIPAddress
+
+            => Lookup.IsCompletedSuccessfully
+                   ? [ .. Lookup.Result.Cast<IIPAddress>() ]
+                   : [];
 
         #endregion
 

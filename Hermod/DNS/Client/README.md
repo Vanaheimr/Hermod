@@ -39,6 +39,41 @@ concerns:
 - **EDNS0 options** are forwarded to all transport clients
 - **One certificate check** for every name server reached over TLS or HTTPS
   (see below)
+- **Addresses to connect to** with the Resolution Delay of RFC 8305
+  (see below)
+
+
+## Addresses to Connect to — the Resolution Delay of RFC 8305
+
+`Query_IPAddresses(name)` asks for AAAA and A at once and waits for both - the
+addresses a name has, all of them, e.g. to show them. `Query_IPAddressesToConnect(name)`
+is for connecting: it asks the same, AAAA first, and does not wait for a family
+that does not answer once the other has, as RFC 8305 §3 ("Happy Eyeballs
+Version 2") asks.
+
+- Once the first **positive** answer of one family has arrived, the other is
+  waited for the **Resolution Delay** - 50 ms by default
+  (`DefaultResolutionDelay`, or `ResolutionDelay:` per call) - and no longer.
+- A **negative** answer - no addresses, a name error, a timeout, a failure -
+  is no reason to stop waiting: the other family is then waited for as long as
+  its query takes.
+- The addresses come **IPv6 first**, then IPv4, each in the order given, for a
+  caller that tries them in turn. The query still out is cancelled.
+
+```csharp
+var addresses = await dnsClient.Query_IPAddressesToConnect(DomainName.Parse("time.example"),
+                                                           Timeout: TimeSpan.FromSeconds(10));
+```
+
+A name server that never answers for one family - an AAAA query dropped on the
+way, a resolver that knows only the A record - so costs 50 ms, and not the whole
+timeout with the addresses of the other family long known.
+
+Unlike the RFC, which starts connecting over IPv6 at once when the AAAA answer
+is first and adds the IPv4 addresses as they arrive, this returns once: an AAAA
+answer that is first waits the Resolution Delay for the A answer as well, so
+that IPv4 is there to fall back on when IPv6 does not get through. Addresses
+arriving after the delay are not added.
 
 
 ## Certificates of Encrypted Name Servers
