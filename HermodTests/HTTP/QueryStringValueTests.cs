@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Globalization;
+
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -85,8 +87,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [Test]
         public void A_number_with_a_decimal_comma_is_not_its_part_after_the_comma()
         {
-            // Not 5: the whole value, which the invariant culture does not read as 1.5 either.
+            // Not 5: the whole value.
             Assert.That(QueryString.Parse("?olderThan=1,5").GetString("olderThan"), Is.EqualTo("1,5"));
+        }
+
+        #endregion
+
+        #region A real number
+
+        [Test]
+        public void A_real_number_is_written_as_on_the_wire()
+        {
+
+            var queryString = QueryString.Parse("?a=1.5&b=-2.5e3&c=%2B0.25&d=0.1");
+
+            Assert.That(queryString.GetDouble ("a"),        Is.EqualTo(1.5));
+            Assert.That(queryString.GetDouble ("b"),        Is.EqualTo(-2500));
+            Assert.That(queryString.GetSingle ("c"),        Is.EqualTo(0.25f));
+            Assert.That(queryString.GetDecimal("d"),        Is.EqualTo(0.1m));
+            Assert.That(queryString.GetDouble ("a", 7),     Is.EqualTo(1.5));
+
+        }
+
+        [Test]
+        public void A_decimal_comma_or_a_thousands_separator_is_no_number()
+        {
+
+            // Not 15, as NumberStyles.Any read it with its thousands separators, nor 1,500.
+            var queryString = QueryString.Parse("?a=1,5&b=1,500&c=$5&d=(5)");
+
+            foreach (var name in new[] { "a", "b", "c", "d" })
+            {
+                Assert.That(queryString.GetDouble (name),       Is.Null,          name);
+                Assert.That(queryString.GetSingle (name),       Is.Null,          name);
+                Assert.That(queryString.GetDecimal(name),       Is.Null,          name);
+                Assert.That(queryString.GetDouble (name, 7),    Is.EqualTo(7),    name);
+                Assert.That(queryString.TryGetDouble(name, out _), Is.False,      name);
+            }
+
+        }
+
+        [Test]
+        public void A_real_number_is_read_alike_whatever_culture_the_server_runs_in()
+        {
+
+            var culture = CultureInfo.CurrentCulture;
+
+            try
+            {
+
+                // A German machine read "1,5" as 1.5 and "1.5" as 15 in TryGet…: now as everywhere else.
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+
+                var queryString = QueryString.Parse("?a=1.5&b=1,5");
+
+                Assert.That(queryString.TryGetDouble ("a", out var a),  Is.True);
+                Assert.That(a,                                          Is.EqualTo(1.5));
+                Assert.That(queryString.TryGetSingle ("a", out var s),  Is.True);
+                Assert.That(s,                                          Is.EqualTo(1.5f));
+                Assert.That(queryString.TryGetDecimal("a", out var d),  Is.True);
+                Assert.That(d,                                          Is.EqualTo(1.5m));
+                Assert.That(queryString.TryGetDouble ("b", out _),      Is.False);
+
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = culture;
+            }
+
+        }
+
+        [Test]
+        public void What_is_not_finite_is_no_number_and_no_time_span()
+        {
+
+            var queryString = QueryString.Parse("?a=NaN&b=Infinity&c=1e300&d=90");
+
+            Assert.That(queryString.GetDouble  ("a"),   Is.Null);
+            Assert.That(queryString.GetDouble  ("b"),   Is.Null);
+
+            // Longer than any time span: none, not an OverflowException.
+            Assert.That(queryString.GetTimeSpan("b"),   Is.Null);
+            Assert.That(queryString.GetTimeSpan("c"),   Is.Null);
+            Assert.That(queryString.GetTimeSpan("c", TimeSpan.FromSeconds(1)),  Is.EqualTo(TimeSpan.FromSeconds(1)));
+            Assert.That(queryString.GetTimeSpan("d"),   Is.EqualTo(TimeSpan.FromSeconds(90)));
+
         }
 
         #endregion

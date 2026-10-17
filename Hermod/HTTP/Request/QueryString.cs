@@ -494,6 +494,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region (private static) TryParseSingle/Double/Decimal(Text, out Number)
+
+        /// <summary>
+        /// The styles of a real number in a query string: an optional sign, digits with a decimal point, an exponent;
+        /// no thousands separators, no currency symbol, no parentheses.
+        /// </summary>
+        private const NumberStyles RealNumberStyles = NumberStyles.Float;
+
+        /// <summary>
+        /// Parse the given text as a finite real number, written as everywhere on the wire, whatever culture the
+        /// server runs in: "1.5" is 1.5, "1,5" no number - not 15, as with thousands separators, nor 1.5 on a German
+        /// machine and 15 on an English one.
+        /// </summary>
+        private static Boolean TryParseSingle(String? Text, out Single Number)
+
+            => Single.TryParse(Text, RealNumberStyles, CultureInfo.InvariantCulture, out Number) &&
+               Single.IsFinite(Number);
+
+        /// <inheritdoc cref="TryParseSingle(String?, out Single)"/>
+        private static Boolean TryParseDouble(String? Text, out Double Number)
+
+            => Double.TryParse(Text, RealNumberStyles, CultureInfo.InvariantCulture, out Number) &&
+               Double.IsFinite(Number);
+
+        /// <inheritdoc cref="TryParseSingle(String?, out Single)"/>
+        private static Boolean TryParseDecimal(String? Text, out Decimal Number)
+
+            => Decimal.TryParse(Text, RealNumberStyles, CultureInfo.InvariantCulture, out Number);
+
+        #endregion
+
+        #region (private static) TryGetSeconds(Seconds, out TimeSpan)
+
+        /// <summary>
+        /// The time span of the given seconds, unless it is longer than any time span: no OverflowException.
+        /// </summary>
+        private static Boolean TryGetSeconds(Double Seconds, out TimeSpan TimeSpan)
+        {
+
+            if (Math.Abs(Seconds) <= TimeSpan.MaxValue.TotalSeconds - 1)
+            {
+                TimeSpan = TimeSpan.FromSeconds(Seconds);
+                return true;
+            }
+
+            TimeSpan = default;
+            return false;
+
+        }
+
+        #endregion
+
+
         #region GetChar      (ParameterName, DefaultValue)
 
         public Char GetChar(String  ParameterName,
@@ -1040,10 +1093,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (internalDictionary.TryGetValue(ParameterName, out var values) &&
                 values is not null &&
                 values.Count > 0 &&
-                Single.TryParse(values.LastOrDefault()?.ToString(),
-                                NumberStyles.Any,
-                                CultureInfo.InvariantCulture,
-                                out var number))
+                TryParseSingle(values.LastOrDefault()?.ToString(), out var number))
             {
                 return number;
             }
@@ -1063,10 +1113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (internalDictionary.TryGetValue(ParameterName, out var values) &&
                 values is not null &&
                 values.Count > 0 &&
-                Single.TryParse(values.Last()?.ToString(),
-                                NumberStyles.Any,
-                                CultureInfo.InvariantCulture,
-                                out var number))
+                TryParseSingle(values.Last()?.ToString(), out var number))
             {
                 return number;
             }
@@ -1092,7 +1139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var lastValue = values.LastOrDefault();
 
                 if (lastValue is not null &&
-                    Single.TryParse(lastValue?.ToString(), out var number))
+                    TryParseSingle(lastValue?.ToString(), out var number))
                 {
                     Value = number;
                     return true;
@@ -1116,10 +1163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (internalDictionary.TryGetValue(ParameterName, out var values) &&
                 values is not null &&
                 values.Count > 0 &&
-                Double.TryParse(values.LastOrDefault()?.ToString(),
-                                NumberStyles.Any,
-                                CultureInfo.InvariantCulture,
-                                out var number))
+                TryParseDouble(values.LastOrDefault()?.ToString(), out var number))
             {
                 return number;
             }
@@ -1139,10 +1183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (internalDictionary.TryGetValue(ParameterName, out var values) &&
                 values is not null &&
                 values.Count > 0 &&
-                Double.TryParse(values.Last()?.ToString(),
-                                NumberStyles.Any,
-                                CultureInfo.InvariantCulture,
-                                out var number))
+                TryParseDouble(values.Last()?.ToString(), out var number))
             {
                 return number;
             }
@@ -1168,7 +1209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var lastValue = values.LastOrDefault();
 
                 if (lastValue is not null &&
-                    Double.TryParse(lastValue?.ToString(), out var number))
+                    TryParseDouble(lastValue?.ToString(), out var number))
                 {
                     Value = number;
                     return true;
@@ -1192,10 +1233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (internalDictionary.TryGetValue(ParameterName, out var values) &&
                 values is not null &&
                 values.Count > 0 &&
-                Decimal.TryParse(values.LastOrDefault()?.ToString(),
-                                 NumberStyles.Any,
-                                 CultureInfo.InvariantCulture,
-                                 out var number))
+                TryParseDecimal(values.LastOrDefault()?.ToString(), out var number))
             {
                 return number;
             }
@@ -1215,10 +1253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (internalDictionary.TryGetValue(ParameterName, out var values) &&
                 values is not null &&
                 values.Count > 0 &&
-                Decimal.TryParse(values.Last()?.ToString(),
-                                 NumberStyles.Any,
-                                 CultureInfo.InvariantCulture,
-                                 out var number))
+                TryParseDecimal(values.Last()?.ToString(), out var number))
             {
                 return number;
             }
@@ -1244,7 +1279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var lastValue = values.LastOrDefault();
 
                 if (lastValue is not null &&
-                    Decimal.TryParse(lastValue?.ToString(), out var number))
+                    TryParseDecimal(lastValue?.ToString(), out var number))
                 {
                     Value = number;
                     return true;
@@ -1363,12 +1398,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (internalDictionary.TryGetValue(ParameterName, out var values) &&
                 values is not null &&
                 values.Count > 0 &&
-                Double.TryParse(values.LastOrDefault()?.ToString(),
-                                NumberStyles.Any,
-                                CultureInfo.InvariantCulture,
-                                out var number))
+                TryParseDouble(values.LastOrDefault()?.ToString(), out var number) &&
+                TryGetSeconds(number, out var timeSpan))
             {
-                return TimeSpan.FromSeconds(number);
+                return timeSpan;
             }
 
             return null;
@@ -1386,12 +1419,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (internalDictionary.TryGetValue(ParameterName, out var values) &&
                 values is not null &&
                 values.Count > 0 &&
-                Double.TryParse(values.Last()?.ToString(),
-                                NumberStyles.Any,
-                                CultureInfo.InvariantCulture,
-                                out var number))
+                TryParseDouble(values.Last()?.ToString(), out var number) &&
+                TryGetSeconds(number, out var timeSpan))
             {
-                return TimeSpan.FromSeconds(number);
+                return timeSpan;
             }
 
             return DefaultValue;
@@ -1411,8 +1442,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      TimeSpan?  DefaultValue   = null)
         {
 
-            if (TryGetDouble(ParameterName, out var value))
-                return TimeSpan.FromSeconds(value);
+            if (TryGetDouble(ParameterName, out var value) &&
+                TryGetSeconds(value, out var timeSpan))
+            {
+                return timeSpan;
+            }
 
             return DefaultValue;
 
