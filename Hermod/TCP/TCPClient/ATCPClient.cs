@@ -806,40 +806,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         DNSClient           is not null)
                     {
 
+                        // The DNS SRV remote host, or the hostname of the URL.
                         var remote = dnsSRVRemoteHost ?? DomainName.Parse(hostname);
 
-                        //DebugX.LogT($"DNS A/AAAA queries for '{remote}'...");
+                        // The family that alone will do, alone; else both, with the Resolution Delay of
+                        // RFC 8305 §3: AAAA and A at once, and once one of them has answered with addresses,
+                        // the other waited for 50 ms and no longer. Waiting for both, a name server that never
+                        // answered for one family - an AAAA query dropped on the way - kept every connection
+                        // for the whole DNS timeout, the addresses of the other family long known.
+                        IEnumerable<IIPAddress> addresses = IPVersionPreference switch {
 
-                        // Look up the DNS SRV remote host or the hostname of the URL...
-                        var ipv4AddressLookupTask  = DNSClient.Query_IPv4Addresses(
-                                                         dnsSRVRemoteHost ?? DomainName.Parse(hostname),
-                                                         RecursionDesired:   true,
-                                                         ForceUpdate:        forceDNSCacheUpdate,
-                                                         CancellationToken:  CancellationToken
-                                                     );
+                            IPVersionPreference.IPv6Only  => (await DNSClient.Query_IPv6Addresses(
+                                                                        remote,
+                                                                        RecursionDesired:   true,
+                                                                        ForceUpdate:        forceDNSCacheUpdate,
+                                                                        CancellationToken:  CancellationToken
+                                                                    ).ConfigureAwait(false)).Cast<IIPAddress>(),
 
-                        var ipv6AddressLookupTask  = DNSClient.Query_IPv6Addresses(
-                                                         dnsSRVRemoteHost ?? DomainName.Parse(hostname),
-                                                         RecursionDesired:   true,
-                                                         ForceUpdate:        forceDNSCacheUpdate,
-                                                         CancellationToken:  CancellationToken
-                                                     );
+                            IPVersionPreference.IPv4Only  => (await DNSClient.Query_IPv4Addresses(
+                                                                        remote,
+                                                                        RecursionDesired:   true,
+                                                                        ForceUpdate:        forceDNSCacheUpdate,
+                                                                        CancellationToken:  CancellationToken
+                                                                    ).ConfigureAwait(false)).Cast<IIPAddress>(),
 
-                        await Task.WhenAll(
-                                  ipv4AddressLookupTask,
-                                  ipv6AddressLookupTask
-                              ).ConfigureAwait(false);
+                            _                             =>  await DNSClient.Query_IPAddressesToConnect(
+                                                                        remote,
+                                                                        RecursionDesired:   true,
+                                                                        ForceUpdate:        forceDNSCacheUpdate,
+                                                                        CancellationToken:  CancellationToken
+                                                                    ).ConfigureAwait(false)
 
-                        //DebugX.LogT(   $"A{(PreferIPv4 == IPVersionPreference.IPv4 ? " (preferred)" : "")}: {ipv4AddressLookupTask.Result.Count()} IPv4 addresses found: {ipv4AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
-                        //DebugX.LogT($"AAAA{(PreferIPv4 == IPVersionPreference.IPv6 ? "" : " (preferred)")}: {ipv6AddressLookupTask.Result.Count()} IPv6 addresses found: {ipv6AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
+                        };
 
-                        if (ipv4AddressLookupTask.Result.Any())
-                            foreach (var ipAddress in ipv4AddressLookupTask.Result.Cast<IIPAddress>())
-                                ResolvedIPAddresses.Add(ipAddress);
-
-                        if (ipv6AddressLookupTask.Result.Any())
-                            foreach (var ipAddress in ipv6AddressLookupTask.Result.Cast<IIPAddress>())
-                                ResolvedIPAddresses.Add(ipAddress);
+                        foreach (var ipAddress in addresses)
+                            ResolvedIPAddresses.Add(ipAddress);
 
                         timings.DNSLookup = timings.Elapsed;
 

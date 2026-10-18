@@ -75,6 +75,11 @@ answer that is first waits the Resolution Delay for the A answer as well, so
 that IPv4 is there to fall back on when IPv6 does not get through. Addresses
 arriving after the delay are not added.
 
+The TCP clients (`ATCPClient`, and so the HTTP clients built on it) resolve
+the name of their URL this way. With `IPVersionPreference.IPv6Only` or
+`IPv4Only` they ask for that one family alone, and wait for its answer as
+long as it takes.
+
 
 ## Certificates of Encrypted Name Servers
 
