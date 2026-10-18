@@ -69,9 +69,6 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             #region Constructor(s)
 
-            internal WardenCheck()
-            { }
-
             #region WardenCheck(RunCheck, SleepTime, ServiceChecker)
 
             public WardenCheck(RunCheckDelegate                                        RunCheck,

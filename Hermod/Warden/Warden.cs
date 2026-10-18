@@ -326,12 +326,27 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         {
 
+            // Refused here rather than at the first run: a check runs on a
+            // timer, so an entity that is not there would surface minutes
+            // later inside the Warden loop, where all that is left of it is
+            // a DebugX line and a check that quietly stopped doing its job.
+            ArgumentNullException.ThrowIfNull(Entity);
+
             allWardenChecks.Add(
                 new WardenCheck(
                     RunCheck,
                     SleepTime,
                     Entity,
-                    (ts, obj, ct) => ServiceChecker(ts, obj as TEntity, ct)
+                    // A cast rather than "as", and the two guard different
+                    // things. The object a check hands back is the Entity
+                    // above - WardenCheck keeps it and passes that very one -
+                    // so the type cannot be wrong; where it ever were, a cast
+                    // throws here while "as" would quietly pass null on to a
+                    // ServiceChecker whose parameter says it never gets one.
+                    // Null itself a cast does not catch: casting null to a
+                    // reference type succeeds. That is what the check above
+                    // is for, and together they leave no way in.
+                    (ts, obj, ct) => ServiceChecker(ts, (TEntity) obj, ct)
                 )
             );
 
@@ -349,6 +364,8 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         {
 
+            ArgumentNullException.ThrowIfNull(Entity);
+
             var thisResultConsumers = new List<Action<Object, TResult>>();
 
             foreach (var consumer in ResultConsumers)
@@ -363,7 +380,9 @@ namespace org.GraphDefined.Vanaheimr.Warden
                     RunCheck,
                     SleepTime,
                     Entity,
-                    (ts, obj, ct)    => ServiceChecker(ts, obj as TEntity, ct),
+                    // A cast rather than "as", and the entity refused above:
+                    // see the first of these overloads for why.
+                    (ts, obj, ct)    => ServiceChecker(ts, (TEntity) obj, ct),
                     thisResultConsumers.ToArray()
                 )
             );
@@ -385,12 +404,16 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         {
 
+            ArgumentNullException.ThrowIfNull(Entity);
+
             allWardenChecks.Add(
                 new WardenCheck(
                     RunCheck,
                     SleepTime,
                     Entity,
-                    (ts, dns, obj, ct) => ServiceChecker(ts, dns, obj as TEntity, ct)
+                    // A cast rather than "as", and the entity refused above:
+                    // see the first of these overloads for why.
+                    (ts, dns, obj, ct) => ServiceChecker(ts, dns, (TEntity) obj, ct)
                 )
             );
 
@@ -408,6 +431,8 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         {
 
+            ArgumentNullException.ThrowIfNull(Entity);
+
             var thisResultConsumers = new List<Action<Object, TResult>>();
 
             foreach (var consumer in ResultConsumers)
@@ -423,7 +448,9 @@ namespace org.GraphDefined.Vanaheimr.Warden
                     RunCheck,
                     SleepTime,
                     Entity,
-                    (ts, dns, obj, ct) => ServiceChecker(ts, dns, obj as TEntity, ct),
+                    // A cast rather than "as", and the entity refused above:
+                    // see the first of these overloads for why.
+                    (ts, dns, obj, ct) => ServiceChecker(ts, dns, (TEntity) obj, ct),
                     thisResultConsumers.ToArray()
                 )
             );
