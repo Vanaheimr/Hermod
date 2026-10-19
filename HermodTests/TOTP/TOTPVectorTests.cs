@@ -86,6 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
             public String  Current               { get; set; } = "";
             public String  Next                  { get; set; } = "";
             public Int32   RemainingTimeSeconds  { get; set; }
+            public Int64   EndTimeUnixSeconds    { get; set; }
         }
 
         public sealed class InvalidInputVector
@@ -176,39 +177,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
 
             var timestamp      = DateTimeOffset.FromUnixTimeMilliseconds(input.UnixTimestampMillis);
 
+            var validityTime   = input.ValidityTimeSeconds is Double seconds
+                                     ? TimeSpan.FromSeconds(seconds)
+                                     : (TimeSpan?) null;
+
+            var totpLength     = input.TotpLength is Double length
+                                     ? (UInt32) length
+                                     : (UInt32?) null;
+
+            var exporter       = input.TlsExporterMaterialHex is String hex
+                                     ? Convert.FromHexString(hex)
+                                     : null;
+
             var (previous,
                  current,
                  next,
                  remainingTime,
-                 endTime)      = TOTPGenerator.GenerateTOTPs(
+                 endTime)      = TOTPGenerator.GenerateTOTPs(input.SharedSecret, validityTime, totpLength, input.Alphabet, timestamp, exporter, hashAlgorithm);
 
-                                     input.SharedSecret,
+            // The single-token method must describe the very same window.
+            var (singleCurrent,
+                 singleRemaining,
+                 singleEndTime) = TOTPGenerator.GenerateTOTP (input.SharedSecret, validityTime, totpLength, input.Alphabet, timestamp, exporter, hashAlgorithm);
 
-                                     input.ValidityTimeSeconds is Double validityTime
-                                         ? TimeSpan.FromSeconds(validityTime)
-                                         : null,
-
-                                     input.TotpLength is Double totpLength
-                                         ? (UInt32) totpLength
-                                         : null,
-
-                                     input.Alphabet,
-                                     timestamp,
-
-                                     input.TlsExporterMaterialHex is String hex
-                                         ? Convert.FromHexString(hex)
-                                         : null,
-
-                                     hashAlgorithm
-
-                                 );
+            // The window ends at a fixed instant, (S + 1) * V (spec section 4.1).
+            // The remaining time is measured from the unfloored timestamp, exact
+            // to the tick - so its ceiling is the whole-second remaining time.
+            var expectedEnd    = DateTimeOffset.FromUnixTimeSeconds(Vector.Expected.EndTimeUnixSeconds);
 
             Assert.Multiple(() => {
-                Assert.That(previous,       Is.EqualTo(Vector.Expected.Previous),  "previous");
-                Assert.That(current,        Is.EqualTo(Vector.Expected.Current),   "current");
-                Assert.That(next,           Is.EqualTo(Vector.Expected.Next),      "next");
-                Assert.That(remainingTime,  Is.EqualTo(TimeSpan.FromSeconds(Vector.Expected.RemainingTimeSeconds)));
-                Assert.That(endTime,        Is.EqualTo(timestamp + remainingTime), "endTime");
+                Assert.That(previous,                                 Is.EqualTo(Vector.Expected.Previous),              "previous");
+                Assert.That(current,                                  Is.EqualTo(Vector.Expected.Current),               "current");
+                Assert.That(next,                                     Is.EqualTo(Vector.Expected.Next),                  "next");
+                Assert.That(endTime,                                  Is.EqualTo(expectedEnd),                           "endTime");
+                Assert.That(remainingTime,                            Is.EqualTo(endTime - timestamp),                   "remainingTime = endTime - timestamp");
+                Assert.That((Int32) Math.Ceiling(remainingTime.TotalSeconds),
+                                                                      Is.EqualTo(Vector.Expected.RemainingTimeSeconds),  "ceiling(remainingTime)");
+                Assert.That(singleCurrent,                            Is.EqualTo(current),                               "GenerateTOTP: current");
+                Assert.That(singleRemaining,                          Is.EqualTo(remainingTime),                         "GenerateTOTP: remainingTime");
+                Assert.That(singleEndTime,                            Is.EqualTo(endTime),                               "GenerateTOTP: endTime");
             });
 
         }

@@ -339,19 +339,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                    );
 
             var timeReference    = TOTPTimestamp ?? Timestamp.Now;
+            var validitySeconds  = (Int64) ValidityTime.Value.TotalSeconds;
             var currentUnixTime  = timeReference.ToUnixTimeSeconds();
-            var currentSlot      = (UInt64) (currentUnixTime / ValidityTime.Value.TotalSeconds);
-            var remainingTime    = TimeSpan.FromSeconds(
-                                       (Int32) ValidityTime.Value.TotalSeconds
-                                         -
-                                       (currentUnixTime % (Int32) ValidityTime.Value.TotalSeconds)
-                                   );
+            var currentSlot      = (UInt64) (currentUnixTime / validitySeconds);
+
+            // The same fixed instant as in GenerateTOTP: the start of the next
+            // slot, the same for everybody who asks during the window. The
+            // remaining time is exact to the tick, so its ceiling is the
+            // whole-second remaining time of the specification (section 4.1).
+            var endTime          = DateTimeOffset.FromUnixTimeSeconds(
+                                       (Int64) (currentSlot + 1) * validitySeconds
+                                   ).ToOffset(timeReference.Offset);
+
+            var remainingTime    = endTime - timeReference;
 
             return (CalcTOTPSlot(currentSlot - 1, TOTPLength.Value, Alphabet, hmac, HashAlgorithm.Value, TLSExporterMaterial),
                     CalcTOTPSlot(currentSlot,     TOTPLength.Value, Alphabet, hmac, HashAlgorithm.Value, TLSExporterMaterial),
                     CalcTOTPSlot(currentSlot + 1, TOTPLength.Value, Alphabet, hmac, HashAlgorithm.Value, TLSExporterMaterial),
                     remainingTime,
-                    timeReference + remainingTime);
+                    endTime);
 
         }
 

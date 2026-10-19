@@ -159,6 +159,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
 
         #endregion
 
+        #region TheTriple_DescribesTheSameWindow()
+
+        [Test]
+        public void TheTriple_DescribesTheSameWindow()
+        {
+
+            // GenerateTOTPs - previous/current/next - was left behind when
+            // GenerateTOTP learned the fixed window end: it kept working the end
+            // out as "now, plus what is left", so for any timestamp with a
+            // fraction the two methods named two different ends of one window.
+            // The vector suite cannot have noticed, as it only ever asked the
+            // triple, and the triple was consistent with itself.
+            var windowStart = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+
+            for (var milliseconds = 0; milliseconds < 30_000; milliseconds += 137)
+            {
+
+                var asked   = windowStart + TimeSpan.FromMilliseconds(milliseconds);
+                var single  = TOTPGenerator.GenerateTOTP (SharedSecret, ValidityTime, TOTPTimestamp: asked);
+                var triple  = TOTPGenerator.GenerateTOTPs(SharedSecret, ValidityTime, TOTPTimestamp: asked);
+
+                Assert.Multiple(() => {
+                    Assert.That(triple.Current,        Is.EqualTo(single.Current),          $"current, {milliseconds} ms in");
+                    Assert.That(triple.EndTime,        Is.EqualTo(windowStart + ValidityTime), $"end, {milliseconds} ms in");
+                    Assert.That(triple.RemainingTime,  Is.EqualTo(single.RemainingTime),    $"remaining, {milliseconds} ms in");
+                });
+
+            }
+
+        }
+
+        #endregion
+
     }
 
 }
