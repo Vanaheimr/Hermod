@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Collections.Concurrent;
 using System.Security.Authentication;
@@ -642,6 +643,128 @@ public class SunSpecModbusTLSTests
                         "BoundEndPoint did not say why the frontend will not listen");
 
         });
+
+    }
+
+    #endregion
+
+    #region Hermod_ModbusTLSFrontend_ResumesNoSession_Test()
+
+    /// <summary>
+    /// A frontend resumes no TLS session: a client that would resume one is
+    /// asked for its certificate at every handshake, because the role in it
+    /// is what every request is decided by, and a resumed session carries
+    /// none.
+    /// </summary>
+    /// <remarks>
+    /// Two frontends in one process with one certificate, and a client that
+    /// may resume asking both at the same name - as a charging station asks
+    /// two meters of one installer's PKI behind one name. On Linux the first
+    /// frontend, asked again at that name, resumed the session the client had
+    /// with the second, found no client certificate, and hung up; Windows does
+    /// not resume like this, so this is red only where it was wrong.
+    /// </remarks>
+    [Test]
+    public async Task Hermod_ModbusTLSFrontend_ResumesNoSession_Test()
+    {
+
+        var pkiDirectory = Path.Combine(
+                               TestContext.CurrentContext.WorkDirectory,
+                               "SunSpecModbusTLS",
+                               Guid.NewGuid().ToString("N")
+                           );
+
+        await new ModbusPKI().BuildPKI(pkiDirectory);
+
+        // Each frontend its own chain, read from the same files - as two meters of
+        // one PKI are.
+        var chainA = ServerCertificateChain.Load(Path.Combine(pkiDirectory, "server.chain.crt"), Path.Combine(pkiDirectory, "server.key"));
+        var chainB = ServerCertificateChain.Load(Path.Combine(pkiDirectory, "server.chain.crt"), Path.Combine(pkiDirectory, "server.key"));
+        var anchor = X509CertificateLoader.LoadCertificateFromFile(Path.Combine(pkiDirectory, "ca.crt"));
+
+        try
+        {
+
+            using var first        = new SunSpecMeterDevice("meter-test-resume-1", SunSpecMeterMode.ImportOnly);
+            using var second       = new SunSpecMeterDevice("meter-test-resume-2", SunSpecMeterMode.ImportOnly);
+            using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+            ModbusTlsFrontend FrontendOf(SunSpecMeterDevice Meter, ServerCertificateChain Chain)
+
+                => new (
+                       new ModbusTlsFrontendOptions(
+                           NetIPAddress.Loopback,
+                           0,  // any free port - the frontend says which
+                           null,
+                           null,
+                           null,
+                           TimeSpan.FromSeconds(5),
+                           TimeSpan.FromSeconds(5),
+                           TimeSpan.FromSeconds(5),
+                           ServerCertificateSelector:  serverName => Chain,
+                           ClientTrustAnchors:         () => [ anchor ]
+                       ),
+                       new SunSpecBackendFactory(Meter),
+                       new AuthorizationPolicy(Meter),
+                       new NUnitLogger<ModbusTlsFrontend>()
+                   );
+
+            using var frontendOfFirst   = FrontendOf(first,  chainA);
+            using var frontendOfSecond  = FrontendOf(second, chainB);
+
+            var firstTask   = frontendOfFirst. RunAsync(frontendCts.Token);
+            var secondTask  = frontendOfSecond.RunAsync(frontendCts.Token);
+
+            // A client as .NET makes one by default: one that resumes where it
+            // can.
+            async Task<Byte[]> ReadMarker(Int32 Port, String Name)
+            {
+
+                using var pem    = X509Certificate2.CreateFromPemFile(Path.Combine(pkiDirectory, "client-ReadOnlySunSpec.crt"),
+                                                                      Path.Combine(pkiDirectory, "client-ReadOnlySunSpec.key"));
+                using var leaf   = X509CertificateLoader.LoadPkcs12(pem.Export(X509ContentType.Pkcs12), null, OperatingSystem.IsWindows() ? X509KeyStorageFlags.UserKeySet : X509KeyStorageFlags.EphemeralKeySet);
+                var intermediates = new X509Certificate2Collection();
+                intermediates.ImportFromPemFile(Path.Combine(pkiDirectory, "client-ReadOnlySunSpec.chain.crt"));
+
+                using var tcp = new TcpClient();
+                await tcp.ConnectAsync(NetIPAddress.Loopback, Port, frontendCts.Token);
+
+                using var tls = new SslStream(tcp.GetStream(), false, (_, _, _, _) => true);
+
+                await tls.AuthenticateAsClientAsync(new SslClientAuthenticationOptions {
+                          TargetHost                      = Name,
+                          EnabledSslProtocols             = SslProtocols.Tls12 | SslProtocols.Tls13,
+                          ClientCertificateContext        = SslStreamCertificateContext.Create(leaf, intermediates, offline: true),
+                          CertificateRevocationCheckMode  = X509RevocationMode.NoCheck
+                      }, frontendCts.Token);
+
+                await tls.WriteAsync(new ModbusFrame(1, 1, ModbusPDU.BuildReadHoldingRegisters(40000, 2)).ToBytes(), frontendCts.Token);
+
+                return (await ModbusFrame.ReadAsync(tls, frontendCts.Token)).Pdu;
+
+            }
+
+            var fromTheFirst      = await ReadMarker(await ListenPortOf(frontendOfFirst),  "127.0.0.1");
+            var fromTheSecond     = await ReadMarker(await ListenPortOf(frontendOfSecond), "localhost");
+            var fromTheFirstAgain = await ReadMarker(await ListenPortOf(frontendOfFirst),  "localhost");
+
+            Assert.Multiple(() => {
+                Assert.That(ModbusPDU.DecodeReadResponse(fromTheFirst),       Is.EqualTo(new UInt16[] { 0x5375, 0x6E53 }));
+                Assert.That(ModbusPDU.DecodeReadResponse(fromTheSecond),      Is.EqualTo(new UInt16[] { 0x5375, 0x6E53 }), "the second frontend did not answer a client it could have resumed a session with");
+                Assert.That(ModbusPDU.DecodeReadResponse(fromTheFirstAgain),  Is.EqualTo(new UInt16[] { 0x5375, 0x6E53 }), "the first frontend did not answer the client again");
+            });
+
+            await frontendCts.CancelAsync();
+            await Task.WhenAll(firstTask, secondTask).WaitAsync(TimeSpan.FromSeconds(2));
+
+        }
+        finally
+        {
+            DisposeChain(chainA);
+            DisposeChain(chainB);
+            anchor.Dispose();
+            RemoveInstalledAuthorities(pkiDirectory);
+        }
 
     }
 

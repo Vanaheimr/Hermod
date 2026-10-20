@@ -265,6 +265,15 @@ public sealed class ModbusTlsFrontend : IDisposable
                                EnabledSslProtocols             = SslProtocols.Tls12 | SslProtocols.Tls13,
                                CertificateRevocationCheckMode  = X509RevocationMode.NoCheck, // demo: no CRL/OCSP infra
                                AllowRenegotiation              = false,                      // mbaps doesn't need it
+
+                               // Never a session resumed: every request is
+                               // decided by the role in the client's certificate,
+                               // and a resumed session shows none - the client
+                               // would be refused at every connection. On Linux a
+                               // client offers a session for a name to every
+                               // server of that name, and one of two frontends of
+                               // one certificate in a process took it up.
+                               AllowTlsResume                  = false,
                                EncryptionPolicy                = EncryptionPolicy.RequireEncryption,
 
                                RemoteCertificateValidationCallback = (sender, certificate, certificateChain, policyErrors) =>
