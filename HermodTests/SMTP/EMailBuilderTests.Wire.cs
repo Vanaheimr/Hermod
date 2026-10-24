@@ -92,10 +92,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             var second = new TextEMailBuilder();
 
+            // Asked twice, Empty is two lists: one each, not one for both.
+            var oneEmpty    = EMailAddressListBuilder.Empty;
+            var otherEmpty  = EMailAddressListBuilder.Empty;
+
             Assert.Multiple(() => {
-                Assert.That(second.To,  Is.Empty, "a list shared by every builder had sent bob@ the next mail too");
-                Assert.That(second.Bcc, Is.Empty);
-                Assert.That(EMailAddressListBuilder.Empty, Is.Not.SameAs(EMailAddressListBuilder.Empty));
+                Assert.That(second.To,   Is.Empty, "a list shared by every builder had sent bob@ the next mail too");
+                Assert.That(second.Bcc,  Is.Empty);
+                Assert.That(otherEmpty,  Is.Not.SameAs(oneEmpty));
             });
 
         }
