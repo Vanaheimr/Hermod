@@ -2675,19 +2675,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Func<HTTPRequest, System.Net.IPAddress?>? ClientAddressOf { get; set; }
 
         /// <summary>
+        /// The address of the client a request comes from: what ClientAddressOf says,
+        /// else the TCP peer's - an IPv4 address that arrived mapped into IPv6 as the
+        /// IPv4 address it is. Null when the peer's address can not be read as one.
+        /// </summary>
+        internal System.Net.IPAddress? ClientAddress(HTTPRequest Request)
+        {
+
+            var address = ClientAddressOf?.Invoke(Request);
+
+            if (address is null && !System.Net.IPAddress.TryParse(Request.RemoteSocket.IPAddress.ToString(), out address))
+                return null;
+
+            return address.IsIPv4MappedToIPv6
+                       ? address.MapToIPv4()
+                       : address;
+
+        }
+
+        /// <summary>
         /// Whom a request is counted against when it guesses passwords: the client's
         /// address - an IPv6 one by its /64, which one host has to itself.
         /// </summary>
         internal String ClientKeyOf(HTTPRequest Request)
         {
 
-            var address = ClientAddressOf?.Invoke(Request);
+            var address = ClientAddress(Request);
 
-            if (address is null && !System.Net.IPAddress.TryParse(Request.RemoteSocket.IPAddress.ToString(), out address))
+            if (address is null)
                 return Request.RemoteSocket.IPAddress.ToString();
-
-            if (address.IsIPv4MappedToIPv6)
-                address = address.MapToIPv4();
 
             if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
             {
@@ -3872,6 +3888,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (TryGetValidAPIKey(Request.API_Key, out var apiKey) &&
                 apiKey is not null &&
+                _APIKeyIsValidFrom(apiKey, Request) &&
                 TryGetUser(apiKey.UserId, out User))
             {
                 return true;
@@ -14449,6 +14466,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Request.API_Key.HasValue &&
                 TryGetAPIKey(Request.API_Key.Value, out var apiKey) &&
                 APIKeyIsValid(apiKey!) &&
+                _APIKeyIsValidFrom(apiKey!, Request) &&
                 TryGetUser(apiKey!.UserId, out var user))
             {
                 return user;
@@ -20220,6 +20238,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 // users is a ConcurrentDictionary, so this reads no lock.
                 users.TryGetValue(APIKey.UserId, out var owner)                  &&
                 CanAuthenticate(owner);
+
+
+        /// <summary>
+        /// Whether the given API key may be used by the client the given request comes
+        /// from: by any client, when the key names no addresses; else only by one of
+        /// those it names.
+        /// </summary>
+        /// <remarks>
+        /// The key's validRemoteIPAddresses were read, kept and written back, and asked
+        /// by nobody: a key bound to the monitoring host opened the door to anybody who
+        /// had it. The client is ClientAddress's - behind a reverse proxy the one the
+        /// proxy says. The address as a whole, not its /64 as the password limits
+        /// count it: a key bound to one host is not bound to that host's neighbours.
+        /// Compared by its bytes, so that a link-local peer's zone does not set it
+        /// apart from the same address written without one; a client whose address
+        /// can not be read uses no key that is bound to addresses.
+        /// </remarks>
+        /// <param name="APIKey">The API key.</param>
+        /// <param name="Request">The request that came with it.</param>
+        protected internal Boolean _APIKeyIsValidFrom(APIKey       APIKey,
+                                                      HTTPRequest  Request)
+        {
+
+            if (!APIKey.ValidRemoteIPAddresses.Any())
+                return true;
+
+            var client = ClientAddress(Request)?.GetAddressBytes();
+
+            if (client is null)
+                return false;
+
+            foreach (var validRemoteIPAddress in APIKey.ValidRemoteIPAddresses)
+            {
+
+                var valid = validRemoteIPAddress.ToDotNet();
+
+                if (valid.IsIPv4MappedToIPv6)
+                    valid = valid.MapToIPv4();
+
+                if (valid.GetAddressBytes().AsSpan().SequenceEqual(client))
+                    return true;
+
+            }
+
+            return false;
+
+        }
 
 
         /// <summary>

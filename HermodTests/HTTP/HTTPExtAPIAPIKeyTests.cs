@@ -560,6 +560,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         #endregion
 
 
+        #region A_Key_Bound_To_Addresses_Opens_The_Door_Only_From_Them()
+
+        /// <summary>
+        /// A key with validRemoteIPAddresses opens the door to a client at one
+        /// of them, and to nobody else - before a restart and after it, and
+        /// behind a reverse proxy by the address the proxy says. It opened it
+        /// to everybody: the addresses were kept and never asked. Beside them
+        /// a key bound to nothing, which opens it from anywhere, and one bound
+        /// to 127.0.0.1 written as IPv4 mapped into IPv6, which is the same
+        /// host.
+        /// </summary>
+        [Test]
+        public async Task A_Key_Bound_To_Addresses_Opens_The_Door_Only_From_Them()
+        {
+
+            var anywhere   = APIKey_Id.Parse("hanks-anywhere-key-0123456789abcdef");
+            var here       = APIKey_Id.Parse("hanks-here-key-0123456789abcdef");
+            var hereMapped = APIKey_Id.Parse("hanks-mapped-key-0123456789abcdef");
+            var elsewhere  = APIKey_Id.Parse("hanks-elsewhere-key-0123456789abcdef");
+            var keys       = new[] { anywhere, here, hereMapped, elsewhere };
+
+            var (server, api, client) = await StartServer();
+
+            Dictionary<APIKey_Id, HttpStatusCode> direct, proxied;
+
+            try
+            {
+
+                var hank = await NewAccount(api, "hank");
+
+                await NewAPIKey(api, new APIKey(anywhere,   hank.Id));
+                await NewAPIKey(api, new APIKey(here,       hank.Id, ValidRemoteIPAddresses: [ Hermod.IPAddress.Parse("127.0.0.1") ]));
+                await NewAPIKey(api, new APIKey(hereMapped, hank.Id, ValidRemoteIPAddresses: [ Hermod.IPAddress.Parse("::ffff:127.0.0.1") ]));
+                await NewAPIKey(api, new APIKey(elsewhere,  hank.Id, ValidRemoteIPAddresses: [ Hermod.IPAddress.Parse("192.0.2.7"), Hermod.IPAddress.Parse("2001:db8::7") ]));
+
+                direct = await StatusWithEachKey(client, keys);
+
+                // Behind a proxy that says the client is 192.0.2.7.
+                api.ClientAddressOf = _ => System.Net.IPAddress.Parse("192.0.2.7");
+
+                proxied = await StatusWithEachKey(client, keys);
+
+            }
+            finally
+            {
+                await Stop(server, client);
+            }
+
+            var (againServer, _, againClient) = await StartServer();
+
+            Dictionary<APIKey_Id, HttpStatusCode> restarted;
+
+            try
+            {
+                restarted = await StatusWithEachKey(againClient, keys);
+            }
+            finally
+            {
+                await Stop(againServer, againClient);
+            }
+
+            Assert.Multiple(() => {
+
+                Assert.That(direct   [anywhere],    Is.EqualTo(HttpStatusCode.OK),            "a key bound to nothing is refused");
+                Assert.That(direct   [here],        Is.EqualTo(HttpStatusCode.OK),            "a key bound to 127.0.0.1 is refused from 127.0.0.1");
+                Assert.That(direct   [hereMapped],  Is.EqualTo(HttpStatusCode.OK),            "a key bound to ::ffff:127.0.0.1 is refused from 127.0.0.1");
+                Assert.That(direct   [elsewhere],   Is.EqualTo(HttpStatusCode.Unauthorized),  "a key bound to 192.0.2.7 and 2001:db8::7 opens the door from 127.0.0.1");
+
+                Assert.That(proxied  [anywhere],    Is.EqualTo(HttpStatusCode.OK),            "behind the proxy, a key bound to nothing is refused");
+                Assert.That(proxied  [here],        Is.EqualTo(HttpStatusCode.Unauthorized),  "behind the proxy, the proxy's own address counts and not the client's");
+                Assert.That(proxied  [elsewhere],   Is.EqualTo(HttpStatusCode.OK),            "behind the proxy, the client it names is refused");
+
+                Assert.That(restarted[here],        Is.EqualTo(HttpStatusCode.OK),            "after a restart a key bound to 127.0.0.1 is refused from 127.0.0.1");
+                Assert.That(restarted[elsewhere],   Is.EqualTo(HttpStatusCode.Unauthorized),  "after a restart a key bound to 192.0.2.7 opens the door from 127.0.0.1");
+
+            });
+
+        }
+
+        #endregion
+
+
         #region (private) Helpers
 
         /// <summary>
@@ -764,6 +846,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             using var response = await Client.SendAsync(request);
 
             return (response.StatusCode, await response.Content.ReadAsStringAsync());
+
+        }
+
+        /// <summary>
+        /// GET users/hank with each of the given API keys and nothing else, and
+        /// what each was answered.
+        /// </summary>
+        private static async Task<Dictionary<APIKey_Id, HttpStatusCode>> StatusWithEachKey(HttpClient                Client,
+                                                                                           IEnumerable<APIKey_Id>    APIKeyIds)
+        {
+
+            var answers = new Dictionary<APIKey_Id, HttpStatusCode>();
+
+            foreach (var apiKeyId in APIKeyIds)
+            {
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, "accounts/users/hank");
+
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                request.Headers.Add("API-Key", apiKeyId.ToString());
+
+                using var response = await Client.SendAsync(request);
+
+                answers[apiKeyId] = response.StatusCode;
+
+            }
+
+            return answers;
 
         }
 
