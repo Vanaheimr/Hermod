@@ -17,6 +17,9 @@
 
 #region Usings
 
+using System.Diagnostics;
+using System.Collections.Concurrent;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
@@ -32,6 +35,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     [TestFixture]
     public class WebSocketChatClientTests : AWebSocketChatServerTests
     {
+
+        #region Data
+
+        /// <summary>
+        /// How long a test waits for the server to have taken on its clients, or for a message to have gone round.
+        /// </summary>
+        private static readonly TimeSpan  Patience  = TimeSpan.FromSeconds(30);
+
+        #endregion
+
+
+        #region (private static) Until(Condition, Expected)
+
+        /// <summary>
+        /// Wait until the condition holds, for as long as the patience allows, and fail with what was expected otherwise.
+        /// </summary>
+        /// <param name="Condition">What is waited for.</param>
+        /// <param name="Expected">What was expected, as it is said when it did not come.</param>
+        private static async Task Until(Func<Boolean>  Condition,
+                                        Func<String>   Expected)
+        {
+
+            var waited = Stopwatch.StartNew();
+
+            while (!Condition() && waited.Elapsed < Patience)
+                await Task.Delay(10);
+
+            Assert.That(Condition(), Is.True, () => $"Waited {Patience.TotalSeconds} seconds for {Expected()}.");
+
+        }
+
+        #endregion
+
 
         #region Test_ChatClients()
 
@@ -51,76 +87,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return;
             }
 
-            var validatedTCP            = new List<String>();
-            var newTCPConnection        = new List<String>();
-            var validatedWebSocket      = new List<String>();
-            var newWebSocketConnection  = new List<String>();
-            var httpRequests            = new List<HTTPRequest>();
-            var httpResponses           = new List<HTTPResponse>();
-            var messageRequests         = new List<WebSocketFrame>();
-            var messageResponses        = new List<WebSocketFrame>();
-            var textMessageRequests     = new List<String>();
-            var textMessageResponses    = new List<String>();
-            var binaryMessageRequests   = new List<Byte[]>();
-            var binaryMessageResponses  = new List<Byte[]>();
+            var validatedTCP            = new ConcurrentQueue<String>();
+            var newTCPConnection        = new ConcurrentQueue<String>();
+            var validatedWebSocket      = new ConcurrentQueue<String>();
+            var newWebSocketConnection  = new ConcurrentQueue<String>();
+            var httpRequests            = new ConcurrentQueue<HTTPRequest>();
+            var httpResponses           = new ConcurrentQueue<HTTPResponse>();
+            var messageRequests         = new ConcurrentQueue<WebSocketFrame>();
+            var messageResponses        = new ConcurrentQueue<WebSocketFrame>();
+            var textMessageRequests     = new ConcurrentQueue<String>();
+            var textMessageResponses    = new ConcurrentQueue<String>();
+            var binaryMessageRequests   = new ConcurrentQueue<Byte[]>();
+            var binaryMessageResponses  = new ConcurrentQueue<Byte[]>();
 
             webSocketChatServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
+                validatedTCP.Enqueue($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketChatServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection.Add($"{newTCPConnection.Count}: {connection.RemoteSocket}");
+                newTCPConnection.Enqueue($"{newTCPConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
 
             webSocketChatServer.OnHTTPRequest                 += (timestamp, server, httpRequest, cancellationToken) => {
-                httpRequests.Add(httpRequest);
+                httpRequests.Enqueue(httpRequest);
                 return Task.CompletedTask;
             };
 
             webSocketChatServer.OnValidateWebSocketConnection += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedWebSocket.Add($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
+                validatedWebSocket.Enqueue($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
                 return Task.FromResult<HTTPResponse?>(null);
             };
 
             webSocketChatServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse, cancellationToken) => {
-                httpResponses.Add(httpResponse);
+                httpResponses.Enqueue(httpResponse);
                 return Task.CompletedTask;
             };
 
             webSocketChatServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, selectedSubprotocol, cancellationToken) => {
-                newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
+                newWebSocketConnection.Enqueue($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
 
             webSocketChatServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame, cancellationToken) => {
-                messageRequests.       Add(requestFrame);
+                messageRequests.       Enqueue(requestFrame);
                 return Task.CompletedTask;
             };
 
             webSocketChatServer.OnWebSocketFrameSent          += (timestamp, server, connection, eventTrackingId, responseFrame, cancellationToken) => {
-                messageResponses.      Add(responseFrame);
+                messageResponses.      Enqueue(responseFrame);
                 return Task.CompletedTask;
             };
 
             //webSocketChatServer.OnTextMessageReceived         += (timestamp, server, connection, frame, eventTrackingId, textMessage, cancellationToken) => {
-            //    textMessageRequests.   Add(textMessage);
+            //    textMessageRequests.   Enqueue(textMessage);
             //    return Task.CompletedTask;
             //};
 
             webSocketChatServer.OnTextMessageSent             += (timestamp, server, connection, frame, eventTrackingId, textMessage, sentStatus, cancellationToken) => {
-                textMessageResponses.  Add(textMessage ?? "-");
+                textMessageResponses.  Enqueue(textMessage ?? "-");
                 return Task.CompletedTask;
             };
 
             //webSocketChatServer.OnBinaryMessageReceived       += (timestamp, server, connection, frame, eventTrackingId, binaryMessage, cancellationToken) => {
-            //    binaryMessageRequests. Add(binaryMessage);
+            //    binaryMessageRequests. Enqueue(binaryMessage);
             //    return Task.CompletedTask;
             //};
 
             webSocketChatServer.OnBinaryMessageSent           += (timestamp, server, connection, frame, eventTrackingId, binaryMessage, sentStatus, cancellationToken) => {
-                binaryMessageResponses.Add(binaryMessage);
+                binaryMessageResponses.Enqueue(binaryMessage);
                 return Task.CompletedTask;
             };
 
@@ -133,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var httpClientResponses     = new List<HTTPResponse>();
             var exceptions              = new List<Exception>();
 
-            var textMessageLogs         = new List<List<String>>();
+            var textMessageLogs         = new List<ConcurrentQueue<String>>();
 
             for (var i = 1; i <= numberOfClients; i++)
             {
@@ -143,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                     var webSocketClient  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{HTTPPort}"));
                     webSocketClients.Add(webSocketClient);
 
-                    var textMessageLog = new List<String>();
+                    var textMessageLog = new ConcurrentQueue<String>();
 
                     webSocketClient.OnTextMessageReceived += (timestamp,
                                                               webSocketClient,
@@ -153,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                                               textMessage,
                                                               cancellationToken) => {
 
-                        textMessageLog.Add(textMessage);
+                        textMessageLog.Enqueue(textMessage);
 
                         return Task.CompletedTask;
 
@@ -177,9 +213,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Check HTTP request
 
-            // Wait a bit, because running multiple tests at once has timing issues!
-            while (newWebSocketConnection.Count < numberOfClients)
-                Thread.Sleep(10);
+            // A client that could not connect is never taken on: that is said here, not waited for.
+            Assert.That(exceptions, Is.Empty, $"{exceptions.Count} of {numberOfClients} clients could not connect: {exceptions.Select(exception => exception.Message).AggregateCSV()}");
+
+            // Wait a bit, because running multiple tests at once has timing issues - but not without
+            // end: a connection the server does not report is a failure the asserts below name.
+            var waited = Stopwatch.StartNew();
+
+            while (newWebSocketConnection.Count < numberOfClients && waited.Elapsed < Patience)
+                await Task.Delay(10);
 
             Assert.That(validatedTCP.          Count, Is.EqualTo(numberOfClients), validatedTCP.          AggregateCSV());
             Assert.That(newTCPConnection.      Count, Is.EqualTo(numberOfClients), newTCPConnection.      AggregateCSV());
@@ -232,27 +274,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             await webSocketClients.ElementAt(0).SendTextMessage("chat::Hello world!");
 
-            do
-            {
-                await Task.Delay(10);
-            }
-            while (textMessageLogs.Any(list => list.Count != 2));
+            await Until(() => textMessageLogs.All(list => list.Count == 2),
+                        () => $"every client to have heard 2 messages, but they heard {textMessageLogs.Select(list => list.Count).AggregateCSV()}");
 
             await webSocketClients.ElementAt(1).SendTextMessage("chat::What has happend?");
 
-            do
-            {
-                await Task.Delay(10);
-            }
-            while (textMessageLogs.Any(list => list.Count != 3));
+            await Until(() => textMessageLogs.All(list => list.Count == 3),
+                        () => $"every client to have heard 3 messages, but they heard {textMessageLogs.Select(list => list.Count).AggregateCSV()}");
 
             await webSocketClients.ElementAt(2).SendTextMessage("chat::Have a nice day!");
 
-            do
-            {
-                await Task.Delay(10);
-            }
-            while (textMessageLogs.Any(list => list.Count != 4));
+            await Until(() => textMessageLogs.All(list => list.Count == 4),
+                        () => $"every client to have heard 4 messages, but they heard {textMessageLogs.Select(list => list.Count).AggregateCSV()}");
 
             #endregion
 

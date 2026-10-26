@@ -17,6 +17,9 @@
 
 #region Usings
 
+using System.Diagnostics;
+using System.Collections.Concurrent;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
@@ -32,6 +35,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
     [TestFixture]
     public class WebSocketClientLoadTests : AWebSocketServerTests
     {
+
+        #region Data
+
+        /// <summary>
+        /// How long a test waits for the server to have taken on its clients, or for a message to have gone round.
+        /// </summary>
+        private static readonly TimeSpan  Patience  = TimeSpan.FromSeconds(30);
+
+        #endregion
+
 
         #region Test_ManyClients()
 
@@ -51,76 +64,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return;
             }
 
-            var validatedTCP            = new List<String>();
-            var newTCPConnection        = new List<String>();
-            var validatedWebSocket      = new List<String>();
-            var newWebSocketConnection  = new List<String>();
-            var httpRequests            = new List<HTTPRequest>();
-            var httpResponses           = new List<HTTPResponse>();
-            var messageRequests         = new List<WebSocketFrame>();
-            var messageResponses        = new List<WebSocketFrame>();
-            var textMessageRequests     = new List<String>();
-            var textMessageResponses    = new List<String>();
-            var binaryMessageRequests   = new List<Byte[]>();
-            var binaryMessageResponses  = new List<Byte[]>();
+            var validatedTCP            = new ConcurrentQueue<String>();
+            var newTCPConnection        = new ConcurrentQueue<String>();
+            var validatedWebSocket      = new ConcurrentQueue<String>();
+            var newWebSocketConnection  = new ConcurrentQueue<String>();
+            var httpRequests            = new ConcurrentQueue<HTTPRequest>();
+            var httpResponses           = new ConcurrentQueue<HTTPResponse>();
+            var messageRequests         = new ConcurrentQueue<WebSocketFrame>();
+            var messageResponses        = new ConcurrentQueue<WebSocketFrame>();
+            var textMessageRequests     = new ConcurrentQueue<String>();
+            var textMessageResponses    = new ConcurrentQueue<String>();
+            var binaryMessageRequests   = new ConcurrentQueue<Byte[]>();
+            var binaryMessageResponses  = new ConcurrentQueue<Byte[]>();
 
             webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
+                validatedTCP.Enqueue($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection.Add($"{newTCPConnection.Count}: {connection.RemoteSocket}");
+                newTCPConnection.Enqueue($"{newTCPConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
 
             webSocketServer.OnHTTPRequest                 += (timestamp, server, httpRequest, cancellationToken) => {
-                httpRequests.Add(httpRequest);
+                httpRequests.Enqueue(httpRequest);
                 return Task.CompletedTask;
             };
 
             webSocketServer.OnValidateWebSocketConnection += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedWebSocket.Add($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
+                validatedWebSocket.Enqueue($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
                 return Task.FromResult<HTTPResponse?>(null);
             };
 
             webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse, cancellationToken) => {
-                httpResponses.Add(httpResponse);
+                httpResponses.Enqueue(httpResponse);
                 return Task.CompletedTask;
             };
 
             webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, selectedSubprotocol, cancellationToken) => {
-                newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
+                newWebSocketConnection.Enqueue($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
 
             webSocketServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame, cancellationToken) => {
-                messageRequests.       Add(requestFrame);
+                messageRequests.       Enqueue(requestFrame);
                 return Task.CompletedTask;
             };
 
             webSocketServer.OnWebSocketFrameSent          += (timestamp, server, connection, eventTrackingId, responseFrame, cancellationToken) => {
-                messageResponses.      Add(responseFrame);
+                messageResponses.      Enqueue(responseFrame);
                 return Task.CompletedTask;
             };
 
             webSocketServer.OnTextMessageReceived         += (timestamp, server, connection, frame, eventTrackingId, textMessage, cancellationToken) => {
-                textMessageRequests.   Add(textMessage);
+                textMessageRequests.   Enqueue(textMessage);
                 return Task.CompletedTask;
             };
 
             webSocketServer.OnTextMessageSent             += (timestamp, server, connection, frame, eventTrackingId, textMessage, sentStatus, cancellationToken) => {
-                textMessageResponses.  Add(textMessage ?? "-");
+                textMessageResponses.  Enqueue(textMessage ?? "-");
                 return Task.CompletedTask;
             };
 
             webSocketServer.OnBinaryMessageReceived       += (timestamp, server, connection, frame, eventTrackingId, binaryMessage, cancellationToken) => {
-                binaryMessageRequests. Add(binaryMessage);
+                binaryMessageRequests. Enqueue(binaryMessage);
                 return Task.CompletedTask;
             };
 
             webSocketServer.OnBinaryMessageSent           += (timestamp, server, connection, frame, eventTrackingId, binaryMessage, sentStatus, cancellationToken) => {
-                binaryMessageResponses.Add(binaryMessage);
+                binaryMessageResponses.Enqueue(binaryMessage);
                 return Task.CompletedTask;
             };
 
@@ -153,9 +166,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Check HTTP request
 
-            // Wait a bit, because running multiple tests at once has timing issues!
-            while (newWebSocketConnection.Count < numberOfClients)
-                Thread.Sleep(10);
+            // A client that could not connect is never taken on: that is said here, not waited for.
+            Assert.That(exceptions, Is.Empty, $"{exceptions.Count} of {numberOfClients} clients could not connect: {exceptions.Select(exception => exception.Message).AggregateCSV()}");
+
+            // Wait a bit, because running multiple tests at once has timing issues - but not without
+            // end: a connection the server does not report is a failure the asserts below name.
+            var waited = Stopwatch.StartNew();
+
+            while (newWebSocketConnection.Count < numberOfClients && waited.Elapsed < Patience)
+                await Task.Delay(10);
 
             Assert.That(validatedTCP.          Count, Is.EqualTo(numberOfClients), validatedTCP.          AggregateCSV());
             Assert.That(newTCPConnection.      Count, Is.EqualTo(numberOfClients), newTCPConnection.      AggregateCSV());
