@@ -846,6 +846,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region VerifySignInPassword(Client, Login, UserId, Password, CancellationToken = default)
+
+        /// <summary>
+        /// Whether a password guessed at a door other than this API's own - an SSH
+        /// server's, say - is the account's, asked as the sign-in asks it: counted
+        /// against the sign-in's own ration of guesses, of the client's address and
+        /// of the login, and verified by one of the same few password verifiers.
+        /// False when it is wrong, when the ration is used up, and when no verifier
+        /// came free in time.
+        /// </summary>
+        /// <remarks>
+        /// The same ration as POST auth/login, not one of its own: both doors guess
+        /// at the same password, and a ration per door would let one client guess
+        /// as many times faster as there are doors.
+        ///
+        /// A login that names no account that may sign in costs a hash all the same,
+        /// so that the time the answer takes does not say whether it does.
+        /// </remarks>
+        /// <param name="Client">The address the guess comes from, or null where it can not be told - then every such guess shares one ration.</param>
+        /// <param name="Login">The login as it was given, which the ration of the account is counted under.</param>
+        /// <param name="UserId">The account the login signs in, or null where it signs in none that may sign in this way.</param>
+        /// <param name="Password">The password guessed.</param>
+        /// <param name="CancellationToken">An optional token to cancel the wait for a password verifier.</param>
+        public async Task<Boolean> VerifySignInPassword(System.Net.IPAddress?  Client,
+                                                        String                 Login,
+                                                        User_Id?               UserId,
+                                                        String                 Password,
+                                                        CancellationToken      CancellationToken   = default)
+        {
+
+            if (RationGuess("auth/login",
+                            Client is not null ? ClientKeyOf(Client) : "unknown",
+                            loginIPRateLimiter,
+                            Login,
+                            loginAccountRateLimiter) is not null)
+            {
+                return false;
+            }
+
+            try
+            {
+                if (!await passwordVerifiers.WaitAsync(DefaultPasswordVerifierWait, CancellationToken))
+                    return false;
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+
+            try
+            {
+
+                if (UserId is User_Id userId)
+                    return Password.Length > 0 && VerifyPassword(userId, Password);
+
+                unknownLoginPassword.Verify(Password);
+                return false;
+
+            }
+            finally
+            {
+                ReleaseAPasswordVerifier();
+            }
+
+        }
+
+        #endregion
+
         #region (private) SessionCookies(User, Session, Request) / ExpiredSessionCookies(Request)
 
         /// <summary>

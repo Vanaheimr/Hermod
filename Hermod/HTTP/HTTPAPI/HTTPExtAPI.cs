@@ -2714,12 +2714,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// address - an IPv6 one by its /64, which one host has to itself.
         /// </summary>
         internal String ClientKeyOf(HTTPRequest Request)
+
+            => ClientAddress(Request) is System.Net.IPAddress address
+                   ? ClientKeyOf(address)
+                   : Request.RemoteSocket.IPAddress.ToString();
+
+        /// <summary>
+        /// Whom a guess from the given address is counted against: the address -
+        /// an IPv6 one by its /64, which one host has to itself.
+        /// </summary>
+        internal static String ClientKeyOf(System.Net.IPAddress Address)
         {
 
-            var address = ClientAddress(Request);
-
-            if (address is null)
-                return Request.RemoteSocket.IPAddress.ToString();
+            var address = Address.IsIPv4MappedToIPv6
+                              ? Address.MapToIPv4()
+                              : Address;
 
             if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
             {
@@ -2737,14 +2746,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                InMemoryTokenBucketRateLimiter     ClientRateLimiter,
                                                                String?                            AccountKey           = null,
                                                                InMemoryTokenBucketRateLimiter?    AccountRateLimiter   = null)
+
+            => RationGuess(Endpoint, ClientKeyOf(Request), ClientRateLimiter, AccountKey, AccountRateLimiter) is RateLimitDecision refused
+                   ? CreateRateLimitResponse(Request, refused)
+                   : null;
+
+        /// <summary>
+        /// Take one guess from the ration of the given client, and of the given
+        /// account where one is named, at the given door. Null when there was one
+        /// to take; otherwise the decision that says how long to wait.
+        /// </summary>
+        private RateLimitDecision? RationGuess(String                            Endpoint,
+                                               String                            ClientKey,
+                                               InMemoryTokenBucketRateLimiter    ClientRateLimiter,
+                                               String?                           AccountKey,
+                                               InMemoryTokenBucketRateLimiter?   AccountRateLimiter)
         {
 
             var clientDecision = ClientRateLimiter.TryAcquire(
-                                     Endpoint + "|ip|" + ClientKeyOf(Request)
+                                     Endpoint + "|ip|" + ClientKey
                                  );
 
             if (!clientDecision.Allowed)
-                return CreateRateLimitResponse(Request, clientDecision);
+                return clientDecision;
 
             if (AccountKey is not null)
             {
@@ -2766,7 +2790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        );
 
                 if (!accountDecision.Allowed)
-                    return CreateRateLimitResponse(Request, accountDecision);
+                    return accountDecision;
 
             }
 
@@ -7860,6 +7884,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #endregion
 
+                                  // The current password asked as POST auth/password asks it, and
+                                  // counted under the same name: per client and per account, with
+                                  // one of the few password verifiers. Without it a session or an
+                                  // API key was a way to guess the password behind it at the speed
+                                  // of the hash (POI3-ISSUES.md S22).
+                                  if (await ConfirmPassword(Request, user, CurrentPassword, "auth/password") is HTTPResponse refused)
+                                      return refused;
 
                                   var result = await ChangePassword(
                                                          user,
@@ -17991,25 +18022,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Verify the given user identification and password.
         /// </summary>
+        /// <remarks>
+        /// The lock is held to look the password up, and not to hash: 600 000
+        /// rounds of PBKDF2 under the lock of all accounts kept every other
+        /// change of every account waiting behind each guess (POI3-ISSUES.md
+        /// S22). A LoginPassword is a value, and the one taken under the lock
+        /// is the one verified.
+        /// </remarks>
         /// <param name="UserId">The unique identification of the user.</param>
         /// <param name="Password">The user's password.</param>
         public Boolean VerifyPassword(User_Id  UserId,
                                       String   Password)
         {
 
+            if (UserId.IsNullOrEmpty ||
+                UserId.Length < MinUserIdLength)
+            {
+                return false;
+            }
+
+            LoginPassword loginPassword;
+
             if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
             {
                 try
                 {
-
-                    return _VerifyPassword(
-                               UserId,
-                               Password
-                           );
-
+                    if (!loginPasswords.TryGetValue(UserId, out loginPassword))
+                        return false;
                 }
                 catch
-                { }
+                {
+                    return false;
+                }
                 finally
                 {
                     try
@@ -18019,10 +18063,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     catch
                     { }
                 }
-
             }
 
-            return false;
+            else
+                return false;
+
+            try
+            {
+                return loginPassword.VerifyPassword(Password);
+            }
+            catch
+            {
+                return false;
+            }
 
         }
 

@@ -408,6 +408,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                                                                                 options.Authenticator,
                                                                                 MaxAuthTries:       options.Limits.MaxAuthTries,
                                                                                 AuditSink:          audit,
+                                                                                Client:             Connection.Peer?.IPAddress.ToDotNet(),
                                                                                 CancellationToken:  grace.Token).ConfigureAwait(false);
 
                     }

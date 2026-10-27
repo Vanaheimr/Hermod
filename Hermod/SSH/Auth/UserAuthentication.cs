@@ -77,6 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="Authenticator">The authentication policy.</param>
         /// <param name="Banner">An optional pre-auth banner (SSH_MSG_USERAUTH_BANNER).</param>
         /// <param name="MaxAuthTries">The maximum number of failed attempts before disconnecting.</param>
+        /// <param name="Client">The address of the client, which a password guess is asked about with; null where it can not be told.</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
         public static async ValueTask<SshAuthResult> ServerAuthenticateAsync(SshTransport           Transport,
                                                                              ISshUserAuthenticator  Authenticator,
@@ -84,6 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                                              Int32                  MaxAuthTries       = 6,
                                                                              ISshAuditSink?         AuditSink          = null,
                                                                              TimeProvider?          TimeProvider       = null,
+                                                                             System.Net.IPAddress?  Client             = null,
                                                                              CancellationToken      CancellationToken  = default)
         {
 
@@ -119,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                 var (succeeded, isQueryOnly) = request.Method switch {
                     PublicKeyMethod            => await EvaluatePublicKeyAsync(Transport, Authenticator, request, CancellationToken).ConfigureAwait(false),
-                    PasswordMethod             => (await Authenticator.AuthorizePasswordAsync(request.Username, request.Password, CancellationToken).ConfigureAwait(false), false),
+                    PasswordMethod             => (await Authenticator.AuthorizePasswordAsync(request.Username, request.Password, Client, CancellationToken).ConfigureAwait(false), false),
                     KeyboardInteractiveMethod  => (await EvaluateKeyboardInteractiveAsync(Transport, Authenticator, request.Username, CancellationToken).ConfigureAwait(false), false),
                     _                          => (false, false)
                 };

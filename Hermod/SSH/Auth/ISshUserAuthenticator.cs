@@ -103,6 +103,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             => ValueTask.FromResult(false);
 
         /// <summary>
+        /// Whether the given password authenticates the user (RFC 4252 §8), guessed from the given
+        /// address — for an authenticator that rations guesses per client, as a password door has to.
+        /// This is what the server asks. Default: the question without the address.
+        /// </summary>
+        /// <param name="Username">The login name.</param>
+        /// <param name="Password">The password guessed.</param>
+        /// <param name="Client">The address of the client, or null where it can not be told.</param>
+        /// <param name="CancellationToken">An optional token to cancel this request.</param>
+        ValueTask<Boolean> AuthorizePasswordAsync(String                 Username,
+                                                  String                 Password,
+                                                  System.Net.IPAddress?  Client,
+                                                  CancellationToken      CancellationToken = default)
+            => AuthorizePasswordAsync(Username, Password, CancellationToken);
+
+        /// <summary>
         /// The keyboard-interactive factor for the user (e.g. a TOTP prompt), or null. Default: none.
         /// </summary>
         ISshKeyboardInteractiveFactor? GetKeyboardInteractive(String Username)
