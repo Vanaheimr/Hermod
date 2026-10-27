@@ -1443,6 +1443,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean                        UseSecureCookies                   { get; }
 
         /// <summary>
+        /// Whether the cookies set in the answer to a request are secure ones,
+        /// asked per request; <see cref="UseSecureCookies"/> for every request
+        /// where it is null.
+        /// </summary>
+        /// <remarks>
+        /// For a server behind a reverse proxy that terminates TLS: every request
+        /// reaches it over plain HTTP, and whether the browser's own leg was HTTPS
+        /// is what the proxy says - for a request from that proxy only. A secure
+        /// cookie set over a leg that was plain HTTP is one the browser drops, and
+        /// a cookie that is not secure over HTTPS is one it would send in the
+        /// clear the moment somebody typed http:// - so neither answer is right
+        /// for every request.
+        /// </remarks>
+        public Func<HTTPRequest, Boolean>?    SecureCookiesFor                   { get; set; }
+
+        /// <summary>
         /// The path attribute of the authentication cookies (default: the root path of this API).
         /// </summary>
         public String                         HTTPCookiePath                     { get; }
@@ -3619,9 +3635,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region             GenerateCookieSettings(Expires)
+        #region             GenerateCookieSettings(Expires, Request = null)
 
-        public String GenerateCookieSettings(DateTimeOffset Expires)
+        /// <summary>
+        /// The attributes of a cookie this API sets: when it expires, where it
+        /// is sent, and whether it is a secure one - for the given request, as
+        /// <see cref="SecureCookiesFor"/> says where it is set, and as
+        /// <see cref="UseSecureCookies"/> says otherwise.
+        /// </summary>
+        /// <param name="Expires">When the cookie expires.</param>
+        /// <param name="Request">The request the cookie is set in the answer to.</param>
+        public String GenerateCookieSettings(DateTimeOffset  Expires,
+                                             HTTPRequest?    Request   = null)
 
             => String.Concat("; Expires=",  Expires.ToRFC1123(),
                              HTTPCookieDomain.IsNotNullOrEmpty()
@@ -3629,9 +3654,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  : String.Empty,
                              "; Path=",     HTTPCookiePath,
                              "; SameSite=strict",
-                             UseSecureCookies
+                             IsSecureCookieFor(Request)
                                  ? "; secure"
                                  : String.Empty);
+
+        /// <summary>
+        /// Whether a cookie set in the answer to the given request is a secure one.
+        /// </summary>
+        /// <param name="Request">The request, or null where it is not known.</param>
+        public Boolean IsSecureCookieFor(HTTPRequest? Request)
+
+            => Request is not null && SecureCookiesFor is not null
+                   ? SecureCookiesFor(Request)
+                   : UseSecureCookies;
 
         #endregion
 
@@ -5316,10 +5351,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                   String.Concat(CookieName,
                                                                 GenerateCookieUserData(validUser),
-                                                                GenerateCookieSettings(expires)),
+                                                                GenerateCookieSettings(expires, Request)),
 
                                                   String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
-                                                                GenerateCookieSettings(expires),
+                                                                GenerateCookieSettings(expires, Request),
                                                                 "; HttpOnly")
 
                                               ),
@@ -7411,10 +7446,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                      String.Concat(CookieName,
                                                                    GenerateCookieUserData(validUser),
-                                                                   GenerateCookieSettings(expires)),
+                                                                   GenerateCookieSettings(expires, request)),
 
                                                      String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
-                                                                   GenerateCookieSettings(expires),
+                                                                   GenerateCookieSettings(expires, request),
                                                                    "; HttpOnly")
 
                                                ),
@@ -7572,10 +7607,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                                    String.Concat(CookieName,
                                                                                  GenerateCookieUserData(userURL, superUser),
-                                                                                 GenerateCookieSettings(expires)),
+                                                                                 GenerateCookieSettings(expires, Request)),
 
                                                                    String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
-                                                                                 GenerateCookieSettings(expires),
+                                                                                 GenerateCookieSettings(expires, Request),
                                                                                  "; HttpOnly")
 
                                                                ),
@@ -7681,10 +7716,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                                    String.Concat(CookieName,
                                                                                  GenerateCookieUserData(superUser),
-                                                                                 GenerateCookieSettings(expires)),
+                                                                                 GenerateCookieSettings(expires, Request)),
 
                                                                    String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
-                                                                                 GenerateCookieSettings(expires),
+                                                                                 GenerateCookieSettings(expires, Request),
                                                                                  "; HttpOnly")
 
                                                                ),

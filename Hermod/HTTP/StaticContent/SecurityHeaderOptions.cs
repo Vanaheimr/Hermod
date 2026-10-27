@@ -78,6 +78,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public String?  StrictTransportSecurity    { get; init; } = null;
 
+        /// <summary>
+        /// Which requests the Strict-Transport-Security is sent to, asked per
+        /// request; every one of them where it is null.
+        /// </summary>
+        /// <remarks>
+        /// For a server behind a reverse proxy that terminates TLS: every request
+        /// reaches it over plain HTTP, and only the proxy knows whether the
+        /// browser's own leg was HTTPS - which is the one leg HSTS speaks of. A
+        /// browser ignores the field over plain HTTP anyway (RFC 6797, 8.1), so
+        /// this is about saying only what is true, not about safety. A response
+        /// built without its request is sent none where this is set.
+        /// </remarks>
+        public Func<HTTPRequest, Boolean>?  StrictTransportSecurityFor  { get; init; } = null;
+
 
         /// <summary>
         /// The default options: a strict same-origin policy without HSTS.
@@ -108,8 +122,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Builder.SetHeaderField("X-Content-Type-Options", "nosniff");
 
-            if (Options?.StrictTransportSecurity is { Length: > 0 } hsts)
+            if (Options?.StrictTransportSecurity is { Length: > 0 } hsts &&
+                (Options.StrictTransportSecurityFor is null ||
+                 (Builder.HTTPRequest is HTTPRequest request && Options.StrictTransportSecurityFor(request))))
+            {
                 Builder.SetHeaderField("Strict-Transport-Security", hsts);
+            }
 
             return Builder;
 

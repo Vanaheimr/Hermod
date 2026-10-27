@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        new HTTPResponse.Builder(Request) {
                            HTTPStatusCode  = HTTPStatusCode.NoContent,
                            CacheControl    = "no-store",
-                           SetCookie       = ExpiredSessionCookies()
+                           SetCookie       = ExpiredSessionCookies(Request)
                        }.WithCommonSecurityHeaders().AsImmutable
                    );
 
@@ -634,7 +634,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Drop a stale cookie, so that the browser stops sending it.
             if (Request.Cookies?.TryGet(SessionCookieName, out _) == true)
-                builder.SetCookie = ExpiredSessionCookies();
+                builder.SetCookie = ExpiredSessionCookies(Request);
 
             Unauthorized = builder.WithCommonSecurityHeaders().AsImmutable;
             return false;
@@ -767,7 +767,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                    Content         = MeJSON(User, Session).ToString(Formatting.None).ToUTF8Bytes(),
                    CacheControl    = "no-store",
-                   SetCookie       = SessionCookies(User, Session)
+                   SetCookie       = SessionCookies(User, Session, Request)
                }.WithCommonSecurityHeaders().AsImmutable;
 
         #endregion
@@ -846,32 +846,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (private) SessionCookies(User, Session) / ExpiredSessionCookies()
+        #region (private) SessionCookies(User, Session, Request) / ExpiredSessionCookies(Request)
 
         /// <summary>
         /// The two cookies of a sign-in: the readable account data and the
-        /// HttpOnly session token, both with the settings of the HTML sign-in.
+        /// HttpOnly session token, both with the settings of the HTML sign-in
+        /// - secure ones where the request is answered with secure cookies.
         /// </summary>
-        private HTTPCookies SessionCookies(IUser    User,
-                                           Session  Session)
+        private HTTPCookies SessionCookies(IUser        User,
+                                           Session      Session,
+                                           HTTPRequest  Request)
 
             => HTTPCookies.Parse(
                    String.Concat(CookieName,
                                  GenerateCookieUserData(User),
-                                 GenerateCookieSettings(Session.ExpiresAt)),
+                                 GenerateCookieSettings(Session.ExpiresAt, Request)),
                    String.Concat(SessionCookieName, "=", Session.Token.ToString(),
-                                 GenerateCookieSettings(Session.ExpiresAt),
+                                 GenerateCookieSettings(Session.ExpiresAt, Request),
                                  "; HttpOnly")
                );
 
         /// <summary>
         /// Both cookies with an expiry in the past, so that the browser drops them.
         /// </summary>
-        private HTTPCookies ExpiredSessionCookies()
+        private HTTPCookies ExpiredSessionCookies(HTTPRequest Request)
 
             => HTTPCookies.Parse(
-                   String.Concat(CookieName,        "=", GenerateCookieSettings(DateTimeOffset.UnixEpoch)),
-                   String.Concat(SessionCookieName, "=", GenerateCookieSettings(DateTimeOffset.UnixEpoch), "; HttpOnly")
+                   String.Concat(CookieName,        "=", GenerateCookieSettings(DateTimeOffset.UnixEpoch, Request)),
+                   String.Concat(SessionCookieName, "=", GenerateCookieSettings(DateTimeOffset.UnixEpoch, Request), "; HttpOnly")
                );
 
         #endregion
