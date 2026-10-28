@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-10-04**
+Last verified: **2026-10-28**
 
 ## Support levels
 
@@ -198,9 +198,10 @@ deleted. No behaviour changed - the risk in a move like this is losing an
 overload, which breaks a caller in another repository at compile time and would
 never show up here, so `HTTPStandardHandlersTests` pins all eleven entry points
 and that each is still an extension method. Four of the eleven had a caller in
-the test suite then, and `MapFileSystemFolder` on `HTTPAPI` has had one since
-(below); the other six do not, including all three on `HTTPExtAPI` - their
-signatures are pinned, the serving behind them is not exercised.
+the test suite then, and `MapFileSystemFolder` has had one since, on `HTTPAPI`
+and on `HTTPExtAPI` (below); the other five do not, including the other two on
+`HTTPExtAPI` - their signatures are pinned, the serving behind them is not
+exercised.
 
 `MapFileSystemFolder` keeps to its root since 2026-10-04. Its guard was
 `Path.Combine(root, path)` followed by `GetFullPath(...).StartsWith(root)`, and
@@ -221,6 +222,16 @@ now, and an unexpected exception goes to `HTTPStandardHandlers.Logger` rather
 than to the client. A relative `ResourcePath` refused every file.
 `MapFileSystemFolderTests` sends each of these as a raw request and also pins
 the parser's refusal of dot-segments, which the guard relies on.
+
+The folder's own URL serves its `DefaultFilename` since 2026-10-28. Both
+overloads registered only `URLTemplate/{ResourceName..}`, so `/files` and
+`/files/` had no route and answered `405`, and the `DefaultFilename` parameter
+was never reached by a request. They now register the template itself as well,
+as `MapResourceAssemblyFolder` always has, with the same handler. On
+`HTTPExtAPI` that includes the same authentication, so the folder's index is
+not the one file served without it. A folder without its `DefaultFilename` is a
+`404` like any other miss. A subdirectory's URL is still a `404` rather than its
+own index: directory listings and per-directory defaults are the application's.
 `RegisterFileSystemFile` has no root to keep to - it opens whatever its
 `ResourceFilenameBuilder` returns - so confining that is the caller's job, as
 its documentation now says.
