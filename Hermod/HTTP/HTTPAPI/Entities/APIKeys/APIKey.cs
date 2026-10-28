@@ -42,6 +42,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/UsersAPI/APIKey");
 
+        /// <summary>
+        /// How many characters of the key its hint keeps.
+        /// </summary>
+        public const Int32 HintLength = 6;
+
         #endregion
 
         #region Properties
@@ -145,6 +150,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public Boolean                  IsDisabled                  { get; }
 
+        /// <summary>
+        /// The first characters of the key itself, to tell it apart: the key is kept as its SHA-256 alone, its
+        /// identification (APIKey_Id.Of).
+        /// </summary>
+        public String?                  Hint                        { get; }
+
         #endregion
 
         #region Constructor(s)
@@ -167,6 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="JSONLDContext">The JSON-LD context of this user.</param>
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="LastChange">The timestamp of the last changes within this user. Can e.g. be used as a HTTP ETag.</param>
+        /// <param name="Hint">The first characters of the key itself, to tell it apart.</param>
         public APIKey(APIKey_Id                 Id,
                       User_Id                   UserId,
 
@@ -181,7 +193,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                       CustomDataNew?            CustomData               = default,
                       JSONLDContext?            JSONLDContext            = default,
                       String?                   DataSource               = default,
-                      DateTimeOffset?           LastChange               = default)
+                      DateTimeOffset?           LastChange               = default,
+                      String?                   Hint                     = default)
 
             : base(Id,
                    JSONLDContext ?? DefaultJSONLDContext,
@@ -204,8 +217,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                ? ValidRemoteIPAddresses.Distinct().ToArray()
                                                : [];
             this.IsDisabled              = IsDisabled  ?? false;
+            this.Hint                    = Hint;
 
         }
+
+        #endregion
+
+
+        #region (static) HintOf(Key)
+
+        /// <summary>
+        /// The hint of the given API key: its first characters.
+        /// </summary>
+        /// <param name="Key">The API key itself.</param>
+        public static String HintOf(String Key)
+
+            => Key.Length > HintLength
+                   ? Key[..HintLength]
+                   : Key;
+
+        #endregion
+
+        #region AsKept()
+
+        /// <summary>
+        /// This API key as it is kept, where its identification is the key itself, as a client hands it in: the
+        /// SHA-256 of the key (APIKey_Id.Of) takes its place, and its first characters are its hint. Whoever reads
+        /// what is kept can not sign in with it.
+        /// </summary>
+        public APIKey AsKept()
+
+            => new (APIKey_Id.Of(Id),
+                    UserId,
+                    Description,
+                    AccessRights,
+                    Created,
+                    NotBefore,
+                    NotAfter,
+                    ValidRemoteIPAddresses,
+                    IsDisabled,
+
+                    CustomData,
+                    JSONLDContext,
+                    DataSource,
+                    LastChangeDate,
+                    HintOf(Id.ToString()));
 
         #endregion
 
@@ -386,6 +442,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
+                #region Parse Hint                      [optional]
+
+                var Hint = JSON["hint"]?.Value<String>();
+
+                #endregion
+
                 #region Parse CryptoHash                [optional]
 
                 var CryptoHash       = JSON.GetOptional("cryptoHash");
@@ -401,7 +463,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     NotBefore,
                                     NotAfter,
                                     ValidRemoteIPAddresses,
-                                    IsDisabled);
+                                    IsDisabled,
+                                    Hint: Hint);
 
                 ErrorResponse = null;
                 return true;
@@ -468,6 +531,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                        IsDisabled
                                            ? new JProperty("isDisabled",              IsDisabled)
+                                           : null,
+
+                                       Hint is not null
+                                           ? new JProperty("hint",                    Hint)
                                            : null
 
                                    });
@@ -502,7 +569,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    CustomData,
                    JSONLDContext,
                    DataSource,
-                   LastChangeDate
+                   LastChangeDate,
+                   Hint
                );
 
         #endregion
@@ -739,7 +807,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    CustomData,
                    JSONLDContext,
                    DataSource,
-                   LastChangeDate
+                   LastChangeDate,
+                   Hint
                );
 
         #endregion
@@ -794,6 +863,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public Boolean?             IsDisabled                { get; set; }
 
+            /// <summary>
+            /// The first characters of the key itself, to tell it apart.
+            /// </summary>
+            public String?              Hint                      { get; set; }
+
 
             /// <summary>
             /// The hash value of this object.
@@ -822,6 +896,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="JSONLDContext">The JSON-LD context of this API key.</param>
             /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
             /// <param name="LastChange">The timestamp of the last changes within this API key. Can e.g. be used as a HTTP ETag.</param>
+            /// <param name="Hint">The first characters of the key itself, to tell it apart.</param>
             public Builder(APIKey_Id                 Id,
                            User_Id                   UserId,
                            I18NString?               Description              = null,
@@ -835,7 +910,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            CustomDataNew?            CustomData               = null,
                            JSONLDContext?            JSONLDContext            = null,
                            String?                   DataSource               = null,
-                           DateTimeOffset?           LastChange               = null)
+                           DateTimeOffset?           LastChange               = null,
+                           String?                   Hint                     = null)
 
                 : base(Id,
                        JSONLDContext ?? DefaultJSONLDContext,
@@ -856,6 +932,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.NotAfter                = NotAfter;
                 this.ValidRemoteIPAddresses  = ValidRemoteIPAddresses.SafeAny() ? new HashSet<IIPAddress>(ValidRemoteIPAddresses) : new HashSet<IIPAddress>();
                 this.IsDisabled              = IsDisabled  ?? false;
+                this.Hint                    = Hint;
 
             }
 
@@ -914,7 +991,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                CustomData,
                                JSONLDContext,
                                DataSource,
-                               LastChangeDate
+                               LastChangeDate,
+                               Hint
                            );
 
                 }

@@ -90,6 +90,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         #endregion
 
 
+        #region An_API_Key_Is_Kept_As_Its_Hash_Alone()
+
+        /// <summary>
+        /// An API key is kept, in memory and in the database file, as the SHA-256 of the key with a hint of its first
+        /// characters, never as the key (POI3-ISSUES.md S20): whoever reads the file can not sign in with what is there.
+        /// The key opens the door, its hash does not, and the key itself is not taken to be kept.
+        /// </summary>
+        [Test]
+        public async Task An_API_Key_Is_Kept_As_Its_Hash_Alone()
+        {
+
+            var api       = await StartAPI();
+            var alice     = await NewUser(api, "alice");
+            var key       = APIKey_Id.Parse("alices-secret-key-0123456789abcdef");
+
+            var raw       = await api.AddAPIKey(new APIKey(key, alice.Id));
+            var keyId     = await NewAPIKey(api, new APIKey(key, alice.Id));
+            var held      = HeldKey(api, keyId);
+            var file      = File.ReadAllText(api.DatabaseFileName);
+            var restarted = await StartAPI();
+
+            Assert.Multiple(() => {
+
+                Assert.That(raw.Result,                       Is.EqualTo(CommandResult.ArgumentError),  "the key itself was taken to be kept");
+
+                Assert.That(held.Id,                          Is.EqualTo(APIKey_Id.Of(key)));
+                Assert.That(held.Id.IsHash,                   Is.True);
+                Assert.That(held.Hint,                        Is.EqualTo("alices"));
+
+                Assert.That(file,                             Does.Not.Contain(key.ToString()),          "the key is in the database file");
+                Assert.That(file,                             Does.Contain(APIKey_Id.Of(key).ToString()));
+
+                Assert.That(KeyedInAs(api, key),              Is.EqualTo("alice"));
+                Assert.That(KeyedInAs(api, held.Id),          Is.Null,                                   "the hash opens the door");
+                Assert.That(KeyedInAs(restarted, key),        Is.EqualTo("alice"),                       "the next start lost the key");
+                Assert.That(HeldKey(restarted, key).Hint,     Is.EqualTo("alices"),                      "the next start lost the hint");
+
+            });
+
+        }
+
+        #endregion
+
         #region An_Expired_Key_Stays_Expired_After_A_Restart()
 
         /// <summary>
@@ -256,13 +299,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(removed.Result, Is.EqualTo(CommandResult.Success), removed.Description.FirstText());
 
             Assert.Multiple(() => {
-                Assert.That(restarted.TryGetAPIKey(keyId, out _),  Is.False,  "the removed key is still there");
+                Assert.That(restarted.TryGetAPIKey(APIKey_Id.Of(keyId), out _),  Is.False,  "the removed key is still there");
                 Assert.That(KeyedInAs(restarted, keyId),           Is.Null,   "the removed key still opens the door");
             });
 
             var once_more  = await StartAPI();
 
-            Assert.That(once_more.TryGetAPIKey(keyId, out _), Is.False, "the next start brought the removed key back");
+            Assert.That(once_more.TryGetAPIKey(APIKey_Id.Of(keyId), out _), Is.False, "the next start brought the removed key back");
 
         }
 
@@ -288,9 +331,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var addedIfNew      = APIKey_Id.Parse("added-if-new-key-0123456789abcdef");
             var addedOrUpdated  = APIKey_Id.Parse("added-or-updated-key-0123456789abcdef");
 
-            Assert.That((await api.AddAPIKeyIfNotExists(new APIKey(addedIfNew,      alice.Id))).Result,                                           Is.EqualTo(CommandResult.Success));
-            Assert.That((await api.AddOrUpdateAPIKey   (new APIKey(addedOrUpdated,  alice.Id))).Result,                                           Is.EqualTo(CommandResult.Success));
-            Assert.That((await api.AddOrUpdateAPIKey   (new APIKey(replaced,        alice.Id, Description: I18NString.Create("replaced")))).Result,  Is.EqualTo(CommandResult.Success));
+            Assert.That((await api.AddAPIKeyIfNotExists(new APIKey(addedIfNew,      alice.Id).AsKept())).Result,                                           Is.EqualTo(CommandResult.Success));
+            Assert.That((await api.AddOrUpdateAPIKey   (new APIKey(addedOrUpdated,  alice.Id).AsKept())).Result,                                           Is.EqualTo(CommandResult.Success));
+            Assert.That((await api.AddOrUpdateAPIKey   (new APIKey(replaced,        alice.Id, Description: I18NString.Create("replaced")).AsKept())).Result,  Is.EqualTo(CommandResult.Success));
 
             await Rename(api, renamed, "renamed");
 
@@ -332,7 +375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(removed.Result, Is.EqualTo(CommandResult.Success), removed.Description.FirstText());
 
             Assert.Multiple(() => {
-                Assert.That(api.TryGetAPIKey(keyId, out _),  Is.False,  "the removed key is still there");
+                Assert.That(api.TryGetAPIKey(APIKey_Id.Of(keyId), out _),  Is.False,  "the removed key is still there");
                 Assert.That(KeyedInAs(api, keyId),           Is.Null,   "the removed key still opens the door");
             });
 
@@ -378,7 +421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 Assert.Multiple(() => {
                     Assert.That(status,                        Is.EqualTo(HttpStatusCode.OK),  body);
-                    Assert.That(api.TryGetAPIKey(keyId, out _),  Is.False,                       "revoked, said the route, and the key is still there");
+                    Assert.That(api.TryGetAPIKey(APIKey_Id.Of(keyId), out _),  Is.False,                       "revoked, said the route, and the key is still there");
                     Assert.That(KeyedInAs(api, keyId),           Is.Null,                        "revoked, said the route, and the key still opens the door");
                 });
 
@@ -390,7 +433,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var once_more = await StartAPI();
 
-            Assert.That(once_more.TryGetAPIKey(keyId, out _), Is.False, "the next start brought the revoked key back");
+            Assert.That(once_more.TryGetAPIKey(APIKey_Id.Of(keyId), out _), Is.False, "the next start brought the revoked key back");
 
         }
 
@@ -416,15 +459,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 var hank   = await NewAccount(api, "hank");
                 var keyId  = APIKey_Id.Parse("hanks-key-0123456789abcdef");
 
-                Assert.That(api.apiKeys.TryAdd(keyId, new APIKey(keyId, hank.Id)),  Is.True);
-                Assert.That(KeyedInAs(api, keyId),                                   Is.EqualTo("hank"));
+                var kept   = new APIKey(keyId, hank.Id).AsKept();
+
+                Assert.That(api.apiKeys.TryAdd(kept.Id, kept),  Is.True);
+                Assert.That(KeyedInAs(api, keyId),              Is.EqualTo("hank"));
 
                 var (status, body) = await Revoke(client, "hank", keyId);
 
                 Assert.Multiple(() => {
                     Assert.That(status,                        Is.EqualTo(HttpStatusCode.FailedDependency),  "revoked, says the route: " + body);
                     Assert.That(body,                          Does.Contain("not attached"),                 "the answer does not say why");
-                    Assert.That(api.TryGetAPIKey(keyId, out _),  Is.True);
+                    Assert.That(api.TryGetAPIKey(APIKey_Id.Of(keyId), out _),  Is.True);
                     Assert.That(KeyedInAs(api, keyId),           Is.EqualTo("hank"));
                 });
 
@@ -452,7 +497,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var keyId                  = APIKey_Id.Parse("hanks-key-0123456789abcdef");
-            var path                   = $"users/hank/APIKeys/{keyId}";
+            var path                   = $"users/hank/APIKeys/{APIKey_Id.Of(keyId)}";
             var (server, api, client)  = await StartServer();
 
             try
@@ -475,7 +520,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 var byKim    = await Send(client, "SET", "kim",  path, new JObject(new JProperty("isDisabled", true)));
                 var unsaid   = await Send(client, "SET", "hank", path, new JObject());
                 var unknown  = await Send(client, "SET", "hank", "users/hank/APIKeys/nobodys-key-0123456789abcdef", new JObject(new JProperty("isDisabled", true)));
-                var notHanks = await Send(client, "SET", "hank", $"users/hank/APIKeys/{kims}",                       new JObject(new JProperty("isDisabled", true)));
+                var notHanks = await Send(client, "SET", "hank", $"users/hank/APIKeys/{APIKey_Id.Of(kims)}",         new JObject(new JProperty("isDisabled", true)));
 
                 Assert.Multiple(() => {
                     Assert.That(off.Status,                                     Is.EqualTo(HttpStatusCode.OK),          off.Body);
@@ -756,11 +801,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
+        /// <summary>
+        /// Add the given API key, whose identification is the key itself, as it is kept: by the SHA-256 of the key.
+        /// The key itself is returned, to present it.
+        /// </summary>
         private static async Task<APIKey_Id> NewAPIKey(HTTPExtAPI  API,
                                                        APIKey      APIKey)
         {
 
-            var added = await API.AddAPIKey(APIKey);
+            var added = await API.AddAPIKey(APIKey.AsKept());
 
             Assert.That(added.Result, Is.EqualTo(CommandResult.Success), added.Description.FirstText());
 
@@ -769,13 +818,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         /// <summary>
-        /// The API key the given API holds under the given identification.
+        /// The API key the given API holds for the given key: under its SHA-256.
         /// </summary>
         private static APIKey HeldKey(HTTPExtAPI  API,
                                       APIKey_Id   APIKeyId)
         {
 
-            Assert.That(API.TryGetAPIKey(APIKeyId, out var apiKey) && apiKey is not null, Is.True, $"There is no API key '{APIKeyId}'.");
+            Assert.That(API.TryGetAPIKey(APIKey_Id.Of(APIKeyId), out var apiKey) && apiKey is not null, Is.True, $"There is no API key '{APIKeyId}'.");
 
             return apiKey!;
 
@@ -808,7 +857,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                                APIKey_Id   APIKeyId)
         {
 
-            using var request = new HttpRequestMessage(HttpMethod.Delete, $"accounts/users/{UserId}/APIKeys/{APIKeyId}");
+            using var request = new HttpRequestMessage(HttpMethod.Delete, $"accounts/users/{UserId}/APIKeys/{APIKey_Id.Of(APIKeyId)}");
 
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Headers.Authorization = new AuthenticationHeaderValue(

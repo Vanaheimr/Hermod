@@ -2021,12 +2021,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 var keyId = APIKey_Id.Parse("hanks-first-key-0123456789abcdef");
 
-                Assert.That((await api.AddAPIKey(new APIKey(keyId, User_Id.Parse("hank")))).Result,  Is.EqualTo(CommandResult.Success));
-                Assert.That(api.TryGetAPIKey(keyId, out _),  Is.True);
+                Assert.That((await api.AddAPIKey(new APIKey(keyId, User_Id.Parse("hank")).AsKept())).Result,  Is.EqualTo(CommandResult.Success));
+                Assert.That(api.TryGetAPIKey(APIKey_Id.Of(keyId), out _),  Is.True);
 
-                Assert.That((await browser.Call(HttpMethod.Delete, "accounts/users/hank/APIKeys/no-such-key")).Status,      Is.EqualTo(HttpStatusCode.NotFound),  browser.LastBody);
-                Assert.That((await browser.Call(HttpMethod.Delete, "accounts/users/hank/APIKeys/hanks-first-key-0123456789abcdef")).Status,  Is.EqualTo(HttpStatusCode.OK),        browser.LastBody);
-                Assert.That(api.TryGetAPIKey(keyId, out _),  Is.False);
+                Assert.That((await browser.Call(HttpMethod.Delete, "accounts/users/hank/APIKeys/no-such-key")).Status,              Is.EqualTo(HttpStatusCode.NotFound),  browser.LastBody);
+                Assert.That((await browser.Call(HttpMethod.Delete, $"accounts/users/hank/APIKeys/{APIKey_Id.Of(keyId)}")).Status,  Is.EqualTo(HttpStatusCode.OK),        browser.LastBody);
+                Assert.That(api.TryGetAPIKey(APIKey_Id.Of(keyId), out _),  Is.False);
 
             }
             finally
@@ -2126,7 +2126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 var keyId = APIKey_Id.Parse("ivans-only-key-0123456789abcdef");
 
-                Assert.That((await api.AddAPIKey(new APIKey(keyId, User_Id.Parse("ivan")))).Result,  Is.EqualTo(CommandResult.Success));
+                Assert.That((await api.AddAPIKey(new APIKey(keyId, User_Id.Parse("ivan")).AsKept())).Result,  Is.EqualTo(CommandResult.Success));
 
                 async Task<HttpStatusCode> WithBasicAuth()
                 {

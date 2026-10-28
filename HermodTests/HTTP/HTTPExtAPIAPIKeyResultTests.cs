@@ -111,26 +111,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 var (status, body) = await AddOverHTTP(client, cookies, "hank", KeyJSON(keyId.ToString(), "hank", "readOnly"));
 
-                Assert.That(status,                              Is.EqualTo(HttpStatusCode.OK),  body);
-                Assert.That(api.GetAPIKey(keyId)?.AccessRights,  Is.EqualTo(APIKeyRights.ReadOnly));
+                Assert.That(status,                                          Is.EqualTo(HttpStatusCode.OK),  body);
+                Assert.That(api.GetAPIKey(APIKey_Id.Of(keyId))?.AccessRights,  Is.EqualTo(APIKeyRights.ReadOnly));
+
+                // Kept as its SHA-256 with a hint, and so answered: the client has the key itself.
+                Assert.Multiple(() => {
+                    Assert.That(body,                                        Does.Not.Contain(keyId.ToString()));
+                    Assert.That(body,                                        Does.Contain(APIKey_Id.Of(keyId).ToString()));
+                    Assert.That(api.GetAPIKey(APIKey_Id.Of(keyId))?.Hint,    Is.EqualTo("hanks-"));
+                });
 
                 // The same key again, asking for more: the API holds that key
                 // already, and keeps it as it was.
                 (status, body) = await AddOverHTTP(client, cookies, "hank", KeyJSON(keyId.ToString(), "hank", "readWrite"));
 
                 Assert.Multiple(() => {
-                    Assert.That(status,                              Is.EqualTo(HttpStatusCode.Conflict),  body);
-                    Assert.That(DescriptionIn(body),                 Does.Contain("already exists"));
-                    Assert.That(api.GetAPIKey(keyId)?.AccessRights,  Is.EqualTo(APIKeyRights.ReadOnly));
+                    Assert.That(status,                                            Is.EqualTo(HttpStatusCode.Conflict),  body);
+                    Assert.That(DescriptionIn(body),                               Does.Contain("exists already"));
+                    Assert.That(api.GetAPIKey(APIKey_Id.Of(keyId))?.AccessRights,  Is.EqualTo(APIKeyRights.ReadOnly));
                 });
 
-                // Shorter than MinAPIKeyLength: AddAPIKey refuses it, and the answer says why.
+                // Shorter than MinAPIKeyLength: the route refuses it, and the answer says why.
                 (status, body) = await AddOverHTTP(client, cookies, "hank", KeyJSON("hanks-short-key", "hank", "readOnly"));
 
                 Assert.Multiple(() => {
                     Assert.That(status,                                                          Is.EqualTo(HttpStatusCode.BadRequest),  body);
-                    Assert.That(DescriptionIn(body),                                             Does.Contain("too short"));
-                    Assert.That(api.TryGetAPIKey(APIKey_Id.Parse("hanks-short-key"), out _),    Is.False);
+                    Assert.That(DescriptionIn(body),                                                         Does.Contain("at least 20 characters"));
+                    Assert.That(api.TryGetAPIKey(APIKey_Id.Of(APIKey_Id.Parse("hanks-short-key")), out _),  Is.False);
                 });
 
             }
@@ -167,8 +174,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var valid    = new APIKey(APIKey_Id.Parse("alices-valid-key-0123456789abcdef"),    alice.Id);
             var expired  = new APIKey(APIKey_Id.Parse("alices-expired-key-0123456789abcdef"),  alice.Id, NotAfter: DateTimeOffset.UtcNow.AddDays(-1));
 
-            Assert.That((await api.AddAPIKey(valid)).  Result,  Is.EqualTo(CommandResult.Success));
-            Assert.That((await api.AddAPIKey(expired)).Result,  Is.EqualTo(CommandResult.Success));
+            Assert.That((await api.AddAPIKey(valid.  AsKept())).Result,  Is.EqualTo(CommandResult.Success));
+            Assert.That((await api.AddAPIKey(expired.AsKept())).Result,  Is.EqualTo(CommandResult.Success));
 
             var stopwatch  = Stopwatch.StartNew();
             var found      = api.GetValidAPIKeysForUser(alice).Select(apiKey => apiKey.Id.ToString()).ToArray();
@@ -176,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             stopwatch.Stop();
 
             Assert.Multiple(() => {
-                Assert.That(found,              Is.EqualTo(new[] { "alices-valid-key-0123456789abcdef" }),  "the valid key, and only that one");
+                Assert.That(found,              Is.EqualTo(new[] { APIKey_Id.Of("alices-valid-key-0123456789abcdef").ToString() }),  "the valid key, and only that one");
                 Assert.That(stopwatch.Elapsed,  Is.LessThan(TimeSpan.FromSeconds(5)),                       "waited for the lock it held itself");
             });
 
@@ -198,15 +205,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var alice  = await NewUser(api, "alice");
             var keyId  = APIKey_Id.Parse("alices-only-key-0123456789abcdef");
 
-            Assert.That((await api.AddAPIKey(new APIKey(keyId, alice.Id))).Result,  Is.EqualTo(CommandResult.Success));
+            Assert.That((await api.AddAPIKey(new APIKey(keyId, alice.Id).AsKept())).Result,  Is.EqualTo(CommandResult.Success));
 
-            var updated = await api.UpdateAPIKey(api.GetAPIKey(keyId)!,
+            var updated = await api.UpdateAPIKey(api.GetAPIKey(APIKey_Id.Of(keyId))!,
                                                  builder => builder.IsDisabled = true);
 
             Assert.That(updated.Result,  Is.EqualTo(CommandResult.Success),  updated.Description.FirstText());
 
             Assert.Multiple(() => {
-                Assert.That(updated.APIKey,              Is.SameAs(api.GetAPIKey(keyId)),  "the result holds a key the API no longer holds");
+                Assert.That(updated.APIKey,              Is.SameAs(api.GetAPIKey(APIKey_Id.Of(keyId))),  "the result holds a key the API no longer holds");
                 Assert.That(updated.APIKey?.IsDisabled,  Is.True,                           "the result holds the key as it was before the update");
             });
 

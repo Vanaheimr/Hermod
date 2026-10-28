@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var restarted = await StartAPI();
 
             Assert.Multiple(() => {
-                Assert.That(restarted.TryGetAPIKey(alicesKey, out _),  Is.False,           "the next start brought the deleted account's API key back");
+                Assert.That(restarted.TryGetAPIKey(APIKey_Id.Of(alicesKey), out _),  Is.False,           "the next start brought the deleted account's API key back");
                 Assert.That(KeyedInAs(restarted, alicesKey),           Is.Null);
                 Assert.That(KeyedInAs(restarted, alicesOther),         Is.Null);
                 Assert.That(KeyedInAs(restarted, bobsKey),             Is.EqualTo("bob"),  "the next start lost somebody else's API key");
@@ -562,7 +562,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var apiKeyId  = APIKey_Id.Parse(Id);
-            var added     = await API.AddAPIKey(new APIKey(apiKeyId, User.Id));
+            var added     = await API.AddAPIKey(new APIKey(apiKeyId, User.Id).AsKept());
 
             Assert.That(added.Result, Is.EqualTo(CommandResult.Success), added.Description.FirstText());
 

@@ -1344,6 +1344,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public  const              Byte                                          DefaultMinUserNameLength                = 3;
         public  const              Byte                                          DefaultMinUserGroupIdLength             = 4;
         public  const              UInt16                                        DefaultMinAPIKeyLength                  = 20;
+        // An API key is kept as its SHA-256 alone: one added as the key itself
+        // would stay on the disk as it is, and no request could present it.
+        private static readonly    I18NString                                    NotKeptAsHash                           = "An API key is kept as the SHA-256 of the key: add APIKey.AsKept(), not the key itself!".ToI18NString();
         // Three, because an organization is often called by its initials - a
         // "PKI", a "CPO", an "MSP" - and its identifier is no secret either.
         public  const              Byte                                          DefaultMinOrganizationIdLength          = 3;
@@ -8673,6 +8676,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #endregion
 
+                                  #region The key itself is kept as its hash alone
+
+                                  // The client sends the key itself as "@id"; from here on it is kept and named as its
+                                  // SHA-256, with its first characters as its hint, and answered so: the client has it.
+                                  if (apiKey.Id.Length < MinAPIKeyLength)
+                                  {
+
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                 Server                     = HTTPServer?.HTTPServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = [ HTTPMethod.ADD, HTTPMethod.GET ],
+                                                 AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+                                                                                  new JProperty("description", $"An API key has at least {MinAPIKeyLength} characters!")
+                                                                              ).ToUTF8Bytes()
+                                             }.AsImmutable;
+
+                                  }
+
+                                  apiKey = apiKey.AsKept();
+
+                                  #endregion
+
 
                                   #region Validate user
 
@@ -8718,7 +8747,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
-                                                                                  new JProperty("description", $"APIKey identification '{apiKey.Id}' already exists!")
+                                                                                  new JProperty("description", $"The API key '{apiKey.Hint}...' exists already!")
                                                                               ).ToUTF8Bytes(),
                                                  Connection                 = ConnectionType.KeepAlive,
                                                  Vary                       = "Accept"
@@ -14530,7 +14559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (Request.API_Key.HasValue &&
-                TryGetAPIKey(Request.API_Key.Value, out var apiKey) &&
+                TryGetAPIKey(APIKey_Id.Of(Request.API_Key.Value), out var apiKey) &&
                 APIKeyIsValid(apiKey!) &&
                 _APIKeyIsValidFrom(apiKey!, Request) &&
                 TryGetUser(apiKey!.UserId, out var user))
@@ -19276,10 +19305,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (APIKey.Id.Length < MinAPIKeyLength)
+            if (!APIKey.Id.IsHash)
                 return AddAPIKeyResult.ArgumentError(
                            APIKey,
-                           $"APIKey identification '{APIKey.Id}' is too short!".ToI18NString(),
+                           NotKeptAsHash,
                            eventTrackingId,
                            SystemId,
                            this
@@ -19427,10 +19456,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (APIKey.Id.Length < MinAPIKeyLength)
+            if (!APIKey.Id.IsHash)
                 return AddAPIKeyResult.ArgumentError(
                            APIKey,
-                           $"APIKey identification '{APIKey.Id}' is too short!".ToI18NString(),
+                           NotKeptAsHash,
                            eventTrackingId,
                            SystemId,
                            this
@@ -19572,10 +19601,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (APIKey.Id.Length < MinAPIKeyLength)
+            if (!APIKey.Id.IsHash)
                 return AddOrUpdateAPIKeyResult.ArgumentError(
                            APIKey,
-                           $"The given API key identification '{APIKey.Id}' is too short!".ToI18NString(),
+                           NotKeptAsHash,
                            eventTrackingId,
                            SystemId,
                            this
@@ -20657,17 +20686,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryGetAPIKeyIfValid(APIKeyId, out APIKey)
+        #region TryGetValidAPIKey(Key, out APIKey)
 
         /// <summary>
-        /// Try to get the API key having the given unique identification.
+        /// Try to get the valid API key a request presents: the key itself, found by its hash (APIKey_Id.Of), as only
+        /// the hash is kept.
         /// </summary>
-        /// <param name="APIKeyId">The unique identification of the API key.</param>
+        /// <param name="APIKeyId">The API key itself, e.g. of the API-Key header of a request.</param>
         /// <param name="APIKey">The API key.</param>
         protected internal Boolean _TryGetValidAPIKey(APIKey_Id APIKeyId, out APIKey? APIKey)
         {
 
-            if (apiKeys.TryGetValue(APIKeyId, out var apiKey) &&
+            if (apiKeys.TryGetValue(APIKey_Id.Of(APIKeyId), out var apiKey) &&
                 _APIKeyIsValid(apiKey))
             {
                 APIKey = apiKey;
@@ -20680,15 +20710,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         /// <summary>
-        /// Try to get the API key having the given unique identification.
+        /// Try to get the valid API key a request presents: the key itself, found by its hash (APIKey_Id.Of).
         /// </summary>
-        /// <param name="APIKeyId">The unique identification of the API key.</param>
+        /// <param name="APIKeyId">The API key itself, e.g. of the API-Key header of a request.</param>
         /// <param name="APIKey">The API key.</param>
         protected internal Boolean _TryGetValidAPIKey(APIKey_Id? APIKeyId, out APIKey? APIKey)
         {
 
             if (APIKeyId.IsNotNullOrEmpty() &&
-                apiKeys.TryGetValue(APIKeyId!.Value, out var apiKey) &&
+                apiKeys.TryGetValue(APIKey_Id.Of(APIKeyId!.Value), out var apiKey) &&
                 _APIKeyIsValid(apiKey))
             {
                 APIKey = apiKey;
@@ -20702,9 +20732,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         /// <summary>
-        /// Try to get the API key having the given unique identification.
+        /// Try to get the valid API key a request presents: the key itself, found by its hash (APIKey_Id.Of).
         /// </summary>
-        /// <param name="APIKeyId">The unique identification of the API key.</param>
+        /// <param name="APIKeyId">The API key itself, e.g. of the API-Key header of a request.</param>
         /// <param name="APIKey">The API key.</param>
         public Boolean TryGetValidAPIKey(APIKey_Id APIKeyId, out APIKey? APIKey)
         {
@@ -20736,9 +20766,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         /// <summary>
-        /// Try to get the API key having the given unique identification.
+        /// Try to get the valid API key a request presents: the key itself, found by its hash (APIKey_Id.Of).
         /// </summary>
-        /// <param name="APIKeyId">The unique identification of the API key.</param>
+        /// <param name="APIKeyId">The API key itself, e.g. of the API-Key header of a request.</param>
         /// <param name="APIKey">The API key.</param>
         public Boolean TryGetValidAPIKey(APIKey_Id? APIKeyId, out APIKey? APIKey)
         {

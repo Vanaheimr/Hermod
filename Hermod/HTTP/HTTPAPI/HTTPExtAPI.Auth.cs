@@ -323,8 +323,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (result.Result != CommandResult.Success)
                 return AuthError(Request, HTTPStatusCode.BadRequest, result.Description.FirstText());
 
-            // Everybody else who knew the old password is signed out.
-            Sessions.RemoveAllForUser(user.Id, ExceptToken: session?.Token);
+            // Everybody else who knew the old password is signed out: the session
+            // of the cookie stays, found by its token, as only its hash is kept.
+            Sessions.RemoveAllForUser(user.Id,
+                                      ExceptToken:  session is not null && TryGetSecurityTokenFromCookie(Request, out var currentToken)
+                                                        ? currentToken
+                                                        : null);
 
             return new HTTPResponse.Builder(Request) {
                        HTTPStatusCode  = HTTPStatusCode.NoContent,
@@ -929,7 +933,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    String.Concat(CookieName,
                                  GenerateCookieUserData(User),
                                  GenerateCookieSettings(Session.ExpiresAt, Request)),
-                   String.Concat(SessionCookieName, "=", Session.Token.ToString(),
+                   String.Concat(SessionCookieName, "=", (Session.Token.IsNotNullOrEmpty ? Session.Token : throw new ArgumentException("Only a session just created carries its token!", nameof(Session))).ToString(),
                                  GenerateCookieSettings(Session.ExpiresAt, Request),
                                  "; HttpOnly")
                );

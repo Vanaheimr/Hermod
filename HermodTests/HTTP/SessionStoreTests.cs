@@ -17,6 +17,9 @@
 
 #region Usings
 
+using System.Buffers.Text;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -61,7 +64,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(store.CountForUser(bob),                 Is.EqualTo(0));
 
             Assert.That(store.TryGet(session.Token, out var found),  Is.True);
-            Assert.That(found,                                       Is.EqualTo(session),  "without an idle timeout a use changes nothing");
+            Assert.That(found,                                       Is.EqualTo(session with { Token = default }),  "without an idle timeout a use changes nothing, and the token is kept nowhere");
+            Assert.That(found!.TokenHash,                            Is.EqualTo(HashOf(session.Token)));
             Assert.That(store.TryGet(SecurityToken_Id.Random(), out _),  Is.False);
             Assert.That(store.TryGet(default, out _),                    Is.False);
 
@@ -221,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 Assert.That(second.Count,                             Is.EqualTo(2));
                 Assert.That(second.TryGet(kept.Token,   out var one),  Is.True);
-                Assert.That(one,                                       Is.EqualTo(kept));
+                Assert.That(one,                                       Is.EqualTo(kept with { Token = default }));
                 Assert.That(second.TryGet(gone.Token,   out var two),  Is.True);
                 Assert.That(two!.SuperUserId,                          Is.EqualTo(admin));
                 Assert.That(second.TryGet(signed.Token, out _),        Is.False,  "a sign-out survives the restart");
@@ -265,8 +269,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                         "# a comment",
                         "",
                         "this is not a session line",
-                        $"add;{live};alice;{now:o};{now:o};{now.AddHours(1):o};",
-                        $"add;{expired};bob;{now.AddHours(-2):o};{now.AddHours(-2):o};{now.AddHours(-1):o};",
+                        $"add;{HashOf(live)};alice;{now:o};{now:o};{now.AddHours(1):o};",
+                        $"add;{HashOf(expired)};bob;{now.AddHours(-2):o};{now.AddHours(-2):o};{now.AddHours(-1):o};",
                         $"add;{SecurityToken_Id.Random()};carol;not a time;{now:o};{now.AddHours(1):o};"
                     ]
                 );
@@ -286,6 +290,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             }
 
         }
+
+        #endregion
+
+        #region TryPeek_Does_Not_Extend_A_Session()
+
+        /// <summary>
+        /// Looked at, a session is not used: its idle timeout runs on, and it ends as if nobody had looked.
+        /// </summary>
+        [Test]
+        public async Task TryPeek_Does_Not_Extend_A_Session()
+        {
+
+            var store    = new SessionStore(IdleTimeout: TimeSpan.FromMilliseconds(300));
+            var session  = store.Create(alice);
+
+            await Task.Delay(150);
+
+            Assert.That(store.TryPeek(session.Token, out var peeked),  Is.True);
+            Assert.That(peeked!.LastSeenAt,                            Is.EqualTo(session.LastSeenAt), "a look counted as a use");
+            Assert.That(store.TryPeek(session.TokenHash, out _),       Is.False, "the hash is no token");
+
+            await Task.Delay(250);
+
+            Assert.That(store.TryPeek(session.Token, out _),           Is.False, "looked at, the session lived on");
+
+        }
+
+        #endregion
+
+        #region A_Token_Is_Kept_As_Its_Hash_Alone()
+
+        /// <summary>
+        /// The file holds the SHA-256 of each token, never the token: whoever reads it can not sign in with what is
+        /// there. A line naming a token itself, as such a file once did, signs nobody in.
+        /// </summary>
+        [Test]
+        public void A_Token_Is_Kept_As_Its_Hash_Alone()
+        {
+
+            var filePath  = Path.Combine(Path.GetTempPath(), $"hermod-sessions-{Guid.NewGuid():N}.db");
+            var now       = DateTimeOffset.UtcNow;
+            var raw       = SecurityToken_Id.Random();
+
+            try
+            {
+
+                File.WriteAllLines(filePath, [ $"add;{raw};bob;{now:o};{now:o};{now.AddHours(1):o};" ]);
+
+                var store    = new SessionStore(FilePath: filePath);
+                var session  = store.Create(alice);
+                var file     = File.ReadAllText(filePath);
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(session.Token.IsNotNullOrEmpty,          Is.True,  "the token goes into the cookie");
+                    Assert.That(file,                                    Does.Not.Contain(session.Token.ToString()));
+                    Assert.That(file,                                    Does.Contain(HashOf(session.Token).ToString()));
+                    Assert.That(store.Single(kept => kept.UserId == alice).Token.IsNullOrEmpty,  Is.True,  "nor is it kept in memory");
+                    Assert.That(store.TryGet(raw, out _),                Is.False, "a token itself in the file is no session");
+                    Assert.That(store.TryGet(session.TokenHash, out _),  Is.False, "nor is the hash a token");
+                }
+
+            }
+            finally
+            {
+                File.Delete(filePath);
+            }
+
+        }
+
+        #endregion
+
+        #region (private static) HashOf(Token)
+
+        private static SecurityToken_Id HashOf(SecurityToken_Id Token)
+
+            => SecurityToken_Id.Parse(Base64Url.EncodeToString(SHA256.HashData(Encoding.UTF8.GetBytes(Token.ToString()))));
 
         #endregion
 

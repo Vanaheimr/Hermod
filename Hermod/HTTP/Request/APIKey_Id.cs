@@ -17,6 +17,10 @@
 
 #region Usings
 
+using System.Buffers.Text;
+using System.Security.Cryptography;
+using System.Text;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -84,6 +88,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt64 Length
             => (UInt64) (InternalId?.Length ?? 0);
 
+        /// <summary>
+        /// Whether this is the identification an API key is kept under: the SHA-256 of the key, as Of(Key) makes it,
+        /// not the key itself.
+        /// </summary>
+        public Boolean IsHash
+            => InternalId?.Length == HashLength &&
+               Base64Url.IsValid(InternalId, out var decodedLength) &&
+               decodedLength == SHA256.HashSizeInBytes;
+
+        #endregion
+
+        #region (static) HashLength
+
+        /// <summary>
+        /// The length of the identification an API key is kept under: a SHA-256, Base64url-encoded without padding.
+        /// </summary>
+        public const Int32 HashLength = 43;
+
         #endregion
 
         #region Constructor(s)
@@ -108,6 +130,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static APIKey_Id Random(UInt16? Length = 64)
 
             => new (RandomExtensions.RandomString(Length ?? 64));
+
+        #endregion
+
+        #region (static) Of(Key)
+
+        /// <summary>
+        /// The identification the given API key is kept and named under: the SHA-256 of the key, Base64url-encoded.
+        /// The key itself is kept nowhere, so whoever reads what is kept can not sign in with it; a key presented is
+        /// found by its hash.
+        /// </summary>
+        /// <param name="Key">The API key itself, e.g. as a request presents it.</param>
+        public static APIKey_Id Of(APIKey_Id Key)
+
+            => Of(Key.InternalId ?? "");
+
+
+        /// <summary>
+        /// The identification the given API key is kept and named under: the SHA-256 of the key, Base64url-encoded.
+        /// </summary>
+        /// <param name="Key">The API key itself.</param>
+        public static APIKey_Id Of(String Key)
+
+            => new (Base64Url.EncodeToString(SHA256.HashData(Encoding.UTF8.GetBytes(Key))));
 
         #endregion
 

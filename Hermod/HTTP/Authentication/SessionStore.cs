@@ -23,6 +23,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -36,19 +37,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// last seen and when it expires. For impersonation the session acts as
     /// UserId while SuperUserId is the user who really signed in.
     /// </summary>
-    /// <param name="Token">The random token that identifies the session, e.g. within a cookie.</param>
+    /// <param name="TokenHash">The SHA-256 of the random token that identifies the session within its cookie: the token itself is kept nowhere.</param>
     /// <param name="UserId">The user the session acts as.</param>
     /// <param name="CreatedAt">When the session was created.</param>
     /// <param name="LastSeenAt">When the session was last used.</param>
     /// <param name="ExpiresAt">When the session ends unless it is used before, or ends for good.</param>
     /// <param name="SuperUserId">The user who really signed in, when impersonating UserId.</param>
-    public sealed record Session(SecurityToken_Id  Token,
+    public sealed record Session(SecurityToken_Id  TokenHash,
                                  User_Id           UserId,
                                  DateTimeOffset    CreatedAt,
                                  DateTimeOffset    LastSeenAt,
                                  DateTimeOffset    ExpiresAt,
                                  User_Id?          SuperUserId   = null)
     {
+
+        /// <summary>
+        /// The token itself, on the session SessionStore.Create(...) returns
+        /// alone, and empty on every other: it goes into the cookie of the
+        /// sign-in, and only its hash is kept, in memory and in the file.
+        /// </summary>
+        public SecurityToken_Id  Token    { get; init; }
 
         /// <summary>
         /// Whether this session has expired at the given time.
@@ -62,7 +70,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     /// <summary>
     /// The signed-in sessions of an HTTP API, identified by a random token
-    /// that travels in a cookie. A session ends after an optional idle
+    /// that travels in a cookie, and kept by the SHA-256 of the token alone:
+    /// whoever reads the sessions, or their file, can not sign in with what
+    /// is there. A session ends after an optional idle
     /// timeout, at the latest after its maximum lifetime, when the user
     /// signs out, or when all sessions of a user are revoked, e.g. after a
     /// password change.
@@ -190,8 +200,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Sweep();
 
             var now      = TimeProvider.GetUtcNow();
+            var token    = NewToken();
             var session  = new Session(
-                               NewToken(),
+                               HashOf(token),
                                UserId,
                                now,
                                now,
@@ -199,10 +210,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                SuperUserId
                            );
 
-            sessions[session.Token] = session;
+            sessions[session.TokenHash] = session;
             Append(Line(session));
 
-            return session;
+            return session with { Token = token };
 
         }
 
@@ -222,14 +233,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Session = null;
 
-            if (Token.IsNullOrEmpty || !sessions.TryGetValue(Token, out var session))
+            if (Token.IsNullOrEmpty)
+                return false;
+
+            var tokenHash = HashOf(Token);
+
+            if (!sessions.TryGetValue(tokenHash, out var session))
                 return false;
 
             var now = TimeProvider.GetUtcNow();
 
             if (session.IsExpired(now))
             {
-                sessions.TryRemove(Token, out _);
+                sessions.TryRemove(tokenHash, out _);
                 return false;
             }
 
@@ -241,8 +257,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               ExpiresAt   = ExpiresAt(session.CreatedAt, now)
                           };
 
-                sessions[Token] = session;
+                sessions[tokenHash] = session;
 
+            }
+
+            Session = session;
+            return true;
+
+        }
+
+        #endregion
+
+        #region TryPeek(Token, out Session)
+
+        /// <summary>
+        /// Look up a live session by its token without counting it as a use:
+        /// an idle timeout is not extended, e.g. for whoever only watches
+        /// whether the session of a stream still is.
+        /// </summary>
+        /// <param name="Token">A session token.</param>
+        /// <param name="Session">The live session.</param>
+        public Boolean TryPeek(SecurityToken_Id                  Token,
+                               [NotNullWhen(true)] out Session?  Session)
+        {
+
+            Session = null;
+
+            if (Token.IsNullOrEmpty                                  ||
+                !sessions.TryGetValue(HashOf(Token), out var session) ||
+                session.IsExpired(TimeProvider.GetUtcNow()))
+            {
+                return false;
             }
 
             Session = session;
@@ -259,12 +304,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Token">A session token.</param>
         public Boolean Remove(SecurityToken_Id Token)
+
+            => Token.IsNotNullOrEmpty &&
+               RemoveByHash(HashOf(Token));
+
+
+        private Boolean RemoveByHash(SecurityToken_Id TokenHash)
         {
 
-            if (Token.IsNullOrEmpty || !sessions.TryRemove(Token, out _))
+            if (!sessions.TryRemove(TokenHash, out _))
                 return false;
 
-            Append(Line(Token));
+            Append(Line(TokenHash));
             return true;
 
         }
@@ -284,12 +335,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       SecurityToken_Id?  ExceptToken   = null)
         {
 
-            var removed = 0;
+            var removed     = 0;
+            var exceptHash  = ExceptToken.HasValue && ExceptToken.Value.IsNotNullOrEmpty
+                                  ? HashOf(ExceptToken.Value)
+                                  : new SecurityToken_Id?();
 
             foreach (var session in sessions.Values.Where(session => (session.UserId == UserId || session.SuperUserId == UserId) &&
-                                                                     session.Token != ExceptToken).ToList())
+                                                                     session.TokenHash != exceptHash).ToList())
             {
-                if (Remove(session.Token))
+                if (RemoveByHash(session.TokenHash))
                     removed++;
             }
 
@@ -353,7 +407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         }
 
                         if (operation == AddLine && session is not null && !session.IsExpired(now))
-                            sessions[session.Token] = session;
+                            sessions[session.TokenHash] = session;
 
                         else if (operation == RemoveLine)
                             sessions.TryRemove(token, out _);
@@ -395,7 +449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var now = TimeProvider.GetUtcNow();
 
             foreach (var session in sessions.Values.Where(session => session.IsExpired(now)).ToList())
-                sessions.TryRemove(session.Token, out _);
+                sessions.TryRemove(session.TokenHash, out _);
 
         }
 
@@ -408,26 +462,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (private static) HashOf(Token)
+
+        /// <summary>
+        /// What a session is kept by: the SHA-256 of its token, Base64url-encoded. A
+        /// token of 32 random bytes needs no salt, nor a slow hash.
+        /// </summary>
+        private static SecurityToken_Id HashOf(SecurityToken_Id Token)
+
+            => SecurityToken_Id.Parse(Base64Url.EncodeToString(SHA256.HashData(Encoding.UTF8.GetBytes(Token.ToString()))));
+
+        #endregion
+
         #region (private) Persistence
 
-        // One line per change: "add;token;userId;createdAt;lastSeenAt;expiresAt;superUserId" or "remove;token".
+        // One line per change: "add;tokenHash;userId;createdAt;lastSeenAt;expiresAt;superUserId" or "remove;tokenHash".
+        // The token itself is in no line.
 
         private static String Line(Session Session)
 
             => String.Join(';',
                            AddLine,
-                           Session.Token.ToString(),
+                           Session.TokenHash.ToString(),
                            Session.UserId.ToString(),
                            Session.CreatedAt. ToString("o", CultureInfo.InvariantCulture),
                            Session.LastSeenAt.ToString("o", CultureInfo.InvariantCulture),
                            Session.ExpiresAt. ToString("o", CultureInfo.InvariantCulture),
                            Session.SuperUserId?.ToString() ?? "");
 
-        private static String Line(SecurityToken_Id Token)
+        private static String Line(SecurityToken_Id TokenHash)
 
             => String.Join(';',
                            RemoveLine,
-                           Token.ToString());
+                           TokenHash.ToString());
 
         private static Boolean TryParseLine(String                Line,
                                             out String            Operation,
