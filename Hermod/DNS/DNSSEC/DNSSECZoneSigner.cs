@@ -351,6 +351,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              Where (name   => !IsBelowADelegation(name)).
                              ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+            // What every name inside the zone ends in. The apex keeps its trailing
+            // dot, so for any zone but the root that is a dot and the apex; the root's
+            // name is the dot alone, and every name ends in it (finding 77).
+            var insideTheZone = Apex == "." ? "." : "." + Apex;
+
             #region Empty non-terminals
 
             // §7.1: every empty non-terminal gets an NSEC3 of its own. A name with
@@ -388,7 +393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     // Belt as well as braces: every empty non-terminal is inside
                     // the zone by construction, and anything else is a bug.
-                    if (!name.EndsWith("." + Apex, StringComparison.OrdinalIgnoreCase))
+                    if (!name.EndsWith(insideTheZone, StringComparison.OrdinalIgnoreCase))
                         break;
 
                     owners.Add(name);
@@ -449,9 +454,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     types.Add(DNSResourceRecordTypes.RRSIG);
                 }
 
+                // RFC 5155 §3: the hash "prepended as a single label to the name of
+                // the zone". The separating dot is written here, so the root — whose
+                // name is that dot and nothing else — contributes nothing more; written
+                // out in full it made "<hash>..", and the root could not be signed
+                // (finding 77).
                 Records.Add(
                     new NSEC3(
-                        DomainName.ParseLenient($"{NSEC3.Base32HexEncode(hash)}.{Apex}"),
+                        DomainName.ParseLenient($"{NSEC3.Base32HexEncode(hash)}.{Apex.TrimStart('.')}"),
                         DNSQueryClasses.IN,
                         ttl,
                         NSEC3.HashAlgorithmSHA1,

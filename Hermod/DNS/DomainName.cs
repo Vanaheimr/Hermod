@@ -476,10 +476,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // has no business being produced by this API, so it is left rejected. The
             // asterisk is validated here and removed before the regex, which describes
             // hostname labels and would otherwise have to be duplicated a third time.
+            //
+            // The root has a wildcard like every other name: "*.", the asterisk label
+            // and nothing after it. RFC 5155 §8.4 needs it by name — "the name formed
+            // by prepending the asterisk label to the closest encloser" — whenever a
+            // name error is proven at the root, and what the strip leaves of it is the
+            // root itself rather than an empty string the regex refuses (finding 76).
             var textToValidate = Text;
 
             if (AllowWildcardLabel && textToValidate.StartsWith("*."))
-                textToValidate = textToValidate[2..];
+                textToValidate = textToValidate.Length == 2 ? "." : textToValidate[2..];
 
             if (textToValidate != ".")
             {

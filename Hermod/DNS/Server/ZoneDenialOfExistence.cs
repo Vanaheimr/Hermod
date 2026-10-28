@@ -408,9 +408,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
             catch (ArgumentException)
             {
-                // A name the parser will not take — "*." under a root zone is the
-                // one that occurs in practice. Same conclusion: no proof rather
-                // than a wrong one.
+                // A name the parser will not take: there is no record to find for
+                // it, and the proof goes out without one. "*." under a root zone
+                // used to be such a name, and every name error at the root of an
+                // NSEC3 chain went out without the wildcard's cover — one record
+                // short of RFC 5155 §7.2.2 (finding 76). The parser takes it now.
                 return null;
             }
 
