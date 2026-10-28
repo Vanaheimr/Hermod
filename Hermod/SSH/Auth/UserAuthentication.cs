@@ -379,9 +379,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
         }
 
-        // The client sends SERVICE_REQUEST and waits for SERVICE_ACCEPT (surfacing banners / ext-info).
+        // The client sends SERVICE_REQUEST and waits for SERVICE_ACCEPT (surfacing banners / ext-info),
+        // once per connection: a second key, or a password after a key, goes straight to USERAUTH_REQUEST.
         private static async ValueTask EnsureAuthServiceAsync(SshTransport Transport, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
         {
+
+            if (Transport.UserAuthServiceAccepted)
+                return;
 
             await Transport.SendPacketAsync(BuildServiceRequest(AuthService), CancellationToken).ConfigureAwait(false);
 
@@ -403,7 +407,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 }
 
                 if (message == SshMessageNumber.ServiceAccept)
+                {
+                    Transport.UserAuthServiceAccepted = true;
                     return;
+                }
 
                 throw new SshWireException($"Expected SSH_MSG_SERVICE_ACCEPT (6), but found message number {(Byte) message}.");
 

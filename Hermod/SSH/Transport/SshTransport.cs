@@ -132,6 +132,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public Int32                 KeyExchangeCount  { get; private set; }
 
         /// <summary>
+        /// Whether the server has accepted this client's SSH_MSG_SERVICE_REQUEST for "ssh-userauth".
+        /// The service is asked for once per connection: a server takes the request once, and a
+        /// second one in the middle of authentication is a message it does not expect.
+        /// </summary>
+        internal Boolean             UserAuthServiceAccepted  { get; set; }
+
+        /// <summary>
         /// What the peer said it is in its identification string - "SSH-2.0-PuTTY_Release_0.83", say -
         /// once the version exchange is done.
         /// </summary>

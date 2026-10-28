@@ -198,6 +198,90 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Facade_TheSecondCredential_IsTriedWhenTheFirstIsRefused
+
+        [Test]
+        [CancelAfter(25000)]
+        public async Task Facade_TheSecondCredential_IsTriedWhenTheFirstIsRefused(CancellationToken CancellationToken)
+        {
+
+            var hostKey  = SshHostKey.GenerateEd25519();
+            var otherKey = SshHostKey.GenerateEd25519();
+            var userKey  = SshHostKey.GenerateEd25519();
+
+            var server = new SshServer(new SshServerOptions {
+                HostKeys       = [ hostKey ],
+                Authenticator  = SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob),
+                ExecHandler    = async (ctx, ct) => { await ctx.WriteAsync($"ran: {ctx.Command}\n", ct); return 0; }
+            });
+
+            try
+            {
+
+                await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
+                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+
+                // The key the server does not know comes first: the ssh-userauth service is asked
+                // for once, and the second key goes straight to its USERAUTH_REQUEST.
+                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
+                    Username      = "achim",
+                    VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
+                    Credentials   = [ otherKey, userKey ]
+                }, CancellationToken);
+
+                var result = await client.ExecuteAsync("whoami", CancellationToken);
+                Assert.That(result.StandardOutput, Is.EqualTo("ran: whoami\n"));
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
+        #region Facade_NoCredentialAccepted_IsAnAuthenticationError
+
+        [Test]
+        [CancelAfter(25000)]
+        public async Task Facade_NoCredentialAccepted_IsAnAuthenticationError(CancellationToken CancellationToken)
+        {
+
+            var hostKey  = SshHostKey.GenerateEd25519();
+            var userKey  = SshHostKey.GenerateEd25519();
+
+            var server = new SshServer(new SshServerOptions {
+                HostKeys       = [ hostKey ],
+                Authenticator  = SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob)
+            });
+
+            try
+            {
+
+                await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
+                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+
+                // Two keys, both unknown: both are tried, and what comes back is that none was
+                // accepted - not a wire error about the second.
+                await Assert.ThrowsAsync<SshAuthenticationException>(async () =>
+                    await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
+                        Username      = "achim",
+                        VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
+                        Credentials   = [ SshHostKey.GenerateEd25519(), SshHostKey.GenerateEd25519() ]
+                    }, CancellationToken));
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
     }
 
 }
