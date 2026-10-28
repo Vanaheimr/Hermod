@@ -55,11 +55,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
     /// What can be tested as behaviour is tested elsewhere:
     /// HTTPServerHandlerTests.The_Register_Helpers_Are_Reachable for the three
     /// Register*Handler methods, HTTPTestServerTests for
-    /// MapResourceAssembliesFolder on HTTPAPI. That is four of the eleven
-    /// overloads below; the other seven have no caller anywhere in this suite,
-    /// including all three on HTTPExtAPI, which thirteen other fixtures use but
-    /// never for serving a file. This fixture pins their signatures and does
-    /// not pretend to exercise them.
+    /// MapResourceAssembliesFolder on HTTPAPI. That was four of the eleven
+    /// overloads below when this fixture was written. The other seven have had
+    /// callers since: MapFileSystemFolderTests (H-33, H-35),
+    /// RegisterFileSystemFileTests and ResourceAssemblyHandlersTests (H-34).
+    /// This fixture pins their signatures and leaves the behaviour to those.
     ///
     /// The last test is about the file next door rather than about this class:
     /// same cleanup, same failure mode, and too small to be a fixture of its
