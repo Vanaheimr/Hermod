@@ -1065,19 +1065,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            var httpDelegate = GetFromFileSystem(
+                                   URLTemplate,
+                                   HTTPAPI.HTTPServer.HTTPServerName,
+                                   ResourcePath,
+                                   DefaultFilename,
+                                   HTMLTemplateHandler
+                               );
+
+            // The folder itself, where DefaultFilename is served: without this
+            // route the folder's own URL was a 405, as MapResourceAssemblyFolder
+            // has always registered it.
+            HTTPAPI.AddHandler(
+
+                HTTPMethod.GET,
+                URLTemplate,
+
+                HTTPDelegate:       httpDelegate,
+
+                AllowReplacement:   URLReplacement.Fail
+
+            );
+
             HTTPAPI.AddHandler(
 
                 HTTPMethod.GET,
                 URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? $"{{{ResourceName}..}}" : $"/{{{ResourceName}..}}"),
 
-                HTTPDelegate:       GetFromFileSystem(
-                                        URLTemplate,
-                                        HTTPAPI.HTTPServer.HTTPServerName,
-                                        ResourcePath,
-                                        //fileName => GetFromFileSystem(ResourcePath, fileName),
-                                        DefaultFilename,
-                                        HTMLTemplateHandler
-                                    ),
+                HTTPDelegate:       httpDelegate,
 
                 AllowReplacement:   URLReplacement.Fail
 
@@ -1125,12 +1140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            HTTPExtAPI.AddHandler(
-
-                HTTPMethod.GET,
-                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? $"{{{ResourceName}..}}" : $"/{{{ResourceName}..}}"),
-
-                HTTPDelegate:       RequireAuthentication
+            HTTPDelegate httpDelegate = RequireAuthentication
 
                                         ? request => {
 
@@ -1168,7 +1178,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               //fileName => GetFromFileSystem(ResourcePath, fileName),
                                               DefaultFilename,
                                               HTMLTemplateHandler
-                                          ),
+                                          );
+
+            // The folder itself, behind the same authentication as everything
+            // below it: see the HTTPAPI overload above.
+            HTTPExtAPI.AddHandler(
+
+                HTTPMethod.GET,
+                URLTemplate,
+
+                HTTPDelegate:       httpDelegate,
+
+                AllowReplacement:   URLReplacement.Fail
+
+            );
+
+            HTTPExtAPI.AddHandler(
+
+                HTTPMethod.GET,
+                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? $"{{{ResourceName}..}}" : $"/{{{ResourceName}..}}"),
+
+                HTTPDelegate:       httpDelegate,
 
                 AllowReplacement:   URLReplacement.Fail
 

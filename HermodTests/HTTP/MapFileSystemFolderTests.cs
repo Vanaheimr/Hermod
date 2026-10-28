@@ -80,8 +80,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             sibling  = Path.Combine(root, "site-secrets");
 
             Directory.CreateDirectory(Path.Combine(site, "sub"));
+            Directory.CreateDirectory(Path.Combine(root, "bare"));
             Directory.CreateDirectory(sibling);
 
+            File.WriteAllText(Path.Combine(site,    "index.html"),    "index page");
             File.WriteAllText(Path.Combine(site,    "sub", "a.txt"),  "inside");
             File.WriteAllText(Path.Combine(sibling, "secret.txt"),    "sibling secret");
             File.WriteAllText(Path.Combine(root,    "outside.txt"),   "parent secret");
@@ -96,6 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             httpAPI.MapFileSystemFolder(HTTPHostname.Any, HTTPPath.Root + "files",    site);
             httpAPI.MapFileSystemFolder(HTTPHostname.Any, HTTPPath.Root + "relative", Path.GetRelativePath(Directory.GetCurrentDirectory(), site));
+            httpAPI.MapFileSystemFolder(HTTPHostname.Any, HTTPPath.Root + "bare",     Path.Combine(root, "bare"));
 
         }
 
@@ -123,11 +126,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// A raw GET, so that the request-target arrives exactly as written:
         /// a client would normalise or refuse half of what is sent here.
         /// </summary>
-        private async Task<(Int32 Status, String Body)> Get(String Target)
+        private async Task<(Int32 Status, String Body)> Get(String       Target,
+                                                            HTTPServer?  Server   = null)
         {
 
             using var tcpClient = new TcpClient();
-            await tcpClient.ConnectAsync(System.Net.IPAddress.Loopback, server!.TCPPort.ToInt32());
+            await tcpClient.ConnectAsync(System.Net.IPAddress.Loopback, (Server ?? server)!.TCPPort.ToInt32());
 
             await using var stream = tcpClient.GetStream();
 
@@ -297,6 +301,111 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(status, Is.EqualTo(200));
                 Assert.That(body,   Is.EqualTo("inside"));
             });
+
+        }
+
+        #endregion
+
+        #region TheFolderItselfServesItsDefaultFilename(Target)
+
+        /// <summary>
+        /// Was 405 for both, H-35 in HTTP1ConformanceTests: only
+        /// URLTemplate/{ResourceName..} had a route, so the DefaultFilename
+        /// parameter was never reached by any request.
+        /// </summary>
+        [TestCase("/files")]
+        [TestCase("/files/")]
+        public async Task TheFolderItselfServesItsDefaultFilename(String Target)
+        {
+
+            var (status, body) = await Get(Target);
+
+            Assert.Multiple(() => {
+                Assert.That(status, Is.EqualTo(200));
+                Assert.That(body,   Is.EqualTo("index page"));
+            });
+
+        }
+
+        #endregion
+
+        #region AFolderWithoutItsDefaultFilenameIsA404(Target)
+
+        /// <summary>
+        /// Was 405: a URL with a route whose file is missing is a 404 like any
+        /// other miss, not a method the resource does not allow.
+        /// </summary>
+        [TestCase("/bare")]
+        [TestCase("/bare/")]
+        public async Task AFolderWithoutItsDefaultFilenameIsA404(String Target)
+        {
+
+            var (status, body) = await Get(Target);
+
+            Assert.Multiple(() => {
+                Assert.That(status, Is.EqualTo(404));
+                Assert.That(body,   Does.Not.Contain(Path.GetFileName(root)));
+            });
+
+        }
+
+        #endregion
+
+        #region TheExtAPIFolderServesItsDefaultFilenameBehindItsAuthentication()
+
+        /// <summary>
+        /// The HTTPExtAPI overload had the same single route. The route added
+        /// for the folder itself has to ask for the same authentication as the
+        /// one below it, or the fix would serve index.html to anybody.
+        /// </summary>
+        [Test]
+        public async Task TheExtAPIFolderServesItsDefaultFilenameBehindItsAuthentication()
+        {
+
+            var loggingPath  = Path.Combine(root, "ext-logs") + Path.DirectorySeparatorChar;
+            var extServer    = await HTTPServer.StartNew();
+
+            try
+            {
+
+                var extAPI   = new HTTPExtAPI(
+                                   extServer,
+                                   SkipURLTemplates:      true,
+                                   DisableNotifications:  true,
+                                   LoggingPath:           loggingPath
+                               );
+
+                extAPI.MapFileSystemFolder(HTTPHostname.Any, HTTPPath.Root + "open",   site, RequireAuthentication: false);
+                extAPI.MapFileSystemFolder(HTTPHostname.Any, HTTPPath.Root + "closed", site, RequireAuthentication: true);
+
+                var open         = await Get("/open",       extServer);
+                var openSlash    = await Get("/open/",      extServer);
+                var closed       = await Get("/closed",     extServer);
+                var closedSlash  = await Get("/closed/",    extServer);
+                var closedFile   = await Get("/closed/sub/a.txt", extServer);
+
+                Assert.Multiple(() => {
+
+                    Assert.That(open.Status,         Is.EqualTo(200));
+                    Assert.That(open.Body,           Is.EqualTo("index page"));
+                    Assert.That(openSlash.Status,    Is.EqualTo(200));
+                    Assert.That(openSlash.Body,      Is.EqualTo("index page"));
+
+                    Assert.That(closed.Status,       Is.EqualTo(401));
+                    Assert.That(closed.Body,         Does.Not.Contain("index page"));
+                    Assert.That(closedSlash.Status,  Is.EqualTo(401));
+                    Assert.That(closedSlash.Body,    Does.Not.Contain("index page"));
+
+                    // Unchanged, and the reference the two above are held to.
+                    Assert.That(closedFile.Status,   Is.EqualTo(401));
+
+                });
+
+            }
+            finally
+            {
+                await extServer.DisposeAsync();
+            }
 
         }
 
