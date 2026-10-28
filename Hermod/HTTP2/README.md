@@ -878,6 +878,17 @@ nothing was checked. Collapsing "there was no digest" into a boolean `true` woul
 quietly turn an unverified body into a verified one, which is the one failure
 this feature exists to prevent.
 
+`HTTPDigest`, `HTTPDigestVerification` and `HTTPDigestMismatchException` moved
+to `Hermod/HTTP/` on 2026-10-28, so that the HTTP/1.x stack has the same fields.
+The grammar now reads them with `StructuredFields`, strictly, as RFC 9651
+requires and RFC 9530 does not relax, and that applies here as well. A field
+that does not parse, or one member that is not a Byte Sequence, is ignored
+whole rather than read as the members that were valid: `md5=:junk!:,
+sha-256=:…:` no longer verifies against its second half. An upper-case key is
+not a key. A `Want-…` preference outside 0 to 10, or a bare key, voids the
+field, which then states no preference, where it was clamped into range or read
+as 1 before. A Byte Sequence without its `=` padding parses.
+
 ### Early data and 425 (RFC 8470)
 
 TLS 1.3 lets a client put application data in its first flight, before the

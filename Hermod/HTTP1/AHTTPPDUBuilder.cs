@@ -373,6 +373,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Content-MD5
 
+        /// <summary>
+        /// Obsolete since RFC 7231 — see <see cref="ContentDigest"/>.
+        /// </summary>
         public String? ContentMD5
         {
 
@@ -384,6 +387,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             set
             {
                 SetHeaderField(HTTPHeaderField.ContentMD5, value);
+            }
+
+        }
+
+        #endregion
+
+        #region Digest fields (RFC 9530)
+
+        /// <summary>
+        /// A digest of the content as it will travel (RFC 9530, Section 2), e.g.
+        /// HTTPDigest.FieldValue(Content, "sha-256"). The server's
+        /// AutomaticContentCompression computes it again when it compresses, so
+        /// that it stays true of what is sent.
+        /// </summary>
+        public String? ContentDigest
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.ContentDigest);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ContentDigest, value);
+            }
+
+        }
+
+        /// <summary>
+        /// A digest of the whole selected representation (RFC 9530, Section 3).
+        /// </summary>
+        public String? ReprDigest
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.ReprDigest);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ReprDigest, value);
+            }
+
+        }
+
+        /// <summary>
+        /// The algorithms a Content-Digest is wanted in (RFC 9530, Section 4),
+        /// e.g. HTTPDigest.Want.
+        /// </summary>
+        public String? WantContentDigest
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.WantContentDigest);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.WantContentDigest, value);
+            }
+
+        }
+
+        /// <summary>
+        /// The algorithms a Repr-Digest is wanted in (RFC 9530, Section 4).
+        /// </summary>
+        public String? WantReprDigest
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.WantReprDigest);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.WantReprDigest, value);
             }
 
         }

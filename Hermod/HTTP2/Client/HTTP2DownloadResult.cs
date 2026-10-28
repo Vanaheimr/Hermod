@@ -18,6 +18,9 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
+
     /// <summary>
     /// The outcome of <see cref="HTTP2ClientConnection.DownloadAsync"/>: how much
     /// arrived, and how much work it took to get there.

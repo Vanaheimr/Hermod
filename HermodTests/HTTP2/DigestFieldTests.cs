@@ -130,17 +130,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(HTTPDigest.Parse("sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:;q=1").ContainsKey("sha-256"),
                             Is.True);
 
-                // Several members, one of them junk: the good one survives, the bad
-                // one is dropped rather than guessed at.
-                var mixed = HTTPDigest.Parse("md5=:not-base64!:, sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:");
-                Assert.That(mixed.ContainsKey("sha-256"), Is.True);
-                Assert.That(mixed.ContainsKey("md5"),     Is.False);
+                // Several members, one of them junk: the field is ignored whole
+                // (RFC 9651, Section 4.2), the good member with it. Keeping the good
+                // one would verify a field the RFC says is not there.
+                Assert.That(HTTPDigest.Parse("md5=:not-base64!:, sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:"),
+                            Is.Empty);
 
                 foreach (var bad in new[] {
                              "sha-256",                     // bare key: a Boolean member, not a digest
                              "sha-256=X48E9qOokq=",         // not a byte sequence
                              "sha-256=:unterminated",       // no closing colon
                              "=:abcd:",                     // no key
+                             "SHA-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:",  // a key is lower case
                              ""
                          })
                     Assert.That(HTTPDigest.Parse(bad), Is.Empty, bad);
@@ -211,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(HTTPDigest.SelectAlgorithm("sha-512=3, sha-256=10"), Is.EqualTo("sha-256"));
                 Assert.That(HTTPDigest.SelectAlgorithm("sha-512=7, sha-256=0"),  Is.EqualTo("sha-512"), "0 means unacceptable");
                 Assert.That(HTTPDigest.SelectAlgorithm("sha-256=5, sha-512=5"),  Is.EqualTo("sha-256"), "our own order breaks a tie");
-                Assert.That(HTTPDigest.SelectAlgorithm("sha-512"),               Is.EqualTo("sha-512"), "a bare key still wants it");
+                Assert.That(HTTPDigest.SelectAlgorithm("sha-512"),               Is.EqualTo("sha-256"), "a bare key is a Boolean, not a preference: no opinion");
 
                 // No opinion expressed — send our default rather than nothing.
                 Assert.That(HTTPDigest.SelectAlgorithm(null),                    Is.EqualTo("sha-256"));

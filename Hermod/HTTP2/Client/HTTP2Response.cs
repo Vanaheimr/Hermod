@@ -18,6 +18,9 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
+
     /// <summary>
     /// A completed HTTP/2 response, as assembled by <see cref="HTTP2ClientConnection"/>.
     /// </summary>

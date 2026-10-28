@@ -447,6 +447,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region AByteSequenceWithoutPaddingParses()
+
+        /// <summary>
+        /// Section 4.2.7: parsers "SHOULD NOT fail when '=' padding is not
+        /// present". One character past the last full quantum is not base64 at
+        /// all, padded or not. Serialization pads, as Section 4.1.8 has it.
+        /// </summary>
+        [Test]
+        public void AByteSequenceWithoutPaddingParses()
+        {
+
+            Assert.Multiple(() => {
+
+                Assert.That(Encoding.ASCII.GetString(StructuredFields.ParseItem(":cHJldGVuZCB0aGlzIGlzIGJpbmFyeSBjb250ZW50Lg:").Value.AsByteSequence),
+                            Is.EqualTo("pretend this is binary content."));
+
+                Assert.That(Encoding.ASCII.GetString(StructuredFields.ParseItem(":YWI:").Value.AsByteSequence),  Is.EqualTo("ab"));
+                Assert.That(StructuredFields.TryParseItem(":YWJjZ:", out _),                                       Is.False);
+
+                Assert.That(StructuredFields.ParseItem(":YWI:").ToString(),                                        Is.EqualTo(":YWI=:"));
+
+            });
+
+        }
+
+        #endregion
+
         #region BooleansAreOneCharacter()
 
         [Test]

@@ -188,6 +188,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Content digests (RFC 9530)
+
+        /// <summary>
+        /// Give every response that carries content a Content-Digest of the octets
+        /// actually sent — after <see cref="AutomaticContentCompression"/> — in the
+        /// algorithm the request's Want-Content-Digest prefers (RFC 9530,
+        /// Sections 2 and 4). A response whose handler set one keeps it.
+        ///
+        /// Off by default, like the compression: it costs a hash per response,
+        /// and a field on every one of them.
+        /// </summary>
+        public Boolean  AutomaticContentDigests         { get; set; }
+
+        #endregion
+
         #region Events
 
         /// <summary>
@@ -939,6 +954,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                request,
                                                httpResponse,
                                                MinimumCompressibleSize
+                                           );
+
+                        // RFC 9530, Section 2: of the octets as they travel.
+                        // After the compression, though before it would be right
+                        // too: the compression computes a digest it finds again
+                        // over what it compresses. This way it is computed once.
+                        if (AutomaticContentDigests)
+                            httpResponse = HTTPContentDigests.Apply(
+                                               request,
+                                               httpResponse
                                            );
 
                         // RFC 9112, Section 7.1: what the header field announces

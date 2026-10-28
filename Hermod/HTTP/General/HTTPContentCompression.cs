@@ -105,6 +105,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Response.ContentEncoding.Any())
                 return false;
 
+            // RFC 9530, Sections 2 and 3: a digest is of the octets after content
+            // coding, so compressing means computing it again, in an algorithm this
+            // stack has. A handler's md5, or a field that does not parse, could
+            // only be sent on false or dropped, and neither is ours to decide.
+            if (!CanComputeAgain(Response.ContentDigest) ||
+                !CanComputeAgain(Response.ReprDigest))
+                return false;
+
             // RFC 9110, Section 14.4: a 206 carries part of the *selected*
             // representation, and a content coding applies to the representation as
             // a whole. Compressing after ranging would describe neither.
@@ -171,8 +179,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPStatusCode = Response.HTTPStatusCode
                           };
 
-            // Everything the handler said, verbatim, and then the four fields that
-            // stop being true once the octets change. Copying rather than mutating
+            // Everything the handler said, verbatim, and then the fields that stop
+            // being true once the octets change. Copying rather than mutating
             // because an HTTPResponse serialises from the header text it was built
             // with, so a field changed afterwards would reach the log and not the
             // wire.
@@ -195,9 +203,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Response.ETag is not null)
                 builder.ETag         = ContentNegotiation.ETagForCoding(Response.ETag, coding);
 
+            // RFC 9530: the handler's digests described the identity octets, and
+            // are computed again over the compressed ones, in the same algorithms.
+            // A 206 never gets here, so on this response the representation is
+            // the content, and Repr-Digest is over the same octets as
+            // Content-Digest.
+            if (Response.ContentDigest is String contentDigest)
+                builder.ContentDigest = ComputeAgain(contentDigest, compressed);
+
+            if (Response.ReprDigest is String reprDigest)
+                builder.ReprDigest    = ComputeAgain(reprDigest,    compressed);
+
             return builder.AsImmutable;
 
         }
+
+        #endregion
+
+        #region (private static) CanComputeAgain(DigestField) / ComputeAgain(DigestField, Content)
+
+        private static Boolean CanComputeAgain(String? DigestField)
+        {
+
+            if (DigestField is null)
+                return true;
+
+            var digests = HTTPDigest.Parse(DigestField);
+
+            return digests.Count > 0 &&
+                   digests.Keys.All(HTTPDigest.IsSupported);
+
+        }
+
+        private static String ComputeAgain(String DigestField, Byte[] Content)
+
+            => String.Join(", ",
+                           HTTPDigest.Parse(DigestField).Keys.Select(algorithm => HTTPDigest.FieldValue(Content, algorithm)));
 
         #endregion
 

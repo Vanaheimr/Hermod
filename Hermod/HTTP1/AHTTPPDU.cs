@@ -358,9 +358,109 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Content-MD5
 
+        /// <summary>
+        /// Obsolete since RFC 7231 — see <see cref="ContentDigest"/>.
+        /// </summary>
         public String? ContentMD5
 
             => GetHeaderField(HTTPHeaderField.ContentMD5);
+
+        #endregion
+
+        #region Digest fields (RFC 9530)
+
+        /// <summary>
+        /// The Content-Digest of the header section (RFC 9530, Section 2), its
+        /// field lines joined into one Dictionary, or null. One in the trailer
+        /// section is in <see cref="TrailingHeaders"/>, and
+        /// <see cref="VerifyContentDigest"/> reads both.
+        /// </summary>
+        public String? ContentDigest
+
+            => JoinedFieldLines(HTTPHeaderField.ContentDigest.Name);
+
+        /// <summary>
+        /// The Repr-Digest of the header section (RFC 9530, Section 3), its field
+        /// lines joined into one Dictionary, or null.
+        /// </summary>
+        public String? ReprDigest
+
+            => JoinedFieldLines(HTTPHeaderField.ReprDigest.Name);
+
+        /// <summary>
+        /// The Want-Content-Digest preferences (RFC 9530, Section 4), its field
+        /// lines joined into one Dictionary, or null. Pass it to
+        /// <see cref="HTTPDigest.SelectAlgorithm"/>.
+        /// </summary>
+        public String? WantContentDigest
+
+            => JoinedFieldLines(HTTPHeaderField.WantContentDigest.Name);
+
+        /// <summary>
+        /// The Want-Repr-Digest preferences (RFC 9530, Section 4), its field lines
+        /// joined into one Dictionary, or null.
+        /// </summary>
+        public String? WantReprDigest
+
+            => JoinedFieldLines(HTTPHeaderField.WantReprDigest.Name);
+
+
+        /// <summary>
+        /// Check the content of this message against its Content-Digest
+        /// (RFC 9530, Section 2), in the header section, the trailer section, or
+        /// both — in which case both are checked and either disagreeing is a
+        /// mismatch.
+        ///
+        /// The digest covers the octets as they travelled, so this has to be asked
+        /// before a content coding is undone, and it refuses afterwards rather than
+        /// report a mismatch the sender did not cause. The HTTP client checks
+        /// before it decodes when its VerifyDigests is set.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The content coding was undone already (see <see cref="DecodedContentEncoding"/>).</exception>
+        public HTTPDigestVerification VerifyContentDigest()
+        {
+
+            if (DecodedContentEncoding is not null)
+                throw new InvalidOperationException($"The content coding '{DecodedContentEncoding}' was undone, and the Content-Digest describes the octets it was undone from: verify before decoding (RFC 9530, Section 2)!");
+
+            // Reading the body also reads the trailer section of a chunked one.
+            var content = HTTPBody ?? [];
+            var header  = HTTPDigest.Verify(ContentDigest, content);
+            var trailer = HTTPDigest.Verify(TrailingHeaders.TryGetValue(HTTPHeaderField.ContentDigest.Name, out var value)
+                                                ? value
+                                                : null,
+                                            content);
+
+            if (header  == HTTPDigestVerification.Mismatch || trailer == HTTPDigestVerification.Mismatch)
+                return HTTPDigestVerification.Mismatch;
+
+            if (header  == HTTPDigestVerification.Match    || trailer == HTTPDigestVerification.Match)
+                return HTTPDigestVerification.Match;
+
+            if (header  == HTTPDigestVerification.Unsupported || trailer == HTTPDigestVerification.Unsupported)
+                return HTTPDigestVerification.Unsupported;
+
+            return HTTPDigestVerification.NotPresent;
+
+        }
+
+
+        /// <summary>
+        /// A field that is a list or a Dictionary, as one value: its field lines
+        /// joined by commas (RFC 9110, Section 5.3; RFC 9651, Section 4.2). The
+        /// header section keeps repeated lines as an array, which the generic
+        /// typed lookup does not join.
+        /// </summary>
+        /// <param name="FieldName">The name of the header field.</param>
+        protected String? JoinedFieldLines(String FieldName)
+
+            => TryGetHeaderField(FieldName, out var value)
+                   ? value switch {
+                         String   line   => line,
+                         String[] lines  => String.Join(", ", lines),
+                         _               => value.ToString()
+                     }
+                   : null;
 
         #endregion
 
