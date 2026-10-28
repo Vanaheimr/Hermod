@@ -312,6 +312,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
+        #region TryAdd(Rule, out ErrorResponse)
+
+        /// <summary>
+        /// Append a rule written as text, as a configuration file writes it: an address prefix, "=>" and ALLOW or
+        /// DENY, e.g. "10.0.0.0/8 => DENY" or "fd00::/8 => ALLOW"; case and whitespace do not matter.
+        /// </summary>
+        /// <param name="Rule">The rule.</param>
+        /// <param name="ErrorResponse">Why it is no rule.</param>
+        public Boolean TryAdd(String                                                  Rule,
+                              [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out String?  ErrorResponse)
+        {
+
+            var parts = (Rule ?? "").Split("=>");
+
+            if (parts.Length != 2)
+            {
+                ErrorResponse = $"'{Rule}' is no network rule: it has to read '<address prefix> => ALLOW' or '<address prefix> => DENY'.";
+                return false;
+            }
+
+            NetworkAclAction action;
+
+            switch (parts[1].Trim().ToUpperInvariant())
+            {
+                case "ALLOW": action = NetworkAclAction.Allow; break;
+                case "DENY":  action = NetworkAclAction.Deny;  break;
+                default:
+                    ErrorResponse = $"'{Rule}' is no network rule: '{parts[1].Trim()}' is neither ALLOW nor DENY.";
+                    return false;
+            }
+
+            IpCidr cidr;
+
+            try
+            {
+                cidr = IpCidr.Parse(parts[0].Trim());
+            }
+            catch (Exception e)
+            {
+                ErrorResponse = $"'{Rule}' is no network rule: '{parts[0].Trim()}' is no address prefix ({e.Message}).";
+                return false;
+            }
+
+            rules.Add(new NetworkAclRule(action, cidr, null, null));
+
+            ErrorResponse = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region DenyNonPublicNetworks()
+
+        /// <summary>
+        /// The address prefixes no public server is reached at: this host, private and shared networks, link-local
+        /// addresses (with the metadata services of the clouds), documentation, benchmarking, multicast and reserved
+        /// ranges, of IPv4 and IPv6 - and the IPv4 ones once more inside the NAT64 prefix.
+        /// </summary>
+        public static IReadOnlyList<String> NonPublicNetworks { get; } = [
+            "0.0.0.0/8",        "10.0.0.0/8",       "100.64.0.0/10",    "127.0.0.0/8",
+            "169.254.0.0/16",   "172.16.0.0/12",    "192.0.0.0/24",     "192.0.2.0/24",
+            "192.88.99.0/24",   "192.168.0.0/16",   "198.18.0.0/15",    "198.51.100.0/24",
+            "203.0.113.0/24",   "224.0.0.0/4",      "240.0.0.0/4",
+            "::/128",           "::1/128",          "64:ff9b::/96",     "64:ff9b:1::/48",
+            "100::/64",         "2001:db8::/32",    "fc00::/7",         "fe80::/10",
+            "fec0::/10",        "ff00::/8"
+        ];
+
+        /// <summary>
+        /// Append a deny rule for every prefix of NonPublicNetworks: after rules allowing some of them, if any, and
+        /// before allowing the rest by default, it leaves the public internet.
+        /// </summary>
+        public NetworkAcl DenyNonPublicNetworks()
+        {
+            foreach (var cidr in NonPublicNetworks)
+                Deny(Cidr: cidr);
+            return this;
+        }
+
+        #endregion
+
         #region Evaluation
 
         /// <summary>
@@ -325,6 +407,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public Boolean Allows(IPAddress Address, UInt16 Port, String? Host = null)
         {
+
+            // ::ffff:10.0.0.1 is 10.0.0.1: dialled, it reaches that address, and an IPv4 prefix has to match it.
+            if (Address.IsIPv4MappedToIPv6)
+                Address = Address.MapToIPv4();
+
             foreach (var rule in rules)
                 if (rule.Matches(Address, Port, Host))
                     return rule.Action == NetworkAclAction.Allow;

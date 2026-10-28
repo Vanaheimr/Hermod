@@ -210,6 +210,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public  IIPAddress?                     ResolvedIPAddress         { get; protected set; }
         public  HashSet<IIPAddress>             ResolvedIPAddresses       { get; } = [];
 
+        /// <summary>
+        /// Which remote addresses this client may connect to, or null for any: checked against every address the
+        /// remote resolved to, after the resolution and before one of them is dialled - and none is resolved again in
+        /// between. A remote with one address the list refuses is refused as a whole, so that a name resolving to a
+        /// public and a private address, or rebound to a private one, does not reach it. For URLs somebody else hands
+        /// in, as the versions URL of an OCPI peer: see SSH.NetworkAcl.DenyNonPublicNetworks().
+        /// </summary>
+        public  SSH.NetworkAcl?                 RemoteNetworkAcl          { get; set; }
+
 
         /// <summary>
         /// Whether the client is currently connected to the.
@@ -859,6 +868,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         return TCPConnectionResult.Failed("The remote TCP port must not be null!");
 
                     RemotePort     ??= remotePort;
+
+                    // Every address, not the one picked below: which one is picked is chance.
+                    if (RemoteNetworkAcl is SSH.NetworkAcl remoteNetworkAcl &&
+                        !remoteNetworkAcl.AllowsAll(ResolvedIPAddresses, remotePort.Value.ToUInt16()))
+                    {
+                        ResolvedIPAddresses.Clear();
+                        return TCPConnectionResult.Failed($"{nameof(ATCPClient)}: the remote address is none this client may connect to!");
+                    }
 
                     // Both disposed of as this block is left, however it is left.
                     // Neither used to be, and a linked token source stays

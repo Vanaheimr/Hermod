@@ -179,6 +179,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Rules_WrittenAsText
+
+        [Test]
+        public void Rules_WrittenAsText()
+        {
+
+            var acl = NetworkAcl.AllowByDefault();
+
+            Assert.Multiple(() => {
+
+                Assert.That(acl.TryAdd("192.168.7.0/24 => ALLOW", out var e1), Is.True, e1);
+                Assert.That(acl.TryAdd(" 10.0.0.0/8=>deny ",      out var e2), Is.True, e2);
+                Assert.That(acl.TryAdd("fd00::/8 => Deny",        out var e3), Is.True, e3);
+
+                Assert.That(acl.TryAdd("10.0.0.0/8 DENY",         out var noArrow),   Is.False);
+                Assert.That(noArrow,                                                    Does.Contain("ALLOW").And.Contain("DENY"));
+                Assert.That(acl.TryAdd("10.0.0.0/8 => MAYBE",     out var noAction),  Is.False);
+                Assert.That(noAction,                                                   Does.Contain("MAYBE"));
+                Assert.That(acl.TryAdd("10.0.0.300/8 => DENY",    out var noPrefix),  Is.False);
+                Assert.That(noPrefix,                                                   Does.Contain("no address prefix"));
+
+                Assert.That(acl.Rules,                                  Has.Count.EqualTo(3), "a rule that is none is not added");
+                Assert.That(acl.Allows(IP("192.168.7.9"),   443),       Is.True);
+                Assert.That(acl.Allows(IP("10.1.2.3"),      443),       Is.False);
+                Assert.That(acl.Allows(IP("fd12::1"),       443),       Is.False);
+                Assert.That(acl.Allows(IP("8.8.8.8"),       443),       Is.True);
+
+            });
+
+        }
+
+        #endregion
+
+        #region MappedIPv4_IsMatchedAsIPv4
+
+        [Test]
+        public void MappedIPv4_IsMatchedAsIPv4()
+        {
+
+            var acl = NetworkAcl.AllowByDefault().Deny(Cidr: "10.0.0.0/8");
+
+            Assert.Multiple(() => {
+                Assert.That(acl.Allows(IP("::ffff:10.0.0.1"), 80), Is.False, "::ffff:10.0.0.1 reaches 10.0.0.1");
+                Assert.That(acl.Allows(IP("::ffff:8.8.8.8"),  80), Is.True);
+            });
+
+        }
+
+        #endregion
+
+        #region DenyNonPublicNetworks_LeavesThePublicInternet
+
+        [Test]
+        public void DenyNonPublicNetworks_LeavesThePublicInternet()
+        {
+
+            var publicOnly  = NetworkAcl.AllowByDefault().DenyNonPublicNetworks();
+            var oneLAN      = NetworkAcl.AllowByDefault();
+
+            Assert.That(oneLAN.TryAdd("192.168.7.0/24 => ALLOW", out var error), Is.True, error);
+            oneLAN.DenyNonPublicNetworks();
+
+            Assert.Multiple(() => {
+
+                foreach (var denied in new[] { "127.0.0.1", "10.1.2.3", "172.20.0.1", "192.168.1.1", "169.254.169.254", "100.64.0.1",
+                                               "0.0.0.0", "224.0.0.1", "::1", "::", "fd00::1", "fe80::1", "64:ff9b::a00:1", "::ffff:127.0.0.1" })
+                    Assert.That(publicOnly.Allows(IP(denied), 443), Is.False, denied);
+
+                foreach (var allowed in new[] { "8.8.8.8", "1.1.1.1", "2606:4700:4700::1111" })
+                    Assert.That(publicOnly.Allows(IP(allowed), 443), Is.True, allowed);
+
+                Assert.That(oneLAN.Allows(IP("192.168.7.20"), 443), Is.True,  "a rule before the presets wins");
+                Assert.That(oneLAN.Allows(IP("192.168.8.20"), 443), Is.False);
+
+            });
+
+        }
+
+        #endregion
+
     }
 
 }
