@@ -76,6 +76,39 @@ public class StreamReceiveBufferTests
         Assert.That(buf.ReadAvailable(), Is.EqualTo(new byte[] { 1, 2, 3, 4, 5 }));
     }
 
+    // A sender may re-frame lost data when it retransmits (RFC 9000 §13.3 lets it put the bytes into
+    // new frames however it likes), so a shorter frame can arrive for an offset a longer one already
+    // covered. msquic does this routinely. Both copies were acknowledged; whatever the buffer drops
+    // here is never sent again, and the stream stalls at the hole for good.
+
+    [Test]
+    public void ShorterFrameAtTheSameOffset_DoesNotDropTheLongerOnesRest()
+    {
+        var buf = new StreamReceiveBuffer();
+        buf.Receive(3, [3, 4, 5, 6, 7, 8], fin: true);
+        buf.Receive(3, [3, 4], false);               // the same bytes again, framed shorter
+        buf.Receive(0, [0, 1, 2], false);
+
+        Assert.That(buf.ReadAvailable(), Is.EqualTo(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 }));
+        Assert.That(buf.IsComplete, Is.True);
+    }
+
+    [Test]
+    public void TwoFramesTrimmedToTheReadOffset_KeepTheLongerOne()
+    {
+        // Both frames start below the read offset, so both are trimmed to start AT it - the same
+        // place, reached from two different offsets.
+        var buf = new StreamReceiveBuffer();
+        buf.Receive(0, [0, 1, 2], false);
+        Assert.That(buf.ReadAvailable(), Is.EqualTo(new byte[] { 0, 1, 2 }));
+
+        buf.Receive(1, [1, 2, 3, 4, 5, 6], fin: true); // kept as 3..6
+        buf.Receive(2, [2, 3], false);                 // kept as 3..3
+
+        Assert.That(buf.ReadAvailable(), Is.EqualTo(new byte[] { 3, 4, 5, 6 }));
+        Assert.That(buf.IsComplete, Is.True);
+    }
+
     [Test]
     public void ExceedingFlowControlLimit_ReportsError()
     {

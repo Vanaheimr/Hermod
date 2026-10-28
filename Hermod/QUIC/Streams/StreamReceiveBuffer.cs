@@ -282,7 +282,12 @@ public sealed class StreamReceiveBuffer
                 if (start + (ulong)slice.Length > rel)
                     slice = slice[..(int)(rel - start)];
             }
-            _fragments[start] = slice.ToArray();
+            // Keyed by start, so a second fragment can land on the same key: a retransmission
+            // framed shorter, or two fragments trimmed to the read offset above. The bytes at an
+            // offset never change (§2.2), so the longer one holds the shorter - overwriting it with
+            // the shorter would drop the rest, which was acknowledged and is never sent again.
+            if (!_fragments.TryGetValue(start, out byte[]? held) || held.Length < slice.Length)
+                _fragments[start] = slice.ToArray();
         }
 
         return StreamReceiveResult.Ok;
