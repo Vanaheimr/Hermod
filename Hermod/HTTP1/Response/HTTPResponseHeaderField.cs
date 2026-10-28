@@ -281,6 +281,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Alt-Svc
+
+        /// <summary>
+        /// The alternative services of this origin: other protocols, hosts or
+        /// ports at which the same origin can be reached, most preferred first,
+        /// or "clear" to invalidate all of them.
+        /// </summary>
+        /// <remarks>
+        /// Typed since 2026-10-28. Over HTTP/1.1 this field is the only way to
+        /// announce an alternative, the ALTSVC frame being HTTP/2's. It MAY occur
+        /// in any response regardless of its status code, and its value replaces
+        /// every alternative a client has cached for the origin.
+        ///
+        /// Whether to send it stays the application's: an alternative is a claim
+        /// that the origin is served there too, and only the application knows
+        /// that. Read it with HTTPResponse.AltSvc, which also joins repeated
+        /// field lines, since the field is a list.
+        /// </remarks>
+        /// <example>Alt-Svc: h3=":443"; ma=86400, h2="alt.example:8443"</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc7838.html#section-3"/>
+        public static readonly HTTPResponseHeaderField<AlternativeServices> AltSvc
+
+            = new ("Alt-Svc",
+                   RequestPathSemantic.EndToEnd,
+                   StringParser:     AlternativeServices.TryParse,
+                   ValueSerializer:  alternativeServices => alternativeServices.ToString());
+
+        #endregion
+
         #region Keep-Alive
 
         /// <summary>

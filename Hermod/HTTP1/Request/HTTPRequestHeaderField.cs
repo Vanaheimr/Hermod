@@ -1453,6 +1453,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Alt-Used
+
+        /// <summary>
+        /// The alternative service a request was sent to, as uri-host [":" port],
+        /// much as Host names the origin. A client that uses an alternative
+        /// SHOULD send it with every request, so that a server can detect loops,
+        /// tell that traffic apart for load balancing, and see which destination
+        /// was intended.
+        /// </summary>
+        /// <example>Alt-Used: alternate.example.net</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc7838.html#section-5"/>
+        public static readonly HTTPRequestHeaderField AltUsed = new ("Alt-Used",
+                                                                     RequestPathSemantic.EndToEnd);
+
+        #endregion
+
         #region Last-Event-Id
 
         /// <summary>

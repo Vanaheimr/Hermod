@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     using System.Text;
@@ -24,7 +24,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// <summary>
     /// One alternative service (RFC 7838, Section 3): "the same origin is also
     /// reachable at this protocol, host and port". The classic use is a server
-    /// announcing an HTTP/3 endpoint over an HTTP/2 connection.
+    /// announcing an HTTP/3 endpoint over an HTTP/2 connection, or in an
+    /// Alt-Svc field over HTTP/1.1.
+    ///
+    /// Version-neutral since 2026-10-28: it lived in HTTP2/Core, where the
+    /// HTTP/1.x stack could not reach it, although the Alt-Svc field it parses
+    /// is the only way an HTTP/1.1 server can announce an alternative at all.
     ///
     /// An alternative is *not* a redirect. It names a different route to the same
     /// origin — the authority in requests stays what it was, and the server remains
@@ -62,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public String ToFieldValue()
         {
 
-            var value = new StringBuilder(ProtocolId).
+            var value = new StringBuilder(EncodeProtocolId(ProtocolId)).
                             Append("=\"").Append(Host).Append(':').Append(Port).Append('"');
 
             if (MaxAge != DefaultMaxAge)
@@ -80,6 +85,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #endregion
 
+        #region (private) EncodeProtocolId(ProtocolId)
+
+        /// <summary>
+        /// RFC 7838, Section 3: the protocol-id is a token, an ALPN name is any
+        /// octet sequence. Octets that are not token characters MUST be
+        /// percent-encoded, and so MUST "%"; every other octet MUST NOT be, and
+        /// the hex digits are upper case. "http/1.1" is "http%2F1.1" on the wire.
+        /// </summary>
+        private static String EncodeProtocolId(String ProtocolId)
+        {
+
+            var encoded = new StringBuilder();
+
+            foreach (var octet in Encoding.UTF8.GetBytes(ProtocolId))
+            {
+
+                if (octet != '%' && IsTokenCharacter(octet))
+                    encoded.Append((Char) octet);
+
+                else
+                    encoded.Append('%').Append(octet.ToString("X2"));
+
+            }
+
+            return encoded.ToString();
+
+        }
+
+        /// <summary>
+        /// tchar of RFC 9110, Section 5.6.2.
+        /// </summary>
+        private static Boolean IsTokenCharacter(Byte Octet)
+
+            => Octet is >= (Byte) 'a' and <= (Byte) 'z'
+                     or >= (Byte) 'A' and <= (Byte) 'Z'
+                     or >= (Byte) '0' and <= (Byte) '9'
+                     or (Byte) '!' or (Byte) '#' or (Byte) '$' or (Byte) '%' or (Byte) '&'
+                     or (Byte) '\'' or (Byte) '*' or (Byte) '+' or (Byte) '-' or (Byte) '.'
+                     or (Byte) '^' or (Byte) '_' or (Byte) '`' or (Byte) '|' or (Byte) '~';
+
+        #endregion
+
         #region Parse (FieldValue)
 
         /// <summary>
@@ -90,6 +137,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// forget all of them; it is reported by <paramref name="Clear"/> rather than
         /// smuggled in as an entry, since "no alternatives were listed" and "discard
         /// what you have" mean opposite things.
+        ///
+        /// A value that lists <c>clear</c> beside alternatives is invalid, and RFC
+        /// 7838, Section 3 still has it invalidate every alternative, "including
+        /// those specified in the same response". So <c>clear</c> anywhere in the
+        /// list clears, and none of the alternatives beside it is returned. It is
+        /// an ABNF literal, and so case-insensitive.
         ///
         /// Malformed entries are skipped rather than failing the whole value: this is
         /// advisory routing information, and dropping one unparseable alternative is
@@ -102,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             var trimmed = FieldValue.Trim();
 
-            if (trimmed.Equals("clear", StringComparison.Ordinal))
+            if (SplitOutsideQuotes(trimmed, ',').Any(entry => entry.Trim().Equals("clear", StringComparison.OrdinalIgnoreCase)))
             {
                 Clear = true;
                 return [];
