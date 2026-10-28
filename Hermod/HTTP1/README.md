@@ -30,6 +30,7 @@ Last verified: **2026-10-28**
 | [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750.html), Bearer tokens | Typed Bearer authorization parsing/serialization is available. Token validation and authorization policy are application concerns. |
 | [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651.html), Structured Field Values | Lists, Dictionaries and Items with all eight bare types, including the Date and Display String that RFC 8941 did not have. Parsing follows Section 4.2 exactly, so what is malformed is refused rather than repaired, and serializing is the canonical form of Section 4.1 - the round trip is byte-for-byte, which is the property RFC 9421 signatures would need. Hermod does not yet *use* it for any field; it is the prerequisite the modern ones are defined in terms of. |
 | [RFC 7239](https://www.rfc-editor.org/rfc/rfc7239.html), Forwarded | The field is parsed into typed elements - `for`, `by`, `host`, `proto` and any extension parameters - and can be built to be sent onwards when a request is proxied. Node identifiers cover addresses, `unknown` and obfuscated identifiers; the last two are kept opaque rather than resolved into an address that was never given. Where a request carries both, `Forwarded` is preferred over the `X-Forwarded-For` family (Section 7.4). Either way the addresses are recorded *beside* the peer socket and never instead of it: everything in these fields is hearsay from whoever wrote them (Section 8.1), and forgeable by the client when no proxy strips them. |
+| [RFC 7838](https://www.rfc-editor.org/rfc/rfc7838.html), HTTP Alternative Services | `Alt-Svc` is typed for responses and `Alt-Used` for requests, sent by handlers and read by the client, with the field's grammar shared with HTTP/2's ALTSVC frame. The client records alternatives and does not act on them. Announcing one is the application's decision. |
 | [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), WebSocket | Implemented in Hermod's WebSocket client/server subsystem. The HTTP/1.1 server can also serve a WebSocket on a path of its own, beside ordinary HTTP on the same listener: `WebSocketUpgrade.For` hands a request that asks for an upgrade over to a WebSocket server, whose single implementation of the opening handshake (RFC 6455 §4.2) validates it and answers the `101` - the HTTP layer only decides whether a request is asking. Regression-tested by `WebSocketOnAnHTTPPathTests`; see [WebSocket/README.md](WebSocket/README.md#on-an-http-path). |
 | [WHATWG Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Implemented and regression-tested for `text/event-stream`, parsing, live streaming, reconnection, `Last-Event-ID`, retry intervals, comments/heartbeats, cancellation, and disconnect cleanup. |
 
@@ -552,6 +553,33 @@ a value anything could read. **Whether to send it stays the application's
 decision and the default stays "nothing"**: a policy is a promise about every
 future request to a host, and a host that promises and then loses its
 certificate has locked its own users out.
+
+`Alt-Svc` and `Alt-Used` (RFC 7838) are typed since 2026-10-28. Over HTTP/1.1
+the field is the only way to announce an alternative, and the grammar for it
+existed all along, written for HTTP/2's ALTSVC frame in `HTTP2/Core`, where
+this stack could not reach it. `HTTPAlternativeService` is version-neutral in
+`Hermod/HTTP/` now, and `AlternativeServices` is the field's value: the
+alternatives in order of preference, or `clear`. A handler sets
+`HTTPResponse.Builder.AltSvc`, and the client reads `HTTPResponse.AltSvc`,
+which joins repeated field lines first, since the field is a list.
+`HTTPRequest.AltUsed` carries §5's field. Moving the grammar found three places
+where it did not follow §3, and all three are fixed for HTTP/2 as well:
+
+- `clear` beside alternatives was skipped as an entry without `=`, and the
+  alternatives beside it kept. §3 has it invalidate everything, "including
+  those specified in the same response";
+- `Clear` was not `clear`, although an ABNF literal is case-insensitive;
+- an ALPN name outside the token alphabet went onto the wire as it was:
+  `http/1.1` is `http%2F1.1`, and `%` itself is `%25`.
+
+A malformed alternative is still skipped and the well-formed ones beside it
+kept, because this is advisory routing information. A value with nothing usable
+in it at all is refused rather than read as an empty list, which a client could
+not tell apart from `clear`. **Announcing an alternative stays the
+application's**, as with HSTS: it claims the origin is served there too, and
+only the application knows whether it is. The client records what it reads and
+does not act on it. Acting means connecting with another protocol, and the
+HTTP/1.x client speaks one.
 
 Timestamps go through `HTTPDate` (RFC 9110 §5.6.7), which since 2026-10-03
 accepts **all three** HTTP-date formats — the preferred IMF-fixdate and the

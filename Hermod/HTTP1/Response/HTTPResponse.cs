@@ -462,6 +462,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Alt-Svc
+
+        /// <summary>
+        /// The alternative services this response announces (RFC 7838,
+        /// Section 3), or null when it announces none or nothing usable.
+        /// </summary>
+        /// <remarks>
+        /// Alt-Svc is a list, so repeated field lines are one value joined by
+        /// commas (RFC 9110, Section 5.3). The header section keeps them as an
+        /// array, which the generic typed lookup cannot parse, so they are
+        /// joined here first.
+        /// </remarks>
+        public AlternativeServices? AltSvc
+        {
+            get
+            {
+
+                if (!TryGetHeaderField(HTTPResponseHeaderField.AltSvc.Name, out var value))
+                    return null;
+
+                var text = value switch {
+                               String   line   => line,
+                               String[] lines  => String.Join(", ", lines),
+                               _               => value.ToString()
+                           };
+
+                return text is not null && AlternativeServices.TryParse(text, out var alternativeServices)
+                           ? alternativeServices
+                           : null;
+
+            }
+        }
+
+        #endregion
+
         #region Server
 
         /// <summary>

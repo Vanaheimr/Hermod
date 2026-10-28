@@ -396,6 +396,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region Alt-Svc
+
+            /// <summary>
+            /// The alternative services to announce (RFC 7838, Section 3), or
+            /// AlternativeServices.Clear to have clients forget them.
+            /// </summary>
+            public AlternativeServices? AltSvc
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPResponseHeaderField.AltSvc);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPResponseHeaderField.AltSvc, value);
+                }
+
+            }
+
+            #endregion
+
             #region Server
 
             /// <summary>

@@ -966,7 +966,12 @@ down to `StartRequestAsync` to observe the refusal at all.
   and either mismatch means *ignore the frame*, since the RFC defines no error
   code for a bad ALTSVC. Recorded but not acted on: acting means dialling HTTP/3,
   which is a different transport and a different project (see "Explicitly out of
-  scope").
+  scope"). The grammar, `HTTPAlternativeService`, moved to `Hermod/HTTP/` on
+  2026-10-28, so that the HTTP/1.x stack can send and read the `Alt-Svc` field
+  too. Three fixes came with the move, and they apply here as well: `clear`
+  beside alternatives now clears all of them, as RFC 7838 §3 requires; `clear`
+  is matched case-insensitively; and an ALPN name outside the token alphabet is
+  percent-encoded when written.
 - **ORIGIN frame** (RFC 8336): a server can state the set instead of leaving the
   client to infer it (`OriginSet` on `HTTP2Server`, sent right after the
   preface). An announced set also becomes the yardstick for the 421 check —

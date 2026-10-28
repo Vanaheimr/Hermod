@@ -1048,6 +1048,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Alt-Used
+
+        /// <summary>
+        /// The alternative service this request was sent to (RFC 7838, Section 5).
+        /// </summary>
+        public String? AltUsed
+
+            => GetHeaderField(HTTPRequestHeaderField.AltUsed);
+
+        #endregion
+
         #region Last-Event-Id
 
         public UInt64? LastEventId
