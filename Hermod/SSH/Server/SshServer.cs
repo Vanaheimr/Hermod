@@ -460,7 +460,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                 mux.ChannelAcceptor = info => AcceptChannelAsync(info, auth.Restrictions, Connection);
 
-                SshRemoteForwarding.ServeRemoteForwards(mux, options.ForwardingPolicy, token);
+                // no-port-forwarding / restrict and a certificate without permit-port-forwarding narrow -R
+                // exactly as they narrow -L in AcceptChannelAsync: the stricter side wins.
+                SshRemoteForwarding.ServeRemoteForwards(mux,
+                                                        auth.Restrictions.AllowPortForwarding
+                                                            ? options.ForwardingPolicy
+                                                            : options.ForwardingPolicy with { TcpIpForward = null },
+                                                        token);
 
                 if (options.AdvertiseHostKeys)
                 {

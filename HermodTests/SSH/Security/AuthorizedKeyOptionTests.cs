@@ -196,6 +196,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region NoPortForwarding_AlsoRefusesRemoteForwards
+
+        /// <summary>
+        /// <c>no-port-forwarding</c> covers <c>-R</c> as much as <c>-L</c>. The server used to hand its
+        /// <c>tcpip-forward</c> handler only its own <see cref="ForwardingPolicy"/>, so a key barred from
+        /// forwarding could still make the server listen on its behalf whenever that policy allowed remote
+        /// forwards. The control proves the same request succeeds for a key without the restriction.
+        /// </summary>
+        [Test]
+        [CancelAfter(25000)]
+        public async Task NoPortForwarding_AlsoRefusesRemoteForwards(CancellationToken CancellationToken)
+        {
+
+            var control     = await RemoteForwardGrantedAsync("no-pty",             CancellationToken);
+            var restricted  = await RemoteForwardGrantedAsync("no-port-forwarding", CancellationToken);
+            var restrict    = await RemoteForwardGrantedAsync("restrict",           CancellationToken);
+
+            Assert.Multiple(() => {
+
+                Assert.That(control,    Is.True,  "control: an entry that does not restrict forwarding gets the remote forward");
+                Assert.That(restricted, Is.False, "no-port-forwarding must refuse tcpip-forward, not only direct-tcpip");
+                Assert.That(restrict,   Is.False, "restrict denies forwarding in both directions");
+
+            });
+
+        }
+
+        private static async Task<Boolean> RemoteForwardGrantedAsync(String Options, CancellationToken CancellationToken)
+        {
+
+            var userKey = SshHostKey.GenerateEd25519();
+            var (server, port, hostKey) = await StartServerAsync(Parse(Options, userKey), CancellationToken, ForwardingPolicy.LoopbackOnly);
+
+            try
+            {
+
+                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
+                    Username      = "device",
+                    VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
+                    Credentials   = [ userKey ]
+                }, CancellationToken);
+
+                try
+                {
+                    var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client.Multiplexer, "127.0.0.1", FreeLoopbackPort(),
+                                                                                       "127.0.0.1", 9, CancellationToken);
+                    await forward.DisposeAsync();
+                    return true;
+                }
+                catch (SshForwardingException)
+                {
+                    return false;
+                }
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        private static UInt16 FreeLoopbackPort()
+        {
+            var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+            var port = (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            listener.Stop();
+            return port;
+        }
+
+        #endregion
+
         #region Options_AreParsedIntoRestrictions
 
         [Test]
