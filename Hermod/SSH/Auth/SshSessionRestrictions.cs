@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     /// <summary>
     /// The restrictions a credential imposes on the session it authenticates — the enforced half of an
-    /// OpenSSH certificate's critical options.
+    /// OpenSSH certificate's critical options and <c>permit-*</c> extensions.
     ///
     /// <para>
     /// A CA issues a restricted certificate to grant <i>less</i> than a normal login: one fixed command,
@@ -49,11 +49,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// The addresses this credential may be used from (<c>source-address</c>). Empty means unrestricted.
     /// </param>
     /// <param name="AllowPty">
-    /// Whether a pseudo-terminal may be allocated (<c>authorized_keys</c> <c>no-pty</c> / <c>restrict</c>).
+    /// Whether a pseudo-terminal may be allocated (<c>authorized_keys</c> <c>no-pty</c> / <c>restrict</c>,
+    /// or a certificate without <c>permit-pty</c>).
     /// </param>
     /// <param name="AllowPortForwarding">
-    /// Whether this session may open forwarding channels (<c>no-port-forwarding</c> / <c>restrict</c>).
-    /// Intersects with the server's own <see cref="ForwardingPolicy"/> — the stricter side wins.
+    /// Whether this session may forward ports in either direction — <c>direct-tcpip</c> and
+    /// <c>tcpip-forward</c> (<c>no-port-forwarding</c> / <c>restrict</c>, or a certificate without
+    /// <c>permit-port-forwarding</c>). Intersects with the server's own <see cref="ForwardingPolicy"/> —
+    /// the stricter side wins.
     /// </param>
     public sealed record SshSessionRestrictions(String?                ForcedCommand        = null,
                                                 IReadOnlyList<IpCidr>? SourceAddresses      = null,
@@ -144,7 +147,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
 
     /// <summary>
-    /// Reads the critical options of an OpenSSH certificate into the restrictions the server enforces.
+    /// Reads the critical options and the <c>permit-*</c> extensions of an OpenSSH certificate into the
+    /// restrictions the server enforces.
     /// </summary>
     public static class SshCertificateRestrictions
     {
@@ -152,9 +156,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #region FromCertificate(Certificate)
 
         /// <summary>
-        /// Extract <c>force-command</c> and <c>source-address</c> from a certificate's critical options.
-        /// Per PROTOCOL.certkeys each option's data is itself an SSH string holding the value.
+        /// Extract <c>force-command</c> and <c>source-address</c> from a certificate's critical options,
+        /// and <c>permit-pty</c> / <c>permit-port-forwarding</c> from its extensions. Per PROTOCOL.certkeys
+        /// each option's data is itself an SSH string holding the value.
         /// </summary>
+        /// <remarks>
+        /// Extensions work the other way round from critical options: they <b>grant</b>. A certificate
+        /// without <c>permit-pty</c> gets no terminal and one without <c>permit-port-forwarding</c> no
+        /// forwarding, as with OpenSSH — a CA withholds a capability by leaving its extension out, so
+        /// reading only the critical options would hand out exactly what the CA withheld.
+        /// <c>permit-X11-forwarding</c>, <c>permit-agent-forwarding</c> and <c>permit-user-rc</c> grant
+        /// capabilities this implementation never offers, so their absence needs no enforcement.
+        /// </remarks>
         /// <param name="Certificate">The certificate whose options to read.</param>
         public static SshSessionRestrictions FromCertificate(SshCertificate Certificate)
         {
@@ -191,9 +204,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             }
 
-            return forcedCommand is null && sources is null
+            var allowPty            = HasExtension(Certificate, "permit-pty");
+            var allowPortForwarding = HasExtension(Certificate, "permit-port-forwarding");
+
+            return forcedCommand is null && sources is null && allowPty && allowPortForwarding
                        ? SshSessionRestrictions.None
-                       : new SshSessionRestrictions(forcedCommand, sources);
+                       : new SshSessionRestrictions(forcedCommand, sources, allowPty, allowPortForwarding);
+
+        }
+
+        #endregion
+
+        #region (private) HasExtension(Certificate, Name)
+
+        private static Boolean HasExtension(SshCertificate Certificate, String Name)
+        {
+
+            foreach (var extension in Certificate.Extensions)
+                if (String.Equals(extension.Key, Name, StringComparison.Ordinal))
+                    return true;
+
+            return false;
 
         }
 
