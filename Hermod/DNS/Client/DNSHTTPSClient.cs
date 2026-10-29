@@ -1027,8 +1027,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // own token: disposing the client cancels it, and a query queued
             // behind another stops waiting rather than waiting for a lock nobody
             // is going to hand over.
+            //
+            // The client's token is held on to and asked below in place of the
+            // field - see DNSTCPClient for what reading the field cost.
+            var clientLifetime = LiveClientCancellationTokenSource.Token;
+
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(
-                                     LiveClientCancellationTokenSource.Token,
+                                     clientLifetime,
                                      CancellationToken
                                  );
             deadline.CancelAfter(effectiveTimeout);
@@ -1059,7 +1064,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     var connected = await ReconnectAsync(deadline.Token).ConfigureAwait(false);
 
                     if (!connected.IsSuccess)
-                        return CouldNotConnect(connected, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked), deadline, CancellationToken);
+                        return CouldNotConnect(connected, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked), deadline, clientLifetime, CancellationToken);
 
                 }
 
@@ -1119,7 +1124,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                              CancellationToken: timeoutCTS.Token
                                          ).ConfigureAwait(false);
                 }
-                catch (IOException)
+                // Not when the client is being disposed - see DNSTCPClient.
+                catch (IOException) when (!disposed)
                 {
 
                     // The connection this client held had gone away under it. One
@@ -1128,7 +1134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     var reconnected = await ReconnectAsync(deadline.Token).ConfigureAwait(false);
 
                     if (!reconnected.IsSuccess)
-                        return CouldNotConnect(reconnected, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked), deadline, CancellationToken);
+                        return CouldNotConnect(reconnected, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked), deadline, clientLifetime, CancellationToken);
 
                     httpResponse = await SendRequest(
                                              httpRequest,
@@ -1174,7 +1180,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         // draws: our deadline, not the caller's cancellation.
                         if (timeoutCTS.IsCancellationRequested &&
                            !CancellationToken.IsCancellationRequested &&
-                            clientCancellationTokenSource?.IsCancellationRequested != true)
+                           !clientLifetime.IsCancellationRequested &&
+                           !disposed)
                         {
                             return DNSInfo.TimedOut(
                                        serverConfig,
@@ -1263,6 +1270,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
+            catch (Exception e) when (disposed && !CancellationToken.IsCancellationRequested)
+            {
+
+                // The client was disposed under the query - one event with one
+                // answer, whatever it came out as. See DNSTCPClient.
+                logger.LogWarning(
+                    e,
+                    "DNS HTTPS query to {DNSServer} was cancelled by the client - it did not time out",
+                    DNSServerLabel
+                );
+
+                return DNSInfo.Failed(
+                           OriginOf(),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout,
+                           Stopwatch.GetElapsedTime(asked)
+                       );
+
+            }
             catch (OperationCanceledException ocx) when (!CancellationToken.IsCancellationRequested)
             {
 
@@ -1276,7 +1302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // happened in under a millisecond was reported as a 23.5 second
                 // timeout, silently, and stayed unexplained for as long as it
                 // did: the two neighbouring catches log, this one did not.
-                if (clientCancellationTokenSource?.IsCancellationRequested == true)
+                if (clientLifetime.IsCancellationRequested)
                 {
 
                     logger.LogWarning(
@@ -1349,7 +1375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private) CouldNotConnect(ConnectionResult, Query, Timeout, Runtime, Deadline, CancellationToken)
+        #region (private) CouldNotConnect(ConnectionResult, Query, Timeout, Runtime, Deadline, ClientLifetime, CancellationToken)
 
         /// <summary>
         /// What a query says when it could not get a connection to ask over.
@@ -1366,6 +1392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                         TimeSpan                 Timeout,
                                         TimeSpan                 Runtime,
                                         CancellationTokenSource  Deadline,
+                                        CancellationToken        ClientLifetime,
                                         CancellationToken        CancellationToken)
         {
 
@@ -1377,7 +1404,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             return Deadline.IsCancellationRequested &&
                    !CancellationToken.IsCancellationRequested &&
-                   clientCancellationTokenSource?.IsCancellationRequested != true
+                   !ClientLifetime.IsCancellationRequested &&
+                   !disposed
                        ? DNSInfo.TimedOut(OriginOf(Timeout), Query.TransactionId, Timeout)
                        : DNSInfo.Failed  (OriginOf(Timeout), Query.TransactionId, Timeout, Runtime);
 
