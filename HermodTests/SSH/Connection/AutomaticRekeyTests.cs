@@ -157,6 +157,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         /// The server is the one limited, and receives the megabyte: it starts every rekey from its window
         /// adjusts while the client is still sending - so what the client sent before it saw our KEXINIT
         /// arrives in the middle of the exchange, and must be delivered after it, not dropped or refused.
+        ///
+        /// <para>
+        /// How many rekeys that makes is not fixed. What the client has in flight when our KEXINIT goes
+        /// out still arrives under the old key and counts towards it, and how much that is depends on
+        /// the scheduler - a loaded CI runner managed 5 rekeys where a megabyte at 64 KiB a key would
+        /// allow 16. So this asks for repetition,
+        /// not for a number - the sender's tests, whose rekeys follow the bytes exactly, do that.
+        /// </para>
         /// </summary>
         [Test]
         [CancelAfter(30000)]
@@ -174,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             Assert.Multiple(() => {
                 Assert.That(receiving.Result,                                 Is.EqualTo(data), "every byte, in order, across the rekeys");
-                Assert.That(connected.ServerTransport.KeyExchangeCount,     Is.GreaterThanOrEqualTo(8));
+                Assert.That(connected.ServerTransport.KeyExchangeCount,     Is.GreaterThanOrEqualTo(3), "the handshake and at least two rekeys");
                 Assert.That(connected.ClientTransport.KeyExchangeCount,     Is.EqualTo(connected.ServerTransport.KeyExchangeCount));
             });
 
