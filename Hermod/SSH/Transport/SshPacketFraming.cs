@@ -145,12 +145,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="SequenceNumber">The inbound packet sequence number (used by the MAC).</param>
         /// <param name="Mac">An optional encrypt-then-MAC (for CTR ciphers); null for AEAD/none.</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
+        /// <param name="PacketLengthLimit">The largest <c>packet_length</c> accepted; at most, and by
+        /// default, <see cref="MaxPacketLength"/>. Checked before anything of that size is read.</param>
         public static async ValueTask<Byte[]> ReadPacketAsync(PipeReader          Input,
                                                               SshTransportCipher  Cipher,
                                                               UInt32              SequenceNumber     = 0,
                                                               ISshMac?            Mac                = null,
-                                                              CancellationToken   CancellationToken  = default)
+                                                              CancellationToken   CancellationToken  = default,
+                                                              Int32               PacketLengthLimit  = MaxPacketLength)
         {
+
+            var limit = (UInt32) Math.Clamp(PacketLengthLimit, MinPacketLength, MaxPacketLength);
 
             // chacha20-poly1305@openssh.com: the length field is encrypted and must be decrypted first.
             if (Cipher is ChaCha20Poly1305Cipher chacha)
@@ -159,8 +164,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 var encryptedLength  = await ReadExactAsync(Input, 4, CancellationToken).ConfigureAwait(false);
                 var chachaLength     = chacha.DecryptLength(SequenceNumber, encryptedLength);
 
-                if (chachaLength < MinPacketLength || chachaLength > MaxPacketLength)
-                    throw new SshWireException($"Illegal SSH packet_length {chachaLength} (must be {MinPacketLength}..{MaxPacketLength})!");
+                if (chachaLength < MinPacketLength || chachaLength > limit)
+                    throw new SshWireException($"Illegal SSH packet_length {chachaLength} (must be {MinPacketLength}..{limit})!");
 
                 var chachaBody   = await ReadExactAsync(Input, (Int32) chachaLength + chacha.TagLength, CancellationToken).ConfigureAwait(false);
                 var chachaPlain  = chacha.DecryptAndVerify(SequenceNumber, encryptedLength, chachaBody);
@@ -180,8 +185,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var lengthBytes   = await ReadExactAsync(Input, 4, CancellationToken).ConfigureAwait(false);
             var packetLength  = BinaryPrimitives.ReadUInt32BigEndian(lengthBytes);
 
-            if (packetLength < MinPacketLength || packetLength > MaxPacketLength)
-                throw new SshWireException($"Illegal SSH packet_length {packetLength} (must be {MinPacketLength}..{MaxPacketLength})!");
+            if (packetLength < MinPacketLength || packetLength > limit)
+                throw new SshWireException($"Illegal SSH packet_length {packetLength} (must be {MinPacketLength}..{limit})!");
 
             if (!Cipher.LengthIncludedInPaddingAlignment && packetLength % (UInt32) Cipher.BlockSize != 0)
                 throw new SshWireException($"SSH packet_length {packetLength} is not a multiple of the {Cipher.BlockSize}-byte block size!");

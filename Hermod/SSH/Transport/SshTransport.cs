@@ -145,6 +145,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public SshIdentificationString?  PeerIdentification  { get; private set; }
 
         /// <summary>
+        /// The largest <c>packet_length</c> this end accepts from its peer — the server's
+        /// <see cref="SshServerLimits.MaxPacketSize"/>. Set when the transport is created, so it already
+        /// bounds the key exchange and authentication, where an unauthenticated peer is talking.
+        /// </summary>
+        public Int32                     MaxInboundPacketLength  { get; private set; } = SshPacketFraming.MaxPacketLength;
+
+        /// <summary>
         /// The extensions received from the peer via SSH_MSG_EXT_INFO (RFC 8308), if any.
         /// </summary>
         public IReadOnlyDictionary<String, String>  PeerExtensions  => peerExtensions;
@@ -243,6 +250,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                                          String[]?                 Macs                       = null,
                                                                          String[]?                 KeyExchanges               = null,
                                                                          String[]?                 ServerSignatureAlgorithms  = null,
+                                                                         Int32?                    MaxPacketLength            = null,
                                                                          CancellationToken         CancellationToken          = default)
         {
 
@@ -253,7 +261,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var transport = new SshTransport(Pipe, IsServer: true, remote.WireBytes, localId.ToWireBytes(),
                                              HostKey, VerifyHostKey: null, Ciphers, Macs, KeyExchanges, HostKeyAlgorithms: null,
                                              ServerSignatureAlgorithms) {
-                                 PeerIdentification = remote.Identification
+                                 PeerIdentification      = remote.Identification,
+                                 MaxInboundPacketLength  = MaxPacketLength ?? SshPacketFraming.MaxPacketLength
                              };
 
             await transport.PerformKeyExchangeAsync(IsInitial: true, PeerKexInit: null, CancellationToken).ConfigureAwait(false);
@@ -396,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             while (true)
             {
 
-                var payload = await SshPacketFraming.ReadPacketAsync(pipe.Input, receiveCipher, receiveSequenceNumber, receiveMac, CancellationToken).ConfigureAwait(false);
+                var payload = await SshPacketFraming.ReadPacketAsync(pipe.Input, receiveCipher, receiveSequenceNumber, receiveMac, CancellationToken, MaxInboundPacketLength).ConfigureAwait(false);
 
                 unchecked { receiveSequenceNumber++; }
 
