@@ -108,8 +108,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         /// <see cref="SshServerLimits.LoginGraceTime"/>, <see cref="SshServerLimits.MaxSessions"/>,
         /// <see cref="SshServerLimits.MaxConnections"/>, <see cref="SshServerLimits.MaxUnauthenticated"/>,
         /// <see cref="SshServerLimits.MaxUnauthenticatedPerAddress"/> and, where an interval is set, the
-        /// <c>ClientAlive</c> probes. <see cref="SshServerLimits.MaxPacketSize"/> and
-        /// <see cref="SshServerLimits.IdleTimeout"/> are not enforced here.
+        /// <c>ClientAlive</c> probes, <see cref="SshServerLimits.MaxPacketSize"/> and
+        /// <see cref="SshServerLimits.IdleTimeout"/>.
         /// </summary>
         public SshServerLimits                      Limits            { get; init; } = new ();
 
@@ -209,7 +209,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         /// </summary>
         public SshServer(SshServerOptions Options)
         {
+
+            // A limit that could not be enforced must not be accepted as if it were.
+            if (Options.Limits.MaxPacketSize is < SshServerLimits.MinimumMaxPacketSize or > SshPacketFraming.MaxPacketLength)
+                throw new ArgumentOutOfRangeException(nameof(Options),
+                                                      Options.Limits.MaxPacketSize,
+                                                      $"{nameof(SshServerLimits.MaxPacketSize)} must lie between {SshServerLimits.MinimumMaxPacketSize} (RFC 4253 §6.1) and {SshPacketFraming.MaxPacketLength}.");
+
             this.options = Options;
+
         }
 
         #endregion
@@ -388,7 +396,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                     try
                     {
 
-                        transport = await SshTransport.ServerHandshakeAsync(Pipe, options.HostKeys[0], CancellationToken: grace.Token).ConfigureAwait(false);
+                        transport = await SshTransport.ServerHandshakeAsync(Pipe,
+                                                                            options.HostKeys[0],
+                                                                            MaxPacketLength:    options.Limits.MaxPacketSize,
+                                                                            CancellationToken:  grace.Token).ConfigureAwait(false);
 
                         if (transport.PeerIdentification is SshIdentificationString client)
                             await EmitAsync(audit, new VersionExchangedEvent(DateTimeOffset.UtcNow, SshIdentificationString.Default.ToString(), client.ToString())).ConfigureAwait(false);
@@ -492,6 +503,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                                    ? ProbeAsync(mux, interval, options.Limits.ClientAliveCountMax, Connection)
                                    : Task.CompletedTask;
 
+                var watching = options.Limits.IdleTimeout is TimeSpan idle
+                                   ? WatchIdleAsync(mux, transport, idle, Connection)
+                                   : Task.CompletedTask;
+
                 var serving  = new ConcurrentDictionary<SshMuxChannel, Task>();
                 var gone     = await AcceptChannelsAsync(mux, session, serving, Connection).ConfigureAwait(false);
 
@@ -520,6 +535,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                 try
                 {
                     await probing.ConfigureAwait(false);
+                }
+                catch
+                { }
+
+                try
+                {
+                    await watching.ConfigureAwait(false);
                 }
                 catch
                 { }
@@ -805,6 +827,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                         return;
                     }
                 }
+
+            }
+
+        }
+
+        #endregion
+
+
+        #region (private) WatchIdleAsync(Mux, Transport, IdleTimeout, Connection)
+
+        /// <summary>
+        /// End a connection on which no channel traffic has moved for <paramref name="IdleTimeout"/>,
+        /// telling the client why. Sleeps until the earliest moment the timeout could expire and looks
+        /// again, so traffic in between simply pushes the deadline out.
+        /// </summary>
+        private async Task WatchIdleAsync(SshChannelMultiplexer  Mux,
+                                          SshTransport           Transport,
+                                          TimeSpan               IdleTimeout,
+                                          Connection             Connection)
+        {
+
+            var token = Connection.Ending.Token;
+
+            while (!token.IsCancellationRequested)
+            {
+
+                var idle = Mux.ChannelIdleTime;
+
+                if (idle < IdleTimeout)
+                {
+                    await Task.Delay(IdleTimeout - idle, token).ConfigureAwait(false);
+                    continue;
+                }
+
+                await EmitAsync(Connection.Audit, new LimitExceededEvent(DateTimeOffset.UtcNow, "idle timeout", $"no channel traffic for {idle.TotalSeconds:0.#} s")).ConfigureAwait(false);
+                await SendDisconnectAsync(Transport, DisconnectReason.ByApplication, "idle timeout", Mux).ConfigureAwait(false);
+                await Connection.Ending.CancelAsync().ConfigureAwait(false);
+                return;
 
             }
 

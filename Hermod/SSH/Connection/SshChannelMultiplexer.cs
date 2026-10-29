@@ -100,6 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly ConcurrentQueue<TaskCompletionSource<SshGlobalRequestReply>>  pendingGlobalReplies = new ();
         private Int32                                             nextLocalId;
         private Task                                             runTask = Task.CompletedTask;
+        private Int64                                            lastChannelActivity;
 
         /// <summary>
         /// Why the connection ended, once it has: the receive loop is gone, and nothing will ever answer
@@ -115,6 +116,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// The underlying transport.
         /// </summary>
         public SshTransport Transport => transport;
+
+        /// <summary>
+        /// How long ago a channel message last crossed this connection, in either direction — opens,
+        /// data, requests, closes. Global requests do not count, so keepalive probes and their replies
+        /// keep a connection alive without making it look busy: this is what an idle timeout measures.
+        /// </summary>
+        public TimeSpan ChannelIdleTime
+            => System.TimeProvider.System.GetElapsedTime(Interlocked.Read(ref lastChannelActivity));
 
         /// <summary>
         /// The session identifier of the underlying transport (the first exchange hash).
@@ -159,7 +168,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public SshChannelMultiplexer(SshTransport Transport)
         {
-            this.transport = Transport;
+            this.transport            = Transport;
+            this.lastChannelActivity  = System.TimeProvider.System.GetTimestamp();
         }
 
         /// <summary>
@@ -254,12 +264,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         internal async ValueTask SendAsync(Byte[] Payload, CancellationToken CancellationToken = default)
         {
+            RecordChannelActivity(Payload);
             await sendGate.WaitAsync(CancellationToken).ConfigureAwait(false);
             try     { await transport.SendPacketAsync(Payload, CancellationToken).ConfigureAwait(false); }
             finally { sendGate.Release(); }
         }
 
         internal void Remove(UInt32 LocalId) => channels.TryRemove(LocalId, out _);
+
+        // CHANNEL_OPEN (90) up to CHANNEL_FAILURE (100) is channel traffic; everything else is not.
+        private void RecordChannelActivity(Byte[] Payload)
+        {
+            if (Payload.Length > 0 && Payload[0] is >= (Byte) SshMessageNumber.ChannelOpen and <= (Byte) SshMessageNumber.ChannelFailure)
+                Interlocked.Exchange(ref lastChannelActivity, System.TimeProvider.System.GetTimestamp());
+        }
 
         #endregion
 
@@ -284,6 +302,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         {
 
             var message = (SshMessageNumber) Payload[0];
+
+            RecordChannelActivity(Payload);
 
             switch (message)
             {
