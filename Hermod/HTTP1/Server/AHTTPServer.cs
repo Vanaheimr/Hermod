@@ -203,6 +203,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Misdirected requests (RFC 9110, Section 7.4)
+
+        /// <summary>
+        /// Which origins this server answers for, asked with the authority a request
+        /// names in its Host field. A request for any other is refused with 421
+        /// (Misdirected Request, RFC 9110, Section 15.5.20), and the connection is
+        /// closed.
+        ///
+        /// Null, the default, leaves it to the certificate. On a TLS connection a
+        /// request is served only for a host the certificate that connection
+        /// presented is valid for, which Section 7.4 requires: "a request for an
+        /// "https" resource MUST be rejected unless it has been received over a
+        /// connection that has been secured via a certificate valid for that target
+        /// URI's origin". A cleartext connection has no certificate, and nothing is
+        /// checked on it.
+        ///
+        /// A predicate given here is asked instead, on every connection, cleartext
+        /// ones included, as HTTP2Server asks its IsAuthorityServed. That is also
+        /// the way out of the default: Section 7.4 excepts a connection from a
+        /// trusted gateway, which a server cannot recognise by itself. Behind a
+        /// proxy that terminates TLS and connects with a certificate of its own,
+        /// give <c>_ =&gt; true</c>, or a predicate for the names the proxy forwards.
+        /// </summary>
+        public Func<String, Boolean>?  IsAuthorityServed  { get; set; }
+
+        #endregion
+
         #region Events
 
         /// <summary>
@@ -577,6 +604,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 // server bound.
                 var             messageCount   = 0U;
 
+                // Once per connection, because the certificate is the
+                // connection's: with a ServerCertificateSelector it is not the
+                // same on every one, and its subjectAltName is read once here
+                // rather than once per request.
+                var             isAuthorityServed  = IsAuthorityServed ??
+                                                     (ServerCertificate is not null
+                                                          ? HTTPAuthority.ServedByCertificate(ServerCertificate)
+                                                          : null);
+
                 #endregion
 
                 while (true)
@@ -703,6 +739,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         // it what it would have asked about a connection it had
                         // accepted itself. See WebSocketUpgrade.
                         request.TCPConnection          = Connection;
+
+                        // RFC 9110, Section 7.4: before routing, before OPTIONS *,
+                        // and before the body, which is not read. So the
+                        // connection is closed after the 421, and the client tries
+                        // one of its own (Section 15.5.20). A request without Host
+                        // names no origin and cannot be misdirected; that is an
+                        // HTTP/1.0 one, since HTTP/1.1 requires the field.
+                        if (isAuthorityServed is not null &&
+                            request.Host.IsNotNullOrEmpty &&
+                           !isAuthorityServed(request.Host.ToString()))
+                        {
+                            await SendResponse(
+                                      stream,
+                                      CreateMisdirectedRequestResponse(request),
+                                      CancellationToken
+                                  );
+
+                            break;
+                        }
 
                         if (request.HTTPMethod    == HTTPMethod.OPTIONS &&
                             request.RequestTarget == "*")
@@ -1389,6 +1444,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ContentType    = HTTPContentType.Application.JSON_UTF8,
                    Content        = JSONObject.Create(
                                         new JProperty("description", "The request contains an unsupported Expect header field.")
+                                    ).ToUTF8Bytes()
+               }.AsImmutable;
+
+        private HTTPResponse CreateMisdirectedRequestResponse(HTTPRequest Request)
+            => new HTTPResponse.Builder(Request) {
+                   HTTPStatusCode = HTTPStatusCode.MisdirectedRequest,
+                   Server         = HTTPServerName,
+                   Date           = Timestamp.Now,
+                   Connection     = ConnectionType.Close,
+                   ContentType    = HTTPContentType.Application.JSON_UTF8,
+                   Content        = JSONObject.Create(
+                                        new JProperty("description", "This server is not authoritative for the origin the request names.")
                                     ).ToUTF8Bytes()
                }.AsImmutable;
 

@@ -22,7 +22,7 @@ Last verified: **2026-10-28**
 | Specification | Hermod support |
 |---|---|
 | [RFC 1945](https://www.rfc-editor.org/rfc/rfc1945.html), HTTP/1.0 | Implemented and regression-tested for requests, responses, `Content-Length`, close-delimited responses, default connection closing, optional negotiated keep-alive, and HTTP/1.0-specific rejection/fallback behavior. |
-| [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host`, connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Every status code in the IANA registry is defined with its registered reason phrase. Six carried pre-RFC-9110 phrases until 2026-10-03; five now match the registry (413 `Content Too Large`, 414 `URI Too Long`, 416 `Range Not Satisfiable`, 422 `Unprocessable Content` and 306 `(Unused)`) without any field being renamed, since the wire carries the phrase and downstream code refers to the field. 418 keeps `I'm a teapot`, which RFC 9110 does not mention and RFC 2324 does. `HTTPStatusCodeTests` pins that one remaining divergence. Resource semantics remain application-defined. |
+| [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host` and the §7.4 refusal of a request for an origin the TLS certificate does not cover (since 2026-10-29), connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Every status code in the IANA registry is defined with its registered reason phrase. Six carried pre-RFC-9110 phrases until 2026-10-03; five now match the registry (413 `Content Too Large`, 414 `URI Too Long`, 416 `Range Not Satisfiable`, 422 `Unprocessable Content` and 306 `(Unused)`) without any field being renamed, since the wire carries the phrase and downstream code refers to the field. 418 keeps `I'm a teapot`, which RFC 9110 does not mention and RFC 2324 does. `HTTPStatusCodeTests` pins that one remaining divergence. Resource semantics remain application-defined. |
 | [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html), HTTP/1.1 message syntax and routing | Implemented and regression-tested for start lines, header parsing, message framing, persistent connections, pipelining, chunked transfer coding, trailers, and malformed-message rejection. |
 | [RFC 10008](https://www.rfc-editor.org/rfc/rfc10008.html), HTTP `QUERY` method | The method is modeled as safe and idempotent and is end-to-end tested with fixed-length and chunked request content, trailers, and chunk extensions. Media-type policy, `Accept-Query`, caching, conditional requests, and query-result URI policy are handler responsibilities. |
 | [RFC 4918](https://www.rfc-editor.org/rfc/rfc4918.html), WebDAV | Method tokens are modeled (`COPY`, `LOCK`, `MKCOL`, `MOVE`, `PROPFIND`, `PROPPATCH`, and `UNLOCK`). Hermod does not provide a complete WebDAV resource implementation. |
@@ -57,6 +57,32 @@ reference is. There was a seventh, inside commented-out code under
   `http/1.1` is offered, because that is what this server speaks: a client
   insisting on `h2` alone is refused with `no_application_protocol` rather than
   served HTTP/1.1 anyway. A client that sends no ALPN extension is unaffected.
+- A request for an origin the connection's certificate is not valid for is
+  refused with `421 (Misdirected Request)`, since 2026-10-29. RFC 9110 §7.4
+  requires it of an origin server: "a request for an "https" resource MUST be
+  rejected unless it has been received over a connection that has been secured
+  via a certificate valid for that target URI's origin". Until then every
+  origin a request named was answered, so a server whose certificate names
+  `localhost` served `Host: evil.example`, with SNI `evil.example` or without.
+  - The certificate asked is the one the connection presented, so with a
+    `ServerCertificateSelector` the answer can differ from one connection to
+    the next. Names are matched as HTTP/2 matches them: subjectAltName before
+    the common name, a wildcard for one left-most label, an IP literal only
+    against an iPAddress entry.
+  - The check comes before routing and before the body is read, so the
+    connection is closed after the `421` and the client tries a new one
+    (§15.5.20).
+  - A cleartext connection has no certificate and is not checked. A request
+    without `Host`, which only HTTP/1.0 allows, names no origin and cannot be
+    misdirected.
+  - `AHTTPServer.IsAuthorityServed` is asked in place of the certificate, on
+    every connection, as `HTTP2Server`'s parameter of that name is. It is also
+    the way out: §7.4 excepts "a trusted gateway", which a server cannot
+    recognise by itself, so a server behind a proxy that terminates TLS and
+    connects with a certificate of its own is given `_ => true`, or the names
+    the proxy forwards.
+  - `HTTPAuthority`, the HTTP/2 stack's answer to the same question, moved
+    from `HTTP2/Core` to `HTTP/` to be used here.
 - Slow or timed-out TLS handshakes do not block the accept loop and are removed
   from active-client tracking.
 - HTTP framing and semantics are identical after the TCP or TLS stream has been

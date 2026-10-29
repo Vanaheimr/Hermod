@@ -18,6 +18,7 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
     using System.Collections.Concurrent;
     using System.Net;
     using System.Net.Security;

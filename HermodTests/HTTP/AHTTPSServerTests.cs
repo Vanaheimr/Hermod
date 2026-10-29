@@ -20,6 +20,7 @@
 using System.Security.Cryptography.X509Certificates;
 
 using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Asn1.X509;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.PKI;
@@ -84,10 +85,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                           );
             serverCA                    = serverCA_X509v3.ToDotNet()!;
 
+            // Valid for the origins the clients use. Without subjectAltNames the
+            // CN became the one DNS name, which no client ever dialled: the
+            // validators below accept the name mismatch, and the server answered
+            // anyway until it learned to refuse a request for an origin its
+            // certificate does not cover (RFC 9110, Section 7.4).
             serverRSAKeyPair            = PKIFactory.GenerateRSAKeyPair(2048);
             serverCertificate           = PKIFactory.SignServerCertificate(
                                               "AHTTPSServerTests Server Certificate",
-                                              null,
+                                              [
+                                                  new GeneralName(GeneralName.IPAddress, "127.0.0.1"),
+                                                  new GeneralName(GeneralName.DnsName,   "localhost")
+                                              ],
                                               serverRSAKeyPair.Public,
                                               serverCA_RSAKeyPair.Private,
                                               serverCA_X509v3
