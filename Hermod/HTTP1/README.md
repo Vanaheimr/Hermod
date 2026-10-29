@@ -200,10 +200,10 @@ deleted. No behaviour changed - the risk in a move like this is losing an
 overload, which breaks a caller in another repository at compile time and would
 never show up here, so `HTTPStandardHandlersTests` pins all eleven entry points
 and that each is still an extension method. Four of the eleven had a caller in
-the test suite then, and `MapFileSystemFolder` has had one since, on `HTTPAPI`
-and on `HTTPExtAPI` (below); the other five do not, including the other two on
-`HTTPExtAPI` - their signatures are pinned, the serving behind them is not
-exercised.
+the test suite then. All eleven have one since 2026-10-28: `MapFileSystemFolder`
+on both APIs in `MapFileSystemFolderTests` (below), `RegisterFileSystemFile` in
+`RegisterFileSystemFileTests`, and the four embedded-resource overloads in
+`ResourceAssemblyHandlersTests`, each over the wire.
 
 `MapFileSystemFolder` keeps to its root since 2026-10-04. Its guard was
 `Path.Combine(root, path)` followed by `GetFullPath(...).StartsWith(root)`, and
@@ -237,6 +237,25 @@ own index: directory listings and per-directory defaults are the application's.
 `RegisterFileSystemFile` has no root to keep to - it opens whatever its
 `ResourceFilenameBuilder` returns - so confining that is the caller's job, as
 its documentation now says.
+
+`RegisterFileSystemFile` was fixed on 2026-10-28 for the rest of what
+`MapFileSystemFolder` had been fixed for. A directory was a `500` carrying the
+absolute path; `File.Exists` was asked only when a `DefaultFile` was given, so
+on Windows `nul` was opened as the NUL device and answered `200`; and the
+content type was decided once, at registration, from the builder's answer to
+empty parameters, which made every file `application/octet-stream`. Anything
+that is not a file is a `404` now, decided before anything is opened, an
+exception while opening goes to the log, and the type comes from the extension
+of the file served unless the caller names one. Its builder receives the URL
+parameters URL-decoded, which the documentation had said it did not.
+
+The embedded-resource overloads needed no fix. Two things about them a caller
+would not guess: a manifest resource has a flat, dot-separated name, so
+`assets/app.js` and `assets.app.js` are the same resource; and the `Hostname`
+that six of the eleven take is not used, an `HTTPAPI` being bound to its
+hostnames when it is created - the parameter is left over from the
+`HTTPServer`-based API these methods were written for, and their documentation
+says so now.
 
 The same rework had left one more `X` behind: `HTTPRequestHandlersX`, the
 record of handlers the routing tree passes around, with no twin to be told

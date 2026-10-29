@@ -661,7 +661,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Returns internal resources embedded within the given assembly.
         /// </summary>
-        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="Hostname">Not used: the route is registered on this API, whose hostnames were fixed when it was created.</param>
         /// <param name="URLTemplate">An URL template.</param>
         /// <param name="ResourcePath">The path to the file within the assembly.</param>
         /// <param name="ResourceAssembly">Optionally the assembly where the resources are located (default: the calling assembly).</param>
@@ -724,7 +724,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Returns internal resources embedded within the given assembly.
         /// </summary>
-        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="Hostname">Not used: the route is registered on this API, whose hostnames were fixed when it was created.</param>
         /// <param name="URLTemplate">An URL template.</param>
         /// <param name="ResourcePath">The path to the file within the assembly.</param>
         /// <param name="ResourceAssembly">Optionally the assembly where the resources are located (default: the calling assembly).</param>
@@ -851,7 +851,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Returns internal resources embedded within the given assemblies.
         /// </summary>
-        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="Hostname">Not used: the route is registered on this API, whose hostnames were fixed when it was created.</param>
         /// <param name="URLTemplate">An URL template.</param>
         /// <param name="ResourceAssemblies">The assemblies where the resources are located.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
@@ -910,7 +910,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Returns internal resources embedded within the given assemblies.
         /// </summary>
-        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="Hostname">Not used: the route is registered on this API, whose hostnames were fixed when it was created.</param>
         /// <param name="URLTemplate">An URL template.</param>
         /// <param name="ResourceAssemblies">The assemblies where the resources are located.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
@@ -1299,7 +1299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Returns internal resources embedded within the given assembly.
         /// </summary>
         /// <param name="HTTPAPI">An HTTP API.</param>
-        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="Hostname">Not used: the route is registered on this API, whose hostnames were fixed when it was created.</param>
         /// <param name="URLTemplate">An URL template.</param>
         /// <param name="ResourceAssembly">The assembly where the resources are located.</param>
         /// <param name="ResourceFilename">The path to the file within the assembly.</param>
@@ -1417,12 +1417,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Returns a resource from the given file system location.
         /// </summary>
-        /// <param name="HTTPServer">An HTTP server.</param>
-        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <remarks>
+        /// A name that is not a file - missing, a directory, or a device such
+        /// as "nul" - is a 404, decided by File.Exists before anything is
+        /// opened: File.OpenRead had opened the NUL device and answered 200,
+        /// and a directory was a 500 whose body was the exception message,
+        /// the absolute path on the server. An exception while opening goes
+        /// to the log, and the client gets a 500 that names no path.
+        /// </remarks>
+        /// <param name="HTTPAPI">An HTTP API.</param>
+        /// <param name="Hostname">Not used: the route is registered on this HTTPAPI, whose hostnames were fixed when it was created.</param>
         /// <param name="URLTemplate">An URL template.</param>
-        /// <param name="ResourceFilenameBuilder">Builds the file-system path from the URL parameters, which it receives as the request carried them, not URL-decoded. Whatever it returns is opened as it is: unlike MapFileSystemFolder, this method has no root to keep the result inside, so that is the builder's job - and on Windows a parameter such as "C:name" is a drive-relative path that Path.Combine puts in place of any directory before it.</param>
-        /// <param name="DefaultFile">If an error occurs, return this file.</param>
-        /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extension.</param>
+        /// <param name="ResourceFilenameBuilder">Builds the file-system path from the URL parameters, which it receives URL-decoded. Whatever it returns is opened as it is: unlike MapFileSystemFolder, this method has no root to keep the result inside, so that is the builder's job - and on Windows a parameter such as "C:name" is a drive-relative path that Path.Combine puts in place of any directory before it.</param>
+        /// <param name="DefaultFile">If the built name is not a file, return this file instead, when it is one.</param>
+        /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null, it is taken from the extension of the file served, per request.</param>
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
         public static void RegisterFileSystemFile(this HTTPAPI           HTTPAPI,
                                                   HTTPHostname            Hostname,
@@ -1433,61 +1441,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   String                  CacheControl          = "no-cache")
         {
 
-            #region Get the appropriate content type based on the suffix returned by the ResourceFilenameBuilder
-
-                                                                                  // NumberOfTemplateParameters
-            var resourceFilename  = ResourceFilenameBuilder(Enumerable.Repeat("", URLTemplate.ToString().Count(c => c == '{')).ToArray());
-
-            ResponseContentType ??= HTTPContentType.ForFileExtension(
-                                        resourceFilename.Remove(0, resourceFilename.LastIndexOf('.') + 1),
-                                        HTTPContentType.Application.OCTETSTREAM
-                                    ).First();
-
-            #endregion
-
             HTTPAPI.AddHandler(
-                HTTPMethod.GET,
                 URLTemplate,
-                ResponseContentType,
-                HTTPDelegate: request => {
+                HTTPMethod:       HTTPMethod.GET,
+                HTTPContentType:  ResponseContentType,
+                HTTPDelegate:     request => {
 
                     var fileName = ResourceFilenameBuilder(request.ParsedURLParameters);
 
-                    if (!File.Exists(fileName) && DefaultFile is not null)
-                        fileName = DefaultFile;
+                    if (!File.Exists(fileName))
+                        fileName = DefaultFile is not null && File.Exists(DefaultFile)
+                                       ? DefaultFile
+                                       : null;
 
-                    try
-                    {
-
-                        var fileStream = File.OpenRead(fileName);
-
-                        return fileStream is not null
-
-                                   ? Task.FromResult(
-                                         new HTTPResponse.Builder(request) {
-                                             HTTPStatusCode  = HTTPStatusCode.OK,
-                                             Server          = HTTPAPI.HTTPServer.HTTPServerName,
-                                             Date            = Timestamp.Now,
-                                             ContentType     = ResponseContentType,
-                                             ContentStream   = fileStream,
-                                             CacheControl    = CacheControl,
-                                             Connection      = ConnectionType.KeepAlive
-                                         }.AsImmutable
-                                     )
-
-                                   : Task.FromResult(
-                                         new HTTPResponse.Builder(request) {
-                                             HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                             Server          = HTTPAPI.HTTPServer.HTTPServerName,
-                                             Date            = Timestamp.Now,
-                                             CacheControl    = "no-cache",
-                                             Connection      = ConnectionType.KeepAlive
-                                         }.AsImmutable
-                                     );
-
-                    } catch (FileNotFoundException)
-                    {
-
+                    if (fileName is null)
                         return Task.FromResult(
                                    new HTTPResponse.Builder(request) {
                                        HTTPStatusCode  = HTTPStatusCode.NotFound,
@@ -1498,18 +1465,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    }.AsImmutable
                                );
 
-                    }
+                    try
+                    {
 
+                        // Until 2026-10-28 the type was decided once, at
+                        // registration, from the builder's answer to empty
+                        // parameters - a directory without an extension, so
+                        // every file was application/octet-stream.
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       Server          = HTTPAPI.HTTPServer.HTTPServerName,
+                                       Date            = Timestamp.Now,
+                                       ContentType     = ResponseContentType
+                                                             ?? HTTPContentType.ForFileExtension(
+                                                                    Path.GetExtension(fileName).TrimStart('.'),
+                                                                    () => HTTPContentType.Application.OCTETSTREAM
+                                                                ).FirstOrDefault(),
+                                       ContentStream   = File.OpenRead(fileName),
+                                       CacheControl    = CacheControl,
+                                       Connection      = ConnectionType.KeepAlive
+                                   }.AsImmutable
+                               );
+
+                    }
                     catch (Exception e)
                     {
+
+                        // To the log and not to the client: the message of an
+                        // I/O exception carries the absolute path on the server.
+                        Logger.LogError(e, "Could not serve {Path}", request.Path);
 
                         return Task.FromResult(
                                    new HTTPResponse.Builder(request) {
                                        HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                                        Server          = HTTPAPI.HTTPServer.HTTPServerName,
                                        Date            = Timestamp.Now,
-                                       ContentType     = HTTPContentType.Text.PLAIN,
-                                       Content         = e.Message.ToUTF8Bytes(),
+                                       ContentLength   = 0,
                                        CacheControl    = "no-cache",
                                        Connection      = ConnectionType.KeepAlive
                                    }.AsImmutable
@@ -1517,9 +1509,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
-                }, AllowReplacement: URLReplacement.Fail);
-
-            return;
+                },
+                AllowReplacement: URLReplacement.Fail
+            );
 
         }
 
