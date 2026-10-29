@@ -54,6 +54,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         private readonly DNSKeepalivePolicy keepalive;
 
+        /// <summary>
+        /// Set by DisposeAsync, so that a query asked afterwards is refused rather
+        /// than let in to reconnect a client that is going away.
+        /// </summary>
+        private volatile Boolean disposed;
+
         #endregion
 
         #region Properties
@@ -287,39 +293,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region TCP (serialized via semaphore, auto-reconnect on broken connection)
 
-            var effectiveTimeout = Timeout ?? QueryTimeout;
+            ObjectDisposedException.ThrowIf(disposed, this);
 
-            await tcpStreamLock.WaitAsync(CancellationToken).
-                                ConfigureAwait(false);
+            var effectiveTimeout = Timeout ?? QueryTimeout;
+            var asked            = Stopwatch.GetTimestamp();
+
+            // The deadline runs from here, the wait for the connection included.
+            // It used to be set once the lock was held, and since one connection
+            // serves one query at a time, a query for two types - two queries
+            // since RFC 9619 - spent one deadline waiting before the second began
+            // its own: 2.0 s for a 1 s timeout against a server that never answered.
+            //
+            // The client's token is in it for the same wait. Disposing the client
+            // cancels it, and a query queued behind another then stops waiting
+            // rather than waiting for a lock nobody is going to hand over.
+            //
+            // LiveClient..., not ??= - see DNSHTTPSClient for what a spent token
+            // source costs here.
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(
+                                     LiveClientCancellationTokenSource.Token,
+                                     CancellationToken
+                                 );
+            deadline.CancelAfter(effectiveTimeout);
+
+            var holdsLock = false;
 
             try
             {
 
+                await tcpStreamLock.WaitAsync(deadline.Token).
+                                    ConfigureAwait(false);
+
+                holdsLock = true;
+
                 if (!IsConnected || tcpClient is null)
-                    await ReconnectAsync(CancellationToken).
+                    await ReconnectAsync(deadline.Token).
                               ConfigureAwait(false);
 
-                var stopwatch = Stopwatch.StartNew();
                 var tcpStream = tcpClient!.GetStream();
-
-                // LiveClient..., not ??= - see DNSHTTPSClient for what a spent
-                // token source costs here.
-                using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(
-                                           LiveClientCancellationTokenSource.Token,
-                                           CancellationToken
-                                       );
-                timeoutCTS.CancelAfter(effectiveTimeout);
 
                 try
                 {
-                    return await SendAndReceiveTCPAsync(tcpStream, data, dnsQuery, effectiveTimeout, timeoutCTS.Token).
+                    return await SendAndReceiveTCPAsync(tcpStream, data, dnsQuery, effectiveTimeout, deadline.Token).
                                      ConfigureAwait(false);
                 }
                 catch (IOException)
                 {
-                    await ReconnectAsync(CancellationToken).ConfigureAwait(false);
+                    await ReconnectAsync(deadline.Token).ConfigureAwait(false);
                     tcpStream = tcpClient!.GetStream();
-                    return await SendAndReceiveTCPAsync(tcpStream, data, dnsQuery, effectiveTimeout, timeoutCTS.Token).
+                    return await SendAndReceiveTCPAsync(tcpStream, data, dnsQuery, effectiveTimeout, deadline.Token).
                                      ConfigureAwait(false);
                 }
 
@@ -342,7 +364,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return DNSInfo.Failed(
                                OriginOf(),
                                dnsQuery.TransactionId,
-                               effectiveTimeout
+                               effectiveTimeout,
+                               Stopwatch.GetElapsedTime(asked)
                            );
 
                 }
@@ -369,7 +392,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.Failed(
                            OriginOf(),
                            dnsQuery.TransactionId,
-                           effectiveTimeout
+                           effectiveTimeout,
+                           Stopwatch.GetElapsedTime(asked)
                        );
 
             }
@@ -381,7 +405,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.Failed(
                            OriginOf(),
                            dnsQuery.TransactionId,
-                           effectiveTimeout
+                           effectiveTimeout,
+                           Stopwatch.GetElapsedTime(asked)
                        );
 
             }
@@ -393,13 +418,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.Failed(
                            OriginOf(),
                            dnsQuery.TransactionId,
-                           effectiveTimeout
+                           effectiveTimeout,
+                           Stopwatch.GetElapsedTime(asked)
                        );
 
             }
             finally
             {
-                tcpStreamLock.Release();
+                if (holdsLock)
+                    tcpStreamLock.Release();
             }
 
             #endregion
@@ -473,7 +500,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             return DNSInfo.Failed(
                                        OriginOf(EffectiveTimeout),
                                        DNSQuery.TransactionId,
-                                       EffectiveTimeout
+                                       EffectiveTimeout,
+                                       stopwatch.Elapsed
                                    );
 
                         }
@@ -970,9 +998,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public override async ValueTask DisposeAsync()
         {
+
+            disposed = true;
+
             keepalive.Dispose();
-            tcpStreamLock.Dispose();
+
+            // The lock is not disposed, and that is deliberate. A query in flight
+            // holds it, and the cancellation in base.DisposeAsync is what ends
+            // that query - which then releases the lock on its way out. Disposed
+            // underneath it, the release threw ObjectDisposedException out of a
+            // query that had a perfectly good answer to give: the client went
+            // away. A SemaphoreSlim whose wait handle nobody asked for holds
+            // nothing that needs freeing.
             await base.DisposeAsync().ConfigureAwait(false);
+
         }
 
 

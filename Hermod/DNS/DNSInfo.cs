@@ -559,9 +559,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// network error, malformed response or other non-timeout exception.
         /// Unlike TimedOut, this sets IsTimeout = false.
         /// </summary>
+        /// <param name="Origin">The server that was asked.</param>
+        /// <param name="QueryId">The id of the query.</param>
+        /// <param name="Timeout">The timeout the query had.</param>
+        /// <param name="Runtime">How long the query took until it failed.</param>
+        /// <remarks>
+        /// The runtime used to be the timeout. A failure is precisely the case in
+        /// which the two differ - a refused connection is known after a few
+        /// milliseconds, or after two seconds of SYN retries on Windows, never
+        /// after "the timeout" - so a caller reading Runtime was told a number the
+        /// query had nothing to do with, and a test of how long something took had
+        /// to bring its own clock.
+        /// </remarks>
         public static DNSInfo Failed(DNSServerConfig  Origin,
                                      Int32            QueryId,
-                                     TimeSpan         Timeout)
+                                     TimeSpan         Timeout,
+                                     TimeSpan         Runtime)
 
             => new (Origin,
                     QueryId,
@@ -576,7 +589,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     false,
                     false,
                     Timeout,
-                    Timeout);
+                    Runtime);
 
 
         //internal void AddAnswer(ADNSResourceRecord ResourceRecord)

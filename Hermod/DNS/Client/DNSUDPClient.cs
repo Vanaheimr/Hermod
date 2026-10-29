@@ -57,6 +57,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         private Boolean disposedValue;
 
+        /// <summary>
+        /// Cancelled when this client is disposed, and part of every query's
+        /// deadline, so that a query in flight ends with its client.
+        /// </summary>
+        /// <remarks>
+        /// A UDP query has its own socket and nothing of the client's to lose, so
+        /// disposing the client used to leave it running to the end of its
+        /// deadline - and then report the timeout it had run into, for a query
+        /// whose caller had gone away seconds before. Never disposed itself: a
+        /// query asked after the client was disposed still links to it, and is
+        /// cancelled at once rather than thrown out by a disposed token source.
+        /// </remarks>
+        private readonly CancellationTokenSource lifetime = new();
+
         private readonly ILogger<DNSUDPClient>  logger;
 
         #endregion
@@ -336,7 +350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                              ? new Socket(AddressFamily.InterNetwork,   SocketType.Dgram, ProtocolType.Udp)
                                              : new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
 
-                using var timeoutCTS   = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                using var timeoutCTS   = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, lifetime.Token);
                 timeoutCTS.CancelAfter(effectiveTimeout);
 
                 await socket.ConnectAsync(remoteEndPoint, timeoutCTS.Token).
@@ -514,6 +528,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
+            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested && lifetime.IsCancellationRequested)
+            {
+
+                logger.LogWarning(
+                    "DNS UDP query to {RemoteIPAddress}:{RemotePort} was cancelled by the client - it did not time out",
+                    RemoteIPAddress,
+                    RemotePort
+                );
+
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               RemoteIPAddress,
+                               RemotePort ?? IPPort.DNS
+                           ),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout,
+                           stopwatch.Elapsed
+                       );
+
+            }
             catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
             {
 
@@ -551,7 +585,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                RemotePort ?? IPPort.DNS
                            ),
                            dnsQuery.TransactionId,
-                           effectiveTimeout
+                           effectiveTimeout,
+                           stopwatch.Elapsed
                        );
 
             }
@@ -567,7 +602,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                RemotePort ?? IPPort.DNS
                            ),
                            dnsQuery.TransactionId,
-                           effectiveTimeout
+                           effectiveTimeout,
+                           stopwatch.Elapsed
                        );
 
             }
@@ -587,7 +623,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                RemotePort ?? IPPort.DNS
                            ),
                            dnsQuery.TransactionId,
-                           effectiveTimeout
+                           effectiveTimeout,
+                           stopwatch.Elapsed
                        );
 
             }
@@ -653,7 +690,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          ? new Socket(AddressFamily.InterNetwork,   SocketType.Stream, ProtocolType.Tcp)
                                          : new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
 
-                using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, lifetime.Token);
                 timeoutCTS.CancelAfter(Timeout);
 
                 await socket.ConnectAsync(endPoint, timeoutCTS.Token).
@@ -694,7 +731,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                    Timeout
                                ),
                                DNSQuery.TransactionId,
-                               Timeout
+                               Timeout,
+                               stopwatch.Elapsed
                            );
 
                 var buffer    = new Byte[responseLength];
@@ -726,7 +764,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                    Timeout
                                ),
                                DNSQuery.TransactionId,
-                               Timeout
+                               Timeout,
+                               stopwatch.Elapsed
                            );
 
                 return DNSInfo.ReadResponse(
@@ -739,6 +778,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            DNSQuery.TransactionId,
                            DNSQuery.Questions,
                            new MemoryStream(body),
+                           Timeout,
+                           stopwatch.Elapsed
+                       );
+
+            }
+            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested && lifetime.IsCancellationRequested)
+            {
+
+                logger.LogWarning(
+                    "DNS TCP fallback to {RemoteIPAddress}:{RemotePort} was cancelled by the client - it did not time out",
+                    RemoteIPAddress,
+                    RemotePort
+                );
+
+                return DNSInfo.Failed(
+                           new DNSServerConfig(
+                               RemoteIPAddress,
+                               RemotePort ?? IPPort.DNS,
+                               DNSTransport.TCP,
+                               Timeout
+                           ),
+                           DNSQuery.TransactionId,
                            Timeout,
                            stopwatch.Elapsed
                        );
@@ -780,7 +841,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                RemotePort ?? IPPort.DNS
                            ),
                            DNSQuery.TransactionId,
-                           Timeout
+                           Timeout,
+                           stopwatch.Elapsed
                        );
 
             }
@@ -795,7 +857,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                RemotePort ?? IPPort.DNS
                            ),
                            DNSQuery.TransactionId,
-                           Timeout
+                           Timeout,
+                           stopwatch.Elapsed
                        );
 
             }
@@ -815,7 +878,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                RemotePort ?? IPPort.DNS
                            ),
                            DNSQuery.TransactionId,
-                           Timeout
+                           Timeout,
+                           stopwatch.Elapsed
                        );
 
             }
@@ -1263,6 +1327,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!disposedValue)
             {
                 disposedValue = true;
+
+                // As ATCPClient.Close does it: a callback that throws on the way
+                // out must not turn disposing into a failure of its own.
+                try { lifetime.Cancel(); } catch { }
             }
         }
 

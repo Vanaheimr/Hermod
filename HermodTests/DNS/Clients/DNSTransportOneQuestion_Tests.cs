@@ -128,10 +128,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                     var length = new Byte[2];
                     while (!listening.IsCancellationRequested)
                     {
+
                         await stream.ReadExactlyAsync(length, listening.Token);
                         var message = new Byte[(length[0] << 8) | length[1]];
                         await stream.ReadExactlyAsync(message, listening.Token);
                         messages.Enqueue(message);
+
+                        // Answered, with the query turned round: QR set, NOERROR,
+                        // nothing in the answer section. One connection carries one
+                        // query at a time, and the two share one deadline - against
+                        // a server that never answered, the second would never be
+                        // sent, and rightly: its time was up.
+                        var response = (Byte[]) message.Clone();
+                        response[2] |= 0x80;
+                        response[3]  = 0x80;
+                        await stream.WriteAsync(length,   listening.Token);
+                        await stream.WriteAsync(response, listening.Token);
+
                     }
                 }
                 catch (OperationCanceledException) { }

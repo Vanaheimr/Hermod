@@ -67,6 +67,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private readonly SemaphoreSlim httpStreamLock = new(1, 1);
         private readonly ILogger<DNSHTTPSClient> logger;
 
+        /// <summary>
+        /// Set by DisposeAsync, so that a query asked afterwards is refused rather
+        /// than let in to reconnect a client that is going away.
+        /// </summary>
+        private volatile Boolean disposed;
+
         public new const  String DefaultHTTPUserAgent    = "Hermod DNS HTTP Test Client";
 
         #endregion
@@ -1007,20 +1013,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // says who asked.
             var dnsBytes  = SerializeQuery(dnsQuery, out var requestMAC);
 
+            ObjectDisposedException.ThrowIf(disposed, this);
+
             var effectiveTimeout = Timeout ?? QueryTimeout;
+            var asked            = Stopwatch.GetTimestamp();
 
             // The query's deadline runs from here, because connecting is part of
             // asking. It used to be set only once a connection was there, and the
             // connecting before it had no deadline at all: against a refused port
             // a 3 s query came back after 8.2 s, the time the reconnects took.
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+            //
+            // The wait for the lock is part of asking too, and so is the client's
+            // own token: disposing the client cancels it, and a query queued
+            // behind another stops waiting rather than waiting for a lock nobody
+            // is going to hand over.
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(
+                                     LiveClientCancellationTokenSource.Token,
+                                     CancellationToken
+                                 );
             deadline.CancelAfter(effectiveTimeout);
 
-            await httpStreamLock.WaitAsync(CancellationToken).
-                                 ConfigureAwait(false);
+            var holdsLock = false;
 
             try
             {
+
+                await httpStreamLock.WaitAsync(deadline.Token).
+                                     ConfigureAwait(false);
+
+                holdsLock = true;
 
                 // And a connection that could not be made is the answer. Sending
                 // anyway handed the request to SendRequest, which tried to connect
@@ -1038,7 +1059,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     var connected = await ReconnectAsync(deadline.Token).ConfigureAwait(false);
 
                     if (!connected.IsSuccess)
-                        return CouldNotConnect(connected, dnsQuery, effectiveTimeout, deadline, CancellationToken);
+                        return CouldNotConnect(connected, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked), deadline, CancellationToken);
 
                 }
 
@@ -1107,7 +1128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     var reconnected = await ReconnectAsync(deadline.Token).ConfigureAwait(false);
 
                     if (!reconnected.IsSuccess)
-                        return CouldNotConnect(reconnected, dnsQuery, effectiveTimeout, deadline, CancellationToken);
+                        return CouldNotConnect(reconnected, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked), deadline, CancellationToken);
 
                     httpResponse = await SendRequest(
                                              httpRequest,
@@ -1174,7 +1195,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return DNSInfo.Failed(
                                serverConfig,
                                dnsQuery.TransactionId,
-                               effectiveTimeout
+                               effectiveTimeout,
+                               Stopwatch.GetElapsedTime(asked)
                            );
 
                 }
@@ -1207,7 +1229,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return DNSInfo.Failed(
                                serverConfig,
                                dnsQuery.TransactionId,
-                               effectiveTimeout
+                               effectiveTimeout,
+                               Stopwatch.GetElapsedTime(asked)
                            );
 
                 }
@@ -1224,7 +1247,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return DNSInfo.Failed(
                                serverConfig,
                                dnsQuery.TransactionId,
-                               effectiveTimeout
+                               effectiveTimeout,
+                               Stopwatch.GetElapsedTime(asked)
                            );
 
                 }
@@ -1264,7 +1288,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return DNSInfo.Failed(
                                OriginOf(),
                                dnsQuery.TransactionId,
-                               effectiveTimeout
+                               effectiveTimeout,
+                               Stopwatch.GetElapsedTime(asked)
                            );
 
                 }
@@ -1290,7 +1315,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.Failed(
                            OriginOf(),
                            dnsQuery.TransactionId,
-                           effectiveTimeout
+                           effectiveTimeout,
+                           Stopwatch.GetElapsedTime(asked)
                        );
 
             }
@@ -1308,20 +1334,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.Failed(
                            OriginOf(),
                            dnsQuery.TransactionId,
-                           effectiveTimeout
+                           effectiveTimeout,
+                           Stopwatch.GetElapsedTime(asked)
                        );
 
             }
             finally
             {
-                httpStreamLock.Release();
+                if (holdsLock)
+                    httpStreamLock.Release();
             }
 
         }
 
         #endregion
 
-        #region (private) CouldNotConnect(ConnectionResult, Query, Timeout, Deadline, CancellationToken)
+        #region (private) CouldNotConnect(ConnectionResult, Query, Timeout, Runtime, Deadline, CancellationToken)
 
         /// <summary>
         /// What a query says when it could not get a connection to ask over.
@@ -1330,11 +1358,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// A failure, unless the deadline is what ended the connecting - then it is
         /// the timeout the caller would get from every other transport. The
         /// caller's own cancellation is neither, and is reported as a failure, the
-        /// way the catch for it below reports it.
+        /// way the catch for it below reports it; so is the client going away,
+        /// which cancels the deadline too.
         /// </remarks>
         private DNSInfo CouldNotConnect(TCPConnectionResult      ConnectionResult,
                                         DNSPacket                Query,
                                         TimeSpan                 Timeout,
+                                        TimeSpan                 Runtime,
                                         CancellationTokenSource  Deadline,
                                         CancellationToken        CancellationToken)
         {
@@ -1345,9 +1375,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 ConnectionResult.Errors.AggregateWith(", ")
             );
 
-            return Deadline.IsCancellationRequested && !CancellationToken.IsCancellationRequested
+            return Deadline.IsCancellationRequested &&
+                   !CancellationToken.IsCancellationRequested &&
+                   clientCancellationTokenSource?.IsCancellationRequested != true
                        ? DNSInfo.TimedOut(OriginOf(Timeout), Query.TransactionId, Timeout)
-                       : DNSInfo.Failed  (OriginOf(Timeout), Query.TransactionId, Timeout);
+                       : DNSInfo.Failed  (OriginOf(Timeout), Query.TransactionId, Timeout, Runtime);
 
         }
 
@@ -1907,8 +1939,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public override async ValueTask DisposeAsync()
         {
-            httpStreamLock.Dispose();
+
+            disposed = true;
+
+            // The lock is not disposed - see DNSTCPClient for why a query in
+            // flight needs it to stay.
             await base.DisposeAsync().ConfigureAwait(false);
+
         }
 
 

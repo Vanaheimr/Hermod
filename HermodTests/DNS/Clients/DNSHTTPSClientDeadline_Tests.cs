@@ -78,6 +78,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                 Assert.That(info.IsValid,   Is.False, "there is no answer");
                 Assert.That(info.IsTimeout, Is.False, "and it is not a timeout: the connection was refused");
                 Assert.That(clock.Elapsed,  Is.LessThan(deadline), "which was known before the deadline");
+
+                // A failure's runtime was its timeout, whatever the time it took.
+                Assert.That(info.Runtime,   Is.LessThan(deadline), "and its runtime is that time, not the timeout");
+                Assert.That(info.Runtime,   Is.LessThanOrEqualTo(clock.Elapsed));
             });
 
         }

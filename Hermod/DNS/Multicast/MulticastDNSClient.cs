@@ -571,7 +571,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
             catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
             {
-                return DNSInfo.Failed(origin, 0, timeout);
+                return DNSInfo.Failed(origin, 0, timeout, stopwatch.Elapsed);
             }
             finally
             {

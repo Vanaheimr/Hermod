@@ -59,6 +59,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         private readonly DNSKeepalivePolicy keepalive;
 
+        /// <summary>
+        /// Set by DisposeAsync, so that a query asked afterwards is refused rather
+        /// than let in to reconnect a client that is going away.
+        /// </summary>
+        private volatile Boolean disposed;
+
         #endregion
 
         #region Properties
@@ -476,13 +482,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region TLS (serialized via semaphore, auto-reconnect on broken connection)
 
-            var effectiveTimeout = Timeout ?? QueryTimeout;
+            ObjectDisposedException.ThrowIf(disposed, this);
 
-            await tlsStreamLock.WaitAsync(CancellationToken).
-                                ConfigureAwait(false);
+            var effectiveTimeout = Timeout ?? QueryTimeout;
+            var asked            = Stopwatch.GetTimestamp();
+
+            // The deadline runs from here, the wait for the connection included,
+            // and the client's token is in it - see DNSTCPClient for what each of
+            // the two cost when the deadline began behind the lock.
+            //
+            // LiveClient..., not ??= - see DNSHTTPSClient for what a spent token
+            // source costs here.
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(
+                                     LiveClientCancellationTokenSource.Token,
+                                     CancellationToken
+                                 );
+            deadline.CancelAfter(effectiveTimeout);
+
+            var holdsLock = false;
 
             try
             {
+
+                await tlsStreamLock.WaitAsync(deadline.Token).
+                                    ConfigureAwait(false);
+
+                holdsLock = true;
 
                 // A failed connect - refused, or a handshake that did not complete - is
                 // the answer. Going on wrote the query into the stream of the handshake
@@ -490,40 +515,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (!IsConnected || tcpClient is null)
                 {
 
-                    var connectionResult = await ReconnectAsync(CancellationToken).
+                    var connectionResult = await ReconnectAsync(deadline.Token).
                                                      ConfigureAwait(false);
 
                     if (connectionResult.IsFailure)
-                        return await ConnectionFailed(connectionResult, dnsQuery, effectiveTimeout).
+                        return await ConnectionFailed(connectionResult, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked)).
                                          ConfigureAwait(false);
 
                 }
 
-                var stopwatch = Stopwatch.StartNew();
-
-                // LiveClient..., not ??= - see DNSHTTPSClient for what a spent
-                // token source costs here.
-                using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(
-                                           LiveClientCancellationTokenSource.Token,
-                                           CancellationToken
-                                       );
-                timeoutCTS.CancelAfter(effectiveTimeout);
-
                 try
                 {
-                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, signedQuery, requestMAC, effectiveTimeout, timeoutCTS.Token).
+                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, signedQuery, requestMAC, effectiveTimeout, deadline.Token).
                                      ConfigureAwait(false);
                 }
                 catch (IOException)
                 {
 
-                    var connectionResult = await ReconnectAsync(CancellationToken).ConfigureAwait(false);
+                    var connectionResult = await ReconnectAsync(deadline.Token).ConfigureAwait(false);
 
                     if (connectionResult.IsFailure)
-                        return await ConnectionFailed(connectionResult, dnsQuery, effectiveTimeout).
+                        return await ConnectionFailed(connectionResult, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked)).
                                          ConfigureAwait(false);
 
-                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, signedQuery, requestMAC, effectiveTimeout, timeoutCTS.Token).
+                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, signedQuery, requestMAC, effectiveTimeout, deadline.Token).
                                      ConfigureAwait(false);
 
                 }
@@ -546,7 +561,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return DNSInfo.Failed(
                                OriginOf(),
                                dnsQuery.TransactionId,
-                               effectiveTimeout
+                               effectiveTimeout,
+                               Stopwatch.GetElapsedTime(asked)
                            );
 
                 }
@@ -572,7 +588,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.Failed(
                            OriginOf(),
                            dnsQuery.TransactionId,
-                           effectiveTimeout
+                           effectiveTimeout,
+                           Stopwatch.GetElapsedTime(asked)
                        );
 
             }
@@ -584,7 +601,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.Failed(
                            OriginOf(),
                            dnsQuery.TransactionId,
-                           effectiveTimeout
+                           effectiveTimeout,
+                           Stopwatch.GetElapsedTime(asked)
                        );
 
             }
@@ -596,13 +614,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return DNSInfo.Failed(
                            OriginOf(),
                            dnsQuery.TransactionId,
-                           effectiveTimeout
+                           effectiveTimeout,
+                           Stopwatch.GetElapsedTime(asked)
                        );
 
             }
             finally
             {
-                tlsStreamLock.Release();
+                if (holdsLock)
+                    tlsStreamLock.Release();
             }
 
             #endregion
@@ -611,14 +631,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private) ConnectionFailed(ConnectionResult, Query, Timeout)
+        #region (private) ConnectionFailed(ConnectionResult, Query, Timeout, Runtime)
 
         /// <summary>
         /// The answer to a query whose connection could not be made: said why, and failed.
         /// </summary>
         private async Task<DNSInfo> ConnectionFailed(TCPConnectionResult  ConnectionResult,
                                                      DNSPacket            Query,
-                                                     TimeSpan             Timeout)
+                                                     TimeSpan             Timeout,
+                                                     TimeSpan             Runtime)
         {
 
             var reason = ConnectionResult.Errors.AggregateWith(", ");
@@ -634,7 +655,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return DNSInfo.Failed(
                        OriginOf(),
                        Query.TransactionId,
-                       Timeout
+                       Timeout,
+                       Runtime
                    );
 
         }
@@ -767,7 +789,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             return DNSInfo.Failed(
                                        OriginOf(EffectiveTimeout),
                                        DNSQuery.TransactionId,
-                                       EffectiveTimeout
+                                       EffectiveTimeout,
+                                       stopwatch.Elapsed
                                    );
 
                         }
@@ -1348,9 +1371,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public override async ValueTask DisposeAsync()
         {
+
+            disposed = true;
+
             keepalive.Dispose();
-            tlsStreamLock.Dispose();
+
+            // The lock is not disposed - see DNSTCPClient for why a query in
+            // flight needs it to stay.
             await base.DisposeAsync().ConfigureAwait(false);
+
         }
 
 
