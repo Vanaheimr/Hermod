@@ -167,13 +167,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // q=0.8
 
             var splittedAcceptString  = AcceptString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(_ => _.Trim()).ToArray();
+
+            // A TryParse that throws turns a malformed Accept field into an
+            // exception wherever Request.Accept is read, error responses included.
+            // An element with nothing in it, or a weight that is not a number
+            // (RFC 9110, Section 12.4.2), is an element this does not parse.
+            if (splittedAcceptString.Length == 0)
+            {
+                AcceptType = null;
+                return false;
+            }
+
             var mediaTypes            = splittedAcceptString[0].Split('/');
             var charset               = Array.Find(splittedAcceptString, part => part.StartsWith("charset=", StringComparison.OrdinalIgnoreCase));
             var quality               = Array.Find(splittedAcceptString, part => part.StartsWith("q=",       StringComparison.OrdinalIgnoreCase));
 
-            var quality2              = quality is not null && quality.IsNotNullOrEmpty()
-                                            ? Double.Parse(quality[2..], CultureInfo.InvariantCulture)
-                                            : 1.0;
+            var quality2              = 1.0;
+
+            if (quality is not null &&
+                quality.IsNotNullOrEmpty() &&
+               !Double.TryParse(quality[2..], NumberStyles.Float, CultureInfo.InvariantCulture, out quality2))
+            {
+                AcceptType = null;
+                return false;
+            }
 
             if (mediaTypes.Length == 1)
             {

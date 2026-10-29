@@ -402,6 +402,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 = Register("application", "geo+json",                   "utf-8", null, null, "geojson");
             public static HTTPContentType JSONMergePatch_UTF8    { get; }
                 = Register("application", "merge-patch+json",           "utf-8", null, null);
+
+            /// <summary>
+            /// Problem details for HTTP APIs (RFC 9457, Section 3).
+            /// </summary>
+            /// <remarks>
+            /// No character set: RFC 9457 Section 6 registers this media type without
+            /// parameters, and JSON exchanged between systems is UTF-8 (RFC 8259,
+            /// Section 8.1).
+            /// </remarks>
+            public static HTTPContentType ProblemJSON            { get; }
+                = Register("application", "problem+json",               null,    null, null);
             public static HTTPContentType XML_UTF8               { get; }
                 = Register("application", "xml",                        "utf-8", null, null, "xml");
             public static HTTPContentType SOAPXML_UTF8           { get; }

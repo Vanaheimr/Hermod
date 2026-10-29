@@ -113,6 +113,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region TryParseProblemDetails        (this Response, out ProblemDetails)
+
+        /// <summary>
+        /// The problem details (RFC 9457) a response carries: false unless its
+        /// content type is application/problem+json and its content a JSON object.
+        /// A member of the wrong type is ignored, as Section 3.1 requires; see
+        /// <see cref="HTTPProblemDetails.Parse(JObject)"/>.
+        /// </summary>
+        /// <param name="Response">An HTTP response.</param>
+        /// <param name="ProblemDetails">The problem details.</param>
+        public static Boolean TryParseProblemDetails(this HTTPResponse                                                          Response,
+                                                     [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out HTTPProblemDetails?  ProblemDetails)
+        {
+
+            ProblemDetails = null;
+
+            if (Response.ContentType != HTTPContentType.Application.ProblemJSON)
+                return false;
+
+            var text = Response.GetResponseBodyAsUTF8String(HTTPContentType.Application.ProblemJSON);
+
+            return text.IsNotNullOrEmpty() &&
+                   HTTPProblemDetails.TryParse(text, out ProblemDetails);
+
+        }
+
+        #endregion
+
         #region TryParseJArrayResponseBody    (this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false)
 
         public static Boolean TryParseJArrayResponseBody(this HTTPResponse  Response,

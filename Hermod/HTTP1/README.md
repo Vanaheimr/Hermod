@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-10-28**
+Last verified: **2026-10-29**
 
 ## Support levels
 
@@ -32,6 +32,7 @@ Last verified: **2026-10-28**
 | [RFC 9530](https://www.rfc-editor.org/rfc/rfc9530.html), Digest Fields | `Content-Digest`, `Repr-Digest`, `Want-Content-Digest` and `Want-Repr-Digest` are typed on both directions, in `sha-256` and `sha-512`, with the grammar shared with HTTP/2. Opt-in on either role: the server's `AutomaticContentDigests` digests what it sends, after its compression; the client's `VerifyDigests` asks for a digest and checks it before it decodes. A handler's own digest is computed again when the server compresses. The obsolete `Content-MD5` stays readable. See [Digest fields](#digest-fields-rfc-9530). |
 | [RFC 7239](https://www.rfc-editor.org/rfc/rfc7239.html), Forwarded | The field is parsed into typed elements - `for`, `by`, `host`, `proto` and any extension parameters - and can be built to be sent onwards when a request is proxied. Node identifiers cover addresses, `unknown` and obfuscated identifiers; the last two are kept opaque rather than resolved into an address that was never given. Where a request carries both, `Forwarded` is preferred over the `X-Forwarded-For` family (Section 7.4). Either way the addresses are recorded *beside* the peer socket and never instead of it: everything in these fields is hearsay from whoever wrote them (Section 8.1), and forgeable by the client when no proxy strips them. |
 | [RFC 7838](https://www.rfc-editor.org/rfc/rfc7838.html), HTTP Alternative Services | `Alt-Svc` is typed for responses and `Alt-Used` for requests, sent by handlers and read by the client, with the field's grammar shared with HTTP/2's ALTSVC frame. The client records alternatives and does not act on them. Announcing one is the application's decision. |
+| [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html), Problem Details for HTTP APIs | `HTTPProblemDetails` is the JSON object of Section 3, served as `application/problem+json`. Handlers send it with `SetProblemDetails`, which also sets the status code it names, and clients read it with `TryParseProblemDetails`. The server's own errors stay `application/json` unless a request's `Accept` prefers problem details. JSON only: the XML format of Appendix B is not implemented. Since 2026-10-29; see [Problem details](#problem-details-rfc-9457). |
 | [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), WebSocket | Implemented in Hermod's WebSocket client/server subsystem. The HTTP/1.1 server can also serve a WebSocket on a path of its own, beside ordinary HTTP on the same listener: `WebSocketUpgrade.For` hands a request that asks for an upgrade over to a WebSocket server, whose single implementation of the opening handshake (RFC 6455 §4.2) validates it and answers the `101` - the HTTP layer only decides whether a request is asking. Regression-tested by `WebSocketOnAnHTTPPathTests`; see [WebSocket/README.md](WebSocket/README.md#on-an-http-path). |
 | [WHATWG Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Implemented and regression-tested for `text/event-stream`, parsing, live streaming, reconnection, `Last-Event-ID`, retry intervals, comments/heartbeats, cancellation, and disconnect cleanup. |
 
@@ -560,6 +561,49 @@ HTTP, and its doc comments say so and point here.
 The server offers `br` and `gzip` where the client accepts `br`, `gzip` and
 `deflate`: `deflate` is the one the wire disagrees about, so it is read and not
 written.
+
+## Problem details (RFC 9457)
+
+`HTTPProblemDetails`, in `Hermod/HTTP/`, is the problem details object of
+Section 3: `type`, `status`, `title`, `detail` and `instance`, and the extension
+members beside them. It is served as `application/problem+json`,
+`HTTPContentType.Application.ProblemJSON`, without a charset, because Section 6
+registers the type without parameters. Since 2026-10-29.
+
+| | |
+|---|---|
+| a handler | `HTTPResponse.Builder.SetProblemDetails(problem)` sets the content, the content type and the status code the problem names, which Section 3.1.2 says the response MUST carry. `HTTPProblemDetails.ForStatus(code, detail)` is the `about:blank` problem, whose title is the reason phrase (Section 4.2.1). |
+| a client | `response.TryParseProblemDetails(out problem)` reads an `application/problem+json` response. A member of the wrong type is ignored, as Section 3.1 requires: `"type": 42` leaves the type `about:blank`, and a `status` that cannot be a status code is dropped. Extensions are kept. |
+| the server's own errors | `404`, `405`, `408`, `413`, `417`, `421`, the `400`s for a malformed body, and the `500`s go out as `application/json` with a `description`, as they always have. A request whose `Accept` prefers `application/problem+json` gets them as problem details. |
+
+`Accept` prefers problem details when it names `application/problem+json`
+itself, with a quality above 0 and no lower than the one it gives
+`application/json`, judged by the most specific range that matches
+`application/json`. `*/*` alone does not ask. A client that lists both at equal
+quality, as the RFC's first example does, gets problem details. The decision is
+`HTTPProblemDetails.IsPreferredBy`'s. Negotiating rather than switching keeps
+every existing client's `description`, and Section 4 names content negotiation
+as the way to add problem details to an API that has a format already.
+
+The server's errors as problem details are `about:blank`: they are protocol
+errors, which Section 4 says a status code describes better than a problem type
+does. The title is the reason phrase, `description` becomes `detail`, and the
+other members, such as `request` or `maximumBytes`, stay as extensions. A `500`
+with `IncludeStackTracesInErrorResponses` names the exception's type in a member
+called `type`. In problem details that name is the problem type, so there it is
+`exceptionType`.
+
+Not negotiated:
+
+- errors raised before the request's header section is parsed, which have no
+  `Accept` to read;
+- the plain-text errors: `TRACE`'s `501` and the two HTTP/1.0 refusals.
+
+Reading `Accept` on an error path found that `AcceptType.TryParse` threw on a
+weight that is not a number (`q=abc`) and on an element with nothing in it. With
+the errors negotiating, a malformed `Accept` would have cost a request its error
+response, and the connection went silent. Such an element is dropped now, and
+the rest of the field stands.
 
 ## Authentication
 
