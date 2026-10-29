@@ -63,11 +63,35 @@ public class UdpBatchSenderTests
     {
         // The segment size is a socket option. Four workers, each with its own sender as
         // Http3Server's parallel workers have, send batches of four different sizes over ONE socket.
-        // Without the per-socket lock, one worker's option can apply to another's send.
+        // Without the per-socket lock, one worker's option applies to another's send. Its batch then
+        // leaves as one oversized datagram, or its single datagram leaves in pieces. Either way a
+        // datagram arrives at a size no worker sent, and that is what this checks.
+        //
+        // Not that every datagram arrives. A receive buffer is the system's to size - Linux caps it
+        // at net.core.rmem_max - and loopback drops what does not fit. A drop is no split, so the
+        // count is only checked for being large enough to mean something.
         const int workers = 4, batches = 60, perBatch = 8;
         using var receiver = Receiver(out IPEndPoint to);
         using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         socket.Bind(new IPEndPoint(System.Net.IPAddress.Loopback, 0));
+
+        var received = new List<byte[]>();
+        bool sent = false;
+        receiver.ReceiveTimeout = 300;
+        Task reading = Task.Run(() =>
+        {
+            // Reads alongside the senders; stops at the first quiet spell after they are done.
+            var buffer = new byte[65536];
+            while (true)
+            {
+                try { received.Add(buffer.AsSpan(0, receiver.Receive(buffer)).ToArray()); }
+                catch (SocketException e) when (e.SocketErrorCode == SocketError.TimedOut)
+                {
+                    if (Volatile.Read(ref sent))
+                        return;
+                }
+            }
+        });
 
         Parallel.For(0, workers, new ParallelOptions { MaxDegreeOfParallelism = workers }, w =>
         {
@@ -76,11 +100,14 @@ public class UdpBatchSenderTests
             for (int b = 0; b < batches; b++)
                 sender.Send(socket, [.. Enumerable.Range(0, perBatch).Select(_ => Datagram(size, tag: w))], to);
         });
+        Volatile.Write(ref sent, true);
+        reading.Wait();
 
-        List<byte[]> received = ReceiveAll(receiver, workers * batches * perBatch);
-        var wrong = received.Where(d => d.Length != 1000 + 100 * d[0]).ToList();
+        var wrong = received.Where(d => d[0] >= workers || d.Length != 1000 + 100 * d[0]).ToList();
         Assert.That(wrong, Is.Empty,
-                    $"{wrong.Count} datagrams arrived at a size their sender did not send, e.g. {wrong.FirstOrDefault()?.Length}");
+                    $"{wrong.Count} of {received.Count} datagrams arrived at a size no worker sent, e.g. {wrong.FirstOrDefault()?.Length} bytes");
+        Assert.That(received.Count, Is.GreaterThan(workers * batches * perBatch / 10),
+                    "too few arrived to say anything");
     }
 
     private static byte[] Datagram(int size, int tag)
