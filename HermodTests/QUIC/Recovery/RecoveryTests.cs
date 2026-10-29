@@ -76,6 +76,23 @@ public class NewRenoTests
     }
 
     [Test]
+    public void ApplicationLimited_AcknowledgmentsDoNotGrowTheWindow()
+    {
+        var cc = new NewRenoCongestionControl { IsApplicationLimited = true };
+        int initial = cc.CongestionWindow;
+        cc.OnPacketSent(1200);
+        cc.OnPacketAcked(1200, sentTimeTicks: 0);
+
+        Assert.That(cc.CongestionWindow, Is.EqualTo(initial), "RFC 9002 §7.8: an unused window does not grow");
+        Assert.That(cc.BytesInFlight, Is.Zero, "but the acknowledged bytes still leave the flight");
+
+        cc.IsApplicationLimited = false;
+        cc.OnPacketSent(1200);
+        cc.OnPacketAcked(1200, sentTimeTicks: 0);
+        Assert.That(cc.CongestionWindow, Is.EqualTo(initial + 1200), "slow start resumes once the window is used");
+    }
+
+    [Test]
     public void Loss_HalvesWindow_AndEntersRecovery()
     {
         var cc = new NewRenoCongestionControl();

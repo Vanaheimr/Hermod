@@ -1251,6 +1251,13 @@ public abstract class QuicEndpoint : IDisposable
         {
             writer.Dispose();
         }
+
+        // Room left in both the window and the pacing budget means the pass stopped for want of
+        // sendable data, which is application- or flow-control-limited (RFC 9002 §7.8). If either
+        // ran out, the window was in use, and an exhausted pacing budget explicitly counts as that.
+        _recovery.Congestion.IsApplicationLimited =
+            _recovery.Congestion.Available >= MaxPayloadPerPacket &&
+            _pacer.AvailableBytes          >= MaxPayloadPerPacket;
     }
 
     /// <summary>
