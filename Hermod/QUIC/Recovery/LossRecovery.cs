@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Frames;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 
 #endregion
 
@@ -64,6 +65,7 @@ public sealed class LossRecovery
     {
         public readonly SortedDictionary<ulong, SentPacket> Sent = [];
         public long LargestAcked = -1;
+        public ulong NextPacketNumber; // one past the largest sent: where a slow-start round ends (RFC 9406)
         public long LossTimeTicks = -1;
         public ulong LargestCeCount; // highest ECN-CE counter reported so far (RFC 9002 §A.7)
     }
@@ -141,6 +143,8 @@ public sealed class LossRecovery
     public void OnPacketSent(int space, SentPacket packet)
     {
         _spaces[space].Sent[packet.PacketNumber] = packet;
+        if (packet.PacketNumber >= _spaces[space].NextPacketNumber)
+            _spaces[space].NextPacketNumber = packet.PacketNumber + 1;
         if (packet.TimeSentTicks > _lastSentTicks)
             _lastSentTicks = packet.TimeSentTicks;
         if (packet.AckEliciting)
@@ -171,14 +175,19 @@ public sealed class LossRecovery
         }
 
         // Derive the RTT only from the largest, newly acknowledged and ack-eliciting packet.
+        TimeSpan? rttSample = null;
         if (largestNewlyAcked is { AckEliciting: true } &&
             largestNewlyAcked.PacketNumber == ack.LargestAcknowledged)
         {
-            var rttSample = TimeSpan.FromTicks(Math.Max(0, nowTicks - largestNewlyAcked.TimeSentTicks));
-            Rtt.AddSample(rttSample, ackDelay, MaxAckDelay);
+            rttSample = TimeSpan.FromTicks(Math.Max(0, nowTicks - largestNewlyAcked.TimeSentTicks));
+            Rtt.AddSample(rttSample.Value, ackDelay, MaxAckDelay);
             if (_firstRttSampleTicks < 0)
                 _firstRttSampleTicks = nowTicks; // RFC 9002 §B.8: first_rtt_sample
         }
+
+        // Slow start's rounds are counted in the application space, where the data goes.
+        if (space == (int)EncryptionLevel.Application)
+            Congestion.OnAcknowledgment(rttSample, ack.LargestAcknowledged, st.NextPacketNumber);
 
         // ECN (RFC 9002 §A.7 ProcessECN): if the ACK reports an increased CE counter, that counts as congestion.
         if (ack.Ecn is { } ecn && ecn.CongestionExperienced > st.LargestCeCount)
