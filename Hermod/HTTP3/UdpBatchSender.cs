@@ -19,6 +19,8 @@
 
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Core.Buffers;
 
@@ -27,22 +29,32 @@ using org.GraphDefined.Vanaheimr.Hermod.Quic.Core.Buffers;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP3;
 
 /// <summary>
-/// Sends the datagrams of a pump pass in as few syscalls as possible (UDP batching, phase 9). On
-/// <b>Linux</b>, equal-sized datagrams are combined via <c>UDP_SEGMENT</c> (GSO) into ONE
-/// <c>sendmsg</c> — the kernel splits them back into individual packets. On all other platforms
-/// (incl. Windows) the sender falls back to a lean single-send loop that reuses the
-/// <see cref="GsoBatcher"/> work buffer and the destination address.
-/// Both are identical on the wire — GSO only saves syscalls, not bytes.
+/// Sends the datagrams of a pump pass in as few syscalls as possible (UDP batching, phase 9).
+/// Equal-sized datagrams are combined into ONE send that the kernel splits back into individual
+/// packets: via <c>UDP_SEGMENT</c> (GSO) on <b>Linux</b>, via <c>UDP_SEND_MSG_SIZE</c> (USO) on
+/// <b>Windows</b>. Elsewhere, or where the kernel refuses, it is a plain single-send loop. Identical
+/// on the wire either way: batching saves syscalls, not bytes.
 /// </summary>
-internal sealed class UdpBatchSender
+/// <remarks>
+/// <para>On Windows loopback a datagram sent on its own cost ~9.6 µs, ~6 µs in batches of four and
+/// ~4 µs in batches of sixteen. HTTP3ConformanceTests' demo host spent a third of its thread in
+/// SendTo at 32 responses in flight, and seven datagrams in ten left in passes of five or more.</para>
+/// <para>The segment size is a socket option, not a per-send one (.NET passes no control messages),
+/// so it is set before a batch and cleared after. Anything else sent on the socket in between would
+/// inherit it, and a datagram larger than the segment size would leave in pieces. Every pass
+/// therefore holds a lock per socket - <c>Http3Server</c>'s parallel workers share theirs.</para>
+/// </remarks>
+public sealed class UdpBatchSender
 {
-    // Linux: SOL_UDP = 17, UDP_SEGMENT = 103 (from <netinet/udp.h> / <linux/udp.h>).
-    private const SocketOptionLevel SolUdp = (SocketOptionLevel)17;
-    private const SocketOptionName UdpSegment = (SocketOptionName)103;
+    // Linux:   SOL_UDP = 17,     UDP_SEGMENT = 103      (<linux/udp.h>)
+    // Windows: IPPROTO_UDP = 17, UDP_SEND_MSG_SIZE = 2  (<ws2ipdef.h>, Windows 10 2004 and later)
+    private const int UdpLevel = 17;
+    private static readonly int SegmentSizeOption = OperatingSystem.IsWindows() ? 2 : 103;
+    private static readonly bool SegmentationSupported = OperatingSystem.IsLinux() || OperatingSystem.IsWindows();
+    private static readonly ConditionalWeakTable<Socket, object> SendLocks = new();
 
     private readonly GsoBatcher _batcher = new();
-    private readonly bool _gsoSupported = OperatingSystem.IsLinux();
-    private bool _gsoDisabled; // set when the kernel rejects GSO after all (then permanent fallback)
+    private bool _segmentationDisabled; // the kernel refused once: single sends from then on
 
     /// <summary>
     /// Sends all <paramref name="datagrams"/> over the (connected or unconnected)
@@ -54,46 +66,77 @@ internal sealed class UdpBatchSender
         if (datagrams.Count == 0)
             return;
 
-        // Without GSO: a plain single-send loop (no intermediate copy).
-        if (!_gsoSupported || _gsoDisabled)
+        // No platform segmentation: nobody ever sets the option, so nothing to guard against.
+        if (!SegmentationSupported)
         {
             foreach (byte[] datagram in datagrams)
-                SendOne(socket, datagram, datagram.Length, remote);
+                SendOne(socket, datagram, 0, datagram.Length, remote);
             return;
         }
 
-        _batcher.Batch(datagrams, batch =>
+        lock (SendLocks.GetValue(socket, _ => new object()))
         {
-            if (batch.SegmentCount <= 1)
+            if (_segmentationDisabled)
             {
-                SendOne(socket, batch.Buffer, batch.Length, remote);
+                foreach (byte[] datagram in datagrams)
+                    SendOne(socket, datagram, 0, datagram.Length, remote);
                 return;
             }
-            try
-            {
-                socket.SetRawSocketOption((int)SolUdp, (int)UdpSegment, BitConverter.GetBytes(batch.SegmentSize));
-                SendOne(socket, batch.Buffer, batch.Length, remote);
-                socket.SetRawSocketOption((int)SolUdp, (int)UdpSegment, BitConverter.GetBytes(0)); // GSO off again
-            }
-            catch (SocketException)
-            {
-                // Kernel/NIC rejects GSO ⇒ fall back permanently to single sends and catch up this
-                // batch segment by segment (byte-identical to the GSO result).
-                _gsoDisabled = true;
-                for (int offset = 0; offset < batch.Length; offset += batch.SegmentSize)
-                {
-                    int len = Math.Min(batch.SegmentSize, batch.Length - offset);
-                    SendOne(socket, batch.Buffer.AsSpan(offset, len).ToArray(), len, remote);
-                }
-            }
-        });
+            _batcher.Batch(datagrams, batch => SendBatch(socket, batch, remote));
+        }
     }
 
-    private static void SendOne(Socket socket, byte[] buffer, int length, EndPoint? remote)
+    private void SendBatch(Socket socket, GsoBatch batch, EndPoint? remote)
+    {
+        if (batch.SegmentCount <= 1 || _segmentationDisabled)
+        {
+            SendSegments(socket, batch, remote);
+            return;
+        }
+
+        bool sent = false;
+        try
+        {
+            SetSegmentSize(socket, batch.SegmentSize);
+            try
+            {
+                SendOne(socket, batch.Buffer, 0, batch.Length, remote);
+                sent = true;
+            }
+            finally
+            {
+                // Always cleared, or the next single datagram larger than this size leaves in pieces.
+                try { SetSegmentSize(socket, 0); }
+                catch (SocketException) { _segmentationDisabled = true; }
+            }
+        }
+        catch (SocketException) when (!sent)
+        {
+            // The kernel or the interface refuses segmentation after all: single sends from now on,
+            // starting with this batch, byte-identical to what segmentation would have sent.
+            _segmentationDisabled = true;
+            SendSegments(socket, batch, remote);
+        }
+    }
+
+    private static void SendSegments(Socket socket, GsoBatch batch, EndPoint? remote)
+    {
+        for (int offset = 0; offset < batch.Length; offset += batch.SegmentSize)
+            SendOne(socket, batch.Buffer, offset, Math.Min(batch.SegmentSize, batch.Length - offset), remote);
+    }
+
+    private static void SetSegmentSize(Socket socket, int segmentSize)
+    {
+        Span<byte> value = stackalloc byte[sizeof(int)];
+        MemoryMarshal.Write(value, in segmentSize); // an int on Linux, a DWORD on Windows: native order both
+        socket.SetRawSocketOption(UdpLevel, SegmentSizeOption, value);
+    }
+
+    private static void SendOne(Socket socket, byte[] buffer, int offset, int length, EndPoint? remote)
     {
         if (remote is null)
-            socket.Send(buffer, 0, length, SocketFlags.None);
+            socket.Send(buffer, offset, length, SocketFlags.None);
         else
-            socket.SendTo(buffer, 0, length, SocketFlags.None, remote);
+            socket.SendTo(buffer, offset, length, SocketFlags.None, remote);
     }
 }
