@@ -68,6 +68,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// Leave null to ignore the advertisement (the default).
         /// </summary>
         public Func<SshHostKeyUpdate, CancellationToken, ValueTask>?  HostKeysReceived  { get; init; }
+
+        /// <summary>
+        /// When the connection renews its keys by itself (default 1 GiB / 1 h, RFC 4253 §9), or null to
+        /// rekey only when the server asks.
+        /// </summary>
+        public SshRekeyLimits?                    RekeyLimits    { get; init; } = SshRekeyLimits.Default;
     }
 
 
@@ -137,7 +143,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                 throw new SshAuthenticationException("None of the supplied credentials were accepted.");
             }
 
-            var mux = new SshChannelMultiplexer(transport);
+            var mux = new SshChannelMultiplexer(transport) {
+                          RekeyLimits = Options.RekeyLimits
+                      };
 
             if (Options.HostKeysReceived is not null)
                 WireHostKeyUpdates(mux, transport.ServerHostKey, Options.HostKeysReceived);

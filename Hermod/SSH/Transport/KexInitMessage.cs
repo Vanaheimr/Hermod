@@ -204,20 +204,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                  String[]?  Ciphers            = null,
                                                  String[]?  Macs               = null,
                                                  String[]?  KeyExchanges       = null,
-                                                 String[]?  HostKeyAlgorithms  = null)
+                                                 String[]?  HostKeyAlgorithms  = null,
+                                                 Boolean    Initial            = true)
         {
 
             var ciphers = Ciphers ?? DefaultCiphers;
             var macs    = Macs    ?? DefaultMacs;
 
             // Key exchange list = the offered methods followed by the ext-info, strict-KEX and
-            // guessed-KEX markers.
+            // guessed-KEX markers. The strict-KEX marker only in the first KEXINIT of a connection:
+            // OpenSSH's PROTOCOL makes it "only valid in the initial SSH2_MSG_KEXINIT", and OpenSSH
+            // sends it nowhere else - so our own two ends rekey with each other as OpenSSH rekeys with us.
             var kex = new List<String>(KeyExchanges ?? DefaultKeyExchanges)
                       {
-                          IsServer ? SshAlgorithmNames.Kex.ExtInfoServer   : SshAlgorithmNames.Kex.ExtInfoClient,
-                          IsServer ? SshAlgorithmNames.Kex.StrictKexServer : SshAlgorithmNames.Kex.StrictKexClient,
-                          SshAlgorithmNames.Kex.KexGuess2
+                          IsServer ? SshAlgorithmNames.Kex.ExtInfoServer : SshAlgorithmNames.Kex.ExtInfoClient
                       };
+
+            if (Initial)
+                kex.Add(IsServer ? SshAlgorithmNames.Kex.StrictKexServer : SshAlgorithmNames.Kex.StrictKexClient);
+
+            kex.Add(SshAlgorithmNames.Kex.KexGuess2);
 
             return new (
                    Cookie:                    RandomNumberGenerator.GetBytes(16),

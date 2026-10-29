@@ -173,13 +173,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         }
 
         /// <summary>
-        /// Start the background receive/dispatch loop.
+        /// Start the background receive/dispatch loop, and from now on renew the keys by
+        /// <see cref="RekeyLimits"/>.
         /// </summary>
         public SshChannelMultiplexer Start()
         {
+
+            transport.RekeyLimits = RekeyLimits;
             runTask = Task.Run(RunAsync);
+
+            if (RekeyLimits?.Interval is TimeSpan interval)
+                _ = Task.Run(() => RekeyOnTimeAsync(interval));
+
             return this;
+
         }
+
+        /// <summary>
+        /// When the connection renews its keys by itself (default <see cref="SshRekeyLimits.Default"/>:
+        /// 1 GiB / 1 h), or null to rekey only when asked or when the peer does. Read by <see cref="Start"/>.
+        /// </summary>
+        public SshRekeyLimits? RekeyLimits { get; set; } = SshRekeyLimits.Default;
 
         #endregion
 
@@ -296,6 +310,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             catch (OperationCanceledException) { }
             catch (Exception exception)         { FaultAll(exception); }
             finally                             { CompleteAll(); }
+        }
+
+        // The volume limit is checked on every send; time passes without one. On a quiet connection this
+        // is what renews the keys once the interval is up - sleeping until the earliest moment it could
+        // be, so a rekey in between (either side's) simply pushes the deadline out.
+        private async Task RekeyOnTimeAsync(TimeSpan Interval)
+        {
+            try
+            {
+                while (!cts.IsCancellationRequested && ended is null)
+                {
+
+                    var wait = Interval - transport.TimeSinceKeyExchange;
+
+                    if (wait <= TimeSpan.Zero)
+                    {
+                        await transport.StartRekeyAsync(cts.Token).ConfigureAwait(false);
+
+                        // Started or already under way: either way the exchange needs a round trip.
+                        wait = Interval < TimeSpan.FromSeconds(1) ? Interval : TimeSpan.FromSeconds(1);
+                    }
+
+                    await Task.Delay(wait, cts.Token).ConfigureAwait(false);
+
+                }
+            }
+            catch
+            {
+                // Cancelled with the multiplexer, or the connection is gone - the receive loop reports that.
+            }
         }
 
         private async ValueTask DispatchAsync(Byte[] Payload)

@@ -208,6 +208,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region StrictKex_HoldsForTheConnection_AcrossRekeys
+
+        /// <summary>
+        /// Strict KEX is agreed once, by the first exchange, and holds for the connection: its marker is
+        /// "only valid in the initial SSH2_MSG_KEXINIT" (OpenSSH PROTOCOL), and neither OpenSSH nor we send
+        /// it again. Negotiating it afresh on a rekey made it false there, so we stopped resetting the
+        /// sequence numbers after NEWKEYS while OpenSSH went on - and the first packet under the new keys
+        /// was "Connection corrupted". Between our own two ends both stopped alike, so only this, and the
+        /// rekey checks against a real ssh/sshd in the conformance suite, see it.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task StrictKex_HoldsForTheConnection_AcrossRekeys(CancellationToken CancellationToken)
+        {
+
+            var (c, s) = await HandshakeAsync(null, CancellationToken);
+
+            using var _c = c;
+            using var _s = s;
+
+            Assert.That(c.Algorithms.StrictKex, Is.True, "the loopback pair negotiates strict KEX");
+
+            for (var i = 0; i < 2; i++)
+                await Task.WhenAll(c.RekeyAsync(CancellationToken).AsTask(),
+                                   s.RekeyAsync(CancellationToken).AsTask());
+
+            Assert.Multiple(() => {
+                Assert.That(c.KeyExchangeCount,       Is.EqualTo(3));
+                Assert.That(c.Algorithms.StrictKex,   Is.True, "still strict on the client after two rekeys");
+                Assert.That(s.Algorithms.StrictKex,   Is.True, "still strict on the server after two rekeys");
+            });
+
+            await AssertTrafficFlowsBothWays(c, s, CancellationToken);
+
+        }
+
+        #endregion
+
         #region PeerInitiatedRekey_ViaRespondToRekey
 
         [Test]
