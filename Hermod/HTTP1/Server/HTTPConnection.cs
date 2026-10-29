@@ -56,25 +56,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new HTTP connection.
+        /// Create a new HTTP connection on an accepted TCP connection.
         /// </summary>
+        /// <remarks>
+        /// It takes the connection over as it is. Until 2026-10-29 this called the
+        /// full TCPConnection constructor, which asked the certificate selectors
+        /// and the ConnectionIdBuilder a second time and never learned the client
+        /// certificate: the handshake had run on the TCP connection before it was
+        /// wrapped. A handler reaching the connection through request.TCPConnection
+        /// saw no client certificate on a mutual-TLS connection. With a selector
+        /// that did not answer the same twice, it also saw a server certificate the
+        /// handshake had not presented. H-39 in HTTP1ConformanceTests.
+        /// </remarks>
         /// <param name="Connection">The underlying TCP connection.</param>
         public HTTPConnection(TCPConnection Connection)
 
-            : base(Connection.TCPServer,
-                   Connection.TCPClient,
-                   Connection.ServerCertificateSelector,
-                   Connection.ClientCertificateValidator,
-                   Connection.LocalCertificateSelector,
-                   Connection.SSLStream,
-                   Connection.ReadTimeout,
-                   Connection.WriteTimeout)
+            : base(Connection)
 
-        {
-
-            
-
-        }
+        { }
 
         #endregion
 

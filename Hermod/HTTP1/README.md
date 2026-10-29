@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-10-28**
+Last verified: **2026-10-29**
 
 ## Support levels
 
@@ -83,6 +83,17 @@ reference is. There was a seventh, inside commented-out code under
     the proxy forwards.
   - `HTTPAuthority`, the HTTP/2 stack's answer to the same question, moved
     from `HTTP2/Core` to `HTTP/` to be used here.
+- The connection a handler reaches through `request.TCPConnection` is the one
+  the TCP server accepted, since 2026-10-29. It carries the server and client
+  certificates of its handshake and the identifier the TCP server gave it. It
+  used to be a second connection object, built by the full `TCPConnection`
+  constructor, with two consequences:
+  - it asked the `ServerCertificateSelector`, the `ServerCertificateChainSelector`
+    and the `ConnectionIdBuilder` a second time, and a selector in the middle of
+    a rotation could name a certificate the handshake never presented;
+  - it never learned the client certificate, because the handshake had run
+    before the wrap. On a mutual-TLS connection, `request.TCPConnection`
+    showed none, although `request.ClientCertificate` had it.
 - Slow or timed-out TLS handshakes do not block the accept loop and are removed
   from active-client tracking.
 - HTTP framing and semantics are identical after the TCP or TLS stream has been

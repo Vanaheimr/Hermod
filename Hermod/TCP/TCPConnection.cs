@@ -464,6 +464,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         #endregion
 
 
+        #region TCPConnection(Connection)
+
+        /// <summary>
+        /// Another object for a connection that has already been accepted, for a
+        /// protocol layered on top of it: the same socket, streams, certificates,
+        /// identifier and creation time, and nothing asked for again.
+        /// </summary>
+        /// <remarks>
+        /// The full constructor asks the server's certificate selectors which
+        /// certificate the connection presents, and its ConnectionIdBuilder what
+        /// it is called. For a connection that is already accepted, those answers
+        /// are history. Asking again is a second question, which a selector in the
+        /// middle of a rotation, or a builder that uses the timestamp it is given,
+        /// can answer differently. Some of the answers came later, too: the client
+        /// certificate exists only once the handshake is done, and the handshake
+        /// runs on the connection the server accepted, before any layer wraps it.
+        /// </remarks>
+        /// <param name="Connection">The accepted connection.</param>
+        protected TCPConnection(TCPConnection Connection)
+
+            : base(Connection.LocalSocket,
+                   Connection.RemoteSocket)
+
+        {
+
+            this.TCPServer                   = Connection.TCPServer;
+            this.TCPClient                   = Connection.TCPClient;
+            this.ServerCertificateSelector   = Connection.ServerCertificateSelector;
+            this.ClientCertificateValidator  = Connection.ClientCertificateValidator;
+            this.LocalCertificateSelector    = Connection.LocalCertificateSelector;
+            this.AllowedTLSProtocols         = Connection.AllowedTLSProtocols;
+            this.logger                      = Connection.logger;
+
+            this.readTimeoutMS               = Connection.readTimeoutMS;
+            this.writeTimeoutMS              = Connection.writeTimeoutMS;
+
+            this.NetworkStream               = Connection.NetworkStream;
+            this.SSLStream                   = Connection.SSLStream;
+            this.TLSProtocols                = Connection.TLSProtocols;
+            this.ServerCertificateChain      = Connection.ServerCertificateChain;
+            this.ServerCertificate           = Connection.ServerCertificate;
+            this.ClientCertificate           = Connection.ClientCertificate;
+
+            this.Created                     = Connection.Created;
+            this.stopwatch                   = Connection.stopwatch;
+            this.ConnectionId                = Connection.ConnectionId;
+            this.KeepAlive                   = Connection.KeepAlive;
+            this.StopRequested               = Connection.StopRequested;
+            this.SkipNextN                   = Connection.SkipNextN;
+            this.isClosed                    = Connection.isClosed;
+            this.closedBy                    = Volatile.Read(ref Connection.closedBy);
+
+        }
+
+        #endregion
+
+
         #region GetOrCreateCertificateContext(Certificate)
 
         /// <summary>
