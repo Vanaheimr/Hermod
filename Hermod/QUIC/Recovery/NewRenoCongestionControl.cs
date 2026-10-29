@@ -45,6 +45,15 @@ public sealed class NewRenoCongestionControl
     public bool InSlowStart => CongestionWindow < SlowStartThreshold;
 
     /// <summary>
+    /// The sender left the window unused for want of something to send - no data, or flow control
+    /// (RFC 9002 §7.8). While it is, acknowledgments do not grow the window: a window that is never
+    /// filled has proved nothing about the path, and growing it anyway lets it reach megabytes on
+    /// light traffic, all of which the first burst then sends at once. Set by the endpoint after
+    /// every send pass; pacing does not count as application-limited (§7.8 again).
+    /// </summary>
+    public bool IsApplicationLimited { get; set; }
+
+    /// <summary>
     /// Sending is allowed as long as the bytes in flight stay below the window.
     /// </summary>
     public bool CanSend(int bytes) => BytesInFlight + bytes <= CongestionWindow;
@@ -67,6 +76,9 @@ public sealed class NewRenoCongestionControl
     public void OnPacketAcked(int bytes, long sentTimeTicks)
     {
         BytesInFlight = Math.Max(0, BytesInFlight - bytes);
+
+        if (IsApplicationLimited)
+            return;
 
         // Acknowledgments for packets sent before recovery do not increase the window.
         if (_recoveryStartTimeTicks >= 0 && sentTimeTicks <= _recoveryStartTimeTicks)
