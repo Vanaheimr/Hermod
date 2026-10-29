@@ -929,6 +929,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     while (retry <= maxNumberOfRetries)
                     {
 
+                        // A request whose token is cancelled is not tried again.
+                        // The loop used to go on regardless: each attempt hands
+                        // the token to a reconnect that does not watch it, so a
+                        // caller's deadline ran out while the retries went on.
+                        // Against a refused port that is about two seconds an
+                        // attempt on Windows, and DNSHTTPSClient's 3 s query
+                        // came back after 8.2 s.
+                        if (CancellationToken.IsCancellationRequested)
+                        {
+                            lastError ??= "the request was cancelled";
+                            break;
+                        }
+
                         if (retry > 1)
                             DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)} {RemoteURL}, retry #{retry} of {maxNumberOfRetries}...");
 
@@ -1589,7 +1602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     // client's own 400 on as "the resolver returned HTTP 400".
                     return new HTTPResponse.Builder(Request) {
                                HTTPStatusCode  = HTTPStatusCode.ClientError,
-                               Content         = $"Giving up on this HTTP request to {RemoteURL} after {maxNumberOfRetries} {(maxNumberOfRetries == 1 ? "attempt" : "attempts")}: {lastError ?? "no reason was recorded"}".ToUTF8Bytes(),
+                               Content         = $"Giving up on this HTTP request to {RemoteURL} after {retry - 1} {(retry - 1 == 1 ? "attempt" : "attempts")}: {lastError ?? "no reason was recorded"}".ToUTF8Bytes(),
                                ContentType     = HTTPContentType.Text.PLAIN,
                                Runtime         = TimeSpan.Zero
                            };
