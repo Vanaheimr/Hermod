@@ -51,6 +51,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         private static (CertifiedKey Credential, SshCertificateAuthorityTrust Trust) IssueRestricted(
             params (String Name, String Value)[] CriticalOptions)
+
+            => Issue([ .. OpenSshCertificateBuilder.DefaultUserExtensions.Select(ext => ext.Key) ], CriticalOptions);
+
+        private static (CertifiedKey Credential, SshCertificateAuthorityTrust Trust) Issue(
+            IEnumerable<String>                   Extensions,
+            params (String Name, String Value)[]  CriticalOptions)
         {
 
             var caKey   = SshHostKey.GenerateEd25519();
@@ -65,8 +71,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 ValidBefore  = DateTimeOffset.UtcNow.AddDays(1)
             };
 
-            foreach (var ext in OpenSshCertificateBuilder.DefaultUserExtensions)
-                builder.Extensions.Add(ext);
+            foreach (var extension in Extensions)
+                builder.Extensions.Add(new KeyValuePair<String, Byte[]>(extension, []));
 
             foreach (var (name, value) in CriticalOptions)
             {
@@ -85,15 +91,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         private static async Task<(SshServer Server, UInt16 Port, ISshHostKey HostKey)> StartServerAsync(
             SshCertificateAuthorityTrust  Trust,
-            CancellationToken             CancellationToken)
+            CancellationToken             CancellationToken,
+            ForwardingPolicy?             Policy = null)
         {
 
             var hostKey = SshHostKey.GenerateEd25519();
 
             var server = new SshServer(new SshServerOptions {
-                HostKeys       = [ hostKey ],
-                Authenticator  = new SshAuthenticationPolicy().WithCertificateAuthority(Trust),
-                ExecHandler    = async (ctx, ct) => {
+                HostKeys          = [ hostKey ],
+                Authenticator     = new SshAuthenticationPolicy().WithCertificateAuthority(Trust),
+                ForwardingPolicy  = Policy ?? ForwardingPolicy.None,
+                ExecHandler       = async (ctx, ct) => {
                                      await ctx.WriteAsync($"ran:{ctx.Command}|original:{ctx.OriginalCommand ?? "-"}\n", ct);
                                      return 0;
                                  }
@@ -282,6 +290,182 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(restrictions.EffectiveCommand("anything"), Is.EqualTo("/usr/bin/backup-only"));
 
             });
+
+        }
+
+        #endregion
+
+        #region PermitExtensions_AreParsedIntoRestrictions
+
+        /// <summary>
+        /// Unit-level: certificate extensions <i>grant</i> — OpenSSH allows a pty or forwarding only when
+        /// <c>permit-pty</c> / <c>permit-port-forwarding</c> is present, so their absence is a restriction.
+        /// The parser used to read the critical options only and leave both allowed.
+        /// </summary>
+        [Test]
+        public void PermitExtensions_AreParsedIntoRestrictions()
+        {
+
+            var everything = SshCertificateRestrictions.FromCertificate(IssueRestricted().Credential.Certificate);
+            var ptyOnly    = SshCertificateRestrictions.FromCertificate(Issue([ "permit-pty" ]).Credential.Certificate);
+            // The builder fills an empty extension list with ssh-keygen's defaults, so "neither" is spelled
+            // with an extension that grants something this implementation never offers.
+            var nothing    = SshCertificateRestrictions.FromCertificate(Issue([ "permit-user-rc" ]).Credential.Certificate);
+
+            Assert.Multiple(() => {
+
+                Assert.That(everything.AllowPty,             Is.True);
+                Assert.That(everything.AllowPortForwarding,  Is.True);
+                Assert.That(everything.IsRestricted,         Is.False, "ssh-keygen's default extensions restrict nothing");
+
+                Assert.That(ptyOnly.AllowPty,                Is.True);
+                Assert.That(ptyOnly.AllowPortForwarding,     Is.False, "no permit-port-forwarding, no forwarding");
+
+                Assert.That(nothing.AllowPty,                Is.False, "no permit-pty, no terminal");
+                Assert.That(nothing.AllowPortForwarding,     Is.False);
+                Assert.That(nothing.IsRestricted,            Is.True);
+
+            });
+
+        }
+
+        #endregion
+
+        #region CertificateWithoutPermitPty_GetsNoTerminal
+
+        /// <summary>
+        /// End-to-end: a certificate issued without <c>permit-pty</c> is refused its <c>pty-req</c>, while
+        /// the same server grants one to a certificate that carries the extension.
+        /// </summary>
+        [Test]
+        [CancelAfter(25000)]
+        public async Task CertificateWithoutPermitPty_GetsNoTerminal(CancellationToken CancellationToken)
+        {
+
+            var granted   = await PtyGrantedAsync([ "permit-pty" ],             CancellationToken);
+            var withheld  = await PtyGrantedAsync([ "permit-port-forwarding" ], CancellationToken);
+
+            Assert.Multiple(() => {
+                Assert.That(granted,  Is.True,  "control: permit-pty grants the terminal");
+                Assert.That(withheld, Is.False, "without permit-pty the CA did not grant a terminal");
+            });
+
+        }
+
+        private static async Task<Boolean> PtyGrantedAsync(String[] Extensions, CancellationToken CancellationToken)
+        {
+
+            var (credential, trust) = Issue(Extensions);
+            var (server, port, hostKey) = await StartServerAsync(trust, CancellationToken);
+
+            try
+            {
+
+                await using var client = await ConnectAsync(port, hostKey, credential, CancellationToken);
+
+                var session = await client.Multiplexer.OpenChannelAsync("session", CancellationToken: CancellationToken);
+                var pty     = new SshPty("xterm-256color", new SshWindowSize(80, 24, 0, 0), new Dictionary<Byte, UInt32>());
+
+                return await session.SendRequestAsync("pty-req", true, pty.ToPayload(), CancellationToken);
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
+        #region CertificateWithoutPermitPortForwarding_CannotForward
+
+        /// <summary>
+        /// End-to-end: a certificate issued without <c>permit-port-forwarding</c> may neither open a
+        /// <c>direct-tcpip</c> tunnel nor ask for a remote forward, even under a server policy that permits
+        /// both — and a certificate carrying the extension may do both on the same server.
+        /// </summary>
+        [Test]
+        [CancelAfter(25000)]
+        public async Task CertificateWithoutPermitPortForwarding_CannotForward(CancellationToken CancellationToken)
+        {
+
+            var target = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+            target.Start();
+
+            try
+            {
+
+                var targetPort = (UInt16) ((System.Net.IPEndPoint) target.LocalEndpoint).Port;
+
+                var granted    = await ForwardingAsync([ "permit-pty", "permit-port-forwarding" ], targetPort, CancellationToken);
+                var withheld   = await ForwardingAsync([ "permit-pty" ],                           targetPort, CancellationToken);
+
+                Assert.Multiple(() => {
+
+                    Assert.That(granted.Local,   Is.True,  "control: permit-port-forwarding grants -L");
+                    Assert.That(granted.Remote,  Is.True,  "control: permit-port-forwarding grants -R");
+
+                    Assert.That(withheld.Local,  Is.False, "without permit-port-forwarding there is no -L");
+                    Assert.That(withheld.Remote, Is.False, "without permit-port-forwarding there is no -R");
+
+                });
+
+            }
+            finally
+            {
+                target.Stop();
+            }
+
+        }
+
+        private static async Task<(Boolean Local, Boolean Remote)> ForwardingAsync(String[] Extensions, UInt16 TargetPort, CancellationToken CancellationToken)
+        {
+
+            var (credential, trust) = Issue(Extensions);
+            var (server, port, hostKey) = await StartServerAsync(trust, CancellationToken, ForwardingPolicy.LoopbackOnly);
+
+            try
+            {
+
+                await using var client = await ConnectAsync(port, hostKey, credential, CancellationToken);
+
+                Boolean local;
+                try
+                {
+                    await using var stream = await client.OpenTcpStreamAsync("127.0.0.1", TargetPort, CancellationToken);
+                    local = true;
+                }
+                catch (SshChannelOpenException)
+                {
+                    local = false;
+                }
+
+                Boolean remote;
+                try
+                {
+                    var probe = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+                    probe.Start();
+                    var bindPort = (UInt16) ((System.Net.IPEndPoint) probe.LocalEndpoint).Port;
+                    probe.Stop();
+
+                    var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client.Multiplexer, "127.0.0.1", bindPort,
+                                                                                       "127.0.0.1", TargetPort, CancellationToken);
+                    await forward.DisposeAsync();
+                    remote = true;
+                }
+                catch (SshForwardingException)
+                {
+                    remote = false;
+                }
+
+                return (local, remote);
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
 
         }
 
