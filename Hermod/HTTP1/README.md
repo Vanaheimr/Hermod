@@ -33,6 +33,7 @@ Last verified: **2026-10-29**
 | [RFC 7239](https://www.rfc-editor.org/rfc/rfc7239.html), Forwarded | The field is parsed into typed elements - `for`, `by`, `host`, `proto` and any extension parameters - and can be built to be sent onwards when a request is proxied. Node identifiers cover addresses, `unknown` and obfuscated identifiers; the last two are kept opaque rather than resolved into an address that was never given. Where a request carries both, `Forwarded` is preferred over the `X-Forwarded-For` family (Section 7.4). Either way the addresses are recorded *beside* the peer socket and never instead of it: everything in these fields is hearsay from whoever wrote them (Section 8.1), and forgeable by the client when no proxy strips them. |
 | [RFC 7838](https://www.rfc-editor.org/rfc/rfc7838.html), HTTP Alternative Services | `Alt-Svc` is typed for responses and `Alt-Used` for requests, sent by handlers and read by the client, with the field's grammar shared with HTTP/2's ALTSVC frame. The client records alternatives and does not act on them. Announcing one is the application's decision. |
 | [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288.html), Web Linking | `Link` is typed on responses: `HTTPLinks`, a list of `HTTPLink`, each with its target, relation types, anchor and target attributes. A sender is held to the grammar, and parsing follows Appendix B. `title*` and other starred attributes are RFC 8187 values, through `HTTPExtendedValue`. Which links to send is the application's decision. Since 2026-10-29; see [Links](#links-rfc-8288). |
+| [RFC 8297](https://www.rfc-editor.org/rfc/rfc8297.html), 103 Early Hints | A handler sends a `103` with `request.SendEarlyHints(links)` while it is still working on the final response, and any other interim response with `SendInformationalResponse`. The client keeps the interim responses it receives on `HTTPResponse.InformationalResponses`, where a `103`'s `Link` fields can be read. Whether to send hints is the application's decision. Since 2026-10-29; see [Informational and bodyless responses](#informational-and-bodyless-responses). |
 | [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html), Problem Details for HTTP APIs | `HTTPProblemDetails` is the JSON object of Section 3, served as `application/problem+json`. Handlers send it with `SetProblemDetails`, which also sets the status code it names, and clients read it with `TryParseProblemDetails`. The server's own errors stay `application/json` unless a request's `Accept` prefers problem details. JSON only: the XML format of Appendix B is not implemented. Since 2026-10-29; see [Problem details](#problem-details-rfc-9457). |
 | [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), WebSocket | Implemented in Hermod's WebSocket client/server subsystem. The HTTP/1.1 server can also serve a WebSocket on a path of its own, beside ordinary HTTP on the same listener: `WebSocketUpgrade.For` hands a request that asks for an upgrade over to a WebSocket server, whose single implementation of the opening handshake (RFC 6455 §4.2) validates it and answers the `101` - the HTTP layer only decides whether a request is asking. Regression-tested by `WebSocketOnAnHTTPPathTests`; see [WebSocket/README.md](WebSocket/README.md#on-an-http-path). |
 | [WHATWG Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Implemented and regression-tested for `text/event-stream`, parsing, live streaming, reconnection, `Last-Event-ID`, retry intervals, comments/heartbeats, cancellation, and disconnect cleanup. |
@@ -210,8 +211,25 @@ and common message-smuggling ambiguities.
   requested.
 - A final rejection such as `417 Expectation Failed` prevents the client from
   sending the body.
-- Other headerless informational responses are skipped until the final
-  response is received.
+- Other informational responses are skipped until the final response is
+  received, and kept on `HTTPResponse.InformationalResponses`, in order: the
+  first `AHTTPClient.MaxInformationalResponses` (16) of them, since RFC 9110
+  sets no limit and a server could send them without end. `101` is not among
+  them, since it is not interim.
+- A handler sends an interim response ahead of its final one with
+  `request.SendInformationalResponse(status, fields)`, or a `103 Early Hints`
+  (RFC 8297) with `request.SendEarlyHints(links)`. It goes out at once, while
+  the handler is still working, which is what Early Hints are for.
+  - It returns false and sends nothing to an HTTP/1.0 client, which MUST NOT
+    get a `1xx` (RFC 9110, Section 15.2), and once the handler has returned:
+    the server closes the way before it writes the final response, so nothing
+    can follow that or land inside it.
+  - It throws for a status that is not `1xx` or is `101`, a field name that is
+    not a token, a value that is not printable ASCII, and `Content-Length` or
+    `Transfer-Encoding`, which a `1xx` MUST NOT carry.
+  - Sending is the application's decision. RFC 8297's security considerations
+    note that an HTTP/1.1 client which takes a `1xx` for the final response
+    misreads everything after it on the connection.
 - Malformed informational responses are rejected.
 - `HEAD`, all `1xx` responses, `204 No Content`, `205 Reset Content`, and
   `304 Not Modified` are treated as bodyless according to their applicable
