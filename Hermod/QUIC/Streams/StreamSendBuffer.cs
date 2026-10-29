@@ -31,7 +31,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Quic.Streams;
 /// </summary>
 public sealed class StreamSendBuffer(ulong streamId)
 {
-    private readonly ByteQueue _pending = new(); // zero-alloc path: O(1) consume instead of List<byte> shifting
+    // Zero-alloc path: O(1) consume instead of List<byte> shifting. Pooled, and released once the
+    // send side is done: a stream used to keep its backing store for the life of the connection,
+    // and so did the connection keep its streams. A 300 KB response left a 512 KB array behind, and
+    // HTTP3ConformanceTests' demo host grew by ~80 MB per hundred such responses on one connection.
+    // NextFrame copies out what it takes, so nothing outlives a release.
+    private readonly ByteQueue _pending = new(pooled: true);
     private ulong _sentOffset;
     private bool _finQueued;
     private bool _finSent;
@@ -135,7 +140,7 @@ public sealed class StreamSendBuffer(ulong streamId)
         ResetPending = true;
         ResetErrorCode = errorCode;
         ResetFinalSize = _sentOffset;
-        _pending.Clear();
+        _pending.Release();
     }
 
     /// <summary>
@@ -154,7 +159,7 @@ public sealed class StreamSendBuffer(ulong streamId)
         ResetErrorCode = errorCode;
         ResetFinalSize = _sentOffset;
         ReliableSize = Math.Min(reliableSize, _sentOffset); // only what was already sent can be guaranteed
-        _pending.Clear();
+        _pending.Release();
     }
 
     /// <summary>
@@ -197,7 +202,10 @@ public sealed class StreamSendBuffer(ulong streamId)
         var frame = new StreamFrame(StreamId.Value, _sentOffset, data, fin);
         _sentOffset += (ulong)count;
         if (fin)
+        {
             _finSent = true;
+            _pending.Release(); // nothing can be written after the FIN
+        }
         return frame;
     }
 }

@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System.Buffers;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.Quic.Core.Buffers;
 
 /// <summary>
@@ -29,6 +35,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Quic.Core.Buffers;
 public sealed class ByteQueue
 {
     private byte[] _buffer = [];
+    private readonly bool _pooled;
+
+    /// <summary>
+    /// <paramref name="pooled"/>: take the backing store from <see cref="ArrayPool{T}.Shared"/> and
+    /// give it back on growth and on <see cref="Release"/>. Only for an owner that copies out what it
+    /// reads and lets no <see cref="Span"/> or <see cref="Memory"/> outlive the next mutation: a
+    /// returned array belongs to the next renter.
+    /// </summary>
+    public ByteQueue(bool pooled = false) => _pooled = pooled;
     private int _head; // index of the first unread byte
     private int _tail; // index of the first free position
 
@@ -78,6 +93,18 @@ public sealed class ByteQueue
     public void Clear() => _head = _tail = 0;
 
     /// <summary>
+    /// Discards the content AND the backing store, for an owner that is done with the queue for
+    /// good. A later <see cref="Append"/> simply starts over.
+    /// </summary>
+    public void Release()
+    {
+        if (_pooled && _buffer.Length > 0)
+            ArrayPool<byte>.Shared.Return(_buffer);
+        _buffer = [];
+        _head = _tail = 0;
+    }
+
+    /// <summary>
     /// Copies the content into a fresh array (only for hand-offs that must take ownership).
     /// </summary>
     public byte[] ToArray() => Span.ToArray();
@@ -98,8 +125,10 @@ public sealed class ByteQueue
             int capacity = Math.Max(256, _buffer.Length);
             while (capacity < count + needed)
                 capacity *= 2;
-            byte[] grown = new byte[capacity];
+            byte[] grown = _pooled ? ArrayPool<byte>.Shared.Rent(capacity) : new byte[capacity];
             Buffer.BlockCopy(_buffer, _head, grown, 0, count);
+            if (_pooled && _buffer.Length > 0)
+                ArrayPool<byte>.Shared.Return(_buffer);
             _buffer = grown;
         }
         _head = 0;
