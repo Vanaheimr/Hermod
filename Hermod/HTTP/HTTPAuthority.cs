@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     using System.Net;
@@ -39,6 +39,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// in the left-most label only. Certificate identity comes from the
     /// subjectAltName extension when present — the common name is consulted only
     /// for certificates that carry no SAN at all, as CN-as-identity is deprecated.
+    ///
+    /// Version-neutral since 2026-10-29, when it moved here from HTTP2/Core. The
+    /// question is older than coalescing: RFC 9110, Section 7.4 has an origin
+    /// server reject a request for an "https" resource unless the connection is
+    /// secured by a certificate valid for that resource's origin, whatever the
+    /// HTTP version. Over HTTP/1.1 the origin travels in Host, and
+    /// AHTTPServer.IsAuthorityServed asks the same predicate.
     /// </summary>
     public static class HTTPAuthority
     {

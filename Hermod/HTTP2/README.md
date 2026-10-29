@@ -962,6 +962,11 @@ down to `StartRequestAsync` to observe the refusal at all.
   with RFC 6125 wildcard matching, plus iPAddress SANs; the common name only for
   certificates carrying no SAN at all). Cleartext h2c has no certificate and so
   no basis to judge — it checks nothing unless given a predicate.
+- `HTTPAuthority`, which makes that judgement, moved to `Hermod/HTTP/` on
+  2026-10-29. The question is RFC 9110 §7.4's and older than coalescing, and
+  the HTTP/1.x server now answers it too, with the same predicate over the
+  certificate its TLS connection presented. Nothing changed here but the
+  namespace.
 - Plain CONNECT is exempt: there `:authority` is the *tunnel target*, not the
   origin being addressed. Extended CONNECT (RFC 8441) is not exempt — there it
   means exactly what it means in an ordinary request.
