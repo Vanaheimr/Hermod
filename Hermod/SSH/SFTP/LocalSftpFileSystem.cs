@@ -194,6 +194,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         }
 
+        public ValueTask SetAttributesAsync(String Path, SftpFileAttributes Attributes, CancellationToken CancellationToken = default)
+        {
+
+            RequireWritable();
+
+            var physical    = Resolve(Path);
+            var isFile      = System.IO.File.Exists(physical);
+            var isDirectory = !isFile && Directory.Exists(physical);
+
+            if (!isFile && !isDirectory)
+                throw new SftpException(SftpStatusCode.NoSuchFile, $"No such path: {Path}");
+
+            // Everything is checked before anything changes: a request that cannot be applied in full
+            // changes nothing, rather than half of what it asked for.
+            if (Attributes.UserId is not null || Attributes.GroupId is not null)
+                throw new SftpException(SftpStatusCode.OpUnsupported, "Ownership cannot be changed on this server.");
+
+            if (Attributes.Size is { } requestedSize && (!isFile || requestedSize < 0))
+                throw new SftpException(SftpStatusCode.Failure, isFile ? $"Invalid size {requestedSize}." : $"Only a file has a size to set: {Path}");
+
+            if (Attributes.Permissions is { } requested && OperatingSystem.IsWindows() && isDirectory && (requested & OwnerWrite) == 0)
+                throw new SftpException(SftpStatusCode.OpUnsupported, "A directory cannot be made read-only on this server.");
+
+            return Guard(() =>
+            {
+
+                // Permissions that grant writing go first and ones that take it away go last, so that a
+                // request to make a read-only file writable and truncate it works, and one to set its time
+                // and make it read-only does too.
+                var grantsWrite = Attributes.Permissions is { } p && (p & OwnerWrite) != 0;
+
+                if (grantsWrite)
+                    ApplyPermissions(physical, isFile, Attributes.Permissions!.Value);
+
+                if (Attributes.Size is { } size)
+                {
+                    using var handle = System.IO.File.OpenHandle(physical, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+                    RandomAccess.SetLength(handle, size);
+                }
+
+                if (Attributes.AccessTime is { } atime)
+                {
+                    if (isFile) System.IO.File.SetLastAccessTimeUtc(physical, atime.UtcDateTime);
+                    else        Directory.SetLastAccessTimeUtc     (physical, atime.UtcDateTime);
+                }
+
+                if (Attributes.ModifyTime is { } mtime)
+                {
+                    if (isFile) System.IO.File.SetLastWriteTimeUtc(physical, mtime.UtcDateTime);
+                    else        Directory.SetLastWriteTimeUtc     (physical, mtime.UtcDateTime);
+                }
+
+                if (Attributes.Permissions is { } permissions && !grantsWrite)
+                    ApplyPermissions(physical, isFile, permissions);
+
+                return ValueTask.CompletedTask;
+
+            });
+
+        }
+
         public ValueTask MakeDirectoryAsync(String Path, CancellationToken CancellationToken = default)
         {
             RequireWritable();
@@ -273,22 +334,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region (private) helpers
 
+        /// <summary>
+        /// The POSIX owner-write bit (0200): on Windows the one permission bit with a meaning — the
+        /// read-only attribute.
+        /// </summary>
+        private const UInt32 OwnerWrite = 0x80;
+
         private void RequireWritable()
         {
             if (readOnly)
                 throw new SftpException(SftpStatusCode.PermissionDenied, "The file system is read-only.");
         }
 
+        // What a STAT reports is what is on disk: the real mode where the platform has one, and on Windows
+        // the read-only attribute as the absent owner-write bit — not a fixed 0644 that no chmod could move.
         private static SftpFileAttributes FileAttributesFor(String Physical)
         {
             var info = new FileInfo(Physical);
-            return SftpFileAttributes.File(info.Length) with { ModifyTime = new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero) };
+            var mode = OperatingSystem.IsWindows()
+                           ? (info.IsReadOnly ? 0x124u /* 0444 */ : 0x1A4u /* 0644 */)
+                           : (UInt32) System.IO.File.GetUnixFileMode(Physical);
+            return SftpFileAttributes.File(info.Length, 0x8000 | mode) with {
+                       AccessTime = new DateTimeOffset(info.LastAccessTimeUtc, TimeSpan.Zero),
+                       ModifyTime = new DateTimeOffset(info.LastWriteTimeUtc,  TimeSpan.Zero)
+                   };
         }
 
         private static SftpFileAttributes DirectoryAttributes(String Physical)
         {
             var info = new DirectoryInfo(Physical);
-            return SftpFileAttributes.Directory() with { ModifyTime = new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero) };
+            var mode = OperatingSystem.IsWindows()
+                           ? 0x1EDu /* 0755 */
+                           : (UInt32) System.IO.File.GetUnixFileMode(Physical);
+            return SftpFileAttributes.Directory(0x4000 | mode) with {
+                       AccessTime = new DateTimeOffset(info.LastAccessTimeUtc, TimeSpan.Zero),
+                       ModifyTime = new DateTimeOffset(info.LastWriteTimeUtc,  TimeSpan.Zero)
+                   };
+        }
+
+        // Only the rwx bits for owner, group and other: a client does not get to set setuid, setgid or the
+        // sticky bit on the server's files. On Windows only the owner-write bit has a counterpart.
+        private static void ApplyPermissions(String Physical, Boolean IsFile, UInt32 Permissions)
+        {
+
+            if (!OperatingSystem.IsWindows())
+            {
+                System.IO.File.SetUnixFileMode(Physical, (UnixFileMode) (Permissions & 0x1FF));
+                return;
+            }
+
+            // A directory stays writable: making it read-only was refused before anything was changed.
+            if (!IsFile)
+                return;
+
+            var attributes = System.IO.File.GetAttributes(Physical);
+            System.IO.File.SetAttributes(Physical, (Permissions & OwnerWrite) == 0
+                                                       ? attributes |  System.IO.FileAttributes.ReadOnly
+                                                       : attributes & ~System.IO.FileAttributes.ReadOnly);
+
         }
 
         private String Register(Object Handle)

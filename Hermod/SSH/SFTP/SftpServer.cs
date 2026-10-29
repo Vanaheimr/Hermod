@@ -203,9 +203,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                     return BuildAttrs(Request.RequestId, await FileSystem.StatAsync(fstatPath, CancellationToken).ConfigureAwait(false));
                 }
 
-                // Attribute-setting (permissions/mtime) is accepted and ignored — we do not model POSIX attrs.
-                case SftpPacketType.SetStat or SftpPacketType.FSetStat:
+                // Applied, or refused with a status that says why — never acknowledged and dropped, which is
+                // what this used to do: chmod, a preserved mtime and a truncation all "succeeded" unchanged.
+                case SftpPacketType.SetStat:
+                    await FileSystem.SetAttributesAsync(Request.Path, Request.Attributes ?? new (), CancellationToken).ConfigureAwait(false);
                     return BuildStatus(Request.RequestId, SftpStatusCode.Ok, "OK");
+
+                case SftpPacketType.FSetStat:
+                {
+                    if (!Session.HandlePaths.TryGetValue(Request.Handle, out var fsetstatPath))
+                        return BuildStatus(Request.RequestId, SftpStatusCode.Failure, "Invalid handle.");
+                    await FileSystem.SetAttributesAsync(fsetstatPath, Request.Attributes ?? new (), CancellationToken).ConfigureAwait(false);
+                    return BuildStatus(Request.RequestId, SftpStatusCode.Ok, "OK");
+                }
 
                 case SftpPacketType.MkDir:
                     await FileSystem.MakeDirectoryAsync(Request.Path, CancellationToken).ConfigureAwait(false);
@@ -398,7 +408,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                                                    String ExtendedName,
                                                    // copy-data alone names a second handle and a second offset, and its
                                                    // length is a uint64 rather than the uint32 a READ carries.
-                                                   String TargetHandle = "", Int64 TargetOffset = 0, UInt64 CopyLength = 0)
+                                                   String TargetHandle = "", Int64 TargetOffset = 0, UInt64 CopyLength = 0,
+                                                   SftpFileAttributes? Attributes = null)
         {
 
             /// <summary>
@@ -421,7 +432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
             String path = "", target = "", handle = "", extendedName = "", targetHandle = "";
             Int64 offset = 0, targetOffset = 0; UInt32 length = 0; UInt64 copyLength = 0;
-            SftpOpenFlags flags = 0; Byte[] data = [];
+            SftpOpenFlags flags = 0; Byte[] data = []; SftpFileAttributes? attributes = null;
 
             switch (type)
             {
@@ -465,11 +476,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                     break;
 
                 case SftpPacketType.SetStat:
-                    path = reader.ReadString();   // (attrs follow, ignored)
+                    path       = reader.ReadString();
+                    attributes = SftpFileAttributes.Decode(ref reader);
                     break;
 
-                case SftpPacketType.FStat or SftpPacketType.FSetStat:
-                    handle = reader.ReadString();   // (attrs follow for FSetStat, ignored)
+                case SftpPacketType.FSetStat:
+                    handle     = reader.ReadString();
+                    attributes = SftpFileAttributes.Decode(ref reader);
+                    break;
+
+                case SftpPacketType.FStat:
+                    handle = reader.ReadString();
                     break;
 
                 case SftpPacketType.Rename:
@@ -499,7 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             }
 
             return new SftpRequest(type, requestId, path, target, handle, offset, length, flags, data, extendedName,
-                                   targetHandle, targetOffset, copyLength);
+                                   targetHandle, targetOffset, copyLength, attributes);
 
         }
 
@@ -531,6 +548,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                    SftpPacketType.Stat      => SftpPermissions.Stat,
                    SftpPacketType.LStat     => SftpPermissions.Stat,
                    SftpPacketType.FStat     => SftpPermissions.Stat,
+
+                   // Changing a file's size, times or permissions changes the file.
+                   SftpPacketType.SetStat   => SftpPermissions.Write,
+                   SftpPacketType.FSetStat  => SftpPermissions.Write,
 
                    // An extension is only as harmless as what it does: posix-rename mutates, so it must
                    // demand the same permissions as the plain operations it is built from.
