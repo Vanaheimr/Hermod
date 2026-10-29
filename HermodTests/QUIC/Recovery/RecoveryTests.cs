@@ -234,6 +234,56 @@ public class LossRecoveryTests
     }
 
     [Test]
+    public void AckWithGaps_TakesExactlyTheCoveredPackets_AndLeavesTheRestToLossDetection()
+    {
+        var lr = new LossRecovery();
+        var frames = new CryptoFrame[10];
+        for (ulong pn = 0; pn < 10; pn++)
+        {
+            frames[pn] = new CryptoFrame(pn, new byte[] { (byte)pn });
+            lr.OnPacketSent(0, Packet(pn, 1000 + (long)pn, frames[pn]));
+        }
+
+        // 6, 8 and 9 acknowledged. 0..5 sit at least three below the largest and are lost by the
+        // packet threshold (RFC 9002 §6.1.1); 7 is in a gap but too recent, so it stays in flight.
+        var ack = new AckFrame([new PacketNumberRange(Largest: 9, Smallest: 8), new PacketNumberRange(Largest: 6, Smallest: 6)], 0);
+        List<Frame> lost = lr.OnAckReceived(0, ack, TimeSpan.Zero, nowTicks: 2000);
+
+        Assert.That(lost, Is.EquivalentTo(frames[..6]));
+        Assert.That(lr.Congestion.BytesInFlight, Is.EqualTo(1200), "only packet 7 is still in flight");
+    }
+
+    [Test]
+    public void AckProcessing_CostsWhatItAcknowledges_NotTheWholeFlight()
+    {
+        // The pattern a busy connection produces: thousands of packets in flight, and every ACK a range
+        // reaching back over packets earlier ACKs already took, newly acknowledging only the oldest
+        // one still out. Each ACK used to walk every number of its range and copy the whole flight for
+        // loss detection, so a flight of 2000 made each one cost thousands of steps - and the server,
+        // which handles one datagram at a time, fell behind its own ACKs as concurrency rose.
+        const int flight = 2000;
+        const int acks   = 1000;
+        var lr = new LossRecovery();
+        ulong next = 0;
+        for (; next < flight; next++)
+            lr.OnPacketSent(2, Packet(next, 1000 + (long)next));
+
+        for (ulong k = 0; k < acks; k++)
+        {
+            lr.OnAckReceived(2, new AckFrame([new PacketNumberRange(Largest: k, Smallest: 0)], 0), TimeSpan.Zero,
+                             nowTicks: 1000 + (long)next);
+            lr.OnPacketSent(2, Packet(next, 1000 + (long)next));
+            next++;
+        }
+
+        Assert.That(lr.Congestion.BytesInFlight, Is.EqualTo(flight * 1200L), "nothing lost, the flight kept full");
+        // Taking the acknowledged packet, finding the first one still out, and stopping loss detection
+        // there: three per ACK, whatever the flight.
+        Assert.That(lr.AckWorkForTest, Is.LessThanOrEqualTo(3L * acks),
+                    $"{lr.AckWorkForTest / (double)acks:F0} packets looked at per ACK, with {flight} in flight");
+    }
+
+    [Test]
     public void ProbeTimeout_ReturnsOldestUnackedFrames()
     {
         var lr = new LossRecovery();

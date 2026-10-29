@@ -161,18 +161,13 @@ public sealed class LossRecovery
             st.LargestAcked = (long)ack.LargestAcknowledged;
 
         SentPacket? largestNewlyAcked = null;
-        foreach (PacketNumberRange range in ack.Ranges)
+        foreach (SentPacket sp in TakeAcknowledged(st, ack))
         {
-            for (ulong pn = range.Smallest; pn <= range.Largest; pn++)
-            {
-                if (!st.Sent.Remove(pn, out SentPacket? sp))
-                    continue;
-                Congestion.OnPacketAcked(sp.Size, sp.TimeSentTicks);
-                if (sp.IsPmtuProbe)
-                    OnPmtuProbeAcked?.Invoke(sp.Size); // the path carries a datagram of this size
-                if (largestNewlyAcked is null || sp.PacketNumber > largestNewlyAcked.PacketNumber)
-                    largestNewlyAcked = sp;
-            }
+            Congestion.OnPacketAcked(sp.Size, sp.TimeSentTicks);
+            if (sp.IsPmtuProbe)
+                OnPmtuProbeAcked?.Invoke(sp.Size); // the path carries a datagram of this size
+            if (largestNewlyAcked is null || sp.PacketNumber > largestNewlyAcked.PacketNumber)
+                largestNewlyAcked = sp;
         }
 
         // Derive the RTT only from the largest, newly acknowledged and ack-eliciting packet.
@@ -198,6 +193,42 @@ public sealed class LossRecovery
         return DetectLostPackets(space, nowTicks);
     }
 
+    /// <summary>
+    /// Packets in flight the ACK path has looked at, summed over every ACK: the cost of
+    /// acknowledgment processing, counted in the unit that grows with the flight. Tests only.
+    /// </summary>
+    internal long AckWorkForTest { get; private set; }
+
+    /// <summary>
+    /// Removes and returns the packets the ACK newly acknowledges, in ascending order.
+    /// <para>Walks the packets still in flight up to the largest acknowledged one, rather than every
+    /// packet number the ranges name. A peer keeps reporting what it received until it sees one of its
+    /// ACKs acknowledged (RFC 9000 §13.2.4), so each range spans roughly a whole flight, of which
+    /// every earlier ACK already took all but the newest few. Walking the numbers made every ACK cost
+    /// a flight; walking what is still in flight costs what the ACK acknowledges, plus the
+    /// unacknowledged gaps below it.</para>
+    /// </summary>
+    private List<SentPacket> TakeAcknowledged(SpaceState st, AckFrame ack)
+    {
+        var acked = new List<SentPacket>();
+        IReadOnlyList<PacketNumberRange> ranges = ack.Ranges; // descending, disjoint (RFC 9000 §19.3.1)
+        int r = ranges.Count - 1;                              // start at the smallest range
+        foreach (SentPacket sp in st.Sent.Values)              // ascending packet number
+        {
+            AckWorkForTest++;
+            ulong pn = sp.PacketNumber;
+            while (r >= 0 && ranges[r].Largest < pn)
+                r--;
+            if (r < 0)
+                break;                                         // above the largest acknowledged
+            if (pn >= ranges[r].Smallest)
+                acked.Add(sp);
+        }
+        foreach (SentPacket sp in acked)
+            st.Sent.Remove(sp.PacketNumber);
+        return acked;
+    }
+
     private List<Frame> DetectLostPackets(int space, long nowTicks)
     {
         SpaceState st = _spaces[space];
@@ -209,10 +240,15 @@ public sealed class LossRecovery
         long largestLostTime = -1;
         int lostBytes = 0;
 
-        foreach (SentPacket sp in st.Sent.Values.ToList())
+        // Only packets older than the largest acknowledged one can be lost, and Sent is ordered by
+        // packet number, so the walk ends there - the rest is the flight still on its way, which on
+        // a busy connection is nearly all of it. Removal waits until the walk is done.
+        var lost = new List<SentPacket>();
+        foreach (SentPacket sp in st.Sent.Values)
         {
+            AckWorkForTest++;
             if ((long)sp.PacketNumber >= st.LargestAcked)
-                continue; // only packets older than the largest acknowledged one
+                break;
 
             bool lostByThreshold = (long)sp.PacketNumber <= st.LargestAcked - PacketThreshold;
             bool lostByTime = sp.TimeSentTicks <= lostSendThreshold;
@@ -221,7 +257,7 @@ public sealed class LossRecovery
             {
                 OnPacketLost?.Invoke(space, sp.PacketNumber,
                                      lostByThreshold ? "reordering_threshold" : "time_threshold");
-                st.Sent.Remove(sp.PacketNumber);
+                lost.Add(sp);
 
                 if (sp.IsPmtuProbe)
                 {
@@ -252,6 +288,9 @@ public sealed class LossRecovery
                 st.LossTimeTicks = st.LossTimeTicks < 0 ? t : Math.Min(st.LossTimeTicks, t);
             }
         }
+
+        foreach (SentPacket sp in lost)
+            st.Sent.Remove(sp.PacketNumber);
 
         if (lostBytes > 0)
             Congestion.OnPacketsLost(lostBytes, largestLostTime, nowTicks);
