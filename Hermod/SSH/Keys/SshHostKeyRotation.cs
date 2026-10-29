@@ -216,12 +216,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         {
 
             var sessionId = Multiplexer.SessionId;
+            var previous  = Multiplexer.GlobalRequestResponder;
 
             Multiplexer.GlobalRequestResponder = info =>
             {
 
+                // Not ours: whoever answered before us (remote forwarding, say) still does.
                 if (info.Name != ProveRequestName)
-                    return ValueTask.FromResult<SshGlobalRequestReply?>(null);   // not ours
+                    return previous?.Invoke(info) ?? ValueTask.FromResult<SshGlobalRequestReply?>(null);
 
                 try
                 {
