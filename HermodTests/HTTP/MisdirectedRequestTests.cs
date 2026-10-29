@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Collections.Concurrent;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -118,20 +117,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                           Action              Handled)
         {
 
-            // Chosen once per connection and remembered, because the selector is
-            // asked twice for each: for the handshake, and again when AHTTPServer
-            // wraps the TCPConnection in an HTTPConnection. Counting calls would
-            // give every handshake the first certificate.
-            var connections   = 0;
-            var byConnection  = new ConcurrentDictionary<String, X509Certificate2>();
+            // Counted per call, which is per connection: the selector is asked
+            // once, for the handshake. Until H-39 it was asked a second time when
+            // AHTTPServer wrapped the TCPConnection in an HTTPConnection, and this
+            // had to remember its choice by connection instead.
+            var calls      = 0;
 
             var httpServer = Certificates.Length > 0
                                  ? await HTTPServer.StartNew(
                                        ServerCertificateSelector: (tcpServer, tcpClient) =>
-                                           byConnection.GetOrAdd(
-                                               tcpClient.Client.RemoteEndPoint?.ToString() ?? "",
-                                               _ => Certificates[(Interlocked.Increment(ref connections) - 1) % Certificates.Length]
-                                           )
+                                           Certificates[(Interlocked.Increment(ref calls) - 1) % Certificates.Length]
                                    )
                                  : await HTTPServer.StartNew();
 
