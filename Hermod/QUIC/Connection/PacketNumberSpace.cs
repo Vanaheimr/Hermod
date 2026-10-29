@@ -47,7 +47,7 @@ public sealed class PacketNumberSpace
     private const int MaxAckRanges = 32;
 
     private ulong _nextToSend;
-    private readonly SortedSet<ulong> _received = [];
+    private readonly ReceivedPacketNumbers _received = new();
 
     // Cumulative ECN counters of the received packets of this space (RFC 9000 §13.4.2), reported in the ACK frame.
     private ulong _ect0Count;
@@ -91,7 +91,13 @@ public sealed class PacketNumberSpace
     /// Number of packet numbers currently held for ACK generation (diagnostics/test): shows that
     /// the state does not grow without bound over the lifetime of a connection.
     /// </summary>
-    public int TrackedReceivedCount => _received.Count;
+    public int TrackedReceivedCount => (int)_received.Count;
+
+    /// <summary>
+    /// Ranges walked to build ACK frames, summed over the lifetime of the space. Tests only: an ACK
+    /// must cost what it reports, not the number of packets held.
+    /// </summary>
+    internal long AckBuildWorkForTest { get; private set; }
 
     /// <summary>
     /// <c>true</c> when reception from packet number 0 is gap-free (i.e. exactly {0,1,…,Max}, no
@@ -102,7 +108,7 @@ public sealed class PacketNumberSpace
     /// peer confirmed that acknowledgment.</para>
     /// </summary>
     public bool IsContiguousFromZero =>
-        _largestReceived >= 0 && (ulong)_received.Count + _prunedCount == (ulong)_largestReceived + 1;
+        _largestReceived >= 0 && _received.Count + _prunedCount == (ulong)_largestReceived + 1;
 
     /// <summary>
     /// Assigns the next packet number to send.
@@ -207,11 +213,7 @@ public sealed class PacketNumberSpace
         if (_prunedBelow > largest)
             return; // already pruned further
 
-        while (_received.Count > 0 && _received.Min <= largest)
-        {
-            _received.Remove(_received.Min);
-            _prunedCount++;
-        }
+        _prunedCount += _received.PruneUpTo(largest);
         _prunedBelow = largest + 1;
     }
 
@@ -233,9 +235,9 @@ public sealed class PacketNumberSpace
         EcnCounts? ecn = (_ect0Count | _ect1Count | _ceCount) != 0
             ? new EcnCounts(_ect0Count, _ect1Count, _ceCount)
             : null;
-        // _received is a SortedSet ⇒ already ascending and duplicate-free: one walk, no copy.
-        AckFrame ack = AckFrame.FromAscendingPacketNumbers(_received, ackDelay, MaxAckRanges);
-        return ack with { Ecn = ecn };
+        List<PacketNumberRange> ranges = _received.NewestDescending(MaxAckRanges);
+        AckBuildWorkForTest += ranges.Count;
+        return new AckFrame(ranges, ackDelay, ecn);
     }
 
     /// <summary>
@@ -342,11 +344,12 @@ public sealed class PacketNumberSpace
         if (searchFrom < (long)_prunedBelow)
             searchFrom = (long)_prunedBelow; // pruned numbers count as received (already acknowledged)
 
-        for (long candidate = searchFrom; candidate < largestUnacked; candidate++)
-            if (!_received.Contains((ulong)candidate))
-                return largestUnacked - candidate >= threshold; // smallest Unreported Missing found
-
-        return false; // no gap in the window ⇒ nothing to acknowledge early
+        if (searchFrom >= largestUnacked)
+            return false;
+        long smallestMissing = (long)_received.SmallestMissingFrom((ulong)searchFrom);
+        if (smallestMissing >= largestUnacked)
+            return false; // no gap in the window ⇒ nothing to acknowledge early
+        return largestUnacked - smallestMissing >= threshold; // smallest Unreported Missing found
     }
 
     /// <summary>
