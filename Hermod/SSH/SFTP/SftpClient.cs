@@ -305,6 +305,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         }
 
         /// <summary>
+        /// Set attributes of a remote path (SETSTAT) — size, permissions, access and modification time,
+        /// whichever are set in <paramref name="Attributes"/>. A server that cannot apply them answers
+        /// with an error status, which surfaces here as an exception.
+        /// </summary>
+        public ValueTask SetAttributesAsync(String RemotePath, SftpFileAttributes Attributes, CancellationToken CancellationToken = default)
+            => ExpectOkAsync(SftpPacketType.SetStat, (ref SshPacketWriter w) => { w.WriteString(RemotePath); Attributes.Encode(ref w); }, CancellationToken);
+
+        /// <summary>
         /// Create a remote directory.
         /// </summary>
         public ValueTask MakeDirectoryAsync(String RemotePath, CancellationToken CancellationToken = default)

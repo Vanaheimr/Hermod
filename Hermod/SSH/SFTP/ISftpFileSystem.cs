@@ -127,6 +127,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         ValueTask FlushAsync(String Handle, CancellationToken CancellationToken = default)
             => ValueTask.CompletedTask;
 
+        /// <summary>
+        /// Apply the attributes a client asks for with SETSTAT or FSETSTAT — size, ownership, permissions,
+        /// access and modification time, whichever are set. Either all of them are applied or none, and
+        /// an attribute this file system cannot apply is refused with
+        /// <see cref="SftpStatusCode.OpUnsupported"/> rather than acknowledged and dropped: a client that
+        /// is told its <c>chmod</c> worked must be able to rely on it.
+        /// </summary>
+        /// <remarks>
+        /// The default refuses everything, which is the truthful answer for a file system that does not
+        /// model attributes.
+        /// </remarks>
+        ValueTask SetAttributesAsync(String Path, SftpFileAttributes Attributes, CancellationToken CancellationToken = default)
+            => throw new SftpException(SftpStatusCode.OpUnsupported, "This file system does not set attributes.");
+
     }
 
 }

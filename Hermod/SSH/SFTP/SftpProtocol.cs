@@ -105,6 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     {
 
         private const UInt32 FlagSize        = 0x00000001;
+        private const UInt32 FlagUidGid      = 0x00000002;
         private const UInt32 FlagPermissions = 0x00000004;
         private const UInt32 FlagAcModTime   = 0x00000008;
 
@@ -120,6 +121,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         /// The POSIX permission/type bits, if known.
         /// </summary>
         public UInt32?          Permissions   { get; init; }
+
+        /// <summary>
+        /// The owning user id, if known or requested. Travels only together with <see cref="GroupId"/>.
+        /// </summary>
+        public UInt32?          UserId        { get; init; }
+
+        /// <summary>
+        /// The owning group id, if known or requested. Travels only together with <see cref="UserId"/>.
+        /// </summary>
+        public UInt32?          GroupId       { get; init; }
+
+        /// <summary>
+        /// The last-access time, if known. The wire carries it only together with
+        /// <see cref="ModifyTime"/>; when only one of the two is set, it stands in for the other.
+        /// </summary>
+        public DateTimeOffset?  AccessTime    { get; init; }
 
         /// <summary>
         /// The last-modified time, if known.
@@ -151,16 +168,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         public void Encode(ref SshPacketWriter Writer)
         {
 
+            var atime = AccessTime ?? ModifyTime;
+            var mtime = ModifyTime ?? AccessTime;
+
             UInt32 flags = 0;
-            if (Size        is not null) flags |= FlagSize;
-            if (Permissions is not null) flags |= FlagPermissions;
-            if (ModifyTime  is not null) flags |= FlagAcModTime;
+            if (Size        is not null)                       flags |= FlagSize;
+            if (UserId      is not null && GroupId is not null) flags |= FlagUidGid;
+            if (Permissions is not null)                       flags |= FlagPermissions;
+            if (mtime       is not null)                       flags |= FlagAcModTime;
 
             Writer.WriteUInt32(flags);
 
-            if (Size        is { } size)  Writer.WriteUInt64((UInt64) size);
-            if (Permissions is { } perm)  Writer.WriteUInt32(perm);
-            if (ModifyTime  is { } mtime) { Writer.WriteUInt32((UInt32) mtime.ToUnixTimeSeconds()); Writer.WriteUInt32((UInt32) mtime.ToUnixTimeSeconds()); }
+            if (Size        is { } size)                       Writer.WriteUInt64((UInt64) size);
+            if ((flags & FlagUidGid) != 0)                     { Writer.WriteUInt32(UserId!.Value); Writer.WriteUInt32(GroupId!.Value); }
+            if (Permissions is { } perm)                       Writer.WriteUInt32(perm);
+            if (atime is { } a && mtime is { } m)              { Writer.WriteUInt32((UInt32) a.ToUnixTimeSeconds()); Writer.WriteUInt32((UInt32) m.ToUnixTimeSeconds()); }
 
         }
 
@@ -172,15 +194,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
             var flags        = Reader.ReadUInt32();
             Int64?  size     = null;
+            UInt32? uid      = null, gid = null;
             UInt32? perms    = null;
-            DateTimeOffset? mtime = null;
+            DateTimeOffset? atime = null, mtime = null;
 
             if ((flags & FlagSize)        != 0) size  = (Int64) Reader.ReadUInt64();
-            if ((flags & 0x00000002)      != 0) { Reader.ReadUInt32(); Reader.ReadUInt32(); }   // uid, gid
+            if ((flags & FlagUidGid)      != 0) { uid = Reader.ReadUInt32(); gid = Reader.ReadUInt32(); }
             if ((flags & FlagPermissions) != 0) perms = Reader.ReadUInt32();
-            if ((flags & FlagAcModTime)   != 0) { Reader.ReadUInt32(); mtime = DateTimeOffset.FromUnixTimeSeconds(Reader.ReadUInt32()); }
+            if ((flags & FlagAcModTime)   != 0) { atime = DateTimeOffset.FromUnixTimeSeconds(Reader.ReadUInt32()); mtime = DateTimeOffset.FromUnixTimeSeconds(Reader.ReadUInt32()); }
 
-            return new SftpFileAttributes { Size = size, Permissions = perms, ModifyTime = mtime };
+            return new SftpFileAttributes { Size = size, UserId = uid, GroupId = gid, Permissions = perms, AccessTime = atime, ModifyTime = mtime };
 
         }
 
