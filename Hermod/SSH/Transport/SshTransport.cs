@@ -36,9 +36,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <remarks>
     /// With strict-KEX (Terrapin mitigation) both sequence numbers reset to zero after <i>every</i>
     /// SSH_MSG_NEWKEYS, initial or subsequent — matching OpenSSH. Nothing of ours interleaves with a key
-    /// exchange; what the peer sent before it saw our KEXINIT is held back until the exchange is over.
-    /// With <see cref="RekeyLimits"/> set, a send that finds the keys used up starts a rekey by itself,
-    /// which the receive loop completes. Instances are single reader; sends serialize themselves.
+    /// exchange: what is sent during one is queued and written after our NEWKEYS, and what the peer sent
+    /// before it saw our KEXINIT is held back until the exchange is over. With <see cref="RekeyLimits"/>
+    /// set, a send or a receive that finds the keys used up starts a rekey by itself, which the receive
+    /// loop completes. Instances are single reader; sends serialize themselves.
     /// </remarks>
     public sealed class SshTransport : IDisposable
     {
@@ -108,27 +109,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private Int64   lastKeyExchange;
 
         // An automatic rekey starts on whichever task sends, but only the reader can finish it. The
-        // sender writes our KEXINIT and leaves sendLock held for the exchange, so nothing else goes out
-        // until NEWKEYS; the reader takes the exchange over when the peer's KEXINIT arrives. kexGate
-        // decides the one race between them: the peer's KEXINIT being read while ours is being written.
+        // sender writes our KEXINIT; the reader takes the exchange over when the peer's KEXINIT arrives.
+        // kexGate decides the one race between them: the peer's KEXINIT being read while ours is being
+        // written.
         //
         //   pendingLocalKexInit    our KEXINIT is on the wire, and the exchange is to use it
         //   peerKexInitSeen        the reader has the peer's KEXINIT; nobody starts another exchange
-        //   exchangeHoldsSendLock  sendLock was left held for the exchange; the exchange releases it
+        //   sendsHeld              from our KEXINIT to our NEWKEYS, what is sent waits in `held`
+        //
+        // Nothing but the exchange's own packets may go out between our KEXINIT and our NEWKEYS - and
+        // OpenSSH 10.4 drops a peer that sends anything else. That used to be kept by holding sendLock
+        // for the whole exchange, which could hang the connection: the exchange needs the reader, and
+        // the reader sends too - a channel confirmation, a reply to a keepalive - from the very packet
+        // it is handling. Waiting for sendLock there, it could never read the KEXINIT that would have
+        // freed it. So sendLock is held for one packet at a time, as for any send, and what is sent
+        // while sendsHeld is set is queued in order and written after our NEWKEYS, as OpenSSH does -
+        // except channel data, which waits for the exchange to end instead. Data is what the
+        // application pumps, never the reader, so waiting is safe there; and queued, a bulk sender
+        // would pour megabytes into `held` during every exchange, for the reader to write out after it.
         //
         // Whatever the peer sends between our KEXINIT and its own is held back in `deferred` and handed
-        // out after the exchange: dispatching it at once could block the reader on a send - a window
-        // adjust, a channel confirmation - that waits for this very exchange to end.
+        // out after the exchange.
         private readonly Object       kexGate = new ();
         private Byte[]?               pendingLocalKexInit;
         private Boolean               peerKexInitSeen;
-        private Boolean               exchangeHoldsSendLock;
+        private Boolean               sendsHeld;
+        private readonly Queue<Byte[]>  held = new ();
+        private TaskCompletionSource  sendsReleased = CompletedSignal();
         private readonly Queue<Byte[]>  deferred = new ();
         private Int64                 deferredBytes;
 
         // A peer that never answers our KEXINIT while it keeps sending is cut off here, instead of being
         // buffered without end.
         private const Int64           MaxDeferredBytes = 32 * 1024 * 1024;
+
+        private static TaskCompletionSource CompletedSignal()
+        {
+            var signal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            signal.SetResult();
+            return signal;
+        }
 
         #endregion
 
@@ -348,35 +368,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// sequence number. Serialized against every other send and against a key exchange in flight,
         /// so a caller may send from any task without coordinating with the rest.
         /// </summary>
+        /// <remarks>
+        /// During a key exchange the packet is queued and written after our NEWKEYS, under the new
+        /// keys; the call returns once it is queued. Channel data waits for the exchange to end
+        /// instead, and a DISCONNECT goes out at once - it may end an exchange.
+        /// </remarks>
         public async ValueTask SendPacketAsync(ReadOnlyMemory<Byte> Payload, CancellationToken CancellationToken = default)
         {
 
-            await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
-
-            var heldForExchange = false;
-
-            try
+            while (true)
             {
 
-                await WritePacketAsync(Payload, CancellationToken).ConfigureAwait(false);
+                await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
 
-                // Only connection-protocol traffic starts a rekey: not a KEX message, not a DISCONNECT,
-                // and not authentication, which RekeyLimits is not armed for anyway.
-                if (Payload.Length > 0 && Payload.Span[0] >= (Byte) SshMessageNumber.GlobalRequest && IsRekeyDue)
-                    heldForExchange = await TrySendKexInitAsync(CancellationToken).ConfigureAwait(false);
+                Task? exchangeOver = null;
 
-            }
-            finally
-            {
-                if (!heldForExchange)
+                try
+                {
+
+                    lock (kexGate)
+                    {
+                        if (sendsHeld && !(Payload.Length > 0 && Payload.Span[0] == (Byte) SshMessageNumber.Disconnect))
+                        {
+
+                            if (Payload.Length > 0 &&
+                                Payload.Span[0] is (Byte) SshMessageNumber.ChannelData or (Byte) SshMessageNumber.ChannelExtendedData)
+                                exchangeOver = sendsReleased.Task;
+
+                            else
+                            {
+                                held.Enqueue(Payload.ToArray());
+                                return;
+                            }
+
+                        }
+                    }
+
+                    if (exchangeOver is null)
+                    {
+
+                        await WritePacketAsync(Payload, CancellationToken).ConfigureAwait(false);
+
+                        // Only connection-protocol traffic starts a rekey: not a KEX message, not a
+                        // DISCONNECT, and not authentication, which RekeyLimits is not armed for anyway.
+                        if (Payload.Length > 0 && Payload.Span[0] >= (Byte) SshMessageNumber.GlobalRequest && IsRekeyDue)
+                            await TrySendKexInitAsync(CancellationToken).ConfigureAwait(false);
+
+                        return;
+
+                    }
+
+                }
+                finally
+                {
                     sendLock.Release();
+                }
+
+                await exchangeOver.WaitAsync(CancellationToken).ConfigureAwait(false);
+
             }
 
         }
 
         /// <summary>
-        /// The write itself, for the one caller that already holds <c>sendLock</c>: the key exchange,
-        /// which has to emit several packets in sequence without letting anything in between them.
+        /// The write itself, for callers that hold <c>sendLock</c> already.
         /// </summary>
         private async ValueTask WritePacketAsync(ReadOnlyMemory<Byte> Payload, CancellationToken CancellationToken = default)
         {
@@ -395,6 +450,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             Interlocked.Increment(ref packetsSentSinceKex);
 
             await pipe.Output.FlushAsync(CancellationToken).ConfigureAwait(false);
+
+        }
+
+        /// <summary>
+        /// One packet of the key exchange: written past the queue that holds everything else.
+        /// </summary>
+        private async ValueTask WriteExchangePacketAsync(ReadOnlyMemory<Byte> Payload, CancellationToken CancellationToken)
+        {
+
+            await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
+
+            try     { await WritePacketAsync(Payload, CancellationToken).ConfigureAwait(false); }
+            finally { sendLock.Release(); }
 
         }
 
@@ -575,9 +643,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         }
 
         /// <summary>
-        /// Start a rekey from the reader - but only if sendLock is free this instant. The reader must never
-        /// wait for it: when an exchange holds it, the reader is the one that has to end that exchange.
-        /// A busy lock just means a sender is at it, and its own check comes next.
+        /// Start a rekey from the reader - but only if sendLock is free this instant: a busy lock means
+        /// a sender is at it, and its own check comes next. The packet that tipped the limit is handed
+        /// out as usual; whatever its handling sends is queued behind our KEXINIT.
         /// </summary>
         private async ValueTask TryStartRekeyFromReceiveAsync(CancellationToken CancellationToken)
         {
@@ -585,38 +653,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (!sendLock.Wait(0))
                 return;
 
-            var heldForExchange = false;
-
-            try     { heldForExchange = await TrySendKexInitAsync(CancellationToken).ConfigureAwait(false); }
-            finally { if (!heldForExchange) sendLock.Release(); }
+            try     { await TrySendKexInitAsync(CancellationToken).ConfigureAwait(false); }
+            finally { sendLock.Release(); }
 
         }
 
         /// <summary>
-        /// The receiving side is gone, so an exchange that left sendLock held for the reader would hold
-        /// it for ever: every sender after it would wait without end. Give it back.
+        /// The receiving side is gone while our KEXINIT waited for an answer, so the exchange will never
+        /// end: let the sends it held go - they meet a dead connection, rather than a queue that is never
+        /// written.
         /// </summary>
         private void AbandonPendingExchange()
         {
 
-            var release = false;
-
             lock (kexGate)
             {
-                if (exchangeHoldsSendLock && !peerKexInitSeen)
+                if (pendingLocalKexInit is not null && !peerKexInitSeen)
                 {
-                    exchangeHoldsSendLock  = false;
-                    pendingLocalKexInit    = null;
-                    release                = true;
+                    pendingLocalKexInit = null;
+                    ReleaseHeldSends();
                 }
             }
 
-            if (release)
-            {
-                try   { sendLock.Release(); }
-                catch (ObjectDisposedException) { }
-            }
+        }
 
+        /// <summary>
+        /// Under kexGate: from now on, what is sent waits in <c>held</c> until the exchange is over.
+        /// </summary>
+        private void HoldSends()
+        {
+            if (!sendsHeld)
+            {
+                sendsHeld      = true;
+                sendsReleased  = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+        }
+
+        /// <summary>
+        /// Under kexGate: drop what was held - the exchange failed, so it can not be sent - and let
+        /// sends through again.
+        /// </summary>
+        private void ReleaseHeldSends()
+        {
+            held.Clear();
+            sendsHeld  = false;
+            sendsReleased.TrySetResult();
+        }
+
+        /// <summary>
+        /// With sendLock held, after our NEWKEYS: write what was held, in order and under the new keys,
+        /// then let sends through again. Nothing can come in between: a sender takes sendLock first.
+        /// </summary>
+        private async ValueTask FlushHeldSendsAsync(CancellationToken CancellationToken)
+        {
+            while (true)
+            {
+
+                Byte[] next;
+
+                lock (kexGate)
+                {
+
+                    if (held.Count == 0)
+                    {
+                        sendsHeld = false;
+                        sendsReleased.TrySetResult();
+                        return;
+                    }
+
+                    next       = held.Dequeue();
+
+                }
+
+                await WritePacketAsync(next, CancellationToken).ConfigureAwait(false);
+
+            }
         }
 
         #endregion
@@ -652,7 +763,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Start a key re-exchange while another task keeps receiving: send our KEXINIT and leave the
         /// rest to the receive loop, which completes the exchange when the peer's KEXINIT arrives (by
-        /// passing it to <see cref="RespondToRekeyAsync"/>). Until then, nothing else is sent.
+        /// passing it to <see cref="RespondToRekeyAsync"/>). Until our NEWKEYS, what is sent is queued.
         /// </summary>
         /// <returns>False when an exchange is already under way, and nothing was sent.</returns>
         public async ValueTask<Boolean> StartRekeyAsync(CancellationToken CancellationToken = default)
@@ -660,12 +771,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
 
-            var heldForExchange = false;
-
-            try     { heldForExchange = await TrySendKexInitAsync(CancellationToken).ConfigureAwait(false); }
-            finally { if (!heldForExchange) sendLock.Release(); }
-
-            return heldForExchange;
+            try     { return await TrySendKexInitAsync(CancellationToken).ConfigureAwait(false); }
+            finally { sendLock.Release(); }
 
         }
 
@@ -674,20 +781,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #region (private) TrySendKexInitAsync(CancellationToken)
 
         /// <summary>
-        /// With sendLock held: send our KEXINIT unless an exchange is already under way, and say whether
-        /// sendLock now belongs to the exchange - in which case the caller must not release it.
+        /// With sendLock held: send our KEXINIT unless an exchange is already under way, and hold what is
+        /// sent after it until the exchange is over. Says whether this started the exchange.
         /// </summary>
         private async ValueTask<Boolean> TrySendKexInitAsync(CancellationToken CancellationToken)
         {
 
             lock (kexGate)
             {
+
                 if (outputClosed || KeyExchangeCount == 0 || peerKexInitSeen || pendingLocalKexInit is not null)
                     return false;
+
+                // Before the write, not after: the reader may take the exchange over the moment the
+                // peer's KEXINIT is in, and from our KEXINIT on, nothing else may go out.
+                HoldSends();
+
             }
 
             var kexInit = LocalKexInit().Encode();
-            await WritePacketAsync(kexInit, CancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                await WritePacketAsync(kexInit, CancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                lock (kexGate)
+                    ReleaseHeldSends();
+                throw;
+            }
 
             lock (kexGate)
             {
@@ -696,11 +819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                 // The peer's KEXINIT was read while ours was being written: the reader is already waiting
                 // for sendLock to run the exchange, and finds ours there once it has it.
-                if (peerKexInitSeen)
-                    return false;
-
-                exchangeHoldsSendLock = true;
-                return true;
+                return !peerKexInitSeen;
 
             }
 
@@ -730,39 +849,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             // instead of skipping them (see ReceivePacketAsync).
             keyExchangeInProgress = true;
 
-            // Held for the whole exchange, so nothing can send between our KEXINIT and our NEWKEYS.
-            // See the field's remark for why that is a framing matter as well as an interop one. An
-            // exchange this end started from a send already has it (TrySendKexInitAsync).
-            Boolean alreadyHeld;
-            lock (kexGate)
-                alreadyHeld = exchangeHoldsSendLock;
-
-            if (!alreadyHeld)
-                await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
-
             var completed = false;
 
             try
             {
 
-            // 1. Send our KEXINIT - unless an exchange we started has sent it already.
-            Byte[]? alreadySent;
-            lock (kexGate)
-                alreadySent = pendingLocalKexInit;
-
+            // 1. Send our KEXINIT - unless an exchange we started has sent it already. Asked under
+            //    sendLock: a sender may be writing ours this very moment, and sets it once it has. From
+            //    here to our NEWKEYS, what others send is held (see the field's remark).
             KexInitMessage localKexInit;
             Byte[]         iLocal;
 
-            if (alreadySent is not null)
+            await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
+
+            try
             {
-                iLocal        = alreadySent;
-                localKexInit  = KexInitMessage.Decode(iLocal);
+
+                Byte[]? alreadySent;
+
+                lock (kexGate)
+                {
+                    alreadySent = pendingLocalKexInit;
+                    HoldSends();
+                }
+
+                if (alreadySent is not null)
+                {
+                    iLocal        = alreadySent;
+                    localKexInit  = KexInitMessage.Decode(iLocal);
+                }
+                else
+                {
+                    localKexInit  = LocalKexInit();
+                    iLocal        = localKexInit.Encode();
+                    await WritePacketAsync(iLocal, CancellationToken).ConfigureAwait(false);
+                }
+
             }
-            else
+            finally
             {
-                localKexInit  = LocalKexInit();
-                iLocal        = localKexInit.Encode();
-                await WritePacketAsync(iLocal, CancellationToken).ConfigureAwait(false);
+                sendLock.Release();
             }
 
             // 2. Obtain the peer's KEXINIT (already read on a peer-initiated rekey, else read it now).
@@ -817,14 +943,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 h               = ExchangeHashCalc.Compute(kex.HashAlgorithm, vC, vS, iC, iS, kS, qC, qS, kEncoded);
 
                 var signature   = hostKey!.Sign(negotiated.HostKey, h);
-                await WritePacketAsync(SshKexCore.BuildEcdhReply(kS, qS, signature), CancellationToken).ConfigureAwait(false);
+                await WriteExchangePacketAsync(SshKexCore.BuildEcdhReply(kS, qS, signature), CancellationToken).ConfigureAwait(false);
 
             }
             else
             {
 
                 var qC          = kex.StartClient();
-                await WritePacketAsync(SshKexCore.BuildEcdhInit(qC), CancellationToken).ConfigureAwait(false);
+                await WriteExchangePacketAsync(SshKexCore.BuildEcdhInit(qC), CancellationToken).ConfigureAwait(false);
 
                 var reply                   = await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
                 var (kServer, qS, sigBlob)  = SshKexCore.ParseEcdhReply(reply);
@@ -868,8 +994,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             // 5. NEWKEYS: our own is the last packet under the old send keys; the peer's is the last
             //    under the old receive keys. Swap each direction independently, right after the boundary.
             var newKeysMessage = new Byte[] { (Byte) SshMessageNumber.NewKeys };
-            await WritePacketAsync(newKeysMessage, CancellationToken).ConfigureAwait(false);
-            SwapSend(newSendCipher, newSendMac, negotiated.StrictKex);
+
+            await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
+            try
+            {
+                await WritePacketAsync(newKeysMessage, CancellationToken).ConfigureAwait(false);
+                SwapSend(newSendCipher, newSendMac, negotiated.StrictKex);
+            }
+            finally
+            {
+                sendLock.Release();
+            }
 
             var newKeys = await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
             if (newKeys.Length < 1 || newKeys[0] != (Byte) SshMessageNumber.NewKeys)
@@ -897,12 +1032,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             completed = true;
 
-            // RFC 8308 §3.1: when ext-info was negotiated, the server sends SSH_MSG_EXT_INFO
-            // (server-sig-algs) as the very next packet after its first NEWKEYS. Not repeated on rekeys.
-            if (IsInitial && isServer && negotiated.ExtensionInfo)
+            // 6. What was sent during the exchange goes out now, under the new keys - after
+            //    SSH_MSG_EXT_INFO, which RFC 8308 §3.1 puts right after the server's first NEWKEYS
+            //    (server-sig-algs; not repeated on rekeys).
+            await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
+            try
             {
-                var extInfo = ExtInfoMessage.ForServerSigAlgs(serverSignatureAlgorithms);
-                await WritePacketAsync(extInfo.Encode(), CancellationToken).ConfigureAwait(false);
+
+                if (IsInitial && isServer && negotiated.ExtensionInfo)
+                {
+                    var extInfo = ExtInfoMessage.ForServerSigAlgs(serverSignatureAlgorithms);
+                    await WritePacketAsync(extInfo.Encode(), CancellationToken).ConfigureAwait(false);
+                }
+
+                await FlushHeldSendsAsync(CancellationToken).ConfigureAwait(false);
+
+            }
+            finally
+            {
+                sendLock.Release();
             }
 
             }
@@ -913,12 +1061,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                 lock (kexGate)
                 {
-                    pendingLocalKexInit    = null;
-                    peerKexInitSeen        = false;
-                    exchangeHoldsSendLock  = false;
-                }
 
-                sendLock.Release();
+                    pendingLocalKexInit  = null;
+                    peerKexInitSeen      = false;
+
+                    // A failed exchange: what it held can not be sent, and nothing may wait for it.
+                    if (sendsHeld)
+                        ReleaseHeldSends();
+
+                }
 
             }
 

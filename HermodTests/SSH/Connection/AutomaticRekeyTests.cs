@@ -229,10 +229,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         #region WhatThePeerSendsBeforeItSeesOurKexInit_IsAnsweredAfterTheExchange
 
         /// <summary>
-        /// The order that would deadlock: our server has sent its KEXINIT, and the client - not having read
-        /// it yet - opens a channel. Answered at once, the confirmation would wait for the send lock the
-        /// exchange holds, on the very task that has to read the client's KEXINIT to end the exchange. The
-        /// open is held back instead, and confirmed under the new keys.
+        /// The order that could deadlock: our server has sent its KEXINIT, and the client - not having read
+        /// it yet - opens a channel. The confirmation must not go out before the exchange is over, and
+        /// must not keep the reader, which has to read the client's KEXINIT to end the exchange, from
+        /// reading. The open is held back, and confirmed under the new keys.
         ///
         /// <para>
         /// The client here is a bare transport, driven by hand, so the order is the test's and not the
@@ -265,6 +265,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             var serverKexInit = await client.ReceivePacketAsync(CancellationToken);
             Assert.That(serverKexInit[0], Is.EqualTo((Byte) SshMessageNumber.KexInit));
+
+            await client.RespondToRekeyAsync(serverKexInit, CancellationToken);
+
+            var confirmation = await client.ReceivePacketAsync(CancellationToken);
+
+            Assert.Multiple(() => {
+                Assert.That(confirmation[0],         Is.EqualTo((Byte) SshMessageNumber.ChannelOpenConfirmation), "the open is answered - after the exchange");
+                Assert.That(client.KeyExchangeCount, Is.EqualTo(2));
+                Assert.That(server.KeyExchangeCount, Is.EqualTo(2));
+            });
+
+        }
+
+        #endregion
+
+        #region ThePacketThatUsesUpTheKeys_IsAnsweredAfterTheExchange
+
+        /// <summary>
+        /// The receiving side's own rekey, started by a CHANNEL_OPEN: the open is the packet that uses up
+        /// the server's keys, so the server sends its KEXINIT from the reader - and then handles the open,
+        /// whose confirmation is sent from that same reader. It used to wait there for the send lock the
+        /// exchange held, while the exchange waited for the reader: the connection hung. The confirmation
+        /// is queued now and goes out under the new keys.
+        ///
+        /// <para>
+        /// SSH_MSG_IGNORE fills the server's limit first: counted as received, but never a reason to rekey
+        /// by itself, so the open is what tips it. The client is a bare transport, driven by hand.
+        /// </para>
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task ThePacketThatUsesUpTheKeys_IsAnsweredAfterTheExchange(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var client = await clientTask;
+            using var server = await serverTask;
+
+            if (client.Algorithms.ExtensionInfo)
+                Assert.That(client.TryHandleExtInfo(await client.ReceivePacketAsync(CancellationToken)), Is.True);
+
+            await using var serverMux = new SshChannelMultiplexer(server) { RekeyLimits = Every64KiB }.Start();
+
+            // 80 000 bytes of SSH_MSG_IGNORE: byte 2, then a string.
+            for (var i = 0; i < 4; i++)
+            {
+                var ignore = new Byte[1 + 4 + 20_000];
+                ignore[0]  = (Byte) SshMessageNumber.Ignore;
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(ignore.AsSpan(1), 20_000);
+                await client.SendPacketAsync(ignore, CancellationToken);
+            }
+
+            await client.SendPacketAsync(SshChannelWire.ChannelOpen("session", 7, 65536, 32768, []), CancellationToken);
+
+            var serverKexInit = await client.ReceivePacketAsync(CancellationToken);
+            Assert.That(serverKexInit[0], Is.EqualTo((Byte) SshMessageNumber.KexInit), "the open used up the server's keys");
 
             await client.RespondToRekeyAsync(serverKexInit, CancellationToken);
 
