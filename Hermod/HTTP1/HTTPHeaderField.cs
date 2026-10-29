@@ -543,12 +543,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// of the entity-body in transit, but is not proof against
         /// malicious attacks.
         /// </summary>
+        /// <remarks>
+        /// Obsolete: RFC 7231, Appendix B, removed it from HTTP "because it was
+        /// inconsistently implemented with respect to partial responses", and
+        /// RFC 9110 does not bring it back. It stays typed so that it can still
+        /// be read where an old peer sends it. Use <see cref="ContentDigest"/>.
+        /// </remarks>
         /// <example>Content-MD5: Q2hlY2sgSW50ZWdyaXR5IQ==</example>
         /// <seealso cref="https://www.rfc-editor.org/rfc/rfc1864.html"/>
-        /// <seealso cref="http://tools.ietf.org/html/rfc1864"/>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc7231.html#appendix-B"/>
         public static readonly HTTPHeaderField<String> ContentMD5 = new ("Content-MD5",
                                                                          HeaderFieldType.General,
                                                                          RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region Content-Digest
+
+        /// <summary>
+        /// A digest of the content this one message carries (RFC 9530,
+        /// Section 2): on a 206 the slice, and in either case the octets as they
+        /// travel, after any content coding.
+        /// </summary>
+        /// <remarks>
+        /// Typed since 2026-10-28. The value is an RFC 9651 Dictionary of Byte
+        /// Sequences, one per algorithm; <see cref="HTTPDigest"/> builds, parses
+        /// and checks it, and AHTTPPDU.VerifyContentDigest() checks a received
+        /// message against it. It may arrive in the trailer section instead.
+        /// </remarks>
+        /// <example>Content-Digest: sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9530.html#section-2"/>
+        public static readonly HTTPHeaderField<String> ContentDigest = new ("Content-Digest",
+                                                                            HeaderFieldType.General,
+                                                                            RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region Repr-Digest
+
+        /// <summary>
+        /// A digest of the selected representation (RFC 9530, Section 3): the
+        /// whole of it, whichever part of it this message carries.
+        /// </summary>
+        /// <remarks>
+        /// Typed since 2026-10-28. On a 200 that is the content and the same as
+        /// <see cref="ContentDigest"/>; on a 206 it is what lets a client check a
+        /// representation it assembled out of several ranges.
+        /// </remarks>
+        /// <example>Repr-Digest: sha-256=:f4OxZX/x/FO5LcGBSKHWXfwtSx+j1ncoSt3SABJtkGk=:</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9530.html#section-3"/>
+        public static readonly HTTPHeaderField<String> ReprDigest = new ("Repr-Digest",
+                                                                         HeaderFieldType.General,
+                                                                         RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region Want-Content-Digest
+
+        /// <summary>
+        /// Which algorithms the sender would like a <see cref="ContentDigest"/> in,
+        /// each with a preference from 0 (not acceptable) to 10 (RFC 9530,
+        /// Section 4). Only a hint: ignoring it is not a protocol error.
+        /// </summary>
+        /// <example>Want-Content-Digest: sha-256=10, sha-512=5</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9530.html#section-4"/>
+        public static readonly HTTPHeaderField<String> WantContentDigest = new ("Want-Content-Digest",
+                                                                                HeaderFieldType.General,
+                                                                                RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region Want-Repr-Digest
+
+        /// <summary>
+        /// Which algorithms the sender would like a <see cref="ReprDigest"/> in
+        /// (RFC 9530, Section 4), with the same preferences as
+        /// <see cref="WantContentDigest"/>.
+        /// </summary>
+        /// <example>Want-Repr-Digest: sha-512=3, sha-256=10</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9530.html#section-4"/>
+        public static readonly HTTPHeaderField<String> WantReprDigest = new ("Want-Repr-Digest",
+                                                                             HeaderFieldType.General,
+                                                                             RequestPathSemantic.EndToEnd);
 
         #endregion
 

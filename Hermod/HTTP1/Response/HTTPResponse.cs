@@ -618,6 +618,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public TimeSpan            Runtime                { get; internal set; }
 
         /// <summary>
+        /// What became of the response's Content-Digest (RFC 9530), when the
+        /// client's VerifyDigests is on: checked against the octets as they
+        /// arrived, before any decoding. NotPresent while it is off, since then
+        /// nothing was looked at, and Mismatch only on the ClientError a
+        /// disagreeing response is replaced by.
+        /// </summary>
+        public HTTPDigestVerification DigestVerification  { get; internal set; }
+
+        /// <summary>
         /// The number of retransmissions of this request.
         /// </summary>
         public Byte                NumberOfRetries        { get; }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     using System.Security.Cryptography;
@@ -50,6 +50,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// <c>crc32c</c>) is deprecated or was never collision-resistant to begin with,
     /// and a digest field is an integrity claim — honouring a broken algorithm
     /// would make it a false one.
+    ///
+    /// Version-neutral since 2026-10-28: it lived in HTTP2/Core, where the
+    /// HTTP/1.x stack could not reach it. Since then the four fields are read
+    /// with <see cref="StructuredFields"/>, as RFC 9530 defines them: as RFC 9651
+    /// Dictionaries, of which a malformed one is ignored whole.
     /// </summary>
     public static class HTTPDigest
     {
@@ -143,45 +148,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Parse a digest field value into algorithm → digest.
         ///
-        /// The grammar is an RFC 9651 Dictionary of Byte Sequences: comma-separated
-        /// <c>key=:base64:</c> members, each optionally carrying parameters we have
-        /// no use for and therefore drop. A member we cannot make sense of is
-        /// skipped rather than guessed at — a wrong guess here would be a false
-        /// integrity verdict, which is worse than no verdict. A repeated key keeps
-        /// the last occurrence, as the structured-field grammar prescribes.
+        /// RFC 9530, Section 2: the field is an RFC 9651 Dictionary whose members
+        /// are Byte Sequences, <c>key=:base64:</c>. Parameters on a member are
+        /// allowed by the grammar, defined by nobody, and dropped. A repeated key
+        /// keeps its last occurrence (RFC 9651, Section 4.2.2).
+        ///
+        /// What does not parse yields nothing at all, not the members that did:
+        /// RFC 9651, Section 4.2, has a field that fails to parse ignored whole,
+        /// and forbids the fields built on it to loosen that. Section 2.2 does the
+        /// same for a member that parses but is not a Byte Sequence. This parser
+        /// once kept the members it could read, so that "md5=:not-base64!:,
+        /// sha-256=:…:" verified against its second half — a verdict on a field
+        /// that the RFC says is not there. An algorithm we do not compute is a
+        /// different thing: its member is valid and is returned, for
+        /// <see cref="Verify"/> to pass over.
         /// </summary>
         public static Dictionary<String, Byte[]> Parse(String FieldValue)
         {
 
             var result = new Dictionary<String, Byte[]>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var rawMember in SplitMembers(FieldValue))
+            if (!StructuredFields.TryParseDictionary(FieldValue, out var dictionary))
+                return result;
+
+            foreach (var (key, member) in dictionary.Values)
             {
 
-                var member = rawMember.Trim();
+                if (member is not SFItem { Value.Type: SFType.ByteSequence } item)
+                    return new (StringComparer.OrdinalIgnoreCase);
 
-                var equals = member.IndexOf('=');
-                if (equals <= 0)
-                    continue;   // a bare key is a Boolean member, not a digest
-
-                var key   = member[..equals].Trim().ToLowerInvariant();
-                var value = member[(equals + 1)..].Trim();
-
-                if (value.Length < 2 || value[0] != ':')
-                    continue;
-
-                var closing = value.IndexOf(':', 1);
-                if (closing < 0)
-                    continue;   // unterminated byte sequence
-
-                // Everything past the closing colon is parameters — ignored.
-                var base64 = value[1..closing];
-                var buffer = new Byte[(base64.Length / 4 + 1) * 3];
-
-                if (!Convert.TryFromBase64String(base64, buffer, out var written))
-                    continue;
-
-                result[key] = buffer[..written];
+                result[key] = item.Value.AsByteSequence;
 
             }
 
@@ -280,111 +276,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Parse a <c>want-…-digest</c> field value into algorithm → preference
-        /// (RFC 9530, Section 4 — an integer 0…10, where 0 means unacceptable). A
-        /// bare key is a Boolean member rather than an integer one; it is read as a
-        /// weak "yes" (1) instead of being dropped, since a peer that names an
-        /// algorithm at all clearly wants it.
+        /// (RFC 9530, Section 4): a Dictionary whose members are Integers from 0
+        /// to 10, where 0 means unacceptable.
+        ///
+        /// A field that does not parse, or one member outside that range or not an
+        /// Integer at all, yields an empty result — the field is ignored whole
+        /// (RFC 9651, Sections 4.2 and 2.2), which <see cref="SelectAlgorithm"/>
+        /// reads as no opinion. A bare key is a Boolean member, so <c>sha-512</c>
+        /// alone is such a field. This parser once read it as a weak "yes", and
+        /// clamped an 11 to a 10; both were preferences the field does not express.
         /// </summary>
         public static Dictionary<String, Int32> ParseWant(String FieldValue)
         {
 
             var result = new Dictionary<String, Int32>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var rawMember in SplitMembers(FieldValue))
+            if (!StructuredFields.TryParseDictionary(FieldValue, out var dictionary))
+                return result;
+
+            foreach (var (key, member) in dictionary.Values)
             {
 
-                var member    = rawMember.Trim();
-                var semicolon = member.IndexOf(';');
+                if (member is not SFItem { Value.Type: SFType.Integer } item ||
+                    item.Value.AsInteger is < 0 or > 10)
+                    return new (StringComparer.OrdinalIgnoreCase);
 
-                if (semicolon >= 0)
-                    member = member[..semicolon].Trim();   // drop parameters
-
-                var equals     = member.IndexOf('=');
-                var preference = 1;
-                String key;
-
-                if (equals < 0)
-                    key = member.ToLowerInvariant();
-
-                else
-                {
-
-                    key = member[..equals].Trim().ToLowerInvariant();
-
-                    if (!Int32.TryParse(member[(equals + 1)..].Trim(), out preference))
-                        continue;
-
-                }
-
-                if (key.Length == 0)
-                    continue;
-
-                result[key] = Math.Clamp(preference, 0, 10);
+                result[key] = (Int32) item.Value.AsInteger;
 
             }
 
             return result;
-
-        }
-
-        #endregion
-
-        #region (private) SplitMembers (Value)
-
-        /// <summary>
-        /// Split a structured-field dictionary into its members. Base64 cannot
-        /// contain a comma, so this only matters for the parameters a member may
-        /// carry — a quoted string there legitimately can. Byte sequences are
-        /// skipped over as well, so that a stray comma inside one (there cannot be
-        /// a valid one, but there can be a malformed one) does not split a member
-        /// in half and turn one unparseable member into two.
-        /// </summary>
-        private static IEnumerable<String> SplitMembers(String Value)
-        {
-
-            var start          = 0;
-            var inByteSequence = false;
-            var inQuotes       = false;
-
-            for (var i = 0; i < Value.Length; i++)
-            {
-
-                var character = Value[i];
-
-                if (inQuotes)
-                {
-
-                    if (character == '\\')
-                        i++;                     // the next character is escaped
-
-                    else if (character == '"')
-                        inQuotes = false;
-
-                    continue;
-
-                }
-
-                switch (character)
-                {
-
-                    case '"':
-                        inQuotes       = true;
-                        break;
-
-                    case ':':
-                        inByteSequence = !inByteSequence;
-                        break;
-
-                    case ',' when !inByteSequence:
-                        yield return Value[start..i];
-                        start = i + 1;
-                        break;
-
-                }
-
-            }
-
-            yield return Value[start..];
 
         }
 

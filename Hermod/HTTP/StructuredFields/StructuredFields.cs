@@ -786,6 +786,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return false;
                 }
 
+                // Section 4.2.7: parsers "SHOULD NOT fail when '=' padding is not
+                // present". Convert does fail, so the padding is restored first:
+                // two or three characters past the last full quantum are one or two
+                // octets, and one character is not base64 at all.
+                if (base64.Length % 4 is 2 or 3 && !base64.Contains('='))
+                    base64 = base64.PadRight(base64.Length + 4 - base64.Length % 4, '=');
+
                 try
                 {
                     BareItem = SFBareItem.ByteSequence(Convert.FromBase64String(base64));

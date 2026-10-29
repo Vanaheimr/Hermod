@@ -28,7 +28,8 @@ Last verified: **2026-10-28**
 | [RFC 4918](https://www.rfc-editor.org/rfc/rfc4918.html), WebDAV | Method tokens are modeled (`COPY`, `LOCK`, `MKCOL`, `MOVE`, `PROPFIND`, `PROPPATCH`, and `UNLOCK`). Hermod does not provide a complete WebDAV resource implementation. |
 | [RFC 7617](https://www.rfc-editor.org/rfc/rfc7617.html), Basic authentication | Typed parsing/serialization and end-to-end server authorization tests, including challenge, malformed credentials, invalid credentials, and forbidden users. Authentication policy is configured by the application. |
 | [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750.html), Bearer tokens | Typed Bearer authorization parsing/serialization is available. Token validation and authorization policy are application concerns. |
-| [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651.html), Structured Field Values | Lists, Dictionaries and Items with all eight bare types, including the Date and Display String that RFC 8941 did not have. Parsing follows Section 4.2 exactly, so what is malformed is refused rather than repaired, and serializing is the canonical form of Section 4.1 - the round trip is byte-for-byte, which is the property RFC 9421 signatures would need. Hermod does not yet *use* it for any field; it is the prerequisite the modern ones are defined in terms of. |
+| [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651.html), Structured Field Values | Lists, Dictionaries and Items with all eight bare types, including the Date and Display String that RFC 8941 did not have. Parsing follows Section 4.2 exactly, so what is malformed is refused rather than repaired, and serializing is the canonical form of Section 4.1 - the round trip is byte-for-byte, which is the property RFC 9421 signatures would need. The one leniency Section 4.2.7 asks for is there since 2026-10-28: a Byte Sequence without its `=` padding parses. Its first users are the RFC 9530 digest fields. |
+| [RFC 9530](https://www.rfc-editor.org/rfc/rfc9530.html), Digest Fields | `Content-Digest`, `Repr-Digest`, `Want-Content-Digest` and `Want-Repr-Digest` are typed on both directions, in `sha-256` and `sha-512`, with the grammar shared with HTTP/2. Opt-in on either role: the server's `AutomaticContentDigests` digests what it sends, after its compression; the client's `VerifyDigests` asks for a digest and checks it before it decodes. A handler's own digest is computed again when the server compresses. The obsolete `Content-MD5` stays readable. See [Digest fields](#digest-fields-rfc-9530). |
 | [RFC 7239](https://www.rfc-editor.org/rfc/rfc7239.html), Forwarded | The field is parsed into typed elements - `for`, `by`, `host`, `proto` and any extension parameters - and can be built to be sent onwards when a request is proxied. Node identifiers cover addresses, `unknown` and obfuscated identifiers; the last two are kept opaque rather than resolved into an address that was never given. Where a request carries both, `Forwarded` is preferred over the `X-Forwarded-For` family (Section 7.4). Either way the addresses are recorded *beside* the peer socket and never instead of it: everything in these fields is hearsay from whoever wrote them (Section 8.1), and forgeable by the client when no proxy strips them. |
 | [RFC 7838](https://www.rfc-editor.org/rfc/rfc7838.html), HTTP Alternative Services | `Alt-Svc` is typed for responses and `Alt-Used` for requests, sent by handlers and read by the client, with the field's grammar shared with HTTP/2's ALTSVC frame. The client records alternatives and does not act on them. Announcing one is the application's decision. |
 | [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), WebSocket | Implemented in Hermod's WebSocket client/server subsystem. The HTTP/1.1 server can also serve a WebSocket on a path of its own, beside ordinary HTTP on the same listener: `WebSocketUpgrade.For` hands a request that asks for an upgrade over to a WebSocket server, whose single implementation of the opening handshake (RFC 6455 §4.2) validates it and answers the `101` - the HTTP layer only decides whether a request is asking. Regression-tested by `WebSocketOnAnHTTPPathTests`; see [WebSocket/README.md](WebSocket/README.md#on-an-http-path). |
@@ -455,12 +456,61 @@ every entry is a way to be wrong rather than merely inefficient:
 | A body under `MinimumCompressibleSize` | 1 KiB by default: below that the gzip framing and the extra field cost more than they save. |
 | `gzip;q=0` | A refusal, not a request (Section 12.4.2). |
 | A result that came out no smaller | Sending more bytes and calling them compressed helps nobody. |
+| A digest it cannot compute again | A handler's `Content-Digest` or `Repr-Digest` in an algorithm other than `sha-256` and `sha-512`, or one that does not parse. Compressing would leave it false, and dropping it is not the filter's to decide (RFC 9530, Section 2). |
 
 When it does compress, three fields follow the octets: `Vary` gains
 `Accept-Encoding`, merged rather than overwritten (Section 12.5.5), a strong
 `ETag` gains the coding, because the encoded and the identity form are different
 representations (Section 8.8.3), and `HEAD` is treated exactly like `GET` so the
-two agree on `Content-Length` (Section 9.3.2).
+two agree on `Content-Length` (Section 9.3.2). Since 2026-10-28, so do a
+handler's `Content-Digest` and `Repr-Digest`: they were copied on verbatim,
+digests of the identity octets on a gzipped response, and are computed again
+over the compressed ones, in each algorithm the handler used.
+
+## Digest fields (RFC 9530)
+
+`Content-Digest` is a digest of the octets one message carries, `Repr-Digest`
+one of the whole selected representation, and the two `Want-…` fields ask for
+either, with a preference from 0 (not acceptable) to 10. All four are typed
+since 2026-10-28, in both directions: `ContentDigest`, `ReprDigest`,
+`WantContentDigest` and `WantReprDigest` on `AHTTPPDU` and its builder, the
+getters joining repeated field lines into one Dictionary. `HTTPDigest` builds,
+parses, selects and checks them, in `sha-256` and `sha-512`, the two algorithms
+the registry marks active. It was written for HTTP/2 and lived in `HTTP2/Core`,
+where this stack could not reach it; it is in `Hermod/HTTP/` now, beside
+`HTTPDigestVerification` and `HTTPDigestMismatchException`.
+
+The RFC's one sentence that matters here is that both digests are of the octets
+after content coding. Three places in this stack touch them, and each follows
+from it:
+
+| | |
+|---|---|
+| `AutomaticContentCompression` | Computes a handler's digests again over the compressed octets, and does not compress a response whose digest it cannot compute again. |
+| `AHTTPServer.AutomaticContentDigests` | **Off by default.** Gives every response that carries content a `Content-Digest` of what is sent, after the compression, in the algorithm the request's `Want-Content-Digest` prefers, `sha-256` without one, and none when it rules out both. A handler's own digest is kept. A `HEAD`, a `1xx`, `204`, `205` and `304` carry no content and get none, and neither does a streamed body, whose octets are not known before they are sent. |
+| `AHTTPClient.VerifyDigests` | **Off by default.** Sends `Want-Content-Digest` unless the request has one, and checks the response's `Content-Digest`, in its header section, its trailer section, or both, against the octets as they arrived. A trailer section is seen where the chunked body is read on arrival, the client's default (`ConsumeChunkedTransferEncodingImmediately`); the other path reads the stream and keeps no trailers, so a digest there is `NotPresent`. With `AutomaticDecompression` the body is then read whole and decoded afterwards, where otherwise the decoder sits in the stream. The outcome is `HTTPResponse.DigestVerification`, which keeps "there was none" (`NotPresent`) and "in an algorithm not computed here" (`Unsupported`) apart from `Match`. Content that does not match is not handed on: the caller gets a `ClientError` with `DigestVerification` `Mismatch`, and the request is not tried again, since the framing was sound. The HTTP/2 client throws an `HTTPDigestMismatchException` there. |
+
+In the request direction, a handler calls `request.VerifyContentDigest()`
+before it undoes a content coding. Afterwards the method refuses, with an
+`InvalidOperationException`, because the octets the digest is of are gone and a
+`Mismatch` would blame the client for it.
+
+Moving the grammar found it lenient where RFC 9651 says it must not be. A
+field that fails to parse is ignored whole (Section 4.2), "and field
+specifications that use Structured Fields are not allowed to loosen this
+requirement"; one that breaks its own definition's constraints is ignored the
+same way (Section 2.2). The grammar read both apart and kept what it could, and
+HTTP/2 gets the strict reading as well:
+
+- `md5=:not-base64!:, sha-256=:…:` verified against its second half;
+- an upper-case key was lowered and accepted;
+- a member that was not a Byte Sequence was skipped, and the rest of the field
+  kept;
+- a `Want-…` preference outside 0 to 10 was clamped into it, and a bare key was
+  read as preference 1.
+
+`Content-MD5` stays typed and readable. RFC 7231, Appendix B, removed it from
+HTTP, and its doc comments say so and point here.
 
 The server offers `br` and `gzip` where the client accepts `br`, `gzip` and
 `deflate`: `deflate` is the one the wire disagrees about, so it is read and not

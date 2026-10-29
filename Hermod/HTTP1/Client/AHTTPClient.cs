@@ -151,6 +151,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public UInt64         MaxDecodedBodySize        { get; set; } = AHTTPPDU.DefaultMaxDecodedBodySize;
 
+        /// <summary>
+        /// Ask for an RFC 9530 Content-Digest on requests that do not already
+        /// carry a Want-Content-Digest, and check the one a response brings, in
+        /// its header or its trailer section, against the octets as they arrived:
+        /// before <see cref="AutomaticDecompression"/>, which reads such a body
+        /// first and decodes it afterwards. The outcome is on
+        /// HTTPResponse.DigestVerification, where "there was none" stays apart
+        /// from "it matched". Content that does not match is not handed on: the
+        /// caller gets a ClientError with DigestVerification Mismatch instead,
+        /// as the HTTP/2 client throws an HTTPDigestMismatchException.
+        ///
+        /// Off by default, as on the HTTP/2 client: it puts a field on the wire,
+        /// and can turn a delivered response into an error.
+        /// </summary>
+        public Boolean        VerifyDigests             { get; set; }
+
         public Boolean        Connected
             => IsHTTPConnected;
 
@@ -791,6 +807,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // request.
             if (AutomaticDecompression && requestBuilder.AcceptEncoding is null)
                 requestBuilder.AcceptEncoding                         = HTTPContentCoding.AcceptEncoding;
+
+            // RFC 9530, Section 4: likewise never over a caller's own preference.
+            if (VerifyDigests && requestBuilder.WantContentDigest is null)
+                requestBuilder.WantContentDigest                      = HTTPDigest.Want;
+
             requestBuilder.TOTPConfig                                 = TOTPConfig     ?? this.TOTPConfig         ?? requestBuilder2.TOTPConfig;
             requestBuilder.EventTrackingId                            = EventTrackingId;
 
@@ -1368,7 +1389,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             // pipeline over — hence the reassignment,
                                             // which is also what puts it in reach of
                                             // the finally below.
-                                            if (AutomaticDecompression && !bodyAlreadyConsumed)
+                                            //
+                                            // Except when a digest is to be checked:
+                                            // RFC 9530 has it describe the octets as
+                                            // they arrived, which a decoder in the
+                                            // pipeline would never let us see. Then
+                                            // the body is read as it came and decoded
+                                            // in place afterwards — the order the
+                                            // chunked case below has anyway.
+                                            var decodeInPlace = bodyAlreadyConsumed || VerifyDigests;
+
+                                            if (AutomaticDecompression && !decodeInPlace)
                                             {
 
                                                 if (response.TryDecodeBodyStream(out var decodeError,
@@ -1391,22 +1422,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                         linkedCancellationToken.Token
                                                                     ).ConfigureAwait(false);
 
+                                            response.HTTPBodyStream = null;
+
+                                            if (VerifyDigests)
+                                                response.DigestVerification = response.VerifyContentDigest();
+
                                             // A chunked body consumed the moment it
                                             // arrived was already an array before the
                                             // stream could be wrapped, so that case
                                             // decodes the other way round.
-                                            if (AutomaticDecompression && bodyAlreadyConsumed &&
+                                            if (AutomaticDecompression && decodeInPlace &&
                                                 !response.TryDecodeBodyInPlace(out var inPlaceError, MaxDecodedBodySize))
                                             {
-                                                DebugX.LogT($"{nameof(AHTTPClient)} left the chunked response body encoded: {inPlaceError}");
+                                                DebugX.LogT($"{nameof(AHTTPClient)} left the response body encoded: {inPlaceError}");
                                             }
-
-                                            response.HTTPBodyStream = null;
 
                                         }
                                         else if (responseHasNoBody ||
                                                  !response.ContentLength.HasValue || response.ContentLength.Value == 0)
+                                        {
+
                                             response.HTTPBody = [];
+
+                                            // An empty content has a digest too. A
+                                            // response to HEAD carries none, so
+                                            // whatever its field says is not about
+                                            // these zero octets.
+                                            if (VerifyDigests && !responseHasNoBody)
+                                                response.DigestVerification = response.VerifyContentDigest();
+
+                                        }
 
                                     }
                                     finally
@@ -1476,6 +1521,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 #endregion
 
                                 response.Runtime = stopwatch.Elapsed;
+
+                                // RFC 9530: content that disagrees with its digest
+                                // is not handed to a caller who asked for it to be
+                                // checked. It is logged above as it arrived, and the
+                                // connection is no worse for it: the framing was
+                                // sound, so the request is not tried again either.
+                                if (response.DigestVerification == HTTPDigestVerification.Mismatch)
+                                {
+
+                                    var mismatch = new HTTPResponse.Builder(Request) {
+                                                       HTTPStatusCode  = HTTPStatusCode.ClientError,
+                                                       Content         = $"The content of the {response.HTTPStatusCode.Code} response does not match its Content-Digest (RFC 9530)".ToUTF8Bytes(),
+                                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                                       Runtime         = response.Runtime
+                                                   }.AsImmutable;
+
+                                    mismatch.DigestVerification = HTTPDigestVerification.Mismatch;
+
+                                    return mismatch;
+
+                                }
 
                                 return response;
 

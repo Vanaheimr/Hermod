@@ -20,6 +20,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
     using System.Net.Security;
 
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 
     /// <summary>
     /// Robustness knobs for an <see cref="HTTP2ClientConnection"/>: how hard to try
