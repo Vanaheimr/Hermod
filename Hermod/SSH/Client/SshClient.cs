@@ -31,8 +31,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
     /// <summary>
     /// Options for a high-level <see cref="SshClient"/> connection: who to log in as, how to trust the host
-    /// key, and which credentials to try. Credentials are <see cref="ISshHostKey"/> signers — a private key,
-    /// an agent-backed key (<c>SshAgentKey</c>) or a certificate-bearing key (<c>CertifiedKey</c>).
+    /// key, and which credentials to try - keys (<see cref="Credentials"/>), answers to
+    /// <see cref="KeyboardInteractive"/> prompts and a <see cref="Password"/>, in that order and each only
+    /// where the server takes it. Several of them together also complete a multi-factor chain such as OpenSSH's
+    /// <c>AuthenticationMethods publickey,password</c>.
     /// </summary>
     public sealed record SshClientOptions
     {
@@ -56,9 +58,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         public required Func<Byte[], Boolean>     VerifyHostKey  { get; init; }
 
         /// <summary>
-        /// The public-key credentials to try, in order.
+        /// The public-key credentials to try, in order: <see cref="ISshHostKey"/> signers - a private key,
+        /// an agent-backed key (<c>SshAgentKey</c>) or a certificate-bearing key (<c>CertifiedKey</c>).
         /// </summary>
         public IReadOnlyList<ISshHostKey>         Credentials    { get; init; } = [];
+
+        /// <summary>
+        /// The password (RFC 4252 §8), or null to log in without one. It is sent only to a server that
+        /// lists <c>password</c> among the methods it takes - and only after the host key has been
+        /// verified, like everything else that follows the key exchange.
+        /// </summary>
+        public String?                            Password       { get; init; }
+
+        /// <summary>
+        /// Answers the server's <c>keyboard-interactive</c> prompts (RFC 4256) - a one-time code, say, or
+        /// the questions of a PAM stack: one answer per prompt, in order. Null to leave the method out.
+        /// </summary>
+        public Func<SshKeyboardInteractiveChallenge, CancellationToken, ValueTask<String[]>>?  KeyboardInteractive  { get; init; }
 
         /// <summary>
         /// Called when the server advertises its full host-key set via <c>hostkeys-00@openssh.com</c>
@@ -125,15 +141,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
             var pipe      = await SshTcp.ConnectAsync(host, IPPort.Parse(port), CancellationToken).ConfigureAwait(false);
             var transport = await SshTransport.ClientHandshakeAsync(pipe, VerifyHostKey: Options.VerifyHostKey, CancellationToken: CancellationToken).ConfigureAwait(false);
 
-            var authenticated = false;
-            foreach (var credential in Options.Credentials)
-            {
-                if (await UserAuthentication.ClientPublicKeyAuthenticateAsync(transport, Options.Username, credential, CancellationToken: CancellationToken).ConfigureAwait(false))
-                {
-                    authenticated = true;
-                    break;
-                }
-            }
+            var authenticated = await UserAuthentication.ClientAuthenticateAsync(transport,
+                                                                                 Options.Username,
+                                                                                 Options.Credentials,
+                                                                                 Options.Password,
+                                                                                 Options.KeyboardInteractive,
+                                                                                 CancellationToken: CancellationToken).ConfigureAwait(false);
 
             if (!authenticated)
             {
