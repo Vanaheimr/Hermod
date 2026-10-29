@@ -310,6 +310,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Link
+
+        /// <summary>
+        /// Links from this response's context to other resources (RFC 8288,
+        /// Section 3): the next page, an alternate, a description, a preload.
+        /// </summary>
+        /// <remarks>
+        /// Typed since 2026-10-29. Which links to send is the application's
+        /// decision; the field only carries them. Read it with HTTPResponse.Link,
+        /// which also joins repeated field lines, since the field is a list.
+        /// </remarks>
+        /// <example>Link: &lt;/items?page=3&gt;; rel="next", &lt;/items?page=1&gt;; rel="prev"</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc8288.html#section-3"/>
+        public static readonly HTTPResponseHeaderField<HTTPLinks> Link
+
+            = new ("Link",
+                   RequestPathSemantic.EndToEnd,
+                   StringParser:     HTTPLinks.TryParse,
+                   ValueSerializer:  links => links.ToString());
+
+        #endregion
+
         #region Keep-Alive
 
         /// <summary>
