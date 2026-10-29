@@ -525,6 +525,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Link
+
+        /// <summary>
+        /// The links this response carries (RFC 8288, Section 3), or null when
+        /// it carries none, or nothing that is a link.
+        /// </summary>
+        /// <remarks>
+        /// Link is a list, so repeated field lines are one value joined by
+        /// commas, as for Alt-Svc above. Section 3.5 says the two forms are
+        /// equivalent.
+        /// </remarks>
+        public HTTPLinks? Link
+        {
+            get
+            {
+
+                if (!TryGetHeaderField(HTTPResponseHeaderField.Link.Name, out var value))
+                    return null;
+
+                var text = value switch {
+                               String   line   => line,
+                               String[] lines  => String.Join(", ", lines),
+                               _               => value.ToString()
+                           };
+
+                return text is not null && HTTPLinks.TryParse(text, out var links)
+                           ? links
+                           : null;
+
+            }
+        }
+
+        #endregion
+
         #region Server
 
         /// <summary>

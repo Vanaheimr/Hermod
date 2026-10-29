@@ -419,6 +419,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region Link
+
+            /// <summary>
+            /// The links to send (RFC 8288, Section 3), in one field line.
+            /// </summary>
+            public HTTPLinks? Link
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPResponseHeaderField.Link);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPResponseHeaderField.Link, value);
+                }
+
+            }
+
+            #endregion
+
             #region Server
 
             /// <summary>

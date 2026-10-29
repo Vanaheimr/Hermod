@@ -32,6 +32,7 @@ Last verified: **2026-10-29**
 | [RFC 9530](https://www.rfc-editor.org/rfc/rfc9530.html), Digest Fields | `Content-Digest`, `Repr-Digest`, `Want-Content-Digest` and `Want-Repr-Digest` are typed on both directions, in `sha-256` and `sha-512`, with the grammar shared with HTTP/2. Opt-in on either role: the server's `AutomaticContentDigests` digests what it sends, after its compression; the client's `VerifyDigests` asks for a digest and checks it before it decodes. A handler's own digest is computed again when the server compresses. The obsolete `Content-MD5` stays readable. See [Digest fields](#digest-fields-rfc-9530). |
 | [RFC 7239](https://www.rfc-editor.org/rfc/rfc7239.html), Forwarded | The field is parsed into typed elements - `for`, `by`, `host`, `proto` and any extension parameters - and can be built to be sent onwards when a request is proxied. Node identifiers cover addresses, `unknown` and obfuscated identifiers; the last two are kept opaque rather than resolved into an address that was never given. Where a request carries both, `Forwarded` is preferred over the `X-Forwarded-For` family (Section 7.4). Either way the addresses are recorded *beside* the peer socket and never instead of it: everything in these fields is hearsay from whoever wrote them (Section 8.1), and forgeable by the client when no proxy strips them. |
 | [RFC 7838](https://www.rfc-editor.org/rfc/rfc7838.html), HTTP Alternative Services | `Alt-Svc` is typed for responses and `Alt-Used` for requests, sent by handlers and read by the client, with the field's grammar shared with HTTP/2's ALTSVC frame. The client records alternatives and does not act on them. Announcing one is the application's decision. |
+| [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288.html), Web Linking | `Link` is typed on responses: `HTTPLinks`, a list of `HTTPLink`, each with its target, relation types, anchor and target attributes. A sender is held to the grammar, and parsing follows Appendix B. `title*` and other starred attributes are RFC 8187 values, through `HTTPExtendedValue`. Which links to send is the application's decision. Since 2026-10-29; see [Links](#links-rfc-8288). |
 | [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html), Problem Details for HTTP APIs | `HTTPProblemDetails` is the JSON object of Section 3, served as `application/problem+json`. Handlers send it with `SetProblemDetails`, which also sets the status code it names, and clients read it with `TryParseProblemDetails`. The server's own errors stay `application/json` unless a request's `Accept` prefers problem details. JSON only: the XML format of Appendix B is not implemented. Since 2026-10-29; see [Problem details](#problem-details-rfc-9457). |
 | [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), WebSocket | Implemented in Hermod's WebSocket client/server subsystem. The HTTP/1.1 server can also serve a WebSocket on a path of its own, beside ordinary HTTP on the same listener: `WebSocketUpgrade.For` hands a request that asks for an upgrade over to a WebSocket server, whose single implementation of the opening handshake (RFC 6455 §4.2) validates it and answers the `101` - the HTTP layer only decides whether a request is asking. Regression-tested by `WebSocketOnAnHTTPPathTests`; see [WebSocket/README.md](WebSocket/README.md#on-an-http-path). |
 | [WHATWG Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Implemented and regression-tested for `text/event-stream`, parsing, live streaming, reconnection, `Last-Event-ID`, retry intervals, comments/heartbeats, cancellation, and disconnect cleanup. |
@@ -572,6 +573,30 @@ HTTP, and its doc comments say so and point here.
 The server offers `br` and `gzip` where the client accepts `br`, `gzip` and
 `deflate`: `deflate` is the one the wire disagrees about, so it is read and not
 written.
+
+## Links (RFC 8288)
+
+`HTTPResponse.Builder.Link` sends links and `HTTPResponse.Link` reads them,
+since 2026-10-29. The value is `HTTPLinks`, a list of `HTTPLink`. Each link has
+its target, its relation types, an optional anchor, and the target attributes
+Section 3.4 defines (`hreflang`, `media`, `title`, `type`) or that an
+extension adds. The getter joins repeated field lines, which Section 3.5 says
+are the same as one line with commas. The model is in `Hermod/HTTP/`, for
+HTTP/2 and HTTP/3 to use as well.
+
+| | |
+|---|---|
+| sending | `new HTTPLink(target, "next")` checks what a sender must get right: the target and the anchor are URI references, every relation type is a registered one or an absolute URI (Section 3.3), and `type` is a media type. `rel`, `anchor`, `title` and `media` are quoted and `hreflang` is a token, the forms Section 3 calls the most interoperable. A title that is not printable ASCII, or has a language, goes out as `title*`. |
+| reading | Appendix B. A link-value without `rel` is no link. Only the first `rel`, `anchor`, `media`, `title`, `title*` and `type` count. A token and a quoted-string are the same value. Relation types are kept in lower case, since they compare case-insensitively. `title*` wins over `title`, and falls back to it when it does not decode. Parsing stops at the first thing that is not a link-value, and keeps the links before it. |
+| RFC 8187 | `HTTPExtendedValue` encodes in UTF-8, as a producer MUST, and decodes UTF-8 and the ISO-8859-1 that Section 3.2.2 encourages. It refuses any other charset, a malformed percent escape, a character outside `attr-char` and an octet sequence that does not decode. `filename*` (RFC 6266) can use it too. |
+
+One deviation from Appendix B, which is advisory: read literally, B.3 stops at
+the comma between two link-values without consuming it, and B.2 then finds no
+`<` and returns. That would end every field after its first link-value, and
+contradict Section 3.5, so the comma is consumed.
+
+Relative targets are kept as sent. Resolving them against the request's URL
+(Section 3.1) is the caller's step, since only the caller knows that URL.
 
 ## Problem details (RFC 9457)
 
