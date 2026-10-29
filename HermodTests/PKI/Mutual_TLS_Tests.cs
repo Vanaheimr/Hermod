@@ -144,6 +144,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
                                                                          ),
+                                                                         // the name the client dials, without which the server
+                                                                         // refuses its requests (RFC 9110, Section 7.4)
+                                                                         new GeneralName(
+                                                                             GeneralName.DnsName,
+                                                                             "localhost"
+                                                                         ),
                                                                          new GeneralName(
                                                                              GeneralName.IPAddress,
                                                                              "127.0.0.1"
@@ -494,6 +500,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
                                                                          ),
+                                                                         // the name the client dials, without which the server
+                                                                         // refuses its requests (RFC 9110, Section 7.4)
+                                                                         new GeneralName(
+                                                                             GeneralName.DnsName,
+                                                                             "localhost"
+                                                                         ),
                                                                          new GeneralName(
                                                                              GeneralName.IPAddress,
                                                                              "127.0.0.1"
@@ -837,6 +849,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                          new GeneralName(
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
+                                                                         ),
+                                                                         // the name the client dials, without which the server
+                                                                         // refuses its requests (RFC 9110, Section 7.4)
+                                                                         new GeneralName(
+                                                                             GeneralName.DnsName,
+                                                                             "localhost"
                                                                          ),
                                                                          new GeneralName(
                                                                              GeneralName.IPAddress,
@@ -1198,6 +1216,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
                                                                          ),
+                                                                         // the name the client dials, without which the server
+                                                                         // refuses its requests (RFC 9110, Section 7.4)
+                                                                         new GeneralName(
+                                                                             GeneralName.DnsName,
+                                                                             "localhost"
+                                                                         ),
                                                                          new GeneralName(
                                                                              GeneralName.IPAddress,
                                                                              "127.0.0.1"
@@ -1558,6 +1582,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
                                                                          ),
+                                                                         // the name the client dials, without which the server
+                                                                         // refuses its requests (RFC 9110, Section 7.4)
+                                                                         new GeneralName(
+                                                                             GeneralName.DnsName,
+                                                                             "localhost"
+                                                                         ),
                                                                          new GeneralName(
                                                                              GeneralName.IPAddress,
                                                                              "127.0.0.1"
@@ -1912,6 +1942,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                          new GeneralName(
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
+                                                                         ),
+                                                                         // the name the client dials, without which the server
+                                                                         // refuses its requests (RFC 9110, Section 7.4)
+                                                                         new GeneralName(
+                                                                             GeneralName.DnsName,
+                                                                             "localhost"
                                                                          ),
                                                                          new GeneralName(
                                                                              GeneralName.IPAddress,
