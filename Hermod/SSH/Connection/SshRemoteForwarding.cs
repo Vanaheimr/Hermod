@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Net.Sockets;
 
 #endregion
@@ -40,62 +41,203 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         private const Int32 RelayBuffer = 32 * 1024;
 
-        #region ServeRemoteForwardsAsync(Mux, Policy)
+        #region ServeRemoteForwards(Mux, Policy, CancellationToken)
 
         /// <summary>
-        /// Wire the server side: handle <c>tcpip-forward</c> requests (gated by <paramref name="Policy"/>) by
+        /// Wire the server side: answer <c>tcpip-forward</c> requests (gated by <paramref name="Policy"/>) by
         /// binding a TCP listener and opening a <c>forwarded-tcpip</c> channel back to the client per inbound
-        /// connection, relaying the bytes. Wiring is synchronous; the listeners run in the background.
+        /// connection, relaying the bytes, and <c>cancel-tcpip-forward</c> by closing that listener again.
+        /// Wiring is synchronous; the listeners run in the background until they are cancelled or
+        /// <paramref name="CancellationToken"/> ends the connection.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The bind address is taken the way OpenSSH clients send it, not only as an IP literal: a plain
+        /// <c>ssh -R 8080:host:80</c> asks for <c>"localhost"</c>, which binds the IPv4 and IPv6 loopback
+        /// addresses, and <c>""</c> or <c>"*"</c> ask for every address (RFC 4254 §7.1), which the policy
+        /// then has to permit as the wildcard address. Any other name is refused rather than resolved:
+        /// what a name points to is not the client's to decide on the server.
+        /// </para>
+        /// <para>
+        /// Port 0 asks the server to choose. The reply carries the port it bound (RFC 4254 §7.1), and every
+        /// <c>forwarded-tcpip</c> channel names that port together with the address exactly as the client
+        /// spelled it — OpenSSH accepts only channels that match a forward it asked for.
+        /// </para>
+        /// <para>
+        /// Installed as the multiplexer's <see cref="SshChannelMultiplexer.GlobalRequestResponder"/>, since
+        /// the reply to port 0 carries data. Every other request is passed on to the responder that was
+        /// installed before, so this composes with the host-key proofs in either order.
+        /// </para>
+        /// </remarks>
         public static void ServeRemoteForwards(SshChannelMultiplexer Mux, ForwardingPolicy Policy, CancellationToken CancellationToken = default)
         {
-            Mux.GlobalRequestHandler = info =>
+
+            var forwards = new ConcurrentDictionary<(String Address, UInt16 Port), RemoteForwardListener>();
+            var previous = Mux.GlobalRequestResponder;
+
+            // A connection that ends takes its listeners with it.
+            CancellationToken.Register(() => {
+                foreach (var forward in forwards.Values)
+                    forward.Stop();
+            });
+
+            Mux.GlobalRequestResponder = info => info.Name switch {
+                "tcpip-forward"         => ValueTask.FromResult<SshGlobalRequestReply?>(Listen(Mux, Policy, forwards, info.Data, CancellationToken)),
+                "cancel-tcpip-forward"  => ValueTask.FromResult<SshGlobalRequestReply?>(Cancel(forwards, info.Data)),
+                _                       => previous?.Invoke(info) ?? ValueTask.FromResult<SshGlobalRequestReply?>(null)
+            };
+
+        }
+
+        #endregion
+
+        #region (private) Listen / Cancel
+
+        private static SshGlobalRequestReply Listen(SshChannelMultiplexer                                                   Mux,
+                                                    ForwardingPolicy                                                        Policy,
+                                                    ConcurrentDictionary<(String Address, UInt16 Port), RemoteForwardListener>  Forwards,
+                                                    Byte[]                                                                  Data,
+                                                    CancellationToken                                                       CancellationToken)
+        {
+
+            if (!TryReadAddressAndPort(Data, out var bindAddress, out var requestedPort) || Policy.TcpIpForward is null)
+                return SshGlobalRequestReply.Failed;
+
+            var addresses = BindAddresses(bindAddress);
+            if (addresses.Count == 0)
+                return SshGlobalRequestReply.Failed;
+
+            // A named port is checked before anything is bound; a chosen one can only be checked after.
+            if (requestedPort != 0 && !addresses.All(address => Policy.TcpIpForward.Allows(address, requestedPort)))
+                return SshGlobalRequestReply.Failed;
+
+            // "localhost" and the wildcard are two addresses. Bind what can be bound, on one port: the first
+            // listener decides the port when the client left it to us, the others follow it. One address
+            // that cannot be bound (say, IPv6 switched off) does not void the rest, as with sshd.
+            var listeners = new List<TcpListener>();
+            var port      = requestedPort;
+
+            foreach (var address in addresses)
             {
-                if (info.Name != "tcpip-forward")
-                    return ValueTask.FromResult(false);
 
-                var reader   = new SshPacketReader(info.Data);
-                var bindAddr = reader.ReadString();
-                var bindPort = (UInt16) reader.ReadUInt32();
+                var listener = new TcpListener(address, port);
 
-                if (Policy.TcpIpForward is null || !IPAddress.TryParse(bindAddr, out var ip) || !Policy.TcpIpForward.Allows(ip, bindPort))
-                    return ValueTask.FromResult(false);
-
-                TcpListener listener;
                 try
                 {
-                    listener = new TcpListener(ip, bindPort);
                     listener.Start();
                 }
-                catch { return ValueTask.FromResult(false); }
-
-                _ = Task.Run(async () =>
+                catch (SocketException)
                 {
-                    try
-                    {
-                        while (!CancellationToken.IsCancellationRequested)
-                        {
-                            var socket = await listener.AcceptTcpClientAsync(CancellationToken);
-                            _ = Task.Run(async () =>
-                            {
-                                try
-                                {
-                                    var origin = (System.Net.IPEndPoint) socket.Client.RemoteEndPoint!;
-                                    var ch     = await Mux.OpenChannelAsync("forwarded-tcpip",
-                                                                           ForwardedTcpIp(bindAddr, bindPort, origin.Address.ToString(), (UInt16) origin.Port),
-                                                                           CancellationToken);
-                                    await RelayAsync(ch, new NetworkStream(socket.Client, ownsSocket: true), CancellationToken);
-                                }
-                                catch { }
-                            }, CancellationToken);
-                        }
-                    }
-                    catch { }
-                    finally { listener.Stop(); }
-                }, CancellationToken);
+                    continue;
+                }
 
-                return ValueTask.FromResult(true);
-            };
+                listeners.Add(listener);
+
+                if (port == 0)
+                    port = (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+
+            }
+
+            var forward = new RemoteForwardListener(listeners, CancellationToken);
+
+            if (listeners.Count == 0                                                                                        ||
+                !listeners.All(listener => Policy.TcpIpForward.Allows(((System.Net.IPEndPoint) listener.LocalEndpoint).Address, port)) ||
+                !Forwards.TryAdd((bindAddress, port), forward))
+            {
+                forward.Stop();
+                return SshGlobalRequestReply.Failed;
+            }
+
+            foreach (var listener in listeners)
+                _ = AcceptLoopAsync(Mux, listener, bindAddress, port, forward.Token);
+
+            if (requestedPort != 0)
+                return SshGlobalRequestReply.Ok;
+
+            var abw = new ArrayBufferWriter<Byte>();
+            new SshPacketWriter(abw).WriteUInt32(port);
+            return SshGlobalRequestReply.WithData(abw.WrittenSpan.ToArray());
+
+        }
+
+        private static SshGlobalRequestReply Cancel(ConcurrentDictionary<(String Address, UInt16 Port), RemoteForwardListener>  Forwards,
+                                                    Byte[]                                                                  Data)
+        {
+
+            if (!TryReadAddressAndPort(Data, out var bindAddress, out var port) ||
+                !Forwards.TryRemove((bindAddress, port), out var forward))
+                return SshGlobalRequestReply.Failed;
+
+            forward.Stop();
+            return SshGlobalRequestReply.Ok;
+
+        }
+
+        private static Boolean TryReadAddressAndPort(Byte[] Data, out String Address, out UInt16 Port)
+        {
+
+            Address = "";
+            Port    = 0;
+
+            try
+            {
+
+                var reader = new SshPacketReader(Data);
+                Address    = reader.ReadString();
+                var port   = reader.ReadUInt32();
+
+                if (port > UInt16.MaxValue)
+                    return false;
+
+                Port = (UInt16) port;
+                return true;
+
+            }
+            catch (SshWireException)
+            {
+                return false;
+            }
+
+        }
+
+        private static IReadOnlyList<IPAddress> BindAddresses(String BindAddress)
+        {
+
+            if (BindAddress.Length == 0 || BindAddress == "*")
+                return Socket.OSSupportsIPv6 ? [ IPAddress.Any, IPAddress.IPv6Any ] : [ IPAddress.Any ];
+
+            if (String.Equals(BindAddress, "localhost", StringComparison.OrdinalIgnoreCase))
+                return Socket.OSSupportsIPv6 ? [ IPAddress.Loopback, IPAddress.IPv6Loopback ] : [ IPAddress.Loopback ];
+
+            return IPAddress.TryParse(BindAddress, out var address)
+                       ? [ address ]
+                       : [];
+
+        }
+
+        private static async Task AcceptLoopAsync(SshChannelMultiplexer Mux, TcpListener Listener, String BindAddress, UInt16 Port, CancellationToken CancellationToken)
+        {
+            try
+            {
+                while (!CancellationToken.IsCancellationRequested)
+                {
+                    var socket = await Listener.AcceptTcpClientAsync(CancellationToken).ConfigureAwait(false);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var origin = (System.Net.IPEndPoint) socket.Client.RemoteEndPoint!;
+                            var ch     = await Mux.OpenChannelAsync("forwarded-tcpip",
+                                                                   ForwardedTcpIp(BindAddress, Port, origin.Address.ToString(), (UInt16) origin.Port),
+                                                                   CancellationToken).ConfigureAwait(false);
+                            await RelayAsync(ch, new NetworkStream(socket.Client, ownsSocket: true), CancellationToken).ConfigureAwait(false);
+                        }
+                        catch { socket.Dispose(); }
+                    }, CancellationToken);
+                }
+            }
+            catch { }
+            finally { Listener.Stop(); }
         }
 
         #endregion
@@ -205,6 +347,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             w.WriteString(ConnectedAddress); w.WriteUInt32(ConnectedPort);
             w.WriteString(OriginAddress);    w.WriteUInt32(OriginPort);
             return abw.WrittenSpan.ToArray();
+        }
+
+        private sealed class RemoteForwardListener
+        {
+
+            private readonly IReadOnlyList<TcpListener>  listeners;
+            private readonly CancellationTokenSource     cts;
+
+            public RemoteForwardListener(IReadOnlyList<TcpListener> Listeners, CancellationToken Connection)
+            {
+                listeners = Listeners;
+                cts       = CancellationTokenSource.CreateLinkedTokenSource(Connection);
+            }
+
+            public CancellationToken Token => cts.Token;
+
+            public void Stop()
+            {
+                try { cts.Cancel(); } catch (ObjectDisposedException) { }
+                foreach (var listener in listeners)
+                    try { listener.Stop(); } catch { }
+            }
+
         }
 
         private sealed class RemoteForwardHandle : IAsyncDisposable
