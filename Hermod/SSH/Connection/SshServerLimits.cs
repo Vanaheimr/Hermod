@@ -61,9 +61,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public Int32      MaxUnauthenticatedPerAddress  { get; init; } = 3;
 
         /// <summary>
-        /// The maximum SSH packet payload accepted, in bytes (default 256 KiB; RFC 4253 floor is 35 000).
+        /// The largest SSH <c>packet_length</c> accepted from a client, in bytes (default and maximum
+        /// 256 KiB). RFC 4253 §6.1 obliges every implementation to accept 35 000, so a smaller value is
+        /// refused when the server is constructed. A larger packet ends the connection as a protocol
+        /// error before it is read — from the first packet of the key exchange on.
         /// </summary>
         public Int32      MaxPacketSize        { get; init; } = 256 * 1024;
+
+        /// <summary>
+        /// The smallest <see cref="MaxPacketSize"/> allowed: what RFC 4253 §6.1 requires every
+        /// implementation to accept.
+        /// </summary>
+        public const Int32 MinimumMaxPacketSize = 35000;
 
         /// <summary>
         /// The keepalive probe interval, or null to disable keepalive probing.
@@ -76,7 +85,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public Int32      ClientAliveCountMax  { get; init; } = 3;
 
         /// <summary>
-        /// The idle timeout on real channel traffic, or null to disable it.
+        /// How long a connection may go without channel traffic before it is closed, or null to disable
+        /// it. Channel traffic is anything on a channel in either direction — opens, data, requests,
+        /// closes; keepalive probes and their replies do not count, so an open but unused session is
+        /// idle. The client is told why with a DISCONNECT.
         /// </summary>
         public TimeSpan?  IdleTimeout          { get; init; }
 

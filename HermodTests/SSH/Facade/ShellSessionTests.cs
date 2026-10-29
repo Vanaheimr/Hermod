@@ -488,6 +488,159 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region AConnectionWithoutChannelTrafficIsClosedAfterTheIdleTimeout
+
+        /// <summary>
+        /// <see cref="SshServerLimits.IdleTimeout"/> used to be configurable and never enforced. A
+        /// connection on which nothing moves on any channel is now told why and closed once the timeout is
+        /// over — while it still works before that.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task AConnectionWithoutChannelTrafficIsClosedAfterTheIdleTimeout(CancellationToken CancellationToken)
+        {
+
+            await using var running = await Serve(options => options with {
+                                          ExecHandler  = (context, ct) => ValueTask.FromResult(0),
+                                          Limits       = new SshServerLimits { IdleTimeout = TimeSpan.FromSeconds(1) }
+                                      }, CancellationToken);
+
+            await using var client  = await Connect(running, CancellationToken);
+
+            var first = await client.ExecuteAsync("true", CancellationToken);
+            Assert.That(first.ExitCode, Is.Zero, "the connection works before it goes idle");
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+            while (!running.Audit.Events.OfType<LimitExceededEvent>().Any(e => e.Limit == "idle timeout") && DateTimeOffset.UtcNow < deadline)
+                await Task.Delay(100, CancellationToken);
+
+            Assert.That(running.Audit.Events.OfType<LimitExceededEvent>().Select(e => e.Limit), Does.Contain("idle timeout"),
+                        "an idle connection must be closed, and say so in the audit stream");
+
+            Assert.That(async () => await client.ExecuteAsync("true", CancellationToken), Throws.Exception,
+                        "the connection is gone once the idle timeout has closed it");
+
+        }
+
+        #endregion
+
+        #region ChannelTrafficKeepsAConnectionPastTheIdleTimeout
+
+        /// <summary>
+        /// The control: a connection that keeps using its channels outlives the idle timeout many times
+        /// over, since every message on a channel pushes the deadline out.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task ChannelTrafficKeepsAConnectionPastTheIdleTimeout(CancellationToken CancellationToken)
+        {
+
+            await using var running = await Serve(options => options with {
+                                          ExecHandler  = (context, ct) => ValueTask.FromResult(0),
+                                          Limits       = new SshServerLimits { IdleTimeout = TimeSpan.FromMilliseconds(1500) }
+                                      }, CancellationToken);
+
+            await using var client  = await Connect(running, CancellationToken);
+
+            for (var i = 0; i < 8; i++)
+            {
+                var result = await client.ExecuteAsync("true", CancellationToken);
+                Assert.That(result.ExitCode, Is.Zero, $"command {i + 1} of 8, {i * 0.5:0.0} s in");
+                await Task.Delay(500, CancellationToken);
+            }
+
+            Assert.That(running.Audit.Events.OfType<LimitExceededEvent>().Select(e => e.Limit), Does.Not.Contain("idle timeout"));
+
+        }
+
+        #endregion
+
+        #region APacketLargerThanTheLimitEndsTheConnection
+
+        /// <summary>
+        /// <see cref="SshServerLimits.MaxPacketSize"/> used to be configurable and never enforced: every
+        /// server accepted the framing layer's fixed 256 KiB. A packet over the configured limit now ends
+        /// the connection as a protocol error, and the same packet under the default limit is merely an
+        /// unknown request.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task APacketLargerThanTheLimitEndsTheConnection(CancellationToken CancellationToken)
+        {
+
+            var large = new Byte[60000];
+
+            await using (var running = await Serve(options => options with {
+                                           ExecHandler  = (context, ct) => ValueTask.FromResult(0)
+                                       }, CancellationToken))
+            {
+
+                await using var client = await Connect(running, CancellationToken);
+
+                Assert.That(await client.Multiplexer.SendGlobalRequestAsync("large@hermod.test", true, large, CancellationToken), Is.False,
+                            "control: under the default limit a 60 000-byte request is just one nobody knows");
+
+                Assert.That((await client.ExecuteAsync("true", CancellationToken)).ExitCode, Is.Zero,
+                            "control: and the connection carries on");
+
+            }
+
+            await using (var running = await Serve(options => options with {
+                                           ExecHandler  = (context, ct) => ValueTask.FromResult(0),
+                                           Limits       = new SshServerLimits { MaxPacketSize = 40000 }
+                                       }, CancellationToken))
+            {
+
+                await using var client = await Connect(running, CancellationToken);
+
+                Assert.That((await client.ExecuteAsync("true", CancellationToken)).ExitCode, Is.Zero,
+                            "packets under the limit pass");
+
+                Assert.That(async () => await client.Multiplexer.SendGlobalRequestAsync("large@hermod.test", true, large, CancellationToken),
+                            Throws.Exception, "a packet over the limit must end the connection");
+
+                var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+                while (!running.Audit.Events.OfType<DisconnectedEvent>().Any() && DateTimeOffset.UtcNow < deadline)
+                    await Task.Delay(50, CancellationToken);
+
+                Assert.That(running.Audit.Events.OfType<DisconnectedEvent>().Select(e => e.Description),
+                            Has.Some.Contains("packet_length"), "the audit stream names the oversized packet");
+
+            }
+
+        }
+
+        #endregion
+
+        #region AMaxPacketSizeThatCannotBeHonouredIsRefused
+
+        /// <summary>
+        /// RFC 4253 §6.1 obliges a server to accept 35 000 bytes, and the framing layer allocates no more
+        /// than 256 KiB: a limit outside that range is refused when the server is built rather than
+        /// silently clamped.
+        /// </summary>
+        [Test]
+        public void AMaxPacketSizeThatCannotBeHonouredIsRefused()
+        {
+
+            static SshServer Build(Int32 MaxPacketSize)
+                => new (new SshServerOptions {
+                       HostKeys       = [ SshHostKey.GenerateEd25519() ],
+                       Authenticator  = SshUserAuthenticator.ForAuthorizedKeys(SshHostKey.GenerateEd25519().PublicKeyBlob),
+                       Limits         = new SshServerLimits { MaxPacketSize = MaxPacketSize }
+                   });
+
+            Assert.Multiple(() => {
+                Assert.That(() => Build(34999),           Throws.TypeOf<ArgumentOutOfRangeException>(), "below the RFC 4253 floor");
+                Assert.That(() => Build(256 * 1024 + 1),  Throws.TypeOf<ArgumentOutOfRangeException>(), "above what the framing reads");
+                Assert.That(() => Build(35000),           Throws.Nothing);
+                Assert.That(() => Build(256 * 1024),      Throws.Nothing);
+            });
+
+        }
+
+        #endregion
+
         #region AClientThatLeavesIsNoProtocolError
 
         /// <summary>
