@@ -114,6 +114,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         public SshServerLimits                      Limits            { get; init; } = new ();
 
         /// <summary>
+        /// When an authenticated connection renews its keys by itself (default 1 GiB / 1 h, RFC 4253 §9),
+        /// or null to rekey only when the client asks. Each rekey is audited as a <c>RekeyedEvent</c>.
+        /// </summary>
+        public SshRekeyLimits?                      RekeyLimits       { get; init; } = SshRekeyLimits.Default;
+
+        /// <summary>
         /// How long a stopping server gives its sessions to end by themselves - a shell to say goodbye -
         /// before it closes their connections (default 5 s).
         /// </summary>
@@ -467,7 +473,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                                                  transport.PeerIdentification,
                                                  auth.Restrictions);
 
-                await using var mux = new SshChannelMultiplexer(transport);
+                await using var mux = new SshChannelMultiplexer(transport) {
+                                          RekeyLimits = options.RekeyLimits
+                                      };
+
+                transport.Rekeyed = count => _ = EmitAsync(audit, new RekeyedEvent(DateTimeOffset.UtcNow, count)).AsTask();
 
                 mux.ChannelAcceptor = info => AcceptChannelAsync(info, auth.Restrictions, Connection);
 

@@ -555,6 +555,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region TheServerRenewsItsKeys_AndAuditsEachRekey
+
+        /// <summary>
+        /// <see cref="SshServerOptions.RekeyLimits"/>: a command whose output passes the data volume many
+        /// times over is delivered whole, and every rekey on the way is a <c>RekeyedEvent</c> - an event
+        /// the audit catalog has listed from the start and nothing used to raise.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task TheServerRenewsItsKeys_AndAuditsEachRekey(CancellationToken CancellationToken)
+        {
+
+            var output = System.Security.Cryptography.RandomNumberGenerator.GetBytes(1024 * 1024);
+
+            await using var running = await Serve(options => options with {
+                                          ExecHandler  = async (context, ct) => { await context.WriteAsync(output, ct); return 0; },
+                                          RekeyLimits  = new SshRekeyLimits { DataVolume = 64 * 1024, Interval = null }
+                                      }, CancellationToken);
+
+            await using var client  = await Connect(running, CancellationToken);
+
+            var result  = await client.ExecuteAsync("produce", CancellationToken);
+
+            var rekeys  = running.Audit.Events.OfType<RekeyedEvent>().Select(e => e.KeyExchangeCount).ToArray();
+
+            Assert.Multiple(() => {
+                Assert.That(result.StandardOutputBytes, Is.EqualTo(output), "the whole output, across the rekeys");
+                Assert.That(rekeys.Length,              Is.GreaterThanOrEqualTo(8), "a megabyte at 64 KiB a key");
+                Assert.That(rekeys,                     Is.EqualTo(Enumerable.Range(2, rekeys.Length).ToArray()), "one event per rekey, counting on from the handshake");
+            });
+
+        }
+
+        #endregion
+
         #region APacketLargerThanTheLimitEndsTheConnection
 
         /// <summary>
