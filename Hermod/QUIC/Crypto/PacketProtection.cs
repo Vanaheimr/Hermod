@@ -46,6 +46,15 @@ public sealed class PacketProtection : IDisposable
     private readonly Aes? _headerProtectionAes;   // AES-ECB (AES-GCM suites)
     private readonly byte[]? _headerProtectionKey; // ChaCha20 HP key (ChaCha20 suite)
 
+    // The AES-ECB transform for header protection, made once. Aes.EncryptEcb is a one-shot API, and
+    // on Windows every call imported the key into a fresh BCrypt handle and released it again: two
+    // key imports per packet, one for each direction. Under load that was ~6 % of the server
+    // thread. A transform holds its key handle; the price is a 16-byte copy in and out, and an
+    // instance that must not be used from two threads at once - which a connection's keys never are.
+    private readonly ICryptoTransform? _headerProtectionEcb;
+    private readonly byte[] _headerProtectionIn  = new byte[16];
+    private readonly byte[] _headerProtectionOut = new byte[16];
+
     private const int TagLength = 16;
     private const int SampleLength = 16;
 
@@ -66,6 +75,9 @@ public sealed class PacketProtection : IDisposable
             _aesGcm = new AesGcm(keys.Key, TagLength);
             _headerProtectionAes = Aes.Create();
             _headerProtectionAes.Key = keys.HeaderProtectionKey;
+            _headerProtectionAes.Mode = CipherMode.ECB;
+            _headerProtectionAes.Padding = PaddingMode.None;
+            _headerProtectionEcb = _headerProtectionAes.CreateEncryptor();
         }
     }
 
@@ -145,9 +157,9 @@ public sealed class PacketProtection : IDisposable
             ChaCha20.HeaderProtectionMask(_headerProtectionKey, sample[..SampleLength], mask);
             return;
         }
-        Span<byte> block = stackalloc byte[16];
-        _headerProtectionAes!.EncryptEcb(sample[..SampleLength], block, PaddingMode.None);
-        block[..5].CopyTo(mask);
+        sample[..SampleLength].CopyTo(_headerProtectionIn);
+        _headerProtectionEcb!.TransformBlock(_headerProtectionIn, 0, SampleLength, _headerProtectionOut, 0);
+        _headerProtectionOut.AsSpan(0, 5).CopyTo(mask);
     }
 
     // ---- High level: protect / unprotect a whole packet -------------------------------------
@@ -266,6 +278,7 @@ public sealed class PacketProtection : IDisposable
     {
         _aesGcm?.Dispose();
         _chacha?.Dispose();
+        _headerProtectionEcb?.Dispose();
         _headerProtectionAes?.Dispose();
     }
 }
