@@ -284,10 +284,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            Runtime:                stopwatch.Elapsed
                        );
 
-            var resourceRecordTypes = ResourceRecordTypes.ToList();
+            var resourceRecordTypes = ResourceRecordTypes.Distinct().ToList();
 
             if (resourceRecordTypes.Count == 0)
                 resourceRecordTypes = [ DNSResourceRecordTypes.Any ];
+
+            #endregion
+
+            #region More than one record type is more than one query
+
+            // RFC 9619 §4: "A DNS message with OPCODE = 0 MUST NOT include a
+            // QDCOUNT parameter whose value is greater than 1." This used to make
+            // one message of every type it was given, which a server following
+            // the RFC answers with FORMERR for all of them. See OneQuestionPerQuery.
+            if (resourceRecordTypes.Count > 1)
+                return await OneQuestionPerQuery.AskEachTypeAsync(
+                                 resourceRecordTypes,
+                                 resourceRecordType => Query(
+                                                           DNSServiceName,
+                                                           [ resourceRecordType ],
+                                                           Timeout,
+                                                           RecursionDesired,
+                                                           ForceUpdate,
+                                                           CancellationToken
+                                                       ),
+                                 Timeout
+                             ).ConfigureAwait(false);
 
             #endregion
 

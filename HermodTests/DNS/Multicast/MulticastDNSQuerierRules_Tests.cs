@@ -100,10 +100,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             var firstGap   = queries[1].Timestamp - queries[0].Timestamp;
             var secondGap  = queries[2].Timestamp - queries[1].Timestamp;
 
+            // Against the interval the client was given, not the first gap as
+            // measured. The client doubles its own interval, so a first gap that a
+            // busy machine stretched by twenty milliseconds does not stretch the
+            // second - and comparing with twice the measured one failed two runs
+            // in five beside a mutation sweep. 30 ms is the timer's slack.
+            var interval   = FastClientOptions().RetransmissionInterval;
+            var slack      = TimeSpan.FromMilliseconds(30);
+
             Assert.Multiple(() => {
                 Assert.That(queries[0].Message.Questions[0].UnicastResponseRequested,                                Is.True,  "the first question asks for a unicast reply");
                 Assert.That(queries.Skip(1).Select(query => query.Message.Questions[0].UnicastResponseRequested),    Is.All.False, "RFC 6762 §5.4: retransmissions are QM questions");
-                Assert.That(secondGap, Is.GreaterThanOrEqualTo(firstGap * 2 - TimeSpan.FromMilliseconds(30)),       "RFC 6762 §5.2: every interval at least twice the one before");
+                Assert.That(firstGap,  Is.GreaterThanOrEqualTo(interval     - slack),                               "RFC 6762 §5.2: the first interval is the one configured");
+                Assert.That(secondGap, Is.GreaterThanOrEqualTo(interval * 2 - slack),                               "RFC 6762 §5.2: every interval at least twice the one before");
             });
 
         }

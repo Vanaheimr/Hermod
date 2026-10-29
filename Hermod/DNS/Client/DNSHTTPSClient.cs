@@ -937,7 +937,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var stopwatch = Stopwatch.StartNew();
 
-            var resourceRecordTypes = ResourceRecordTypes.ToList();
+            var resourceRecordTypes = ResourceRecordTypes.Distinct().ToList();
 
             if (resourceRecordTypes.Count == 0)
                 resourceRecordTypes = [ DNSResourceRecordTypes.Any ];
@@ -958,6 +958,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                  HTTPResponseLogDelegate,
                                  CancellationToken
                              ).ConfigureAwait(false);
+
+            #region More than one record type is more than one query
+
+            // RFC 9619 §4: "A DNS message with OPCODE = 0 MUST NOT include a
+            // QDCOUNT parameter whose value is greater than 1." This used to make
+            // one message of every type it was given, which a server following
+            // the RFC answers with FORMERR for all of them. See OneQuestionPerQuery.
+            if (resourceRecordTypes.Count > 1)
+                return await OneQuestionPerQuery.AskEachTypeAsync(
+                                 resourceRecordTypes,
+                                 resourceRecordType => QueryHTTP(
+                                                           DNSServiceName,
+                                                           [ resourceRecordType ],
+                                                           Timeout,
+                                                           RecursionDesired,
+                                                           ForceUpdate,
+                                                           HTTPRequestLogDelegate,
+                                                           HTTPResponseLogDelegate,
+                                                           CancellationToken
+                                                       ),
+                                 Timeout
+                             ).ConfigureAwait(false);
+
+            #endregion
 
 
             var dnsQuery  = DNSPacket.Query(
@@ -985,14 +1009,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var effectiveTimeout = Timeout ?? QueryTimeout;
 
+            // The query's deadline runs from here, because connecting is part of
+            // asking. It used to be set only once a connection was there, and the
+            // connecting before it had no deadline at all: against a refused port
+            // a 3 s query came back after 8.2 s, the time the reconnects took.
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+            deadline.CancelAfter(effectiveTimeout);
+
             await httpStreamLock.WaitAsync(CancellationToken).
                                  ConfigureAwait(false);
 
             try
             {
 
-                if (!IsConnected || tcpClient is null)
-                    await ReconnectAsync(CancellationToken).ConfigureAwait(false);
+                // And a connection that could not be made is the answer. Sending
+                // anyway handed the request to SendRequest, which tried to connect
+                // again, as often as it is allowed to retry, before giving up with
+                // a response that had no status - read further down as a timeout,
+                // since by then the deadline had passed.
+                //
+                // The same test SendRequest makes, so that a connection the server
+                // has closed is noticed here and not only in there. Asking only
+                // IsConnected missed it: the socket is still connected on this
+                // side, and it was SendRequest's retries that met the refusal.
+                if (!IsConnected || !IsHTTPConnected || IsConnectionClosed || IsConnectionLifetimeExceeded || tcpClient is null)
+                {
+
+                    var connected = await ReconnectAsync(deadline.Token).ConfigureAwait(false);
+
+                    if (!connected.IsSuccess)
+                        return CouldNotConnect(connected, dnsQuery, effectiveTimeout, deadline, CancellationToken);
+
+                }
 
                 stopwatch.Restart();
 
@@ -1003,9 +1051,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // then reports that as this query's own timeout.
                 using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(
                                            LiveClientCancellationTokenSource.Token,
-                                           CancellationToken
+                                           CancellationToken,
+                                           deadline.Token
                                        );
-                timeoutCTS.CancelAfter(effectiveTimeout);
 
                 var httpRequestBuilder = DefaultRequestBuilder(this);
 
@@ -1052,7 +1100,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
                 catch (IOException)
                 {
-                    await ReconnectAsync(CancellationToken).ConfigureAwait(false);
+
+                    // The connection this client held had gone away under it. One
+                    // reconnect, within the same deadline, and if that one is
+                    // refused too, that is the answer rather than a second send.
+                    var reconnected = await ReconnectAsync(deadline.Token).ConfigureAwait(false);
+
+                    if (!reconnected.IsSuccess)
+                        return CouldNotConnect(reconnected, dnsQuery, effectiveTimeout, deadline, CancellationToken);
 
                     httpResponse = await SendRequest(
                                              httpRequest,
@@ -1261,6 +1316,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 httpStreamLock.Release();
             }
+
+        }
+
+        #endregion
+
+        #region (private) CouldNotConnect(ConnectionResult, Query, Timeout, Deadline, CancellationToken)
+
+        /// <summary>
+        /// What a query says when it could not get a connection to ask over.
+        /// </summary>
+        /// <remarks>
+        /// A failure, unless the deadline is what ended the connecting - then it is
+        /// the timeout the caller would get from every other transport. The
+        /// caller's own cancellation is neither, and is reported as a failure, the
+        /// way the catch for it below reports it.
+        /// </remarks>
+        private DNSInfo CouldNotConnect(TCPConnectionResult      ConnectionResult,
+                                        DNSPacket                Query,
+                                        TimeSpan                 Timeout,
+                                        CancellationTokenSource  Deadline,
+                                        CancellationToken        CancellationToken)
+        {
+
+            logger.LogWarning(
+                "DNS HTTPS query to {DNSServer} was never answered, as no connection could be made: {Reason}",
+                DNSServerLabel,
+                ConnectionResult.Errors.AggregateWith(", ")
+            );
+
+            return Deadline.IsCancellationRequested && !CancellationToken.IsCancellationRequested
+                       ? DNSInfo.TimedOut(OriginOf(Timeout), Query.TransactionId, Timeout)
+                       : DNSInfo.Failed  (OriginOf(Timeout), Query.TransactionId, Timeout);
 
         }
 
