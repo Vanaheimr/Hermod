@@ -19,12 +19,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Quic.Recovery;
 
 /// <summary>
 /// NewReno congestion control per RFC 9002 §7 / appendix B: slow start, congestion avoidance and
-/// recovery over a congestion window (in bytes). Deliberately kept simple (no CUBIC/BBR).
+/// recovery over a congestion window (in bytes). Deliberately kept simple (no CUBIC/BBR). The
+/// initial slow start ends on rising delay as well as on loss (HyStart++, RFC 9406).
 /// </summary>
 public sealed class NewRenoCongestionControl
 {
     private const int MaxDatagramSize = 1200;
     private const double LossReductionFactor = 0.5;
+
+    // ---- HyStart++ (RFC 9406) --------------------------------------------------------------
+    //
+    // Loss is the only exit plain slow start has. On a path with a deep buffer and no loss - a
+    // loopback, or any bloated router - the window doubles every round trip until the transfer
+    // ends, and all of the excess waits in a queue: HTTP3ConformanceTests measured the server's RTT
+    // at ~60 ms with 32 responses in flight on a 0.5 ms path. HyStart++ watches each round's
+    // minimum RTT instead. When it rises by a threshold, growth drops to a quarter (conservative
+    // slow start, CSS) for at most five rounds, and then congestion avoidance takes over. If the
+    // delay falls back below where it stood when CSS began, the exit was spurious and slow start
+    // resumes. The constants are the RFC's recommendations (§4.3); L is unbounded because the
+    // sender paces.
+    private static readonly TimeSpan MinRttThresh = TimeSpan.FromMilliseconds(4);
+    private static readonly TimeSpan MaxRttThresh = TimeSpan.FromMilliseconds(16);
+    private const int MinRttDivisor    = 8;
+    private const int NRttSample       = 8;
+    private const int CssGrowthDivisor = 4;
+    private const int CssRounds        = 5;
+
+    private enum HyStartPhase { SlowStart, ConservativeSlowStart, Off }
+
+    private HyStartPhase _hyStart = HyStartPhase.SlowStart;
+    private ulong        _roundEnd;                                 // windowEnd: the round ends once this packet number is acknowledged
+    private TimeSpan     _lastRoundMinRtt    = TimeSpan.MaxValue;   // MaxValue = no sample yet ("infinity")
+    private TimeSpan     _currentRoundMinRtt = TimeSpan.MaxValue;
+    private int          _rttSampleCount;
+    private TimeSpan     _cssBaselineMinRtt  = TimeSpan.MaxValue;
+    private int          _cssRoundsDone;
+
+    /// <summary>
+    /// In conservative slow start (RFC 9406 §4.2): delay has risen, growth runs at a quarter. Tests only.
+    /// </summary>
+    internal bool InConservativeSlowStartForTest => _hyStart == HyStartPhase.ConservativeSlowStart;
 
     /// <summary>
     /// Minimum window (RFC 9002: kMinimumWindow = 2 · max_datagram_size).
@@ -85,9 +119,67 @@ public sealed class NewRenoCongestionControl
             return;
 
         if (InSlowStart)
-            CongestionWindow += bytes;
+            CongestionWindow += _hyStart == HyStartPhase.ConservativeSlowStart ? bytes / CssGrowthDivisor : bytes;
         else
             CongestionWindow += (int)((long)MaxDatagramSize * bytes / CongestionWindow);
+    }
+
+    /// <summary>
+    /// HyStart++ (RFC 9406 §4.2), once per acknowledgment in the application space, after its
+    /// packets have been taken: <paramref name="rttSample"/> is the RTT it yielded, if any;
+    /// <paramref name="largestAcked"/> its largest acknowledged packet number; and
+    /// <paramref name="nextPacketNumber"/> the number the next packet will carry (SND.NXT), where
+    /// the next round ends.
+    /// </summary>
+    public void OnAcknowledgment(TimeSpan? rttSample, ulong largestAcked, ulong nextPacketNumber)
+    {
+        // Only the initial slow start (§4.2): after a loss, ssthresh holds what the path showed.
+        if (_hyStart == HyStartPhase.Off)
+            return;
+
+        if (rttSample is { } rtt)
+        {
+            if (rtt < _currentRoundMinRtt)
+                _currentRoundMinRtt = rtt;
+            _rttSampleCount++;
+        }
+
+        if (_rttSampleCount >= NRttSample &&
+            _currentRoundMinRtt != TimeSpan.MaxValue && _lastRoundMinRtt != TimeSpan.MaxValue)
+        {
+            if (_hyStart == HyStartPhase.SlowStart)
+            {
+                TimeSpan rttThresh = TimeSpan.FromTicks(Math.Clamp(_lastRoundMinRtt.Ticks / MinRttDivisor,
+                                                                   MinRttThresh.Ticks, MaxRttThresh.Ticks));
+                if (_currentRoundMinRtt >= _lastRoundMinRtt + rttThresh)
+                {
+                    _cssBaselineMinRtt = _currentRoundMinRtt;
+                    _cssRoundsDone     = 0;
+                    _hyStart           = HyStartPhase.ConservativeSlowStart;
+                }
+            }
+            else if (_currentRoundMinRtt < _cssBaselineMinRtt)
+            {
+                // The delay that started CSS is gone again: the exit was spurious.
+                _cssBaselineMinRtt = TimeSpan.MaxValue;
+                _hyStart           = HyStartPhase.SlowStart;
+            }
+        }
+
+        if (largestAcked < _roundEnd)
+            return;
+
+        // The round is over. CSS counts its rounds, the partial one it began in included.
+        if (_hyStart == HyStartPhase.ConservativeSlowStart && ++_cssRoundsDone >= CssRounds)
+        {
+            SlowStartThreshold = CongestionWindow; // congestion avoidance from here on
+            _hyStart           = HyStartPhase.Off;
+            return;
+        }
+        _lastRoundMinRtt    = _currentRoundMinRtt;
+        _currentRoundMinRtt = TimeSpan.MaxValue;
+        _rttSampleCount     = 0;
+        _roundEnd           = nextPacketNumber;
     }
 
     /// <summary>
@@ -116,6 +208,7 @@ public sealed class NewRenoCongestionControl
         _recoveryStartTimeTicks = nowTicks;
         SlowStartThreshold = (long)(CongestionWindow * LossReductionFactor);
         CongestionWindow = (int)Math.Max(SlowStartThreshold, MinimumWindow);
+        _hyStart = HyStartPhase.Off; // the path has spoken; later slow starts stop at ssthresh
     }
 
     /// <summary>
@@ -127,5 +220,6 @@ public sealed class NewRenoCongestionControl
     {
         CongestionWindow = MinimumWindow;
         _recoveryStartTimeTicks = -1;
+        _hyStart = HyStartPhase.Off;
     }
 }
