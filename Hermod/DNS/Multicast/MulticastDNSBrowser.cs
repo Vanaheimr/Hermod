@@ -166,6 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private          Task?                                             queryLoop;
         private          ITimer?                                           maintenanceTimer;
         private          Boolean                                           isDisposed;
+        private          Int32                                             duplicateQuestionSeen;
 
         #endregion
 
@@ -284,12 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     var instance = GetOrAddInstance(ptr.Target, now);
 
-                    foreach (var detail in Client.CachedRecords(ptr.Target))
-                        Apply(instance, detail.Record);
-
-                    if (instance.HostName is not null)
-                        foreach (var address in Client.CachedRecords().Where(address => SameName(address.Record.DomainName.FullName, instance.HostName.FullName)))
-                            Apply(instance, address.Record);
+                    ApplyCached(instance);
 
                     if (instance.IsResolved)
                         instance.Announced = true;
@@ -370,8 +366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var now = Client.TimeProvider.GetUtcNow();
 
-            var knownAnswers = Client.CachedRecords(ServiceType, DNSResourceRecordTypes.PTR).
-                                   Where (entry => entry.ExpiresAt > now + TimeSpan.FromSeconds(1)).
+            var knownAnswers = KnownAnswers(now).
                                    Select(entry => new MulticastDNSRecord(entry.Record, false, entry.RemainingTimeToLive(now)));
 
             return Client.SendQueryAsync(
@@ -379,6 +374,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        knownAnswers,
                        CancellationToken
                    );
+
+        }
+
+        #endregion
+
+        #region (private)  KnownAnswers(Now)
+
+        /// <summary>
+        /// The cached pointers worth listing as known answers (RFC 6762 §7.1: not those whose
+        /// remaining TTL is less than half of their original TTL).
+        /// </summary>
+        private IEnumerable<MulticastDNSCacheEntry> KnownAnswers(DateTimeOffset Now)
+
+            => Client.CachedRecords(ServiceType, DNSResourceRecordTypes.PTR).
+                      Where(entry => entry.IsKnownAnswerAt(Now));
+
+        #endregion
+
+        #region (internal) ObserveQuery(Query)
+
+        /// <summary>
+        /// Another host's query (RFC 6762 §7.3): "If a host is planning to transmit (or
+        /// retransmit) a query, and it sees another host on the network send a query containing
+        /// the same "QM" question, and the Known-Answer Section of that query does not contain
+        /// any records that this host would not also put in its own Known-Answer Section, then
+        /// this host SHOULD treat its own query as having been sent."
+        /// </summary>
+        /// <remarks>
+        /// A truncated query is not enough: its other known answers are still on their way, and
+        /// may be ones this browser does not have.
+        /// </remarks>
+        /// <param name="Query">A query of another host.</param>
+        internal void ObserveQuery(MulticastDNSMessage Query)
+        {
+
+            if (!IsRunning || Query.Truncated)
+                return;
+
+            if (!Query.Questions.Any(question => !question.UnicastResponseRequested                &&
+                                                  question.Type  == DNSResourceRecordTypes.PTR      &&
+                                                  question.Class == DNSQueryClasses.IN              &&
+                                                  question.Name.Equals(ServiceType)))
+                return;
+
+            var ours = KnownAnswers(Client.TimeProvider.GetUtcNow()).Select(entry => entry.Record).ToArray();
+
+            if (Query.Answers.All(theirs => ours.Any(record => record.IsIdenticalTo(theirs.Record))))
+                Interlocked.Exchange(ref duplicateQuestionSeen, 1);
 
         }
 
@@ -392,20 +435,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var interval = Client.Options.InitialBrowseInterval;
 
-            while (!CancellationToken.IsCancellationRequested)
-            {
+            // RFC 6762 §5.2: "a Multicast DNS querier SHOULD also delay the first query of the
+            // series by a randomly chosen amount in the range 20-120 ms".
+            var minDelay  = Client.Options.MinInitialBrowseDelay;
+            var maxDelay  = Client.Options.MaxInitialBrowseDelay;
+            var delay     = maxDelay > minDelay
+                                ? minDelay + TimeSpan.FromTicks((Int64) (Random.Shared.NextDouble() * (maxDelay - minDelay).Ticks))
+                                : minDelay;
 
+            if (delay > TimeSpan.Zero)
+            {
                 try
                 {
-                    await QueryNowAsync(CancellationToken).ConfigureAwait(false);
+                    await Task.Delay(delay, Client.TimeProvider, CancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
-                    break;
+                    return;
                 }
-                catch (Exception e)
+            }
+
+            while (!CancellationToken.IsCancellationRequested)
+            {
+
+                // RFC 6762 §7.3: a question another host has asked since this browser last
+                // asked it counts as asked; the series goes on from there.
+                if (Interlocked.Exchange(ref duplicateQuestionSeen, 0) == 0)
                 {
-                    logger?.LogWarning(e, "Multicast DNS browser: querying {ServiceType} failed", ServiceType);
+                    try
+                    {
+                        await QueryNowAsync(CancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        logger?.LogWarning(e, "Multicast DNS browser: querying {ServiceType} failed", ServiceType);
+                    }
                 }
 
                 try
@@ -476,16 +544,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         instance.RefreshRequested  = false;
 
                         if (isNew)
-                        {
-
-                            foreach (var detail in Client.CachedRecords(ptr.Target))
-                                Apply(instance, detail.Record);
-
-                            if (instance.HostName is not null)
-                                foreach (var address in Client.CachedRecords().Where(address => SameName(address.Record.DomainName.FullName, instance.HostName.FullName)))
-                                    Apply(instance, address.Record);
-
-                        }
+                            ApplyCached(instance);
 
                         if (NeedsDetails(instance))
                             toQuery.Add(instance);
@@ -500,7 +559,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         if (instances.TryGetValue(Key(Record.Record.DomainName.FullName), out var detailInstance))
                         {
 
-                            var changed = Apply(detailInstance, Record.Record);
+                            // An SRV record is one of possibly several: the instance takes the
+                            // preferred one of those cached, which this record has just joined.
+                            var changed = Record.Record is SRV
+                                              ? PreferredService(detailInstance) is SRV preferred && Apply(detailInstance, preferred)
+                                              : Apply(detailInstance, Record.Record);
 
                             // A host name learnt from the SRV record may already have cached addresses
                             // (announcements list them before the browser asks).
@@ -578,7 +641,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     case SRV or TXT:
 
                         if (instances.TryGetValue(Key(Entry.Record.DomainName.FullName), out var instance))
+                        {
+
+                            // Another SRV record of the instance may still be cached, and now be
+                            // the preferred one.
+                            if (Entry.Record is SRV && PreferredService(instance) is SRV next && Apply(instance, next))
+                            {
+                                ApplyCachedAddresses(instance);
+                                if (instance.Announced)
+                                    updated.Add(instance);
+                            }
+
                             toQuery.Add(instance);
+
+                        }
 
                         break;
 
@@ -743,6 +819,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (private) ApplyCached(Instance) / ApplyCachedAddresses(Instance) / PreferredService(Instance)
+
+        /// <summary>
+        /// Apply what the cache knows about the instance: its TXT record, its preferred SRV
+        /// record and the addresses of the host that one names.
+        /// </summary>
+        private void ApplyCached(MulticastDNSServiceInstance Instance)
+        {
+
+            foreach (var detail in Client.CachedRecords(Instance.InstanceName).Where(entry => entry.Record is not SRV))
+                Apply(Instance, detail.Record);
+
+            if (PreferredService(Instance) is SRV srv)
+                Apply(Instance, srv);
+
+            ApplyCachedAddresses(Instance);
+
+        }
+
+        private void ApplyCachedAddresses(MulticastDNSServiceInstance Instance)
+        {
+
+            if (Instance.HostName is null)
+                return;
+
+            foreach (var address in Client.CachedRecords().Where(address => SameName(address.Record.DomainName.FullName, Instance.HostName.FullName)))
+                Apply(Instance, address.Record);
+
+        }
+
+        /// <summary>
+        /// The SRV record that describes the instance, of those cached (RFC 6763 §5: "In the
+        /// event that more than one SRV is returned, clients MUST correctly interpret the
+        /// priority and weight fields -- i.e., lower-numbered priority servers should be used
+        /// in preference to higher-numbered priority servers"). Of several with the lowest
+        /// priority the one heard last wins, so that a changed port or host is taken at once.
+        /// </summary>
+        private SRV? PreferredService(MulticastDNSServiceInstance Instance)
+        {
+
+            var services = Client.CachedRecords(Instance.InstanceName, DNSResourceRecordTypes.SRV).
+                                  Where(entry => entry.Record is SRV).
+                                  ToArray();
+
+            if (services.Length == 0)
+                return null;
+
+            var priority = services.Min(entry => ((SRV) entry.Record).Priority);
+
+            return (SRV) services.Where  (entry => ((SRV) entry.Record).Priority == priority).
+                                  OrderBy(entry => entry.ReceivedAt).
+                                  Last().
+                                  Record;
+
+        }
+
+        #endregion
+
         #region (private) GetOrAddInstance / Apply / Announce / RaiseAsync / Key / SameName
 
         private MulticastDNSServiceInstance GetOrAddInstance(DNSServiceName  InstanceName,
@@ -793,6 +927,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 case TXT txt when txt.DomainName.Equals(Instance.InstanceName):
 
+                    // RFC 6763 §6.1: "DNS-SD clients MUST treat the following as equivalent":
+                    // a TXT record holding a single empty string, an empty TXT record, and no TXT
+                    // record. Learning which of them it is changes nothing.
+                    if (IsEmpty(Instance.TXT) && IsEmpty(txt))
+                    {
+                        Instance.TXT ??= txt;
+                        return false;
+                    }
+
                     if (Instance.TXT is not null && Instance.TXT.Strings.SequenceEqual(txt.Strings, StringComparer.Ordinal))
                         return false;
 
@@ -822,6 +965,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return false;
 
         }
+
+        private static Boolean IsEmpty(TXT? TXT)
+
+            => TXT is null ||
+               TXT.Strings.Count == 0 ||
+              (TXT.Strings.Count == 1 && TXT.Strings[0].Length == 0);
 
         /// <summary>
         /// TXT data is optional for resolution, but keep asking for it so that metadata omitted

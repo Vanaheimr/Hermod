@@ -45,9 +45,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public TimeSpan  ResponseGracePeriod        { get; init; } = TimeSpan.FromMilliseconds(100);
 
         /// <summary>
-        /// The interval after which an unanswered one-shot query is sent again (default: 500 ms).
+        /// The interval after which an unanswered one-shot query is sent again for the first
+        /// time; every further interval is twice the one before (RFC 6762 §5.2: "the interval
+        /// between the first two queries MUST be at least one second, the intervals between
+        /// successive queries MUST increase by at least a factor of two", default: 1 s).
         /// </summary>
-        public TimeSpan  RetransmissionInterval     { get; init; } = TimeSpan.FromMilliseconds(500);
+        public TimeSpan  RetransmissionInterval     { get; init; } = TimeSpan.FromSeconds(1);
+
+        /// <summary>
+        /// The maximum size of a query packet (RFC 6762 §7.2 and §17, default: 1472 bytes,
+        /// an Ethernet MTU less the IPv4 and UDP headers). Known answers that do not fit
+        /// continue in further packets, each but the last with the TC bit set.
+        /// </summary>
+        public Int32     MaxQuerySize               { get; init; } = MulticastDNS.PreferredMaxPacketSize;
 
         /// <summary>
         /// Whether cached records answer queries (default: true).
@@ -76,6 +86,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// because they need an interface scope to be useful).
         /// </summary>
         public Boolean   IncludeLinkLocalIPv6       { get; init; } = false;
+
+        /// <summary>
+        /// The minimum random delay of a browser's first query (RFC 6762 §5.2, default: 20 ms).
+        /// </summary>
+        public TimeSpan  MinInitialBrowseDelay      { get; init; } = TimeSpan.FromMilliseconds(20);
+
+        /// <summary>
+        /// The maximum random delay of a browser's first query (RFC 6762 §5.2: "a Multicast DNS
+        /// querier SHOULD also delay the first query of the series by a randomly chosen amount
+        /// in the range 20-120 ms", default: 120 ms).
+        /// </summary>
+        public TimeSpan  MaxInitialBrowseDelay      { get; init; } = TimeSpan.FromMilliseconds(120);
 
         /// <summary>
         /// The initial interval between the repeated queries of a browser (RFC 6762 §5.2, default: 1 s).
@@ -146,6 +168,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Now">The current time.</param>
         public TimeSpan RemainingTimeToLive(DateTimeOffset Now)
             => ExpiresAt > Now ? ExpiresAt - Now : TimeSpan.Zero;
+
+        /// <summary>
+        /// Whether the record is worth listing as a known answer at the given time (RFC 6762 §7.1:
+        /// "a Multicast DNS querier SHOULD NOT include records in the Known-Answer list whose
+        /// remaining TTL is less than half of their original TTL"). The original TTL is the one
+        /// the record was last received with, i.e. the time from reception to expiry.
+        /// </summary>
+        /// <param name="Now">The current time.</param>
+        internal Boolean IsKnownAnswerAt(DateTimeOffset Now)
+        {
+            var remaining = RemainingTimeToLive(Now);
+            return remaining > TimeSpan.Zero &&
+                   remaining + remaining >= ExpiresAt - ReceivedAt;
+        }
 
         /// <summary>
         /// Return a text representation of this cache entry.
@@ -478,6 +514,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var deadline       = TimeProvider.GetUtcNow() + timeout;
                 var questions      = types.Select(type => new MulticastDNSQuestion(DNSServiceName, type, Options.RequestUnicastResponses)).ToArray();
 
+                // RFC 6762 §5.4: "the unicast-response bit SHOULD NOT be set in subsequent
+                // retransmissions of that question. Subsequent retransmissions SHOULD be usual
+                // "QM" questions."
+                var retransmitted  = types.Select(type => new MulticastDNSQuestion(DNSServiceName, type)).ToArray();
+                var interval       = Options.RetransmissionInterval;
+
                 await SendQueryAsync(questions, KnownAnswers(DNSServiceName, types), linked.Token).ConfigureAwait(false);
 
                 while (true)
@@ -487,7 +529,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (remaining <= TimeSpan.Zero)
                         break;
 
-                    var wait = remaining < Options.RetransmissionInterval ? remaining : Options.RetransmissionInterval;
+                    var wait = remaining < interval ? remaining : interval;
 
                     using var delayCTS  = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
                     var       delayTask = Task.Delay(wait, TimeProvider, delayCTS.Token);
@@ -513,7 +555,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     linked.Token.ThrowIfCancellationRequested();
 
-                    await SendQueryAsync(questions, KnownAnswers(DNSServiceName, types), linked.Token).ConfigureAwait(false);
+                    // A wait the deadline cut short ends the query: a retransmission at the
+                    // deadline could not be answered in time, and would come sooner than §5.2 allows.
+                    if (wait < interval)
+                        break;
+
+                    await SendQueryAsync(retransmitted, KnownAnswers(DNSServiceName, types), linked.Token).ConfigureAwait(false);
+
+                    // RFC 6762 §5.2: "the intervals between successive queries MUST increase by
+                    // at least a factor of two".
+                    interval += interval;
 
                 }
 
@@ -578,11 +629,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 recentUnicastQuestions.AddRange(registrations);
             }
 
-            var query = MulticastDNSMessage.Query(questions, KnownAnswers);
-
             try
             {
-                await Transport.SendAsync(query.Serialize(), null, null, CancellationToken).ConfigureAwait(false);
+                foreach (var packet in QueryPackets(questions, [.. KnownAnswers ?? []]))
+                    await Transport.SendAsync(packet, null, null, CancellationToken).ConfigureAwait(false);
             }
             catch
             {
@@ -592,6 +642,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 throw;
             }
+
+        }
+
+        #endregion
+
+        #region (private) QueryPackets(Questions, KnownAnswers)
+
+        /// <summary>
+        /// The packets of one query (RFC 6762 §7.2): the questions with "as many Known-Answer
+        /// records as will fit", then packets "containing no questions and as many more
+        /// Known-Answer records as will fit", every packet but the last with the TC bit set.
+        /// A known answer too large for a packet of the maximum size goes in a packet of its
+        /// own (§17: a packet larger than the MTU "MUST NOT contain more than one resource record").
+        /// </summary>
+        /// <param name="Questions">The questions.</param>
+        /// <param name="KnownAnswers">The known answers.</param>
+        private List<Byte[]> QueryPackets(MulticastDNSQuestion[]  Questions,
+                                          MulticastDNSRecord[]    KnownAnswers)
+        {
+
+            var groups   = new List<List<MulticastDNSRecord>>();
+            var current  = new List<MulticastDNSRecord>();
+
+            // The first group carries the questions. The size is measured with the TC bit set,
+            // which costs nothing: the header has the same twelve bytes either way.
+            Int32 SizeOf(List<MulticastDNSRecord> Answers)
+                => MulticastDNSMessage.Query(groups.Count == 0 ? Questions : [], Answers, null, true).Serialize().Length;
+
+            foreach (var knownAnswer in KnownAnswers)
+            {
+
+                current.Add(knownAnswer);
+
+                if (SizeOf(current) <= Options.MaxQuerySize)
+                    continue;
+
+                current.RemoveAt(current.Count - 1);
+
+                if (current.Count > 0 || groups.Count == 0)
+                {
+                    groups.Add(current);
+                    current = [];
+                }
+
+                current.Add(knownAnswer);
+
+                if (SizeOf(current) > Options.MaxQuerySize)
+                {
+                    groups.Add(current);
+                    current = [];
+                }
+
+            }
+
+            if (current.Count > 0 || groups.Count == 0)
+                groups.Add(current);
+
+            return [.. groups.Select((answers, index) => MulticastDNSMessage.Query(index == 0 ? Questions : [],
+                                                                                  answers,
+                                                                                  null,
+                                                                                  index < groups.Count - 1).Serialize())];
 
         }
 
@@ -693,12 +804,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return;
             }
 
-            // RFC 6762 §18.3 and §18.11: only standard, successful responses are mDNS.
-            if (!message.IsResponse ||
-                 message.Opcode       != 0 ||
-                 message.ResponseCode != DNSResponseCodes.NoError)
+            // RFC 6762 §18.3 and §18.11: only standard, successful messages are mDNS.
+            if (message.Opcode       != 0 ||
+                message.ResponseCode != DNSResponseCodes.NoError)
             {
                 return;
+            }
+
+            // RFC 6762 §7.3: another host's multicast query tells the browsers which of their
+            // questions have just been asked. This host's own queries come back as well, and
+            // so do the probes of a responder sharing the transport; neither counts.
+            if (!message.IsResponse)
+            {
+
+                if (Datagram.WasReceivedViaMulticast &&
+                    !Transport.LocalAddresses.Any(address => address.Equals(Datagram.RemoteSocket.IPAddress)))
+                {
+                    foreach (var browser in Browsers)
+                        browser.ObserveQuery(message);
+                }
+
+                return;
+
             }
 
             // RFC 6762 §6: a unicast response is accepted only after a recent query
@@ -918,7 +1045,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return [];
 
             return CachedRecords(Name).
-                       Where (entry => entry.ExpiresAt > now + TimeSpan.FromSeconds(1) &&
+                       Where (entry => entry.IsKnownAnswerAt(now) &&
                                        !QueriedTypes.Contains(entry.Record.Type)).
                        Select(entry => new MulticastDNSRecord(entry.Record, false, entry.RemainingTimeToLive(now)));
 
