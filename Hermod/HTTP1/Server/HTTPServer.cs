@@ -1511,39 +1511,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      Request?.EventTrackingId
                                  );
 
-                                 httpResponse = new HTTPResponse.Builder(Request) {
-                                                   HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                                   Server          = HTTPServerName,
-                                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                                   Content         = CreateInternalServerErrorJSON(Request, e).ToUTF8Bytes(),
-                                                   Connection      = ConnectionType.KeepAlive
-                                               };
+                                 httpResponse = WithErrorContent(
+                                                    new HTTPResponse.Builder(Request) {
+                                                        HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                                        Server          = HTTPServerName,
+                                                        Connection      = ConnectionType.KeepAlive
+                                                    },
+                                                    CreateInternalServerErrorJSON(Request, e)
+                                                );
 
                             }
 
                         }
                         else
-                            httpResponse = new HTTPResponse.Builder(Request) {
-                                               HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                               Server          = HTTPServerName,
-                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                               Content         = JSONObject.Create(
-                                                                       new JProperty("request",       Request.FirstPDULine),
-                                                                       new JProperty("description",  "HTTP request handler must not be null!")
-                                                                   ).ToUTF8Bytes(),
-                                               Connection      = ConnectionType.KeepAlive
-                                           };
+                            httpResponse = WithErrorContent(
+                                               new HTTPResponse.Builder(Request) {
+                                                   HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                                   Server          = HTTPServerName,
+                                                   Connection      = ConnectionType.KeepAlive
+                                               },
+                                               JSONObject.Create(
+                                                   new JProperty("request",       Request.FirstPDULine),
+                                                   new JProperty("description",  "HTTP request handler must not be null!")
+                                               )
+                                           );
 
-                        httpResponse ??= new HTTPResponse.Builder(Request) {
-                                             HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                             Server          = HTTPServerName,
-                                             ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                             Content         = JSONObject.Create(
-                                                                     new JProperty("request",       Request.FirstPDULine),
-                                                                     new JProperty("description",  "HTTP response must not be null!")
-                                                                 ).ToUTF8Bytes(),
-                                             Connection      = ConnectionType.KeepAlive
-                                         };
+                        httpResponse ??= WithErrorContent(
+                                             new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                                 Server          = HTTPServerName,
+                                                 Connection      = ConnectionType.KeepAlive
+                                             },
+                                             JSONObject.Create(
+                                                 new JProperty("request",       Request.FirstPDULine),
+                                                 new JProperty("description",  "HTTP response must not be null!")
+                                             )
+                                         );
 
                         #endregion
 
@@ -1645,18 +1648,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        }.AsImmutable;
                     }
 
-                    httpResponse ??= new HTTPResponse.Builder(Request) {
-                                         HTTPStatusCode  = parsedRequest.HTTPStatusCode ?? HTTPStatusCode.InternalServerError,
-                                         Server          = HTTPServerName,
-                                         Date            = Timestamp.Now,
-                                         ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                          Content         = JSONObject.Create(
-                                                                new JProperty("request",      Request.FirstPDULine),
-                                                                new JProperty("description",  parsedRequest.ErrorResponse)
-                                                            ).ToUTF8Bytes(),
-                                          Allow           = allowedMethods,
-                                          Connection      = ConnectionType.KeepAlive
-                                      };
+                    httpResponse ??= WithErrorContent(
+                                         new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode  = parsedRequest.HTTPStatusCode ?? HTTPStatusCode.InternalServerError,
+                                             Server          = HTTPServerName,
+                                             Date            = Timestamp.Now,
+                                             Allow           = allowedMethods,
+                                             Connection      = ConnectionType.KeepAlive
+                                         },
+                                         JSONObject.Create(
+                                             new JProperty("request",      Request.FirstPDULine),
+                                             new JProperty("description",  parsedRequest.ErrorResponse)
+                                         )
+                                     );
 
                 }
 
@@ -1702,16 +1706,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 if (e is HTTPBodyTooLargeException)
                 {
-                    return new HTTPResponse.Builder(Request) {
-                               HTTPStatusCode = HTTPStatusCode.RequestEntityTooLarge,
-                               Server         = HTTPServerName,
-                               ContentType    = HTTPContentType.Application.JSON_UTF8,
-                               Content        = JSONObject.Create(
-                                                    new JProperty("description", "The request body is too large."),
-                                                    new JProperty("maximumBytes", MaxHTTPBodySize)
-                                                ).ToUTF8Bytes(),
-                               Connection     = ConnectionType.Close
-                           };
+                    return WithErrorContent(
+                               new HTTPResponse.Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.RequestEntityTooLarge,
+                                   Server         = HTTPServerName,
+                                   Connection     = ConnectionType.Close
+                               },
+                               JSONObject.Create(
+                                   new JProperty("description", "The request body is too large."),
+                                   new JProperty("maximumBytes", MaxHTTPBodySize)
+                               )
+                           );
                 }
 
                 if (e is HTTPIncompleteBodyException)
@@ -1733,13 +1738,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Request?.EventTrackingId.ToString() ?? "null"
                 );
 
-                return new HTTPResponse.Builder(Request) {
-                           HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                           Server          = HTTPServerName,
-                           ContentType     = HTTPContentType.Application.JSON_UTF8,
-                            Content         = CreateInternalServerErrorJSON(Request, e).ToUTF8Bytes(),
-                           Connection      = ConnectionType.KeepAlive
-                       };
+                return WithErrorContent(
+                           new HTTPResponse.Builder(Request) {
+                               HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                               Server          = HTTPServerName,
+                               Connection      = ConnectionType.KeepAlive
+                           },
+                           CreateInternalServerErrorJSON(Request, e)
+                       );
             }
 
             //await SendResponse(
@@ -1763,16 +1769,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         private HTTPResponse CreateRequestTimeoutResponse(HTTPRequest Request)
-            => new HTTPResponse.Builder(Request) {
-                   HTTPStatusCode = HTTPStatusCode.RequestTimeout,
-                   Server         = HTTPServerName,
-                   Date           = Timestamp.Now,
-                   Connection     = ConnectionType.Close,
-                   ContentType    = HTTPContentType.Application.JSON_UTF8,
-                   Content        = JSONObject.Create(
-                                        new JProperty("description", "The request body read timed out.")
-                                    ).ToUTF8Bytes()
-               }.AsImmutable;
+            => WithErrorContent(
+                   new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode = HTTPStatusCode.RequestTimeout,
+                       Server         = HTTPServerName,
+                       Date           = Timestamp.Now,
+                       Connection     = ConnectionType.Close
+                   },
+                   JSONObject.Create(
+                       new JProperty("description", "The request body read timed out.")
+                   )
+               ).AsImmutable;
 
         #endregion
 

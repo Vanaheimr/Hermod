@@ -1378,30 +1378,103 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return cancellationSource;
         }
 
+        #region (protected static) WithErrorContent (Response, Error)
+
+        /// <summary>
+        /// Gives one of this server's own error responses its content. That is the
+        /// application/json object these responses have always carried, unless the
+        /// request's Accept field prefers application/problem+json: then it is the
+        /// same error as problem details (RFC 9457).
+        ///
+        /// Negotiated rather than switched, because existing clients read the JSON
+        /// object's "description", and Section 4 names content negotiation as the
+        /// way to add problem details to an API that already has a format. When
+        /// Accept prefers them is decided by
+        /// <see cref="HTTPProblemDetails.IsPreferredBy"/>.
+        ///
+        /// The problem is about:blank. These are protocol errors, which Section 4
+        /// says a status code expresses better than a problem type does, and
+        /// about:blank means no more than the code (Section 4.2.1). The title is
+        /// the reason phrase, "description" becomes "detail", and every other
+        /// member stays, as an extension. One of them has a name Section 3.1
+        /// reserves: "type", the exception's type in a 500 when
+        /// IncludeStackTracesInErrorResponses is set. As an extension it is
+        /// "exceptionType".
+        /// </summary>
+        /// <param name="Response">An error response, with its status code set.</param>
+        /// <param name="Error">The error, as the JSON object it has always been sent as.</param>
+        protected static HTTPResponse.Builder WithErrorContent(HTTPResponse.Builder  Response,
+                                                               JObject               Error)
+        {
+
+            if (Response.HTTPRequest    is not null &&
+                Response.HTTPStatusCode is not null &&
+                HTTPProblemDetails.IsPreferredBy(Response.HTTPRequest.Accept))
+            {
+
+                String? detail      = null;
+                var     extensions  = new JObject();
+
+                foreach (var member in Error.Properties())
+                {
+
+                    if (member.Name == "description" &&
+                        member.Value.Type == JTokenType.String)
+                    {
+                        detail = member.Value.Value<String>();
+                        continue;
+                    }
+
+                    extensions.Add(member.Name == "type" ? "exceptionType" : member.Name,
+                                   member.Value.DeepClone());
+
+                }
+
+                return Response.SetProblemDetails(
+                           HTTPProblemDetails.ForStatus(
+                               Response.HTTPStatusCode,
+                               detail,
+                               extensions
+                           )
+                       );
+
+            }
+
+            Response.ContentType  = HTTPContentType.Application.JSON_UTF8;
+            Response.Content      = Error.ToUTF8Bytes();
+
+            return Response;
+
+        }
+
+        #endregion
+
         protected HTTPResponse CreateRequestBodyTooLargeResponse(HTTPRequest Request)
-            => new HTTPResponse.Builder(Request) {
-                   HTTPStatusCode = HTTPStatusCode.RequestEntityTooLarge,
-                   Server         = HTTPServerName,
-                   Date           = Timestamp.Now,
-                   Connection     = ConnectionType.Close,
-                   ContentType    = HTTPContentType.Application.JSON_UTF8,
-                   Content        = JSONObject.Create(
-                                        new JProperty("description", "The request body is too large."),
-                                        new JProperty("maximumBytes", MaxHTTPBodySize)
-                                     ).ToUTF8Bytes()
-                  }.AsImmutable;
+            => WithErrorContent(
+                   new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode = HTTPStatusCode.RequestEntityTooLarge,
+                       Server         = HTTPServerName,
+                       Date           = Timestamp.Now,
+                       Connection     = ConnectionType.Close
+                   },
+                   JSONObject.Create(
+                       new JProperty("description", "The request body is too large."),
+                       new JProperty("maximumBytes", MaxHTTPBodySize)
+                   )
+               ).AsImmutable;
 
         protected HTTPResponse CreateIncompleteRequestBodyResponse(HTTPRequest Request)
-            => new HTTPResponse.Builder(Request) {
-                   HTTPStatusCode = HTTPStatusCode.BadRequest,
-                   Server         = HTTPServerName,
-                   Date           = Timestamp.Now,
-                   Connection     = ConnectionType.Close,
-                   ContentType    = HTTPContentType.Application.JSON_UTF8,
-                   Content        = JSONObject.Create(
-                                        new JProperty("description", "The request body ended before its declared Content-Length was received.")
-                                    ).ToUTF8Bytes()
-               }.AsImmutable;
+            => WithErrorContent(
+                   new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode = HTTPStatusCode.BadRequest,
+                       Server         = HTTPServerName,
+                       Date           = Timestamp.Now,
+                       Connection     = ConnectionType.Close
+                   },
+                   JSONObject.Create(
+                       new JProperty("description", "The request body ended before its declared Content-Length was received.")
+                   )
+               ).AsImmutable;
 
         private HTTPResponse CreateServerOptionsResponse(HTTPRequest Request)
             => new HTTPResponse.Builder(Request) {
@@ -1412,64 +1485,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                }.AsImmutable;
 
         protected HTTPResponse CreateInvalidChunkMetadataResponse(HTTPRequest Request)
-            => new HTTPResponse.Builder(Request) {
-                   HTTPStatusCode = HTTPStatusCode.BadRequest,
-                   Server         = HTTPServerName,
-                   Date           = Timestamp.Now,
-                   Connection     = ConnectionType.Close,
-                   ContentType    = HTTPContentType.Application.JSON_UTF8,
-                   Content        = JSONObject.Create(
-                                        new JProperty("description", "The chunked request metadata exceeds the configured limits.")
-                                    ).ToUTF8Bytes()
-               }.AsImmutable;
+            => WithErrorContent(
+                   new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode = HTTPStatusCode.BadRequest,
+                       Server         = HTTPServerName,
+                       Date           = Timestamp.Now,
+                       Connection     = ConnectionType.Close
+                   },
+                   JSONObject.Create(
+                       new JProperty("description", "The chunked request metadata exceeds the configured limits.")
+                   )
+               ).AsImmutable;
 
         protected HTTPResponse CreateInvalidChunkResponse(HTTPRequest Request)
-            => new HTTPResponse.Builder(Request) {
-                   HTTPStatusCode = HTTPStatusCode.BadRequest,
-                   Server         = HTTPServerName,
-                   Date           = Timestamp.Now,
-                   Connection     = ConnectionType.Close,
-                   ContentType    = HTTPContentType.Application.JSON_UTF8,
-                   Content        = JSONObject.Create(
-                                        new JProperty("description", "The request contains invalid chunked transfer-coding syntax.")
-                                    ).ToUTF8Bytes()
-               }.AsImmutable;
+            => WithErrorContent(
+                   new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode = HTTPStatusCode.BadRequest,
+                       Server         = HTTPServerName,
+                       Date           = Timestamp.Now,
+                       Connection     = ConnectionType.Close
+                   },
+                   JSONObject.Create(
+                       new JProperty("description", "The request contains invalid chunked transfer-coding syntax.")
+                   )
+               ).AsImmutable;
 
         private HTTPResponse CreateExpectationFailedResponse(HTTPRequest Request)
-            => new HTTPResponse.Builder(Request) {
-                   HTTPStatusCode = HTTPStatusCode.ExpectationFailed,
-                   Server         = HTTPServerName,
-                   Date           = Timestamp.Now,
-                   Connection     = ConnectionType.Close,
-                   ContentType    = HTTPContentType.Application.JSON_UTF8,
-                   Content        = JSONObject.Create(
-                                        new JProperty("description", "The request contains an unsupported Expect header field.")
-                                    ).ToUTF8Bytes()
-               }.AsImmutable;
+            => WithErrorContent(
+                   new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode = HTTPStatusCode.ExpectationFailed,
+                       Server         = HTTPServerName,
+                       Date           = Timestamp.Now,
+                       Connection     = ConnectionType.Close
+                   },
+                   JSONObject.Create(
+                       new JProperty("description", "The request contains an unsupported Expect header field.")
+                   )
+               ).AsImmutable;
 
         private HTTPResponse CreateMisdirectedRequestResponse(HTTPRequest Request)
-            => new HTTPResponse.Builder(Request) {
-                   HTTPStatusCode = HTTPStatusCode.MisdirectedRequest,
-                   Server         = HTTPServerName,
-                   Date           = Timestamp.Now,
-                   Connection     = ConnectionType.Close,
-                   ContentType    = HTTPContentType.Application.JSON_UTF8,
-                   Content        = JSONObject.Create(
-                                        new JProperty("description", "This server is not authoritative for the origin the request names.")
-                                    ).ToUTF8Bytes()
-               }.AsImmutable;
+            => WithErrorContent(
+                   new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode = HTTPStatusCode.MisdirectedRequest,
+                       Server         = HTTPServerName,
+                       Date           = Timestamp.Now,
+                       Connection     = ConnectionType.Close
+                   },
+                   JSONObject.Create(
+                       new JProperty("description", "This server is not authoritative for the origin the request names.")
+                   )
+               ).AsImmutable;
 
         private HTTPResponse CreateRequestTimeoutResponse(HTTPRequest Request)
-            => new HTTPResponse.Builder(Request) {
-                   HTTPStatusCode = HTTPStatusCode.RequestTimeout,
-                   Server         = HTTPServerName,
-                   Date           = Timestamp.Now,
-                   Connection     = ConnectionType.Close,
-                   ContentType    = HTTPContentType.Application.JSON_UTF8,
-                   Content        = JSONObject.Create(
-                                        new JProperty("description", "The request body read timed out.")
-                                    ).ToUTF8Bytes()
-               }.AsImmutable;
+            => WithErrorContent(
+                   new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode = HTTPStatusCode.RequestTimeout,
+                       Server         = HTTPServerName,
+                       Date           = Timestamp.Now,
+                       Connection     = ConnectionType.Close
+                   },
+                   JSONObject.Create(
+                       new JProperty("description", "The request body read timed out.")
+                   )
+               ).AsImmutable;
 
         #endregion
 

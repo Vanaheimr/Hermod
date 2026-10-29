@@ -770,6 +770,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region SetProblemDetails(ProblemDetails)
+
+            /// <summary>
+            /// The content as problem details (RFC 9457): application/problem+json,
+            /// and the status code of the problem, if it names one. Section 3.1.2
+            /// makes the "status" member advisory and says a generator MUST send the
+            /// same code in the response itself. A problem that names none leaves the
+            /// status code alone, and its content says nothing that could disagree.
+            /// </summary>
+            /// <param name="ProblemDetails">The problem details.</param>
+            public Builder SetProblemDetails(HTTPProblemDetails ProblemDetails)
+            {
+
+                if (ProblemDetails.Status is not null)
+                    this.HTTPStatusCode = ProblemDetails.Status;
+
+                this.ContentType  = HTTPContentType.Application.ProblemJSON;
+                this.Content      = ProblemDetails.ToUTF8Bytes();
+
+                return this;
+
+            }
+
+            #endregion
+
             #region Set general header fields
 
             #region SetCacheControl(CacheControl)
