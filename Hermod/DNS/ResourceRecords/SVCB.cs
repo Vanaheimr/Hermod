@@ -266,88 +266,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region (private) BuildPresentation(Priority, TargetName, SVCParams)
-
-        private static String BuildPresentation(UInt16                 Priority,
-                                                String                 TargetName,
-                                                IEnumerable<SVCParameter>  SVCParams)
-        {
-
-            var sb = new StringBuilder();
-
-            sb.Append(Priority);
-            sb.Append(' ');
-            sb.Append(TargetName);
-
-            foreach (var param in SVCParams.OrderBy(p => p.Key)) // Ensure sorted by key for consistency
-            {
-
-                sb.Append(' ');
-                sb.Append(GetKeyName(param.Key));
-
-                if (param.Value.Length > 0)
-                {
-                    sb.Append('=');
-                    sb.Append('"');
-                    sb.Append(EscapeValue(param.Value));
-                    sb.Append('"');
-                }
-
-            }
-
-            return sb.ToString();
-
-        }
-
-        #endregion
-
-        #region (private) GetKeyName(Key)
-
-        private static String GetKeyName(UInt16 Key)
-
-            => Key switch {
-                   0  => "mandatory",
-                   1  => "alpn",
-                   2  => "no-default-alpn",
-                   3  => "port",
-                   4  => "ipv4hint",
-                   6  => "ipv6hint",
-                   _  => "key" + Key
-               };
-
-        #endregion
-
-        #region (private) EscapeValue(Value)
-
-        private static String EscapeValue(Byte[] Value)
-        {
-
-            var sb = new StringBuilder();
-
-            foreach (var b in Value)
-            {
-
-                if (b >= 32 && b <= 126 && b != (Byte) '\\' && b != (Byte) '"')
-                    sb.Append((Char) b);
-
-                else
-                {
-                    sb.Append('\\');
-                    sb.Append( (b / 100).      ToString("D1"));
-                    sb.Append(((b /  10) % 10).ToString("D1"));
-                    sb.Append( (b        % 10).ToString("D1"));
-                }
-
-            }
-
-            return sb.ToString();
-
-        }
-
-        #endregion
-
-
-
         #region (static) TryParseFromJSON(Name, TimeToLive, Data)
 
         /// <summary>
@@ -371,22 +289,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var targetStr  = parts[1].TrimEnd('.').Length == 0 ? "." : parts[1];
 
                 var targetName = DNS.DomainName.ParseLenient(targetStr, Origin);
-                var svcParams  = new List<SVCParameter>();
 
-                if (parts.Length > 2)
-                {
-                    var remaining = parts[2];
-                    foreach (var token in SplitSVCParams(remaining))
-                    {
-                        var eqIdx   = token.IndexOf('=');
-                        var keyName = eqIdx >= 0 ? token[..eqIdx] : token;
-                        var value   = eqIdx >= 0 ? token[(eqIdx + 1)..].Trim('"') : "";
-
-                        var key = TryParseSVCParamKey(keyName);
-                        if (key is not null)
-                            svcParams.Add(new SVCParameter(key.Value, Encoding.ASCII.GetBytes(value)));
-                    }
-                }
+                // RFC 9460 §2.1: each value is decoded as a character-string and
+                // then converted into its key's wire format. A value that is not
+                // valid for its key throws, and the record is refused below.
+                var svcParams  = parts.Length > 2
+                                     ? SVCParameterPresentation.Read(parts[2])
+                                     : new List<SVCParameter>();
 
                 return new SVCB(Name, DNSQueryClasses.IN, TimeToLive,
                                 priority, targetName, svcParams);
@@ -397,65 +306,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private static) TryParseSVCParamKey(KeyName)
-
-        private static UInt16? TryParseSVCParamKey(String KeyName)
-
-            => KeyName.ToLowerInvariant() switch {
-                   "mandatory"        => 0,
-                   "alpn"             => 1,
-                   "no-default-alpn"  => 2,
-                   "port"             => 3,
-                   "ipv4hint"         => 4,
-                   "ech"              => 5,
-                   "ipv6hint"         => 6,
-                   _ when KeyName.StartsWith("key", StringComparison.OrdinalIgnoreCase) &&
-                          UInt16.TryParse(KeyName[3..], out var keyNum)
-                       => keyNum,
-                   _   => null
-               };
-
-        #endregion
-
-        #region (private static) SplitSVCParams(Input)
-
-        /// <summary>
-        /// Split SVC parameter tokens respecting quoted values.
-        /// </summary>
-        private static IEnumerable<String> SplitSVCParams(String Input)
-        {
-
-            var start   = 0;
-            var inQuote = false;
-
-            for (var i = 0; i < Input.Length; i++)
-            {
-
-                if (Input[i] == '"' && (i == 0 || Input[i - 1] != '\\'))
-                    inQuote = !inQuote;
-
-                else if (Input[i] == ' ' && !inQuote)
-                {
-                    if (i > start)
-                        yield return Input[start..i];
-                    start = i + 1;
-                }
-
-            }
-
-            if (start < Input.Length)
-                yield return Input[start..];
-
-        }
-
-        #endregion
-
 
         #region (protected override) ZoneFileRData()
 
         /// <inheritdoc/>
         protected override String ZoneFileRData()
-            => BuildPresentation(Priority, TargetName.ToString(), SVCParameters);
+            => SVCParameterPresentation.Write(Priority, TargetName.ToString(), SVCParameters);
 
         #endregion
 
@@ -515,7 +371,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"Priority={Priority}, Target={TargetName}, SVCParams={string.Join(", ", SVCParameters.Select(p => $"{GetKeyName(p.Key)}={(p.Value.Length > 0 ? EscapeValue(p.Value) : "")}"))}, {base.ToString()}";
+            => $"Priority={Priority}, Target={TargetName}, SVCParams={string.Join(", ", SVCParameters.Select(p => $"{SVCParameterPresentation.KeyName(p.Key)}={(p.Value.Length > 0 ? SVCParameterPresentation.EscapeValue(p.Value) : "")}"))}, {base.ToString()}";
 
         #endregion
 
