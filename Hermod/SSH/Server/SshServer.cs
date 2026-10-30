@@ -41,7 +41,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
     public sealed record SshServerOptions
     {
         /// <summary>
-        /// The host keys offered during the handshake (the first is used; certificates supported).
+        /// The host keys offered during the handshake: the client's choice of algorithm picks the key -
+        /// the first one that signs it - so a client that knows only one of them (an RSA key from
+        /// <c>known_hosts</c>, a certificate) still gets that one. Certificates supported.
         /// </summary>
         public required IReadOnlyList<ISshHostKey>  HostKeys          { get; init; }
 
@@ -403,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                     {
 
                         transport = await SshTransport.ServerHandshakeAsync(Pipe,
-                                                                            options.HostKeys[0],
+                                                                            options.HostKeys,
                                                                             MaxPacketLength:    options.Limits.MaxPacketSize,
                                                                             CancellationToken:  grace.Token).ConfigureAwait(false);
 
