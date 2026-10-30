@@ -1283,6 +1283,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </remarks>
         internal TCPConnection?                                        TCPConnection           { get; set; }
 
+        /// <summary>
+        /// Writes this request's interim responses while its handler runs, and
+        /// refuses them once the server is about to send the final response.
+        /// Null where no server of this library's own is answering the request.
+        /// </summary>
+        internal InformationalResponseWriter?                          InformationalResponses  { get; set; }
+
         public Func<HTTPRequest, ChunkedTransferEncodingStream, Task>  ChunkWorker             { get; set; } = (request, stream) => Task.CompletedTask;
 
         /// <summary>
@@ -1557,6 +1564,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             ParsedURLParameters     = Request.ParsedURLParameters;
             QueryString             = Request.QueryString;
             BestMatchingAcceptType  = Request.BestMatchingAcceptType;
+            InformationalResponses  = Request.InformationalResponses;
 
             this.Cookies = GetHeaderField(HTTPRequestHeaderField.Cookie) ?? new HTTPCookies();
 
@@ -1760,6 +1768,120 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         Request.CancellationToken);
 
         }
+
+
+        #region SendInformationalResponse(StatusCode, HeaderFields = null, CancellationToken = default)
+
+        /// <summary>
+        /// Send an interim response ahead of the final one, while the handler is
+        /// still working on that (RFC 9110, Section 15.2): a 103 Early Hints,
+        /// say, or a 102 Processing.
+        /// </summary>
+        /// <remarks>
+        /// True when it was written. False when nothing was sent, which is not an
+        /// error, since an interim response is advisory:
+        ///
+        ///   * the request is HTTP/1.0, and Section 15.2 says a server MUST NOT
+        ///     send a 1xx response to an HTTP/1.0 client;
+        ///   * the handler has returned, so the final response is on its way and
+        ///     nothing may come before it any more;
+        ///   * no server of this library's own is answering the request;
+        ///   * the connection failed.
+        ///
+        /// Throws for what a caller can get wrong: a status code that is not 1xx,
+        /// or is 101, which switches protocols and is not interim; a field name
+        /// that is not a token; a value that is not printable ASCII; and
+        /// Content-Length or Transfer-Encoding, which a server MUST NOT send in a
+        /// 1xx response (RFC 9110, Section 8.6; RFC 9112, Section 6.1).
+        ///
+        /// Whether to send one at all is the application's decision. RFC 8297's
+        /// security considerations note that an HTTP/1.1 client which takes a 1xx
+        /// for the final response misreads everything after it on the
+        /// connection.
+        /// </remarks>
+        /// <param name="StatusCode">A 1xx status code other than 101.</param>
+        /// <param name="HeaderFields">The header fields of the interim response, in order.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public async Task<Boolean> SendInformationalResponse(HTTPStatusCode                              StatusCode,
+                                                             IEnumerable<KeyValuePair<String, String>>?  HeaderFields        = null,
+                                                             CancellationToken                           CancellationToken   = default)
+        {
+
+            if (StatusCode.Code is < 100 or >= 200 || StatusCode.Code == 101)
+                throw new ArgumentException($"{StatusCode.Code} is not an interim status code (RFC 9110, Section 15.2).", nameof(StatusCode));
+
+            var head = new StringBuilder($"HTTP/1.1 {StatusCode.Code} {StatusCode.Name}\r\n");
+
+            foreach (var field in HeaderFields ?? [])
+            {
+
+                if (field.Key.Length == 0 || !field.Key.All(IsFieldNameCharacter))
+                    throw new ArgumentException($"'{field.Key}' is not a field name.", nameof(HeaderFields));
+
+                if (field.Key.Equals("Content-Length",    StringComparison.OrdinalIgnoreCase) ||
+                    field.Key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentException($"A 1xx response has no content, so it MUST NOT carry {field.Key}.", nameof(HeaderFields));
+                }
+
+                if (!field.Value.All(character => character is '\t' or >= ' ' and <= '~'))
+                    throw new ArgumentException($"The value of '{field.Key}' is not printable ASCII.", nameof(HeaderFields));
+
+                head.Append(field.Key).Append(": ").Append(field.Value).Append("\r\n");
+
+            }
+
+            head.Append("\r\n");
+
+            if (ProtocolVersion != HTTPVersion.HTTP_1_1 || InformationalResponses is null)
+                return false;
+
+            return await InformationalResponses.Send(
+                             Encoding.ASCII.GetBytes(head.ToString()),
+                             CancellationToken
+                         ).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region SendEarlyHints           (Links, CancellationToken = default)
+
+        /// <summary>
+        /// Send a 103 Early Hints (RFC 8297) with these links, typically
+        /// rel="preload", so that a client can start fetching what the final
+        /// response will need while the handler is still working on it.
+        /// </summary>
+        /// <remarks>
+        /// The links are hints about the final response, not a part of it: put
+        /// them on the final response as well where they belong there. True and
+        /// false mean what they mean for <see cref="SendInformationalResponse"/>.
+        /// </remarks>
+        /// <param name="Links">The links to hint at.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public Task<Boolean> SendEarlyHints(HTTPLinks          Links,
+                                            CancellationToken  CancellationToken   = default)
+
+            => SendInformationalResponse(
+                   HTTPStatusCode.EarlyHints,
+                   [ new (HTTPResponseHeaderField.Link.Name, Links.ToString()) ],
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region (private static) IsFieldNameCharacter(Character)
+
+        // tchar (RFC 9110, Section 5.6.2).
+        private static Boolean IsFieldNameCharacter(Char Character)
+
+            => Character is >= 'a' and <= 'z'
+                         or >= 'A' and <= 'Z'
+                         or >= '0' and <= '9'
+                         or '!' or '#' or '$' or '%' or '&' or '\'' or '*' or '+'
+                         or '-' or '.' or '^' or '_' or '`' or '|' or '~';
+
+        #endregion
 
 
         #region TryValidateRequestTarget(HTTPMethod, RequestTarget, out ErrorStatusCode, out ErrorDescription)

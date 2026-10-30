@@ -908,11 +908,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         #endregion
 
 
-                        var httpResponse = await ProcessHTTPRequest(
+                        // The handler may send interim responses while it runs
+                        // (RFC 9110, Section 15.2), and none once it has
+                        // returned: the final response comes next.
+                        var informationalResponses     = new InformationalResponseWriter(stream);
+                        request.InformationalResponses = informationalResponses;
+
+                        HTTPResponse httpResponse;
+
+                        try
+                        {
+                            httpResponse = await ProcessHTTPRequest(
                                                      request,
                                                      stream,
                                                      CancellationToken
                                                  );
+                        }
+                        finally
+                        {
+                            await informationalResponses.Close();
+                        }
 
                         #region When the upper layer did not consume all of the body stream, we will discard the remaining data to support pipelining
 

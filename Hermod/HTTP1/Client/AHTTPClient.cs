@@ -55,6 +55,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected static readonly Byte[]                   endOfHTTPHeaderDelimiter         = Encoding.UTF8.GetBytes("\r\n\r\n");
         protected const           Byte                     endOfHTTPHeaderDelimiterLength   = 4;
 
+        /// <summary>
+        /// How many interim responses one response keeps. Section 15.2 of
+        /// RFC 9110 sets no limit, and a server could send them without end
+        /// until the request times out; the ones after these are still read and
+        /// skipped, but not kept.
+        /// </summary>
+        public    const           Byte                     MaxInformationalResponses        = 16;
+
 
         private readonly  SemaphoreSlim  sendRequestSemaphore = new (1, 1);
         private           CancellationTokenSource?  backgroundConnectionRenewalCTS;
@@ -1058,6 +1066,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          expectation.Trim().Equals("100-continue", StringComparison.OrdinalIgnoreCase)
                                                      ) == true;
 
+                            // The 1xx responses ahead of the final one (RFC 9110,
+                            // Section 15.2), for HTTPResponse.InformationalResponses.
+                            var informationalResponses = new List<HTTPResponse>();
+
                             async Task SendRequestBody()
                             {
 
@@ -1224,6 +1236,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         waitFor100Continue = false;
                                     }
 
+                                    // Kept rather than dropped, so that a caller can
+                                    // read a 103's Link fields (RFC 8297). One that
+                                    // does not parse is skipped as before: it is
+                                    // advisory, and the final response is what was
+                                    // asked for.
+                                    if (informationalResponses.Count < MaxInformationalResponses)
+                                    {
+                                        try
+                                        {
+                                            informationalResponses.Add(
+                                                HTTPResponse.Parse(
+                                                    Timestamp.Now,
+                                                    stopwatch.Elapsed,
+                                                    Request,
+                                                    this,
+                                                    LocalSocket!. Value,
+                                                    RemoteSocket!.Value,
+                                                    new HTTPSource(LocalSocket!.Value),
+                                                    responseHeader,
+                                                    CancellationToken: Request.CancellationToken
+                                                )
+                                            );
+                                        }
+                                        catch (Exception)
+                                        { }
+                                    }
+
                                     var interimRemainingStart  = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
                                     var interimRemainingLength = dataLength - interimRemainingStart;
                                     buffer.Slice(interimRemainingStart, interimRemainingLength).CopyTo(buffer[..]);
@@ -1248,7 +1287,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 CancellationToken: Request.CancellationToken
                                             );
 
-                                response.HTTPClient ??= this;
+                                response.HTTPClient           ??= this;
+                                response.InformationalResponses   = informationalResponses;
 
                                 #endregion
 

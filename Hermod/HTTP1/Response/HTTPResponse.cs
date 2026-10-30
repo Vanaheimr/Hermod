@@ -703,6 +703,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPClientTimings?  ClientTimings          { get; internal set; }
 
+        /// <summary>
+        /// The interim (1xx) responses the client received before this one, in
+        /// order (RFC 9110, Section 15.2): a 100 Continue, or a 103 Early Hints
+        /// whose Link fields name what this response will need (RFC 8297).
+        /// Empty when none came. 101 is not among them, since it is not interim.
+        /// </summary>
+        /// <remarks>
+        /// Their fields are theirs, not this response's: RFC 8297 does not let a
+        /// 103's fields change how the final response is processed.
+        /// </remarks>
+        public IReadOnlyList<HTTPResponse>  InformationalResponses    { get; internal set; } = [];
+
         #endregion
 
         #region Constructor(s)
