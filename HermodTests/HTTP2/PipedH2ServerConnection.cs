@@ -1055,6 +1055,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
+        /// Hold the writer loop right after it has written a DATA frame on this
+        /// stream, at its next entry of the connection's flow-control lock: the
+        /// lock it picks the next stream under. <paramref name="Write"/> makes
+        /// that DATA. The lock is taken on the writer's own thread, inside its
+        /// write, so the loop goes on from the write into a lock already held;
+        /// this returns once it waits there. Whatever the returned holder's
+        /// <see cref="MonitorHolder.LetGo"/> runs, it runs under that lock,
+        /// before the loop gets it.
+        /// </summary>
+        public async Task<MonitorHolder> HoldWriterAfterDataAsync(UInt32 StreamId, Func<Task> Write)
+        {
+
+            var written = new TaskCompletionSource<(Thread Writer, MonitorHolder Flow)>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            lock (sync)
+                dataWritten = (StreamId, writer => {
+
+                                  try
+                                  {
+                                      written.TrySetResult((writer, MonitorHolder.Hold(FlowLockOf(Connection))));
+                                  }
+                                  catch (Exception e)
+                                  {
+                                      written.TrySetException(e);
+                                  }
+
+                              });
+
+            Thread         writer;
+            MonitorHolder  flow;
+
+            try
+            {
+                await Write();
+                (writer, flow) = await written.Task.WaitAsync(StepTimeout);
+            }
+            catch
+            {
+                _ = written.Task.ContinueWith(taken => taken.Result.Flow.Dispose(), TaskContinuationOptions.OnlyOnRanToCompletion);
+                throw;
+            }
+            finally
+            {
+                lock (sync)
+                    dataWritten = null;
+            }
+
+            try
+            {
+                await WaitUntilAsync(() => IsBlocked(writer), "the writer loop waits for the flow-control lock, past its write");
+                return flow;
+            }
+            catch
+            {
+                flow.Dispose();
+                throw;
+            }
+
+        }
+
+        /// <summary>
         /// The server has written a DATA frame on this stream, on this thread.
         /// </summary>
         private void DataWrittenBy(UInt32 StreamId, Thread Writer)
