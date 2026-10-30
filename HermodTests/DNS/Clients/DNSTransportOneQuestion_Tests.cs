@@ -135,10 +135,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                         messages.Enqueue(message);
 
                         // Answered, with the query turned round: QR set, NOERROR,
-                        // nothing in the answer section. One connection carries one
-                        // query at a time, and the two share one deadline - against
-                        // a server that never answered, the second would never be
-                        // sent, and rightly: its time was up.
+                        // nothing in the answer section. This server reads one query,
+                        // answers it and only then reads the next, so it sees both
+                        // whether the client pipelines them (DNSTCPPipelining_Tests)
+                        // or waits for each answer as it used to.
                         var response = (Byte[]) message.Clone();
                         response[2] |= 0x80;
                         response[3]  = 0x80;

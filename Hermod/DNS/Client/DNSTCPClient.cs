@@ -32,8 +32,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
     /// <summary>
     /// A DNS TCP client for a single DNS server.
-    /// Reuses the TCP connection across queries; concurrent callers
-    /// are serialized via an internal semaphore.
+    /// Reuses the TCP connection across queries, and pipelines concurrent
+    /// queries on it (RFC 7766 §6.2.1.1).
     /// </summary>
     public class DNSTCPClient : ATCPClient,
                                 IDNSClientWithTransport
@@ -59,6 +59,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// than let in to reconnect a client that is going away.
         /// </summary>
         private volatile Boolean disposed;
+
+        /// <summary>
+        /// The queries outstanding on this client's connection, and whose turn it
+        /// is to read it (RFC 7766 §6.2.1.1).
+        /// </summary>
+        private readonly DNSStreamPipeline pipeline = new();
+
+        /// <summary>
+        /// Counts this client's connections, so that a query knows which one it
+        /// was written to and is never handed a stream it was not written on.
+        /// </summary>
+        private Int32 connection;
+
+        /// <summary>
+        /// RFC 7828 §3.2.2's TIMEOUT 0 arrived while other queries were still
+        /// outstanding: the connection goes once they are answered, and nothing
+        /// more is written to it in the meantime.
+        /// </summary>
+        private volatile Boolean closeWhenDrained;
 
         #endregion
 
@@ -198,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
             this.logger            = (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSTCPClient>();
-            this.keepalive         = new DNSKeepalivePolicy(tcpStreamLock, CloseConnection);
+            this.keepalive         = new DNSKeepalivePolicy(tcpStreamLock, CloseWhenDrainedAsync, () => pipeline.Outstanding == 0);
 
         }
 
@@ -291,7 +310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             data[0] = (Byte) (dataLength >> 8);
             data[1] = (Byte) (dataLength & 0xFF);
 
-            #region TCP (serialized via semaphore, auto-reconnect on broken connection)
+            #region TCP (pipelined on one connection, auto-reconnect on broken connection)
 
             ObjectDisposedException.ThrowIf(disposed, this);
 
@@ -325,36 +344,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                  );
             deadline.CancelAfter(effectiveTimeout);
 
-            var holdsLock = false;
-
             try
             {
 
-                await tcpStreamLock.WaitAsync(deadline.Token).
-                                    ConfigureAwait(false);
-
-                holdsLock = true;
-
-                if (!IsConnected || tcpClient is null)
-                    await ReconnectAsync(deadline.Token).
-                              ConfigureAwait(false);
-
-                var tcpStream = tcpClient!.GetStream();
-
-                try
+                // Asked at most twice: a connection that breaks under a query - the
+                // server gone between two queries, a reset - gets one more try on
+                // a new one, as it always has.
+                for (var attempt = 1; ; attempt++)
                 {
-                    return await SendAndReceiveTCPAsync(tcpStream, data, dnsQuery, effectiveTimeout, deadline.Token).
-                                     ConfigureAwait(false);
-                }
-                // Not when the client is being disposed: DisposeAsync closes the
-                // connection, the read fails for that reason, and a reconnect then
-                // brought back what was being taken down.
-                catch (IOException) when (!disposed)
-                {
-                    await ReconnectAsync(deadline.Token).ConfigureAwait(false);
-                    tcpStream = tcpClient!.GetStream();
-                    return await SendAndReceiveTCPAsync(tcpStream, data, dnsQuery, effectiveTimeout, deadline.Token).
-                                     ConfigureAwait(false);
+
+                    DNSStreamPipeline.Exchange exchange;
+
+                    // RFC 7766 §6.2.1.1: "When a DNS client sends multiple queries
+                    // to a server, it SHOULD NOT wait for an outstanding reply
+                    // before sending the next query." The lock is held to connect
+                    // and to write this query, and no longer: the answer is waited
+                    // for below, with the next query free to be written meanwhile.
+                    await tcpStreamLock.WaitAsync(deadline.Token).
+                                        ConfigureAwait(false);
+
+                    try
+                    {
+
+                        // RFC 7828 §3.2.2: after a TIMEOUT of 0 the client "SHOULD
+                        // send no more queries on that connection and initiate
+                        // closing the connection as soon as it has received all
+                        // outstanding responses".
+                        if (closeWhenDrained)
+                        {
+                            await pipeline.Drained.WaitAsync(deadline.Token).ConfigureAwait(false);
+                            closeWhenDrained = false;
+                            await CloseConnection().ConfigureAwait(false);
+                        }
+
+                        // Counted before the connection is made: a query still
+                        // reading the old one must not take the new one for its
+                        // own, nor close it on its way out.
+                        if (!IsConnected || tcpClient is null)
+                        {
+                            Interlocked.Increment(ref connection);
+                            await ReconnectAsync(deadline.Token).ConfigureAwait(false);
+                        }
+
+                        var tcpStream  = tcpClient!.GetStream();
+                        var sent       = Stopwatch.GetTimestamp();
+
+                        exchange       = pipeline.Register(
+                                             dnsQuery.TransactionId,
+                                             Volatile.Read(ref connection),
+                                             message => Task.FromResult(Accept(message, dnsQuery, effectiveTimeout, sent))
+                                         );
+
+                        try
+                        {
+                            await tcpStream.WriteAsync(data, deadline.Token).ConfigureAwait(false);
+                            await tcpStream.FlushAsync(deadline.Token).      ConfigureAwait(false);
+                        }
+                        // Not when the client is being disposed: DisposeAsync closes the
+                        // connection, the write fails for that reason, and a reconnect then
+                        // brought back what was being taken down.
+                        catch (IOException) when (!disposed && attempt == 1)
+                        {
+                            pipeline.Withdraw(exchange);
+                            await CloseConnection().ConfigureAwait(false);
+                            continue;
+                        }
+                        catch
+                        {
+                            pipeline.Withdraw(exchange);
+                            throw;
+                        }
+
+                    }
+                    finally
+                    {
+                        tcpStreamLock.Release();
+                    }
+
+                    var (ending, answer) = await pipeline.AwaitAsync(
+                                                     exchange,
+                                                     StreamOf,
+                                                     CloseConnectionOf,
+                                                     keepalive.ApplyAsync,
+                                                     deadline.Token
+                                                 ).ConfigureAwait(false);
+
+                    if (ending == DNSStreamPipeline.Ending.Answered)
+                        return answer!;
+
+                    if (ending == DNSStreamPipeline.Ending.Broken && attempt == 1 && !disposed)
+                        continue;
+
+                    return DNSInfo.Failed(
+                               OriginOf(effectiveTimeout),
+                               dnsQuery.TransactionId,
+                               effectiveTimeout,
+                               Stopwatch.GetElapsedTime(asked)
+                           );
+
                 }
 
             }
@@ -456,132 +543,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
-            finally
-            {
-                if (holdsLock)
-                    tcpStreamLock.Release();
-            }
-
             #endregion
 
         }
 
         #endregion
 
-        #region (private) SendAndReceiveTCPAsync(...)
+        #region (private) Accept(Message, Query, Timeout, Sent)
 
         /// <summary>
-        /// Send a DNS query over the TCP stream and read the response.
-        /// Extracted so that the IOException retry logic covers both write and read.
+        /// The query's answer, or null when the message is not it.
         /// </summary>
-        private async Task<DNSInfo> SendAndReceiveTCPAsync(NetworkStream      TCPStream,
-                                                           Byte[]             Data,
-                                                           DNSPacket          DNSQuery,
-                                                           TimeSpan           EffectiveTimeout,
-                                                           CancellationToken  CancellationToken)
+        private DNSInfo? Accept(Byte[]     Message,
+                                DNSPacket  Query,
+                                TimeSpan   Timeout,
+                                Int64      Sent)
         {
 
-            var stopwatch = Stopwatch.StartNew();
+            var response = DNSInfo.ReadResponse(
+                               OriginOf(Timeout),
+                               Query.TransactionId,
+                               Query.Questions,
+                               new MemoryStream(Message),
+                               Timeout,
+                               Stopwatch.GetElapsedTime(Sent)
+                           );
 
-            await TCPStream.WriteAsync(Data, CancellationToken).ConfigureAwait(false);
-            await TCPStream.FlushAsync(CancellationToken).      ConfigureAwait(false);
+            // Not ours - RFC 7766 §7's other half, the matching rule, said so.
+            return response.IsValid
+                       ? response
+                       : null;
 
-            // RFC 7766 §7: "Stub and recursive resolvers MUST be able to process
-            // responses that arrive in a different order than that in which the
-            // requests were sent, regardless of the transport protocol in use."
-            //
-            // On a reused connection the message waiting here need not be ours:
-            // a query that timed out is still answered, and that answer arrives
-            // on the next read. Returning it — even as a failure — leaves the
-            // stream one message behind for good. So a message that does not
-            // match is skipped and the next one read, which is the reaction the
-            // UDP client got in finding 49 and this one did not. The loop is
-            // bounded by the same cancellation token as a single read, so a
-            // server that sends nothing matching costs exactly one timeout.
-            while (true)
+        }
+
+        #endregion
+
+        #region (private) StreamOf(Connection) / CloseConnectionOf(Connection)
+
+        /// <summary>
+        /// The stream of the given connection, or null when that connection is
+        /// no longer this client's.
+        /// </summary>
+        private Stream? StreamOf(Int32 Connection)
+        {
+
+            if (Connection != Volatile.Read(ref connection) || !IsConnected)
+                return null;
+
+            try
             {
-
-                var responseLength = await TCPStream.ReadUInt16BEAsync(CancellationToken).
-                                                     ConfigureAwait(false);
-
-                // From the first octet of the body onwards the frame boundary is
-                // only known for as long as exactly responseLength octets are
-                // consumed. Giving up in the middle loses it, and nothing repairs
-                // a stream whose boundary is unknown — no matching rule can, since
-                // every later read starts mid-message. The connection goes instead;
-                // the next query opens a fresh one, which costs a round trip and is
-                // the only honest answer.
-                var buffer    = new Byte[responseLength];
-                var totalRead = 0;
-
-                try
-                {
-
-                    while (totalRead < responseLength)
-                    {
-
-                        var bytesRead = await TCPStream.ReadAsync(
-                                                  buffer.AsMemory(totalRead, responseLength - totalRead),
-                                                  CancellationToken
-                                              ).ConfigureAwait(false);
-
-                        if (bytesRead == 0)
-                        {
-
-                            await CloseConnection().ConfigureAwait(false);
-
-                            return DNSInfo.Failed(
-                                       OriginOf(EffectiveTimeout),
-                                       DNSQuery.TransactionId,
-                                       EffectiveTimeout,
-                                       stopwatch.Elapsed
-                                   );
-
-                        }
-
-                        totalRead += bytesRead;
-
-                    }
-
-                }
-                catch
-                {
-                    await CloseConnection().ConfigureAwait(false);
-                    throw;
-                }
-
-                // A length below the 12-octet header cannot be a DNS message —
-                // but its octets are part of the framing and have now been read,
-                // so the stream is still aligned and the next message can follow.
-                if (responseLength < 12)
-                    continue;
-
-                var response = DNSInfo.ReadResponse(
-                                   OriginOf(EffectiveTimeout),
-                                   DNSQuery.TransactionId,
-                                   DNSQuery.Questions,
-                                   new MemoryStream(buffer, 0, totalRead),
-                                   EffectiveTimeout,
-                                   stopwatch.Elapsed
-                               );
-
-                // Not ours — RFC 7766 §7's other half, the matching rule, said so.
-                // Keep waiting rather than hand the caller somebody else's answer,
-                // or a failure that the real answer would have contradicted.
-                if (!response.IsValid)
-                    continue;
-
-                // RFC 7828 §3.2.2, both halves: record what the server advertised,
-                // drop the connection at once on a TIMEOUT of 0, and otherwise restart
-                // the idle clock so the connection does not outlive the timeout it was
-                // given. Nothing else has to change for either — every query begins by
-                // reconnecting when IsConnected is false, so the next one opens a fresh
-                // connection on its own.
-                await keepalive.ApplyAsync(response).ConfigureAwait(false);
-
-                return response;
-
+                return tcpClient?.GetStream();
             }
+            catch (Exception e) when (e is InvalidOperationException or ObjectDisposedException)
+            {
+                return null;
+            }
+
+        }
+
+        /// <summary>
+        /// Close the given connection, unless a newer one has taken its place.
+        /// </summary>
+        private Task CloseConnectionOf(Int32 Connection)
+
+            => Connection == Volatile.Read(ref connection)
+                   ? CloseConnection()
+                   : Task.CompletedTask;
+
+        #endregion
+
+        #region (private) CloseWhenDrainedAsync()
+
+        /// <summary>
+        /// RFC 7828 §3.2.2's close, for a connection that may carry other queries:
+        /// at once when none is outstanding, and otherwise once they are answered.
+        /// </summary>
+        private Task CloseWhenDrainedAsync()
+        {
+
+            if (pipeline.Outstanding > 0)
+            {
+                closeWhenDrained = true;
+                return Task.CompletedTask;
+            }
+
+            return CloseConnection();
 
         }
 

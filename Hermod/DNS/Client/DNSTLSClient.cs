@@ -37,8 +37,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
     /// <summary>
     /// A DNS TLS client (DNS-over-TLS) for a single DNS server.
-    /// Reuses the TLS connection across queries; concurrent callers
-    /// are serialized via an internal semaphore.
+    /// Reuses the TLS connection across queries, and pipelines concurrent
+    /// queries on it (RFC 7858 §3.3, RFC 7766 §6.2.1.1).
     /// </summary>
     public class DNSTLSClient : ATLSClient,
                                 IDNSClientWithTransport
@@ -64,6 +64,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// than let in to reconnect a client that is going away.
         /// </summary>
         private volatile Boolean disposed;
+
+        /// <summary>
+        /// The queries outstanding on this client's session, and whose turn it is
+        /// to read it (RFC 7858 §3.3, RFC 7766 §6.2.1.1).
+        /// </summary>
+        private readonly DNSStreamPipeline pipeline = new();
+
+        /// <summary>
+        /// Counts this client's sessions, so that a query knows which one it was
+        /// written to and is never handed a stream it was not written on.
+        /// </summary>
+        private Int32 connection;
+
+        /// <summary>
+        /// RFC 7828 §3.2.2's TIMEOUT 0 arrived while other queries were still
+        /// outstanding: the session goes once they are answered, and nothing more
+        /// is written to it in the meantime.
+        /// </summary>
+        private volatile Boolean closeWhenDrained;
 
         #endregion
 
@@ -302,7 +321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
             this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSTLSClient>();
-            this.keepalive         = new DNSKeepalivePolicy(tlsStreamLock, CloseConnection);
+            this.keepalive         = new DNSKeepalivePolicy(tlsStreamLock, CloseWhenDrainedAsync, () => pipeline.Outstanding == 0);
 
         }
 
@@ -391,7 +410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
             this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSTLSClient>();
-            this.keepalive         = new DNSKeepalivePolicy(tlsStreamLock, CloseConnection);
+            this.keepalive         = new DNSKeepalivePolicy(tlsStreamLock, CloseWhenDrainedAsync, () => pipeline.Outstanding == 0);
 
             RemotePort ??= URL.Port ?? IPPort.DNS_TLS;
 
@@ -480,7 +499,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             data[1] = (Byte) (signedQuery.Length & 0xFF);
             Buffer.BlockCopy(signedQuery, 0, data, 2, signedQuery.Length);
 
-            #region TLS (serialized via semaphore, auto-reconnect on broken connection)
+            #region TLS (pipelined on one session, auto-reconnect on broken connection)
 
             ObjectDisposedException.ThrowIf(disposed, this);
 
@@ -502,48 +521,107 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                  );
             deadline.CancelAfter(effectiveTimeout);
 
-            var holdsLock = false;
-
             try
             {
 
-                await tlsStreamLock.WaitAsync(deadline.Token).
-                                    ConfigureAwait(false);
-
-                holdsLock = true;
-
-                // A failed connect - refused, or a handshake that did not complete - is
-                // the answer. Going on wrote the query into the stream of the handshake
-                // that had failed, and its exception took the place of the reason.
-                if (!IsConnected || tcpClient is null)
+                // Asked at most twice: a session that breaks under a query gets one
+                // more try on a new one, as it always has.
+                for (var attempt = 1; ; attempt++)
                 {
 
-                    var connectionResult = await ReconnectAsync(deadline.Token).
-                                                     ConfigureAwait(false);
+                    DNSStreamPipeline.Exchange exchange;
 
-                    if (connectionResult.IsFailure)
-                        return await ConnectionFailed(connectionResult, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked)).
-                                         ConfigureAwait(false);
+                    // RFC 7858 §3.3: "In order to minimize latency, clients SHOULD
+                    // pipeline multiple queries over a TLS session." The lock is held
+                    // to connect and to write this query, and no longer - see
+                    // DNSTCPClient and DNSStreamPipeline.
+                    await tlsStreamLock.WaitAsync(deadline.Token).
+                                        ConfigureAwait(false);
 
-                }
+                    try
+                    {
 
-                try
-                {
-                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, signedQuery, requestMAC, effectiveTimeout, deadline.Token).
-                                     ConfigureAwait(false);
-                }
-                // Not when the client is being disposed - see DNSTCPClient.
-                catch (IOException) when (!disposed)
-                {
+                        // RFC 7828 §3.2.2's TIMEOUT 0, with other queries still
+                        // outstanding when it arrived - see DNSTCPClient.
+                        if (closeWhenDrained)
+                        {
+                            await pipeline.Drained.WaitAsync(deadline.Token).ConfigureAwait(false);
+                            closeWhenDrained = false;
+                            await CloseConnection().ConfigureAwait(false);
+                        }
 
-                    var connectionResult = await ReconnectAsync(deadline.Token).ConfigureAwait(false);
+                        // A failed connect - refused, or a handshake that did not complete - is
+                        // the answer. Going on wrote the query into the stream of the handshake
+                        // that had failed, and its exception took the place of the reason.
+                        //
+                        // Counted before the session is made - see DNSTCPClient.
+                        if (!IsConnected || tcpClient is null)
+                        {
 
-                    if (connectionResult.IsFailure)
-                        return await ConnectionFailed(connectionResult, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked)).
-                                         ConfigureAwait(false);
+                            Interlocked.Increment(ref connection);
 
-                    return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, signedQuery, requestMAC, effectiveTimeout, deadline.Token).
-                                     ConfigureAwait(false);
+                            var connectionResult = await ReconnectAsync(deadline.Token).
+                                                             ConfigureAwait(false);
+
+                            if (connectionResult.IsFailure)
+                                return await ConnectionFailed(connectionResult, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked)).
+                                                 ConfigureAwait(false);
+
+                        }
+
+                        var stream  = tlsStream!;
+                        var sent    = Stopwatch.GetTimestamp();
+
+                        exchange    = pipeline.Register(
+                                          dnsQuery.TransactionId,
+                                          Volatile.Read(ref connection),
+                                          message => Accept(message, dnsQuery, signedQuery, requestMAC, effectiveTimeout, sent)
+                                      );
+
+                        try
+                        {
+                            await stream.WriteAsync(data, deadline.Token).ConfigureAwait(false);
+                            await stream.FlushAsync(deadline.Token).      ConfigureAwait(false);
+                        }
+                        // Not when the client is being disposed - see DNSTCPClient.
+                        catch (IOException) when (!disposed && attempt == 1)
+                        {
+                            pipeline.Withdraw(exchange);
+                            await CloseConnection().ConfigureAwait(false);
+                            continue;
+                        }
+                        catch
+                        {
+                            pipeline.Withdraw(exchange);
+                            throw;
+                        }
+
+                    }
+                    finally
+                    {
+                        tlsStreamLock.Release();
+                    }
+
+                    var (ending, answer) = await pipeline.AwaitAsync(
+                                                     exchange,
+                                                     StreamOf,
+                                                     CloseConnectionOf,
+                                                     keepalive.ApplyAsync,
+                                                     deadline.Token
+                                                 ).ConfigureAwait(false);
+
+                    if (ending == DNSStreamPipeline.Ending.Answered)
+                        return answer!;
+
+                    if (ending == DNSStreamPipeline.Ending.Broken && attempt == 1 && !disposed)
+                        continue;
+
+                    return DNSInfo.Failed(
+                               OriginOf(effectiveTimeout),
+                               dnsQuery.TransactionId,
+                               effectiveTimeout,
+                               Stopwatch.GetElapsedTime(asked)
+                           );
 
                 }
 
@@ -642,12 +720,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        );
 
             }
-            finally
-            {
-                if (holdsLock)
-                    tlsStreamLock.Release();
-            }
-
             #endregion
 
         }
@@ -753,127 +825,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private) SendAndReceiveTLSAsync(...)
+        #region (private) Accept(Message, Query, SignedQuery, RequestMAC, Timeout, Sent)
 
         /// <summary>
-        /// Send a DNS query over the TLS stream and read the response.
-        /// Extracted so that the IOException retry logic covers both write and read.
+        /// The query's answer, or null when the message is not it.
         /// </summary>
-        private async Task<DNSInfo> SendAndReceiveTLSAsync(SslStream           TLSStream,
-                                                           Byte[]              Data,
-                                                           DNSPacket           DNSQuery,
-                                                           Byte[]              SignedQuery,
-                                                           Byte[]?             RequestMAC,
-                                                           TimeSpan            EffectiveTimeout,
-                                                           CancellationToken   CancellationToken)
+        private async Task<DNSInfo?> Accept(Byte[]     Message,
+                                            DNSPacket  Query,
+                                            Byte[]     SignedQuery,
+                                            Byte[]?    RequestMAC,
+                                            TimeSpan   Timeout,
+                                            Int64      Sent)
         {
 
-            var stopwatch = Stopwatch.StartNew();
+            var body = Message;
 
-            await TLSStream.WriteAsync(Data, CancellationToken).ConfigureAwait(false);
-            await TLSStream.FlushAsync(CancellationToken).      ConfigureAwait(false);
-
-            // RFC 7766 §7: "Stub and recursive resolvers MUST be able to process
-            // responses that arrive in a different order than that in which the
-            // requests were sent, regardless of the transport protocol in use."
-            // §7 says "regardless of the transport protocol", and RFC 7858 §3.3
-            // puts DoT on RFC 7766's framing, so this stream is the same stream:
-            // an answer to a query that already timed out is waiting here, and
-            // returning it leaves the session one message behind for good.
-            while (true)
+            // RFC 8945 §5.4 does not merely permit waiting here, it asks for it:
+            // "the client SHOULD log an error and continue to wait for a signed
+            // response until the request times out". Failing the query instead
+            // ends it on a message the specification says to treat as though it
+            // had not arrived - and on a reused session that message is often the
+            // answer to a query that already timed out, whose MAC folds in a
+            // different request's.
+            if (!TransactionSecurity.TryAcceptResponse(ref body, RequestMAC, SignedQuery, out var reason))
             {
-
-                var responseLength = await TLSStream.ReadUInt16BEAsync(CancellationToken).
-                                                      ConfigureAwait(false);
-
-                // From the first octet of the body onwards the frame boundary is
-                // only known for as long as exactly responseLength octets are
-                // consumed. Giving up in the middle loses it, and nothing repairs
-                // a stream whose boundary is unknown. The session goes instead.
-                var buffer    = new Byte[responseLength];
-                var totalRead = 0;
-
-                try
-                {
-
-                    while (totalRead < responseLength)
-                    {
-
-                        var bytesRead = await TLSStream.ReadAsync(
-                                                  buffer.AsMemory(totalRead, responseLength - totalRead),
-                                                  CancellationToken
-                                              ).ConfigureAwait(false);
-
-                        if (bytesRead == 0)
-                        {
-
-                            await CloseConnection().ConfigureAwait(false);
-
-                            return DNSInfo.Failed(
-                                       OriginOf(EffectiveTimeout),
-                                       DNSQuery.TransactionId,
-                                       EffectiveTimeout,
-                                       stopwatch.Elapsed
-                                   );
-
-                        }
-
-                        totalRead += bytesRead;
-
-                    }
-
-                }
-                catch
-                {
-                    await CloseConnection().ConfigureAwait(false);
-                    throw;
-                }
-
-                // A length below the 12-octet header cannot be a DNS message —
-                // but its octets are part of the framing and have now been read,
-                // so the stream is still aligned and the next message can follow.
-                if (responseLength < 12)
-                    continue;
-
-                var body = buffer[..totalRead];
-
-                // RFC 8945 §5.4 does not merely permit waiting here, it asks for
-                // it: "the client SHOULD log an error and continue to wait for a
-                // signed response until the request times out". Returning a
-                // failure instead ends the request on a message the specification
-                // says to treat as though it had not arrived — and on a reused
-                // stream that message is often the answer to a query that already
-                // timed out, whose MAC folds in a different request's.
-                if (!TransactionSecurity.TryAcceptResponse(ref body, RequestMAC, SignedQuery, out var reason))
-                {
-                    await Log($"Discarding a DoT response from {DNSServerLabel} that failed transaction-signature verification: {reason}").ConfigureAwait(false);
-                    continue;
-                }
-
-                var response = DNSInfo.ReadResponse(
-                                   OriginOf(EffectiveTimeout),
-                                   DNSQuery.TransactionId,
-                                   DNSQuery.Questions,
-                                   new MemoryStream(body),
-                                   EffectiveTimeout,
-                                   stopwatch.Elapsed
-                               );
-
-                // Not ours — RFC 7766 §7's other half, the matching rule, said so.
-                if (!response.IsValid)
-                    continue;
-
-                // RFC 7828 §3.2.2, both halves: record what the server advertised,
-                // drop the session at once on a TIMEOUT of 0, and otherwise restart
-                // the idle clock so the session does not outlive the timeout it was
-                // given. Nothing else has to change for either — every query begins
-                // by reconnecting when IsConnected is false, so the next one opens a
-                // fresh TLS session on its own.
-                await keepalive.ApplyAsync(response).ConfigureAwait(false);
-
-                return response;
-
+                await Log($"Discarding a DoT response from {DNSServerLabel} that failed transaction-signature verification: {reason}").ConfigureAwait(false);
+                return null;
             }
+
+            var response = DNSInfo.ReadResponse(
+                               OriginOf(Timeout),
+                               Query.TransactionId,
+                               Query.Questions,
+                               new MemoryStream(body),
+                               Timeout,
+                               Stopwatch.GetElapsedTime(Sent)
+                           );
+
+            // Not ours - RFC 7766 §7's other half, the matching rule, said so.
+            return response.IsValid
+                       ? response
+                       : null;
+
+        }
+
+        #endregion
+
+        #region (private) StreamOf(Connection) / CloseConnectionOf(Connection)
+
+        /// <summary>
+        /// The stream of the given session, or null when that session is no
+        /// longer this client's.
+        /// </summary>
+        private Stream? StreamOf(Int32 Connection)
+
+            => Connection == Volatile.Read(ref connection) && IsConnected
+                   ? tlsStream
+                   : null;
+
+        /// <summary>
+        /// Close the given session, unless a newer one has taken its place.
+        /// </summary>
+        private Task CloseConnectionOf(Int32 Connection)
+
+            => Connection == Volatile.Read(ref connection)
+                   ? CloseConnection()
+                   : Task.CompletedTask;
+
+        #endregion
+
+        #region (private) CloseWhenDrainedAsync()
+
+        /// <summary>
+        /// RFC 7828 §3.2.2's close, for a session that may carry other queries: at
+        /// once when none is outstanding, and otherwise once they are answered.
+        /// </summary>
+        private Task CloseWhenDrainedAsync()
+        {
+
+            if (pipeline.Outstanding > 0)
+            {
+                closeWhenDrained = true;
+                return Task.CompletedTask;
+            }
+
+            return CloseConnection();
 
         }
 
