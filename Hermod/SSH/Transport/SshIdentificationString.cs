@@ -54,7 +54,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public String   ProtocolVersion    { get; }
 
         /// <summary>
-        /// The software version, printable US-ASCII without spaces or minus signs.
+        /// The software version, printable US-ASCII without spaces - and, in what we send, without minus
+        /// signs (a peer's may have them, see <see cref="TryParse"/>).
         /// </summary>
         public String   SoftwareVersion    { get; }
 
@@ -85,6 +86,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public SshIdentificationString(String   SoftwareVersion,
                                        String?  Comments         = null,
                                        String   ProtocolVersion  = "2.0")
+
+            : this(ProtocolVersion, SoftwareVersion, Comments, Checked: true)
+
         {
 
             if (String.IsNullOrEmpty(SoftwareVersion))
@@ -94,10 +98,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 if (c < 0x20 || c > 0x7E || c == ' ' || c == '-')
                     throw new ArgumentException("The software version must be printable US-ASCII without spaces or minus signs!", nameof(SoftwareVersion));
 
+        }
+
+        // Checked is a marker only: by the public constructor above, or - more leniently - by TryParse.
+        private SshIdentificationString(String   ProtocolVersion,
+                                        String   SoftwareVersion,
+                                        String?  Comments,
+                                        Boolean  Checked)
+        {
             this.ProtocolVersion  = ProtocolVersion;
             this.SoftwareVersion  = SoftwareVersion;
             this.Comments         = Comments;
-
         }
 
         #endregion
@@ -143,6 +154,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Try to parse an SSH identification line (with or without a trailing CR LF).
         /// </summary>
+        /// <remarks>
+        /// RFC 4253 §4.2 forbids minus signs in the software version, but OpenSSH's own
+        /// <c>ssh-keyscan</c> sends <c>SSH-2.0-OpenSSH-keyscan</c>, and OpenSSH reads everything up to the
+        /// first space as the version - so a peer's may contain them: the rule binds what we send, not
+        /// what we accept. Control characters are still refused.
+        /// </remarks>
         /// <param name="Text">The line to parse.</param>
         /// <param name="Result">The parsed identification string, if successful.</param>
         /// <param name="ErrorResponse">An error description, if parsing failed.</param>
@@ -192,7 +209,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 return false;
             }
 
-            Result = new SshIdentificationString(softwareVersion, comments, protocolVersion);
+            foreach (var c in softwareVersion)
+                if (c < 0x21 || c > 0x7E)
+                {
+                    ErrorResponse = "Malformed SSH identification string: the software version must be printable US-ASCII!";
+                    return false;
+                }
+
+            Result = new SshIdentificationString(protocolVersion, softwareVersion, comments, Checked: true);
             return true;
 
         }

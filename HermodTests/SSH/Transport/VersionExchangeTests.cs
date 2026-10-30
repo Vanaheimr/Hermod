@@ -73,10 +73,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             Assert.That(SshIdentificationString.Parse("SSH-1.99-Server").ProtocolVersion, Is.EqualTo("1.99"));
         }
 
+        /// <summary>
+        /// What OpenSSH's <c>ssh-keyscan</c> sends: RFC 4253 forbids the minus sign in the software
+        /// version, OpenSSH sends one anyway, and refusing it made our server unscannable.
+        /// </summary>
+        [Test]
+        public void Parse_AcceptsMinusSignInAPeersSoftwareVersion()
+        {
+            var id = SshIdentificationString.Parse("SSH-2.0-OpenSSH-keyscan");
+            Assert.Multiple(() => {
+                Assert.That(id.SoftwareVersion, Is.EqualTo("OpenSSH-keyscan"));
+                Assert.That(id.Line,            Is.EqualTo("SSH-2.0-OpenSSH-keyscan"));
+            });
+        }
+
         [TestCase("SSH-1.5-OldServer")]      // SSH-1 only
         [TestCase("HTTP/1.1 200 OK")]        // not SSH at all
         [TestCase("SSH-2.0-")]               // empty software version
         [TestCase("SSH-2.0")]                // missing second dash
+        [TestCase("SSH-2.0-Bad\tVersion")]   // a control character - refused, not thrown
         public void Parse_RejectsInvalid(String Text)
         {
             Assert.That(SshIdentificationString.TryParse(Text, out _, out _), Is.False);
@@ -86,6 +101,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         public void Construct_RejectsSpaceInSoftwareVersion()
         {
             Assert.Throws<ArgumentException>(() => new SshIdentificationString("Bad Version"));
+        }
+
+        [Test]
+        public void Construct_RejectsMinusSignInSoftwareVersion()
+        {
+            // What we send keeps to the RFC.
+            Assert.Throws<ArgumentException>(() => new SshIdentificationString("Hermod-SSH"));
         }
 
         [Test]

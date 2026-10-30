@@ -50,7 +50,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly Boolean                 isServer;
         private readonly Byte[]                  vC;
         private readonly Byte[]                  vS;
-        private readonly ISshHostKey?            hostKey;         // server side
+        private readonly IReadOnlyList<ISshHostKey>?  hostKeys;   // server side: every key we may present
+        private          ISshHostKey?                 hostKey;    // server side: the one the first exchange chose
         private readonly Func<Byte[], Boolean>?  verifyHostKey;   // client side
         private readonly String[]?               ciphers;
         private readonly String[]?               macs;
@@ -259,7 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                              Boolean                 IsServer,
                              Byte[]                  V_C,
                              Byte[]                  V_S,
-                             ISshHostKey?            HostKey,
+                             IReadOnlyList<ISshHostKey>?  HostKeys,
                              Func<Byte[], Boolean>?  VerifyHostKey,
                              String[]?               Ciphers,
                              String[]?               Macs,
@@ -272,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             this.isServer                   = IsServer;
             this.vC                         = V_C;
             this.vS                         = V_S;
-            this.hostKey                    = HostKey;
+            this.hostKeys                   = HostKeys;
             this.verifyHostKey              = VerifyHostKey;
             this.ciphers                    = Ciphers;
             this.macs                       = Macs;
@@ -311,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var remote   = await SshVersionExchange.ReadAsync(Pipe.Input, CancellationToken).ConfigureAwait(false);
 
             var transport = new SshTransport(Pipe, IsServer: false, localId.ToWireBytes(), remote.WireBytes,
-                                             HostKey: null, VerifyHostKey, Ciphers, Macs, KeyExchanges, HostKeyAlgorithms,
+                                             HostKeys: null, VerifyHostKey, Ciphers, Macs, KeyExchanges, HostKeyAlgorithms,
                                              ServerSignatureAlgorithms: null) {
                                  PeerIdentification = remote.Identification
                              };
@@ -324,29 +325,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
-        #region (static) ServerHandshakeAsync(Pipe, HostKey, ...)
+        #region (static) ServerHandshakeAsync(Pipe, HostKey,  ...)
 
         /// <summary>
         /// Accept as the server: version exchange, then the initial key exchange, returning an
         /// established transport ready for encrypted traffic and later rekeys.
         /// </summary>
-        public static async ValueTask<SshTransport> ServerHandshakeAsync(IDuplexPipe               Pipe,
-                                                                         ISshHostKey               HostKey,
-                                                                         SshIdentificationString?  LocalIdentification        = null,
-                                                                         String[]?                 Ciphers                    = null,
-                                                                         String[]?                 Macs                       = null,
-                                                                         String[]?                 KeyExchanges               = null,
-                                                                         String[]?                 ServerSignatureAlgorithms  = null,
-                                                                         Int32?                    MaxPacketLength            = null,
-                                                                         CancellationToken         CancellationToken          = default)
+        public static ValueTask<SshTransport> ServerHandshakeAsync(IDuplexPipe               Pipe,
+                                                                   ISshHostKey               HostKey,
+                                                                   SshIdentificationString?  LocalIdentification        = null,
+                                                                   String[]?                 Ciphers                    = null,
+                                                                   String[]?                 Macs                       = null,
+                                                                   String[]?                 KeyExchanges               = null,
+                                                                   String[]?                 ServerSignatureAlgorithms  = null,
+                                                                   Int32?                    MaxPacketLength            = null,
+                                                                   CancellationToken         CancellationToken          = default)
+
+            => ServerHandshakeAsync(Pipe, [ HostKey ], LocalIdentification, Ciphers, Macs, KeyExchanges,
+                                    ServerSignatureAlgorithms, MaxPacketLength, CancellationToken);
+
+        #endregion
+
+        #region (static) ServerHandshakeAsync(Pipe, HostKeys, ...)
+
+        /// <summary>
+        /// Accept as the server with several host keys: every key's algorithms are offered, and the one
+        /// the client picks decides the key that signs - the first that can, so for two keys of the same
+        /// kind the earlier one. That key then stays the host key for the life of the connection.
+        /// </summary>
+        public static async ValueTask<SshTransport> ServerHandshakeAsync(IDuplexPipe                 Pipe,
+                                                                         IReadOnlyList<ISshHostKey>  HostKeys,
+                                                                         SshIdentificationString?    LocalIdentification        = null,
+                                                                         String[]?                   Ciphers                    = null,
+                                                                         String[]?                   Macs                       = null,
+                                                                         String[]?                   KeyExchanges               = null,
+                                                                         String[]?                   ServerSignatureAlgorithms  = null,
+                                                                         Int32?                      MaxPacketLength            = null,
+                                                                         CancellationToken           CancellationToken          = default)
         {
+
+            if (HostKeys.Count == 0)
+                throw new ArgumentException("A server needs at least one host key!", nameof(HostKeys));
 
             var localId  = LocalIdentification ?? SshIdentificationString.Default;
             await SshVersionExchange.WriteAsync(Pipe.Output, localId, CancellationToken).ConfigureAwait(false);
             var remote   = await SshVersionExchange.ReadAsync(Pipe.Input, CancellationToken).ConfigureAwait(false);
 
             var transport = new SshTransport(Pipe, IsServer: true, remote.WireBytes, localId.ToWireBytes(),
-                                             HostKey, VerifyHostKey: null, Ciphers, Macs, KeyExchanges, HostKeyAlgorithms: null,
+                                             HostKeys, VerifyHostKey: null, Ciphers, Macs, KeyExchanges, HostKeyAlgorithms: null,
                                              ServerSignatureAlgorithms) {
                                  PeerIdentification      = remote.Identification,
                                  MaxInboundPacketLength  = MaxPacketLength ?? SshPacketFraming.MaxPacketLength
@@ -829,11 +855,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (private) LocalKexInit()
 
-        // A server offers only its host key's algorithms.
+        // A server offers only what its host keys can sign: at first every key's algorithms, in the order
+        // the keys were given, and once a key is chosen only that key's - a rekey must not swap the host
+        // key under the client (OpenSSH's client drops the connection if it does).
         private KexInitMessage LocalKexInit()
             => KexInitMessage.CreateLocal(isServer, ciphers, macs, keyExchanges,
-                                          isServer ? [.. hostKey!.AlgorithmNames] : hostKeyAlgorithms,
+                                          isServer ? OfferedHostKeyAlgorithms() : hostKeyAlgorithms,
                                           Initial: KeyExchangeCount == 0);
+
+        private String[] OfferedHostKeyAlgorithms()
+            => hostKey is not null
+                   ? [.. hostKey.AlgorithmNames]
+                   : [.. hostKeys!.SelectMany(key => key.AlgorithmNames).Distinct(StringComparer.Ordinal)];
+
+        #endregion
+
+        #region (private) SelectHostKey(Algorithm)
+
+        // The first key that signs the negotiated algorithm: two keys of the same kind (an old and a new
+        // Ed25519 key during a rotation) are told apart by their order, as in sshd_config.
+        private ISshHostKey SelectHostKey(String Algorithm)
+
+            => hostKeys!.FirstOrDefault(key => key.AlgorithmNames.Contains(Algorithm, StringComparer.Ordinal))
+                   ?? throw new SshWireException($"No host key signs the negotiated algorithm '{Algorithm}'!");
 
         #endregion
 
@@ -939,10 +983,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 var (qS, rawSecret)  = kex.ServerRespond(qC);
 
                 kEncoded        = kex.EncodeSharedSecret(rawSecret);
-                kS              = hostKey!.PublicKeyBlob;
+                // The client picked the algorithm, and with it the key: the first exchange fixes it for
+                // the connection, a rekey offered nothing else (LocalKexInit).
+                hostKey       ??= SelectHostKey(negotiated.HostKey);
+
+                kS              = hostKey.PublicKeyBlob;
                 h               = ExchangeHashCalc.Compute(kex.HashAlgorithm, vC, vS, iC, iS, kS, qC, qS, kEncoded);
 
-                var signature   = hostKey!.Sign(negotiated.HostKey, h);
+                var signature   = hostKey.Sign(negotiated.HostKey, h);
                 await WriteExchangePacketAsync(SshKexCore.BuildEcdhReply(kS, qS, signature), CancellationToken).ConfigureAwait(false);
 
             }
@@ -962,6 +1010,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                 if (!SshSignature.Verify(kS, h, sigBlob))
                     throw new SshWireException("The server's host-key signature over the exchange hash is invalid!");
+
+                // The host key was established by the first exchange; a rekey that presents another one
+                // is refused rather than put to the policy again - as OpenSSH's client does.
+                if (!IsInitial && !kS.AsSpan().SequenceEqual(serverHostKey))
+                    throw new SshWireException("The server presented a different host key in a rekey than in the initial key exchange!");
 
                 // The signature above only proves the peer holds the private half of the key it just
                 // presented — possession, not identity. Without a verifier there is nothing binding that
