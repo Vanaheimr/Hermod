@@ -3593,11 +3593,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 while (!cancellationToken.IsCancellationRequested)
                 {
 
+                    // The wakeup is taken before the scan, not after it. A
+                    // stream that opens, queues its DATA and signals between the
+                    // scan and the pick below completes the very wakeup taken
+                    // here, and the wait ends at once. Taken after the scan, it
+                    // was the fresh one SignalWriterWakeup had just armed in its
+                    // place: that stream was not among the candidates, and the
+                    // loop slept with its DATA queued, until something unrelated
+                    // woke it — on a connection with nothing else going on, until
+                    // the idle timeout ended the connection.
+                    Task wakeup;
+
+                    lock (flowLock)
+                        wakeup = windowChanged.Task;
+
                     var candidates = streamManager.GetSendableStreams();
 
                     HTTP2Stream? stream    = null;
                     var          reserved  = 0;
-                    Task?        waitTask  = null;
 
                     lock (flowLock)
                     {
@@ -3617,14 +3630,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                         }
 
-                        if (stream is null)
-                            waitTask = windowChanged.Task;
-
                     }
 
                     if (stream is null)
                     {
-                        await waitTask!.WaitAsync(cancellationToken);
+                        await wakeup.WaitAsync(cancellationToken);
                         continue;
                     }
 

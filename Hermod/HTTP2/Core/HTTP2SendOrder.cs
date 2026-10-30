@@ -80,7 +80,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// RFC 9218 send ordering: lower urgency number sends first; within the
         /// same urgency, a non-incremental stream ("send as a single unit") is
         /// preferred over an incremental one ("fine to interleave"); ties beyond
-        /// that are broken round-robin-fairly by recency of last service. This
+        /// that are broken round-robin-fairly by recency of last service, and
+        /// between streams never served yet by stream ID, lowest first: the
+        /// order the client asked in, which RFC 9218, Section 10 has a server
+        /// serve non-incremental responses of one urgency by. This
         /// is a deliberate simplification of the RFC's non-incremental guidance
         /// — a strict reading favors draining one non-incremental stream to
         /// completion before starting the next at the same urgency, whereas this
@@ -98,7 +101,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (A.Priority.Incremental != B.Priority.Incremental)
                 return A.Priority.Incremental ? 1 : -1;   // Non-incremental drained preferentially
 
-            return A.LastServedSequence.CompareTo(B.LastServedSequence);   // Least-recently-served first
+            if (A.LastServedSequence != B.LastServedSequence)
+                return A.LastServedSequence.CompareTo(B.LastServedSequence);   // Least-recently-served first
+
+            // Both never served: each service hands its stream a sequence of
+            // its own, so only the initial -1 ties. Left to the order of the
+            // candidates, the tie went to whichever stream the stream manager's
+            // dictionary enumerated first — and a dictionary refills the slots
+            // of removed entries first, so under load a new stream was
+            // enumerated ahead of an older one, on every pick, for as long as
+            // new streams kept coming. h2bench saw single responses wait 1.5 s
+            // that way at 64 concurrent requests, while the connection was busy
+            // all along.
+            return A.StreamId.CompareTo(B.StreamId);
 
         }
 
