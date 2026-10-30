@@ -38,9 +38,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// *TIMEOUT 0* — "A DNS client that receives a response that includes the
     /// edns-tcp-keepalive option with a TIMEOUT value of 0 SHOULD send no more
     /// queries on that connection and initiate closing the connection as soon as
-    /// it has received all outstanding responses." Both clients serialize their
-    /// queries behind the stream lock this is handed, so the response being
-    /// processed is the only outstanding one and the connection can go at once.
+    /// it has received all outstanding responses." Both clients pipeline their
+    /// queries (RFC 7766 §6.2.1.1), so others may still be outstanding when the
+    /// option arrives: the close this is handed waits for them, and sends nothing
+    /// more on the connection in the meantime.
     /// </para>
     /// <para>
     /// *A non-zero timeout* — the client "SHOULD honour the timeout received in
@@ -75,6 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         private readonly SemaphoreSlim  streamLock;
         private readonly Func<Task>     closeConnection;
+        private readonly Func<Boolean>  isIdle;
         private readonly Timer          idleTimer;
 
         private Boolean disposed;
@@ -96,14 +98,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Create the RFC 7828 §3.2.2 policy for one connection-holding client.
         /// </summary>
-        /// <param name="StreamLock">The lock that serializes the client's queries. The timer takes it before closing, so a deadline that lands during an exchange is skipped rather than cutting it off.</param>
+        /// <param name="StreamLock">The lock the client writes its queries under. The timer takes it before closing, so a deadline that lands while a query is being written is skipped rather than cutting it off.</param>
         /// <param name="CloseConnection">How this client drops its connection without cancelling what a caller has in flight.</param>
-        public DNSKeepalivePolicy(SemaphoreSlim  StreamLock,
-                                  Func<Task>     CloseConnection)
+        /// <param name="IsIdle">Whether no query is outstanding on the connection: with queries pipelined, the lock being free no longer says so.</param>
+        public DNSKeepalivePolicy(SemaphoreSlim   StreamLock,
+                                  Func<Task>      CloseConnection,
+                                  Func<Boolean>?  IsIdle = null)
         {
 
             this.streamLock       = StreamLock;
             this.closeConnection  = CloseConnection;
+            this.isIdle           = IsIdle ?? (() => true);
             this.idleTimer        = new Timer(OnIdleDeadline, null, Never, Never);
 
         }
@@ -173,7 +178,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 try
                 {
+
+                    // Nothing being written, but queries written earlier may still
+                    // be waiting for their answers - and those answers will start
+                    // the clock again when they arrive.
+                    if (!isIdle())
+                        return;
+
                     await closeConnection().ConfigureAwait(false);
+
                 }
                 finally
                 {
