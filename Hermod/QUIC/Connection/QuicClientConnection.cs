@@ -45,7 +45,6 @@ public sealed class QuicClientConnection : QuicEndpoint
     private bool _retryHandled;
     private ConnectionId _retryScid; // SCID of the Retry packet (for the §7.3 check of retry_source_connection_id)
     private List<uint> _offeredVersions = [];
-    private readonly List<Frame> _applicationFrames = [];
 
     protected override bool IsServer => false;
 
@@ -232,11 +231,6 @@ public sealed class QuicClientConnection : QuicEndpoint
     public bool EarlyDataAccepted => _tls.EarlyDataAccepted;
 
     /// <summary>
-    /// Frames received in 1-RTT (e.g. HANDSHAKE_DONE, the HTTP/3 control stream) for inspection.
-    /// </summary>
-    public IReadOnlyList<Frame> ApplicationFrames => _applicationFrames;
-
-    /// <summary>
     /// <c>true</c> when a version-negotiation packet was received (no common version).
     /// </summary>
     public bool VersionNegotiationReceived { get; private set; }
@@ -358,6 +352,4 @@ public sealed class QuicClientConnection : QuicEndpoint
     // RFC 9001 §4.1.2: the client may also confirm the handshake when one of its 1-RTT packets is
     // acknowledged – so the Handshake keys may be discarded even before a (lost) HANDSHAKE_DONE.
     protected override void OnOneRttPacketAcknowledged() => HandshakeConfirmed = true;
-
-    protected override void OnApplicationFrameHandled(Frame frame) => _applicationFrames.Add(frame);
 }

@@ -644,7 +644,10 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             if (_quic.IsClosing)
                 return; // a connection error was reported
             if (state.Responded)
+            {
+                state.ReleaseReceived();
                 continue;
+            }
             if (draining && state.Tunnel is null && state.RequestBody is null && state.WebTransportSession is null)
                 continue; // draining: nobody reads this request any more
 
@@ -1597,5 +1600,27 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             BodyStream?.Dispose();
             BodyStream = null;
         }
+
+        /// <summary>
+        /// Lets go of what collected the request message, once <see cref="Responded"/> says no more
+        /// of it is read. Idempotent.
+        /// </summary>
+        /// <remarks>
+        /// The connection keeps its request states for as long as it lives. Until 2026-10-30 they
+        /// kept the body, and the frame buffer it was parsed from, which a 300 KB DATA frame grows
+        /// to 512 KiB: ~815 KiB per 300 KB upload. The handler has its own copy of the body.
+        /// </remarks>
+        public void ReleaseReceived()
+        {
+            if (_receivedReleased)
+                return;
+            Buffer.Release();
+            Pending.Clear();
+            Body.Clear();
+            Body.Capacity = 0;
+            _receivedReleased = true;
+        }
+
+        private bool _receivedReleased;
     }
 }

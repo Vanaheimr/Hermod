@@ -702,11 +702,6 @@ public abstract class QuicEndpoint : IDisposable
     protected virtual void OnOneRttPacketAcknowledged() { }
 
     /// <summary>
-    /// A 1-RTT frame was processed (client: collect for inspection).
-    /// </summary>
-    protected virtual void OnApplicationFrameHandled(Frame frame) { }
-
-    /// <summary>
     /// A NEW_TOKEN frame arrived (RFC 9000 §8.1.3) — only the client acts on this.
     /// </summary>
     protected virtual void OnNewTokenReceived(ReadOnlyMemory<byte> token) { }
@@ -2228,9 +2223,6 @@ public abstract class QuicEndpoint : IDisposable
                     EnterDraining(); // RFC 9000 §10.2.2: drain on receipt of a CONNECTION_CLOSE
                     return;          // process no further frames of this packet
             }
-
-            if (level == EncryptionLevel.Application)
-                OnApplicationFrameHandled(frame);
         }
     }
 
