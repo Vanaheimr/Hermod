@@ -472,6 +472,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Content-Disposition
+
+        /// <summary>
+        /// Whether the content is to be shown or saved, and under which file name
+        /// (RFC 6266). Null when the field is absent, repeated, or does not fit
+        /// the grammar. The file name is advisory: store under SafeFileName, not
+        /// FileName (Section 4.3).
+        /// </summary>
+        public HTTPContentDisposition? ContentDisposition
+
+            => GetHeaderField(HTTPHeaderField.ContentDisposition);
+
+        #endregion
+
         #region Content-Type
 
         public HTTPContentType? ContentType

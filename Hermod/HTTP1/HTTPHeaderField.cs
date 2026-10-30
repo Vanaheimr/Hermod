@@ -685,11 +685,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// also can be used to attach additional metadata, such as the filename
         /// to use when saving the response payload locally.
         /// </summary>
-        /// <example>Content-Disposition: attachment; filename="filename.jpg"</example>
-        /// <seealso cref="https://tools.ietf.org/html/rfc6266"/>
-        public static readonly HTTPHeaderField<String> ContentDisposition = new ("Content-Disposition",
-                                                                                 HeaderFieldType.General,
-                                                                                 RequestPathSemantic.EndToEnd);
+        /// <remarks>
+        /// Typed since 2026-10-29: a value that does not fit RFC 6266's grammar,
+        /// or repeats a parameter, reads as null. The file name is advisory; see
+        /// HTTPContentDisposition.SafeFileName before storing under it.
+        /// </remarks>
+        /// <example>Content-Disposition: attachment; filename="Gruesse.pdf"; filename*=UTF-8''Gr%C3%BC%C3%9Fe.pdf</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc6266.html#section-4"/>
+        public static readonly HTTPHeaderField<HTTPContentDisposition> ContentDisposition = new ("Content-Disposition",
+                                                                                                 HeaderFieldType.General,
+                                                                                                 RequestPathSemantic.EndToEnd,
+                                                                                                 MultipleValuesAsList:  false,
+                                                                                                 StringParser:          HTTPContentDisposition.TryParse,
+                                                                                                 ValueSerializer:       contentDisposition => contentDisposition.ToString());
 
         #endregion
 

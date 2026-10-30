@@ -542,7 +542,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Content-Disposition
 
-        public String? ContentDisposition
+        /// <summary>
+        /// Whether the content is to be shown or saved, and under which file name
+        /// (RFC 6266), e.g. HTTPContentDisposition.Attachment("report.pdf").
+        /// </summary>
+        public HTTPContentDisposition? ContentDisposition
         {
 
             get
