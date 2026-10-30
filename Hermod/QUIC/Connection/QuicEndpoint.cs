@@ -1541,6 +1541,8 @@ public abstract class QuicEndpoint : IDisposable
                 continue;
             if (frame is StopSendingFrame ss && StreamMap.TryGetValue(ss.StreamId, out QuicStream? r) && r.Receive.ResetReceived)
                 continue;
+            if (frame is MaxStreamDataFrame or MaxDataFrame or MaxStreamsFrame && (!IsCurrentCredit(frame) || frames.Contains(frame)))
+                continue;
             frames.Add(frame);
         }
         _retransmitQueue[level].Clear();
@@ -1550,6 +1552,28 @@ public abstract class QuicEndpoint : IDisposable
         if (QuicMetrics.FramesRetransmitted.Enabled && frames.Count > before)
             QuicMetrics.FramesRetransmitted.Add(frames.Count - before, QuicMetrics.RoleTag(IsServer));
     }
+
+    /// <summary>
+    /// Whether a lost MAX_STREAM_DATA, MAX_DATA or MAX_STREAMS still carries the limit in force, and
+    /// so has to go out again (RFC 9000 §13.3).
+    /// </summary>
+    /// <remarks>
+    /// Each frame goes out once, when the window has drained far enough. If it is lost and not
+    /// repeated, the peer stops at the old limit, and the drain that would trigger the next update
+    /// needs the very bytes the peer is holding back: the stream, or the connection, stalls for good.
+    /// Limits only ever grow, so a frame whose value is below the current one has been overtaken by
+    /// a later frame, which recovery covers in its own packet. A stream whose final size is known
+    /// needs no more credit, which is also where the RFC says to stop.
+    /// </remarks>
+    private bool IsCurrentCredit(Frame frame) => frame switch
+    {
+        MaxStreamDataFrame m => StreamMap.TryGetValue(m.StreamId, out QuicStream? s) &&
+                                !s.Receive.FinReceived && !s.Receive.ResetReceived &&
+                                m.MaximumStreamData == s.Receive.MaxData,
+        MaxDataFrame md      => md.MaximumData == _localConnMaxData,
+        MaxStreamsFrame ms   => ms.MaximumStreams == (ms.Bidirectional ? _grantedMaxStreamsBidi : _grantedMaxStreamsUni),
+        _                    => true,
+    };
 
     private void RecordSent(int level, ulong packetNumber, int size, List<Frame> frames, bool isPmtuProbe = false)
     {
@@ -1576,9 +1600,12 @@ public abstract class QuicEndpoint : IDisposable
         // HANDSHAKE_DONE likewise: RFC 9000 §13.3 requires retransmission until acknowledged — if it
         // is lost, the client never learns that the handshake is confirmed and, once the server has
         // discarded its Handshake keys, cannot be reached by a Handshake-level probe either ⇒ deadlock.
+        // MAX_STREAM_DATA/MAX_DATA/MAX_STREAMS likewise (§13.3): a lost limit stalls the peer for good,
+        // so each is tracked, and on loss repeated if it is still the limit in force (IsCurrentCredit).
         List<Frame> retransmittable = frames.Where(f => f is CryptoFrame or StreamFrame or ResetStreamFrame
                                                           or ResetStreamAtFrame or StopSendingFrame or HandshakeDoneFrame
-                                                          or AckFrequencyFrame).ToList();
+                                                          or AckFrequencyFrame or MaxStreamDataFrame or MaxDataFrame
+                                                          or MaxStreamsFrame).ToList();
         if (retransmittable.Any(f => f is HandshakeDoneFrame))
             HandshakeDoneSentCountForTest++;
         // draft-ietf-quic-ack-frequency §7: remember which packet carried the ACK_FREQUENCY so its
@@ -1758,6 +1785,11 @@ public abstract class QuicEndpoint : IDisposable
     /// Current (possibly auto-tuned) size of the connection receive window — for diagnostics/tests.
     /// </summary>
     internal ulong ConnectionReceiveWindowSize => _connWindowTuner?.Size ?? _localConnMaxData;
+
+    /// <summary>
+    /// The connection-level limit we last announced to the peer (MAX_DATA) — for tests.
+    /// </summary>
+    internal ulong LocalConnectionMaxDataForTest => _localConnMaxData;
 
     // ---- Receiving -------------------------------------------------------------------------
 
