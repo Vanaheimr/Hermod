@@ -492,9 +492,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // the two cost when the deadline began behind the lock.
             //
             // LiveClient..., not ??= - see DNSHTTPSClient for what a spent token
-            // source costs here.
+            // source costs here. Held on to and asked below in place of the
+            // field - see DNSTCPClient for what reading the field cost.
+            var clientLifetime = LiveClientCancellationTokenSource.Token;
+
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(
-                                     LiveClientCancellationTokenSource.Token,
+                                     clientLifetime,
                                      CancellationToken
                                  );
             deadline.CancelAfter(effectiveTimeout);
@@ -529,7 +532,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return await SendAndReceiveTLSAsync(tlsStream!, data, dnsQuery, signedQuery, requestMAC, effectiveTimeout, deadline.Token).
                                      ConfigureAwait(false);
                 }
-                catch (IOException)
+                // Not when the client is being disposed - see DNSTCPClient.
+                catch (IOException) when (!disposed)
                 {
 
                     var connectionResult = await ReconnectAsync(deadline.Token).ConfigureAwait(false);
@@ -544,12 +548,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
 
             }
+            catch (Exception e) when (disposed && !CancellationToken.IsCancellationRequested)
+            {
+
+                // The client was disposed under the query - one event with one
+                // answer, whatever it came out as. See DNSTCPClient.
+                logger.LogWarning(
+                    e,
+                    "DNS TLS query to {DNSServer} was cancelled by the client - it did not time out",
+                    DNSServerLabel
+                );
+
+                return DNSInfo.Failed(
+                           OriginOf(),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout,
+                           Stopwatch.GetElapsedTime(asked)
+                       );
+
+            }
             catch (OperationCanceledException ocx) when (!CancellationToken.IsCancellationRequested)
             {
 
                 // A cancellation from elsewhere is not a timeout - see
                 // DNSHTTPSClient for what calling it one silently cost.
-                if (clientCancellationTokenSource?.IsCancellationRequested == true)
+                if (clientLifetime.IsCancellationRequested)
                 {
 
                     logger.LogWarning(

@@ -310,8 +310,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             //
             // LiveClient..., not ??= - see DNSHTTPSClient for what a spent token
             // source costs here.
+            //
+            // Held on to, and asked below in place of the field, which is what
+            // it used to be. The field is not this query's: a reconnect in the
+            // middle of a dispose asked LiveClientCancellationTokenSource, found
+            // the cancelled source and put a fresh one in its place - and the
+            // query, reading the field, saw nothing cancelled and reported a
+            // timeout, 69 ms into a 6 s deadline.
+            var clientLifetime = LiveClientCancellationTokenSource.Token;
+
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(
-                                     LiveClientCancellationTokenSource.Token,
+                                     clientLifetime,
                                      CancellationToken
                                  );
             deadline.CancelAfter(effectiveTimeout);
@@ -337,7 +346,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     return await SendAndReceiveTCPAsync(tcpStream, data, dnsQuery, effectiveTimeout, deadline.Token).
                                      ConfigureAwait(false);
                 }
-                catch (IOException)
+                // Not when the client is being disposed: DisposeAsync closes the
+                // connection, the read fails for that reason, and a reconnect then
+                // brought back what was being taken down.
+                catch (IOException) when (!disposed)
                 {
                     await ReconnectAsync(deadline.Token).ConfigureAwait(false);
                     tcpStream = tcpClient!.GetStream();
@@ -346,12 +358,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
 
             }
+            catch (Exception e) when (disposed && !CancellationToken.IsCancellationRequested)
+            {
+
+                // The client was disposed under the query, and whatever that came
+                // out as - a cancelled read, a socket closed in the middle of one,
+                // a stream torn down - it is one event with one answer.
+                logger.LogWarning(
+                    e,
+                    "DNS TCP query to {RemoteIPAddress}:{RemotePort} was cancelled by the client - it did not time out",
+                    RemoteIPAddress,
+                    RemotePort
+                );
+
+                return DNSInfo.Failed(
+                           OriginOf(),
+                           dnsQuery.TransactionId,
+                           effectiveTimeout,
+                           Stopwatch.GetElapsedTime(asked)
+                       );
+
+            }
             catch (OperationCanceledException ocx) when (!CancellationToken.IsCancellationRequested)
             {
 
                 // A cancellation from elsewhere is not a timeout - see
                 // DNSHTTPSClient for what calling it one silently cost.
-                if (clientCancellationTokenSource?.IsCancellationRequested == true)
+                if (clientLifetime.IsCancellationRequested)
                 {
 
                     logger.LogWarning(
