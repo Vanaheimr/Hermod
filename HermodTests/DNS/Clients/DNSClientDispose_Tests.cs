@@ -90,6 +90,92 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #endregion
 
+        #region (private) AbandonMany(NewClient)
+
+        /// <summary>
+        /// Abandon a query as the tests below do, eight at a time and fifty times
+        /// over, and collect every one that did not end as a failure at once, or
+        /// that connected again on its way out.
+        /// </summary>
+        /// <remarks>
+        /// DisposeAsync closed the connection before it cancelled the client's
+        /// token, and a single abandoned query met that gap about once in sixty
+        /// runs of the whole suite: a reconnect inside it replaced the cancelled
+        /// token source, and the query, asking the field, reported a timeout.
+        /// Eight at a time, 22 of 800 TCP queries and 34 of 800 DoH queries
+        /// did, and every one of them had connected again - which is why the
+        /// reconnect is asked about too, as a second connection left waiting
+        /// on the listener.
+        /// </remarks>
+        private static async Task AbandonMany(Func<Int32, IDNSClient> NewClient)
+        {
+
+            const Int32 rounds = 50;
+            const Int32 width  = 8;
+
+            // How many came back wrong, and how - counted rather than listed, so
+            // that a failure reads as "11 came back as a timeout" and not as the
+            // first few lines of a list cut short.
+            var wrong = new Dictionary<String, Int32>();
+
+            void Count(String What)
+                => wrong[What] = wrong.GetValueOrDefault(What) + 1;
+
+            for (var round = 0; round < rounds; round++)
+            {
+
+                var outcomes = await Task.WhenAll(
+                                   Enumerable.Range(0, width).Select(async _ => {
+
+                                       var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
+                                       listener.Start();
+
+                                       var arrived  = FirstByte(listener);
+
+                                       try
+                                       {
+
+                                           var result = await Abandon(NewClient(((IPEndPoint) listener.LocalEndpoint).Port), arrived);
+
+                                           return (Result: result, Reconnected: listener.Pending());
+
+                                       }
+                                       finally
+                                       {
+                                           await Stop(listener, arrived);
+                                       }
+
+                                   })
+                               );
+
+                foreach (var (result, reconnected) in outcomes)
+                {
+
+                    if      (result.Thrown is not null)
+                        Count($"threw {result.Thrown.GetType().Name}");
+
+                    else if (result.Info?.IsTimeout != false)
+                        Count("came back as a timeout");
+
+                    else if (result.Elapsed >= Deadline / 2)
+                        Count("failed, but not at once");
+
+                    if (reconnected)
+                        Count("connected again while being disposed");
+
+                }
+
+            }
+
+            Assert.That(wrong,
+                        Is.Empty,
+                        $"of {rounds * width} queries abandoned, " +
+                        String.Join(", ", wrong.Select(kv => $"{kv.Value} {kv.Key}")));
+
+        }
+
+        #endregion
+
 
         #region AQueryOverUDP_EndsWithItsClient()
 
@@ -166,6 +252,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             }
 
         }
+
+        #endregion
+
+
+        #region ManyQueriesOverTCP_EndWithTheirClients()
+
+        [Test]
+        public Task ManyQueriesOverTCP_EndWithTheirClients()
+
+            => AbandonMany(port => new DNSTCPClient(IPv4Address.Localhost, Port: IPPort.Parse(port), QueryTimeout: Deadline));
+
+        #endregion
+
+        #region ManyQueriesOverHTTPS_EndWithTheirClients()
+
+        [Test]
+        public Task ManyQueriesOverHTTPS_EndWithTheirClients()
+
+            => AbandonMany(port => new DNSHTTPSClient(URL.Parse($"http://127.0.0.1:{port}/dns-query"), QueryTimeout: Deadline));
 
         #endregion
 

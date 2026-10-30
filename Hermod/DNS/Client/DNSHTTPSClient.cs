@@ -1970,6 +1970,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             disposed = true;
 
+            // The client's token first, and only then the streams. Skipping the
+            // reconnect in the query's IOException catch was not enough here: a
+            // query in flight is inside SendRequest, and SendRequest's retry
+            // loop reconnects on its own. AHTTPClient.DisposeAsync disposes the
+            // HTTP stream well before ATCPClient.Close cancels this token, so
+            // the read failed, and the loop found a broken connection and a
+            // token nobody had cancelled yet. It connected again, to the
+            // resolver, for a client that was going away - 32 of 800 queries
+            // abandoned eight at a time. Cancelled first, the token the loop
+            // is given is cancelled too, since it is linked to this one, and
+            // the loop stops.
+            try { clientCancellationTokenSource?.Cancel(); } catch { }
+
             // The lock is not disposed - see DNSTCPClient for why a query in
             // flight needs it to stay.
             await base.DisposeAsync().ConfigureAwait(false);
