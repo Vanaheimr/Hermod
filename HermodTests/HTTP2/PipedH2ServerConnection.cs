@@ -48,6 +48,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// Every write of the server completes here synchronously, so the thread that
     /// wrote the frame ending a stream goes on from that write to the half-close
     /// without a hop, and <see cref="EndOfStreamWritten"/> names that thread.
+    /// That is also why the connection writes each frame through at once here
+    /// (WriteBufferSize 0), rather than into its buffer: a buffered frame would
+    /// reach this transport with the flush of whichever writer came last, on its
+    /// thread. What these tests put in order is a frame and a reset, not the
+    /// flushes; FrameWriterTests and ServerWriteBatchingTests test those.
     /// </summary>
     internal sealed class PipedH2ServerConnection : IAsyncDisposable
     {
@@ -75,6 +80,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private readonly Lock                                              sync     = new();
         private readonly Dictionary<UInt32, TaskCompletionSource<Thread>>  watched  = [];
         private readonly List<ReceivedFrame>                               received = [];
+
+        /// <summary>
+        /// Per write to the transport, the frames it completed — see
+        /// <see cref="Writes"/>.
+        /// </summary>
+        private readonly List<(HTTP2FrameType Type, UInt32 StreamId)[]>    writes   = [];
 
         private HTTP2Connection?  connection;
         private Task?             running;
@@ -145,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
 
-        #region StartAsync(RequestHandler, StreamingHandler = null, ConnectHandler = null, IsAuthorityServed = null, ConnectionWindowSize = null)
+        #region StartAsync(RequestHandler, StreamingHandler = null, ConnectHandler = null, IsAuthorityServed = null, ConnectionWindowSize = null, WriteBufferSize = 0)
 
         /// <summary>
         /// Start a server connection with these handlers, and return once the
@@ -153,12 +164,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// <paramref name="IsAuthorityServed"/>, the server answers a request for
         /// an origin it refuses with 421. With <paramref name="ConnectionWindowSize"/>,
         /// it grants the client that connection window instead of its default.
+        /// With <paramref name="WriteBufferSize"/>, it buffers its frames as a
+        /// connection on a socket does, rather than write each through at once —
+        /// for a test of the buffering itself, which none of the thread-naming
+        /// helpers here can take part in.
         /// </summary>
         public static async Task<PipedH2ServerConnection> StartAsync(HTTP2RequestHandler     RequestHandler,
                                                                      HTTP2StreamingHandler?  StreamingHandler      = null,
                                                                      HTTP2ConnectHandler?    ConnectHandler        = null,
                                                                      Func<String, Boolean>?  IsAuthorityServed     = null,
-                                                                     Int32?                  ConnectionWindowSize  = null)
+                                                                     Int32?                  ConnectionWindowSize  = null,
+                                                                     Int32                   WriteBufferSize       = 0)
         {
 
             var peer = new PipedH2ServerConnection();
@@ -169,7 +185,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                                                   CancellationToken:     peer.cancellation.Token,
                                                   StreamingHandler:      StreamingHandler,
                                                   IsAuthorityServed:     IsAuthorityServed,
-                                                  ConnectionWindowSize:  ConnectionWindowSize ?? HTTP2FlowControl.DefaultConnectionWindowSize);
+                                                  ConnectionWindowSize:  ConnectionWindowSize ?? HTTP2FlowControl.DefaultConnectionWindowSize,
+                                                  WriteBufferSize:       WriteBufferSize);
 
             // On the thread pool, not the test's thread: the connection's loops
             // would otherwise capture NUnit's SynchronizationContext. Once the
@@ -899,12 +916,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
+        /// Per write the server made to the transport so far, the frames it
+        /// completed: those whose last byte was in that write.
+        /// </summary>
+        public IReadOnlyList<(HTTP2FrameType Type, UInt32 StreamId)[]> Writes
+        {
+            get
+            {
+                lock (sync)
+                    return [.. writes];
+            }
+        }
+
+        /// <summary>
+        /// Wait until at least <paramref name="Count"/> writers hold the
+        /// connection's write lock or wait for it, open batches included.
+        /// </summary>
+        public async Task WritersWaitingAsync(Int32 Count)
+        {
+
+            var frameWriter = typeof(HTTP2Connection).GetField("frameWriter", BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                                      GetValue(Connection)!;
+
+            var pending     = typeof(HTTP2FrameWriter).GetField("pending", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            var waited      = Stopwatch.StartNew();
+
+            while ((Int32) pending.GetValue(frameWriter)! < Count)
+            {
+
+                if (waited.Elapsed > StepTimeout)
+                    throw new TimeoutException($"Only {pending.GetValue(frameWriter)} of {Count} writers ever waited");
+
+                await Task.Delay(1);
+
+            }
+
+        }
+
+        /// <summary>
         /// The semaphore the connection's writes are made under.
         /// </summary>
         private static SemaphoreSlim WriteLockOf(HTTP2Connection Connection)
+        {
 
-            => (SemaphoreSlim) typeof(HTTP2Connection).GetField("writeLock", BindingFlags.NonPublic | BindingFlags.Instance)!.
-                                                       GetValue(Connection)!;
+            var frameWriter = typeof(HTTP2Connection).GetField("frameWriter", BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                                      GetValue(Connection)!;
+
+            return (SemaphoreSlim) typeof(HTTP2FrameWriter).GetField("writeLock", BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                                            GetValue(frameWriter)!;
+
+        }
 
         /// <summary>
         /// Lets go of the write lock once, when disposed.
@@ -1338,6 +1399,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             private          HTTP2Frame? frame;
             private          UInt32?     blockEndsStream;
 
+            /// <summary>
+            /// The frames whose last byte is in the write being parsed.
+            /// </summary>
+            private readonly List<(HTTP2FrameType Type, UInt32 StreamId)> completed = [];
+
             public override ValueTask<Int32> ReadAsync(Memory<Byte> Buffer, CancellationToken CancellationToken = default)
             {
 
@@ -1362,6 +1428,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                     return ValueTask.FromException(failure);
 
                 var ended = StreamsEndedBy(Buffer.Span);
+
+                lock (Peer.sync)
+                    Peer.writes.Add(completed.ToArray());
+
+                completed.Clear();
 
                 toClient.Write(Buffer.Span);
 
@@ -1423,6 +1494,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                     if (payloadLeft > 0)
                         continue;
+
+                    completed.Add((frame.Type, frame.StreamId));
 
                     switch (frame.Type)
                     {
