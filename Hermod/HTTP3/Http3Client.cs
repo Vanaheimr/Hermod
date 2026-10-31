@@ -356,6 +356,7 @@ public sealed class Http3Client : IAsyncDisposable
                 tcs.TrySetException(new Http3RequestException("The request was cancelled (RFC 9114 §4.1.1)."));
             else
                 continue;
+            _connection.ForgetRequest(id); // settled: the connection need not keep it any more
             _pending.Remove(id);
         }
 
@@ -376,7 +377,7 @@ public sealed class Http3Client : IAsyncDisposable
             {
                 if (_pending.Remove(streamId))
                 {
-                    _connection.CancelRequest(streamId); // §4.1.1: RESET_STREAM + STOP_SENDING
+                    _connection.ForgetRequest(streamId); // cancels it first, §4.1.1: RESET_STREAM + STOP_SENDING
                     FlushLocked();
                 }
             }

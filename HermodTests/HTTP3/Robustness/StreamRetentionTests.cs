@@ -52,6 +52,40 @@ public class StreamRetentionTests
                     $"{grown / 1024} KiB still held after {responses} finished responses: {grown / responses / 1024} KiB each");
     }
 
+    [Test]
+    public void ALongClientConnection_DoesNotKeepEveryResponseItReceived()
+    {
+        // The receive side of the test above, with only the client kept alive. Each request is
+        // forgotten once its response is taken, as Http3Client does. Before, two things kept every
+        // response: the QUIC client logged every 1-RTT frame it received, STREAM data included, and
+        // a request could not be forgotten, so its state kept the body twice over. Together ~1.1 MiB
+        // per 300 KB response.
+        const int responses = 40;
+        long before = Retained();
+        Http3ClientConnection client = FetchOnOneConnection(responses);
+        long grown = Retained() - before;
+        GC.KeepAlive(client);
+
+        Assert.That(grown, Is.LessThan(responses * 32 * 1024),
+                    $"{grown / 1024} KiB still held after {responses} received responses: {grown / responses / 1024} KiB each");
+    }
+
+    [Test]
+    public void ALongConnection_DoesNotKeepEveryUploadedBody()
+    {
+        // The server's receive side: forty 300 KB uploads on ONE connection, with only the server
+        // kept alive. A request state kept the body, and the frame buffer it was parsed from, grown
+        // to 512 KiB: ~815 KiB per upload.
+        const int uploads = 40;
+        long before = Retained();
+        Http3ServerConnection server = AcceptOnOneConnection(uploads);
+        long grown = Retained() - before;
+        GC.KeepAlive(server);
+
+        Assert.That(grown, Is.LessThan(uploads * 32 * 1024),
+                    $"{grown / 1024} KiB still held after {uploads} finished uploads: {grown / uploads / 1024} KiB each");
+    }
+
     // A method of its own, so no hidden temporary of the caller keeps the client alive.
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static Http3ServerConnection ServeOnOneConnection(int responses)
@@ -61,6 +95,37 @@ public class StreamRetentionTests
             Pair(_ => new Http3Response { Status = 200, Body = body });
         for (int i = 0; i < responses; i++)
             Assert.That(RunRequest(client, server, "/big").Body.Length, Is.EqualTo(body.Length));
+        client.Dispose();
+        cert.Dispose();
+        return server;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Http3ClientConnection FetchOnOneConnection(int responses)
+    {
+        byte[] body = new byte[300_000];
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair(_ => new Http3Response { Status = 200, Body = body });
+        for (int i = 0; i < responses; i++)
+        {
+            ulong id = client.SendRequest(Http3Request.Get("localhost", "/big"));
+            Assert.That(AwaitResponse(client, server, id).Body.Length, Is.EqualTo(body.Length));
+            client.ForgetRequest(id);
+        }
+        Assert.That(client.TrackedRequestsForTest, Is.Zero);
+        server.Dispose();
+        cert.Dispose();
+        return client;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Http3ServerConnection AcceptOnOneConnection(int uploads)
+    {
+        byte[] body = new byte[300_000];
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair(request => new Http3Response { Status = request.Body.Length == body.Length ? 204 : 400 });
+        for (int i = 0; i < uploads; i++)
+            Assert.That(RunRequest(client, server, Http3Request.Post("localhost", "/upload", body)).Status, Is.EqualTo(204));
         client.Dispose();
         cert.Dispose();
         return server;
@@ -92,8 +157,13 @@ public class StreamRetentionTests
     }
 
     private static Http3Response RunRequest(Http3ClientConnection client, Http3ServerConnection server, string path)
+        => RunRequest(client, server, Http3Request.Get("localhost", path));
+
+    private static Http3Response RunRequest(Http3ClientConnection client, Http3ServerConnection server, Http3Request request)
+        => AwaitResponse(client, server, client.SendRequest(request));
+
+    private static Http3Response AwaitResponse(Http3ClientConnection client, Http3ServerConnection server, ulong id)
     {
-        ulong id = client.SendRequest(Http3Request.Get("localhost", path));
         Http3Response? response = null;
         for (int round = 0; round < 100_000 && response is null; round++)
         {

@@ -220,4 +220,37 @@ public class Http3AsyncApiTests
         // WaitUntilAsync polls while the pump keeps running (trivially satisfied immediately here).
         Assert.That(await client.WaitUntilAsync(c => c.HandshakeConfirmed, TimeSpan.FromSeconds(1)), Is.True);
     }
+
+    [Test]
+    public async Task SettledRequests_AreForgottenByTheConnection()
+    {
+        // The connection keeps a request until it is forgotten, with what arrived of its response.
+        // The facade settles each request, answered or cancelled, and must forget it then, or a
+        // long-lived client keeps every response it ever received (StreamRetentionTests).
+        using var cert = ServerCertificate.CreateSelfSigned("localhost");
+        var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
+        var gate = new TaskCompletionSource();
+
+        await using var server = new Http3Server(cert, async (request, token) =>
+        {
+            if (request.Path == "/slow")
+                await gate.Task.WaitAsync(token).ConfigureAwait(false);
+            return new Http3Response { Status = 200, Body = new byte[10_000] };
+        }, port: 0);
+        server.Start();
+
+        await using var client = new Http3Client("localhost", server.Port, validation);
+        await client.ConnectAsync(TimeSpan.FromSeconds(10));
+        for (int i = 0; i < 5; i++)
+            Assert.That((await client.GetAsync("/").WaitAsync(TimeSpan.FromSeconds(10))).Status, Is.EqualTo(200));
+        Assert.That(await client.QueryAsync(c => c.TrackedRequestsForTest), Is.Zero, "answered requests are forgotten");
+
+        using var cancel = new CancellationTokenSource();
+        Task<Http3Response> slow = client.GetAsync("/slow", cancel.Token);
+        Assert.That(await client.WaitUntilAsync(c => c.TrackedRequestsForTest == 1, TimeSpan.FromSeconds(5)), Is.True);
+        cancel.Cancel();
+        Assert.That(async () => await slow, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(await client.QueryAsync(c => c.TrackedRequestsForTest), Is.Zero, "a cancelled request is forgotten");
+        gate.SetResult();
+    }
 }

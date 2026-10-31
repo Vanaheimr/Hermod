@@ -623,6 +623,27 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
         return true;
     }
 
+    /// <summary>
+    /// Forgets a request sent with <see cref="SendRequest"/>: its response, received or not, and
+    /// everything the queries above report about it. One still running is cancelled first
+    /// (<see cref="CancelRequest"/>). Extended CONNECT streams are not affected.
+    /// </summary>
+    /// <remarks>
+    /// The connection keeps every request until it is forgotten, with what arrived of its response:
+    /// the body, and the frame buffer it was parsed from, which a 300 KB DATA frame grows to
+    /// 512 KiB. ~800 KiB per 300 KB response. <see cref="Http3Client"/> forgets each request once
+    /// it has settled it.
+    /// </remarks>
+    public void ForgetRequest(ulong streamId)
+    {
+        if (!_requests.TryGetValue(streamId, out RequestState? state) || state.IsConnect)
+            return;
+        CancelRequest(streamId);
+        _requests.Remove(streamId);
+    }
+
+    internal int TrackedRequestsForTest => _requests.Count;
+
     // ---- HTTP/3 receiving -----------------------------------------------------------------
 
     private void Pump()
