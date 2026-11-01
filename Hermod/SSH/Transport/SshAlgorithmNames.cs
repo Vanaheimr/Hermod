@@ -114,7 +114,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             public const String EcdsaNistP256Cert       = "ecdsa-sha2-nistp256-cert-v01@openssh.com";
             public const String EcdsaNistP384Cert       = "ecdsa-sha2-nistp384-cert-v01@openssh.com";
             public const String EcdsaNistP521Cert       = "ecdsa-sha2-nistp521-cert-v01@openssh.com";
-            public const String SshRsaCert              = "ssh-rsa-cert-v01@openssh.com";
+            public const String SshRsaCert              = "ssh-rsa-cert-v01@openssh.com";   // the RSA certificate's key type; SHA-1 as an algorithm, off by default
+
+            // An RSA certificate's key type stays ssh-rsa-cert-v01@openssh.com; these name the signature
+            // hash it is used with, as rsa-sha2-256/512 do for a plain RSA key (OpenSSH PROTOCOL.certkeys).
+            public const String RsaSha2_256Cert         = "rsa-sha2-256-cert-v01@openssh.com";
+            public const String RsaSha2_512Cert         = "rsa-sha2-512-cert-v01@openssh.com";
         }
 
         /// <summary>

@@ -40,9 +40,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public SshCertificate  Certificate  { get; }
 
         /// <summary>
-        /// The certificate algorithm (e.g. <c>ssh-ed25519-cert-v01@openssh.com</c>).
+        /// The key that signs, the certificate's subject.
         /// </summary>
-        public IReadOnlyList<String> AlgorithmNames => [ Certificate.CertAlgorithm ];
+        public ISshHostKey     BaseKey      => baseKey;
+
+        /// <summary>
+        /// The certificate algorithms (e.g. <c>ssh-ed25519-cert-v01@openssh.com</c>). An RSA certificate
+        /// offers <c>rsa-sha2-512/256-cert-v01@openssh.com</c>, as a plain RSA key offers rsa-sha2-512/256:
+        /// its key type, <c>ssh-rsa-cert-v01@openssh.com</c>, means SHA-1 as an algorithm, which OpenSSH
+        /// has refused since 8.8.
+        /// </summary>
+        public IReadOnlyList<String> AlgorithmNames
+            => Certificate.CertAlgorithm == SshAlgorithmNames.HostKey.SshRsaCert
+                   ? [ SshAlgorithmNames.HostKey.RsaSha2_512Cert, SshAlgorithmNames.HostKey.RsaSha2_256Cert ]
+                   : [ Certificate.CertAlgorithm ];
 
         /// <summary>
         /// The public-key blob presented to the peer — the whole certificate.
@@ -83,11 +94,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #region Sign(AlgorithmName, Data)
 
         /// <summary>
-        /// Sign with the underlying base key. The signature uses the base algorithm (e.g. ssh-ed25519),
-        /// not the certificate algorithm — the certificate only carries the public key to the peer.
+        /// Sign with the underlying base key, as the certificate algorithm names it - ssh-ed25519 for
+        /// <c>ssh-ed25519-cert-v01@openssh.com</c>, rsa-sha2-256 for <c>rsa-sha2-256-cert-v01@openssh.com</c>.
+        /// The certificate only carries the public key to the peer. The hash used to be the base key's
+        /// first, whatever was negotiated, and a peer that checks - OpenSSH does - refused it.
         /// </summary>
         public Byte[] Sign(String AlgorithmName, ReadOnlySpan<Byte> Data)
-            => baseKey.Sign(baseKey.AlgorithmNames[0], Data);
+            => baseKey.Sign(SshSignature.SignatureAlgorithmFor(AlgorithmName), Data);
 
         #endregion
 

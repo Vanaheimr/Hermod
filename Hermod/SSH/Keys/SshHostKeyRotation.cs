@@ -149,6 +149,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Advertise every host key this server holds (<c>hostkeys-00@openssh.com</c>, no reply expected).
         /// Send this once user authentication has completed.
         /// </summary>
+        /// <remarks>
+        /// Plain keys only, each once: a certified key is announced as the key it certifies, as OpenSSH's
+        /// sshd announces its keys and never its certificates - a client learns keys for known_hosts, and
+        /// OpenSSH's skips a certificate it is sent.
+        /// </remarks>
         /// <param name="Multiplexer">The connection multiplexer.</param>
         /// <param name="HostKeys">All host keys the server serves.</param>
         /// <param name="CancellationToken">An optional token to cancel this request.</param>
@@ -163,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             await Multiplexer.SendGlobalRequestAsync(
                       AnnouncementRequestName,
                       false,
-                      EncodeKeyList(HostKeys.Select(key => key.PublicKeyBlob)),
+                      EncodeKeyList(PlainKeys(HostKeys).Select(key => key.PublicKeyBlob)),
                       CancellationToken
                   ).ConfigureAwait(false);
 
@@ -192,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             {
 
                 // Only ever sign for a key we actually hold — never for an arbitrary blob a peer supplies.
-                var key = HostKeys.FirstOrDefault(k => k.PublicKeyBlob.AsSpan().SequenceEqual(blob));
+                var key = PlainKeys(HostKeys).FirstOrDefault(k => k.PublicKeyBlob.AsSpan().SequenceEqual(blob));
                 if (key is null)
                     return null;
 
@@ -203,6 +208,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return abw.WrittenSpan.ToArray();
 
         }
+
+        // The keys as announced: a certified key as its subject, and each key once.
+        internal static IEnumerable<ISshHostKey> PlainKeys(IReadOnlyList<ISshHostKey> HostKeys)
+            => HostKeys.Select    (key => key is CertifiedKey certified ? certified.BaseKey : key).
+                        DistinctBy(key => Convert.ToBase64String(key.PublicKeyBlob));
 
         /// <summary>
         /// Wire the server side onto a multiplexer: answer <c>hostkeys-prove-00@openssh.com</c>

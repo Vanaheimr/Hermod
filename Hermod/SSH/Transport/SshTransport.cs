@@ -1056,8 +1056,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 kEncoded        = kex.EncodeSharedSecret(rawSecret);
                 h               = ExchangeHashCalc.Compute(kex.HashAlgorithm, vC, vS, iC, iS, kS, qC, qS, kEncoded);
 
-                if (!SshSignature.Verify(kS, h, sigBlob))
-                    throw new SshWireException("The server's host-key signature over the exchange hash is invalid!");
+                // Bound to the negotiated algorithm, as OpenSSH binds it: the key must be of its type and
+                // the signature of its hash - not merely some valid signature by some key.
+                if (!SshSignature.Verify(kS, h, sigBlob, negotiated.HostKey))
+                    throw new SshWireException($"The server's host-key signature over the exchange hash is invalid for the negotiated '{negotiated.HostKey}'!");
 
                 // The host key was established by the first exchange; a rekey that presents another one
                 // is refused rather than put to the policy again - as OpenSSH's client does.
