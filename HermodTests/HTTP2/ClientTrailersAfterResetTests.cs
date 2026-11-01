@@ -18,6 +18,8 @@
 #region Usings
 
 using System.Text;
+using System.Reflection;
+using System.Diagnostics;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
@@ -151,6 +153,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             catch (Exception e)
             {
                 return (true, e);
+            }
+
+        }
+
+        /// <summary>
+        /// Wait until <paramref name="Count"/> calls are in line for the lock that
+        /// orders the client's header blocks — request starts, or ends of a
+        /// request with trailers — and one of them holds it.
+        /// </summary>
+        private static async Task InLineAsync(HTTP2ClientConnection Connection, Int32 Count)
+        {
+
+            var startsInLine      = typeof(HTTP2ClientConnection).GetField("startsInLine",     BindingFlags.NonPublic | BindingFlags.Instance)!;
+            var requestStartLock  = (SemaphoreSlim) typeof(HTTP2ClientConnection).GetField("requestStartLock", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(Connection)!;
+            var waited            = Stopwatch.StartNew();
+
+            while ((Int32) startsInLine.GetValue(Connection)! < Count || requestStartLock.CurrentCount > 0)
+            {
+
+                if (waited.Elapsed > HoldingH2Transport.StepTimeout)
+                    throw new TimeoutException($"Only {startsInLine.GetValue(Connection)} of {Count} calls were ever in line, " +
+                                               $"with the lock {(requestStartLock.CurrentCount > 0 ? "free" : "held")}");
+
+                await Task.Delay(1);
+
             }
 
         }
@@ -298,11 +325,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         /// <summary>
         /// Ending the upload with trailers waits for the lock that orders the
-        /// client's header blocks — another request is starting, held by the test
-        /// in the write of its HEADERS — while the read loop handles the server's
+        /// client's header blocks, while the read loop handles the server's
         /// RST_STREAM. Once the trailers get the lock, they find the stream reset:
         /// nothing is sent, and the call fails with the reset's code. A check made
         /// only before the wait would have let them through.
+        ///
+        /// The lock is held by a third request's start, which waits under it for
+        /// the write lock. The write lock is held by the flush of another
+        /// request's HEADERS, which the test holds in its write. The flush alone
+        /// would not do: since Hermod#197 the last start in line flushes for the
+        /// line after it has let go of the lock. With only the flush held, the
+        /// trailers took the lock at once, and whether the read loop had handled
+        /// the reset before their check was up to the threads. It had not in 9 of
+        /// 30 runs on Windows, and in 7 of 30 on Debian 13.
         /// </summary>
         [Test]
         public async Task TrailersWaitingForTheLock_ResetMeanwhile_NotSent()
@@ -320,7 +355,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             await SentUntilHeadersOfAsync(transport, decoder, 3);
 
+            var third       = StartUploadAsync(connection, "/third");
+
+            await InLineAsync(connection, 1);
+
             var completing  = upload.CompleteRequestAsync([Late]);
+
+            await InLineAsync(connection, 2);
+
             var waited      = !completing.IsCompleted;
 
             await transport.SendAsync(HTTP2Frame.CreateRstStream(upload.StreamId, HTTP2ErrorCode.CANCEL));
@@ -329,22 +371,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var (ended, failure)  = await EndOf(completing);
             var otherStarted      = (await EndOf(other)).Ended;
+            var thirdStarted      = (await EndOf(third)).Ended;
 
             await StartUploadAsync(connection, "/next", [Late]).WaitAsync(HoldingH2Transport.StepTimeout);
 
-            var sent = await SentUntilHeadersOfAsync(transport, decoder, 5);
+            var sent = await SentUntilHeadersOfAsync(transport, decoder, 7);
 
             Assert.Multiple(() =>
             {
 
-                Assert.That(waited,             Is.True,                                 "ending the upload waited for the other request's start");
+                Assert.That(waited,             Is.True,                                 "ending the upload waited for the third request's start");
                 Assert.That(otherStarted,       Is.True,                                 "the other request started");
+                Assert.That(thirdStarted,       Is.True,                                 "the third request started");
 
                 Assert.That(ended,              Is.True,                                 "ending the upload with trailers returned while the connection was open");
                 Assert.That(Describe(failure),  Is.EqualTo($"{nameof(HTTP2StreamException)} on stream {upload.StreamId}, CANCEL: Stream reset by server: CANCEL"),
                                                                                          "how ending the upload with trailers failed");
 
-                Assert.That(sent,               Is.EqualTo(new[] { NextRequest(5) }),    "what the client sent after the other request's HEADERS, up to the next request's");
+                Assert.That(sent,               Is.EqualTo(new[] { "5 HEADERS :method=POST, :scheme=http, :authority=localhost, :path=/third",
+                                                                   NextRequest(7) }),    "what the client sent after the other request's HEADERS, up to the next request's");
 
             });
 
