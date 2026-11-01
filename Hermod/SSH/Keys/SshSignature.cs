@@ -34,6 +34,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public static class SshSignature
     {
 
+        #region KeyTypeFor(Algorithm) / SignatureAlgorithmFor(Algorithm)
+
+        /// <summary>
+        /// The key type a public-key blob must carry for a host-key or public-key algorithm: an RSA
+        /// algorithm names the hash, not the key - <c>rsa-sha2-512</c> is an <c>ssh-rsa</c> key and
+        /// <c>rsa-sha2-512-cert-v01@openssh.com</c> an <c>ssh-rsa-cert-v01@openssh.com</c> certificate.
+        /// Every other algorithm is its own key type.
+        /// </summary>
+        public static String KeyTypeFor(String Algorithm)
+            => Algorithm switch {
+                   SshAlgorithmNames.HostKey.RsaSha2_256     or
+                   SshAlgorithmNames.HostKey.RsaSha2_512     => SshAlgorithmNames.HostKey.SshRsa,
+                   SshAlgorithmNames.HostKey.RsaSha2_256Cert or
+                   SshAlgorithmNames.HostKey.RsaSha2_512Cert => SshAlgorithmNames.HostKey.SshRsaCert,
+                   _                                         => Algorithm
+               };
+
+        /// <summary>
+        /// The signature algorithm a host-key or public-key algorithm signs with: a certificate signs as
+        /// its subject key - <c>ssh-ed25519-cert-v01@openssh.com</c> as <c>ssh-ed25519</c>,
+        /// <c>rsa-sha2-512-cert-v01@openssh.com</c> as <c>rsa-sha2-512</c>.
+        /// </summary>
+        public static String SignatureAlgorithmFor(String Algorithm)
+            => SshCertificate.IsCertificateAlgorithm(Algorithm)
+                   ? Algorithm[..^SshCertificate.CertSuffix.Length]
+                   : Algorithm;
+
+        #endregion
+
+        #region Verify(PublicKeyBlob, Data, SignatureBlob, Algorithm)
+
+        /// <summary>
+        /// Verify an SSH signature blob as made with a negotiated algorithm: the key must be of the
+        /// algorithm's type, and the signature of its algorithm - an RSA key signing with SHA-256 where
+        /// SHA-512 was agreed is refused, as OpenSSH refuses it.
+        /// </summary>
+        /// <param name="PublicKeyBlob">The SSH public-key blob (K_S).</param>
+        /// <param name="Data">The signed data (e.g. the exchange hash H).</param>
+        /// <param name="SignatureBlob">The SSH signature blob.</param>
+        /// <param name="Algorithm">The negotiated host-key or public-key algorithm.</param>
+        public static Boolean Verify(ReadOnlySpan<Byte>  PublicKeyBlob,
+                                     ReadOnlySpan<Byte>  Data,
+                                     ReadOnlySpan<Byte>  SignatureBlob,
+                                     String              Algorithm)
+        {
+
+            try
+            {
+
+                if (new SshPacketReader(PublicKeyBlob).ReadString() != KeyTypeFor(Algorithm) ||
+                    new SshPacketReader(SignatureBlob).ReadString() != SignatureAlgorithmFor(Algorithm))
+                    return false;
+
+            }
+            catch (SshWireException)
+            {
+                return false;
+            }
+
+            return Verify(PublicKeyBlob, Data, SignatureBlob);
+
+        }
+
+        #endregion
+
         #region Verify(PublicKeyBlob, Data, SignatureBlob)
 
         /// <summary>

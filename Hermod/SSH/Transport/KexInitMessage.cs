@@ -129,7 +129,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             SshAlgorithmNames.HostKey.EcdsaNistP256Cert,
             SshAlgorithmNames.HostKey.EcdsaNistP384Cert,
             SshAlgorithmNames.HostKey.EcdsaNistP521Cert,
-            SshAlgorithmNames.HostKey.SshRsaCert
+            SshAlgorithmNames.HostKey.RsaSha2_512Cert,
+            SshAlgorithmNames.HostKey.RsaSha2_256Cert
         ];
 
         /// <summary>
