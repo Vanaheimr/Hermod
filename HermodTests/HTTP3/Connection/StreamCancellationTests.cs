@@ -200,6 +200,7 @@ public class StreamCancellationTests
         for (int round = 0; round < 3; round++)
             Pump(client, server);
         Assert.That(client.TryGetResponse(streamId, out _), Is.False);
+        QuicStream serverStream = server.Quic.Streams[streamId]; // taken now: the server lets go of it below
 
         // … and cancel (§4.1.1: RESET_STREAM + STOP_SENDING with H3_REQUEST_CANCELLED).
         client.CancelRequest(streamId);
@@ -209,9 +210,9 @@ public class StreamCancellationTests
         Assert.That(client.IsRequestCancelled(streamId), Is.True);
         Assert.That(client.TryGetResponse(streamId, out _), Is.False);
         // The server reset its response side and sends nothing more on the stream.
-        QuicStream serverStream = server.Quic.Streams[streamId];
         Assert.That(serverStream.Send.IsReset, Is.True);
         Assert.That(serverStream.Send.HasPending, Is.False, "Unsent response data must be discarded.");
+        Assert.That(server.Quic.IsStreamClosed(streamId), Is.True, "The server lets go of a cancelled request.");
         // The client sees the server reset (H3_REQUEST_CANCELLED, via the copied STOP_SENDING code).
         Assert.That(client.RequestResetErrorCode(streamId), Is.EqualTo(Http3Error.RequestCancelled));
 

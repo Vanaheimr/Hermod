@@ -131,6 +131,40 @@ public class Http3GoAwayTests
         Assert.That(lateRequest.IsResetByPeer, Is.True, "The server must reset the late request.");
         Assert.That(lateRequest.PeerResetErrorCode, Is.EqualTo(Http3Error.RequestRejected));
         Assert.That(server.IsClosing, Is.False, "A late request is NOT a connection error.");
+        for (int round = 0; round < 5; round++)
+            Pump(client, server);
+        Assert.That(server.Quic.IsStreamClosed(lateRequest.Id.Value), Is.True, "The server lets go of the rejected stream.");
+    }
+
+    [Test]
+    public void ACancelledRequest_DoesNotHoldUpTheShutdown()
+    {
+        // A request the client cancels before it is complete gets no response, and is not one to
+        // wait for either (§5.2). It used to count as pending for as long as the connection lived.
+        using var cert = ServerCertificate.CreateSelfSigned("localhost");
+        using var server = new Http3ServerConnection(cert, _ => new Http3Response { Status = 200, Body = [] });
+        var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
+        using var client = new QuicClientConnection("localhost", certificateValidation: validation);
+        client.Start();
+        for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
+            Pump(client, server);
+        Assert.That(client.HandshakeConfirmed, Is.True);
+
+        QuicStream control = client.OpenUnidirectionalStream();
+        control.Write([(byte)Http3StreamType.Control]);
+        control.Write(Http3Frames.Build(Http3FrameType.Settings, []));
+        QuicStream request = client.OpenBidirectionalStream();
+        request.Write(Http3Frames.Build(Http3FrameType.Headers, EncodeGetHeaders("/one"))); // no FIN: the request goes on
+        for (int round = 0; round < 10; round++)
+            Pump(client, server);
+        Assert.That(server.HasPendingRequests, Is.True, "The request has arrived.");
+
+        request.Reset(Http3Error.RequestCancelled);
+        for (int round = 0; round < 10; round++)
+            Pump(client, server);
+
+        Assert.That(server.HasPendingRequests, Is.False, "The cancelled request still counts as pending.");
+        Assert.That(server.Quic.IsStreamClosed(request.Id.Value), Is.True);
     }
 
     [Test]

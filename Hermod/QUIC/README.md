@@ -236,6 +236,7 @@ Meter **`Vanaheimr.Hermod.Quic`**:
 | `quic.handshakes` | Counter | Handshakes that reached the 1-RTT keys |
 | `quic.handshake.duration` | Histogram (ms) | Connection object → 1-RTT keys |
 | `quic.streams.opened` | Counter | Streams opened, locally or by the peer |
+| `quic.streams.closed` | Counter | Streams released by their owner and finished |
 | `quic.bytes.received` / `quic.bytes.sent` | Counter (bytes) | UDP payload |
 | `quic.packets.sent` / `quic.packets.lost` | Counter | Protected packets |
 | `quic.frames.retransmitted` | Counter | Frames re-queued after loss or PTO |
@@ -256,9 +257,11 @@ EventSource **`Vanaheimr-Hermod-Quic`** adds the lifecycle: `ConnectionStarted`,
 dotnet-trace collect --process-id <pid> --providers Vanaheimr-Hermod-Quic
 ```
 
-Note that `quic.streams.opened` is a counter and not a gauge of live streams:
-QUIC stream state stays for the lifetime of the connection, because a peer may
-still reference a finished stream, so there is no close to count down.
+`quic.streams.opened` less `quic.streams.closed` is what the connections hold.
+A connection lets go of a stream once its owner calls `ReleaseStream` and nothing
+is left on it: our FIN or RESET_STREAM is out, the peer's final size is known.
+HTTP/3 releases each request stream once it is answered, and the client each
+request it forgets. A stream nobody releases stays until its connection ends.
 
 ## Not here yet
 

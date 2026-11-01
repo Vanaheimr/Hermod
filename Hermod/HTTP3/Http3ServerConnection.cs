@@ -239,6 +239,8 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             if (_requests.TryGetValue(streamId, out RequestState? state))
                 state.PriorityUpdated = true; // §7: the update trumps any header
         }
+        else if (_quic.IsStreamClosed(streamId))
+            return; // the request is over: nothing left to prioritise, and it will not open again
         else if (_pendingPriorityUpdates.Count < MaxPendingPriorityUpdates || _pendingPriorityUpdates.ContainsKey(streamId))
             _pendingPriorityUpdates[streamId] = priority;
     }
@@ -486,6 +488,8 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
     /// </summary>
     public bool HasPendingRequests => _requests.Values.Any(s => !s.ResponseComplete);
 
+    internal int TrackedRequestsForTest => _requests.Count;
+
     /// <summary>
     /// Number of requests already handed to the handler (and answered).
     /// </summary>
@@ -624,6 +628,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
                 QuicStream rejected = _quic.Streams[id];
                 rejected.Reset(Http3Error.RequestRejected);
                 rejected.AbortRead(Http3Error.RequestRejected);
+                _quic.ReleaseStream(id);
                 continue;
             }
             var newState = new RequestState(_quic.Streams[id]);
@@ -809,9 +814,36 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
         // Dispatch HTTP datagrams LAST (RFC 9297 §2.1): this way request streams/tunnels from the
         // same flight are already set up instead of discarding the datagrams as "unknown".
         DispatchReceivedDatagrams();
+
+        ForgetFinishedRequests();
     }
 
     private readonly List<ulong> _webTransportClaimed = [];
+
+    /// <summary>
+    /// Lets go of the requests that are over: answered or reset, with nothing of them still at work.
+    /// Each stream goes back to QUIC, which closes it once the response is out and the request's end
+    /// is known (<see cref="QuicEndpoint.ReleaseStream"/>).
+    /// </summary>
+    /// <remarks>
+    /// Until 2026-11-01 the connection kept every request state, and every pump walked all of them.
+    /// Tunnels and WebTransport sessions stay; they end in ways of their own.
+    /// </remarks>
+    private void ForgetFinishedRequests()
+    {
+        foreach ((ulong id, RequestState state) in _requests)
+            if (state.Responded && (state.ResponseComplete || state.Stream.Send.IsReset) &&
+                state.HandlerTask is null && state.Tunnel is null && state.WebTransportSession is null)
+                _finishedRequests.Add(id);
+        foreach (ulong id in _finishedRequests)
+        {
+            _requests.Remove(id);
+            _quic.ReleaseStream(id);
+        }
+        _finishedRequests.Clear();
+    }
+
+    private readonly List<ulong> _finishedRequests = [];
 
     private enum WtBidiResult { NotWebTransport, NeedMore, Claimed }
 

@@ -626,7 +626,8 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     /// <summary>
     /// Forgets a request sent with <see cref="SendRequest"/>: its response, received or not, and
     /// everything the queries above report about it. One still running is cancelled first
-    /// (<see cref="CancelRequest"/>). Extended CONNECT streams are not affected.
+    /// (<see cref="CancelRequest"/>). Its stream goes back to QUIC, which closes it once nothing is
+    /// left on it. Extended CONNECT streams are not affected.
     /// </summary>
     /// <remarks>
     /// The connection keeps every request until it is forgotten, with what arrived of its response:
@@ -640,6 +641,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
             return;
         CancelRequest(streamId);
         _requests.Remove(streamId);
+        _quic.ReleaseStream(streamId);
     }
 
     internal int TrackedRequestsForTest => _requests.Count;

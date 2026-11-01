@@ -126,7 +126,19 @@ public abstract class QuicEndpoint : IDisposable
     private ulong _pendingStreamCreditUni;
     private bool  _peerBlockedBidi;              // peer sent STREAMS_BLOCKED — answer at the next send
     private bool  _peerBlockedUni;
-    private readonly HashSet<ulong> _creditedStreams = []; // peer streams already counted, so each counts once
+    private readonly HashSet<ulong> _creditedStreams = []; // live peer streams already counted, so each counts once
+
+    // Streams let go of (see ReleaseStream). What the peer sent on them still counts against the
+    // connection window, as it does on the peer's side: their final sizes, summed here (§4.5).
+    private ulong _closedStreamsReceived;
+    private readonly List<QuicStream> _releasedStreams = []; // released, but something is still left on them
+
+    // How many of the peer's streams are open or closed, per direction: opening a stream opens every
+    // lower-numbered one of its type (§3.2). Those whose first frame has not arrived yet are named
+    // apart, so a stream that is gone can be told from one that has not shown up.
+    private ulong _peerBidiStreamsOpened;
+    private ulong _peerUniStreamsOpened;
+    private readonly HashSet<ulong> _peerStreamsNotYetSeen = [];
 
     // What the peer allows US to open. Tracked from its transport parameters and MAX_STREAMS frames,
     // and enforced when opening (§4.6).
@@ -259,6 +271,11 @@ public abstract class QuicEndpoint : IDisposable
     protected abstract bool IsServer { get; }
 
     public ConnectionId SourceConnectionId => Scid;
+
+    /// <summary>
+    /// The streams this connection holds: every stream opened, by either side, until its owner
+    /// releases it and it is finished (<see cref="ReleaseStream"/>).
+    /// </summary>
     public IReadOnlyDictionary<ulong, QuicStream> Streams => StreamMap;
     public TransportParameters? PeerTransportParameters => PeerParams;
 
@@ -847,6 +864,129 @@ public abstract class QuicEndpoint : IDisposable
     // "Locally initiated" from this role's point of view (client: client-initiated, server: server-initiated).
     private bool LocallyInitiated(StreamId id) => IsServer ? id.IsServerInitiated : id.IsClientInitiated;
 
+    // ---- Letting go of streams -------------------------------------------------------------
+
+    /// <summary>
+    /// Tells the connection that the stream's owner is done with it. The connection then lets go of
+    /// the stream as soon as nothing is left on it: our FIN or RESET_STREAM is out, the peer's final
+    /// size is known, and no STOP_SENDING is waiting. From then on <see cref="Streams"/> no longer
+    /// holds it, and frames the peer still sends for it are ignored.
+    /// </summary>
+    /// <remarks>
+    /// Until 2026-11-01 a connection kept every stream it ever had, and every send pass walked all
+    /// of them, several times for each packet. On one connection, requests 7,000 to 8,000 took
+    /// three times as long as requests 2,000 to 3,000, and the connection held 8,000 streams.
+    ///
+    /// The owner decides, not the stream's state alone: a stream that ends is gone, and whoever reads
+    /// it would no longer see how it ended. HTTP/3 must notice a reset of the peer's control stream,
+    /// for one (RFC 9114 §6.2.1). Streams nobody releases stay for the life of the connection, as all
+    /// of them used to.
+    ///
+    /// Data the peer sends after its final size is known, but which nobody has read, counts as
+    /// consumed: the connection window opens for it as it would after a reset (§4.5).
+    /// </remarks>
+    public void ReleaseStream(ulong streamId)
+    {
+        if (StreamMap.TryGetValue(streamId, out QuicStream? stream) && !stream.Released)
+        {
+            stream.Released = true;
+            _releasedStreams.Add(stream);
+        }
+    }
+
+    /// <summary>
+    /// The stream was opened, by either side, and the connection has let go of it since
+    /// (<see cref="ReleaseStream"/>).
+    /// </summary>
+    public bool IsStreamClosed(ulong streamId)
+        => !StreamMap.ContainsKey(streamId) && WasOpened(new StreamId(streamId));
+
+    private bool WasOpened(StreamId id)
+        => LocallyInitiated(id)
+               ? id.Index < (id.IsBidirectional ? _nextLocalBidiIndex : _nextLocalUniIndex)
+               : id.Index < (id.IsBidirectional ? _peerBidiStreamsOpened : _peerUniStreamsOpened) &&
+                 !_peerStreamsNotYetSeen.Contains(id.Value);
+
+    /// <summary>
+    /// The stream a frame from the peer is about, opened if this is its first frame;
+    /// <c>null</c> once the connection has let go of it, as there is nothing left to do then.
+    /// </summary>
+    private QuicStream? StreamForPeerFrame(StreamId id, out bool isNew)
+    {
+        isNew = false;
+        if (StreamMap.TryGetValue(id.Value, out QuicStream? existing))
+            return existing;
+        if (WasOpened(id))
+            return null;
+
+        isNew = true;
+        if (!LocallyInitiated(id))
+        {
+            ref ulong opened = ref id.IsBidirectional ? ref _peerBidiStreamsOpened : ref _peerUniStreamsOpened;
+            if (id.Index < opened)
+                _peerStreamsNotYetSeen.Remove(id.Value);
+            else
+            {
+                // Bounded by the stream limit the caller has checked: indices below what we granted.
+                for (ulong lower = opened; lower < id.Index; lower++)
+                    _peerStreamsNotYetSeen.Add(id.Value - ((id.Index - lower) << 2));
+                opened = id.Index + 1;
+            }
+        }
+        return GetOrCreateStream(id);
+    }
+
+    /// <summary>
+    /// Lets go of the released streams that nothing is left on any more.
+    /// </summary>
+    private void CloseReleasedStreams()
+    {
+        for (int k = _releasedStreams.Count - 1; k >= 0; k--)
+        {
+            QuicStream stream = _releasedStreams[k];
+            if (!NothingLeftOn(stream))
+                continue;
+            _releasedStreams[k] = _releasedStreams[^1];
+            _releasedStreams.RemoveAt(_releasedStreams.Count - 1);
+            Close(stream);
+        }
+    }
+
+    private bool NothingLeftOn(QuicStream stream)
+    {
+        bool weSend    = stream.Id.IsBidirectional ||  LocallyInitiated(stream.Id);
+        bool weReceive = stream.Id.IsBidirectional || !LocallyInitiated(stream.Id);
+        if (weSend && (!stream.Send.IsComplete || stream.Send.ResetPending))
+            return false;
+        return !weReceive ||
+               ((stream.Receive.FinReceived || stream.Receive.ResetReceived) && !stream.Receive.StopSendingPending);
+    }
+
+    private void Close(QuicStream stream)
+    {
+        StreamMap.Remove(stream.Id.Value);
+        _closedStreamsReceived += stream.Receive.HighestReceivedOffset; // the final size, by now
+
+        // A peer stream hands its credit back here at the latest. Reading it to the end would have
+        // done so earlier, but nobody may.
+        if (!LocallyInitiated(stream.Id) && !_creditedStreams.Remove(stream.Id.Value))
+            CreditPeerStream(stream.Id);
+
+        // A reset stream's data is not sent again (§19.4), except what a RESET_STREAM_AT still
+        // promises. DrainRetransmitQueue holds lost data against the stream, so what is still in
+        // flight has to go now that the stream does.
+        if (stream.Send.IsReset)
+        {
+            ulong keepBelow = stream.Send.IsResetAt ? stream.Send.ReliableSize : 0;
+            bool Discarded(Frame f) => f is StreamFrame sf && sf.StreamId == stream.Id.Value && sf.Offset >= keepBelow;
+            _retransmitQueue[(int)EncryptionLevel.Application].RemoveAll(Discarded);
+            _recovery.DiscardFrames((int)EncryptionLevel.Application, Discarded);
+        }
+
+        if (QuicMetrics.StreamsClosed.Enabled)
+            QuicMetrics.StreamsClosed.Add(1, QuicMetrics.RoleTag(IsServer));
+    }
+
     private ulong ReceiveWindowFor(StreamId id)
         => id.IsUnidirectional
             ? LocalParams.InitialMaxStreamDataUniValue
@@ -1115,6 +1255,10 @@ public abstract class QuicEndpoint : IDisposable
             return;
 
         MaybeDecodePeerParameters();
+
+        // First, so the scans below walk only what is left, and credit a closed peer stream hands
+        // back goes out with this pass.
+        CloseReleasedStreams();
 
         // Shared budget for NEW stream data from congestion window and pacing.
         long sendBudget = Math.Min(_recovery.Congestion.Available, _pacer.AvailableBytes);
@@ -1528,13 +1672,14 @@ public abstract class QuicEndpoint : IDisposable
         foreach (Frame frame in _retransmitQueue[level])
         {
             // RFC 9000 §19.4: after a RESET_STREAM, no longer (re)transmit STREAM frames of that
-            // stream; §3.5: a STOP_SENDING is superfluous once the peer has already reset. Exception:
-            // after RESET_STREAM_AT, data up to the reliable size must keep being retransmitted
-            // (draft-ietf-quic-reliable-stream-reset §5).
+            // stream; §3.5: a STOP_SENDING is superfluous once the peer has already reset, or once
+            // the stream is gone, which needs its final size. Exception: after RESET_STREAM_AT, data
+            // up to the reliable size must keep being retransmitted (draft-ietf-quic-reliable-stream-reset
+            // §5). A reset stream that is gone took the rest of its data along (Close).
             if (frame is StreamFrame sf && StreamMap.TryGetValue(sf.StreamId, out QuicStream? s) && s.Send.IsReset &&
                 !(s.Send.IsResetAt && sf.Offset < s.Send.ReliableSize))
                 continue;
-            if (frame is StopSendingFrame ss && StreamMap.TryGetValue(ss.StreamId, out QuicStream? r) && r.Receive.ResetReceived)
+            if (frame is StopSendingFrame ss && (!StreamMap.TryGetValue(ss.StreamId, out QuicStream? r) || r.Receive.ResetReceived))
                 continue;
             if (frame is MaxStreamDataFrame or MaxDataFrame or MaxStreamsFrame && (!IsCurrentCredit(frame) || frames.Contains(frame)))
                 continue;
@@ -1678,7 +1823,7 @@ public abstract class QuicEndpoint : IDisposable
 
         if (_connWindowTuner is not { } connTuner)
             return;
-        ulong totalConsumed = 0;
+        ulong totalConsumed = _closedStreamsReceived;
         foreach (QuicStream s in StreamMap.Values)
             totalConsumed += s.Receive.BytesConsumed;
         if (_localConnMaxData - totalConsumed < connTuner.Size / 2)
@@ -1718,10 +1863,7 @@ public abstract class QuicEndpoint : IDisposable
             if (LocallyInitiated(streamId) || _creditedStreams.Contains(id) || !IsTerminated(stream, streamId))
                 continue;
             _creditedStreams.Add(id);
-            if (streamId.IsUnidirectional)
-                _pendingStreamCreditUni++;
-            else
-                _pendingStreamCreditBidi++;
+            CreditPeerStream(streamId);
         }
 
         if (ShouldAnnounce(_pendingStreamCreditBidi, LocalParams.InitialMaxStreamsBidiValue, _peerBlockedBidi))
@@ -1742,6 +1884,14 @@ public abstract class QuicEndpoint : IDisposable
 
         static bool ShouldAnnounce(ulong pending, ulong initialGrant, bool peerBlocked)
             => pending > 0 && (peerBlocked || pending >= Math.Max(1, initialGrant / 8));
+    }
+
+    private void CreditPeerStream(StreamId id)
+    {
+        if (id.IsUnidirectional)
+            _pendingStreamCreditUni++;
+        else
+            _pendingStreamCreditBidi++;
     }
 
     /// <summary>
@@ -2330,8 +2480,9 @@ public abstract class QuicEndpoint : IDisposable
             return;
         }
 
-        bool isNew = !StreamMap.ContainsKey(sf.StreamId);
-        StreamReceiveResult result = GetOrCreateStream(id).Receive.Receive(sf.Offset, sf.Data.Span, sf.Fin);
+        if (StreamForPeerFrame(id, out bool isNew) is not { } stream)
+            return; // late or repeated data of a stream that is gone
+        StreamReceiveResult result = stream.Receive.Receive(sf.Offset, sf.Data.Span, sf.Fin);
         switch (result)
         {
             case StreamReceiveResult.FlowControlError:   // RFC 9000 §4.1
@@ -2355,7 +2506,7 @@ public abstract class QuicEndpoint : IDisposable
     /// </summary>
     private bool ConnectionFlowControlViolated()
     {
-        ulong totalReceived = 0;
+        ulong totalReceived = _closedStreamsReceived;
         foreach (QuicStream s in StreamMap.Values)
             totalReceived += s.Receive.HighestReceivedOffset;
         if (totalReceived <= _localConnMaxData)
@@ -2398,7 +2549,7 @@ public abstract class QuicEndpoint : IDisposable
         // §19.4: a RESET_STREAM for a stream on which the peer does not send at all (our uni send side)
         // or for a locally initiated, never-opened stream ⇒ STREAM_STATE_ERROR.
         if ((id.IsUnidirectional && LocallyInitiated(id)) ||
-            (LocallyInitiated(id) && !StreamMap.ContainsKey(rs.StreamId)))
+            (LocallyInitiated(id) && !StreamMap.ContainsKey(rs.StreamId) && !WasOpened(id)))
         {
             CloseWithTransportError(TransportError.StreamStateError, "RESET_STREAM on send-only or uncreated stream");
             return;
@@ -2410,7 +2561,10 @@ public abstract class QuicEndpoint : IDisposable
             return;
         }
 
-        switch (GetOrCreateStream(id).Receive.Reset(rs.ApplicationErrorCode, rs.FinalSize))
+        if (StreamForPeerFrame(id, out _) is not { } stream)
+            return; // the stream is gone: its final size was known already
+
+        switch (stream.Receive.Reset(rs.ApplicationErrorCode, rs.FinalSize))
         {
             case StreamReceiveResult.FlowControlError:   // §4.1: final size above the granted window
                 CloseWithTransportError(TransportError.FlowControlError, "reset final size exceeds flow control");
@@ -2433,7 +2587,7 @@ public abstract class QuicEndpoint : IDisposable
         // §19.4 (analogous): RESET_STREAM_AT on a pure send side or on a never-opened, locally
         // initiated stream ⇒ STREAM_STATE_ERROR.
         if ((id.IsUnidirectional && LocallyInitiated(id)) ||
-            (LocallyInitiated(id) && !StreamMap.ContainsKey(rsa.StreamId)))
+            (LocallyInitiated(id) && !StreamMap.ContainsKey(rsa.StreamId) && !WasOpened(id)))
         {
             CloseWithTransportError(TransportError.StreamStateError, "RESET_STREAM_AT on send-only or uncreated stream");
             return;
@@ -2444,7 +2598,10 @@ public abstract class QuicEndpoint : IDisposable
             return;
         }
 
-        switch (GetOrCreateStream(id).Receive.ResetAt(rsa.ApplicationErrorCode, rsa.FinalSize, rsa.ReliableSize))
+        if (StreamForPeerFrame(id, out _) is not { } stream)
+            return; // the stream is gone: its final size was known already
+
+        switch (stream.Receive.ResetAt(rsa.ApplicationErrorCode, rsa.FinalSize, rsa.ReliableSize))
         {
             case StreamReceiveResult.FrameEncodingError: // draft §4: reliable size > final size
                 CloseWithTransportError(TransportError.FrameEncodingError, "RESET_STREAM_AT reliable size exceeds final size");
@@ -2474,7 +2631,7 @@ public abstract class QuicEndpoint : IDisposable
         // §19.5: STOP_SENDING for a pure receive stream (peer-initiated uni ⇒ we never send)
         // or for a locally initiated, never-opened stream ⇒ STREAM_STATE_ERROR.
         if ((id.IsUnidirectional && !LocallyInitiated(id)) ||
-            (LocallyInitiated(id) && !StreamMap.ContainsKey(ss.StreamId)))
+            (LocallyInitiated(id) && !StreamMap.ContainsKey(ss.StreamId) && !WasOpened(id)))
         {
             CloseWithTransportError(TransportError.StreamStateError, "STOP_SENDING on receive-only or uncreated stream");
             return;
@@ -2485,7 +2642,9 @@ public abstract class QuicEndpoint : IDisposable
             return;
         }
 
-        QuicStream stream = GetOrCreateStream(id);
+        if (StreamForPeerFrame(id, out _) is not { } stream)
+            return; // the stream is gone: everything on it was sent already
+
         stream.PeerStopSendingErrorCode = ss.ApplicationErrorCode;
         stream.Send.Reset(ss.ApplicationErrorCode); // §3.5: the error code SHOULD be copied
     }

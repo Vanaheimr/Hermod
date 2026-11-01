@@ -86,6 +86,33 @@ public class StreamRetentionTests
                     $"{grown / 1024} KiB still held after {uploads} finished uploads: {grown / uploads / 1024} KiB each");
     }
 
+    [Test]
+    public void ALongConnection_LetsGoOfItsFinishedStreams()
+    {
+        // Three times the default stream credit on one connection, each request forgotten once
+        // answered, as Http3Client does. The connection kept every stream and the server every
+        // request state, and every send pass and every pump walked all of them: requests 7,000 to
+        // 8,000 took three times as long as requests 2,000 to 3,000.
+        (Http3ClientConnection client, Http3ServerConnection server, ServerCertificate cert) =
+            Pair(_ => new Http3Response { Status = 200, Body = new byte[100] });
+        using ServerCertificate _ = cert;
+        using Http3ClientConnection c = client;
+        using Http3ServerConnection s = server;
+
+        for (int i = 0; i < 300; i++)
+        {
+            ulong id = client.SendRequest(Http3Request.Get("localhost", "/"));
+            Assert.That(AwaitResponse(client, server, id).Status, Is.EqualTo(200));
+            client.ForgetRequest(id);
+        }
+        Pump(client, server);
+
+        // Left: the six control and QPACK streams, three from each side.
+        Assert.That(client.Quic.Streams, Has.Count.LessThanOrEqualTo(6), "streams the client still holds");
+        Assert.That(server.Quic.Streams, Has.Count.LessThanOrEqualTo(6), "streams the server still holds");
+        Assert.That(server.TrackedRequestsForTest, Is.Zero, "request states the server still holds");
+    }
+
     // A method of its own, so no hidden temporary of the caller keeps the client alive.
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static Http3ServerConnection ServeOnOneConnection(int responses)
