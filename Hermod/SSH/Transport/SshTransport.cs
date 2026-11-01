@@ -130,7 +130,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         // would pour megabytes into `held` during every exchange, for the reader to write out after it.
         //
         // Whatever the peer sends between our KEXINIT and its own is held back in `deferred` and handed
-        // out after the exchange.
+        // out after the exchange. From its KEXINIT to its NEWKEYS - peerKexInitSeen - the peer itself may
+        // send nothing but the exchange, and ReceivePacketAsync refuses anything else.
         private readonly Object       kexGate = new ();
         private Byte[]?               pendingLocalKexInit;
         private Boolean               peerKexInitSeen;
@@ -578,6 +579,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// packet is tolerated, explicitly including these three, because silently dropping them is what
         /// let Terrapin (CVE-2023-48795) shift the sequence numbers. There they are fatal instead.
         /// </para>
+        ///
+        /// <para>
+        /// From the peer's KEXINIT to its NEWKEYS, anything but the key exchange is refused with an
+        /// <see cref="SshWireException"/>, as RFC 4253 §7.1 forbids the peer to send it - connection
+        /// traffic, a service request, a second KEXINIT. OpenSSH 10.4 disconnects a peer that sends
+        /// non-KEX messages during a re-exchange; so do we.
+        /// </para>
         /// </summary>
         public async ValueTask<Byte[]> ReceivePacketAsync(CancellationToken CancellationToken = default)
         {
@@ -615,7 +623,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     if (messageNumber == SshMessageNumber.KexInit)
                     {
                         lock (kexGate)
+                        {
+
+                            if (peerKexInitSeen)
+                                throw RefusedDuringKeyExchange(payload[0]);
+
                             peerKexInitSeen = true;
+
+                        }
                         return payload;
                     }
 
@@ -627,6 +642,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                         continue;
 
+                    }
+
+                    // The exchange would refuse it as well, but naming the packet it expected instead -
+                    // "Expected SSH_MSG_KEX_ECDH_REPLY" says nothing about a peer that sent channel data.
+                    if (!AllowedDuringKeyExchange(payload[0]))
+                    {
+                        lock (kexGate)
+                        {
+                            if (peerKexInitSeen)
+                                throw RefusedDuringKeyExchange(payload[0]);
+                        }
                     }
 
                     // Sent before the peer saw our KEXINIT, so legal (RFC 4253 §7.1) - but not to be
@@ -667,6 +693,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
 
         }
+
+        /// <summary>
+        /// What RFC 4253 §7.1 lets a party send between its KEXINIT and its NEWKEYS: the generic transport
+        /// messages (1-19) but for SERVICE_REQUEST and SERVICE_ACCEPT, the algorithm negotiation messages
+        /// (20-29) but for a further KEXINIT, and those of the key exchange method (30-49).
+        /// </summary>
+        private static Boolean AllowedDuringKeyExchange(Byte MessageNumber)
+            => MessageNumber is >= 1  and <= 19 and not (Byte) SshMessageNumber.ServiceRequest
+                                                and not (Byte) SshMessageNumber.ServiceAccept ||
+               MessageNumber is >= 21 and <= 49;
+
+        private static SshWireException RefusedDuringKeyExchange(Byte MessageNumber)
+            => new ($"The peer sent {(SshMessageNumber) MessageNumber} ({MessageNumber}) during its key exchange, which RFC 4253 §7.1 forbids.");
 
         /// <summary>
         /// Start a rekey from the reader - but only if sendLock is free this instant: a busy lock means
@@ -966,7 +1005,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (remoteKexInit.FirstKexPacketFollows &&
                 !KexInitMessage.GuessWasCorrect(remoteKexInit, negotiated.KeyExchange, negotiated.HostKey, negotiated.KexGuess2))
             {
-                await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+
+                // Discarded unread - so it had better be what it claims to be, a key exchange method's
+                // packet, and not connection traffic that would vanish in its place.
+                var guess = await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+
+                if (guess.Length < 1 || guess[0] is < 30 or > 49)
+                    throw new SshWireException(
+                              $"The peer announced a guessed key exchange packet, but sent " +
+                              $"{(guess.Length > 0 ? $"{(SshMessageNumber) guess[0]} ({guess[0]})" : "an empty packet")} instead.");
+
             }
 
             // 3. The method-specific exchange (client sends INIT, server replies) — shared with the
