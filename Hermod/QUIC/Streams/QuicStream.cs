@@ -113,4 +113,10 @@ public sealed class QuicStream
     /// bandwidth (round-robin); <c>false</c> (default) ⇒ one after another in stream-ID order.
     /// </summary>
     public bool SendIncremental { get; set; }
+
+    /// <summary>
+    /// Its owner is done with it (<see cref="Connection.QuicEndpoint.ReleaseStream"/>): the
+    /// connection lets go of it once nothing is left to send or to learn on it.
+    /// </summary>
+    internal bool Released { get; set; }
 }

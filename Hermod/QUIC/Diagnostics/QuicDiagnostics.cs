@@ -142,12 +142,20 @@ public static class QuicMetrics
                                       "Time from connection creation to installed 1-RTT keys.");
 
     /// <summary>
-    /// Streams opened. Not a gauge of live streams: QUIC stream state stays for the lifetime of the
-    /// connection (a peer may still reference a finished stream), so there is no close to count down.
+    /// Streams opened. Less <see cref="StreamsClosed"/>, the streams connections hold.
     /// </summary>
     public static readonly Counter<Int64> StreamsOpened =
         meter.CreateCounter<Int64>("quic.streams.opened", "{stream}",
                                    "QUIC streams opened, locally or by the peer.");
+
+    /// <summary>
+    /// Streams a connection has let go of: released by their owner, and finished
+    /// (<see cref="Connection.QuicEndpoint.ReleaseStream"/>). A stream nobody releases stays until
+    /// its connection ends, and is not counted here.
+    /// </summary>
+    public static readonly Counter<Int64> StreamsClosed =
+        meter.CreateCounter<Int64>("quic.streams.closed", "{stream}",
+                                   "QUIC streams released by their owner and finished.");
 
     /// <summary>
     /// UDP payload bytes handed to us, before any decryption.

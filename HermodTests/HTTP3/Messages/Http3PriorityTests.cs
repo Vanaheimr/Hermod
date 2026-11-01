@@ -186,6 +186,50 @@ public class Http3PriorityTests
         Assert.That(completeB < completeA, Is.True, $"The buffered PRIORITY_UPDATE (u=0) must favor stream 4 (A: {completeA}, B: {completeB}).");
     }
 
+    [Test]
+    public void PriorityUpdates_ForFinishedRequests_LeaveRoomForAComingOne()
+    {
+        // Updates for streams not open yet are buffered, up to a bound (§7). An update for a request
+        // that is over is not one of them: the stream will never open again. Such updates used to
+        // fill the buffer, and the one for a stream still to come was dropped.
+        using var cert = ServerCertificate.CreateSelfSigned("localhost");
+        byte[] big = new byte[150_000];
+        var clock = new FakeTimeProvider();
+        using var server = new Http3ServerConnection(cert, request => new Http3Response { Status = 200, Body = request.Path == "/small" ? [] : big },
+                                                     timeProvider: clock);
+        var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
+        using var client = new Http3ClientConnection("localhost", certificateValidation: validation, timeProvider: clock);
+        client.Start();
+        for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
+            Pump(client, server, clock);
+        client.InitializeHttp3();
+
+        var finished = new List<ulong>();
+        for (int i = 0; i < 40; i++)
+        {
+            ulong id = client.SendRequest(Http3Request.Get("localhost", "/small"));
+            for (int round = 0; round < 50 && !client.TryGetResponse(id, out _); round++)
+                Pump(client, server, clock);
+            client.ForgetRequest(id);
+            finished.Add(id);
+        }
+        foreach (ulong id in finished)
+            client.SendPriorityUpdate(id, new Http3Priority(7, false));
+
+        // Stream B is not open yet: its update has to wait for it.
+        ulong nextA = finished[^1] + 4, nextB = nextA + 4;
+        client.SendPriorityUpdate(nextB, new Http3Priority(0, false));
+        for (int round = 0; round < 5; round++)
+            Pump(client, server, clock);
+
+        ulong a = client.SendRequest(Http3Request.Get("localhost", "/a"));
+        ulong b = client.SendRequest(Http3Request.Get("localhost", "/b"));
+        Assert.That((a, b), Is.EqualTo((nextA, nextB)));
+        (int roundA, int roundB) = AwaitBoth(client, server, a, b, clock);
+
+        Assert.That(roundB < roundA, Is.True, $"The buffered PRIORITY_UPDATE (u=0) must favor stream {b} (A: {roundA}, B: {roundB}).");
+    }
+
     // ---- State machine (RFC 9218 §7.2 MUSTs) ----------------------------------------------
 
     [Test]

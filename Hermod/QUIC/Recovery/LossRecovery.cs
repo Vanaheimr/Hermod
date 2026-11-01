@@ -35,9 +35,10 @@ public sealed class SentPacket
     public required int Size { get; init; }
 
     /// <summary>
-    /// Frames to resend on loss (CRYPTO, STREAM). ACK/flow control are re-derived.
+    /// Frames to resend on loss (CRYPTO, STREAM). ACK/flow control are re-derived. Narrowed when
+    /// some of them need not go out again (<see cref="LossRecovery.DiscardFrames"/>).
     /// </summary>
-    public required IReadOnlyList<Frame> RetransmittableFrames { get; init; }
+    public required IReadOnlyList<Frame> RetransmittableFrames { get; set; }
 
     /// <summary>
     /// This packet is a PMTU probe (RFC 9000 §14.4): deliberately larger than the current maximum
@@ -404,6 +405,26 @@ public sealed class LossRecovery
                 frames.AddRange(sp.RetransmittableFrames);
         UpdateInFlightMarker();
         return frames;
+    }
+
+    /// <summary>
+    /// Takes the frames matching <paramref name="discard"/> out of the packets still in flight, so a
+    /// later loss does not send them again. The packets themselves stay tracked: they are still in
+    /// flight, and their acknowledgment still counts.
+    /// </summary>
+    public void DiscardFrames(int space, Predicate<Frame> discard)
+    {
+        foreach (SentPacket sp in _spaces[space].Sent.Values)
+        {
+            IReadOnlyList<Frame> frames = sp.RetransmittableFrames;
+            for (int k = 0; k < frames.Count; k++)
+            {
+                if (!discard(frames[k]))
+                    continue;
+                sp.RetransmittableFrames = frames.Where(f => !discard(f)).ToList();
+                break;
+            }
+        }
     }
 
     private void UpdateInFlightMarker()
