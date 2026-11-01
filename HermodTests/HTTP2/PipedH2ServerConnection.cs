@@ -342,9 +342,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         /// <summary>
         /// Read on until the server has ended its side of the stream, and return
-        /// the response it sent there — or null if it did not end it in time.
+        /// the response it sent there — or null if it did not end it in time,
+        /// or reset the stream first.
+        ///
+        /// What was read before counts as well: waiting for another stream's
+        /// end reads past the frames of this one, and a server that answers
+        /// several streams at once may well end this one first. It used to look
+        /// at new frames only, and waited for an end it had read already until
+        /// the timeout.
         /// </summary>
         public async Task<Response?> TryResponseAsync(UInt32 StreamId, TimeSpan Timeout)
+        {
+
+            if (!(EndReadOn(StreamId) ?? await ReadOnToEndAsync(StreamId, Timeout)))
+                return null;
+
+            var blocks  = FramesOn(StreamId).Where(frame => frame.Headers is not null).ToList();
+            var body    = String.Concat(FramesOn(StreamId).Where (frame => frame.Frame.Type == HTTP2FrameType.DATA).
+                                                           Select(frame => Encoding.ASCII.GetString(frame.Frame.Payload)));
+
+            return new Response(blocks[0].Headers!,
+                                body,
+                                blocks.Count > 1 ? blocks[^1].Headers : null);
+
+        }
+
+        /// <summary>
+        /// How the frames read so far on the stream end it, by the first that
+        /// does, as <see cref="ReadOnToEndAsync"/> tells: true for the end of
+        /// the server's side, false for RST_STREAM — or null if none does yet.
+        /// </summary>
+        private Boolean? EndReadOn(UInt32 StreamId)
+        {
+
+            var endStreamBlock = false;
+
+            foreach (var received in FramesOn(StreamId))
+            {
+
+                var frame = received.Frame;
+
+                switch (frame.Type)
+                {
+
+                    case HTTP2FrameType.DATA when frame.EndStream:
+                        return true;
+
+                    case HTTP2FrameType.HEADERS:
+                        endStreamBlock = frame.EndStream;
+                        if (frame.EndHeaders && endStreamBlock)
+                            return true;
+                        break;
+
+                    case HTTP2FrameType.CONTINUATION when frame.EndHeaders && endStreamBlock:
+                        return true;
+
+                    case HTTP2FrameType.RST_STREAM:
+                        return false;
+
+                }
+
+            }
+
+            return null;
+
+        }
+
+        /// <summary>
+        /// Read on until the server ends its side of the stream (true), resets
+        /// the stream, or the timeout passes (false).
+        /// </summary>
+        private async Task<Boolean> ReadOnToEndAsync(UInt32 StreamId, TimeSpan Timeout)
         {
 
             using var timeout = new CancellationTokenSource(Timeout);
@@ -361,26 +429,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                         continue;
 
                     if (EndsStream(frame))
-                        break;
+                        return true;
 
                     if (frame.Type == HTTP2FrameType.RST_STREAM)
-                        return null;
+                        return false;
 
                 }
 
             }
             catch (OperationCanceledException) when (timeout.IsCancellationRequested)
             {
-                return null;
+                return false;
             }
-
-            var blocks  = FramesOn(StreamId).Where(frame => frame.Headers is not null).ToList();
-            var body    = String.Concat(FramesOn(StreamId).Where (frame => frame.Frame.Type == HTTP2FrameType.DATA).
-                                                           Select(frame => Encoding.ASCII.GetString(frame.Frame.Payload)));
-
-            return new Response(blocks[0].Headers!,
-                                body,
-                                blocks.Count > 1 ? blocks[^1].Headers : null);
 
         }
 

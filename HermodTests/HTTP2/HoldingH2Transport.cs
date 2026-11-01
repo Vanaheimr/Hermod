@@ -43,8 +43,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// write, which on a real socket is a window of microseconds.
     ///
     /// It holds the client's write of an RST_STREAM the same way, for every
-    /// stream <see cref="HoldResetOf"/> selects. It can also fail the client's
-    /// next DATA write on a stream, as a broken transport would
+    /// stream <see cref="HoldResetOf"/> selects, and of a PING, its answer to
+    /// one of the test's included, if <see cref="HoldPings"/> — under stream 0,
+    /// and with the connection's write lock, which no stream slot comes with.
+    /// It keeps which frames each of the client's writes carried
+    /// (<see cref="Writes"/>), as its frame writer buffers them. It can also
+    /// fail the client's next DATA write on a stream, as a broken transport would
     /// (<see cref="FailNextDataWrite"/>), and hands the test each frame the
     /// client sends (<see cref="NextFrameAsync"/>), which a test needs to wait
     /// for what the connection's DATA writer loop sends on a thread of its own.
@@ -64,8 +68,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private readonly Stream        toClient;
         private readonly HPACKEncoder  encoder         = new();
 
-        private readonly Lock                                      sync  = new();
-        private readonly Dictionary<UInt32, TaskCompletionSource>  held  = [];
+        private readonly Lock                                      sync    = new();
+        private readonly Dictionary<UInt32, TaskCompletionSource>  held    = [];
+        private readonly List<IReadOnlyList<(HTTP2FrameType Type, UInt32 StreamId)>>  writes  = [];
 
         private Int64                  sent;
         private Int64                  delivered;
@@ -92,11 +97,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// </summary>
         public Func<UInt32, Boolean>   HoldResetOf     { get; }
 
+        /// <summary>
+        /// Whether the client is held in the write of a PING until <see cref="Release"/>
+        /// of stream 0. One at a time.
+        /// </summary>
+        public Boolean                 HoldPings       { get; }
+
+        /// <summary>
+        /// The frames each of the client's writes carried so far, in order: the
+        /// type and stream ID of each frame whose last byte the write held.
+        /// </summary>
+        public IReadOnlyList<IReadOnlyList<(HTTP2FrameType Type, UInt32 StreamId)>> Writes
+        {
+            get
+            {
+                lock (sync)
+                    return [.. writes];
+            }
+        }
+
         public HoldingH2Transport(Func<UInt32, Boolean>   HoldHeadersOf,
-                                  Func<UInt32, Boolean>?  HoldResetOf   = null)
+                                  Func<UInt32, Boolean>?  HoldResetOf   = null,
+                                  Boolean                 HoldPings     = false)
         {
             this.HoldHeadersOf  = HoldHeadersOf;
             this.HoldResetOf    = HoldResetOf ?? (streamId => false);
+            this.HoldPings      = HoldPings;
             this.fromClient     = clientToServer.Reader.AsStream();
             this.toClient       = serverToClient.Writer.AsStream();
             this.Client         = new ClientSide(this);
@@ -372,7 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             // A hold that never engaged would leave the test ordering nothing,
             // and passing for the wrong reason.
             if (release is null)
-                throw new InvalidOperationException($"The client is not held in the HEADERS or the RST_STREAM of stream {StreamId}");
+                throw new InvalidOperationException($"The client is not held in the HEADERS, the RST_STREAM or the PING of stream {StreamId}");
 
             // The TPL never runs a continuation inline on a thread with a
             // SynchronizationContext of its own, and NUnit gives its test threads
@@ -513,14 +539,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                     Transport.WriteFailureFor(HTTP2Frame.ParseHeader(Buffer.Span[..HTTP2Frame.HeaderSize])) is { } failure)
                     throw failure;
 
+                var completed = FramesCompletedBy(Buffer.Span);
+
+                lock (Transport.sync)
+                    Transport.writes.Add(completed);
+
                 // Holds exist before the bytes go out, so the test cannot read
-                // these HEADERS, or this RST_STREAM, and then find nothing to
-                // release.
-                var holds = FramesCompletedBy(Buffer.Span).
-                                Where (completed => completed.Type == HTTP2FrameType.HEADERS    ? Transport.HoldHeadersOf(completed.StreamId)
-                                                  : completed.Type == HTTP2FrameType.RST_STREAM ? Transport.HoldResetOf  (completed.StreamId)
-                                                  : false).
-                                Select(completed => Transport.Hold(completed.StreamId)).
+                // these HEADERS, this RST_STREAM or this PING, and then find
+                // nothing to release.
+                var holds = completed.
+                                Where (frame => frame.Type == HTTP2FrameType.HEADERS    ? Transport.HoldHeadersOf(frame.StreamId)
+                                              : frame.Type == HTTP2FrameType.RST_STREAM ? Transport.HoldResetOf  (frame.StreamId)
+                                              : frame.Type == HTTP2FrameType.PING       && Transport.HoldPings).
+                                Select(frame => Transport.Hold(frame.StreamId)).
                                 ToList();
 
                 await toServer.WriteAsync(Buffer, CancellationToken);

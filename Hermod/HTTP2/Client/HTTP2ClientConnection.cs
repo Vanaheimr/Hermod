@@ -87,7 +87,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly HTTP2StreamManager  streamManager    = new(HTTP2Role.Client);
         private readonly HPACKDecoder        hpackDecoder     = new();
         private readonly HPACKEncoder        hpackEncoder     = new();
-        private readonly SemaphoreSlim       writeLock        = new(1, 1);
+
+        /// <summary>
+        /// The write lock and the buffer behind it: every frame goes out under
+        /// its lock, and only the last of the writers waiting for it flushes.
+        /// </summary>
+        private readonly HTTP2FrameWriter    frameWriter;
 
         /// <summary>
         /// Serializes request *starts* — allocating the next odd stream ID,
@@ -96,8 +101,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// 9113, Section 5.1.1 requires new stream IDs to open in increasing order
         /// (a higher ID implicitly closes lower ones), so two concurrent requests
         /// must not interleave their opens.
+        ///
+        /// Taken through <see cref="EnterStartAsync"/> and let go of through
+        /// <see cref="LeaveStartAsync"/>, which keep the starts in line for it
+        /// from flushing one by one.
         /// </summary>
         private readonly SemaphoreSlim  requestStartLock = new(1, 1);
+
+        /// <summary>
+        /// The starts that hold <see cref="requestStartLock"/> or wait for it.
+        /// While there are any, they hold one batch open on the frame writer.
+        /// </summary>
+        private Int32                   startsInLine;
 
         private readonly CancellationTokenSource connectionCts;
         private readonly CancellationToken       cancellationToken;
@@ -256,6 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         {
 
             this.transportStream        = TransportStream;
+            this.frameWriter            = new HTTP2FrameWriter(TransportStream);
             this.ownsTransport          = OwnsTransport;
             this.isSecure               = TransportStream is SslStream { IsAuthenticated: true };
             this.options                = Options ?? HTTP2ClientOptions.Default;
@@ -756,10 +772,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Begin a request and return a handle *immediately* once its HEADERS are
-        /// on the wire — before the response arrives — exposing the allocated
+        /// written — before the response arrives — exposing the allocated
         /// <see cref="HTTP2RequestHandle.StreamId"/> so the caller can reprioritize
         /// the in-flight request via <see cref="UpdatePriorityAsync"/> (RFC 9218
         /// PRIORITY_UPDATE) while awaiting <see cref="HTTP2RequestHandle.Response"/>.
+        /// Written, and on the wire by the time the last of the requests started
+        /// along with it returns: those go out together, flushed by that one
+        /// (see <see cref="EnterStartAsync"/>).
         /// </summary>
         public async Task<HTTP2RequestHandle> StartRequestAsync(HTTPMethod                          Method,
                                                                 URIScheme                           Scheme,
@@ -1182,9 +1201,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
-        /// Allocate a fresh outbound stream and put the request on the wire: gate on
-        /// the peer's MAX_CONCURRENT_STREAMS, allocate + open the stream, encode and
-        /// send HEADERS atomically under the request-start lock, then (if there's a
+        /// Allocate a fresh outbound stream and write the request: gate on the
+        /// peer's MAX_CONCURRENT_STREAMS, allocate + open the stream, encode and
+        /// write HEADERS atomically under the request-start lock, then (if there's a
         /// body) send it concurrently. Reused verbatim by the REFUSED_STREAM retry
         /// path, which is why it lives apart from <see cref="StartRequestAsync"/>.
         /// </summary>
@@ -1209,14 +1228,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             HTTP2Stream stream;
 
-            await requestStartLock.WaitAsync(linked.Token);
+            await EnterStartAsync(linked.Token);
 
             try
             {
 
                 // Wait for a free stream slot rather than failing when the server's
                 // MAX_CONCURRENT_STREAMS limit is momentarily reached.
-                await WaitForStreamSlotAsync(linked.Token);
+                await WaitForStreamSlotInLineAsync(linked.Token);
 
                 stream = streamManager.CreateLocalStream();
                 stream.Open();
@@ -1237,19 +1256,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 var headerBlock = hpackEncoder.EncodeHeaderBlock(Exchange.RequestHeaders);
                 await SendHeaderBlockAsync(stream.StreamId, headerBlock, EndStream: !Exchange.HasBody && !keepOpen);
 
-                // From the moment these HEADERS are on the wire the server may reset
-                // the stream, and the read loop may handle that before we get here.
-                // The stream is closed then, and the reset already dealt with on the
-                // exchange — a refusal retried or reported — so nothing is left to
-                // close, and throwing would replace that outcome with a state error.
+                // From the moment these HEADERS are written, any writer's flush may
+                // take them out, the server may reset the stream, and the read loop
+                // may handle that before we get here. The stream is closed then, and
+                // the reset already dealt with on the exchange — a refusal retried or
+                // reported — so nothing is left to close, and throwing would replace
+                // that outcome with a state error.
                 if (!Exchange.HasBody && !keepOpen)
                     CloseLocalIfOpen(stream);
 
             }
-            finally
+            catch
             {
-                requestStartLock.Release();
+                await LeaveStartAsync(Quietly: true);
+                throw;
             }
+
+            await LeaveStartAsync();
 
             // This attempt's stream, not Exchange.Stream: a refusal handled in the
             // meantime has had its retry put a fresh stream there, which the retry
@@ -1319,6 +1342,117 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 await wait.WaitAsync(Token);
 
             }
+        }
+
+        /// <summary>
+        /// Take <see cref="requestStartLock"/>, as one more start in line for it.
+        ///
+        /// A start holds that lock across its HEADERS write, and the write was
+        /// nearly all of its time there: a TLS record and a send, 26 of 30 µs
+        /// with 64 requests in flight. One write each, one start after the
+        /// other, made that write the connection's ceiling. So the starts in
+        /// line now share one batch on the frame writer
+        /// (<see cref="HTTP2FrameWriter.BeginBatch"/>): each writes its block
+        /// into the buffer, and the last to leave the line flushes for all of
+        /// them (<see cref="LeaveStartAsync"/>).
+        ///
+        /// While the batch is open, nobody else flushes either. That is safe
+        /// because the starts in line wait for nothing but the lock, and the one
+        /// holding it for nothing but the frame writer — except for a stream
+        /// slot, which only a response frees, to a request the server must have
+        /// first. A start ends the batch before that wait
+        /// (<see cref="WaitForStreamSlotInLineAsync"/>).
+        /// </summary>
+        private async Task EnterStartAsync(CancellationToken Token)
+        {
+
+            if (Interlocked.Increment(ref startsInLine) == 1)
+                frameWriter.BeginBatch();
+
+            try
+            {
+                await requestStartLock.WaitAsync(Token);
+            }
+            catch
+            {
+                await LeaveLineAsync(Quietly: true);
+                throw;
+            }
+
+        }
+
+        /// <summary>
+        /// Let go of <see cref="requestStartLock"/>, and leave the line.
+        /// </summary>
+        /// <param name="Quietly">Whether a failed flush is not this start's to report: it has failed already.</param>
+        private Task LeaveStartAsync(Boolean Quietly = false)
+        {
+
+            requestStartLock.Release();
+
+            return LeaveLineAsync(Quietly);
+
+        }
+
+        /// <summary>
+        /// Leave the line of starts. The last one ends the line's batch, and
+        /// flushes what the starts before it wrote, unless another writer is
+        /// waiting and will. Its own block is among them, so a failed flush is
+        /// its failure, as a failed write was when every start wrote its own.
+        /// </summary>
+        /// <param name="Quietly">Whether a failed flush is not this start's to report: it has failed already.</param>
+        private async Task LeaveLineAsync(Boolean Quietly)
+        {
+
+            if (Interlocked.Decrement(ref startsInLine) > 0)
+                return;
+
+            try
+            {
+                await frameWriter.EndBatchAsync(cancellationToken);
+            }
+            catch when (Quietly)
+            { }
+
+        }
+
+        /// <summary>
+        /// <see cref="WaitForStreamSlotAsync"/>, for a start in line. If it has
+        /// to wait, the line's batch ends first, so that what the starts before
+        /// it wrote goes out: a slot comes free with a response, and the server
+        /// answers no request it has not got. The starts behind it in line keep
+        /// the batch theirs to end afterwards, as this one is still among them.
+        /// </summary>
+        private async Task WaitForStreamSlotInLineAsync(CancellationToken Token)
+        {
+
+            var slot = WaitForStreamSlotAsync(Token);
+
+            if (slot.IsCompleted)
+            {
+                await slot;
+                return;
+            }
+
+            try
+            {
+                await frameWriter.EndBatchAsync(cancellationToken);
+            }
+            catch
+            {
+                // The connection is ending, or its transport failed: either way
+                // it ends, and with it the wait below.
+            }
+
+            try
+            {
+                await slot;
+            }
+            finally
+            {
+                frameWriter.BeginBatch();
+            }
+
         }
 
         /// <summary>
@@ -1575,10 +1709,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             // Open the stream and send CONNECT HEADERS *without* END_STREAM — the
             // request side stays open so we can send tunnel bytes.
-            await requestStartLock.WaitAsync(linked.Token);
+            await EnterStartAsync(linked.Token);
             try
             {
-                await WaitForStreamSlotAsync(linked.Token);
+                await WaitForStreamSlotInLineAsync(linked.Token);
 
                 var stream = streamManager.CreateLocalStream();
                 stream.Open();
@@ -1593,10 +1727,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 var block = hpackEncoder.EncodeHeaderBlock(headers);
                 await SendHeaderBlockAsync(stream.StreamId, block, EndStream: false);
             }
-            finally
+            catch
             {
-                requestStartLock.Release();
+                await LeaveStartAsync(Quietly: true);
+                throw;
             }
+
+            await LeaveStartAsync();
 
             int status;
 
@@ -1867,7 +2004,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         ///
         /// Unlike <see cref="EndTunnelAsync"/> this is not best-effort: a caller that
         /// asked to send trailers and got no exception is entitled to assume they
-        /// went out.
+        /// were sent — written, and flushed by the last start in line with them
+        /// (see <see cref="EnterStartAsync"/>), as request HEADERS are.
         ///
         /// Nothing is sent on a stream the server has reset (RFC 9113, Section 5.1:
         /// a closed stream carries no frame but PRIORITY), whether the reset came
@@ -1927,7 +2065,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, CancellationToken);
 
-            await requestStartLock.WaitAsync(linked.Token);
+            await EnterStartAsync(linked.Token);
             try
             {
 
@@ -1943,10 +2081,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 await SendHeaderBlockAsync(Stream.StreamId, headerBlock, EndStream: true);
 
             }
-            finally
+            catch
             {
-                requestStartLock.Release();
+                await LeaveStartAsync(Quietly: true);
+                throw;
             }
+
+            await LeaveStartAsync();
 
             CloseLocalIfOpen(Stream);
 
@@ -2079,7 +2220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             var bytes = HTTP2Frame.CreateRstStream(Stream.StreamId, ErrorCode).Serialize();
 
-            await writeLock.WaitAsync(cancellationToken);
+            await frameWriter.EnterAsync(cancellationToken);
 
             try
             {
@@ -2087,15 +2228,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 if (!Stream.TryReset(KeepCode ? ErrorCode : null))
                     return false;
 
-                await transportStream.WriteAsync(bytes, cancellationToken);
-                await transportStream.FlushAsync(cancellationToken);
+                await frameWriter.WriteAsync(bytes, cancellationToken);
 
                 return true;
 
             }
             finally
             {
-                writeLock.Release();
+                await frameWriter.ExitAsync(cancellationToken);
             }
 
         }
@@ -2906,7 +3046,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             var bytes = HTTP2Frame.CreateWindowUpdate(Stream.StreamId, Increment).Serialize();
 
-            await writeLock.WaitAsync(cancellationToken);
+            await frameWriter.EnterAsync(cancellationToken);
 
             try
             {
@@ -2914,13 +3054,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 if (!MayStillSendData(Stream))
                     return;
 
-                await transportStream.WriteAsync(bytes, cancellationToken);
-                await transportStream.FlushAsync(cancellationToken);
+                await frameWriter.WriteAsync(bytes, cancellationToken);
 
             }
             finally
             {
-                writeLock.Release();
+                await frameWriter.ExitAsync(cancellationToken);
             }
 
         }
@@ -3583,9 +3722,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// the connection at once, with GOAWAY INTERNAL_ERROR, and fails every
         /// request on it with the reason, rather than leave the connection taking
         /// requests whose bodies nothing would send.
+        ///
+        /// While it has DATA to send, the loop holds a batch open on the frame
+        /// writer (<see cref="HTTP2FrameWriter.BeginBatch"/>), and flushes once
+        /// it runs out, as the server's does.
         /// </summary>
         private async Task DataWriterLoopAsync()
         {
+
+            var batchOpen = false;
 
             try
             {
@@ -3634,8 +3779,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     if (stream is null)
                     {
+
+                        // Nothing to send, or nothing the windows allow: the batch
+                        // ends, and what it wrote goes out before the loop sleeps.
+                        // A server waiting for that DATA could not otherwise grant
+                        // the window that would let the loop go on. Then one more
+                        // scan, under a wakeup of its own, for a stream that
+                        // queued meanwhile.
+                        if (batchOpen)
+                        {
+                            batchOpen = false;
+                            await frameWriter.EndBatchAsync(cancellationToken);
+                            continue;
+                        }
+
                         await wakeup.WaitAsync(cancellationToken);
                         continue;
+
+                    }
+
+                    // DATA to send: the frames this loop writes one after the
+                    // other go out with one flush at the end of the batch.
+                    if (!batchOpen)
+                    {
+                        frameWriter.BeginBatch();
+                        batchOpen = true;
                     }
 
                     var taken = stream.OutboundQueue.TakeChunk(reserved);
@@ -3718,6 +3886,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 FailAllExchanges(e);
 
+                if (batchOpen)
+                {
+                    batchOpen = false;
+                    frameWriter.AbandonBatch();
+                }
+
                 try
                 {
                     await SendFrameAsync(HTTP2Frame.CreateGoAway(streamManager.LastPeerStreamId,
@@ -3731,6 +3905,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 _ = connectionCts.CancelAsync();
 
+            }
+            finally
+            {
+                // Ended by the connection's end: a GOAWAY, if one goes out, takes
+                // along what the batch wrote.
+                if (batchOpen)
+                    frameWriter.AbandonBatch();
             }
 
         }
@@ -4015,28 +4196,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
         }
 
+        /// <summary>
+        /// Send a frame under the write lock. A GOAWAY is flushed at once, even
+        /// with other writers waiting to flush after it: the connection ends
+        /// right after it, and a writer waiting then gives up rather than flush.
+        /// </summary>
         private async Task SendFrameAsync(HTTP2Frame Frame)
         {
             var bytes = Frame.Serialize();
-            await writeLock.WaitAsync(cancellationToken);
+            await frameWriter.EnterAsync(cancellationToken);
             try
             {
-                await transportStream.WriteAsync(bytes, cancellationToken);
-                await transportStream.FlushAsync(cancellationToken);
+                await frameWriter.WriteAsync(bytes, cancellationToken);
             }
-            finally { writeLock.Release(); }
+            finally { await frameWriter.ExitAsync(cancellationToken, Flush: Frame.Type == HTTP2FrameType.GOAWAY); }
         }
 
         private async Task SendFramesAsync(IReadOnlyList<HTTP2Frame> Frames)
         {
-            await writeLock.WaitAsync(cancellationToken);
+            await frameWriter.EnterAsync(cancellationToken);
             try
             {
                 foreach (var frame in Frames)
-                    await transportStream.WriteAsync(frame.Serialize(), cancellationToken);
-                await transportStream.FlushAsync(cancellationToken);
+                    await frameWriter.WriteAsync(frame.Serialize(), cancellationToken);
             }
-            finally { writeLock.Release(); }
+            finally { await frameWriter.ExitAsync(cancellationToken); }
         }
 
         /// <summary>
@@ -4081,7 +4265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             var bytes = HTTP2Frame.CreateData(Stream.StreamId, Payload, EndStream).Serialize();
 
-            await writeLock.WaitAsync(cancellationToken);
+            await frameWriter.EnterAsync(cancellationToken);
 
             try
             {
@@ -4107,15 +4291,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 Completion?.TrySetResult();
 
-                await transportStream.WriteAsync(bytes, cancellationToken);
-                await transportStream.FlushAsync(cancellationToken);
+                await frameWriter.WriteAsync(bytes, cancellationToken);
 
                 return true;
 
             }
             finally
             {
-                writeLock.Release();
+                await frameWriter.ExitAsync(cancellationToken);
             }
 
         }
@@ -4269,7 +4452,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// The write lock is not released: the GOAWAY is the last frame of the
         /// connection, as Section 5.4.1 has the TCP connection closed after it,
         /// and every write still waiting for the lock fails with the cancellation
-        /// that follows.
+        /// that follows. Its flush takes along whatever earlier writers left in
+        /// the buffer for a writer behind them, which this GOAWAY may have been.
         /// </summary>
         private async Task<Boolean> SendGoAwayAsync(HTTP2ErrorCode ErrorCode, String? DebugMessage)
         {
@@ -4281,7 +4465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             try
             {
-                await writeLock.WaitAsync(bounded.Token);
+                await frameWriter.EnterAsync(bounded.Token);
             }
             catch (OperationCanceledException)
             {
@@ -4290,8 +4474,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             try
             {
-                await transportStream.WriteAsync(bytes, bounded.Token);
-                await transportStream.FlushAsync(bounded.Token);
+                await frameWriter.WriteAsync(bytes, bounded.Token);
+                await frameWriter.FlushAsync(bounded.Token);
                 return true;
             }
             catch
