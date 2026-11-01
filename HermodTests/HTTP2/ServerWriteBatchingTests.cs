@@ -141,6 +141,110 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
+        #region ASmallResponse_GoesOutWithItsHeaders()
+
+        /// <summary>
+        /// A body that fits into one DATA frame and the send windows goes out
+        /// with its HEADERS, in one hold of the write lock, while no stream has
+        /// DATA queued. Through the writer loop, the HEADERS were flushed on
+        /// their own, and the DATA went out after them, in a write of its own.
+        /// </summary>
+        [Test]
+        public async Task ASmallResponse_GoesOutWithItsHeaders()
+        {
+
+            await using var peer = await PipedH2ServerConnection.StartAsync(SmallResponse, WriteBufferSize: HTTP2FrameWriter.DefaultBufferSize);
+
+            await peer.RequestAsync(1, "/");
+
+            var response    = await peer.TryResponseAsync(1, PipedH2ServerConnection.StepTimeout);
+            var withHeaders = peer.Writes.Single(write => write.Contains((HTTP2FrameType.HEADERS, 1u)));
+
+            Assert.Multiple(() =>
+            {
+
+                Assert.That(response?.Status, Is.EqualTo("200"));
+                Assert.That(response?.Body,   Is.EqualTo("hello"));
+
+                Assert.That(withHeaders, Does.Contain((HTTP2FrameType.DATA, 1u)),
+                            $"the write with the HEADERS: {String.Join(", ", withHeaders)}");
+
+            });
+
+        }
+
+        #endregion
+
+        #region ASmallResponse_WhileAnotherStreamHasDataQueued_GoesThroughTheWriterLoop()
+
+        /// <summary>
+        /// While another stream has DATA queued, a small response goes the usual
+        /// way: its HEADERS, then its body through the writer loop, which
+        /// decides whose DATA goes next (RFC 9218). Here stream 1's body waits
+        /// for window, and stream 3 has window of its own, so its body would
+        /// have fitted to go with its HEADERS.
+        /// </summary>
+        [Test]
+        public async Task ASmallResponse_WhileAnotherStreamHasDataQueued_GoesThroughTheWriterLoop()
+        {
+
+            var answer = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var peer = await PipedH2ServerConnection.StartAsync(
+                                             async (streamId, headers, body, cancellationToken) => {
+
+                                                 if (headers.First(header => header.Name == ":path").Value == "/large")
+                                                     return ([(":status", "200")], new Byte[1000]);
+
+                                                 await answer.Task;
+
+                                                 return ([(":status", "200")], Encoding.ASCII.GetBytes("hello"));
+
+                                             },
+                                             WriteBufferSize: HTTP2FrameWriter.DefaultBufferSize);
+
+            // A stream window of one octet: stream 1 sends one, and the rest of
+            // its body stays queued.
+            await peer.SendAsync(HTTP2Frame.CreateSettings((HTTP2SettingsParameter.INITIAL_WINDOW_SIZE, 1u)));
+            await peer.PingAsync();
+
+            await peer.RequestAsync(1, "/large");
+
+            var octet = Task.Run(async () => {
+                            while (!peer.FramesOn(1).Any(received => received.Frame.Type == HTTP2FrameType.DATA))
+                                await peer.PingAsync();
+                        });
+
+            Assert.That(await Task.WhenAny(octet, Task.Delay(PipedH2ServerConnection.StepTimeout)), Is.SameAs(octet),
+                        "stream 1 sent the octet its window allowed");
+
+            await octet;
+
+            // Window for stream 3's whole body, handled before it answers.
+            await peer.RequestAsync(3, "/");
+            await peer.SendAsync(HTTP2Frame.CreateWindowUpdate(3, 100));
+            await peer.PingAsync();
+
+            answer.SetResult();
+
+            var response    = await peer.TryResponseAsync(3, PipedH2ServerConnection.StepTimeout);
+            var withHeaders = peer.Writes.Single(write => write.Contains((HTTP2FrameType.HEADERS, 3u)));
+
+            Assert.Multiple(() =>
+            {
+
+                Assert.That(response?.Status, Is.EqualTo("200"));
+                Assert.That(response?.Body,   Is.EqualTo("hello"));
+
+                Assert.That(withHeaders, Does.Not.Contain((HTTP2FrameType.DATA, 3u)),
+                            $"the write with the HEADERS: {String.Join(", ", withHeaders)}");
+
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

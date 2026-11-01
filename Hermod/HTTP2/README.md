@@ -1078,7 +1078,11 @@ that prints, which is roughly what the library used to hardcode.
   ignore the frame, as one of a type it does not handle.
 - A **priority-aware multiplexed writer**: a single per-connection writer loop
   schedules DATA by urgency → non-incremental-first → round-robin fairness
-  (`HTTP2SendOrder`, shared by both roles).
+  (`HTTP2SendOrder`, shared by both roles). One exception on the server: a
+  buffered response whose body fits into one DATA frame and the send windows
+  goes out with its HEADERS, in one hold of the write lock, as long as no
+  stream has DATA queued. With nothing queued the loop has nothing to choose
+  between, and through it each such response took the write lock twice.
 - Client emits the signals too (`Priority` param on requests, streamed requests,
   tunnels and WebSockets; `UpdatePriorityAsync` on the connection, a tunnel or
   a `WebSocketConnection`), and **sends its own DATA by them**: a writer loop of

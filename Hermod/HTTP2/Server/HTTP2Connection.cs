@@ -3416,11 +3416,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Send an HTTP/2 response: HEADERS frame(s) + optional DATA frame(s).
-        /// The DATA is handed to the connection's shared priority-aware writer
-        /// loop (<see cref="DataWriterLoopAsync"/>) rather than sent directly —
-        /// it decides send order relative to other concurrent streams'
-        /// responses; this method just waits for its own body to be fully sent
-        /// (or abandoned, on reset/connection teardown).
+        /// A small body goes out with its HEADERS, if nothing else is waiting
+        /// to be sent (<see cref="TrySendWithHeadersAsync"/>). Any other body is
+        /// handed to the connection's shared priority-aware writer loop
+        /// (<see cref="DataWriterLoopAsync"/>) rather than sent directly — it
+        /// decides send order relative to other concurrent streams' responses;
+        /// this method just waits for its own body to be fully sent (or
+        /// abandoned, on reset/connection teardown).
         /// </summary>
         private async Task SendResponseAsync(
             HTTP2Stream                      Stream,
@@ -3434,6 +3436,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var hasBody      = ResponseBody is not null && ResponseBody.Length > 0;
             var endStream    = !hasBody;
 
+            if (hasBody && await TrySendWithHeadersAsync(Stream, ResponseHeaders, ResponseBody!))
+                return;
+
             await SendHeaderListAsync(Stream, ResponseHeaders, endStream);
 
             if (endStream)
@@ -3443,6 +3448,110 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
 
             await EnqueueOutboundAsync(Stream, ResponseBody!, EndStream: true);
+
+        }
+
+        /// <summary>
+        /// Send a response's HEADERS and its whole body, as one DATA frame that
+        /// ends the stream, in one hold of the write lock, and return true. Only
+        /// if the body fits into one frame (the peer's MAX_FRAME_SIZE) and into
+        /// the stream's and the connection's send windows, which it takes before
+        /// the lock, and only while no stream has DATA queued for the writer
+        /// loop. Otherwise it sends nothing and returns false, and the response
+        /// goes the usual way: its HEADERS, then its body through the writer
+        /// loop.
+        ///
+        /// The writer loop decides whose DATA goes next, by RFC 9218 priority.
+        /// With nothing queued it has nothing to decide, and a body the windows
+        /// let go at once would be its next frame anyway. Through the loop, that
+        /// frame cost a second hold of the write lock and a wakeup of the loop,
+        /// for every response. With many requests in flight the write lock was
+        /// handed from one waiting writer to the next, and each hand-over took
+        /// about as long as the write it made way for.
+        ///
+        /// The stream is checked for a reset once the lock is ours, as
+        /// <see cref="SendHeaderListAsync"/> checks it, and a reset fails this
+        /// call as it fails that one. Nothing is sent then, and the windows are
+        /// given back.
+        /// </summary>
+        private async Task<Boolean> TrySendWithHeadersAsync(HTTP2Stream                       Stream,
+                                                            List<(string Name, string Value)> Headers,
+                                                            byte[]                            Body)
+        {
+
+            if (Body.Length > remoteSettings.MaxFrameSize || streamManager.AnyOutboundPending())
+                return false;
+
+            lock (flowLock)
+            {
+
+                if (Stream.SendWindow < Body.Length || streamManager.ConnectionSendWindow < Body.Length)
+                    return false;
+
+                Stream.SendWindow                  -= Body.Length;
+                streamManager.ConnectionSendWindow -= Body.Length;
+
+            }
+
+            var written = false;
+
+            try
+            {
+
+                ThrowIfReset(Stream);
+
+                await frameWriter.EnterAsync(cancellationToken);
+
+                try
+                {
+
+                    // Again under the lock, as in SendHeaderListAsync.
+                    ThrowIfReset(Stream);
+
+                    written = true;
+
+                    var headerBlock = hpackEncoder.EncodeHeaderBlock(Headers);
+
+                    foreach (var frame in BuildHeaderFrames(Stream.StreamId, headerBlock, EndStream: false))
+                        await frameWriter.WriteAsync(frame.Serialize(), cancellationToken);
+
+                    await frameWriter.WriteAsync(HTTP2Frame.CreateData(Stream.StreamId, Body, EndStream: true).Serialize(), cancellationToken);
+
+                }
+                finally
+                {
+                    await frameWriter.ExitAsync(cancellationToken);
+                }
+
+            }
+            finally
+            {
+
+                // Not sent: the windows go back, and the writer loop may now
+                // send what they kept it from.
+                if (!written)
+                {
+
+                    lock (flowLock)
+                    {
+                        Stream.SendWindow                  += Body.Length;
+                        streamManager.ConnectionSendWindow += Body.Length;
+                    }
+
+                    SignalWriterWakeup();
+
+                }
+
+            }
+
+            CloseLocalIfNotReset(Stream);
+
+            // What the writer loop does once a stream's END_STREAM is out (see
+            // DataWriterLoopAsync): an upload still coming in is stopped.
+            if (Stream.IsStreamingRequest || Stream.IsConnectTunnel)
+                await StopUnreadUploadAsync(Stream);
+
+            return true;
 
         }
 
