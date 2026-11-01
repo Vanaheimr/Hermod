@@ -538,6 +538,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             accepted.Writer.TryComplete(Exception);
         }
 
+        /// <summary>
+        /// Give the connection up from outside the receive loop - a keepalive nobody answered: what waits
+        /// on it fails with <paramref name="Reason"/>, and the loop stops.
+        /// </summary>
+        internal void Abort(Exception Reason)
+        {
+            FaultAll(Reason);
+            try { cts.Cancel(); } catch (ObjectDisposedException) { }
+        }
+
         private void CompleteAll()
         {
             var closed = new SshChannelClosedException();

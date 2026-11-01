@@ -90,6 +90,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// rekey only when the server asks.
         /// </summary>
         public SshRekeyLimits?                    RekeyLimits    { get; init; } = SshRekeyLimits.Default;
+
+        /// <summary>
+        /// How long connecting may take - the TCP connection, the version exchange and the key exchange, as
+        /// OpenSSH's <c>ConnectTimeout</c> - before it fails with a <see cref="TimeoutException"/>; null (the
+        /// default) for no limit of our own. Authentication is not counted: it may be waiting for a person
+        /// to answer a prompt.
+        /// </summary>
+        public TimeSpan?                          ConnectTimeout     { get; init; }
+
+        /// <summary>
+        /// Ask the server whether it is still there, every interval - <c>keepalive@openssh.com</c>, as
+        /// OpenSSH's <c>ServerAliveInterval</c> - or null (the default) never to ask. Without it, a server
+        /// that died, or a network that dropped the connection without a word, is noticed only when TCP
+        /// gives up, which on an idle connection can be never. The probes also keep a NAT or firewall
+        /// from forgetting an idle connection.
+        /// </summary>
+        public TimeSpan?                          KeepAliveInterval  { get; init; }
+
+        /// <summary>
+        /// Unanswered keepalive probes in a row after which the connection is given up (default 3, as
+        /// OpenSSH's <c>ServerAliveCountMax</c>): it is closed, and everything still waiting on it fails
+        /// with a <see cref="TimeoutException"/>.
+        /// </summary>
+        public Int32                              KeepAliveCountMax  { get; init; } = 3;
     }
 
 
@@ -103,9 +127,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region Data
 
-        private readonly IDuplexPipe             pipe;
-        private readonly SshTransport            transport;
-        private readonly SshChannelMultiplexer   mux;
+        /// <summary>
+        /// The global request a keepalive probe sends: OpenSSH's, which every server answers - with a
+        /// refusal, mostly, and that is answer enough.
+        /// </summary>
+        public const String KeepAliveRequestName = "keepalive@openssh.com";
+
+        private readonly IDuplexPipe              pipe;
+        private readonly SshTransport             transport;
+        private readonly SshChannelMultiplexer    mux;
+        private readonly CancellationTokenSource  stopping   = new ();
+        private          Task                     keepAlive  = Task.CompletedTask;
+        private          Int32                    disposed;
+        private          Int32                    closed;
 
         #endregion
 
@@ -135,24 +169,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// <summary>
         /// Connect, verify the host key, authenticate with the first working credential and start multiplexing.
         /// </summary>
+        /// <exception cref="TimeoutException">Connecting took longer than <see cref="SshClientOptions.ConnectTimeout"/>.</exception>
+        /// <exception cref="SshAuthenticationException">None of the credentials was accepted.</exception>
         public static async ValueTask<SshClient> ConnectAsync(String host, UInt16 port, SshClientOptions Options, CancellationToken CancellationToken = default)
         {
 
-            var pipe      = await SshTcp.ConnectAsync(host, IPPort.Parse(port), CancellationToken).ConfigureAwait(false);
-            var transport = await SshTransport.ClientHandshakeAsync(pipe, VerifyHostKey: Options.VerifyHostKey, CancellationToken: CancellationToken).ConfigureAwait(false);
+            IDuplexPipe?  pipe = null;
+            SshTransport  transport;
 
-            var authenticated = await UserAuthentication.ClientAuthenticateAsync(transport,
+            using (var connecting = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken))
+            {
+
+                if (Options.ConnectTimeout is TimeSpan limit)
+                    connecting.CancelAfter(limit);
+
+                try
+                {
+                    pipe      = await SshTcp.ConnectAsync(host, IPPort.Parse(port), connecting.Token).ConfigureAwait(false);
+                    transport = await SshTransport.ClientHandshakeAsync(pipe, VerifyHostKey: Options.VerifyHostKey, CancellationToken: connecting.Token).ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+
+                    // A server that took the connection and then said nothing - or the wrong thing - would
+                    // otherwise keep the socket until the process ends.
+                    if (pipe is not null)
+                        await AbandonAsync(pipe).ConfigureAwait(false);
+
+                    if (exception is OperationCanceledException && connecting.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
+                        throw new TimeoutException(FormattableString.Invariant($"Could not connect to {host}:{port} within {Options.ConnectTimeout!.Value.TotalSeconds:0.###} s."), exception);
+
+                    throw;
+
+                }
+
+            }
+
+            Boolean authenticated;
+
+            try
+            {
+                authenticated = await UserAuthentication.ClientAuthenticateAsync(transport,
                                                                                  Options.Username,
                                                                                  Options.Credentials,
                                                                                  Options.Password,
                                                                                  Options.KeyboardInteractive,
                                                                                  CancellationToken: CancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                await CloseTransportAsync(transport, pipe).ConfigureAwait(false);
+                throw;
+            }
 
             if (!authenticated)
             {
-                await transport.CloseOutputAsync().ConfigureAwait(false);
-                transport.Dispose();
-                await CloseInputAsync(pipe).ConfigureAwait(false);
+                await CloseTransportAsync(transport, pipe).ConfigureAwait(false);
                 throw new SshAuthenticationException("None of the supplied credentials were accepted.");
             }
 
@@ -163,7 +235,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
             if (Options.HostKeysReceived is not null)
                 WireHostKeyUpdates(mux, transport.ServerHostKey, Options.HostKeysReceived);
 
-            return new SshClient(pipe, transport, mux.Start());
+            var client = new SshClient(pipe, transport, mux.Start());
+
+            if (Options.KeepAliveInterval is TimeSpan interval)
+                client.keepAlive = client.KeepAliveAsync(interval, Math.Max(1, Options.KeepAliveCountMax));
+
+            return client;
 
         }
 
@@ -195,6 +272,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                 return ValueTask.FromResult(true);
 
             };
+        }
+
+        #endregion
+
+        #region (private) KeepAliveAsync(Interval, CountMax)
+
+        /// <summary>
+        /// Ask every interval, and give up once as many questions in a row as allowed went unanswered -
+        /// any reply is an answer, as the refusal a server gives a request it does not know. The connection
+        /// is then cut without the DISCONNECT nobody would read, and what waits on it learns why.
+        /// </summary>
+        private async Task KeepAliveAsync(TimeSpan Interval, Int32 CountMax)
+        {
+
+            var token      = stopping.Token;
+            var unanswered = 0;
+
+            try
+            {
+                while (true)
+                {
+
+                    await Task.Delay(Interval, token).ConfigureAwait(false);
+
+                    try
+                    {
+                        // The wait includes the send: on a network that is gone, a write can hang too.
+                        await mux.SendGlobalRequestWithReplyAsync(KeepAliveRequestName, true, [], token).
+                                  AsTask().
+                                  WaitAsync(Interval, token).
+                                  ConfigureAwait(false);
+                        unanswered = 0;
+                    }
+                    catch (TimeoutException)
+                    {
+                        if (++unanswered >= CountMax)
+                        {
+                            mux.Abort(new TimeoutException(FormattableString.Invariant($"The server did not answer {unanswered} keepalive probe(s) in a row, {Interval.TotalSeconds:0.###} s apart.")));
+                            await CloseAsync(SayGoodbye: false).ConfigureAwait(false);
+                            return;
+                        }
+                    }
+
+                }
+            }
+            catch
+            {
+                // Disposed, or the connection ended otherwise - and what ended it is what its users see.
+            }
+
         }
 
         #endregion
@@ -266,29 +393,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         public async ValueTask DisposeAsync()
         {
 
-            try
+            if (Interlocked.Exchange(ref disposed, 1) != 0)
+                return;
+
+            await stopping.CancelAsync().ConfigureAwait(false);
+
+            try   { await keepAlive.ConfigureAwait(false); }
+            catch { }
+
+            await CloseAsync(SayGoodbye: true).ConfigureAwait(false);
+
+            stopping.Dispose();
+
+        }
+
+        // Once, whoever comes first: DisposeAsync, or the keepalive that found the server gone - which
+        // says no goodbye, and cuts the socket first, so that nothing waits on a write the peer never takes.
+        private async ValueTask CloseAsync(Boolean SayGoodbye)
+        {
+
+            if (Interlocked.Exchange(ref closed, 1) != 0)
+                return;
+
+            if (SayGoodbye)
             {
-                var abw = new ArrayBufferWriter<Byte>();
-                var w   = new SshPacketWriter(abw);
-                w.WriteByte((Byte) SshMessageNumber.Disconnect);
-                w.WriteUInt32((UInt32) DisconnectReason.ByApplication);
-                w.WriteString("the client is closing the connection");
-                w.WriteString("");
-                await mux.SendAsync(abw.WrittenSpan.ToArray()).AsTask().WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                try
+                {
+                    var abw = new ArrayBufferWriter<Byte>();
+                    var w   = new SshPacketWriter(abw);
+                    w.WriteByte((Byte) SshMessageNumber.Disconnect);
+                    w.WriteUInt32((UInt32) DisconnectReason.ByApplication);
+                    w.WriteString("the client is closing the connection");
+                    w.WriteString("");
+                    await mux.SendAsync(abw.WrittenSpan.ToArray()).AsTask().WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // The connection may be gone already.
+                }
             }
-            catch
+
+            else if (pipe is DuplexPipe { Abort: { } abort })
             {
-                // The connection may be gone already.
+                try   { abort(); }
+                catch { }
             }
 
             await mux.DisposeAsync().ConfigureAwait(false);
+            await CloseTransportAsync(transport, pipe).ConfigureAwait(false);
 
-            // The writer is completed by the transport, after the send in flight - a window adjust,
-            // the DISCONNECT above - is done with it: completed under it, its buffers went back to the
-            // pool every connection rents from while still being written into.
-            await transport.CloseOutputAsync().ConfigureAwait(false);
-            transport.Dispose();
-            await CloseInputAsync(pipe).ConfigureAwait(false);
+        }
+
+        // The writer is completed by the transport, after the send in flight - a window adjust, the
+        // DISCONNECT above - is done with it: completed under it, its buffers went back to the pool every
+        // connection rents from while still being written into.
+        private static async ValueTask CloseTransportAsync(SshTransport Transport, IDuplexPipe Pipe)
+        {
+            await Transport.CloseOutputAsync().ConfigureAwait(false);
+            Transport.Dispose();
+            await CloseInputAsync(Pipe).ConfigureAwait(false);
+        }
+
+        // No transport yet, so nothing is being written: cut the connection, then let both halves go.
+        private static async ValueTask AbandonAsync(IDuplexPipe Pipe)
+        {
+
+            if (Pipe is DuplexPipe { Abort: { } abort })
+            {
+                try   { abort(); }
+                catch { }
+            }
+
+            try { await Pipe.Output.CompleteAsync().ConfigureAwait(false); } catch { }
+            await CloseInputAsync(Pipe).ConfigureAwait(false);
 
         }
 
