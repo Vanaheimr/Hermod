@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3;
+using org.GraphDefined.Vanaheimr.Hermod.Quic;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
 
@@ -30,10 +31,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP3.Security;
 
 /// <summary>
 /// Hardening of the server facade: a bounded number of connections, a demux that does not get more
-/// expensive with every client, and a limit on buffered request bodies.
+/// expensive with every client, timers that keep running under steady traffic, and a limit on
+/// buffered request bodies.
 /// <para>
-/// The first two tests speak over real UDP sockets and keep the real clock, because their subject
-/// (a connection cap, and a third client running into its own timeout) is made of real timeouts.
+/// The first five tests speak over real UDP sockets and keep the real clock, because their subject
+/// (a connection cap, a third client running into its own timeout, the server's own timer schedule)
+/// is made of real timeouts.
 /// The last two run both connections in process against a <see cref="FakeTimeProvider"/> — see the
 /// comment on <see cref="RoundDuration"/> for why that is a requirement rather than a taste.
 /// </para>
@@ -110,6 +113,202 @@ public class Http3ServerHardeningTests
                 await client.DisposeAsync();
         }
     }
+
+    [Test]
+    public async Task UnderSteadyTraffic_AFinishedHandlersResponseIsStillSent()
+    {
+        // The server ran its connections' timers only after 20 ms without any datagram, from
+        // anyone. Those timers also send what a handler finished in the background, so while
+        // datagrams kept arriving, the response waited for the client's next packet. One datagram
+        // every two milliseconds that the server cannot even place was enough. Http3Client hides
+        // this: its own probes reach the server soon enough. A client that only listens does not.
+        using var cert = ServerCertificate.CreateSelfSigned("localhost");
+        var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
+
+        await using var server = new Http3Server(cert, async (_, token) =>
+        {
+            await Task.Delay(200, token).ConfigureAwait(false);
+            return new Http3Response { Status = 200, Body = "late"u8.ToArray() };
+        }, port: 0);
+        server.Start();
+
+        using var client = new HandDrivenClient(server.Port, validation);
+        client.Connect();
+
+        using var chatter = new Chatter(server.Port);
+        ulong stream = client.Connection.SendRequest(Http3Request.Get("localhost", "/late"));
+        client.Send(); // the request, and from here on nothing
+
+        Http3Response? response = null;
+        var waited = System.Diagnostics.Stopwatch.StartNew();
+        while (response is null && waited.Elapsed < TimeSpan.FromSeconds(5))
+        {
+            client.Listen(TimeSpan.FromMilliseconds(20));
+            client.Connection.TryGetResponse(stream, out response);
+        }
+
+        Assert.That(response?.BodyText, Is.EqualTo("late"), "The finished response was never sent.");
+        Assert.That(chatter.Sent, Is.GreaterThan(50), "The traffic has to have been steady meanwhile.");
+    }
+
+    [Test]
+    public async Task UnderSteadyTraffic_AVanishedClientIsStillLetGo()
+    {
+        // The same timers drop a connection whose idle timeout has passed. While they stood still,
+        // every client that vanished stayed, until the connection limit turned new ones away.
+        using var cert = ServerCertificate.CreateSelfSigned("localhost");
+        var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
+
+        await using var server = new Http3Server(0, () => new Http3ServerConnection(cert,
+            _ => new Http3Response { Status = 204 },
+            transportParameters: new TransportParameters { MaxIdleTimeoutMs = 300 }));
+        server.Start();
+
+        using var chatter = new Chatter(server.Port);
+        using (var client = new HandDrivenClient(server.Port, validation))
+        {
+            client.Connect();
+            Assert.That(server.ConnectionCount, Is.EqualTo(1));
+        } // gone without a word
+
+        Assert.That(await HoldsNoConnectionWithin(server, TimeSpan.FromSeconds(5)), Is.True,
+                    "The vanished client's connection outlived its idle timeout.");
+        Assert.That(chatter.Sent, Is.GreaterThan(50), "The traffic has to have been steady meanwhile.");
+    }
+
+    [Test]
+    public async Task UnderSteadyTraffic_AClosedConnectionIsStillLetGo()
+    {
+        // And they end the draining period after a goodbye (RFC 9000 §10.2).
+        using var cert = ServerCertificate.CreateSelfSigned("localhost");
+        var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
+
+        await using var server = new Http3Server(cert, _ => new Http3Response { Status = 204 }, port: 0);
+        server.Start();
+
+        using var chatter = new Chatter(server.Port);
+        await using (var client = new Http3Client("localhost", server.Port, validation))
+        {
+            await client.ConnectAsync(TimeSpan.FromSeconds(10));
+            Assert.That(server.ConnectionCount, Is.EqualTo(1));
+        } // says goodbye with CONNECTION_CLOSE
+
+        Assert.That(await HoldsNoConnectionWithin(server, TimeSpan.FromSeconds(5)), Is.True,
+                    "The closed connection is still held.");
+        Assert.That(chatter.Sent, Is.GreaterThan(50), "The traffic has to have been steady meanwhile.");
+    }
+
+
+    #region Steady traffic (real sockets)
+
+    private static async Task<bool> HoldsNoConnectionWithin(Http3Server server, TimeSpan timeout)
+    {
+        var waited = System.Diagnostics.Stopwatch.StartNew();
+        while (server.ConnectionCount > 0 && waited.Elapsed < timeout)
+            await Task.Delay(20);
+        return server.ConnectionCount == 0;
+    }
+
+    /// <summary>
+    /// Sends a datagram the server cannot place every two milliseconds until disposed: a short
+    /// header for a connection ID it never issued, which it drops without an answer. Paced by
+    /// spinning, because a sleep on Windows lasts a whole 15.6 ms timer period, too close to the
+    /// server's 20 ms tick to keep it from ever passing.
+    /// </summary>
+    private sealed class Chatter : IDisposable
+    {
+        private readonly System.Net.Sockets.UdpClient _udp = new();
+        private readonly Thread _thread;
+        private volatile bool _stop;
+        private int _sent;
+
+        public Chatter(int port)
+        {
+            byte[] datagram = new byte[40];
+            RandomNumberGenerator.Fill(datagram);
+            datagram[0] = 0x40; // short header, fixed bit set
+            var server = new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, port);
+
+            _thread = new Thread(() =>
+            {
+                var pace = System.Diagnostics.Stopwatch.StartNew();
+                while (!_stop)
+                {
+                    _udp.Send(datagram, datagram.Length, server);
+                    Interlocked.Increment(ref _sent);
+                    pace.Restart();
+                    while (pace.Elapsed < TimeSpan.FromMilliseconds(2))
+                        Thread.SpinWait(50);
+                }
+            }) { IsBackground = true, Name = "chatter" };
+            _thread.Start();
+        }
+
+        public int Sent => Volatile.Read(ref _sent);
+
+        public void Dispose()
+        {
+            _stop = true;
+            _thread.Join();
+            _udp.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// A client on a socket of its own that sends only when told to, so it can fall silent, which
+    /// Http3Client never does: its pump answers and probes on its own.
+    /// </summary>
+    private sealed class HandDrivenClient(int port, CertificateValidationOptions validation) : IDisposable
+    {
+        private readonly System.Net.Sockets.UdpClient _udp = new(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
+        private readonly System.Net.IPEndPoint _server = new(System.Net.IPAddress.Loopback, port);
+
+        public Http3ClientConnection Connection { get; } = new("localhost", certificateValidation: validation);
+
+        public void Connect()
+        {
+            Connection.Start();
+            var waited = System.Diagnostics.Stopwatch.StartNew();
+            while (!Connection.HandshakeConfirmed && waited.Elapsed < TimeSpan.FromSeconds(10))
+            {
+                Connection.CheckTimeouts();
+                Send();
+                Listen(TimeSpan.FromMilliseconds(10));
+            }
+            Assert.That(Connection.HandshakeConfirmed, Is.True, "The QUIC handshake did not confirm.");
+            Connection.InitializeHttp3();
+            Send();
+        }
+
+        public void Send()
+        {
+            foreach (byte[] datagram in Connection.GetDatagramsToSend())
+                _udp.Send(datagram, datagram.Length, _server);
+        }
+
+        /// <summary>
+        /// Takes in what arrives within <paramref name="window"/>, and answers none of it.
+        /// </summary>
+        public void Listen(TimeSpan window)
+        {
+            var listened = System.Diagnostics.Stopwatch.StartNew();
+            while (listened.Elapsed < window)
+            {
+                if (!_udp.Client.Poll(1000, System.Net.Sockets.SelectMode.SelectRead))
+                    continue;
+                System.Net.IPEndPoint? from = null;
+                Connection.ProcessDatagram(_udp.Receive(ref from));
+            }
+        }
+
+        public void Dispose()
+        {
+            _udp.Dispose();
+            Connection.Dispose();
+        }
+    }
+
+    #endregion
 
     [Test]
     public void BufferedBodyAboveTheLimit_Yields413()

@@ -204,8 +204,8 @@ public sealed class Http3Server : IAsyncDisposable
     }
 
     /// <summary>
-    /// Upper bound on datagrams processed per loop pass — keeps one busy peer from starving the
-    /// timers of every other connection.
+    /// Upper bound on datagrams processed per loop pass — so a busy peer cannot hold the loop in
+    /// its receive pass, and the timers come round between batches.
     /// </summary>
     private const int MaxDatagramsPerBatch = 64;
 
@@ -232,9 +232,18 @@ public sealed class Http3Server : IAsyncDisposable
         udp.Client.IOControl(SIO_UDP_CONNRESET, [0, 0, 0, 0], null);
     }
 
+    // The connections' timers run on a schedule of their own, whether datagrams arrive or not: the
+    // probe timeout and loss detection (RFC 9002 §6), the idle timeout, the end of closing and
+    // draining, and the responses of handlers that finished in the background. Until 2026-11-01
+    // they ran only after a whole tick without any datagram, from anyone. While one client kept
+    // talking, or anyone sent a datagram every few milliseconds that the server could not place,
+    // no connection's timers ran at all: a client that had fallen silent never got its response,
+    // and a closed or vanished one was never let go. A quiet socket wakes the loop through the tick; under load, a
+    // clock comparison after each batch decides.
     private async Task LoopAsync()
     {
         Task<UdpReceiveResult>? receive = null;
+        long lastTimerPass = _timeProvider.GetTimestamp();
         while (!_cts.IsCancellationRequested)
         {
             try
@@ -250,7 +259,14 @@ public sealed class Http3Server : IAsyncDisposable
                     tick.Cancel();
                 }
 
-                if (receive.IsCompletedSuccessfully)
+                // A failed receive throws only when awaited, into the catch clauses below. Not
+                // awaited, it stayed in place: every later pass found it completed, ran the timers
+                // and went round again, and no datagram was received any more.
+                if (receive.IsCompleted && !receive.IsCompletedSuccessfully)
+                    await receive.ConfigureAwait(false);
+
+                bool received = receive.IsCompletedSuccessfully;
+                if (received)
                 {
                     UdpReceiveResult result = receive.Result;
                     receive = null;
@@ -268,8 +284,12 @@ public sealed class Http3Server : IAsyncDisposable
 
                     ProcessInbound(); // the whole batch at once, connections in parallel
                 }
-                else
+
+                if (!received || _timeProvider.GetElapsedTime(lastTimerPass) >= TickInterval)
+                {
                     RunTimers();
+                    lastTimerPass = _timeProvider.GetTimestamp();
+                }
             }
             catch (OperationCanceledException) { break; }
             catch (ObjectDisposedException) { break; }
