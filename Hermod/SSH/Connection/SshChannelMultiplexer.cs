@@ -159,6 +159,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public Func<SshGlobalRequestInfo, ValueTask<SshGlobalRequestReply?>>? GlobalRequestResponder { get; set; }
 
+        /// <summary>
+        /// An optional channel-open handler that takes the channel itself instead of queueing it for
+        /// <see cref="AcceptChannelAsync"/>. It is consulted <i>first</i>: returning a handler confirms the
+        /// channel and runs the handler on it in the background; returning <c>null</c> means "not mine" and
+        /// falls through to <see cref="ChannelAcceptor"/>. A feature that consumes its own channels (e.g. the
+        /// <c>forwarded-tcpip</c> channels of <c>ssh -R</c>) wires itself in here and passes on to the
+        /// handler installed before, so features neither steal each other's channels nor clobber each other.
+        /// </summary>
+        public Func<SshChannelOpenInfo, ValueTask<Func<SshMuxChannel, Task>?>>? ChannelResponder { get; set; }
+
         #endregion
 
         #region Constructor(s) / Start
@@ -262,6 +272,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 tcs = new TaskCompletionSource<SshGlobalRequestReply>(TaskCreationOptions.RunContinuationsAsynchronously);
                 pendingGlobalReplies.Enqueue(tcs);
             }
+
+            // As with OpenChannelAsync: a reply queued after the loop failed what was queued would never come.
+            if (tcs is not null && ended is Exception gone)
+                tcs.TrySetException(gone);
 
             await SendAsync(SshChannelWire.GlobalRequest(Name, WantReply, Data), CancellationToken).ConfigureAwait(false);
 
@@ -482,14 +496,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             var info   = new SshChannelOpenInfo(type, sender, window, maxPkt, rest);
 
-            if (await ChannelAcceptor(info).ConfigureAwait(false))
+            // The handler-capable responder gets first refusal; null means "not mine".
+            var handler = ChannelResponder is not null
+                              ? await ChannelResponder(info).ConfigureAwait(false)
+                              : null;
+
+            if (handler is not null || await ChannelAcceptor(info).ConfigureAwait(false))
             {
                 var localId = (UInt32) Interlocked.Increment(ref nextLocalId);
                 var channel = new SshMuxChannel(this, localId, type, rest);
                 channel.OnOpenConfirmed(sender, window);
                 channels[localId] = channel;
                 await SendAsync(SshChannelWire.ChannelOpenConfirmation(sender, localId, InitialWindow, MaxPacket)).ConfigureAwait(false);
-                accepted.Writer.TryWrite(channel);
+
+                if (handler is not null)
+                    _ = Task.Run(async () => {
+                            try { await handler(channel).ConfigureAwait(false); }
+                            catch { try { await channel.CloseAsync().ConfigureAwait(false); } catch { } }
+                        });
+                else
+                    accepted.Writer.TryWrite(channel);
             }
             else
                 await SendAsync(SshChannelWire.ChannelOpenFailure(sender, 1, "administratively prohibited")).ConfigureAwait(false);

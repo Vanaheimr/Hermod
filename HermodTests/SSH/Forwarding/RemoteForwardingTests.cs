@@ -378,6 +378,245 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+
+        #region (private) the raw pair the client-side tests use
+
+        // Our server's -R side on a bare multiplexer, so a test can also open channels from the server as it
+        // pleases; and a client multiplexer for RequestRemoteForwardAsync.
+        private static async Task<(SshChannelMultiplexer Server, SshChannelMultiplexer Client)> ConnectRawAsync(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+            var userKey = SshHostKey.GenerateEd25519();
+
+            var serverTask = Task.Run(async () => {
+                var transport = await SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+                await UserAuthentication.ServerAuthenticateAsync(transport, SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob), CancellationToken: CancellationToken);
+                var mux = new SshChannelMultiplexer(transport).Start();
+                SshRemoteForwarding.ServeRemoteForwards(mux, ForwardingPolicy.LoopbackOnly, CancellationToken);
+                return mux;
+            }, CancellationToken);
+
+            var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
+
+            return (await serverTask, new SshChannelMultiplexer(client).Start());
+
+        }
+
+        /// <summary>
+        /// A local target that says who it is and hangs up.
+        /// </summary>
+        private static (TcpListener Listener, UInt16 Port) StartNamedServer(String Name, CancellationToken CancellationToken)
+        {
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            _ = Task.Run(async () => {
+                try
+                {
+                    while (true)
+                    {
+                        using var conn = await listener.AcceptTcpClientAsync(CancellationToken);
+                        await conn.GetStream().WriteAsync(Encoding.UTF8.GetBytes(Name), CancellationToken);
+                    }
+                }
+                catch { }
+            }, CancellationToken);
+            return (listener, (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port);
+        }
+
+        private static async Task<String> ReadAllFromAsync(UInt16 Port, CancellationToken CancellationToken)
+        {
+            using var external = new TcpClient();
+            await external.ConnectAsync(IPAddress.Loopback, Port, CancellationToken);
+            using var reader = new StreamReader(external.GetStream(), Encoding.UTF8);
+            return await reader.ReadToEndAsync(CancellationToken);
+        }
+
+        #endregion
+
+        #region RequestRemoteForward_OnPortZero_ReturnsTheAllocatedPort
+
+        /// <summary>
+        /// <c>ssh -R 0:host:port</c> from our client: the server chooses the port, and the forward says which
+        /// - before, the reply's port was dropped, and nobody could know where to connect.
+        /// </summary>
+        [Test]
+        [CancelAfter(25000)]
+        public async Task RequestRemoteForward_OnPortZero_ReturnsTheAllocatedPort(CancellationToken CancellationToken)
+        {
+
+            var (target, targetPort) = StartNamedServer("the target", CancellationToken);
+            var (server, client)     = await ConnectRawAsync(CancellationToken);
+
+            try
+            {
+
+                await using var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", targetPort, CancellationToken);
+
+                Assert.Multiple(() => {
+                    Assert.That(forward.BindHost,  Is.EqualTo("127.0.0.1"));
+                    Assert.That(forward.BoundPort, Is.Not.Zero, "the port the server chose");
+                    Assert.That(forward.LocalPort, Is.EqualTo(targetPort));
+                });
+
+                Assert.That(await ReadAllFromAsync(forward.BoundPort, CancellationToken), Is.EqualTo("the target"));
+
+            }
+            finally
+            {
+                target.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
+        #region CancellingARemoteForward_StopsItOnTheServer
+
+        /// <summary>
+        /// Cancelling the forward sends <c>cancel-tcpip-forward</c>: the server stops listening - before,
+        /// the handle only stopped relaying, the server listened on until the connection ended, and its
+        /// connections went nowhere.
+        /// </summary>
+        [Test]
+        [CancelAfter(25000)]
+        public async Task CancellingARemoteForward_StopsItOnTheServer(CancellationToken CancellationToken)
+        {
+
+            var (target, targetPort) = StartNamedServer("the target", CancellationToken);
+            var (server, client)     = await ConnectRawAsync(CancellationToken);
+
+            try
+            {
+
+                var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", targetPort, CancellationToken);
+                var port    = forward.BoundPort;
+
+                Assert.That(await ReadAllFromAsync(port, CancellationToken), Is.EqualTo("the target"));
+
+                Assert.That(await forward.CancelAsync(CancellationToken), Is.True,  "the server stopped listening");
+                Assert.That(await forward.CancelAsync(CancellationToken), Is.False, "a forward is cancelled once");
+
+                using var external = new TcpClient();
+                await Assert.CatchAsync<SocketException>(async () => await external.ConnectAsync(IPAddress.Loopback, port, CancellationToken),
+                                                         "nothing listens on a disposed forward");
+
+                // The same port, asked for again, is free on the server's side. Disposing does not wait for
+                // the server's answer, but the server takes requests in order: once the next one is
+                // answered, the disposed forward is gone, and its port can be asked for once more.
+                var again = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", port, "127.0.0.1", targetPort, CancellationToken);
+                Assert.That(again.BoundPort, Is.EqualTo(port));
+
+                await again.DisposeAsync();
+
+                await using var thrice = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", port, "127.0.0.1", targetPort, CancellationToken);
+                Assert.That(await ReadAllFromAsync(port, CancellationToken), Is.EqualTo("the target"), "a disposed forward is cancelled, too");
+
+            }
+            finally
+            {
+                target.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
+        #region TwoRemoteForwards_EachRelayToTheirOwnTarget
+
+        /// <summary>
+        /// Two forwards on one connection: each connection comes out at the target of the forward it came
+        /// in by - before, both took channels from one queue, and a connection went to whichever came first.
+        /// </summary>
+        [Test]
+        [CancelAfter(25000)]
+        public async Task TwoRemoteForwards_EachRelayToTheirOwnTarget(CancellationToken CancellationToken)
+        {
+
+            var (alpha, alphaPort) = StartNamedServer("alpha", CancellationToken);
+            var (beta,  betaPort)  = StartNamedServer("beta",  CancellationToken);
+            var (server, client)   = await ConnectRawAsync(CancellationToken);
+
+            try
+            {
+
+                await using var toAlpha = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", alphaPort, CancellationToken);
+                await using var toBeta  = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", betaPort,  CancellationToken);
+
+                for (var i = 0; i < 4; i++)
+                {
+                    Assert.That(await ReadAllFromAsync(toAlpha.BoundPort, CancellationToken), Is.EqualTo("alpha"));
+                    Assert.That(await ReadAllFromAsync(toBeta.BoundPort,  CancellationToken), Is.EqualTo("beta"));
+                }
+
+            }
+            finally
+            {
+                alpha.Stop();
+                beta.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
+        #region AForwardedChannelNobodyAskedFor_IsRefused
+
+        /// <summary>
+        /// A <c>forwarded-tcpip</c> channel that names no forward this client asked for is refused, as
+        /// OpenSSH's client refuses it - before, any such channel was relayed to the local target of whichever
+        /// forward happened to take it, so the server could reach it under any name.
+        /// </summary>
+        [Test]
+        [CancelAfter(25000)]
+        public async Task AForwardedChannelNobodyAskedFor_IsRefused(CancellationToken CancellationToken)
+        {
+
+            var (target, targetPort) = StartNamedServer("the target", CancellationToken);
+            var (server, client)     = await ConnectRawAsync(CancellationToken);
+
+            try
+            {
+
+                await using var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", targetPort, CancellationToken);
+
+                foreach (var (address, port) in new[] { ("127.0.0.1",  (UInt16) (forward.BoundPort ^ 1)),
+                                                        ("localhost",  forward.BoundPort),
+                                                        ("127.0.0.1 ", forward.BoundPort) })
+                {
+
+                    var abw = new System.Buffers.ArrayBufferWriter<Byte>();
+                    var w   = new SshPacketWriter(abw);
+                    w.WriteString(address); w.WriteUInt32(port);
+                    w.WriteString("127.0.0.1"); w.WriteUInt32(4711);
+
+                    await Assert.CatchAsync(async () => await server.OpenChannelAsync("forwarded-tcpip", abw.WrittenSpan.ToArray(), CancellationToken),
+                                            $"a channel for {address}:{port}, which was not asked for");
+
+                }
+
+                Assert.That(await ReadAllFromAsync(forward.BoundPort, CancellationToken), Is.EqualTo("the target"), "the forward that was asked for still works");
+
+            }
+            finally
+            {
+                target.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
     }
 
 }
