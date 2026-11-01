@@ -188,6 +188,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// going on to accept requests it cannot answer. The request still in
         /// progress on stream 1 gets no response, but its client learns at once
         /// that none will come.
+        ///
+        /// The body is larger than one DATA frame, so that the writer loop sends
+        /// it. A body of one frame goes out with its HEADERS, from the handler's
+        /// task, when nothing else is queued.
         /// </summary>
         [Test]
         public async Task OtherFailure_EndsTheConnectionAtOnce()
@@ -209,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                         await answerFirst.Task;
                     }
 
-                    return ([(":status", "200")], Encoding.ASCII.GetBytes(streamId == 1 ? "first" : "second"));
+                    return ([(":status", "200")], streamId == 1 ? Encoding.ASCII.GetBytes("first") : new Byte[20 * 1024]);
 
                 });
 

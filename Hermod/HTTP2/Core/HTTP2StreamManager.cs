@@ -269,6 +269,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         }
 
         /// <summary>
+        /// Whether any stream that hasn't reached the Closed state has DATA
+        /// queued for the writer loop: whether the loop has anything to choose
+        /// between. Without the snapshot <see cref="GetSendableStreams"/> takes,
+        /// as it is asked once per response.
+        /// </summary>
+        public Boolean AnyOutboundPending()
+        {
+
+            lock (dictLock)
+                foreach (var stream in streams.Values)
+                    if (stream.State != HTTP2StreamState.Closed && stream.OutboundQueue.HasPending)
+                        return true;
+
+            return false;
+
+        }
+
+        /// <summary>
         /// True if StreamId has never been touched and is not implicitly closed by
         /// a later stream (RFC 9113, Section 5.1.1) — i.e. it is genuinely "idle".
         /// Only HEADERS and PRIORITY are legal on such a stream; any other frame
