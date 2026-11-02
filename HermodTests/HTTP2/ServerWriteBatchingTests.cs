@@ -30,9 +30,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// The server's writes to its transport, with the frame writer's buffer in
     /// place as on a socket. Each frame used to be written and flushed on its
     /// own, and under load the flush became the cost of a response: h2bench put
-    /// one connection at about a quarter of what Kestrel carries. Now a writer
-    /// leaves the flush to the next one waiting, and the DATA writer loop holds
-    /// a batch open while it has DATA to send.
+    /// one connection at about a quarter of what Kestrel carries. Now the frames
+    /// are buffered and sent outside the write lock: what is written during a
+    /// send goes out with the next, and the DATA writer loop holds a batch open
+    /// while it has DATA to send.
     /// </summary>
     [TestFixture]
     public class ServerWriteBatchingTests
@@ -49,54 +50,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         #endregion
 
 
-        #region HeadersQueuedBehindOneAnother_GoOutInOneWrite(WriteBufferSize, HeadersInFirstWrite)
+        #region ResponsesWrittenDuringASend_GoOutTogetherAfterIt()
 
         /// <summary>
-        /// Eight responses whose HEADERS all wait for the write lock: each writer
-        /// leaves the flush to the one behind it, so the first write to the
-        /// transport after the lock is free carries all eight. Without the
-        /// buffer, the old way, each goes out in a write of its own: the control
-        /// that shows the test can tell the two apart.
+        /// Eight responses written while the send of a first one waits on the
+        /// transport: their writers take the write lock, write into the buffer,
+        /// and leave, without waiting for that send, and all eight go out
+        /// together after it, in one write. When the send was made under the
+        /// lock, the eight waited for it to take the lock at all, and the first
+        /// of a burst went out only with the last.
         /// </summary>
-        [TestCase(HTTP2FrameWriter.DefaultBufferSize, 8)]
-        [TestCase(0,                                  1)]
-        public async Task HeadersQueuedBehindOneAnother_GoOutInOneWrite(Int32 WriteBufferSize, Int32 HeadersInFirstWrite)
+        [Test]
+        public async Task ResponsesWrittenDuringASend_GoOutTogetherAfterIt()
         {
 
-            await using var peer = await PipedH2ServerConnection.StartAsync(SmallResponse, WriteBufferSize: WriteBufferSize);
+            await using var peer = await PipedH2ServerConnection.StartAsync(SmallResponse, WriteBufferSize: HTTP2FrameWriter.DefaultBufferSize);
 
-            var streams  = Enumerable.Range(0, 8).Select(i => (UInt32) (2 * i + 1)).ToArray();
-            var before   = 0;
+            // What the connection sends of its own is out before the hold.
+            await peer.PingAsync();
 
-            using (var held = await peer.HoldWritesAsync())
-            {
+            var streams            = Enumerable.Range(1, 8).Select(i => (UInt32) (2 * i + 1)).ToArray();
+            var (started, release) = peer.HoldNextWrite();
 
-                foreach (var streamId in streams)
-                    await peer.RequestAsync(streamId, "/");
-
-                await peer.WritersWaitingAsync(streams.Length);
-
-                before = peer.Writes.Count;
-
-            }
+            await peer.RequestAsync(1, "/");
+            await started.WaitAsync(PipedH2ServerConnection.StepTimeout);
 
             foreach (var streamId in streams)
+                await peer.RequestAsync(streamId, "/");
+
+            await peer.BufferedAsync(HTTP2FrameType.HEADERS, streams.Length);
+
+            var before = peer.Writes.Count;
+
+            release();
+
+            foreach (var streamId in streams.Prepend(1u))
             {
-
                 var response = await peer.TryResponseAsync(streamId, PipedH2ServerConnection.StepTimeout);
-
                 Assert.That(response?.Status, Is.EqualTo("200"),
-                            () => $"stream {streamId} was answered; received per stream: " +
-                                  String.Join(" | ", streams.Select(id => $"{id}: {String.Join(", ", peer.FramesOn(id))}")) +
-                                  "; written per transport write: " +
+                            () => $"stream {streamId} was answered; written per transport write: " +
                                   String.Join(" | ", peer.Writes.Select(write => String.Join(", ", write))));
-
             }
 
-            var firstWrite = peer.Writes[before];
+            var held = peer.Writes[before];
+            var next = peer.Writes[before + 1];
 
-            Assert.That(firstWrite.Count(frame => frame.Type == HTTP2FrameType.HEADERS), Is.EqualTo(HeadersInFirstWrite),
-                        $"the first write after the lock came free: {String.Join(", ", firstWrite)}");
+            Assert.That(held.Select(frame => frame.StreamId).Distinct(), Is.EqualTo(new[] { 1u }),
+                        $"the held write carried the first response alone: {String.Join(", ", held)}");
+            Assert.That(next.Count(frame => frame.Type == HTTP2FrameType.HEADERS), Is.EqualTo(streams.Length),
+                        $"the write after it: {String.Join(", ", next)}");
 
         }
 

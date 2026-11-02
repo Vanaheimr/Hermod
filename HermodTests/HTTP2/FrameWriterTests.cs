@@ -29,9 +29,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// <summary>
     /// The write side of a connection (<see cref="HTTP2FrameWriter"/>): one
     /// writer at a time, its frames buffered, and the flush left to the last of
-    /// the writers waiting. What reaches the transport is checked per write, so
-    /// a flush the writer should have left to another shows up as a write of
-    /// its own.
+    /// the writers waiting; or, as the server has it, the buffer sent outside
+    /// the lock, by one sender at a time, which takes what gathered meanwhile.
+    /// What reaches the transport is checked per write, so a flush the writer
+    /// should have left to another shows up as a write of its own; and a write
+    /// can be held on the transport, to see what the writers do during a send.
+    /// What holds either way is tested either way.
     /// </summary>
     [TestFixture]
     public class FrameWriterTests
@@ -47,12 +50,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             private readonly Lock          sync    = new();
             private readonly List<Byte[]>  writes  = [];
+            private (TaskCompletionSource Started, TaskCompletionSource Release)? hold;
+            private Int32                  inFlight;
 
             /// <summary>
             /// Fail the next write with this, as a broken transport would, and
             /// take none of it.
             /// </summary>
             public Exception?              FailNextWrite { get; set; }
+
+            /// <summary>
+            /// Whether two writes were ever made at once.
+            /// </summary>
+            public Boolean                 Overlapped    { get; private set; }
+
+            /// <summary>
+            /// Hold the next write on the transport, as a peer that reads slowly
+            /// would, until Release is called. Started completes once that
+            /// write has begun, and waits.
+            /// </summary>
+            public (Task Started, Action Release) HoldNextWrite()
+            {
+
+                var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                lock (sync)
+                    hold = (started, release);
+
+                return (started.Task, () => release.TrySetResult());
+
+            }
 
             /// <summary>
             /// The writes so far, each as the text it carried.
@@ -66,19 +94,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 }
             }
 
-            public override ValueTask WriteAsync(ReadOnlyMemory<Byte> Buffer, CancellationToken CancellationToken = default)
+            public override async ValueTask WriteAsync(ReadOnlyMemory<Byte> Buffer, CancellationToken CancellationToken = default)
             {
 
-                if (FailNextWrite is { } failure)
+                if (Interlocked.Increment(ref inFlight) > 1)
+                    Overlapped = true;
+
+                try
                 {
-                    FailNextWrite = null;
-                    return ValueTask.FromException(failure);
+
+                    if (FailNextWrite is { } failure)
+                    {
+                        FailNextWrite = null;
+                        throw failure;
+                    }
+
+                    (TaskCompletionSource Started, TaskCompletionSource Release)? held;
+
+                    lock (sync)
+                    {
+                        held = hold;
+                        hold = null;
+                    }
+
+                    if (held is { } h)
+                    {
+                        h.Started.TrySetResult();
+                        await h.Release.Task;
+                    }
+
+                    lock (sync)
+                        writes.Add(Buffer.ToArray());
+
                 }
-
-                lock (sync)
-                    writes.Add(Buffer.ToArray());
-
-                return ValueTask.CompletedTask;
+                finally
+                {
+                    Interlocked.Decrement(ref inFlight);
+                }
 
             }
 
@@ -105,6 +157,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         }
 
+        /// <summary>
+        /// How long a step may take before the test gives up: every step is in
+        /// memory, so this only bounds a test that went wrong.
+        /// </summary>
+        private static readonly TimeSpan StepTimeout = TimeSpan.FromSeconds(10);
+
         private static ReadOnlyMemory<Byte> Text(String Text)
             => Encoding.ASCII.GetBytes(Text);
 
@@ -121,18 +179,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         #endregion
 
 
-        #region ALoneWriter_FlushesAsItLeaves()
+        #region ALoneWriter_FlushesAsItLeaves(SendOutsideTheLock)
 
         /// <summary>
         /// With nobody waiting, the writer leaving the lock flushes: what it
         /// wrote is buffered until then, and on the transport after.
         /// </summary>
-        [Test]
-        public async Task ALoneWriter_FlushesAsItLeaves()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task ALoneWriter_FlushesAsItLeaves(Boolean SendOutsideTheLock)
         {
 
             var transport = new RecordingStream();
-            var writer    = new HTTP2FrameWriter(transport);
+            var writer    = new HTTP2FrameWriter(transport, SendOutsideTheLock: SendOutsideTheLock);
 
             await writer.EnterAsync(CancellationToken.None);
             await writer.WriteAsync(Text("a"), CancellationToken.None);
@@ -213,18 +272,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
-        #region AForcedFlush_GoesOutWithAWriterWaiting()
+        #region AWriterWithAnotherWaiting_SendsAsItLeaves()
+
+        /// <summary>
+        /// Outside the lock, a writer that leaves while another waits for the
+        /// lock sends what it wrote at once, rather than leave it to the one
+        /// after it: the next writer does not wait for that send.
+        /// </summary>
+        [Test]
+        public async Task AWriterWithAnotherWaiting_SendsAsItLeaves()
+        {
+
+            var transport = new RecordingStream();
+            var writer    = new HTTP2FrameWriter(transport, SendOutsideTheLock: true);
+
+            await writer.EnterAsync(CancellationToken.None);
+
+            var second = writer.EnterAsync(CancellationToken.None);
+            Assert.That(second.IsCompleted, Is.False, "the second writer waits for the first");
+
+            await writer.WriteAsync(Text("a"), CancellationToken.None);
+            await writer.ExitAsync(CancellationToken.None);
+
+            Assert.That(transport.Writes, Is.EqualTo(new[] { "a" }), "the first writer sent as it left");
+
+            await second;
+            await writer.WriteAsync(Text("b"), CancellationToken.None);
+            await writer.ExitAsync(CancellationToken.None);
+
+            Assert.That(transport.Writes, Is.EqualTo(new[] { "a", "b" }));
+
+        }
+
+        #endregion
+
+        #region AForcedFlush_GoesOutWithAWriterWaiting(SendOutsideTheLock)
 
         /// <summary>
         /// A frame that must be on its way at once, a GOAWAY ahead of the
         /// connection's end, is flushed even with another writer waiting.
         /// </summary>
-        [Test]
-        public async Task AForcedFlush_GoesOutWithAWriterWaiting()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task AForcedFlush_GoesOutWithAWriterWaiting(Boolean SendOutsideTheLock)
         {
 
             var transport = new RecordingStream();
-            var writer    = new HTTP2FrameWriter(transport);
+            var writer    = new HTTP2FrameWriter(transport, SendOutsideTheLock: SendOutsideTheLock);
 
             await writer.EnterAsync(CancellationToken.None);
 
@@ -242,19 +336,121 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
+        #region ASendRunsOutsideTheLock()
 
-        #region AnOpenBatch_HoldsTheFlushUntilItEnds()
+        /// <summary>
+        /// While a send waits on the transport, the next writer takes the lock,
+        /// writes, and leaves without waiting for it. What it wrote goes out
+        /// once that send is done, from the sender, not from its writer.
+        /// </summary>
+        [Test]
+        public async Task ASendRunsOutsideTheLock()
+        {
+
+            var transport          = new RecordingStream();
+            var writer             = new HTTP2FrameWriter(transport, SendOutsideTheLock: true);
+            var (started, release) = transport.HoldNextWrite();
+
+            var first = WriteAsync(writer, "a");
+            await started.WaitAsync(StepTimeout);
+
+            var second = WriteAsync(writer, "b");
+
+            Assert.That(await Task.WhenAny(second, Task.Delay(StepTimeout)), Is.SameAs(second),
+                        "the second writer took the lock, wrote, and left, while the first one's send waited");
+            Assert.That(first.IsCompleted,    Is.False, "the first writer is still sending");
+            Assert.That(transport.Writes,     Is.Empty);
+
+            release();
+            await first.WaitAsync(StepTimeout);
+
+            Assert.That(transport.Writes,     Is.EqualTo(new[] { "a", "b" }), "the sender sent what was written meanwhile, after its own");
+            Assert.That(transport.Overlapped, Is.False);
+
+        }
+
+        #endregion
+
+        #region WritesDuringASend_GoOutTogetherAfterIt()
+
+        /// <summary>
+        /// What several writers write during one send goes out after it, in one
+        /// write: the sender takes everything that gathered.
+        /// </summary>
+        [Test]
+        public async Task WritesDuringASend_GoOutTogetherAfterIt()
+        {
+
+            var transport          = new RecordingStream();
+            var writer             = new HTTP2FrameWriter(transport, SendOutsideTheLock: true);
+            var (started, release) = transport.HoldNextWrite();
+
+            var first = WriteAsync(writer, "a");
+            await started.WaitAsync(StepTimeout);
+
+            await WriteAsync(writer, "b").WaitAsync(StepTimeout);
+            await WriteAsync(writer, "c").WaitAsync(StepTimeout);
+            await WriteAsync(writer, "d").WaitAsync(StepTimeout);
+
+            release();
+            await first.WaitAsync(StepTimeout);
+
+            Assert.That(transport.Writes, Is.EqualTo(new[] { "a", "bcd" }));
+
+        }
+
+        #endregion
+
+        #region AForcedFlush_WaitsForTheSendThatRuns()
+
+        /// <summary>
+        /// A frame that must be on its way when its writer leaves, a GOAWAY,
+        /// waits for the send that runs, and is out when the call returns, after
+        /// what that send carried.
+        /// </summary>
+        [Test]
+        public async Task AForcedFlush_WaitsForTheSendThatRuns()
+        {
+
+            var transport          = new RecordingStream();
+            var writer             = new HTTP2FrameWriter(transport, SendOutsideTheLock: true);
+            var (started, release) = transport.HoldNextWrite();
+
+            var first = WriteAsync(writer, "a");
+            await started.WaitAsync(StepTimeout);
+
+            await writer.EnterAsync(CancellationToken.None).WaitAsync(StepTimeout);
+            await writer.WriteAsync(Text("goaway"), CancellationToken.None);
+
+            var flushed = writer.ExitAsync(CancellationToken.None, Flush: true);
+            Assert.That(flushed.IsCompleted, Is.False, "the forced flush waits for the send that runs");
+
+            release();
+            await flushed.WaitAsync(StepTimeout);
+
+            Assert.That(transport.Writes, Is.EqualTo(new[] { "a", "goaway" }));
+
+            await first.WaitAsync(StepTimeout);
+            Assert.That(transport.Overlapped, Is.False);
+
+        }
+
+        #endregion
+
+
+        #region AnOpenBatch_HoldsTheFlushUntilItEnds(SendOutsideTheLock)
 
         /// <summary>
         /// While a batch is open, no writer flushes; its end flushes everything
         /// written meanwhile, in one write.
         /// </summary>
-        [Test]
-        public async Task AnOpenBatch_HoldsTheFlushUntilItEnds()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task AnOpenBatch_HoldsTheFlushUntilItEnds(Boolean SendOutsideTheLock)
         {
 
             var transport = new RecordingStream();
-            var writer    = new HTTP2FrameWriter(transport);
+            var writer    = new HTTP2FrameWriter(transport, SendOutsideTheLock: SendOutsideTheLock);
 
             writer.BeginBatch();
 
@@ -271,18 +467,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
-        #region AnAbandonedBatch_LetsTheWritersAfterItFlush()
+        #region AnAbandonedBatch_LetsTheWritersAfterItFlush(SendOutsideTheLock)
 
         /// <summary>
         /// A batch given up without its flush stops holding the flushes back:
         /// the next writer flushes, what the batch left included.
         /// </summary>
-        [Test]
-        public async Task AnAbandonedBatch_LetsTheWritersAfterItFlush()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task AnAbandonedBatch_LetsTheWritersAfterItFlush(Boolean SendOutsideTheLock)
         {
 
             var transport = new RecordingStream();
-            var writer    = new HTTP2FrameWriter(transport);
+            var writer    = new HTTP2FrameWriter(transport, SendOutsideTheLock: SendOutsideTheLock);
 
             writer.BeginBatch();
 
@@ -300,18 +497,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
-        #region CloseAsync_FlushesWhatWasLeft()
+        #region AnOpenBatch_StopsTheSendThatRuns()
+
+        /// <summary>
+        /// A batch opened while a send runs holds back what is written after it:
+        /// the sender stops once its send is done, and the batch's end sends the
+        /// rest.
+        /// </summary>
+        [Test]
+        public async Task AnOpenBatch_StopsTheSendThatRuns()
+        {
+
+            var transport          = new RecordingStream();
+            var writer             = new HTTP2FrameWriter(transport, SendOutsideTheLock: true);
+            var (started, release) = transport.HoldNextWrite();
+
+            var first = WriteAsync(writer, "a");
+            await started.WaitAsync(StepTimeout);
+
+            writer.BeginBatch();
+            await WriteAsync(writer, "b").WaitAsync(StepTimeout);
+
+            release();
+            await first.WaitAsync(StepTimeout);
+
+            Assert.That(transport.Writes, Is.EqualTo(new[] { "a" }), "the sender left what the batch holds back");
+
+            await writer.EndBatchAsync(CancellationToken.None);
+
+            Assert.That(transport.Writes, Is.EqualTo(new[] { "a", "b" }));
+
+        }
+
+        #endregion
+
+        #region CloseAsync_FlushesWhatWasLeft(SendOutsideTheLock)
 
         /// <summary>
         /// What a batch wrote and then left unflushed, because the connection
         /// ended first, goes out with CloseAsync.
         /// </summary>
-        [Test]
-        public async Task CloseAsync_FlushesWhatWasLeft()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task CloseAsync_FlushesWhatWasLeft(Boolean SendOutsideTheLock)
         {
 
             var transport = new RecordingStream();
-            var writer    = new HTTP2FrameWriter(transport);
+            var writer    = new HTTP2FrameWriter(transport, SendOutsideTheLock: SendOutsideTheLock);
 
             writer.BeginBatch();
 
@@ -328,7 +560,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         #endregion
 
 
-        #region AFailedFlush_DropsWhatItCarried()
+        #region AFailedFlush_DropsWhatItCarried(SendOutsideTheLock)
 
         /// <summary>
         /// A flush the transport fails takes its bytes with it: they do not go
@@ -336,12 +568,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// failed write the transport's state is unknown, and a frame sent twice,
         /// or half of one again, would garble everything after it.
         /// </summary>
-        [Test]
-        public async Task AFailedFlush_DropsWhatItCarried()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task AFailedFlush_DropsWhatItCarried(Boolean SendOutsideTheLock)
         {
 
             var transport = new RecordingStream { FailNextWrite = new IOException("The write failed on purpose") };
-            var writer    = new HTTP2FrameWriter(transport);
+            var writer    = new HTTP2FrameWriter(transport, SendOutsideTheLock: SendOutsideTheLock);
 
             Assert.That(async () => await WriteAsync(writer, "lost"), Throws.InstanceOf<IOException>());
 
@@ -353,18 +586,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
-        #region AWriteLargerThanTheBuffer_FollowsWhatWasBuffered()
+        #region AWriteLargerThanTheBuffer_FollowsWhatWasBuffered(SendOutsideTheLock)
 
         /// <summary>
         /// A write larger than the buffer, a full DATA frame, still goes out
         /// after what was buffered before it, and nothing is lost or reordered.
         /// </summary>
-        [Test]
-        public async Task AWriteLargerThanTheBuffer_FollowsWhatWasBuffered()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task AWriteLargerThanTheBuffer_FollowsWhatWasBuffered(Boolean SendOutsideTheLock)
         {
 
             var transport = new RecordingStream();
-            var writer    = new HTTP2FrameWriter(transport, BufferSize: 16);
+            var writer    = new HTTP2FrameWriter(transport, BufferSize: 16, SendOutsideTheLock: SendOutsideTheLock);
             var large     = new String('c', 40);
 
             await writer.EnterAsync(CancellationToken.None);
@@ -379,18 +613,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
-        #region WithoutABuffer_EveryWriteGoesThroughAtOnce()
+        #region AWriteLargerThanTheBuffer_WaitsForTheSendThatRuns()
+
+        /// <summary>
+        /// A write too large for the buffer goes to the transport itself, and so
+        /// waits for the send that runs: the transport never has two writes at
+        /// once, and nothing is reordered.
+        /// </summary>
+        [Test]
+        public async Task AWriteLargerThanTheBuffer_WaitsForTheSendThatRuns()
+        {
+
+            var transport          = new RecordingStream();
+            var writer             = new HTTP2FrameWriter(transport, BufferSize: 16, SendOutsideTheLock: true);
+            var large              = new String('c', 40);
+            var (started, release) = transport.HoldNextWrite();
+
+            var first = WriteAsync(writer, "a");
+            await started.WaitAsync(StepTimeout);
+
+            var second = WriteAsync(writer, large);
+            Assert.That(second.IsCompleted, Is.False, "the large write waits for the send that runs");
+
+            release();
+            await Task.WhenAll(first, second).WaitAsync(StepTimeout);
+
+            Assert.That(String.Concat(transport.Writes), Is.EqualTo("a" + large));
+            Assert.That(transport.Overlapped,            Is.False, "the transport never had two writes at once");
+
+        }
+
+        #endregion
+
+        #region WithoutABuffer_EveryWriteGoesThroughAtOnce(SendOutsideTheLock)
 
         /// <summary>
         /// With a buffer size of 0, each write reaches the transport as it is
         /// made, as it did before there was a buffer.
         /// </summary>
-        [Test]
-        public async Task WithoutABuffer_EveryWriteGoesThroughAtOnce()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task WithoutABuffer_EveryWriteGoesThroughAtOnce(Boolean SendOutsideTheLock)
         {
 
             var transport = new RecordingStream();
-            var writer    = new HTTP2FrameWriter(transport, BufferSize: 0);
+            var writer    = new HTTP2FrameWriter(transport, BufferSize: 0, SendOutsideTheLock: SendOutsideTheLock);
 
             await writer.EnterAsync(CancellationToken.None);
             await writer.WriteAsync(Text("a"), CancellationToken.None);
