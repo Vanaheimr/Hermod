@@ -40,13 +40,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// queries on that connection and initiate closing the connection as soon as
     /// it has received all outstanding responses." Both clients pipeline their
     /// queries (RFC 7766 §6.2.1.1), so others may still be outstanding when the
-    /// option arrives: the close this is handed waits for them, and sends nothing
-    /// more on the connection in the meantime.
+    /// option arrives. The connection is closed by the answer that finds nothing
+    /// outstanding and nothing being written, or else by the next query, which
+    /// waits for the outstanding answers before it closes it and writes nothing
+    /// to it in the meantime.
     /// </para>
     /// <para>
     /// *A non-zero timeout* — the client "SHOULD honour the timeout received in
     /// that response (overriding any previous timeout) and initiate close of the
     /// connection before the timeout expires." That is what the timer is for.
+    /// </para>
+    /// <para>
+    /// Both are about one connection. §3.1 has TIMEOUT be "an idle timeout value
+    /// for the TCP connection", and §3.3.2 has a server send "the TIMEOUT value
+    /// that is currently associated with the TCP session". So what a server
+    /// advertised is forgotten when the client connects again, and an answer read
+    /// on a connection that is gone says nothing about the one in use. A TIMEOUT
+    /// of 0 kept from an earlier connection closed every later one after its first
+    /// answer; and once queries were pipelined, the late answer of a connection
+    /// being drained closed the next one while it was still being opened.
     /// </para>
     /// <para>
     /// Neither rule needs the client to have asked for anything: §3.3.2 lets a
@@ -74,10 +86,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         private static readonly TimeSpan Never = System.Threading.Timeout.InfiniteTimeSpan;
 
-        private readonly SemaphoreSlim  streamLock;
-        private readonly Func<Task>     closeConnection;
-        private readonly Func<Boolean>  isIdle;
-        private readonly Timer          idleTimer;
+        private readonly SemaphoreSlim      streamLock;
+        private readonly Func<Int32, Task>  closeConnection;
+        private readonly Func<Boolean>      isIdle;
+        private readonly Timer              idleTimer;
+        private readonly Lock               sync = new();
+
+        /// <summary>
+        /// The connection what the server advertised belongs to, as the client
+        /// counts its connections.
+        /// </summary>
+        private Int32 connection;
+
+        /// <summary>
+        /// The connection the idle timer was last armed for.
+        /// </summary>
+        private Int32 deadlineOf;
+
+        /// <summary>
+        /// A connection that received a TIMEOUT of 0 and has not been replaced.
+        /// </summary>
+        private Int32? closeWhenDrained;
 
         private Boolean disposed;
 
@@ -86,8 +115,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Properties
 
         /// <summary>
-        /// The idle timeout most recently advertised by the server, or null if it
-        /// has never sent the option.
+        /// The idle timeout the server most recently advertised on the current
+        /// connection, or null if it has not sent the option on it.
         /// </summary>
         public TimeSpan? ServerTimeout { get; private set; }
 
@@ -98,12 +127,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Create the RFC 7828 §3.2.2 policy for one connection-holding client.
         /// </summary>
-        /// <param name="StreamLock">The lock the client writes its queries under. The timer takes it before closing, so a deadline that lands while a query is being written is skipped rather than cutting it off.</param>
-        /// <param name="CloseConnection">How this client drops its connection without cancelling what a caller has in flight.</param>
+        /// <param name="StreamLock">The lock the client connects and writes its queries under. The policy closes a connection only while it holds the lock, and only if it gets it without waiting: a query that holds it is writing to the connection or opening the next one, and neither may be cut off.</param>
+        /// <param name="CloseConnection">How this client drops the given connection, if it is still the client's, without cancelling what a caller has in flight.</param>
         /// <param name="IsIdle">Whether no query is outstanding on the connection: with queries pipelined, the lock being free no longer says so.</param>
-        public DNSKeepalivePolicy(SemaphoreSlim   StreamLock,
-                                  Func<Task>      CloseConnection,
-                                  Func<Boolean>?  IsIdle = null)
+        public DNSKeepalivePolicy(SemaphoreSlim      StreamLock,
+                                  Func<Int32, Task>  CloseConnection,
+                                  Func<Boolean>?     IsIdle = null)
         {
 
             this.streamLock       = StreamLock;
@@ -116,14 +145,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region ApplyAsync(Response)
+        #region Connected(Connection)
+
+        /// <summary>
+        /// A new connection is being made: nothing the server said about the last
+        /// one holds for it. Called under the stream lock.
+        /// </summary>
+        /// <param name="Connection">The new connection, as the client counts them.</param>
+        public void Connected(Int32 Connection)
+        {
+            lock (sync)
+            {
+
+                connection        = Connection;
+                closeWhenDrained  = null;
+                ServerTimeout     = null;
+
+                if (!disposed)
+                    idleTimer.Change(Never, Never);
+
+            }
+        }
+
+        #endregion
+
+        #region ClosesWhenDrained(Connection)
+
+        /// <summary>
+        /// Whether the given connection received a TIMEOUT of 0: nothing more is
+        /// to be written to it, and it is to be closed once the answers still
+        /// outstanding on it are in. Asked under the stream lock, before a query
+        /// is written.
+        /// </summary>
+        public Boolean ClosesWhenDrained(Int32 Connection)
+        {
+            lock (sync)
+                return Connection == closeWhenDrained;
+        }
+
+        #endregion
+
+        #region ApplyAsync(Connection, Response)
 
         /// <summary>
         /// Apply §3.2.2 to a response that has just been read, and restart the
         /// idle clock.
         /// </summary>
+        /// <param name="Connection">The connection the response was read on.</param>
         /// <param name="Response">The response as the client parsed it.</param>
-        public async Task ApplyAsync(DNSInfo Response)
+        public async Task ApplyAsync(Int32    Connection,
+                                     DNSInfo  Response)
         {
 
             var advertised = Response.EDNSOptions.
@@ -131,27 +202,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                  FirstOrDefault()?.
                                  IdleTimeout;
 
-            // "overriding any previous timeout" — but only when there is one to
-            // override with. A response that carries no option is not a
-            // withdrawal, so the deadline that was in force stays in force.
-            if (advertised is not null)
-                ServerTimeout = advertised;
-
-            if (ServerTimeout is null)
-                return;
-
-            if (ServerTimeout == TimeSpan.Zero)
+            lock (sync)
             {
+
+                // Read on a connection that a newer one has replaced: whatever it
+                // says about keepalive was about that one.
+                if (Connection != connection || disposed)
+                    return;
+
+                // "overriding any previous timeout" — but only when there is one to
+                // override with. A response that carries no option is not a
+                // withdrawal, so the deadline that was in force stays in force.
+                if (advertised is not null)
+                    ServerTimeout = advertised;
+
+                if (ServerTimeout is null)
+                    return;
+
+                if (ServerTimeout != TimeSpan.Zero)
+                {
+
+                    // RFC 7828 §3: the idle timeout "should be reset when that
+                    // condition is lifted, i.e., when a client sends a message".
+                    // This runs at the end of every exchange, so the deadline is
+                    // always measured from the last one rather than from whenever
+                    // the option first arrived.
+                    deadlineOf = Connection;
+                    idleTimer.Change(ServerTimeout.Value * IdleCloseFraction, Never);
+                    return;
+
+                }
+
                 idleTimer.Change(Never, Never);
-                await closeConnection().ConfigureAwait(false);
-                return;
+                closeWhenDrained = Connection;
+
             }
 
-            // RFC 7828 §3: the idle timeout "should be reset when that condition
-            // is lifted, i.e., when a client sends a message". This runs at the
-            // end of every exchange, so the deadline is always measured from the
-            // last one rather than from whenever the option first arrived.
-            idleTimer.Change(ServerTimeout.Value * IdleCloseFraction, Never);
+            // Now, if nothing is outstanding and nothing is being written. If
+            // something is, the next answer comes back through here, and the next
+            // query finds the connection marked.
+            await CloseIfIdleAsync(Connection).ConfigureAwait(false);
 
         }
 
@@ -161,18 +251,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         private void OnIdleDeadline(Object? State)
         {
-            _ = CloseIfStillIdleAsync();
+
+            // The connection the deadline was set for, not whichever is current
+            // when it fires: a new one may have been opened in between.
+            Int32 armedFor;
+
+            lock (sync)
+                armedFor = deadlineOf;
+
+            _ = CloseIfIdleAsync(armedFor);
+
         }
 
-        private async Task CloseIfStillIdleAsync()
+        #endregion
+
+        #region (private) CloseIfIdleAsync(Connection)
+
+        private async Task CloseIfIdleAsync(Int32 Connection)
         {
             try
             {
 
                 // A query started between the deadline being scheduled and the
-                // timer firing: the connection is not idle, and the exchange in
-                // flight will schedule the next deadline when it finishes. Waiting
-                // for the lock here would close a live session instead.
+                // timer firing, or between the TIMEOUT 0 being read and now: the
+                // connection is not idle, or a new one is being opened. Waiting for
+                // the lock here would close a live session instead.
                 if (!await streamLock.WaitAsync(TimeSpan.Zero).ConfigureAwait(false))
                     return;
 
@@ -185,7 +288,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (!isIdle())
                         return;
 
-                    await closeConnection().ConfigureAwait(false);
+                    lock (sync)
+                    {
+                        if (Connection != connection)
+                            return;
+                    }
+
+                    await closeConnection(Connection).ConfigureAwait(false);
 
                 }
                 finally
@@ -195,9 +304,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
-            // Nothing is awaiting this, so an exception here would be unobserved.
-            // The client being disposed underneath a deadline that had already
-            // fired is the ordinary way to get one.
+            // Nothing is awaiting the timer's call, so an exception here would be
+            // unobserved; and an answer is not to fail for a close that did not
+            // happen. The client being disposed underneath a deadline that had
+            // already fired is the ordinary way to get one.
             catch (ObjectDisposedException) { }
             catch (Exception)               { }
 
@@ -210,10 +320,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public void Dispose()
         {
 
-            if (disposed)
-                return;
+            lock (sync)
+            {
 
-            disposed = true;
+                if (disposed)
+                    return;
+
+                disposed = true;
+
+            }
 
             idleTimer.Change(Never, Never);
             idleTimer.Dispose();
