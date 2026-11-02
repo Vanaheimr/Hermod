@@ -793,8 +793,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                 }
 
                 var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-                await socket.ConnectAsync(new System.Net.IPEndPoint(addresses[0], port), CancellationToken).ConfigureAwait(false);
-                await SshChannelRelay.RelayAsync(Channel.AsStream(), new NetworkStream(socket, ownsSocket: true), CancellationToken);
+
+                try
+                {
+                    await socket.ConnectAsync(new System.Net.IPEndPoint(addresses[0], port), CancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    socket.Dispose();
+                    throw;
+                }
+
+                await SshTcpRelay.RelayAsync(Channel, socket, CancellationToken).ConfigureAwait(false);
             }
             catch { try { await Channel.CloseAsync(CancellationToken); } catch { } }
         }

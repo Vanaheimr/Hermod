@@ -40,8 +40,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public static class SshRemoteForwarding
     {
 
-        private const Int32 RelayBuffer = 32 * 1024;
-
         #region ServeRemoteForwards(Mux, Policy, CancellationToken)
 
         /// <summary>
@@ -231,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                             var ch     = await Mux.OpenChannelAsync("forwarded-tcpip",
                                                                    ForwardedTcpIp(BindAddress, Port, origin.Address.ToString(), (UInt16) origin.Port),
                                                                    CancellationToken).ConfigureAwait(false);
-                            await RelayAsync(ch, new NetworkStream(socket.Client, ownsSocket: true), CancellationToken).ConfigureAwait(false);
+                            await SshTcpRelay.RelayAsync(ch, socket.Client, CancellationToken).ConfigureAwait(false);
                         }
                         catch { socket.Dispose(); }
                     }, CancellationToken);
@@ -380,7 +378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 throw;
             }
 
-            await RelayAsync(Channel, new NetworkStream(socket, ownsSocket: true), CancellationToken).ConfigureAwait(false);
+            await SshTcpRelay.RelayAsync(Channel, socket, CancellationToken).ConfigureAwait(false);
 
         }
 
@@ -401,51 +399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #endregion
 
 
-        #region (private) relay
-
-        private static async Task RelayAsync(SshMuxChannel Channel, Stream Target, CancellationToken CancellationToken)
-        {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-            var toTarget  = ChannelToTargetAsync(Channel, Target, cts.Token);
-            var toChannel = TargetToChannelAsync(Target, Channel, cts.Token);
-            await Task.WhenAny(toTarget, toChannel).ConfigureAwait(false);
-            await cts.CancelAsync().ConfigureAwait(false);
-            try { await Task.WhenAll(toTarget, toChannel).ConfigureAwait(false); } catch { }
-            try { await Channel.CloseAsync().ConfigureAwait(false); } catch { }
-            await Target.DisposeAsync().ConfigureAwait(false);
-        }
-
-        private static async Task ChannelToTargetAsync(SshMuxChannel Channel, Stream Target, CancellationToken CancellationToken)
-        {
-            var buffer = new Byte[RelayBuffer];
-            var input  = Channel.Input;
-            try
-            {
-                Int32 read;
-                while ((read = await input.ReadAsync(buffer, CancellationToken).ConfigureAwait(false)) > 0)
-                {
-                    await Target.WriteAsync(buffer.AsMemory(0, read), CancellationToken).ConfigureAwait(false);
-                    await Target.FlushAsync(CancellationToken).ConfigureAwait(false);
-                }
-            }
-            catch (OperationCanceledException) { }
-            catch (IOException) { }
-            catch (SshChannelClosedException) { }
-        }
-
-        private static async Task TargetToChannelAsync(Stream Target, SshMuxChannel Channel, CancellationToken CancellationToken)
-        {
-            var buffer = new Byte[RelayBuffer];
-            try
-            {
-                Int32 read;
-                while ((read = await Target.ReadAsync(buffer, CancellationToken).ConfigureAwait(false)) > 0)
-                    await Channel.SendDataAsync(buffer.AsMemory(0, read), CancellationToken).ConfigureAwait(false);
-                await Channel.SendEofAsync(CancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) { }
-            catch (IOException) { }
-        }
+        #region (private) ForwardedTcpIp / RemoteForwardListener
 
         private static Byte[] ForwardedTcpIp(String ConnectedAddress, UInt16 ConnectedPort, String OriginAddress, UInt16 OriginPort)
         {

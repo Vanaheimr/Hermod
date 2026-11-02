@@ -33,16 +33,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// </summary>
     /// <remarks>
     /// A connection the server refuses to tunnel is closed, as <c>ssh</c> does; the listener stays.
-    /// Either side may half-close: an end of input on one side reaches the other as such (a channel EOF,
-    /// or a shutdown of the socket's sending side), and the connection lasts until both have ended - or
-    /// until the server closes the channel.
+    /// Either side may half-close (see <see cref="SshTcpRelay"/>).
     /// </remarks>
     public sealed class SshLocalForward : IAsyncDisposable
     {
 
         #region Data
-
-        private const    Int32                    RelayBuffer = 32 * 1024;
 
         private readonly SshChannelMultiplexer    mux;
         private readonly Socket                   listener;
@@ -190,101 +186,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         private async Task TunnelAsync(Socket Connection, CancellationToken CancellationToken)
         {
-            using (Connection)
+
+            SshMuxChannel channel;
+
+            try
             {
 
-                SshMuxChannel channel;
+                var origin  = (System.Net.IPEndPoint) Connection.RemoteEndPoint!;
+                var address = origin.Address.IsIPv4MappedToIPv6 ? origin.Address.MapToIPv4() : origin.Address;
 
-                try
-                {
-
-                    var origin  = (System.Net.IPEndPoint) Connection.RemoteEndPoint!;
-                    var address = origin.Address.IsIPv4MappedToIPv6 ? origin.Address.MapToIPv4() : origin.Address;
-
-                    channel = await mux.OpenChannelAsync("direct-tcpip",
-                                                         DirectTcpIp(RemoteHost, RemotePort, address.ToString(), (UInt16) origin.Port),
-                                                         CancellationToken).ConfigureAwait(false);
-
-                }
-                catch
-                {
-                    // Refused by the server, or the connection is gone: this one is dropped, the listener stays.
-                    return;
-                }
-
-                await RelayAsync(channel, Connection, CancellationToken).ConfigureAwait(false);
+                channel = await mux.OpenChannelAsync("direct-tcpip",
+                                                     DirectTcpIp(RemoteHost, RemotePort, address.ToString(), (UInt16) origin.Port),
+                                                     CancellationToken).ConfigureAwait(false);
 
             }
+            catch
+            {
+                // Refused by the server, or the connection is gone: this one is dropped, the listener stays.
+                Connection.Dispose();
+                return;
+            }
+
+            await SshTcpRelay.RelayAsync(channel, Connection, CancellationToken).ConfigureAwait(false);
+
         }
 
         #endregion
 
-        #region (private) relay
-
-        /// <summary>
-        /// Relay both ways until both have ended. A direction that ends passes its end on (EOF, or a
-        /// shutdown of the socket's sending side) and leaves the other running; one that breaks ends both.
-        /// </summary>
-        private static async Task RelayAsync(SshMuxChannel Channel, Socket Connection, CancellationToken CancellationToken)
-        {
-
-            using var stream  = new NetworkStream(Connection, ownsSocket: false);
-            using var upwards = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-
-            // Once the server has closed the channel, nothing the local side still sends can go anywhere.
-            // Downwards needs no such stop: what arrived before the close is still delivered, then it ends.
-            _ = Channel.Closed.ContinueWith(_ => { try { upwards.Cancel(); } catch (ObjectDisposedException) { } },
-                                            TaskScheduler.Default);
-
-            var up   = SocketToChannelAsync(stream, Channel, upwards.Token);
-            var down = ChannelToSocketAsync(Channel, stream, Connection, CancellationToken);
-
-            if (!await await Task.WhenAny(up, down).ConfigureAwait(false))
-            {
-                await upwards.CancelAsync().ConfigureAwait(false);
-                try { await Channel.CloseAsync().ConfigureAwait(false); } catch { }
-            }
-
-            await Task.WhenAll(up, down).ConfigureAwait(false);
-
-            try { await Channel.CloseAsync().ConfigureAwait(false); } catch { }
-
-        }
-
-        private static async Task<Boolean> SocketToChannelAsync(NetworkStream From, SshMuxChannel To, CancellationToken CancellationToken)
-        {
-            var buffer = new Byte[RelayBuffer];
-            try
-            {
-                Int32 read;
-                while ((read = await From.ReadAsync(buffer, CancellationToken).ConfigureAwait(false)) > 0)
-                    await To.SendDataAsync(buffer.AsMemory(0, read), CancellationToken).ConfigureAwait(false);
-                await To.SendEofAsync(CancellationToken).ConfigureAwait(false);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private static async Task<Boolean> ChannelToSocketAsync(SshMuxChannel From, NetworkStream To, Socket Connection, CancellationToken CancellationToken)
-        {
-            var buffer = new Byte[RelayBuffer];
-            var input  = From.Input;
-            try
-            {
-                Int32 read;
-                while ((read = await input.ReadAsync(buffer, CancellationToken).ConfigureAwait(false)) > 0)
-                    await To.WriteAsync(buffer.AsMemory(0, read), CancellationToken).ConfigureAwait(false);
-                Connection.Shutdown(SocketShutdown.Send);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
+        #region (private) DirectTcpIp(Host, Port, OriginAddress, OriginPort)
 
         private static Byte[] DirectTcpIp(String Host, UInt16 Port, String OriginAddress, UInt16 OriginPort)
         {
