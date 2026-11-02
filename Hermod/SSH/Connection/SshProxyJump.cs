@@ -77,6 +77,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                    .Select(Parse)
                    .ToList();
 
+        /// <summary>
+        /// <c>[user@]host:port</c>, an IPv6 literal in brackets - what <see cref="Parse"/> reads.
+        /// </summary>
+        public override String ToString()
+            => $"{(Username is null ? "" : Username + "@")}{(Host.Contains(':') ? $"[{Host}]" : Host)}:{Port}";
+
     }
 
 

@@ -114,6 +114,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// with a <see cref="TimeoutException"/>.
         /// </summary>
         public Int32                              KeepAliveCountMax  { get; init; } = 3;
+
+        /// <summary>
+        /// The jump hosts to reach the server through (<c>ssh -J</c>), in the order they are passed: this
+        /// side connects to the first, each one opens a <c>direct-tcpip</c> tunnel to the next, and the last
+        /// one to the server. Every hop is a login of its own, end to end through the hops before it, so no
+        /// jump host sees what passes through it - provided its successor's host key is verified. Empty (the
+        /// default) to connect directly. <see cref="SshJumpHost.ParseChain"/> reads <c>-J</c>'s syntax.
+        /// </summary>
+        public IReadOnlyList<SshJumpHost>          ProxyJump          { get; init; } = [];
+
+        /// <summary>
+        /// The options to log in to a jump host with - its own host-key decision and credentials, since a
+        /// jump host is not more trusted than the server. Their own <see cref="ProxyJump"/> is ignored: a
+        /// hop is reached through the hops before it in this chain.
+        ///
+        /// <para>
+        /// Null (the default) lets every jump host borrow these options, with the user it names, if any.
+        /// It borrows the <see cref="Credentials"/>, since a key login shows a jump host nothing it could use
+        /// elsewhere, but not the <see cref="Password"/> or the <see cref="KeyboardInteractive"/> answers,
+        /// which it would read in the clear; nor <see cref="HostKeysReceived"/>, which would take its keys
+        /// for the server's. Borrowing includes <see cref="VerifyHostKey"/>, which then has to accept the
+        /// jump host's key too: a check that knows only the server's key turns the jump host away.
+        /// </para>
+        /// </summary>
+        public Func<SshJumpHost, SshClientOptions>? JumpHostOptions   { get; init; }
     }
 
 
@@ -136,6 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         private readonly IDuplexPipe              pipe;
         private readonly SshTransport             transport;
         private readonly SshChannelMultiplexer    mux;
+        private readonly SshClient?               through;
         private readonly CancellationTokenSource  stopping   = new ();
         private          Task                     keepAlive  = Task.CompletedTask;
         private          Int32                    disposed;
@@ -154,11 +180,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region Constructor(s)
 
-        private SshClient(IDuplexPipe Pipe, SshTransport Transport, SshChannelMultiplexer Mux)
+        private SshClient(IDuplexPipe Pipe, SshTransport Transport, SshChannelMultiplexer Mux, SshClient? Through)
         {
             this.pipe      = Pipe;
             this.transport = Transport;
             this.mux       = Mux;
+            this.through   = Through;
         }
 
         #endregion
@@ -167,11 +194,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         #region (static) ConnectAsync(Host, Port, Options, CancellationToken)
 
         /// <summary>
-        /// Connect, verify the host key, authenticate with the first working credential and start multiplexing.
+        /// Connect, verify the host key, authenticate with the first working credential and start multiplexing
+        /// - directly, or through the jump hosts of <see cref="SshClientOptions.ProxyJump"/>, which the client
+        /// then keeps open and closes after itself, the last one first.
         /// </summary>
         /// <exception cref="TimeoutException">Connecting took longer than <see cref="SshClientOptions.ConnectTimeout"/>.</exception>
         /// <exception cref="SshAuthenticationException">None of the credentials was accepted.</exception>
+        /// <exception cref="SshJumpHostException">A jump host could not be reached; the hops before it are closed again.</exception>
         public static async ValueTask<SshClient> ConnectAsync(String host, UInt16 port, SshClientOptions Options, CancellationToken CancellationToken = default)
+        {
+
+            SshClient? through = null;
+
+            try
+            {
+
+                for (var hop = 0; hop < Options.ProxyJump.Count; hop++)
+                {
+
+                    var jumpHost = Options.ProxyJump[hop];
+
+                    try
+                    {
+                        through = await ConnectAsync(jumpHost.Host, jumpHost.Port, JumpHostOptionsFor(jumpHost, Options), through, CancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception exception) when (!CancellationToken.IsCancellationRequested)
+                    {
+                        throw new SshJumpHostException(jumpHost, hop + 1, Options.ProxyJump.Count, exception);
+                    }
+
+                }
+
+                return await ConnectAsync(host, port, Options, through, CancellationToken).ConfigureAwait(false);
+
+            }
+            catch
+            {
+                // Whatever was reached already belongs to no client yet.
+                if (through is not null)
+                    await through.DisposeAsync().ConfigureAwait(false);
+                throw;
+            }
+
+        }
+
+        private static SshClientOptions JumpHostOptionsFor(SshJumpHost JumpHost, SshClientOptions Server)
+        {
+
+            var options = Server.JumpHostOptions?.Invoke(JumpHost)
+                              ?? Server with {
+                                     Username             = JumpHost.Username ?? Server.Username,
+                                     Password             = null,
+                                     KeyboardInteractive  = null,
+                                     HostKeysReceived     = null
+                                 };
+
+            return options with {
+                       ProxyJump        = [],
+                       JumpHostOptions  = null
+                   };
+
+        }
+
+        // One hop: over TCP, or - with Through - over a direct-tcpip tunnel of the hop before, which the
+        // new client then owns.
+        private static async ValueTask<SshClient> ConnectAsync(String             host,
+                                                               UInt16             port,
+                                                               SshClientOptions   Options,
+                                                               SshClient?         Through,
+                                                               CancellationToken  CancellationToken)
         {
 
             IDuplexPipe?  pipe = null;
@@ -185,7 +276,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
                 try
                 {
-                    pipe      = await SshTcp.ConnectAsync(host, IPPort.Parse(port), connecting.Token).ConfigureAwait(false);
+                    pipe      = Through is null
+                                    ? await SshTcp.ConnectAsync(host, IPPort.Parse(port), connecting.Token).ConfigureAwait(false)
+                                    : DuplexPipe.FromStream(await Through.OpenTcpStreamAsync(host, port, connecting.Token).ConfigureAwait(false));
                     transport = await SshTransport.ClientHandshakeAsync(pipe, VerifyHostKey: Options.VerifyHostKey, CancellationToken: connecting.Token).ConfigureAwait(false);
                 }
                 catch (Exception exception)
@@ -235,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
             if (Options.HostKeysReceived is not null)
                 WireHostKeyUpdates(mux, transport.ServerHostKey, Options.HostKeysReceived);
 
-            var client = new SshClient(pipe, transport, mux.Start());
+            var client = new SshClient(pipe, transport, mux.Start(), Through);
 
             if (Options.KeepAliveInterval is TimeSpan interval)
                 client.keepAlive = client.KeepAliveAsync(interval, Math.Max(1, Options.KeepAliveCountMax));
@@ -454,6 +547,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
             catch { }
 
             await CloseAsync(SayGoodbye: true).ConfigureAwait(false);
+
+            // The jump host this connection ran through, and through it the ones before.
+            if (through is not null)
+                await through.DisposeAsync().ConfigureAwait(false);
 
             stopping.Dispose();
 
