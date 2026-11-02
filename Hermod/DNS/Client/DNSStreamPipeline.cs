@@ -63,14 +63,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             Answered,
 
             /// <summary>
-            /// The server ended the connection, or the message that answered it
-            /// could not be read: the query failed.
+            /// The message that answered it could not be read: the query failed.
             /// </summary>
             Failed,
 
             /// <summary>
-            /// The connection broke under it: the query may be asked again on a
-            /// new one.
+            /// The connection broke or ended before its answer had arrived whole:
+            /// the query may be asked again on a new one.
             /// </summary>
             Broken
 
@@ -257,13 +256,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Exchange">The query, as registered.</param>
         /// <param name="StreamOf">The stream of the given connection, or null when that connection is no longer the client's.</param>
         /// <param name="CloseConnection">Close the given connection, if it is still the client's.</param>
-        /// <param name="OnAnswer">What the client does with every answer it reads, whoever's it is - RFC 7828 §3.2.2 for both clients.</param>
+        /// <param name="OnAnswer">What the client does with every answer it reads, whoever's it is, and with the connection it was read on - RFC 7828 §3.2.2 for both clients.</param>
         /// <param name="CancellationToken">The query's deadline.</param>
-        public async Task<(Ending Ending, DNSInfo? Answer)> AwaitAsync(Exchange                Exchange,
-                                                                       Func<Int32, Stream?>    StreamOf,
-                                                                       Func<Int32, Task>       CloseConnection,
-                                                                       Func<DNSInfo, Task>     OnAnswer,
-                                                                       CancellationToken       CancellationToken)
+        public async Task<(Ending Ending, DNSInfo? Answer)> AwaitAsync(Exchange                    Exchange,
+                                                                       Func<Int32, Stream?>        StreamOf,
+                                                                       Func<Int32, Task>           CloseConnection,
+                                                                       Func<Int32, DNSInfo, Task>  OnAnswer,
+                                                                       CancellationToken           CancellationToken)
         {
 
             try
@@ -337,11 +336,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Read one message and hand it to the query it answers.
         /// </summary>
-        private async Task ReadOneAsync(Stream                Stream,
-                                        Int32                 Connection,
-                                        Func<Int32, Task>     CloseConnection,
-                                        Func<DNSInfo, Task>   OnAnswer,
-                                        CancellationToken     CancellationToken)
+        private async Task ReadOneAsync(Stream                      Stream,
+                                        Int32                       Connection,
+                                        Func<Int32, Task>           CloseConnection,
+                                        Func<Int32, DNSInfo, Task>  OnAnswer,
+                                        CancellationToken           CancellationToken)
         {
 
             UInt16 length;
@@ -378,10 +377,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                               CancellationToken
                                           ).ConfigureAwait(false);
 
+                    // An orderly close in the middle of a message is the same
+                    // loss as a reset there. RFC 7766 §6.2.4: "DNS clients SHOULD
+                    // retry unanswered queries if the connection closes before
+                    // receiving all outstanding responses."
                     if (bytesRead == 0)
                     {
                         await CloseConnection(Connection).ConfigureAwait(false);
-                        End(Connection, Ending.Failed);
+                        End(Connection, Ending.Broken);
                         return;
                     }
 
@@ -441,7 +444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // about the connection counts only the queries still waiting.
                 Withdraw(candidate);
 
-                await OnAnswer(answer).ConfigureAwait(false);
+                await OnAnswer(Connection, answer).ConfigureAwait(false);
 
                 candidate.Outcome.TrySetResult((Ending.Answered, answer));
 
