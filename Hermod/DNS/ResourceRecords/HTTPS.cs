@@ -202,9 +202,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 // RFC 9460 §2.1: each value is decoded as a character-string and
                 // then converted into its key's wire format. A value that is not
-                // valid for its key throws, and the record is refused below.
+                // valid for its key throws, and so do a key written twice and a
+                // ServiceMode record whose SvcParams are not self-consistent
+                // (§2.4.3). The record is refused below.
                 var svcParams  = parts.Length > 2
-                                     ? SVCParameterPresentation.Read(parts[2])
+                                     ? SVCParameterPresentation.Read(parts[2], ServiceMode: priority > 0)
                                      : new List<SVCParameter>();
 
                 return new HTTPS(Name, DNSQueryClasses.IN, TimeToLive,

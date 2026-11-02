@@ -155,6 +155,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
+        #region Reading: the SvcParams together (RFC 9460 §2.1, §2.4.3, §7.1.1, §8)
+
+        [TestCase("1 foo.example.com. key123=abc key123=def")]
+        [TestCase("1 foo.example.com. alpn=h2 key1=\\002h3")]
+        [TestCase("0 foo.example.com. port=53 port=853")]
+        [TestCase("1 foo.example.com. mandatory=key123")]
+        [TestCase("1 foo.example.com. mandatory=alpn,port alpn=h2")]
+        [TestCase("1 foo.example.com. key0=\\000\\003 alpn=h2")]
+        [TestCase("1 foo.example.com. no-default-alpn")]
+        public void A_Key_Written_Twice_Or_A_Record_That_Is_Not_Self_Consistent_Is_Refused(String RData)
+        {
+
+            // Appendix D.3, Figure 11 and Figure 14, and §7.1.1's rule for
+            // "no-default-alpn". A key is one key whichever form names it, and
+            // AliasMode is not exempt from §2.1's "keys MUST NOT be repeated".
+            Assert.Multiple(() => {
+                Assert.That(Read("SVCB",  RData), Is.Null);
+                Assert.That(Read("HTTPS", RData), Is.Null);
+            });
+
+        }
+
+
+        [TestCase("1 foo.example.com. mandatory=key123 key123=abc")]
+        [TestCase("1 foo.example.com. key0=\\000\\003 port=53")]
+        [TestCase("1 foo.example.com. no-default-alpn alpn=h2")]
+        [TestCase("1 foo.example.com. no-default-alpn key1=\\002h2")]
+        [TestCase("0 foo.example.com. mandatory=key123")]
+        [TestCase("0 foo.example.com. no-default-alpn")]
+        public void A_Self_Consistent_Record_Or_One_In_AliasMode_Is_Read(String RData)
+        {
+
+            // The same keys with what they ask for beside them. In AliasMode
+            // "recipients MUST ignore any SvcParams that are present" (§2.4.2),
+            // so self-consistency is not asked of them.
+            Assert.Multiple(() => {
+                Assert.That(Read("SVCB",  RData), Is.Not.Null);
+                Assert.That(Read("HTTPS", RData), Is.Not.Null);
+            });
+
+        }
+
+        #endregion
+
         #region Writing
 
         [TestCase("SVCB")]
@@ -199,14 +243,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         {
 
             // RFC 9460 §2.1: "Arbitrary keys can be represented using the
-            // unknown-key presentation format". Nothing is lost.
-            var written = Write(Type, new SVCParameter(Key, Hex(Wire)));
-            var reread  = Read (Type, RDataOf(written))!;
+            // unknown-key presentation format". Nothing is lost. The record is
+            // only read back if it is self-consistent (§2.4.3), so "mandatory"
+            // comes with the keys it lists and "no-default-alpn" with "alpn".
+            SVCParameter[] beside = Key switch {
+                                        0 => [ new SVCParameter(1, Hex("026832")), new SVCParameter(3, Hex("01bb")) ],
+                                        2 => [ new SVCParameter(1, Hex("026832")) ],
+                                        _ => []
+                                    };
+
+            var written = Write(Type, [ new SVCParameter(Key, Hex(Wire)), .. beside ]);
+            var reread  = Read (Type, RDataOf(written))!.Single(p => p.Key == Key);
 
             Assert.Multiple(() => {
-                Assert.That(written,               Does.Contain($" key{Key}=\""));
-                Assert.That(reread.Single().Key,   Is.EqualTo(Key));
-                Assert.That(reread.Single().Value, Is.EqualTo(Hex(Wire)));
+                Assert.That(written,      Does.Contain($" key{Key}=\""));
+                Assert.That(reread.Value, Is.EqualTo(Hex(Wire)));
             });
 
         }
