@@ -98,8 +98,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// in their wire format.
         /// </summary>
         /// <param name="SvcParams">The text after SvcPriority and TargetName.</param>
-        /// <exception cref="FormatException">The text is not well-formed, or a value is not valid for its key.</exception>
-        internal static List<SVCParameter> Read(String SvcParams)
+        /// <param name="ServiceMode">Whether the record is in ServiceMode, i.e. its SvcPriority is not 0.</param>
+        /// <exception cref="FormatException">The text is not well-formed, a value is not valid for its key, a key is written twice, or a ServiceMode record is not self-consistent.</exception>
+        internal static List<SVCParameter> Read(String  SvcParams,
+                                                Boolean ServiceMode)
         {
 
             var parameters = new List<SVCParameter>();
@@ -112,7 +114,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     i++;
 
                 if (i >= SvcParams.Length)
+                {
+
+                    // §2.1: "SvcParams in presentation format MAY appear in any
+                    // order, but keys MUST NOT be repeated." On the wire the two
+                    // would be two SvcParams with one key, and §2.2 has every
+                    // client reject the entire RRset for that.
+                    var keys = new HashSet<UInt16>();
+
+                    foreach (var parameter in parameters)
+                        if (!keys.Add(parameter.Key))
+                            throw new FormatException($"\"{KeyName(parameter.Key)}\" is written twice!");
+
+                    if (ServiceMode)
+                        CheckSelfConsistency(parameters, keys);
+
                     return parameters;
+
+                }
 
                 // SvcParam = SvcParamKey ["=" SvcParamValue]. Key names are
                 // "a"-"z", "0"-"9" and "-", so nothing in one needs decoding.
@@ -149,6 +168,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 parameters.Add(new SVCParameter(key.Value, opaque ? value : ToWireFormat(key.Value, value, hasValue)));
 
             }
+
+        }
+
+        #endregion
+
+        #region (private) CheckSelfConsistency(Parameters, Keys)
+
+        /// <summary>
+        /// RFC 9460 §2.4.3: "Clients MUST reject any RR whose recognized SvcParams
+        /// are not self-consistent and MAY reject the entire RRset. To help zone
+        /// operators avoid this condition, zone-file implementations SHOULD
+        /// enforce self-consistency as well."
+        /// </summary>
+        /// <remarks>
+        /// Only a ServiceMode record has to be: "In AliasMode, recipients MUST
+        /// ignore any SvcParams that are present" (§2.4.2), and a zone-file parser
+        /// "MAY emit a warning" for them, not refuse the record.
+        /// </remarks>
+        private static void CheckSelfConsistency(List<SVCParameter> Parameters,
+                                                 HashSet<UInt16>    Keys)
+        {
+
+            // §8: "For self-consistency (Section 2.4.3), listed keys MUST also
+            // appear in the SvcParams." Read in pairs from the wire format, which
+            // is what "mandatory" holds whichever form it was written in.
+            foreach (var parameter in Parameters)
+            {
+
+                if (parameter.Key != Mandatory)
+                    continue;
+
+                for (var at = 0; at + 1 < parameter.Value.Length; at += 2)
+                {
+
+                    var listed = (UInt16) (parameter.Value[at] << 8 | parameter.Value[at + 1]);
+
+                    if (!Keys.Contains(listed))
+                        throw new FormatException($"\"mandatory\" lists \"{KeyName(listed)}\", which the record does not hold!");
+
+                }
+
+            }
+
+            // §7.1.1: "When "no-default-alpn" is specified in an RR, "alpn" must
+            // also be specified in order for the RR to be "self-consistent"".
+            if (Keys.Contains(NoDefaultALPN) && !Keys.Contains(ALPN))
+                throw new FormatException("\"no-default-alpn\" is written without \"alpn\"!");
 
         }
 
