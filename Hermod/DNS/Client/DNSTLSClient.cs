@@ -77,13 +77,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         private Int32 connection;
 
-        /// <summary>
-        /// RFC 7828 §3.2.2's TIMEOUT 0 arrived while other queries were still
-        /// outstanding: the session goes once they are answered, and nothing more
-        /// is written to it in the meantime.
-        /// </summary>
-        private volatile Boolean closeWhenDrained;
-
         #endregion
 
         #region Properties
@@ -159,8 +152,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public UInt16            PaddingBlockSize          { get; set; } = DNSPadding.QueryBlockSize;
 
         /// <summary>
-        /// The server-advertised idle timeout from the last EDNS TCP Keepalive
-        /// response option (RFC 7828). Null if no keepalive option was received.
+        /// The idle timeout the server advertised in the last EDNS TCP Keepalive
+        /// response option on the current connection (RFC 7828). Null if none
+        /// was received on it: RFC 7828 §3.1 makes TIMEOUT "an idle timeout
+        /// value for the TCP connection", so it does not outlive the connection.
         /// </summary>
         /// <remarks>
         /// Acting on it is not left to the caller: RFC 7828 §3.2.2 asks the
@@ -321,7 +316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
             this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSTLSClient>();
-            this.keepalive         = new DNSKeepalivePolicy(tlsStreamLock, CloseWhenDrainedAsync, () => pipeline.Outstanding == 0);
+            this.keepalive         = new DNSKeepalivePolicy(tlsStreamLock, CloseConnectionOf, () => pipeline.Outstanding == 0);
 
         }
 
@@ -410,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
             this.logger            = Logger           ?? (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<DNSTLSClient>();
-            this.keepalive         = new DNSKeepalivePolicy(tlsStreamLock, CloseWhenDrainedAsync, () => pipeline.Outstanding == 0);
+            this.keepalive         = new DNSKeepalivePolicy(tlsStreamLock, CloseConnectionOf, () => pipeline.Outstanding == 0);
 
             RemotePort ??= URL.Port ?? IPPort.DNS_TLS;
 
@@ -543,10 +538,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         // RFC 7828 §3.2.2's TIMEOUT 0, with other queries still
                         // outstanding when it arrived - see DNSTCPClient.
-                        if (closeWhenDrained)
+                        if (keepalive.ClosesWhenDrained(Volatile.Read(ref connection)))
                         {
                             await pipeline.Drained.WaitAsync(deadline.Token).ConfigureAwait(false);
-                            closeWhenDrained = false;
                             await CloseConnection().ConfigureAwait(false);
                         }
 
@@ -558,7 +552,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         if (!IsConnected || tcpClient is null)
                         {
 
-                            Interlocked.Increment(ref connection);
+                            keepalive.Connected(Interlocked.Increment(ref connection));
 
                             var connectionResult = await ReconnectAsync(deadline.Token).
                                                              ConfigureAwait(false);
@@ -891,27 +885,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => Connection == Volatile.Read(ref connection)
                    ? CloseConnection()
                    : Task.CompletedTask;
-
-        #endregion
-
-        #region (private) CloseWhenDrainedAsync()
-
-        /// <summary>
-        /// RFC 7828 §3.2.2's close, for a session that may carry other queries: at
-        /// once when none is outstanding, and otherwise once they are answered.
-        /// </summary>
-        private Task CloseWhenDrainedAsync()
-        {
-
-            if (pipeline.Outstanding > 0)
-            {
-                closeWhenDrained = true;
-                return Task.CompletedTask;
-            }
-
-            return CloseConnection();
-
-        }
 
         #endregion
 
