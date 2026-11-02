@@ -216,6 +216,149 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Facade_LocalForward_ThroughTheServer
+
+        /// <summary>
+        /// <c>ssh -L 0:host:port</c> through the façade: this side listens on a port the OS chooses, two
+        /// connections made there at once each reach the target through the server in a channel of their
+        /// own, and after the forward is disposed nothing listens there any more.
+        /// </summary>
+        [Test]
+        [CancelAfter(25000)]
+        public async Task Facade_LocalForward_ThroughTheServer(CancellationToken CancellationToken)
+        {
+
+            var (echo, echoPort) = StartEchoServer(CancellationToken);
+
+            var hostKey = SshHostKey.GenerateEd25519();
+            var userKey = SshHostKey.GenerateEd25519();
+
+            var server = new SshServer(new SshServerOptions {
+                HostKeys         = [ hostKey ],
+                Authenticator    = SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob),
+                ForwardingPolicy = ForwardingPolicy.LoopbackOnly
+            });
+
+            try
+            {
+
+                await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
+                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+
+                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
+                    Username      = "achim",
+                    VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
+                    Credentials   = [ userKey ]
+                }, CancellationToken);
+
+                var forward   = client.StartLocalForward(new IPSocket(IPv4Address.Localhost, IPPort.Auto), "127.0.0.1", (UInt16) echoPort);
+                var localPort = forward.LocalEndPoint.Port.ToInt32();
+
+                Assert.That(localPort, Is.Not.Zero, "the port the OS chose");
+
+                async Task<String> RoundTripAsync(String Text)
+                {
+
+                    using var local = new TcpClient();
+                    await local.ConnectAsync(IPAddress.Loopback, localPort, CancellationToken);
+
+                    var stream = local.GetStream();
+                    var sent   = Encoding.UTF8.GetBytes(Text);
+                    await stream.WriteAsync(sent, CancellationToken);
+
+                    var back = new Byte[sent.Length];
+                    await stream.ReadExactlyAsync(back, CancellationToken);
+                    return Encoding.UTF8.GetString(back);
+
+                }
+
+                var results = await Task.WhenAll(RoundTripAsync("first through the tunnel"),
+                                                 RoundTripAsync("second through the tunnel"));
+
+                Assert.That(results, Is.EqualTo(new[] { "first through the tunnel", "second through the tunnel" }),
+                            "each connection reached the target, and got its own bytes back");
+
+                await forward.DisposeAsync();
+
+                using var late = new TcpClient();
+                await Assert.CatchAsync<SocketException>(async () => await late.ConnectAsync(IPAddress.Loopback, localPort, CancellationToken),
+                                                         "nothing listens on a disposed forward");
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+                echo.Stop();
+            }
+
+        }
+
+        #endregion
+
+        #region Facade_LocalForward_EndsWithTheClient
+
+        /// <summary>
+        /// A local forward nobody disposes still ends with its client: the port is free again.
+        /// </summary>
+        [Test]
+        [CancelAfter(25000)]
+        public async Task Facade_LocalForward_EndsWithTheClient(CancellationToken CancellationToken)
+        {
+
+            var hostKey = SshHostKey.GenerateEd25519();
+            var userKey = SshHostKey.GenerateEd25519();
+
+            var server = new SshServer(new SshServerOptions {
+                HostKeys         = [ hostKey ],
+                Authenticator    = SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob),
+                ForwardingPolicy = ForwardingPolicy.LoopbackOnly
+            });
+
+            try
+            {
+
+                await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
+                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+
+                var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
+                    Username      = "achim",
+                    VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
+                    Credentials   = [ userKey ]
+                }, CancellationToken);
+
+                var localPort = client.StartLocalForward(new IPSocket(IPv4Address.Localhost, IPPort.Auto), "127.0.0.1", 9).LocalEndPoint.Port.ToInt32();
+
+                await client.DisposeAsync();
+
+                // The accept loop lets go of the port once it sees the client's end; that takes a moment.
+                while (true)
+                {
+                    try
+                    {
+                        using var probe = new TcpListener(IPAddress.Loopback, localPort);
+                        probe.Start();
+                        probe.Stop();
+                        break;
+                    }
+                    catch (SocketException)
+                    {
+                        await Task.Delay(50, CancellationToken);
+                    }
+                }
+
+                Assert.Throws<ObjectDisposedException>(() => client.StartLocalForward(new IPSocket(IPv4Address.Localhost, IPPort.Auto), "127.0.0.1", 9),
+                                                       "a disposed client starts no forward");
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
         #region Facade_Sftp_ConcurrentWithExec_OverOneConnection
 
         [Test]

@@ -365,6 +365,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #endregion
 
+        #region StartLocalForward(LocalSocket, RemoteHost, RemotePort)
+
+        /// <summary>
+        /// Local port forwarding (<c>ssh -L</c>): listen on <paramref name="LocalSocket"/>, and tunnel every
+        /// connection made there through the server to <paramref name="RemoteHost"/>:<paramref name="RemotePort"/>.
+        /// </summary>
+        /// <param name="LocalSocket">Where this side listens, e.g. <see cref="IPv4Address.Localhost"/> with
+        /// <see cref="IPPort.Auto"/> to let the OS choose the port (<see cref="SshLocalForward.LocalEndPoint"/>
+        /// says which). An IPv6 address listens for IPv4 too.</param>
+        /// <param name="RemoteHost">The host the server connects to, as the server resolves it.</param>
+        /// <param name="RemotePort">The port the server connects to.</param>
+        /// <returns>The forward: it lives until it is disposed, or this client is.</returns>
+        /// <exception cref="System.Net.Sockets.SocketException">The local socket cannot be bound (say, the port is taken).</exception>
+        public SshLocalForward StartLocalForward(IPSocket  LocalSocket,
+                                                 String    RemoteHost,
+                                                 UInt16    RemotePort)
+        {
+
+            ObjectDisposedException.ThrowIf(disposed != 0, this);
+
+            return SshLocalForward.Start(mux, LocalSocket, RemoteHost, RemotePort, stopping.Token);
+
+        }
+
+        #endregion
+
         #region RequestRemoteForwardAsync(BindHost, BindPort, LocalHost, LocalPort, CancellationToken)
 
         /// <summary>
