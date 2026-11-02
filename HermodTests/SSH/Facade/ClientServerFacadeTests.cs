@@ -139,6 +139,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Facade_RemoteForward_ThroughTheServerListener
+
+        /// <summary>
+        /// <c>ssh -R localhost:0:host:port</c> through the façade, next to an exec on the same connection: the
+        /// server chooses the port, a connection made there comes out at a target on the client's side, and
+        /// after the cancel nothing listens there any more.
+        /// </summary>
+        [Test]
+        [CancelAfter(25000)]
+        public async Task Facade_RemoteForward_ThroughTheServerListener(CancellationToken CancellationToken)
+        {
+
+            var (echo, echoPort) = StartEchoServer(CancellationToken);
+
+            var hostKey = SshHostKey.GenerateEd25519();
+            var userKey = SshHostKey.GenerateEd25519();
+
+            var server = new SshServer(new SshServerOptions {
+                HostKeys         = [ hostKey ],
+                Authenticator    = SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob),
+                ExecHandler      = async (ctx, ct) => { await ctx.WriteAsync($"ran: {ctx.Command}\n", ct); return 0; },
+                ForwardingPolicy = ForwardingPolicy.LoopbackOnly
+            });
+
+            try
+            {
+
+                await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
+                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+
+                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
+                    Username      = "achim",
+                    VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
+                    Credentials   = [ userKey ]
+                }, CancellationToken);
+
+                var forward = await client.RequestRemoteForwardAsync("localhost", 0, "127.0.0.1", (UInt16) echoPort, CancellationToken);
+
+                Assert.That(forward.BoundPort, Is.Not.Zero, "the port the server chose");
+
+                var execTask = client.ExecuteAsync("uname -a", CancellationToken).AsTask();
+
+                using (var external = new TcpClient())
+                {
+
+                    await external.ConnectAsync(IPAddress.Loopback, forward.BoundPort, CancellationToken);
+
+                    var stream = external.GetStream();
+                    var sent   = Encoding.UTF8.GetBytes("through the reverse tunnel");
+                    await stream.WriteAsync(sent, CancellationToken);
+
+                    var back = new Byte[sent.Length];
+                    await stream.ReadExactlyAsync(back, CancellationToken);
+
+                    Assert.That(back, Is.EqualTo(sent), "a connection to the server's port reached the client's target");
+
+                }
+
+                Assert.That((await execTask).StandardOutput, Is.EqualTo("ran: uname -a\n"), "exec ran beside the forward");
+
+                Assert.That(await forward.CancelAsync(CancellationToken), Is.True, "the server stopped listening");
+
+                using var late = new TcpClient();
+                await Assert.CatchAsync<SocketException>(async () => await late.ConnectAsync(IPAddress.Loopback, forward.BoundPort, CancellationToken),
+                                                         "nothing listens on a cancelled forward");
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+                echo.Stop();
+            }
+
+        }
+
+        #endregion
+
         #region Facade_Sftp_ConcurrentWithExec_OverOneConnection
 
         [Test]

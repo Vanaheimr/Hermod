@@ -365,6 +365,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #endregion
 
+        #region RequestRemoteForwardAsync(BindHost, BindPort, LocalHost, LocalPort, CancellationToken)
+
+        /// <summary>
+        /// Remote port forwarding (<c>ssh -R BindHost:BindPort:LocalHost:LocalPort</c>): ask the server to
+        /// listen on <paramref name="BindHost"/>:<paramref name="BindPort"/>, and relay every connection
+        /// made there to <paramref name="LocalHost"/>:<paramref name="LocalPort"/> on this side.
+        /// </summary>
+        /// <param name="BindHost">Where the server listens, as OpenSSH spells it: <c>"localhost"</c> for its
+        /// loopback addresses, <c>""</c> or <c>"*"</c> for every address, or an IP address.</param>
+        /// <param name="BindPort">The port the server listens on, or 0 to let it choose;
+        /// <see cref="SshRemoteForward.BoundPort"/> says which it chose.</param>
+        /// <param name="LocalHost">The host each forwarded connection is relayed to.</param>
+        /// <param name="LocalPort">The port each forwarded connection is relayed to.</param>
+        /// <param name="CancellationToken">Cancels the request, not the forward: that lives until it is
+        /// cancelled or disposed, or the connection ends.</param>
+        /// <exception cref="SshForwardingException">The server refused the forward.</exception>
+        public ValueTask<SshRemoteForward> RequestRemoteForwardAsync(String             BindHost,
+                                                                     UInt16             BindPort,
+                                                                     String             LocalHost,
+                                                                     UInt16             LocalPort,
+                                                                     CancellationToken  CancellationToken = default)
+
+            => SshRemoteForwarding.RequestRemoteForwardAsync(mux, BindHost, BindPort, LocalHost, LocalPort, CancellationToken);
+
+        #endregion
+
         #region OpenSftpClientAsync(CancellationToken)
 
         /// <summary>
