@@ -148,6 +148,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         /// </summary>
         public Boolean IsDirectory => Permissions is { } p && (p & 0xF000) == 0x4000;
 
+        /// <summary>
+        /// Whether the permission bits mark this as a symbolic link - what LSTAT and a listing report for
+        /// one, where STAT reports what it points to.
+        /// </summary>
+        public Boolean IsSymbolicLink => Permissions is { } p && (p & 0xF000) == 0xA000;
+
 
         /// <summary>
         /// Attributes for a regular file of the given size.
@@ -160,6 +166,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         /// </summary>
         public static SftpFileAttributes Directory(UInt32 Mode = 0x41ED /* 040755 */)
             => new () { Permissions = Mode };
+
+        /// <summary>
+        /// Attributes for a symbolic link, whose size is the length of the path it holds.
+        /// </summary>
+        public static SftpFileAttributes SymbolicLink(Int64 Size, UInt32 Mode = 0xA1FF /* 0120777 */)
+            => new () { Size = Size, Permissions = Mode };
 
 
         /// <summary>

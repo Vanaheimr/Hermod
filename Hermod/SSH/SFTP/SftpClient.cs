@@ -305,6 +305,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         }
 
         /// <summary>
+        /// Get the attributes of a remote path without following it if it is a symbolic link (LSTAT): a
+        /// link reports itself, <see cref="SftpFileAttributes.IsSymbolicLink"/>.
+        /// </summary>
+        public async ValueTask<SftpFileAttributes> LStatAsync(String RemotePath, CancellationToken CancellationToken = default)
+        {
+            var response = await RoundtripAsync(SftpPacketType.LStat, (ref SshPacketWriter w) => w.WriteString(RemotePath), CancellationToken).ConfigureAwait(false);
+            EnsureNotStatusError(response);
+            var reader = new SshPacketReader(response); reader.ReadByte(); reader.ReadUInt32();
+            return SftpFileAttributes.Decode(ref reader);
+        }
+
+        /// <summary>
+        /// The path a remote symbolic link holds (READLINK), as the server reports it.
+        /// </summary>
+        public ValueTask<String> ReadLinkAsync(String RemotePath, CancellationToken CancellationToken = default)
+            => SingleNameAsync(SftpPacketType.ReadLink, RemotePath, CancellationToken);
+
+        /// <summary>
+        /// The server's canonical, absolute form of a remote path (REALPATH) - <c>"."</c> is where a
+        /// session starts.
+        /// </summary>
+        public ValueTask<String> RealPathAsync(String RemotePath, CancellationToken CancellationToken = default)
+            => SingleNameAsync(SftpPacketType.RealPath, RemotePath, CancellationToken);
+
+        /// <summary>
+        /// Create the remote symbolic link <paramref name="LinkPath"/>, holding <paramref name="TargetPath"/>
+        /// (SYMLINK, <c>ln -s TargetPath LinkPath</c>).
+        /// </summary>
+        /// <remarks>
+        /// Sent in OpenSSH's order, target first: OpenSSH swapped the two against the draft
+        /// (draft-ietf-secsh-filexfer-02) long ago, and the servers that matter follow it.
+        /// </remarks>
+        public ValueTask CreateSymbolicLinkAsync(String LinkPath, String TargetPath, CancellationToken CancellationToken = default)
+            => ExpectOkAsync(SftpPacketType.Symlink, (ref SshPacketWriter w) => { w.WriteString(TargetPath); w.WriteString(LinkPath); }, CancellationToken);
+
+        /// <summary>
         /// Set attributes of a remote path (SETSTAT) — size, permissions, access and modification time,
         /// whichever are set in <paramref name="Attributes"/>. A server that cannot apply them answers
         /// with an error status, which surfaces here as an exception.
@@ -599,6 +635,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                 if (pending.TryRemove(id, out var tcs))
                     tcs.TrySetException(Exception);
         }
+
+        // A request answered by a NAME with one entry: REALPATH, READLINK.
+        private async ValueTask<String> SingleNameAsync(SftpPacketType Type, String RemotePath, CancellationToken CancellationToken)
+        {
+            var response = await RoundtripAsync(Type, (ref SshPacketWriter w) => w.WriteString(RemotePath), CancellationToken).ConfigureAwait(false);
+            EnsureNotStatusError(response);
+            var reader = new SshPacketReader(response); reader.ReadByte(); reader.ReadUInt32();
+            if (reader.ReadUInt32() != 1)
+                throw new SftpException(SftpStatusCode.BadMessage, $"Expected one name in the reply to {Type}.");
+            return reader.ReadString();
+        }
+
+        // FSETSTAT: attributes on an open handle.
+        internal ValueTask SetHandleAttributesAsync(String Handle, SftpFileAttributes Attributes, CancellationToken CancellationToken = default)
+            => ExpectOkAsync(SftpPacketType.FSetStat, (ref SshPacketWriter w) => { w.WriteString(Handle); Attributes.Encode(ref w); }, CancellationToken);
 
         private static String ReadHandle(Byte[] Response)
         {
