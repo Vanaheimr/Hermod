@@ -21,7 +21,6 @@ using System.Security.Cryptography;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3;
-using org.GraphDefined.Vanaheimr.Hermod.Quic;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
 
@@ -36,7 +35,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP3.Security;
 /// <para>
 /// The first five tests speak over real UDP sockets and keep the real clock, because their subject
 /// (a connection cap, a third client running into its own timeout, the server's own timer schedule)
-/// is made of real timeouts.
+/// is made of real timeouts. Two of them give the server's connections a
+/// <see cref="FakeTimeProvider"/> all the same: what they test is the loop's schedule, and the
+/// connection's deadline is only what that schedule has to notice — see
+/// <see cref="UnderSteadyTraffic_AVanishedClientIsStillLetGo"/>.
 /// The last two run both connections in process against a <see cref="FakeTimeProvider"/> — see the
 /// comment on <see cref="RoundDuration"/> for why that is a requirement rather than a taste.
 /// </para>
@@ -135,20 +137,19 @@ public class Http3ServerHardeningTests
         using var client = new HandDrivenClient(server.Port, validation);
         client.Connect();
 
-        using var chatter = new Chatter(server.Port);
+        using Chatter chatter = await Chatter.Steady(server.Port);
         ulong stream = client.Connection.SendRequest(Http3Request.Get("localhost", "/late"));
         client.Send(); // the request, and from here on nothing
 
         Http3Response? response = null;
         var waited = System.Diagnostics.Stopwatch.StartNew();
-        while (response is null && waited.Elapsed < TimeSpan.FromSeconds(5))
+        while (response is null && waited.Elapsed < TimerBudget)
         {
             client.Listen(TimeSpan.FromMilliseconds(20));
             client.Connection.TryGetResponse(stream, out response);
         }
 
         Assert.That(response?.BodyText, Is.EqualTo("late"), "The finished response was never sent.");
-        Assert.That(chatter.Sent, Is.GreaterThan(50), "The traffic has to have been steady meanwhile.");
     }
 
     [Test]
@@ -156,57 +157,109 @@ public class Http3ServerHardeningTests
     {
         // The same timers drop a connection whose idle timeout has passed. While they stood still,
         // every client that vanished stayed, until the connection limit turned new ones away.
+        //
+        // The connection's clock is the test's: its idle timeout passes when the test says so, while
+        // the chatter runs, and the loop's own schedule, on the real clock, has to notice. A real
+        // idle timeout short enough for a test is too short for the handshake on a loaded machine:
+        // both sides go by it, and a pause of a few hundred milliseconds ends the connection before
+        // the handshake is confirmed.
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
 
+        var clock = new FakeTimeProvider();
         await using var server = new Http3Server(0, () => new Http3ServerConnection(cert,
             _ => new Http3Response { Status = 204 },
-            transportParameters: new TransportParameters { MaxIdleTimeoutMs = 300 }));
+            timeProvider: clock));
         server.Start();
 
-        using var chatter = new Chatter(server.Port);
         using (var client = new HandDrivenClient(server.Port, validation))
         {
             client.Connect();
             Assert.That(server.ConnectionCount, Is.EqualTo(1));
         } // gone without a word
 
-        Assert.That(await HoldsNoConnectionWithin(server, TimeSpan.FromSeconds(5)), Is.True,
+        using Chatter chatter = await Chatter.Steady(server.Port);
+        clock.Advance(PastTheIdleTimeout);
+
+        Assert.That(await HoldsNoConnectionWithin(server), Is.True,
                     "The vanished client's connection outlived its idle timeout.");
-        Assert.That(chatter.Sent, Is.GreaterThan(50), "The traffic has to have been steady meanwhile.");
     }
 
     [Test]
     public async Task UnderSteadyTraffic_AClosedConnectionIsStillLetGo()
     {
         // And they end the draining period after a goodbye (RFC 9000 §10.2).
+        //
+        // On the test's clock as well: the draining period is three probe timeouts, and they grow
+        // with the round trips the handshake measured, which on a loaded machine take long enough
+        // to stretch it to seconds.
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
 
-        await using var server = new Http3Server(cert, _ => new Http3Response { Status = 204 }, port: 0);
+        var clock = new FakeTimeProvider();
+        Http3ServerConnection? connection = null;
+        await using var server = new Http3Server(0, () => connection = new Http3ServerConnection(cert,
+            _ => new Http3Response { Status = 204 },
+            timeProvider: clock));
         server.Start();
 
-        using var chatter = new Chatter(server.Port);
         await using (var client = new Http3Client("localhost", server.Port, validation))
         {
             await client.ConnectAsync(TimeSpan.FromSeconds(10));
             Assert.That(server.ConnectionCount, Is.EqualTo(1));
         } // says goodbye with CONNECTION_CLOSE
 
-        Assert.That(await HoldsNoConnectionWithin(server, TimeSpan.FromSeconds(5)), Is.True,
+        // Only once the goodbye is in does the clock move: it starts the draining period.
+        Assert.That(await Within(Patience, () => connection!.IsDraining), Is.True,
+                    "The client's CONNECTION_CLOSE never arrived.");
+        using Chatter chatter = await Chatter.Steady(server.Port);
+        clock.Advance(PastTheDrainingPeriod);
+
+        Assert.That(await HoldsNoConnectionWithin(server), Is.True,
                     "The closed connection is still held.");
-        Assert.That(chatter.Sent, Is.GreaterThan(50), "The traffic has to have been steady meanwhile.");
     }
 
 
     #region Steady traffic (real sockets)
 
-    private static async Task<bool> HoldsNoConnectionWithin(Http3Server server, TimeSpan timeout)
+    /// <summary>
+    /// How long a test waits for what it needs before the part that counts: the chatter going, the
+    /// client's goodbye arrived. It only decides how long a failing run takes, and it is wide
+    /// because a loaded machine holds threads back for hundreds of milliseconds at a time.
+    /// </summary>
+    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// How long a test gives the server's timers to do their part while the chatter runs. A working
+    /// loop needs one timer pass: under 50 ms even with 24 busy processes on 16 cores. The bound is
+    /// tight on purpose. A loop that runs its timers only when the socket is quiet runs them at
+    /// every pause of 20 ms in the traffic as well, and the longer a test waits, the likelier it
+    /// sees one and passes without proving anything.
+    /// </summary>
+    private static readonly TimeSpan TimerBudget = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// Beyond the default idle timeout of 30 s, which is also more than three probe timeouts
+    /// (RFC 9000 §10.1) on a clock that stood still through the handshake.
+    /// </summary>
+    private static readonly TimeSpan PastTheIdleTimeout = TimeSpan.FromSeconds(31);
+
+    /// <summary>
+    /// Beyond the draining period, three probe timeouts (RFC 9000 §10.2): about 3 s at most on a
+    /// clock that stood still through the handshake, from the initial RTT of 333 ms. And well short
+    /// of the idle timeout, so the connection goes because its draining ended.
+    /// </summary>
+    private static readonly TimeSpan PastTheDrainingPeriod = TimeSpan.FromSeconds(10);
+
+    private static Task<bool> HoldsNoConnectionWithin(Http3Server server)
+        => Within(TimerBudget, () => server.ConnectionCount == 0);
+
+    private static async Task<bool> Within(TimeSpan timeout, Func<bool> condition)
     {
         var waited = System.Diagnostics.Stopwatch.StartNew();
-        while (server.ConnectionCount > 0 && waited.Elapsed < timeout)
+        while (!condition() && waited.Elapsed < timeout)
             await Task.Delay(20);
-        return server.ConnectionCount == 0;
+        return condition();
     }
 
     /// <summary>
@@ -229,6 +282,9 @@ public class Http3ServerHardeningTests
             datagram[0] = 0x40; // short header, fixed bit set
             var server = new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, port);
 
+            // Ahead of the machine's other work. After 20 ms without a datagram, even a loop that runs
+            // its timers only when the socket is quiet runs them, and the test passes without proving
+            // anything. Busy cores held a chatter of normal priority back that long again and again.
             _thread = new Thread(() =>
             {
                 var pace = System.Diagnostics.Stopwatch.StartNew();
@@ -240,11 +296,27 @@ public class Http3ServerHardeningTests
                     while (pace.Elapsed < TimeSpan.FromMilliseconds(2))
                         Thread.SpinWait(50);
                 }
-            }) { IsBackground = true, Name = "chatter" };
+            }) { IsBackground = true, Name = "chatter", Priority = ThreadPriority.Highest };
             _thread.Start();
         }
 
         public int Sent => Volatile.Read(ref _sent);
+
+        /// <summary>
+        /// Starts a chatter and returns once it has sent 50 datagrams, so the traffic is going
+        /// before a test relies on it. On a loaded machine that can take a second or two: checked
+        /// at the end instead, it failed tests whose server had already done its part.
+        /// </summary>
+        public static async Task<Chatter> Steady(int port)
+        {
+            var chatter = new Chatter(port);
+            if (!await Within(Patience, () => chatter.Sent >= 50))
+            {
+                chatter.Dispose();
+                Assert.Fail("The chatter never got going.");
+            }
+            return chatter;
+        }
 
         public void Dispose()
         {
