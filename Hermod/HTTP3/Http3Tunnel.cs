@@ -387,6 +387,30 @@ public sealed class Http3Tunnel : IHTTP2Tunnel
         EndSending("The tunnel was reset, or its connection ended.");
     }
 
+    /// <summary>
+    /// Both directions are over: the peer's FIN or reset has come, with everything before it handed
+    /// on, and our own FIN or reset has gone out, with nothing queued behind it. Called by the pump,
+    /// which owns the stream's send buffer.
+    /// </summary>
+    internal bool IsOver
+    {
+        get
+        {
+            lock (_lock)
+                if (!_ended || _outbound.Count > 0 || _waiting.Count > 0)
+                    return false;
+            return _stream.Send.IsComplete; // our FIN sent, or our reset
+        }
+    }
+
+    /// <summary>
+    /// Called by the connection once it lets go of the tunnel, after <see cref="IsOver"/>. Nothing
+    /// will put a write on the stream any more, so writes from now on fail rather than vanish.
+    /// What was received and not read yet stays readable.
+    /// </summary>
+    internal void LetGo()
+        => EndSending("The tunnel has ended.");
+
     // ---- HTTP datagrams (RFC 9297) — unreliable messages alongside the byte stream ----------
 
     private const int MaxBufferedDatagrams = 64; // unreliable ⇒ overflow MAY be discarded (RFC 9221 §5.3)

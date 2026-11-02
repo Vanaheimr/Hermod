@@ -44,7 +44,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     private readonly Dictionary<ulong, RequestState> _requests = [];
     private readonly Http3Qpack _qpack;
     private bool _http3Initialized;
-    private readonly WebTransportManager _webTransport = new(weAreClient: true);
+    private readonly WebTransportManager _webTransport;
     private readonly ulong _wtMaxSessions; // draft-webtrans-http3 §9.2 (0 = WebTransport off)
 
     /// <param name="qpackMaxTableCapacity">
@@ -78,6 +78,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
         ServerCertificate? clientCertificate = null,
         byte[]? addressValidationToken = null)
     {
+        _webTransport = new WebTransportManager(this);
         _wtMaxSessions = webTransportMaxSessions;
         if (webTransportMaxSessions > 0) // WebTransport requires HTTP/3 datagrams (draft §3.1)
             enableDatagrams = true;
@@ -627,24 +628,39 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     /// Forgets a request sent with <see cref="SendRequest"/>: its response, received or not, and
     /// everything the queries above report about it. One still running is cancelled first
     /// (<see cref="CancelRequest"/>). Its stream goes back to QUIC, which closes it once nothing is
-    /// left on it. Extended CONNECT streams are not affected.
+    /// left on it.
+    /// <para>
+    /// An Extended CONNECT stream as well (<see cref="SendExtendedConnect"/>,
+    /// <see cref="ConnectWebTransport"/>). Its tunnel or WebTransport session goes on until it ends
+    /// — both directions of the tunnel, or the session and our side of its CONNECT stream — and
+    /// the connection lets go of it then. The queries answer for it until then.
+    /// </para>
     /// </summary>
     /// <remarks>
     /// The connection keeps every request until it is forgotten, with what arrived of its response:
     /// the body, and the frame buffer it was parsed from, which a 300 KB DATA frame grows to
     /// 512 KiB. ~800 KiB per 300 KB response. <see cref="Http3Client"/> forgets each request once
-    /// it has settled it.
+    /// it has settled it. Until 2026-11-02 an Extended CONNECT stream could not be forgotten.
     /// </remarks>
     public void ForgetRequest(ulong streamId)
     {
-        if (!_requests.TryGetValue(streamId, out RequestState? state) || state.IsConnect)
+        if (!_requests.TryGetValue(streamId, out RequestState? state))
             return;
+        if (state.Tunnel is not null || state.WebTransportSession is not null)
+        {
+            state.Forgotten = true; // ForgetEndedConnects lets go of it once it is over
+            return;
+        }
         CancelRequest(streamId);
         _requests.Remove(streamId);
         _quic.ReleaseStream(streamId);
     }
 
     internal int TrackedRequestsForTest => _requests.Count;
+
+    internal int RememberedWebTransportStreamsForTest => _qpack.WebTransportUniStreamsForTest + _routedServerBidi.Count;
+
+    internal int WebTransportSessionsForTest => _webTransport.SessionsForTest;
 
     // ---- HTTP/3 receiving -----------------------------------------------------------------
 
@@ -705,8 +721,15 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
             if (state.Tunnel is not null && state.Stream.IsResetByPeer)
             {
                 state.Tunnel.EndAbruptly(); // abrupt tunnel abort (≙ TCP RST, RFC 9220 §3)
+                // An RST ends both directions: reset ours too, as the server does. Until 2026-11-02
+                // our side stayed open unless the server's STOP_SENDING came along.
+                state.Stream.Reset(Http3Error.RequestCancelled);
                 continue;
             }
+            // A CONNECT stream that ends abruptly ends its session too (draft-ietf-webtrans-http3
+            // §6). Until 2026-11-02 the session never learnt of it and stayed open.
+            if (state.WebTransportSession is { IsClosed: false } resetSession && state.Stream.IsResetByPeer)
+                resetSession.OnConnectStreamClosed();
             if (state.Cancelled || state.Rejected || state.Malformed || state.TooLarge || state.Stream.IsResetByPeer)
                 continue; // cancelled (§4.1.1), malformed (§4.1.2) or too large (§4.2.2) – do not process further
 
@@ -794,7 +817,35 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
         // created, instead of dropping the datagrams as "unknown".
         DispatchReceivedDatagrams();
 
+        ForgetEndedConnects();
+        _webTransport.LetGoOfFinishedStreams();
     }
+
+    /// <summary>
+    /// Lets go of the forgotten Extended CONNECT streams whose tunnel or session is over
+    /// (<see cref="ForgetRequest"/>), as the server does with its own.
+    /// </summary>
+    private void ForgetEndedConnects()
+    {
+        foreach ((ulong id, RequestState state) in _requests)
+            if (state.Forgotten &&
+                (state.Tunnel is { } tunnel ? tunnel.IsOver
+                                            : state.WebTransportSession!.IsClosed && state.Stream.Send.IsComplete))
+                _endedConnects.Add(id);
+        foreach (ulong id in _endedConnects)
+        {
+            _requests.Remove(id, out RequestState? state);
+            state!.Tunnel?.LetGo();
+            // As on the server: stop reading the CONNECT stream of a session the server has not
+            // closed its side of yet (draft-ietf-webtrans-http3 §6, WT_SESSION_GONE).
+            if (state.WebTransportSession is not null && !state.Stream.Receive.FinReceived && !state.Stream.IsResetByPeer)
+                state.Stream.AbortRead(WebTransportConstants.SessionGone);
+            _quic.ReleaseStream(id);
+        }
+        _endedConnects.Clear();
+    }
+
+    private readonly List<ulong> _endedConnects = [];
 
     private readonly Dictionary<ulong, List<byte>> _serverBidiHeaders = []; // header buffers of server-initiated bidi streams
 
@@ -828,9 +879,19 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
             _serverBidiHeaders.Remove(id);
             _webTransport.ClaimStream(stream, sessionId, buffer.Skip(reader.Position).ToArray(), bidirectional: true);
         }
+
+        // A stream QUIC has closed will not show up again: no need to remember to skip it. Until
+        // 2026-11-02 the set grew by one for every server-initiated bidi stream.
+        foreach (ulong id in _routedServerBidi)
+            if (!_quic.Streams.ContainsKey(id))
+                _goneServerBidi.Add(id);
+        foreach (ulong id in _goneServerBidi)
+            _routedServerBidi.Remove(id);
+        _goneServerBidi.Clear();
     }
 
     private readonly HashSet<ulong> _routedServerBidi = [];
+    private readonly List<ulong> _goneServerBidi = [];
 
     /// <summary>
     /// Processes the WebTransport CONNECT stream (draft §5.6/§6): DATA frames carry capsules; their
@@ -905,6 +966,10 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
         if (_requests.TryGetValue(sessionId, out RequestState? state))
             state.Stream.Finish();
     }
+
+    void IWebTransportHost.ReleaseStream(ulong streamId) => _quic.ReleaseStream(streamId);
+
+    bool IWebTransportHost.IsStreamClosed(ulong streamId) => _quic.IsStreamClosed(streamId);
 
     private static byte[] WebTransportStreamHeader(ulong signal, ulong sessionId)
     {
@@ -1024,7 +1089,12 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
                         };
                     }
                     else
+                    {
                         state.FinalHeadersSeen = true;
+                        // Turned down: the response follows as for any request, and we have
+                        // nothing more to send. Until 2026-11-02 our side stayed open for good.
+                        state.Stream.Finish();
+                    }
                 }
                 else
                 {
@@ -1189,5 +1259,6 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
         public bool FinalHeadersSeen { get; set; } // final (non-1xx) header section decoded (§4.1)
         public bool DataSeen { get; set; }         // content started
         public bool TrailersSeen { get; set; }     // trailer section seen ⇒ frames after it are illegal
+        public bool Forgotten { get; set; }        // tunnel/session forgotten: let go of it once over
     }
 }

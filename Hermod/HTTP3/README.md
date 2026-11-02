@@ -152,6 +152,16 @@ A WebTransport session gives you unidirectional and bidirectional streams, unrel
 datagrams, the session-bound keying-material exporter (draft §4.7) and the
 flow-control capsules — the whole draft, not a subset.
 
+What is over is let go of:
+- A tunnel once both its directions are: each side's FIN or reset.
+- A session once it is closed, by either side or with its CONNECT stream.
+- Each stream of a session once it is done, in the directions it has: our FIN or
+  reset is out, and the peer's data is read to its FIN, or reset.
+
+The server does this on its own. The client lets go of a tunnel or a session once
+you have called `ForgetRequest` for it, as it does with a request.
+`webTransportMaxSessions` limits sessions at once, not over the connection's life.
+
 ## RFC compliance
 
 | RFC / draft | Title | Status |

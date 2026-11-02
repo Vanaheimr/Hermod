@@ -203,7 +203,20 @@ internal sealed class Http3Qpack
                 return;
             }
         }
+
+        // A WebTransport stream QUIC has closed will not show up again: no need to remember to
+        // skip it. Until 2026-11-02 the set grew by one for every such stream.
+        foreach (ulong id in _webTransportUniStreams)
+            if (!streams.ContainsKey(id))
+                _goneWebTransportUniStreams.Add(id);
+        foreach (ulong id in _goneWebTransportUniStreams)
+            _webTransportUniStreams.Remove(id);
+        _goneWebTransportUniStreams.Clear();
     }
+
+    private readonly List<ulong> _goneWebTransportUniStreams = [];
+
+    internal int WebTransportUniStreamsForTest => _webTransportUniStreams.Count;
 
     private void RoutePeerStream(PeerUniStream peer)
     {
