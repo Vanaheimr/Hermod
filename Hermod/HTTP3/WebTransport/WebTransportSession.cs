@@ -38,6 +38,17 @@ internal interface IWebTransportHost
     bool SendWebTransportDatagram(ulong sessionId, byte[] payload);
     void WriteConnectStreamData(ulong sessionId, byte[] data);
     void FinishConnectStream(ulong sessionId);
+
+    /// <summary>
+    /// The session is done with a stream: QUIC closes it once nothing is left on it
+    /// (<see cref="Quic.Connection.QuicEndpoint.ReleaseStream"/>).
+    /// </summary>
+    void ReleaseStream(ulong streamId);
+
+    /// <summary>
+    /// QUIC has closed the stream: it existed and is gone, and will not open again.
+    /// </summary>
+    bool IsStreamClosed(ulong streamId);
     bool FlowControlEnabled { get; }
     ulong LocalInitialMaxStreamsUni { get; }
     ulong LocalInitialMaxStreamsBidi { get; }
@@ -66,7 +77,7 @@ public sealed class WebTransportSession
     private readonly Queue<WebTransportStream> _incomingUni = new();
     private readonly Queue<WebTransportStream> _incomingBidi = new();
     private readonly Queue<byte[]> _datagrams = new();
-    private readonly List<WebTransportStream> _allStreams = [];
+    private readonly List<WebTransportStream> _allStreams = []; // every stream not let go yet
 
     // Flow control (only active when both sides announced WT_MAX_SESSIONS > 1, §5.1).
     private ulong _peerMaxStreamsUni, _peerMaxStreamsBidi, _peerMaxData; // granted by the peer
@@ -226,17 +237,18 @@ public sealed class WebTransportSession
             return;
         if (errorCode != 0 || reason.Length > 0)
             _host.WriteConnectStreamData(SessionId, WebTransportCapsule.BuildCloseSession(errorCode, reason));
-        _host.FinishConnectStream(SessionId);
-        MarkClosed(errorCode, reason);
+        MarkClosed(errorCode, reason); // FIN on the CONNECT stream
     }
 
     // ---- Called by the manager ------------------------------------------------------------
 
     internal void OnIncomingUniStream(QuicStream stream, byte[] leftover)
     {
-        _acceptedUni++;
         // Incoming uni stream: receive-only.
         var wt = new WebTransportStream(stream, bidirectional: false, canSend: false, canReceive: true, leftover);
+        if (RejectWhenClosed(wt))
+            return;
+        _acceptedUni++;
         _allStreams.Add(wt);
         _incomingUni.Enqueue(wt);
         MaybeGrantStreams(uni: true);
@@ -244,14 +256,55 @@ public sealed class WebTransportSession
 
     internal void OnIncomingBidiStream(QuicStream stream, byte[] leftover)
     {
-        _acceptedBidi++;
         var wt = new WebTransportStream(stream, bidirectional: true, canSend: true, canReceive: true, leftover);
+        if (RejectWhenClosed(wt))
+            return;
+        _acceptedBidi++;
         _allStreams.Add(wt);
         _incomingBidi.Enqueue(wt);
         MaybeGrantStreams(uni: false);
     }
 
-    internal void OnDatagram(byte[] payload) => _datagrams.Enqueue(payload);
+    /// <summary>
+    /// A stream that arrives once the session has ended is aborted at once, as the streams it had
+    /// then were (§6). Until 2026-11-02 it was queued for an application that had moved on.
+    /// </summary>
+    private bool RejectWhenClosed(WebTransportStream stream)
+    {
+        if (!IsClosed)
+            return false;
+        stream.AbortForSessionGone();
+        _host.ReleaseStream(stream.StreamId);
+        return true;
+    }
+
+    internal void OnDatagram(byte[] payload)
+    {
+        if (!IsClosed) // §6: the session is over, and nobody would take it
+            _datagrams.Enqueue(payload);
+    }
+
+    /// <summary>
+    /// Lets go of the streams that are over in both directions, as far as they have them
+    /// (<see cref="WebTransportStream.IsOver"/>): QUIC closes each once nothing is left on it.
+    /// Called by the manager on every pump.
+    /// </summary>
+    /// <remarks>
+    /// Until 2026-11-02 a session kept every stream it ever had, and QUIC with it, for as long as
+    /// the connection lived.
+    /// </remarks>
+    internal void LetGoOfFinishedStreams()
+    {
+        for (int i = _allStreams.Count - 1; i >= 0; i--)
+        {
+            WebTransportStream stream = _allStreams[i];
+            if (!stream.IsOver)
+                continue;
+            _allStreams[i] = _allStreams[^1];
+            _allStreams.RemoveAt(_allStreams.Count - 1);
+            _host.ReleaseStream(stream.StreamId);
+        }
+    }
 
     /// <summary>
     /// Processes a capsule received on the CONNECT stream (§5.6/§6). Unknown types are skipped
@@ -347,6 +400,10 @@ public sealed class WebTransportSession
         CloseReason = reason;
         foreach (WebTransportStream stream in _allStreams) // §6: abort all associated streams
             stream.AbortForSessionGone();
+
+        // §6: whoever learns of the end closes its side of the CONNECT stream as well. Before
+        // 2026-11-02 only the side that closed did, and the stream never ended on the other.
+        _host.FinishConnectStream(SessionId);
     }
 
     private static bool ReadVarInt(ReadOnlyMemory<byte> value, out ulong result)

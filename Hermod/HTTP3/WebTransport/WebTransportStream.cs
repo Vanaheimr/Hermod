@@ -128,5 +128,13 @@ public sealed class WebTransportStream
             _stream.AbortRead(WebTransportConstants.SessionGone);
     }
 
+    /// <summary>
+    /// Both directions are over, as far as this stream has them: ours finished or reset, the peer's
+    /// read up to its FIN, reset, or no longer read. The session then lets go of the stream.
+    /// </summary>
+    internal bool IsOver
+        => (!_canSend || _stream.Send.IsComplete) &&
+           (!_canReceive || _stream.IsReceiveComplete || _stream.IsResetByPeer || _stream.Receive.ReadingAborted);
+
     internal QuicStream Underlying => _stream;
 }

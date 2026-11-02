@@ -54,11 +54,10 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
     private ulong? _goAwayId;                // limit announced via GOAWAY (RFC 9114 §5.2)
     private bool _goAwayPending;             // shutdown requested before the control stream existed
     private ulong? _highestRequestStreamId;  // highest request stream ID accepted so far
-    private readonly WebTransportManager _webTransport = new(weAreClient: false);
+    private readonly WebTransportManager _webTransport;
     private readonly ulong _wtMaxSessions;   // draft-webtrans-http3 §9.2 (0 = WebTransport off)
     private readonly Func<Http3Request, Action<WebTransportSession>?>? _webTransportHandler;
     private readonly Func<Http3Request, IReadOnlyList<string>, string?>? _webTransportProtocolSelector;
-    private int _wtSessionCount;
 
     /// <summary>
     /// Streaming handler: invoked right after the header section, with the request body still
@@ -193,6 +192,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
         Quic.Tls.Handshake.ClientCertificateOptions? clientCertificate = null)
     {
         _connectHandler = connectHandler;
+        _webTransport = new WebTransportManager(this);
         _wtMaxSessions = webTransportMaxSessions;
         _webTransportHandler = webTransportHandler;
         _webTransportProtocolSelector = webTransportProtocolSelector;
@@ -371,6 +371,10 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             state.Stream.Finish();
     }
 
+    void IWebTransportHost.ReleaseStream(ulong streamId) => _quic.ReleaseStream(streamId);
+
+    bool IWebTransportHost.IsStreamClosed(ulong streamId) => _quic.IsStreamClosed(streamId);
+
     private static byte[] WebTransportStreamHeader(ulong signal, ulong sessionId)
     {
         var writer = new BufferWriter(16);
@@ -489,6 +493,10 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
     public bool HasPendingRequests => _requests.Values.Any(s => !s.ResponseComplete);
 
     internal int TrackedRequestsForTest => _requests.Count;
+
+    internal int RememberedWebTransportStreamsForTest => _qpack.WebTransportUniStreamsForTest;
+
+    internal int WebTransportSessionsForTest => _webTransport.SessionsForTest;
 
     /// <summary>
     /// Number of requests already handed to the handler (and answered).
@@ -663,6 +671,9 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             if (state.Stream.IsResetByPeer)
             {
                 state.Tunnel?.EndAbruptly(); // abrupt tunnel teardown (≙ TCP RST, RFC 9220 §3)
+                // A CONNECT stream that ends abruptly ends its session too (draft-ietf-webtrans-http3
+                // §6). Until 2026-11-02 the session never learnt of it and stayed open.
+                state.WebTransportSession?.OnConnectStreamClosed();
                 state.Stream.Reset(state.HeadersReceived ? Http3Error.RequestCancelled : Http3Error.RequestRejected);
                 state.Responded = true; // done — there will be no response anymore
                 continue;
@@ -816,32 +827,48 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
         DispatchReceivedDatagrams();
 
         ForgetFinishedRequests();
+        _webTransport.LetGoOfFinishedStreams();
     }
 
     private readonly List<ulong> _webTransportClaimed = [];
 
     /// <summary>
-    /// Lets go of the requests that are over: answered or reset, with nothing of them still at work.
-    /// Each stream goes back to QUIC, which closes it once the response is out and the request's end
-    /// is known (<see cref="QuicEndpoint.ReleaseStream"/>).
+    /// Lets go of the requests that are over (<see cref="IsOver"/>). Each stream goes back to QUIC,
+    /// which closes it once the response is out and the request's end is known
+    /// (<see cref="QuicEndpoint.ReleaseStream"/>).
     /// </summary>
     /// <remarks>
     /// Until 2026-11-01 the connection kept every request state, and every pump walked all of them.
-    /// Tunnels and WebTransport sessions stay; they end in ways of their own.
+    /// Until 2026-11-02 it still kept every tunnel and every WebTransport session.
     /// </remarks>
     private void ForgetFinishedRequests()
     {
         foreach ((ulong id, RequestState state) in _requests)
-            if (state.Responded && (state.ResponseComplete || state.Stream.Send.IsReset) &&
-                state.HandlerTask is null && state.Tunnel is null && state.WebTransportSession is null)
+            if (IsOver(state))
                 _finishedRequests.Add(id);
         foreach (ulong id in _finishedRequests)
         {
-            _requests.Remove(id);
+            _requests.Remove(id, out RequestState? state);
+            state!.Tunnel?.LetGo();
+            // A session's CONNECT stream: the peer closes its side in response to ours (draft §6).
+            // Until it has, stop reading it (WT_SESSION_GONE): nothing on it matters any more,
+            // and the peer's reset then ends the stream for QUIC as surely as its FIN.
+            if (state.WebTransportSession is not null && !state.Stream.Receive.FinReceived && !state.Stream.IsResetByPeer)
+                state.Stream.AbortRead(WebTransportConstants.SessionGone);
             _quic.ReleaseStream(id);
         }
         _finishedRequests.Clear();
     }
+
+    /// <summary>
+    /// A request is over once it is answered or reset, with nothing of it still at work; a tunnel
+    /// once both its directions are (<see cref="Http3Tunnel.IsOver"/>); a WebTransport session once
+    /// it has ended and our side of its CONNECT stream with it. Its streams are the manager's.
+    /// </summary>
+    private static bool IsOver(RequestState state)
+        => state.Tunnel is { } tunnel ? tunnel.IsOver
+         : state.WebTransportSession is { } session ? session.IsClosed && state.Stream.Send.IsComplete
+         : state.Responded && (state.ResponseComplete || state.Stream.Send.IsReset) && state.HandlerTask is null;
 
     private readonly List<ulong> _finishedRequests = [];
 
@@ -1134,8 +1161,13 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
         }
         else
         {
-            state.Stream.Finish(); // rejected: complete the response
+            // Rejected: complete the response, and stop reading what the client would still send
+            // (RFC 9114 §4.1) — it keeps its side open for a tunnel that will not come, and the
+            // stream could never end. The 501 and the WebTransport 404 do the same.
+            state.Stream.AbortRead(Http3Error.NoError);
+            state.Stream.Finish();
             state.Responded = true;
+            state.ResponseComplete = true;
         }
         return true;
     }
@@ -1154,8 +1186,10 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             RejectMalformedRequest(state, "WebTransport without datagram support");
             return true;
         }
-        // §5.2: more sessions than announced ⇒ reset the CONNECT stream with H3_REQUEST_REJECTED.
-        if ((ulong)_wtSessionCount >= _wtMaxSessions)
+        // §5.2: more sessions at once than announced ⇒ reset the CONNECT stream with
+        // H3_REQUEST_REJECTED. Until 2026-11-02 every session counted, ended or not, so a
+        // connection took no more than WT_MAX_SESSIONS in its whole life.
+        if ((ulong)_webTransport.OpenSessions >= _wtMaxSessions)
         {
             state.Stream.Reset(Http3Error.RequestRejected);
             state.Stream.AbortRead(Http3Error.RequestRejected);
@@ -1182,7 +1216,6 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
         var session = new WebTransportSession(state.Stream.Id.Value, this) { NegotiatedProtocol = negotiated };
         state.WebTransportSession = session;
         _webTransport.RegisterSession(session);
-        _wtSessionCount++;
         RequestsHandled++;
         onSession(session);
         return true;

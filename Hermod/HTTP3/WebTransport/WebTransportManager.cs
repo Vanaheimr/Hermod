@@ -34,11 +34,12 @@ internal sealed class WebTransportManager
 {
     private const int MaxBufferedStreams = 16; // §4.5: limit the buffer ⇒ WT_BUFFERED_STREAM_REJECTED
 
-    private readonly bool _weAreClient;
+    private readonly IWebTransportHost _host;
     private readonly Dictionary<ulong, WebTransportSession> _sessions = [];   // session ID (CONNECT stream) → session
     private readonly List<BufferedStream> _bufferedForUnknownSession = [];    // §4.5: waiting for their session
+    private readonly List<ulong> _gone = [];
 
-    public WebTransportManager(bool weAreClient) => _weAreClient = weAreClient;
+    public WebTransportManager(IWebTransportHost host) => _host = host;
 
     public void RegisterSession(WebTransportSession session)
     {
@@ -48,11 +49,30 @@ internal sealed class WebTransportManager
 
     public bool TryGetSession(ulong sessionId, out WebTransportSession? session) => _sessions.TryGetValue(sessionId, out session);
 
+    internal int SessionsForTest => _sessions.Count;
+
+    /// <summary>
+    /// Sessions that have not ended: what SETTINGS_WT_MAX_SESSIONS limits (§5.2).
+    /// </summary>
+    public int OpenSessions
+    {
+        get
+        {
+            int open = 0;
+            foreach (WebTransportSession session in _sessions.Values)
+                if (!session.IsClosed)
+                    open++;
+            return open;
+        }
+    }
+
     /// <summary>
     /// Matches a recognised WebTransport data stream to its session (§4.1/§4.2). The caller has
     /// already parsed the header (uni type 0x54 or WT_STREAM 0x41 ‖ session ID) and hands over the
     /// payload already read along as <paramref name="leftover"/>. When the session is not yet there,
     /// the stream is buffered to a limit (§4.5) or, on overflow, discarded with WT_BUFFERED_STREAM_REJECTED.
+    /// One for a session that can no longer come is turned away on the same pump
+    /// (<see cref="LetGoOfFinishedStreams"/>).
     /// </summary>
     public void ClaimStream(QuicStream stream, ulong sessionId, byte[] leftover, bool bidirectional)
     {
@@ -63,11 +83,56 @@ internal sealed class WebTransportManager
         }
         if (_bufferedForUnknownSession.Count >= MaxBufferedStreams)
         {
-            stream.Reset(WebTransportConstants.BufferedStreamRejected);
-            stream.AbortRead(WebTransportConstants.BufferedStreamRejected);
+            Reject(stream, bidirectional, WebTransportConstants.BufferedStreamRejected);
             return;
         }
         _bufferedForUnknownSession.Add(new BufferedStream(stream, sessionId, leftover, bidirectional));
+    }
+
+    /// <summary>
+    /// Aborts a peer's stream no session takes, in the directions it has — a reset on a stream
+    /// we cannot send on would be the peer's STREAM_STATE_ERROR — and lets go of it.
+    /// </summary>
+    private void Reject(QuicStream stream, bool bidirectional, ulong errorCode)
+    {
+        if (bidirectional)
+            stream.Reset(errorCode);
+        stream.AbortRead(errorCode);
+        _host.ReleaseStream(stream.Id.Value);
+    }
+
+    /// <summary>
+    /// Lets go of what is over, on every pump: each session's finished streams; a session once it
+    /// has ended and QUIC has closed its CONNECT stream; and buffered streams whose session can no
+    /// longer come, because the stream they name is gone — they are aborted with WT_SESSION_GONE.
+    /// </summary>
+    /// <remarks>
+    /// Until 2026-11-02 the manager kept every session for as long as the connection lived, and
+    /// each session every stream it ever had. A stream for a session that had ended, and been let
+    /// go of, waited in the buffer for ever, in the place of one whose session was still to come.
+    /// </remarks>
+    public void LetGoOfFinishedStreams()
+    {
+        foreach ((ulong id, WebTransportSession session) in _sessions)
+        {
+            session.LetGoOfFinishedStreams();
+            // Until its CONNECT stream is gone, a late stream for it still finds it, and is
+            // aborted there; afterwards ClaimStream knows the session ID is gone.
+            if (session.IsClosed && _host.IsStreamClosed(id))
+                _gone.Add(id);
+        }
+        foreach (ulong id in _gone)
+            _sessions.Remove(id);
+        _gone.Clear();
+
+        for (int i = _bufferedForUnknownSession.Count - 1; i >= 0; i--)
+        {
+            BufferedStream buffered = _bufferedForUnknownSession[i];
+            if (!_host.IsStreamClosed(buffered.SessionId))
+                continue;
+            _bufferedForUnknownSession.RemoveAt(i);
+            Reject(buffered.Stream, buffered.Bidirectional, WebTransportConstants.SessionGone);
+        }
     }
 
     private void DrainBufferedStreams()
