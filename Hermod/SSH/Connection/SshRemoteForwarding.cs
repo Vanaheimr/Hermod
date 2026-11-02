@@ -20,6 +20,7 @@
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 
 #endregion
 
@@ -244,52 +245,157 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region RequestRemoteForwardAsync(Mux, BindHost, BindPort, LocalHost, LocalPort)
 
+        private static readonly ConditionalWeakTable<SshChannelMultiplexer, ConcurrentDictionary<(String Address, UInt16 Port), SshRemoteForward>> clientForwards = new ();
+
         /// <summary>
-        /// Request the client side: ask the server to listen on <paramref name="BindHost"/>:
+        /// Request the client side (<c>ssh -R</c>): ask the server to listen on <paramref name="BindHost"/>:
         /// <paramref name="BindPort"/> and relay every resulting <c>forwarded-tcpip</c> channel to
-        /// <paramref name="LocalHost"/>:<paramref name="LocalPort"/>. Returns a handle whose disposal stops
-        /// accepting.
+        /// <paramref name="LocalHost"/>:<paramref name="LocalPort"/>. Port 0 lets the server choose, and
+        /// <see cref="SshRemoteForward.BoundPort"/> says which it chose. Cancelling or disposing the forward
+        /// asks the server to stop listening (<c>cancel-tcpip-forward</c>).
         /// </summary>
-        public static async ValueTask<IAsyncDisposable> RequestRemoteForwardAsync(SshChannelMultiplexer  Mux,
-                                                                                  String                 BindHost,
-                                                                                  UInt16                 BindPort,
-                                                                                  String                 LocalHost,
-                                                                                  UInt16                 LocalPort,
-                                                                                  CancellationToken      CancellationToken = default)
+        /// <remarks>
+        /// Only a <c>forwarded-tcpip</c> channel that names a forward this connection asked for - its
+        /// address exactly as asked for and its bound port - is accepted, as OpenSSH's client does: the
+        /// server cannot reach a local target nobody forwarded to, and several forwards on one connection
+        /// each get their own channels. Any other channel is left to the multiplexer's
+        /// <see cref="SshChannelMultiplexer.ChannelAcceptor"/>.
+        /// </remarks>
+        /// <exception cref="SshForwardingException">The server refused, or did not say which port it chose.</exception>
+        public static async ValueTask<SshRemoteForward> RequestRemoteForwardAsync(SshChannelMultiplexer  Mux,
+                                                                                 String                 BindHost,
+                                                                                 UInt16                 BindPort,
+                                                                                 String                 LocalHost,
+                                                                                 UInt16                 LocalPort,
+                                                                                 CancellationToken      CancellationToken = default)
         {
 
-            Mux.ChannelAcceptor = info => ValueTask.FromResult(info.ChannelType == "forwarded-tcpip");
+            var forwards = ClientForwards(Mux);
 
-            var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
-            w.WriteString(BindHost); w.WriteUInt32(BindPort);
-            if (!await Mux.SendGlobalRequestAsync("tcpip-forward", true, abw.WrittenSpan.ToArray(), CancellationToken).ConfigureAwait(false))
-                throw new SshForwardingException($"The server refused the remote forward on {BindHost}:{BindPort}.");
+            // A named port is known before the server answers, and is taken before it is asked for: the
+            // server may open a channel for it before its reply has been read here.
+            SshRemoteForward? forward = null;
 
-            var cts  = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-            var loop = Task.Run(async () =>
+            if (BindPort != 0)
             {
-                try
-                {
-                    while (!cts.IsCancellationRequested)
-                    {
-                        var ch = await Mux.AcceptChannelAsync(cts.Token);
-                        _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-                                await socket.ConnectAsync(LocalHost, LocalPort, cts.Token);
-                                await RelayAsync(ch, new NetworkStream(socket, ownsSocket: true), cts.Token);
-                            }
-                            catch { try { await ch.CloseAsync(); } catch { } }
-                        }, cts.Token);
-                    }
-                }
-                catch { }
-            }, cts.Token);
+                forward = new SshRemoteForward(Mux, forwards, BindHost, BindPort, LocalHost, LocalPort);
+                if (!forwards.TryAdd((BindHost, BindPort), forward))
+                    throw new SshForwardingException($"This connection already forwards {BindHost}:{BindPort}.");
+            }
 
-            return new RemoteForwardHandle(cts, loop);
+            SshGlobalRequestReply reply;
 
+            try
+            {
+                reply = await Mux.SendGlobalRequestWithReplyAsync("tcpip-forward", true, AddressAndPort(BindHost, BindPort), CancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                forward?.Forget();
+                throw;
+            }
+
+            if (!reply.Success)
+            {
+                forward?.Forget();
+                throw new SshForwardingException($"The server refused the remote forward on {BindHost}:{BindPort}.");
+            }
+
+            if (forward is not null)
+                return forward;
+
+            // Port 0: the reply says which port the server chose (RFC 4254 §7.1).
+            var chosen = 0u;
+
+            try
+            {
+                chosen = new SshPacketReader(reply.Data).ReadUInt32();
+            }
+            catch (SshWireException)
+            { }
+
+            if (chosen is 0 or > UInt16.MaxValue)
+                throw new SshForwardingException($"The server accepted the remote forward on {BindHost}:0, but did not say which port it chose.");
+
+            forward = new SshRemoteForward(Mux, forwards, BindHost, (UInt16) chosen, LocalHost, LocalPort);
+
+            if (!forwards.TryAdd((BindHost, (UInt16) chosen), forward))
+                throw new SshForwardingException($"The server chose {BindHost}:{chosen}, which this connection already forwards.");
+
+            return forward;
+
+        }
+
+        #endregion
+
+        #region (private) ClientForwards(Mux)
+
+        /// <summary>
+        /// The forwards this connection asked for - and, once per connection, the responder that hands
+        /// each of their channels to its relay.
+        /// </summary>
+        private static ConcurrentDictionary<(String Address, UInt16 Port), SshRemoteForward> ClientForwards(SshChannelMultiplexer Mux)
+        {
+            lock (clientForwards)
+            {
+
+                if (clientForwards.TryGetValue(Mux, out var existing))
+                    return existing;
+
+                var forwards = new ConcurrentDictionary<(String Address, UInt16 Port), SshRemoteForward>();
+                var previous = Mux.ChannelResponder;
+
+                Mux.ChannelResponder = info =>
+                    info.ChannelType == "forwarded-tcpip"                               &&
+                    TryReadAddressAndPort(info.TypeData, out var address, out var port) &&
+                    forwards.TryGetValue((address, port), out var forward)
+                        ? ValueTask.FromResult<Func<SshMuxChannel, Task>?>(channel => forward.RelayAsync(channel))
+                        : previous?.Invoke(info) ?? ValueTask.FromResult<Func<SshMuxChannel, Task>?>(null);
+
+                clientForwards.Add(Mux, forwards);
+                return forwards;
+
+            }
+        }
+
+        #endregion
+
+        #region (internal) ConnectAndRelayAsync(Channel, LocalHost, LocalPort, CancellationToken)
+
+        /// <summary>
+        /// Connect to the local target of a remote forward and relay one forwarded channel to it.
+        /// </summary>
+        internal static async Task ConnectAndRelayAsync(SshMuxChannel Channel, String LocalHost, UInt16 LocalPort, CancellationToken CancellationToken)
+        {
+
+            var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+
+            try
+            {
+                await socket.ConnectAsync(LocalHost, LocalPort, CancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                socket.Dispose();
+                throw;
+            }
+
+            await RelayAsync(Channel, new NetworkStream(socket, ownsSocket: true), CancellationToken).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region (internal) AddressAndPort(Address, Port)
+
+        /// <summary>
+        /// The body of <c>tcpip-forward</c> and <c>cancel-tcpip-forward</c>.
+        /// </summary>
+        internal static Byte[] AddressAndPort(String Address, UInt32 Port)
+        {
+            var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
+            w.WriteString(Address); w.WriteUInt32(Port);
+            return abw.WrittenSpan.ToArray();
         }
 
         #endregion
@@ -370,19 +476,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     try { listener.Stop(); } catch { }
             }
 
-        }
-
-        private sealed class RemoteForwardHandle : IAsyncDisposable
-        {
-            private readonly CancellationTokenSource cts;
-            private readonly Task loop;
-            public RemoteForwardHandle(CancellationTokenSource Cts, Task Loop) { cts = Cts; loop = Loop; }
-            public async ValueTask DisposeAsync()
-            {
-                await cts.CancelAsync().ConfigureAwait(false);
-                try { await loop.ConfigureAwait(false); } catch { }
-                cts.Dispose();
-            }
         }
 
         #endregion
