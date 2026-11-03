@@ -66,6 +66,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         public SshShellHandler?                     ShellHandler      { get; init; }
 
         /// <summary>
+        /// The environment variables a client may set for a shell with <c>env</c>, as sshd's
+        /// <c>AcceptEnv</c> names them: <c>*</c> and <c>?</c> as wildcards, case-sensitive - for example
+        /// <c>["LANG", "LC_*"]</c>. Empty (the default) refuses every one, as sshd does unless told
+        /// otherwise; each refusal is audited.
+        /// </summary>
+        public IReadOnlyList<String>                AcceptEnv         { get; init; } = [];
+
+        /// <summary>
         /// Enables the <c>sftp</c> subsystem over the given file system; when null, SFTP is refused.
         /// </summary>
         public ISftpFileSystem?                     SftpFileSystem    { get; init; }
@@ -729,8 +737,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
             }
 
-            if (Info.ChannelType == "direct-tcpip")
-                await EmitAsync(Connection.Audit, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "direct-tcpip", "", "forwarding is off")).ConfigureAwait(false);
+            // A channel type nobody serves leaves a trace too, as forwarding that is off does - x11,
+            // auth-agent@openssh.com and agent-connect, which a client has no business opening here, or
+            // anything else: an operator should find what was asked for and turned away in the log.
+            await EmitAsync(Connection.Audit,
+                            Info.ChannelType == "direct-tcpip"
+                                ? new PolicyDeniedEvent(DateTimeOffset.UtcNow, "direct-tcpip", "", "forwarding is off")
+                                : new PolicyDeniedEvent(DateTimeOffset.UtcNow, "channel", Info.ChannelType, "not served")).ConfigureAwait(false);
 
             return false;
 
@@ -762,7 +775,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                                                    subsystems,
                                                    Audit,
                                                    stopping.Token,
-                                                   CancellationToken).ConfigureAwait(false);
+                                                   CancellationToken,
+                                                   options.AcceptEnv).ConfigureAwait(false);
             }
             catch
             { }

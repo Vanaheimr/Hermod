@@ -94,7 +94,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         /// <summary>
         /// Load a private key from text, auto-detecting the format: <c>openssh-key-v1</c> (with or without
-        /// a passphrase), or PKCS#8/PKCS#1/SEC1 PEM for RSA and ECDSA keys.
+        /// a passphrase), PKCS#8/PKCS#1/SEC1 PEM for RSA and ECDSA keys, or PKCS#8 PEM for an Ed25519 key -
+        /// what <c>openssl genpkey -algorithm ed25519</c> writes - plain or passphrase-encrypted.
         /// </summary>
         public static SshLoadedKey LoadPrivateKey(String Text, String? Passphrase = null)
         {
@@ -106,9 +107,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        // RSA / ECDSA PEM (PKCS#8, PKCS#1, SEC1), optionally passphrase-encrypted, via the BCL.
+        // RSA / ECDSA PEM (PKCS#8, PKCS#1, SEC1), optionally passphrase-encrypted, via the BCL; Ed25519 in
+        // PKCS#8, which the BCL does not read, via BouncyCastle.
         private static SshLoadedKey LoadPemKey(String Text, String? Passphrase)
         {
+
+            // Said as the openssh-key-v1 path says it, rather than as whichever reader gets there first.
+            if (Passphrase is null &&
+                (Text.Contains("-----BEGIN ENCRYPTED PRIVATE KEY-----", StringComparison.Ordinal) ||
+                 Text.Contains("Proc-Type: 4,ENCRYPTED",                 StringComparison.Ordinal)))
+                throw new SshAuthenticationException("A passphrase is required to decrypt this private key.");
+
+            if (TryEd25519(Text, Passphrase, out var ed25519))
+                return new SshLoadedKey(ed25519!, "");
 
             // A SEC1 "EC PRIVATE KEY" block is unambiguously ECDSA.
             if (Text.Contains("EC PRIVATE KEY", StringComparison.Ordinal) && TryEcdsa(Text, Passphrase, out var ecFirst))
@@ -131,8 +142,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (TryEcdsa(Text, Passphrase, out var ecFallback))
                 return new SshLoadedKey(ecFallback!, "");
 
-            throw new SshWireException("Unsupported or unreadable PEM private key (supported: openssh-key-v1, RSA/ECDSA PKCS#8/PEM).");
+            throw new SshWireException(Passphrase is null
+                                           ? "Unsupported or unreadable PEM private key (supported: openssh-key-v1, RSA/ECDSA PKCS#8/PEM, Ed25519 PKCS#8)."
+                                           : "Unsupported or unreadable PEM private key, or a wrong passphrase (supported: openssh-key-v1, RSA/ECDSA PKCS#8/PEM, Ed25519 PKCS#8).");
 
+        }
+
+        // A PKCS#8 "PRIVATE KEY" or "ENCRYPTED PRIVATE KEY" that holds an Ed25519 key (OID 1.3.101.112).
+        private static Boolean TryEd25519(String Text, String? Passphrase, out ISshHostKey? Key)
+        {
+
+            Key = null;
+
+            if (!Text.Contains("-----BEGIN PRIVATE KEY-----", StringComparison.Ordinal) &&
+                !Text.Contains("-----BEGIN ENCRYPTED PRIVATE KEY-----", StringComparison.Ordinal))
+                return false;
+
+            try
+            {
+
+                using var text   = new StringReader(Text);
+                var reader       = new Org.BouncyCastle.OpenSsl.PemReader(text, Passphrase is null ? null : new PemPassword(Passphrase));
+
+                if (reader.ReadObject() is not Org.BouncyCastle.Crypto.Parameters.Ed25519PrivateKeyParameters ed25519)
+                    return false;
+
+                var seed = ed25519.GetEncoded();
+                Key      = Ed25519KeyPair.FromSeed(seed);
+                CryptographicOperations.ZeroMemory(seed);
+                return true;
+
+            }
+            catch (Exception exception) when (exception is IOException or Org.BouncyCastle.OpenSsl.PasswordException or Org.BouncyCastle.Crypto.InvalidCipherTextException or ArgumentException)
+            {
+                return false;
+            }
+
+        }
+
+        private sealed class PemPassword(String Passphrase) : Org.BouncyCastle.OpenSsl.IPasswordFinder
+        {
+            public Char[] GetPassword() => Passphrase.ToCharArray();
         }
 
         private static Boolean TryEcdsa(String Text, String? Passphrase, out ISshHostKey? Key)

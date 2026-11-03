@@ -139,6 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             SshShellContext? seen = null;
 
             await using var running = await Serve(options => options with {
+                                          AcceptEnv    = [ "LANG" ],
                                           ShellHandler = async (context, ct) => {
                                               seen = context;
                                               var buffer = new Byte[64];
