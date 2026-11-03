@@ -40,7 +40,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     /// writer leaving the lock starts a send if none is running, and the next
     /// writer takes the lock meanwhile. What the writers write during a send
     /// gathers in the buffer, and the sender takes it once its send is done,
-    /// until nothing more has gathered. The writer that starts a send makes it,
+    /// until nothing more has gathered. It looks for more and stops in one
+    /// step, under the gate the writers write under, so that a writer leaving
+    /// during a send either has its frames taken by that send, or finds it
+    /// ended and starts its own. The writer that starts a send makes it,
     /// so still nobody hands a write to another thread. A write too large for
     /// the buffer, and a flush that must be done when it returns, wait for the
     /// send that runs: the transport has one writer at a time.
@@ -525,6 +528,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             while (true)
             {
 
+                TaskCompletionSource? ended;
+
                 try
                 {
                     await transport.WriteAsync(Bytes.AsMemory(0, Count), CancellationToken);
@@ -532,10 +537,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 }
                 catch
                 {
+
                     lock (gate)
+                    {
                         spare ??= Bytes;
-                    ReleaseTransport();
+                        ended   = EndSend();
+                    }
+
+                    ended?.TrySetResult();
                     throw;
+
                 }
 
                 lock (gate)
@@ -549,9 +560,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         continue;
                     }
 
+                    // Stop under the same gate as the look above. A writer that
+                    // leaves after it finds no send running, and starts its own.
+                    // In a gate of its own, a writer leaving in between found
+                    // this send still running and started none, and what it had
+                    // written waited for the next writer, if one came. With 1
+                    // concurrent request none did, until the idle timeout.
+                    ended = EndSend();
+
                 }
 
-                ReleaseTransport();
+                ended?.TrySetResult();
                 return;
 
             }
@@ -652,7 +671,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         #endregion
 
-        #region (private) AcquireTransportAsync(CancellationToken) / ReleaseTransport()
+        #region (private) AcquireTransportAsync(CancellationToken) / ReleaseTransport() / EndSend()
 
         /// <summary>
         /// Under the lock: wait for the send that runs to end, and take the
@@ -700,13 +719,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             TaskCompletionSource? ended;
 
             lock (gate)
-            {
-                sending   = false;
-                ended     = sendEnded;
-                sendEnded = null;
-            }
+                ended = EndSend();
 
             ended?.TrySetResult();
+
+        }
+
+        /// <summary>
+        /// Under the gate: mark the transport free, and hand back the signal for
+        /// whoever waits for that, to be set once the gate is left.
+        /// </summary>
+        private TaskCompletionSource? EndSend()
+        {
+
+            var ended = sendEnded;
+
+            sending   = false;
+            sendEnded = null;
+
+            return ended;
 
         }
 
