@@ -1074,7 +1074,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     throw new SshWireException("No host-key verification was supplied, so the server's identity cannot be established. "
                                                + "Pass a verifier (e.g. HostKeyPolicy.ForHost(host, port)), or SshHostKeyVerification.AcceptAnyUnsafe to skip it deliberately.");
 
-                if (!verifyHostKey(kS))
+                // A certificate the policy does not take - from no CA it trusts, say - may still carry a
+                // key it knows on its own, pinned or in known_hosts, and that key is asked about next, as
+                // OpenSSH retries "with plain key". The signature above was made by that very key.
+                if (!verifyHostKey(kS) &&
+                    !(SshCertificate.TryParse(kS, out var certificate) && verifyHostKey(certificate!.SubjectPublicKey)))
                     throw new SshWireException("The server's host key was rejected by the host-key policy.");
 
             }

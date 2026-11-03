@@ -116,21 +116,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The default host-key algorithm preference list a client accepts (most preferred first).
         /// </summary>
+        /// <remarks>
+        /// Certificates first, as OpenSSH orders them: a server with a host certificate nearly always
+        /// offers its plain key too, and the first match in this list is what it presents - so with the
+        /// plain keys first, a client that trusts a host CA could never be shown the certificate. A client
+        /// that pins the plain key loses nothing: a certificate its policy does not take is tried again as
+        /// the key it certifies (see the key exchange).
+        /// </remarks>
         public static readonly String[] DefaultHostKeyAlgorithms =
         [
-            SshAlgorithmNames.HostKey.Ed25519,
-            SshAlgorithmNames.HostKey.EcdsaNistP256,
-            SshAlgorithmNames.HostKey.EcdsaNistP384,
-            SshAlgorithmNames.HostKey.EcdsaNistP521,
-            SshAlgorithmNames.HostKey.RsaSha2_512,
-            SshAlgorithmNames.HostKey.RsaSha2_256,
-            // Certificate host keys are also accepted (used when a server presents a host certificate).
             SshAlgorithmNames.HostKey.Ed25519Cert,
             SshAlgorithmNames.HostKey.EcdsaNistP256Cert,
             SshAlgorithmNames.HostKey.EcdsaNistP384Cert,
             SshAlgorithmNames.HostKey.EcdsaNistP521Cert,
             SshAlgorithmNames.HostKey.RsaSha2_512Cert,
-            SshAlgorithmNames.HostKey.RsaSha2_256Cert
+            SshAlgorithmNames.HostKey.RsaSha2_256Cert,
+            SshAlgorithmNames.HostKey.Ed25519,
+            SshAlgorithmNames.HostKey.EcdsaNistP256,
+            SshAlgorithmNames.HostKey.EcdsaNistP384,
+            SshAlgorithmNames.HostKey.EcdsaNistP521,
+            SshAlgorithmNames.HostKey.RsaSha2_512,
+            SshAlgorithmNames.HostKey.RsaSha2_256
         ];
 
         /// <summary>
