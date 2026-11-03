@@ -304,6 +304,73 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region HostKeys_AreAdvertisedAndProven_WhenTheSessionRanOnAHostCertificate
+
+        /// <summary>
+        /// The same with a host certificate for the current key, which the client is shown first: the
+        /// server announces its plain keys, and the session's key counts as advertised because the
+        /// certificate certifies one of them. Compared as the certificate itself it never would be, and
+        /// every update would be voided.
+        /// </summary>
+        [Test]
+        [Category("Loopback")]
+        [CancelAfter(25000)]
+        public async Task HostKeys_AreAdvertisedAndProven_WhenTheSessionRanOnAHostCertificate(CancellationToken CancellationToken)
+        {
+
+            var ca          = SshHostKey.GenerateEd25519();
+            var currentKey  = SshHostKey.GenerateEd25519();
+            var rotatedIn   = SshHostKey.GenerateEcdsa(SshAlgorithmNames.HostKey.EcdsaNistP256);
+            var userKey     = SshHostKey.GenerateEd25519();
+            var certificate = new OpenSshCertificateBuilder {
+                                  Serial       = 1,
+                                  Type         = SshCertType.Host,
+                                  KeyId        = "host",
+                                  Principals   = [ "127.0.0.1" ],
+                                  ValidAfter   = TimeProvider.System.GetUtcNow().AddHours(-1),
+                                  ValidBefore  = TimeProvider.System.GetUtcNow().AddHours(1)
+                              }.Sign(currentKey.PublicKeyBlob, ca);
+
+            var server = new SshServer(new SshServerOptions {
+                HostKeys      = [ currentKey, new CertifiedKey(currentKey, certificate), rotatedIn ],
+                Authenticator = SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob),
+                ExecHandler   = async (ctx, ct) => { await ctx.WriteAsync("ok\n", ct); return 0; }
+            });
+
+            var received = new TaskCompletionSource<SshHostKeyUpdate>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            try
+            {
+
+                await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
+                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+
+                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
+                    Username         = "achim",
+                    VerifyHostKey    = HostKeyPolicy.HostCertificate(new SshCertificateAuthorityTrust().TrustCA(ca)).ForHost("127.0.0.1", IPPort.Parse(port)),
+                    Credentials      = [ userKey ],
+                    HostKeysReceived = (update, ct) => { received.TrySetResult(update); return ValueTask.CompletedTask; }
+                }, CancellationToken);
+
+                var update = await received.Task.WaitAsync(TimeSpan.FromSeconds(15), CancellationToken);
+
+                Assert.Multiple(() => {
+                    Assert.That(SshCertificate.TryParse(client.Multiplexer.Transport.ServerHostKey, out _), Is.True, "the session ran on the certificate");
+                    Assert.That(update.CurrentKeyAdvertised, Is.True,  "the certified key is among the advertised keys");
+                    Assert.That(update.AnnouncedKeys.Any(b => b.AsSpan().SequenceEqual(rotatedIn.PublicKeyBlob)), Is.True);
+                    Assert.That(update.ProvenKeys.Any(b => b.AsSpan().SequenceEqual(rotatedIn.PublicKeyBlob)),    Is.True, "the rotated-in key is learnable this way");
+                });
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
     }
 
 }

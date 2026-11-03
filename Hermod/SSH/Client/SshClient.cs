@@ -325,8 +325,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                           RekeyLimits = Options.RekeyLimits
                       };
 
+            // A server announces its plain keys, so a host certificate is looked for as the key it certifies.
             if (Options.HostKeysReceived is not null)
-                WireHostKeyUpdates(mux, transport.ServerHostKey, Options.HostKeysReceived);
+                WireHostKeyUpdates(mux,
+                                   SshCertificate.TryParse(transport.ServerHostKey, out var certificate)
+                                       ? certificate!.SubjectPublicKey
+                                       : transport.ServerHostKey,
+                                   Options.HostKeysReceived);
 
             var client = new SshClient(pipe, transport, mux.Start(), Through);
 

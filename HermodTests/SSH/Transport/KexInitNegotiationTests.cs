@@ -69,8 +69,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         public void Negotiate_PicksModernDefaults()
         {
 
+            // A server offers the host-key algorithms of the keys it has: here a plain Ed25519 key.
             var client  = KexInitMessage.CreateLocal(IsServer: false);
-            var server  = KexInitMessage.CreateLocal(IsServer: true);
+            var server  = KexInitMessage.CreateLocal(IsServer: true, HostKeyAlgorithms: [ SshAlgorithmNames.HostKey.Ed25519 ]);
 
             var result  = AlgorithmNegotiation.Negotiate(client, server, WeAreServer: true);
 
@@ -82,6 +83,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(result.StrictKex,             Is.True);
                 Assert.That(result.ExtensionInfo,         Is.True);
             });
+
+        }
+
+        /// <summary>
+        /// A server with a host certificate offers its plain key too, as sshd and AsyncSSH do: the client's
+        /// defaults ask for the certificate, as OpenSSH's do - with the plain key first, a client trusting a
+        /// host CA could never be shown one.
+        /// </summary>
+        [Test]
+        public void Negotiate_PrefersAHostCertificate_OverThePlainKey()
+        {
+
+            var client  = KexInitMessage.CreateLocal(IsServer: false);
+            var server  = KexInitMessage.CreateLocal(IsServer: true, HostKeyAlgorithms: [ SshAlgorithmNames.HostKey.Ed25519, SshAlgorithmNames.HostKey.Ed25519Cert ]);
+
+            Assert.That(AlgorithmNegotiation.Negotiate(client, server, WeAreServer: false).HostKey,
+                        Is.EqualTo(SshAlgorithmNames.HostKey.Ed25519Cert));
 
         }
 
