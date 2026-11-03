@@ -55,6 +55,7 @@ internal sealed class Http3Qpack
 
     private readonly Dictionary<ulong, PeerUniStream> _peerStreams = [];
     private readonly HashSet<ulong> _webTransportUniStreams = []; // uni streams handed over to the WebTransport manager
+    private readonly HashSet<ulong> _unknownUniStreams = [];      // uni streams of a type we do not know, or none, no longer read
 
     public Http3Qpack(ulong localMaxCapacity, bool weAreClient, Action<ulong, string> onConnectionError)
     {
@@ -185,6 +186,8 @@ internal sealed class Http3Qpack
 
             if (_webTransportUniStreams.Contains(id))
                 continue; // handed to the WebTransport manager – no longer pumped here
+            if (_unknownUniStreams.Contains(id))
+                continue; // of a type we do not know, or none – handed back to QUIC
             if (!_peerStreams.TryGetValue(id, out PeerUniStream? peer))
                 _peerStreams[id] = peer = new PeerUniStream(stream);
 
@@ -192,6 +195,14 @@ internal sealed class Http3Qpack
             if (chunk.Length > 0)
                 peer.Buffer.Append(chunk);
             RoutePeerStream(peer);
+
+            // A stream that ends before its type has arrived (§6.2: to be tolerated) will never
+            // say what it is.
+            if (peer.Type is null && (stream.IsResetByPeer || stream.IsReceiveComplete))
+            {
+                HandBack(peer);
+                continue;
+            }
 
             // RFC 9114 §6.2.1 / RFC 9204 §4.2: control, encoder and decoder streams must NEVER end —
             // neither cleanly (FIN) nor via reset ⇒ H3_CLOSED_CRITICAL_STREAM.
@@ -204,19 +215,26 @@ internal sealed class Http3Qpack
             }
         }
 
-        // A WebTransport stream QUIC has closed will not show up again: no need to remember to
-        // skip it. Until 2026-11-02 the set grew by one for every such stream.
-        foreach (ulong id in _webTransportUniStreams)
-            if (!streams.ContainsKey(id))
-                _goneWebTransportUniStreams.Add(id);
-        foreach (ulong id in _goneWebTransportUniStreams)
-            _webTransportUniStreams.Remove(id);
-        _goneWebTransportUniStreams.Clear();
+        // A stream QUIC has closed will not show up again: no need to remember to skip it. Until
+        // 2026-11-02 the set of WebTransport streams grew by one for every such stream.
+        ForgetClosed(_webTransportUniStreams, streams);
+        ForgetClosed(_unknownUniStreams, streams);
     }
 
-    private readonly List<ulong> _goneWebTransportUniStreams = [];
+    private void ForgetClosed(HashSet<ulong> skipped, IReadOnlyDictionary<ulong, QuicStream> streams)
+    {
+        foreach (ulong id in skipped)
+            if (!streams.ContainsKey(id))
+                _goneStreams.Add(id);
+        foreach (ulong id in _goneStreams)
+            skipped.Remove(id);
+        _goneStreams.Clear();
+    }
+
+    private readonly List<ulong> _goneStreams = [];
 
     internal int WebTransportUniStreamsForTest => _webTransportUniStreams.Count;
+    internal int PeerUniStreamsForTest => _peerStreams.Count + _unknownUniStreams.Count;
 
     private void RoutePeerStream(PeerUniStream peer)
     {
@@ -292,11 +310,35 @@ internal sealed class Http3Qpack
                 OnWebTransportUniStream(peer.Stream, wtSessionId, wtLeftover);
                 break;
 
-            default: // Unknown/reserved stream types: discard the data, NO connection error (§6.2).
-                peer.Buffer.Clear();
+            default:
+                // Unknown and reserved stream types, grease among them (§6.2): no connection error.
+                // Until 2026-11-03 such a stream was read and its data dropped for as long as the
+                // connection lived.
+                HandBack(peer);
                 break;
         }
     }
+
+    /// <summary>
+    /// A peer stream we do not read any further. We stop reading (H3_STREAM_CREATION_ERROR, as
+    /// RFC 9114 §6.2 suggests) unless the peer has finished or reset it already, and hand it back
+    /// to QUIC, which closes it once its end is known.
+    /// </summary>
+    private void HandBack(PeerUniStream peer)
+    {
+        ulong id = peer.Stream.Id.Value;
+        if (!peer.Stream.Receive.FinReceived)
+            peer.Stream.AbortRead(Http3Error.StreamCreationError);
+        _unknownUniStreams.Add(id);
+        _peerStreams.Remove(id);
+        OnStreamDone?.Invoke(id);
+    }
+
+    /// <summary>
+    /// Called for a peer stream this class has no more use for: the connection hands it back to
+    /// QUIC (<see cref="Quic.Connection.QuicEndpoint.ReleaseStream"/>).
+    /// </summary>
+    public Action<ulong>? OnStreamDone { get; set; }
 
     /// <summary>
     /// Callback for a recognised WebTransport uni stream (draft §4.1): (stream, session ID, payload

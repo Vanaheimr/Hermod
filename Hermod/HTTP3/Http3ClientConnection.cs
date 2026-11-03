@@ -93,6 +93,7 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
         {
             OnWebTransportUniStream = (stream, sessionId, leftover) =>
                 _webTransport.ClaimStream(stream, sessionId, leftover, bidirectional: false),
+            OnStreamDone = streamId => _quic.ReleaseStream(streamId),
         };
         _localMaxFieldSectionSize = maxFieldSectionSize;
     }
@@ -659,6 +660,8 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     internal int TrackedRequestsForTest => _requests.Count;
 
     internal int RememberedWebTransportStreamsForTest => _qpack.WebTransportUniStreamsForTest + _routedServerBidi.Count;
+
+    internal int RememberedPeerUniStreamsForTest => _qpack.PeerUniStreamsForTest;
 
     internal int WebTransportSessionsForTest => _webTransport.SessionsForTest;
 
