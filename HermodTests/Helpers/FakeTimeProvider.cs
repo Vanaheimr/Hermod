@@ -23,22 +23,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests;
 /// (<see cref="TimeSpan.TicksPerSecond"/> as the frequency), so elapsed-time math is exact.
 /// Timers (<see cref="TimeProvider.CreateTimer"/>) are NOT faked — use this only with the
 /// deterministic core (CheckTimeouts and friends), not with Task.Delay-based code.
+/// <para>
+/// Safe to advance on one thread while others read it: a server's loop reads its connections'
+/// clocks on thread-pool threads. The wall clock follows the timestamp, so the two never disagree.
+/// </para>
 /// </summary>
 internal sealed class FakeTimeProvider : TimeProvider
 {
+    private static readonly DateTimeOffset Start = new(2026, 7, 23, 12, 0, 0, TimeSpan.Zero);
+
     private long _timestamp;
-    private DateTimeOffset _utcNow = new(2026, 7, 23, 12, 0, 0, TimeSpan.Zero);
 
     public override long TimestampFrequency => TimeSpan.TicksPerSecond;
-    public override long GetTimestamp() => _timestamp;
-    public override DateTimeOffset GetUtcNow() => _utcNow;
+    public override long GetTimestamp() => Interlocked.Read(ref _timestamp);
+    public override DateTimeOffset GetUtcNow() => Start + TimeSpan.FromTicks(GetTimestamp());
 
     /// <summary>
     /// Moves the fake clock forward by <paramref name="delta"/> (timestamp AND wall clock).
     /// </summary>
     public void Advance(TimeSpan delta)
-    {
-        _timestamp += delta.Ticks;
-        _utcNow += delta;
-    }
+        => Interlocked.Add(ref _timestamp, delta.Ticks);
 }
