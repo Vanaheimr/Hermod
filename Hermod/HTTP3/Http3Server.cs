@@ -248,7 +248,7 @@ public sealed class Http3Server : IAsyncDisposable
         {
             try
             {
-                receive ??= _udp!.ReceiveAsync(_cts.Token).AsTask();
+                receive ??= ReceiveForTest(_udp!, _cts.Token).AsTask();
 
                 if (!receive.IsCompleted)
                 {
@@ -296,6 +296,14 @@ public sealed class Http3Server : IAsyncDisposable
             catch (SocketException) { receive = null; } // e.g. a client's ICMP "port unreachable"
         }
     }
+
+    /// <summary>
+    /// Test seam: the loop's asynchronous receive. A test makes it fail, which a real socket here
+    /// hardly does: Windows reports no ICMP on it (<see cref="DisableIcmpUnreachableException"/>),
+    /// and Linux, by default, none on an unconnected UDP socket.
+    /// </summary>
+    internal Func<UdpClient, CancellationToken, ValueTask<UdpReceiveResult>> ReceiveForTest { get; set; }
+        = static (udp, cancellationToken) => udp.ReceiveAsync(cancellationToken);
 
     private void HandleDatagram(byte[] datagram, IPEndPoint from)
     {

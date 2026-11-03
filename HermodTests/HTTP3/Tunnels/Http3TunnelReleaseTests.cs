@@ -20,6 +20,9 @@
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP3;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP3.Qpack;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Connection;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Streams;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
 
@@ -134,6 +137,18 @@ public class Http3TunnelReleaseTests
         throw new AssertionException("the tunnel never ended");
     }
 
+    private static void Pump(Http3ClientConnection client, QuicServerConnection server, int rounds = 1)
+    {
+        for (int round = 0; round < rounds; round++)
+        {
+            client.CheckTimeouts();
+            foreach (byte[] datagram in client.GetDatagramsToSend())
+                server.ProcessDatagram(datagram);
+            foreach (byte[] datagram in server.GetDatagramsToSend())
+                client.ProcessDatagram(datagram);
+        }
+    }
+
     #endregion
 
 
@@ -239,6 +254,50 @@ public class Http3TunnelReleaseTests
         pair.Pump(3);
         Assert.That(pair.Client.Quic.IsStreamClosed(id), Is.True, "the client's QUIC stream");
         Assert.That(pair.Server.Quic.IsStreamClosed(id), Is.True, "the server's QUIC stream");
+
+    }
+
+    [Test]
+    public void ATurnedDownConnect_IsFinishedByTheClient_EvenWithoutAStopSending()
+    {
+
+        // Hermod's server stops reading a CONNECT it turns down, and the reset that answers its
+        // STOP_SENDING ends the client's side before the client's FIN can. A server that does not
+        // stop reading leaves it to the client to finish its side: it has nothing more to send.
+        // The server here is a raw QUIC connection that writes the HTTP/3 bytes by hand.
+        using var cert = ServerCertificate.CreateSelfSigned("localhost");
+        var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
+        using var client = new Http3ClientConnection("localhost", certificateValidation: validation);
+        using var server = new QuicServerConnection(cert);
+        client.Start();
+        for (int round = 0; round < 20 && !client.HandshakeConfirmed; round++)
+            Pump(client, server);
+        Assert.That(client.HandshakeConfirmed, Is.True);
+        client.InitializeHttp3();
+
+        QuicStream control = server.OpenUnidirectionalStream();
+        control.Write([(byte)Http3StreamType.Control]);
+        control.Write(Http3Frames.Build(Http3FrameType.Settings, [(byte)Http3Setting.EnableConnectProtocol, 1])); // RFC 8441 §3
+        for (int round = 0; round < 5 && !client.ServerEnablesConnectProtocol; round++)
+            Pump(client, server);
+        Assert.That(client.ServerEnablesConnectProtocol, Is.True, "the server's SETTINGS");
+
+        ulong id = client.SendExtendedConnect("localhost", "/bytes", "something-else", []);
+        Pump(client, server, 3);
+        QuicStream request = server.Streams[id];
+        request.Write(Http3Frames.Build(Http3FrameType.Headers, QpackEncoder.Encode([new HeaderField(":status", "404")])));
+        request.Finish();
+        Pump(client, server, 3);
+
+        Assert.That(client.TryGetConnectResponse(id, out int status, out _, out Http3Tunnel? tunnel), Is.True);
+        Assert.That(status, Is.EqualTo(404));
+        Assert.That(tunnel, Is.Null);
+        Assert.That(request.Receive.FinReceived, Is.True, "the client's FIN");
+        Assert.That(request.IsResetByPeer, Is.False);
+
+        client.ForgetRequest(id);
+        Pump(client, server, 3);
+        Assert.That(client.Quic.IsStreamClosed(id), Is.True, "the client's QUIC stream");
 
     }
 
