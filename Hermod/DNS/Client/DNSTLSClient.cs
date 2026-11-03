@@ -77,6 +77,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         private Int32 connection;
 
+        /// <summary>
+        /// A session by its number, and the TcpClient and the TLS stream that are it.
+        /// </summary>
+        private sealed record Opened(Int32 Number, TcpClient Client, SslStream Stream);
+
+        /// <summary>
+        /// The session last opened, as one object: a reader asks for a stream or
+        /// a close by number, and gets that number's own - see DNSTCPClient.
+        /// </summary>
+        private Opened? opened;
+
         #endregion
 
         #region Properties
@@ -548,11 +559,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         // the answer. Going on wrote the query into the stream of the handshake
                         // that had failed, and its exception took the place of the reason.
                         //
-                        // Counted before the session is made - see DNSTCPClient.
+                        // Counted before the session is made, and named by its
+                        // number, its TcpClient and its stream at once once it is
+                        // made - see DNSTCPClient.
                         if (!IsConnected || tcpClient is null)
                         {
 
-                            keepalive.Connected(Interlocked.Increment(ref connection));
+                            var number = Interlocked.Increment(ref connection);
+
+                            keepalive.Connected(number);
 
                             var connectionResult = await ReconnectAsync(deadline.Token).
                                                              ConfigureAwait(false);
@@ -560,6 +575,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             if (connectionResult.IsFailure)
                                 return await ConnectionFailed(connectionResult, dnsQuery, effectiveTimeout, Stopwatch.GetElapsedTime(asked)).
                                                  ConfigureAwait(false);
+
+                            Volatile.Write(ref opened, tcpClient is TcpClient made && tlsStream is SslStream session
+                                                           ? new Opened(number, made, session)
+                                                           : null);
 
                         }
 
@@ -872,19 +891,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// longer this client's.
         /// </summary>
         private Stream? StreamOf(Int32 Connection)
+        {
 
-            => Connection == Volatile.Read(ref connection) && IsConnected
-                   ? tlsStream
-                   : null;
+            var current = Volatile.Read(ref opened);
+
+            if (Connection != Volatile.Read(ref connection) || current is null || current.Number != Connection)
+                return null;
+
+            try
+            {
+                return current.Client.Connected
+                           ? current.Stream
+                           : null;
+            }
+            catch (ObjectDisposedException)
+            {
+                return null;
+            }
+
+        }
 
         /// <summary>
-        /// Close the given session, unless a newer one has taken its place.
+        /// Close the given session, and nothing else: its own TcpClient, not
+        /// whatever the field holds by now - see DNSTCPClient.
         /// </summary>
+        /// <remarks>
+        /// The TLS stream is left alone, as the base class's CloseConnection()
+        /// always left it: the socket closed beneath it is what ends it.
+        /// </remarks>
         private Task CloseConnectionOf(Int32 Connection)
+        {
 
-            => Connection == Volatile.Read(ref connection)
-                   ? CloseConnection()
-                   : Task.CompletedTask;
+            var current = Volatile.Read(ref opened);
+
+            if (current is null || current.Number != Connection)
+                return Task.CompletedTask;
+
+            Interlocked.CompareExchange(ref tcpClient, null, current.Client);
+
+            try { current.Client.Close();   } catch { }
+            try { current.Client.Dispose(); } catch { }
+
+            return Task.CompletedTask;
+
+        }
 
         #endregion
 

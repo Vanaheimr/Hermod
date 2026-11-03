@@ -72,6 +72,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         private Int32 connection;
 
+        /// <summary>
+        /// A connection by its number, and the TcpClient that is it.
+        /// </summary>
+        private sealed record Opened(Int32 Number, TcpClient Client);
+
+        /// <summary>
+        /// The connection last opened, as one object: a reader asks for a stream
+        /// or a close by number, and gets that number's own TcpClient.
+        /// </summary>
+        /// <remarks>
+        /// A reader whose read fails closes its connection without the stream
+        /// lock. It used to check the counter and then close whatever the field
+        /// held, in two steps. After a reset the next query does not wait for the
+        /// reader: it counts a new connection under the lock and puts its
+        /// TcpClient in the field. A reader held up between its two steps closed
+        /// that one - the next query's answer was lost with it, or the connection
+        /// was closed while it was still being opened.
+        /// </remarks>
+        private Opened? opened;
+
         #endregion
 
         #region Properties
@@ -376,11 +396,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         // Counted before the connection is made: a query still
                         // reading the old one must not take the new one for its
                         // own, nor close it on its way out, nor apply to it what
-                        // the old one's answers say about keepalive.
+                        // the old one's answers say about keepalive. And named by
+                        // its number and its TcpClient at once, once it is made:
+                        // a reader closes the connection it asks for by number,
+                        // and without this lock - see opened.
                         if (!IsConnected || tcpClient is null)
                         {
-                            keepalive.Connected(Interlocked.Increment(ref connection));
+
+                            var number = Interlocked.Increment(ref connection);
+
+                            keepalive.Connected(number);
+
                             await ReconnectAsync(deadline.Token).ConfigureAwait(false);
+
+                            Volatile.Write(ref opened, tcpClient is TcpClient made
+                                                           ? new Opened(number, made)
+                                                           : null);
+
                         }
 
                         var tcpStream  = tcpClient!.GetStream();
@@ -584,12 +616,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private Stream? StreamOf(Int32 Connection)
         {
 
-            if (Connection != Volatile.Read(ref connection) || !IsConnected)
+            var current = Volatile.Read(ref opened);
+
+            if (Connection != Volatile.Read(ref connection) || current is null || current.Number != Connection)
                 return null;
 
             try
             {
-                return tcpClient?.GetStream();
+                return current.Client.Connected
+                           ? current.Client.GetStream()
+                           : null;
             }
             catch (Exception e) when (e is InvalidOperationException or ObjectDisposedException)
             {
@@ -599,13 +635,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
         /// <summary>
-        /// Close the given connection, unless a newer one has taken its place.
+        /// Close the given connection, and nothing else: its own TcpClient, not
+        /// whatever the field holds by now.
         /// </summary>
+        /// <remarks>
+        /// The field is emptied only if it still holds that TcpClient, so that the
+        /// next query opens a new connection. What else the base class's
+        /// CloseConnection() resets - the end points, the connection's token - is
+        /// reset again by the next connect. Reset here, without the stream lock,
+        /// it could only land on that connect.
+        /// </remarks>
         private Task CloseConnectionOf(Int32 Connection)
+        {
 
-            => Connection == Volatile.Read(ref connection)
-                   ? CloseConnection()
-                   : Task.CompletedTask;
+            var current = Volatile.Read(ref opened);
+
+            if (current is null || current.Number != Connection)
+                return Task.CompletedTask;
+
+            Interlocked.CompareExchange(ref tcpClient, null, current.Client);
+
+            try { current.Client.Close();   } catch { }
+            try { current.Client.Dispose(); } catch { }
+
+            return Task.CompletedTask;
+
+        }
 
         #endregion
 
