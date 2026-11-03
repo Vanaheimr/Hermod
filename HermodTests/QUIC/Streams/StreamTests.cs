@@ -123,6 +123,38 @@ public class StreamReceiveBufferTests
         buf.Receive(0, [1, 2, 3], fin: true);          // final size = 3
         Assert.That(buf.Receive(3, [4, 5], fin: true), Is.EqualTo(StreamReceiveResult.FinalSizeError)); // final size = 5
     }
+
+    // After our STOP_SENDING, the peer goes on sending until it learns of it (RFC 9000 §3.5). That
+    // data is for nobody. It used to be kept until the peer's RESET_STREAM came, up to the window.
+
+    [Test]
+    public void DataAfterAReadAbort_IsNotKept()
+    {
+        var buf = new StreamReceiveBuffer();
+        buf.Receive(0, [1, 2, 3], false);
+        Assert.That(buf.ReadAvailable(), Is.EqualTo(new byte[] { 1, 2, 3 }));
+        buf.AbortReading(0x10c);
+
+        Assert.That(buf.Receive(3, [4, 5, 6], false), Is.EqualTo(StreamReceiveResult.Ok));
+        Assert.That(buf.Receive(6, [7], fin: true), Is.EqualTo(StreamReceiveResult.Ok));
+
+        Assert.That(buf.ReadAvailable(), Is.Empty, "nothing kept to hand out");
+        Assert.That(buf.HighestReceivedOffset, Is.EqualTo(7UL), "it still counts against the window");
+        Assert.That(buf.FinReceived, Is.True, "and its final size is known");
+    }
+
+    [Test]
+    public void DataAfterAReadAbort_IsStillChecked()
+    {
+        var limited = new StreamReceiveBuffer { MaxData = 4 };
+        limited.AbortReading(0x10c);
+        Assert.That(limited.Receive(2, [1, 2, 3], false), Is.EqualTo(StreamReceiveResult.FlowControlError));
+
+        var finished = new StreamReceiveBuffer();
+        finished.Receive(0, [1, 2, 3], fin: true);
+        finished.AbortReading(0x10c);
+        Assert.That(finished.Receive(3, [4, 5], fin: true), Is.EqualTo(StreamReceiveResult.FinalSizeError));
+    }
 }
 
 public class StreamSendBufferTests
