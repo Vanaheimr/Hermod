@@ -25,6 +25,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
     /// <summary>
+    /// Asked for a subsystem a session requests, at the moment it requests it: how to serve it on that
+    /// session's channel, or null to refuse it.
+    /// </summary>
+    /// <param name="Name">The subsystem, as the client named it.</param>
+    /// <param name="CancellationToken">Fires when the session ends while the answer is being made.</param>
+    public delegate ValueTask<Func<SshMuxChannel, CancellationToken, ValueTask>?> SshSubsystemResolver(String             Name,
+                                                                                                        CancellationToken  CancellationToken);
+
+
+    /// <summary>
     /// Session-channel semantics (<c>exec</c> / <c>shell</c> with <c>pty-req</c>/<c>env</c>/<c>exit-status</c>)
     /// implemented over a multiplexed <see cref="SshMuxChannel"/>, so the client and server façades share one
     /// exec implementation that runs concurrently with any other channels.
@@ -120,6 +130,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="CancellationToken">Ends everything at once.</param>
         /// <param name="AcceptEnv">The variables an <c>env</c> request may set, as sshd's <c>AcceptEnv</c>
         /// names them (<c>*</c> and <c>?</c> as wildcards, case-sensitive); none, and every one is refused.</param>
+        /// <param name="SubsystemFor">Asked for a subsystem <paramref name="Subsystems"/> does not name, when it is
+        /// requested - for subsystems served differently from one session to the next. One that answers null,
+        /// or fails, refuses it.</param>
         public static async ValueTask ServeAsync(SshMuxChannel                                                                    Channel,
                                                  SshSessionInfo                                                                   Session,
                                                  SshExecHandler?                                                                  ExecHandler,
@@ -128,7 +141,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                  ISshAuditSink?                                                                   AuditSink,
                                                  CancellationToken                                                                Stopping,
                                                  CancellationToken                                                                CancellationToken,
-                                                 IReadOnlyList<String>?                                                           AcceptEnv = null)
+                                                 IReadOnlyList<String>?                                                           AcceptEnv     = null,
+                                                 SshSubsystemResolver?                                                            SubsystemFor  = null)
         {
 
             var hasPty        = false;
@@ -144,15 +158,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                 if (type == "subsystem")
                 {
-                    var name = ReadString(request.Value.Data);
-                    if (Subsystems is not null && Subsystems.TryGetValue(name, out var serve))
+                    var name    = ReadString(request.Value.Data);
+                    var reason  = "not served";
+
+                    Func<SshMuxChannel, CancellationToken, ValueTask>? serve = null;
+
+                    if (Subsystems is not null && Subsystems.TryGetValue(name, out var served))
+                        serve = served;
+
+                    else if (SubsystemFor is not null)
+                    {
+                        try
+                        {
+                            serve = await SubsystemFor(name, CancellationToken).ConfigureAwait(false);
+                        }
+                        catch (Exception exception) when (exception is not OperationCanceledException || !CancellationToken.IsCancellationRequested)
+                        {
+                            // Refused rather than left unanswered: the client waits for the reply.
+                            reason = $"not served: {exception.Message}";
+                        }
+                    }
+
+                    if (serve is not null)
                     {
                         await EmitAsync(AuditSink, new SubsystemRequestedEvent(DateTimeOffset.UtcNow, name), CancellationToken).ConfigureAwait(false);
                         if (request.Value.WantReply) await Channel.ReplyAsync(true, CancellationToken).ConfigureAwait(false);
                         await serve(Channel, CancellationToken).ConfigureAwait(false);
                         return;
                     }
-                    await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "subsystem", name, "not served"), CancellationToken).ConfigureAwait(false);
+                    await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "subsystem", name, reason), CancellationToken).ConfigureAwait(false);
                     if (request.Value.WantReply) await Channel.ReplyAsync(false, CancellationToken).ConfigureAwait(false);
                     continue;
                 }

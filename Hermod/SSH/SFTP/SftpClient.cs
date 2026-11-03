@@ -47,6 +47,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         private readonly Task                                                receiveLoop;
         private Int32                                                        requestIdSeed;
 
+        // Set once the background reader has stopped: the channel answers nothing more.
+        private Exception?                                                   ended;
+
         #endregion
 
         #region Properties
@@ -608,6 +611,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             var tcs = new TaskCompletionSource<Byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
             pending[id] = tcs;
 
+            // A channel the server has closed answers nothing more: a request made after its end fails at
+            // once, rather than waiting for a reply that cannot come. Checked after the request is pending,
+            // so that one made while the reader stops is failed by one side or the other.
+            if (Volatile.Read(ref ended) is not null)
+            {
+                pending.TryRemove(id, out _);
+                throw new SshChannelClosedException();
+            }
+
             var abw = new ArrayBufferWriter<Byte>();
             var w   = new SshPacketWriter(abw);
             w.WriteByte((Byte) Type);
@@ -639,7 +651,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                     var packet = await SftpServer.ReadPacketAsync(channel, cts.Token).ConfigureAwait(false);
                     if (packet is null)
                     {
-                        FailAllPending(new SshChannelClosedException());
+                        var closed = new SshChannelClosedException();
+                        Volatile.Write(ref ended, closed);
+                        FailAllPending(closed);
                         return;
                     }
 
@@ -651,6 +665,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             }
             catch (Exception exception)
             {
+                Volatile.Write(ref ended, exception);
                 FailAllPending(exception);
             }
         }
