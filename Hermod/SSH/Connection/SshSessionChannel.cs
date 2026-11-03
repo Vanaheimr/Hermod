@@ -118,6 +118,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="AuditSink">Where what the session asked for and was refused is recorded.</param>
         /// <param name="Stopping">Fires when the server is stopping: a shell is then asked to end.</param>
         /// <param name="CancellationToken">Ends everything at once.</param>
+        /// <param name="AcceptEnv">The variables an <c>env</c> request may set, as sshd's <c>AcceptEnv</c>
+        /// names them (<c>*</c> and <c>?</c> as wildcards, case-sensitive); none, and every one is refused.</param>
         public static async ValueTask ServeAsync(SshMuxChannel                                                                    Channel,
                                                  SshSessionInfo                                                                   Session,
                                                  SshExecHandler?                                                                  ExecHandler,
@@ -125,7 +127,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                  IReadOnlyDictionary<String, Func<SshMuxChannel, CancellationToken, ValueTask>>?  Subsystems,
                                                  ISshAuditSink?                                                                   AuditSink,
                                                  CancellationToken                                                                Stopping,
-                                                 CancellationToken                                                                CancellationToken)
+                                                 CancellationToken                                                                CancellationToken,
+                                                 IReadOnlyList<String>?                                                           AcceptEnv = null)
         {
 
             var hasPty        = false;
@@ -238,17 +241,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 else if (type == "env")
                 {
 
-                    // Kept for a shell to read, within reason: a client can send any number of these.
+                    // Kept for a shell to read, if AcceptEnv names it - as sshd, nothing otherwise: what a
+                    // client may set is the server's to say, and LD_PRELOAD or PATH are not harmless - and
+                    // within reason, as a client can send any number of these.
                     var accepted = false;
 
                     try
                     {
+
                         var (name, value) = ReadNameAndValue(request.Value.Data);
-                        if (environment.Count < MaxEnvironmentVariables && name.Length <= 256 && value.Length <= 4096)
+
+                        if (AcceptEnv is null || !AcceptEnv.Any(pattern => MatchesPattern(name, pattern)))
+                            await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "env", name, "not in AcceptEnv"), CancellationToken).ConfigureAwait(false);
+
+                        else if (environment.Count < MaxEnvironmentVariables && name.Length <= 256 && value.Length <= 4096)
                         {
                             environment[name] = value;
                             accepted = true;
                         }
+
                     }
                     catch (SshWireException)
                     { }
@@ -286,9 +297,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     // server-sig-algs — so a conformant 10.3 peer still sends the @openssh.com
                     // spelling. The second string is therefore defensive rather than load-bearing: a
                     // peer that sends it anyway should still leave a trace instead of being refused in
-                    // silence. ("agent-connect", the channel the server opens back, cannot be audited
-                    // here — the multiplexer refuses unknown channel types without an audit sink at
-                    // all, for every type, which is a wider gap than this one.)
+                    // silence. ("agent-connect", the agent's channel, is not a request; a client that
+                    // opens one is refused and audited where SshServer accepts channels.)
                     if (type is "x11-req" or "auth-agent-req@openssh.com" or "agent-req")
                         await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, type, "", "not served"), CancellationToken).ConfigureAwait(false);
 
@@ -436,6 +446,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// How many <c>env</c> requests a session keeps.
         /// </summary>
         private const Int32 MaxEnvironmentVariables = 64;
+
+        /// <summary>
+        /// Whether <paramref name="Name"/> matches <paramref name="Pattern"/> as sshd's <c>match_pattern()</c>
+        /// has it: <c>*</c> for any run of characters, <c>?</c> for any one, everything else as it stands -
+        /// case-sensitive, as variable names are.
+        /// </summary>
+        internal static Boolean MatchesPattern(String Name, String Pattern)
+        {
+
+            Int32 n = 0, p = 0, star = -1, resume = 0;
+
+            while (n < Name.Length)
+            {
+                if (p < Pattern.Length && (Pattern[p] == '?' || Pattern[p] == Name[n]))
+                {
+                    n++;
+                    p++;
+                }
+                else if (p < Pattern.Length && Pattern[p] == '*')
+                {
+                    star   = p++;
+                    resume = n;
+                }
+                else if (star >= 0)
+                {
+                    p = star + 1;
+                    n = ++resume;
+                }
+                else
+                    return false;
+            }
+
+            while (p < Pattern.Length && Pattern[p] == '*')
+                p++;
+
+            return p == Pattern.Length;
+
+        }
 
         private static (String Name, String Value) ReadNameAndValue(Byte[] Data)
         {
