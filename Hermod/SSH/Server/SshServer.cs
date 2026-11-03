@@ -89,6 +89,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         public SftpLimits?                          SftpLimits        { get; init; }
 
         /// <summary>
+        /// Serves the <c>sftp</c> subsystem session by session: asked when a session requests it, with who
+        /// signed in, it answers what that session sees - its own file system, profile, limits and end - or
+        /// null, and the request is refused and audited as one that is not served. Where it is set,
+        /// <see cref="SftpFileSystem"/>, <see cref="SftpProfile"/> and <see cref="SftpLimits"/> are not used.
+        /// </summary>
+        /// <remarks>
+        /// For a server whose accounts may each see something else: one file system for everybody cannot
+        /// tell them apart.
+        /// </remarks>
+        public SftpSessionFactory?                  SftpSessions      { get; init; }
+
+        /// <summary>
         /// The port-forwarding policy (default: off).
         /// </summary>
         public ForwardingPolicy                     ForwardingPolicy  { get; init; } = ForwardingPolicy.None;
@@ -705,7 +717,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             if (Info.ChannelType == "session")
             {
 
-                if (options.ExecHandler is null && options.ShellHandler is null && options.SftpFileSystem is null)
+                if (options.ExecHandler is null && options.ShellHandler is null && options.SftpFileSystem is null && options.SftpSessions is null)
                     return false;
 
                 if (Interlocked.Increment(ref Connection.Sessions) > options.Limits.MaxSessions)
@@ -760,8 +772,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         {
 
             Dictionary<String, Func<SshMuxChannel, CancellationToken, ValueTask>>? subsystems = null;
+            SshSubsystemResolver?                                                     subsystemFor = null;
 
-            if (options.SftpFileSystem is not null)
+            // What the factory answered, and whether it was served: a file system made for a session the
+            // client left before it was served is still the session's to dispose of.
+            SftpSessionOptions? answered = null;
+            var                 started  = 0;
+
+            // Per session, where the server says so: asked only when the session asks for SFTP, so that a
+            // shell on the same connection costs the factory nothing.
+            if (options.SftpSessions is SftpSessionFactory sftpSessions)
+                subsystemFor = async (name, ct) => {
+
+                    if (name != "sftp" || await sftpSessions(Session, ct).ConfigureAwait(false) is not SftpSessionOptions sftp)
+                        return null;
+
+                    answered = sftp;
+
+                    return (channel, token) => {
+                        Interlocked.Exchange(ref started, 1);
+                        return ServeSftpAsync(channel, sftp, token);
+                    };
+
+                };
+
+            else if (options.SftpFileSystem is not null)
                 subsystems = new () {
                     ["sftp"] = (ch, ct) => SftpServer.ServeAsync(new StreamSftpDuplex(ch.AsStream()), options.SftpFileSystem, options.SftpProfile, options.SftpLimits, ct)
                 };
@@ -776,11 +811,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                                                    Audit,
                                                    stopping.Token,
                                                    CancellationToken,
-                                                   options.AcceptEnv).ConfigureAwait(false);
+                                                   options.AcceptEnv,
+                                                   subsystemFor).ConfigureAwait(false);
             }
             catch
             { }
+            finally
+            {
+                if (answered is not null && Volatile.Read(ref started) == 0)
+                    await DisposeFileSystemAsync(answered.FileSystem).ConfigureAwait(false);
+            }
 
+        }
+
+        #endregion
+
+        #region (private static) ServeSftpAsync(Channel, Sftp, CancellationToken)
+
+        /// <summary>
+        /// Serve one session's SFTP over what its factory answered: until the client closes it, the
+        /// connection goes, or <see cref="SftpSessionOptions.Ends"/> fires - which closes the channel, so
+        /// that the client is not left waiting for answers that will not come. The file system is the
+        /// session's, and disposed when it is over.
+        /// </summary>
+        private static async ValueTask ServeSftpAsync(SshMuxChannel       Channel,
+                                                      SftpSessionOptions  Sftp,
+                                                      CancellationToken   CancellationToken)
+        {
+
+            using var serving = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, Sftp.Ends);
+
+            try
+            {
+                await SftpServer.ServeAsync(new StreamSftpDuplex(Channel.AsStream()),
+                                            Sftp.FileSystem,
+                                            Sftp.Profile,
+                                            Sftp.Limits,
+                                            serving.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (Sftp.Ends.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await Channel.CloseAsync(CancellationToken).ConfigureAwait(false);
+                }
+                catch
+                { }
+            }
+            finally
+            {
+                await DisposeFileSystemAsync(Sftp.FileSystem).ConfigureAwait(false);
+            }
+
+        }
+
+        #endregion
+
+        #region (private static) DisposeFileSystemAsync(FileSystem)
+
+        /// <summary>
+        /// Dispose of a session's file system, where it is disposable - and never let its failure become
+        /// the session's.
+        /// </summary>
+        private static async ValueTask DisposeFileSystemAsync(ISftpFileSystem FileSystem)
+        {
+            try
+            {
+                switch (FileSystem)
+                {
+
+                    case IAsyncDisposable disposable:
+                        await disposable.DisposeAsync().ConfigureAwait(false);
+                        break;
+
+                    case IDisposable disposable:
+                        disposable.Dispose();
+                        break;
+
+                }
+            }
+            catch
+            { }
         }
 
         #endregion
