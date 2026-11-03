@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// The HMAC hash algorithm used to derive a Time-based One-Time Password (TOTP).
     ///
     /// The token format is shared with the TypeScript implementation TOTP.ts
-    /// (https://github.com/OpenChargingCloud/TOTP.ts). Both implementations default to
+    /// (https://github.com/OpenChargingCloud/TOTP.TS). Both implementations default to
     /// HMAC-SHA256, so that a token generated here is byte-identical to a token generated
     /// there. HMAC-SHA384 and HMAC-SHA512 exist on both sides as well, but have to be
     /// configured explicitly and identically on both ends.

@@ -9,7 +9,7 @@ Base32-encoded binary key, and a previous/current/next token triple for a ±1-sl
 acceptance window. HMAC-SHA256 by default; SHA-384 and SHA-512 on request.
 
 > **The token format is frozen and independently specified.** The TypeScript implementation
-> [TOTP.ts](https://github.com/OpenChargingCloud/TOTP.ts) derives byte-identical tokens. The
+> [TOTP.ts](https://github.com/OpenChargingCloud/TOTP.TS) derives byte-identical tokens. The
 > written specification and its normative test-vector annex live in
 > [OpenChargingTechnology/Whitepapers → TimeBasedOneTimePasswords](https://github.com/OpenChargingTechnology/Whitepapers/tree/master/TimeBasedOneTimePasswords),
 > and both implementations are held to that annex by the conformance suite
@@ -94,8 +94,9 @@ var (_, bound, _, _, _) = TOTPGenerator.GenerateTOTPs(
                           );
 ```
 
-This extension is Hermod-only: TOTP.ts does not implement it, and it does not apply where
-the token travels via a third party (as in the QR code flow).
+TOTP.ts implements the same binding (`tlsExporterMaterial`, `tlsExporterMaterialOf(socket)`),
+and the conformance vectors hold both sides to it. It does not apply where the token travels
+via a third party (as in the QR code flow).
 
 ## Input validation
 

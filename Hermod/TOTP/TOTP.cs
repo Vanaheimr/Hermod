@@ -44,14 +44,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// without harming usability.
     /// 
     /// The token format is shared with the TypeScript implementation TOTP.ts
-    /// (https://github.com/OpenChargingCloud/TOTP.ts), which derives its tokens with the
+    /// (https://github.com/OpenChargingCloud/TOTP.TS), which derives its tokens with the
     /// very same formula and therefore produces byte-identical tokens for the same shared
     /// secret, time slot, token length and alphabet. Both implementations default to
     /// HMAC-SHA256 and both also accept HMAC-SHA384 and HMAC-SHA512. The format is thus
     /// frozen: neither of its two quirks - the modulo bias of the alphabet mapping, and
     /// the hash being read as a ring buffer (see CalcTOTPSlot below) - can be "fixed"
-    /// without breaking every deployed verifier. TLS v1.3 channel binding has no
-    /// TypeScript counterpart and remains a Hermod-only extension.
+    /// without breaking every deployed verifier. TLS v1.3 channel binding is part of the
+    /// shared format as well: TOTP.ts binds its tokens with the same second HMAC, and the
+    /// conformance vectors hold both implementations to it.
     /// 
     /// Typical use cases include:
     ///  - OCPP QR-Code based payment/authorization flows, e.g. where a short-lived
@@ -91,8 +92,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             if (TLSExporterMaterial?.Length > 0)
             {
-                // TLS channel binding has no counterpart in TOTP.ts: the second HMAC
-                // uses the same hash algorithm as the first one.
+                // The second HMAC uses the same hash algorithm as the first one, keyed
+                // with the exporter material - exactly as in TOTP.ts, so that a bound
+                // token verifies on either side.
                 using var channelBindingHMAC = HashAlgorithm.CreateHMAC(TLSExporterMaterial);
                 currentHash = channelBindingHMAC.ComputeHash(HMAC.ComputeHash(slotBytes));
             }

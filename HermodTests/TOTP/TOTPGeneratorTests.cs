@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
 
     /// <summary>
     /// The token format of the TOTP generator is shared with the TypeScript implementation
-    /// TOTP.ts (https://github.com/OpenChargingCloud/TOTP.ts). The example token values
+    /// TOTP.ts (https://github.com/OpenChargingCloud/TOTP.TS). The example token values
     /// that used to be duplicated here live in the canonical conformance vectors now
     /// (TOTP/TestVectors/, run by TOTPVectorTests); this fixture keeps what the vectors
     /// cannot express - API-typed error cases, hash algorithm parsing, structural
