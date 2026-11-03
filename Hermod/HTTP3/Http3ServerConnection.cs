@@ -212,6 +212,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             OnPriorityUpdate = ApplyPriorityUpdate, // RFC 9218 §7.2
             OnWebTransportUniStream = (stream, sessionId, leftover) =>
                 _webTransport.ClaimStream(stream, sessionId, leftover, bidirectional: false),
+            OnStreamDone = streamId => _quic.ReleaseStream(streamId),
         };
         _localMaxFieldSectionSize = maxFieldSectionSize;
         _maxRequestBodySize = maxRequestBodySize;
@@ -495,6 +496,8 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
     internal int TrackedRequestsForTest => _requests.Count;
 
     internal int RememberedWebTransportStreamsForTest => _qpack.WebTransportUniStreamsForTest;
+
+    internal int RememberedPeerUniStreamsForTest => _qpack.PeerUniStreamsForTest;
 
     internal int WebTransportSessionsForTest => _webTransport.SessionsForTest;
 

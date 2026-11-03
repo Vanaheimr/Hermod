@@ -262,8 +262,10 @@ A connection lets go of a stream once its owner calls `ReleaseStream` and nothin
 is left on it: our FIN or RESET_STREAM is out, the peer's final size is known.
 HTTP/3 releases each request stream once it is answered, and the client each
 request it forgets; a tunnel once both its directions are over; a WebTransport
-session once it has ended, and each of its streams once it is done. A stream
-nobody releases stays until its connection ends.
+session once it has ended, and each of its streams once it is done; a peer's
+unidirectional stream of a type it does not know, grease among them, at once,
+having stopped reading it unless it was finished. A stream nobody releases
+stays until its connection ends.
 
 ## Not here yet
 
