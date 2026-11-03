@@ -96,8 +96,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         private readonly HPACKEncoder         hpackEncoder   = new();
 
         /// <summary>
-        /// The write lock and the buffer behind it: every frame goes out under
-        /// its lock, and only the last of the writers waiting for it flushes.
+        /// The write lock and the buffer behind it: every frame is written under
+        /// its lock, and the buffer is sent outside it, as soon as the transport
+        /// is free.
         /// </summary>
         private readonly HTTP2FrameWriter     frameWriter;
 
@@ -288,9 +289,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// all others (see <see cref="HTTP2FlowControl"/>).
         /// </param>
         /// <param name="WriteBufferSize">
-        /// The size of the buffer frames are written into before they are
-        /// flushed to the transport, one TLS record's worth by default; 0 writes
-        /// each frame through at once (see <see cref="HTTP2FrameWriter"/>).
+        /// The size of the buffer frames are written into before they are sent
+        /// to the transport, one TLS record's worth by default; 0 writes each
+        /// frame through at once (see <see cref="HTTP2FrameWriter"/>).
         /// </param>
         public HTTP2Connection(
             Stream               TransportStream,
@@ -309,7 +310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             Int32                WriteBufferSize    = HTTP2FrameWriter.DefaultBufferSize)
         {
             this.connectionWindowSize = HTTP2FlowControl.CheckConnectionWindowSize(ConnectionWindowSize, nameof(ConnectionWindowSize));
-            this.frameWriter         = new HTTP2FrameWriter(TransportStream, WriteBufferSize);
+            this.frameWriter         = new HTTP2FrameWriter(TransportStream, WriteBufferSize, SendOutsideTheLock: true);
             this.isAuthorityServed   = IsAuthorityServed;
             this.originSet           = OriginSet;
             this.alternativeServices = AlternativeServices;
@@ -393,9 +394,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     catch (Exception ex) { HTTP2EventSource.Log.ConnectionError("WRITER_LOOP", ex.ToString()); }
                 }
 
-                // What the last writers left in the buffer: one that skipped its
-                // flush for a writer still waiting, which then gave up with the
-                // cancellation above. Bounded as the drain after a GOAWAY is.
+                // What the last writers left in the buffer: behind a batch that
+                // was given up, or behind a send the cancellation above cut
+                // short. Bounded as the drain after a GOAWAY is.
                 await frameWriter.CloseAsync(TimeSpan.FromMilliseconds(250));
 
                 // The connection is gone, and with it every stream still open on
@@ -650,9 +651,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Send a frame to the peer. Thread-safe via write lock.
         ///
-        /// A GOAWAY is flushed at once, even with other writers waiting to flush
-        /// after it: the connection ends right after most of them, and a writer
-        /// waiting then gives up rather than flush.
+        /// A GOAWAY is flushed at once, even while a batch is open, and is out
+        /// once this returns, after the send that runs: the connection ends
+        /// right after most of them, and a send left to whoever comes next may
+        /// then never be made.
         /// </summary>
         private async Task SendFrameAsync(HTTP2Frame Frame)
         {

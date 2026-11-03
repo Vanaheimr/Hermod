@@ -50,9 +50,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// without a hop, and <see cref="EndOfStreamWritten"/> names that thread.
     /// That is also why the connection writes each frame through at once here
     /// (WriteBufferSize 0), rather than into its buffer: a buffered frame would
-    /// reach this transport with the flush of whichever writer came last, on its
-    /// thread. What these tests put in order is a frame and a reset, not the
-    /// flushes; FrameWriterTests and ServerWriteBatchingTests test those.
+    /// reach this transport with a send made by whichever writer started it, on
+    /// its thread. What these tests put in order is a frame and a reset, not the
+    /// sends; FrameWriterTests and ServerWriteBatchingTests test those.
     /// </summary>
     internal sealed class PipedH2ServerConnection : IAsyncDisposable
     {
@@ -92,6 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private MemoryStream?     headerBlock;
 
         private (UInt32 StreamId, Exception Failure)?  dataWriteFailure;
+        private (TaskCompletionSource Started, TaskCompletionSource Release)?  writeHold;
 
         /// <summary>
         /// The thread that last read from the client — see
@@ -989,23 +990,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
-        /// Wait until at least <paramref name="Count"/> writers hold the
-        /// connection's write lock or wait for it, open batches included.
+        /// Hold the server's next write on the transport, as a client that reads
+        /// slowly would, until Release is called. Started completes once that
+        /// write has begun, and waits. Only that one write waits; the writes
+        /// after it complete at once again.
         /// </summary>
-        public async Task WritersWaitingAsync(Int32 Count)
+        public (Task Started, Action Release) HoldNextWrite()
+        {
+
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            lock (sync)
+                writeHold = (started, release);
+
+            return (started.Task, () => release.TrySetResult());
+
+        }
+
+        /// <summary>
+        /// The hold armed for the next write, if any — only once.
+        /// </summary>
+        private (TaskCompletionSource Started, TaskCompletionSource Release)? TakeWriteHold()
+        {
+            lock (sync)
+            {
+                var held  = writeHold;
+                writeHold = null;
+                return held;
+            }
+        }
+
+        /// <summary>
+        /// The frames in the connection's write buffer: written by their writers,
+        /// and not yet taken by a send. Read under the buffer's own lock.
+        /// </summary>
+        public List<(HTTP2FrameType Type, UInt32 StreamId)> BufferedFrames()
         {
 
             var frameWriter = typeof(HTTP2Connection).GetField("frameWriter", BindingFlags.NonPublic | BindingFlags.Instance)!.
                                                       GetValue(Connection)!;
 
-            var pending     = typeof(HTTP2FrameWriter).GetField("pending", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            var waited      = Stopwatch.StartNew();
+            Object Field(String Name)
+                => typeof(HTTP2FrameWriter).GetField(Name, BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                            GetValue(frameWriter)!;
 
-            while ((Int32) pending.GetValue(frameWriter)! < Count)
+            Byte[] bytes;
+
+            lock ((Lock) Field("gate"))
+                bytes = ((Byte[]?) Field("buffer") ?? []).AsSpan(0, (Int32) Field("buffered")).ToArray();
+
+            var frames = new List<(HTTP2FrameType, UInt32)>();
+
+            for (var offset = 0; offset + HTTP2Frame.HeaderSize <= bytes.Length; )
+            {
+                var frame = HTTP2Frame.ParseHeader(bytes.AsSpan(offset, HTTP2Frame.HeaderSize));
+                frames.Add((frame.Type, frame.StreamId));
+                offset += HTTP2Frame.HeaderSize + (Int32) frame.Length;
+            }
+
+            return frames;
+
+        }
+
+        /// <summary>
+        /// Wait until the connection's write buffer holds at least
+        /// <paramref name="Count"/> frames of the given type.
+        /// </summary>
+        public async Task BufferedAsync(HTTP2FrameType Type, Int32 Count)
+        {
+
+            var waited = Stopwatch.StartNew();
+
+            while (BufferedFrames().Count(frame => frame.Type == Type) < Count)
             {
 
                 if (waited.Elapsed > StepTimeout)
-                    throw new TimeoutException($"Only {pending.GetValue(frameWriter)} of {Count} writers ever waited");
+                    throw new TimeoutException($"The write buffer never held {Count} {Type} frames: {String.Join(", ", BufferedFrames())}");
 
                 await Task.Delay(1);
 
@@ -1476,6 +1537,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             }
 
             public override ValueTask WriteAsync(ReadOnlyMemory<Byte> Buffer, CancellationToken CancellationToken = default)
+
+                => Peer.TakeWriteHold() is { } held
+                       ? HeldWriteAsync(Buffer, held, CancellationToken)
+                       : Write(Buffer, CancellationToken);
+
+            /// <summary>
+            /// A write held on the transport: it begins, waits to be let go, and
+            /// is then written as any other.
+            /// </summary>
+            private async ValueTask HeldWriteAsync(ReadOnlyMemory<Byte>                                       Buffer,
+                                                   (TaskCompletionSource Started, TaskCompletionSource Release)  Held,
+                                                   CancellationToken                                          CancellationToken)
+            {
+                Held.Started.TrySetResult();
+                await Held.Release.Task;
+                await Write(Buffer, CancellationToken);
+            }
+
+            private ValueTask Write(ReadOnlyMemory<Byte> Buffer, CancellationToken CancellationToken)
             {
 
                 // The connection writes one whole frame at a time, so a write
