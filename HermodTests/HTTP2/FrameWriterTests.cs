@@ -18,6 +18,8 @@
 #region Usings
 
 using System.Text;
+using System.Reflection;
+using System.Diagnostics;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 
@@ -396,6 +398,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await first.WaitAsync(StepTimeout);
 
             Assert.That(transport.Writes, Is.EqualTo(new[] { "a", "bcd" }));
+
+        }
+
+        #endregion
+
+        #region AWriterLeavingAsASendEnds_IsNeverLeftBehind()
+
+        /// <summary>
+        /// A writer that leaves while a send runs either has its frames taken by
+        /// that send, or finds it ended and sends them itself. The sender looks
+        /// for more and stops in one step, under the gate the writers write
+        /// under. It used to stop in a gate of its own, after the look, and a
+        /// writer leaving in between found the send still running, started none,
+        /// and its frames waited for the next writer: with one request at a
+        /// time, until the idle timeout ended the connection. To land in that
+        /// gap, the second writer writes and leaves holding the gate, the whole
+        /// of it at once, as soon as the sender has looked, round after round.
+        /// </summary>
+        [Test]
+        public async Task AWriterLeavingAsASendEnds_IsNeverLeftBehind()
+        {
+
+            var transport = new RecordingStream();
+            var writer    = new HTTP2FrameWriter(transport, SendOutsideTheLock: true);
+
+            Object? Field(String Name)
+                => typeof(HTTP2FrameWriter).GetField(Name, BindingFlags.NonPublic | BindingFlags.Instance)!.
+                                            GetValue(writer);
+
+            var gate = (Lock) Field("gate")!;
+
+            for (var round = 1; round <= 2_000; round++)
+            {
+
+                await writer.EnterAsync(CancellationToken.None);
+                await writer.WriteAsync(Text("a"), CancellationToken.None);
+
+                // The first writer starts a send as it leaves, and makes it, on a
+                // thread of its own. The second takes the lock meanwhile.
+                var first = Task.Run(() => writer.ExitAsync(CancellationToken.None));
+
+                await writer.EnterAsync(CancellationToken.None).WaitAsync(StepTimeout);
+
+                var waiting = Stopwatch.StartNew();
+
+                while (true)
+                {
+
+                    gate.Enter();
+
+                    // The sender has not looked yet: it puts the buffer it sent
+                    // back as the spare when it does. Try again, to write as soon
+                    // after its look as can be.
+                    if ((Boolean) Field("sending")! && Field("spare") is null && waiting.Elapsed < StepTimeout)
+                    {
+                        gate.Exit();
+                        continue;
+                    }
+
+                    // The transport completes every write at once, so the write
+                    // and the leaving, and a send it starts, are done before the
+                    // gate is left, on this thread, as the gate requires.
+                    var wrote   = writer.WriteAsync(Text("b"), CancellationToken.None);
+                    var leaving = writer.ExitAsync(CancellationToken.None);
+
+                    gate.Exit();
+
+                    Assert.That(wrote.IsCompletedSuccessfully && leaving.IsCompletedSuccessfully, Is.True, "the second writer wrote and left at once");
+
+                    break;
+
+                }
+
+                await first.WaitAsync(StepTimeout);
+
+                Assert.That(String.Concat(transport.Writes), Has.Length.EqualTo(2 * round),
+                            $"in round {round}, a send ran as the second writer left, and what it wrote is still in the buffer");
+
+            }
 
         }
 
