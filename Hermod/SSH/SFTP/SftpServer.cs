@@ -294,6 +294,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                     await CopyDataAsync(FileSystem, Session, Request, CancellationToken).ConfigureAwait(false);
                     return BuildStatus(Request.RequestId, SftpStatusCode.Ok, "OK");
 
+                // SETSTAT that does not follow the last name if it is a symbolic link - what `chmod -h`
+                // asks for.
+                case "lsetstat@openssh.com":
+                    await FileSystem.SetLinkAttributesAsync(Request.Path, Request.Attributes ?? new (), CancellationToken).ConfigureAwait(false);
+                    return BuildStatus(Request.RequestId, SftpStatusCode.Ok, "OK");
+
                 // Report our protocol limits (max packet / read / write / open handles).
                 case "limits@openssh.com":
                     return BuildLimits(Request.RequestId, Session);
@@ -467,6 +473,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                         case "statvfs@openssh.com":
                             path = reader.ReadString();
                             break;
+                        case "lsetstat@openssh.com":
+                            path       = reader.ReadString();
+                            attributes = SftpFileAttributes.Decode(ref reader);
+                            break;
                         // read-from-handle, read-from-offset, read-data-length, write-to-handle, write-to-offset
                         case "copy-data":
                             handle       = reader.ReadString();
@@ -598,6 +608,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                    "fsync@openssh.com"         => SftpPermissions.Write,
                    "statvfs@openssh.com"       => SftpPermissions.Stat,
                    "fstatvfs@openssh.com"      => SftpPermissions.Stat,
+                   "lsetstat@openssh.com"      => SftpPermissions.Write,
                    // A server-side copy reads one file and writes another, so it must demand both — an
                    // upload-only session that could copy would be able to read what it may not read.
                    "copy-data"                 => SftpPermissions.Read | SftpPermissions.Write,
@@ -621,6 +632,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             w.WriteString("fsync@openssh.com");        w.WriteString("1");
             w.WriteString("statvfs@openssh.com");      w.WriteString("2");
             w.WriteString("fstatvfs@openssh.com");     w.WriteString("2");
+            w.WriteString("lsetstat@openssh.com");     w.WriteString("1");
             w.WriteString("limits@openssh.com");       w.WriteString("1");
             w.WriteString("copy-data");                w.WriteString("1");
             return abw.WrittenSpan.ToArray();

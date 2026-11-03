@@ -170,6 +170,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         }
 
         /// <summary>
+        /// The file-system statistics of where this file lives (<c>fstatvfs@openssh.com</c>), by its handle.
+        /// </summary>
+        public ValueTask<SftpFileSystemStats> StatVfsAsync(CancellationToken CancellationToken = default)
+        {
+
+            ObjectDisposedException.ThrowIf(closed, this);
+
+            return client.FStatVfsAsync(handle, CancellationToken);
+
+        }
+
+        /// <summary>
         /// Truncate or extend the remote file to <paramref name="Length"/> bytes, through its handle
         /// (FSETSTAT with a size). The position stays where it was, as with a <see cref="FileStream"/>.
         /// </summary>

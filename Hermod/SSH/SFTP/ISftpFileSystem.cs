@@ -162,6 +162,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         ValueTask SetAttributesAsync(String Path, SftpFileAttributes Attributes, CancellationToken CancellationToken = default)
             => throw new SftpException(SftpStatusCode.OpUnsupported, "This file system does not set attributes.");
 
+        /// <summary>
+        /// Apply attributes as <see cref="SetAttributesAsync"/> does, but to a symbolic link itself rather
+        /// than what it points to (<c>lsetstat@openssh.com</c>, what <c>chmod -h</c> sends). The default is
+        /// <see cref="SetAttributesAsync"/>, which is the right answer for a file system without links.
+        /// </summary>
+        ValueTask SetLinkAttributesAsync(String Path, SftpFileAttributes Attributes, CancellationToken CancellationToken = default)
+            => SetAttributesAsync(Path, Attributes, CancellationToken);
+
     }
 
 }

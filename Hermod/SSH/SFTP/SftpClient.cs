@@ -349,6 +349,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             => ExpectOkAsync(SftpPacketType.SetStat, (ref SshPacketWriter w) => { w.WriteString(RemotePath); Attributes.Encode(ref w); }, CancellationToken);
 
         /// <summary>
+        /// Set attributes as <see cref="SetAttributesAsync"/> does, but on a symbolic link itself rather
+        /// than what it points to (<c>lsetstat@openssh.com</c>, <c>chmod -h</c>).
+        /// </summary>
+        /// <remarks>
+        /// A server that never offered the extension is refused here rather than sent a SETSTAT, which would
+        /// follow the link and change what the caller meant to leave alone.
+        /// </remarks>
+        public ValueTask LSetAttributesAsync(String RemotePath, SftpFileAttributes Attributes, CancellationToken CancellationToken = default)
+        {
+
+            if (!Supports("lsetstat@openssh.com"))
+                throw new SftpException(SftpStatusCode.OpUnsupported, "The server does not offer 'lsetstat@openssh.com'.");
+
+            return ExpectOkAsync(SftpPacketType.Extended,
+                                 (ref SshPacketWriter w) => { w.WriteString("lsetstat@openssh.com"); w.WriteString(RemotePath); Attributes.Encode(ref w); },
+                                 CancellationToken);
+
+        }
+
+        /// <summary>
         /// Create a remote directory.
         /// </summary>
         public ValueTask MakeDirectoryAsync(String RemotePath, CancellationToken CancellationToken = default)
@@ -480,8 +500,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         /// Query file-system statistics via <c>statvfs@openssh.com</c> (we surface the session quota as free space).
         /// </summary>
         public async ValueTask<SftpFileSystemStats> StatVfsAsync(String RemotePath, CancellationToken CancellationToken = default)
+            => ReadStatVfs(await RoundtripAsync(SftpPacketType.Extended, (ref SshPacketWriter w) => { w.WriteString("statvfs@openssh.com"); w.WriteString(RemotePath); }, CancellationToken).ConfigureAwait(false));
+
+        // fstatvfs@openssh.com: the same, by an open handle.
+        internal async ValueTask<SftpFileSystemStats> FStatVfsAsync(String Handle, CancellationToken CancellationToken = default)
+            => ReadStatVfs(await RoundtripAsync(SftpPacketType.Extended, (ref SshPacketWriter w) => { w.WriteString("fstatvfs@openssh.com"); w.WriteString(Handle); }, CancellationToken).ConfigureAwait(false));
+
+        private static SftpFileSystemStats ReadStatVfs(Byte[] response)
         {
-            var response = await RoundtripAsync(SftpPacketType.Extended, (ref SshPacketWriter w) => { w.WriteString("statvfs@openssh.com"); w.WriteString(RemotePath); }, CancellationToken).ConfigureAwait(false);
             EnsureNotStatusError(response);
             var reader = new SshPacketReader(response); reader.ReadByte(); reader.ReadUInt32();
             return new SftpFileSystemStats(
