@@ -264,6 +264,12 @@ public sealed class StreamReceiveBuffer
         if (end > HighestReceivedOffset)
             HighestReceivedOffset = end;
 
+        // After our STOP_SENDING (§3.5), what still arrives is for nobody. It counts against the
+        // window and towards the final size, as checked above, and is dropped. Until 2026-11-03 it
+        // was kept until the peer's RESET_STREAM came, up to the stream window.
+        if (ReadingAborted)
+            return StreamReceiveResult.Ok;
+
         // Skip data already consumed.
         if (!data.IsEmpty && end > _readOffset)
         {
