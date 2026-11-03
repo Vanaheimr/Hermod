@@ -332,6 +332,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         }
 
+        // What is not a link is set as SETSTAT sets it. A link itself is refused rather than followed: a
+        // link's mode means nothing on Linux, its size is its target's length, and following it is exactly
+        // what the client asked not to happen.
+        public ValueTask SetLinkAttributesAsync(String Path, SftpFileAttributes Attributes, CancellationToken CancellationToken = default)
+        {
+
+            RequireWritable();
+
+            if (LinkTarget(Resolve(Path, FollowFinal: false)) is not null)
+                throw new SftpException(SftpStatusCode.OpUnsupported, "The attributes of a symbolic link itself cannot be set.");
+
+            return SetAttributesAsync(Path, Attributes, CancellationToken);
+
+        }
+
         public ValueTask MakeDirectoryAsync(String Path, CancellationToken CancellationToken = default)
         {
             RequireWritable();

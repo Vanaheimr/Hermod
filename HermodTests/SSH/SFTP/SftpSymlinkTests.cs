@@ -421,6 +421,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         #endregion
 
 
+        #region LSetStat_SetsAFile_AndLeavesWhatALinkPointsToAlone
+
+        /// <summary>
+        /// <c>lsetstat@openssh.com</c> sets a file as SETSTAT does. On a link it is refused, and what the
+        /// link points to is left as it was - which a SETSTAT, following the link, would not have done.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task LSetStat_SetsAFile_AndLeavesWhatALinkPointsToAlone(CancellationToken CancellationToken)
+        {
+
+            await using var sftp = await ConnectAsync(new LocalSftpFileSystem(root), CancellationToken);
+
+            var then = new DateTimeOffset(2001, 2, 3, 4, 5, 6, TimeSpan.Zero);
+
+            await sftp.UploadAsync("/file.txt",   Content, CancellationToken);
+            await sftp.UploadAsync("/target.txt", Content, CancellationToken);
+            await sftp.CreateSymbolicLinkAsync("/link", "target.txt", CancellationToken);
+
+            var targetBefore = File.GetLastWriteTimeUtc(Path.Combine(root, "target.txt"));
+
+            await sftp.LSetAttributesAsync("/file.txt", new SftpFileAttributes { ModifyTime = then }, CancellationToken);
+
+            var onTheLink = await Assert.CatchAsync<SftpException>(async () => await sftp.LSetAttributesAsync("/link", new SftpFileAttributes { ModifyTime = then }, CancellationToken));
+
+            Assert.Multiple(() => {
+                Assert.That(sftp.Supports("lsetstat@openssh.com"),                         Is.True, "advertised");
+                Assert.That(File.GetLastWriteTimeUtc(Path.Combine(root, "file.txt")),      Is.EqualTo(then.UtcDateTime), "a file is set as SETSTAT sets it");
+                Assert.That(onTheLink!.Code,                                               Is.EqualTo(SftpStatusCode.OpUnsupported));
+                Assert.That(File.GetLastWriteTimeUtc(Path.Combine(root, "target.txt")),    Is.EqualTo(targetBefore), "the link's target is left alone");
+            });
+
+        }
+
+        #endregion
+
+        #region LSetStat_NeedsTheRightToWrite
+
+        [Test]
+        [CancelAfter(20000)]
+        public async Task LSetStat_NeedsTheRightToWrite(CancellationToken CancellationToken)
+        {
+
+            var fileSystem = new LocalSftpFileSystem(root);
+
+            await using (var setup = await ConnectAsync(fileSystem, CancellationToken))
+                await setup.UploadAsync("/firmware.bin", Content, CancellationToken);
+
+            await using var downloadOnly = await ConnectAsync(fileSystem, CancellationToken, SshAccessProfile.SftpDownloadOnly);
+
+            var refused = await Assert.CatchAsync<SftpException>(async () =>
+                              await downloadOnly.LSetAttributesAsync("/firmware.bin", new SftpFileAttributes { ModifyTime = DateTimeOffset.UnixEpoch }, CancellationToken));
+
+            Assert.That(refused!.Code, Is.EqualTo(SftpStatusCode.PermissionDenied));
+
+        }
+
+        #endregion
+
+        #region FileStream_StatVfs_AnswersAsStatVfs
+
+        /// <summary>
+        /// <c>fstatvfs@openssh.com</c> through an open stream answers as <c>statvfs@openssh.com</c> on its path.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task FileStream_StatVfs_AnswersAsStatVfs(CancellationToken CancellationToken)
+        {
+
+            await using var sftp = await ConnectAsync(new LocalSftpFileSystem(root), CancellationToken);
+
+            await sftp.UploadAsync("/log.txt", Content, CancellationToken);
+
+            await using var stream = await sftp.OpenFileStreamAsync("/log.txt", SftpOpenFlags.Read, CancellationToken);
+
+            Assert.That(await stream.StatVfsAsync(CancellationToken), Is.EqualTo(await sftp.StatVfsAsync("/log.txt", CancellationToken)));
+
+        }
+
+        #endregion
+
+
         // The server still holds the file open for writing, so it is read sharing that.
         private static Byte[] ReadShared(String Physical)
         {
