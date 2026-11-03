@@ -853,29 +853,58 @@ wire-level behavior that higher-level clients refuse to generate, including
 malformed framing, pipelining, invalid trailers, connection aborts, and exact
 HTTP/1.0 behavior.
 
-The principal regression suites are:
+The HTTP/1.x regression selection is the fixtures below, by concern, all of
+them under `HermodTests/HTTP/`. The filter matches a substring of each test's
+fully qualified name, so `HTTPClientTests` also takes in
+`Concurrent/HTTPClientTests` and the .NET interop fixtures under `dotNET/` and
+`Concurrent/dotNET/`: `DotNetHTTPClientTests`, `HTTPClientTests_MinimalAPI`
+and `DotNetHTTPClientTests_MinimalAPI`.
 
-- `HermodTests/HTTP/HTTPClientTests.cs`
-- `HermodTests/HTTP/dotNET/HTTPClientTests_MinimalAPI.cs`
-- `HermodTests/HTTP/dotNET/DotNetHTTPClientTests.cs`
-- `HermodTests/HTTP/HTTPServerSocketRegressionTests.cs`
-- `HermodTests/HTTP/HTTPClientProtocolRegressionTests.cs`
-- `HermodTests/HTTP/HTTP11AuditRegressionTests.cs`
-- `HermodTests/HTTP/HTTPServerListenerMatrixTests.cs`
-- `HermodTests/HTTP/HTTPStatusCodeTests.cs`
-- `HermodTests/HTTP/ContentEncodingHeaderTests.cs`
-- `HermodTests/HTTP/HTTPDigestAuthenticationTests.cs`
-- `HermodTests/HTTP/ContentCodingStreamTests.cs`
-- `HermodTests/HTTP/ClientContentDecodingTests.cs`
-- `HermodTests/HTTP/ServerContentCompressionTests.cs`
+- **Framing, connections, the client and the server end to end:**
+  `HTTPClientTests`, `HTTPServerSocketRegressionTests`,
+  `HTTPClientProtocolRegressionTests`, `HTTP11AuditRegressionTests`,
+  `HTTP_TCPClientTests`, `ChunkedFramingTests`, `TransferCodingTests`,
+  `BodilessResponseTests`, `HTTPLineEndingTests`, `HTTPClientPoolTests`
+- **Methods and status codes, interim responses included:**
+  `HTTPStatusCodeTests`, `HTTPHeadDerivedFromGetTests`,
+  `HTTPServerTraceTests`, `HTTPCORSPreflightTests`, `EarlyHintsTests`,
+  `ProblemDetailsTests`
+- **TLS, and the origin a connection is for:**
+  `HTTPServerListenerMatrixTests`, `HTTPServerALPNTests`,
+  `HTTPServerAllowedTLSProtocolsTests`, `HTTPSClientTLSByDefaultTests`,
+  `HTTPSClientHandshakeTimeoutTests`, `AcceptedConnectionTests`,
+  `MisdirectedRequestTests`
+- **Content codings, in both roles:** `ContentEncodingHeaderTests`,
+  `ContentCodingStreamTests`, `ClientContentDecodingTests`,
+  `ServerContentCompressionTests`
+- **Typed fields:** `ResponseHeaderFieldTests`, `StructuredFieldsTests`,
+  `HTTPDateTests`, `HTTPCookiesTests`, `ForwardedFieldTests`,
+  `AlternativeServicesTests`, `DigestFieldsTests`, `LinkFieldTests`,
+  `ContentDispositionTests`, `StrictTransportSecurityTests`
+- **Authentication:** `HTTPDigestAuthenticationTests`
 
-As of the verification date, the broad HTTP/1.x regression selection contains
-**372 passing tests, 0 failed, 0 skipped**.
+Under `Tests.HTTP` and deliberately not in it: the version-neutral models of
+URLs, query strings, hostnames and methods, IPv6 zone identifiers included;
+the `HTTPAPI` and `HTTPExtAPI` application layer, with its users, keys,
+sessions, passkeys and entities; the routing helpers and the static-content
+handlers; the `HTTPTestServer`; logging; Server-Sent Events, an application
+protocol of their own; and WebSockets, which have a filter of their own,
+`FullyQualifiedName~Hermod.Tests.HTTP.WebSockets`. `HTTPClientLazyDNSClientTests`
+is not in it either: its subject is when a client builds its DNS client, which
+is a cost and not the protocol.
+
+A fixture joins the selection when it is named here, and not before. Until
+2026-11-03 the filter had eleven names, and twenty-seven protocol fixtures were
+outside it, all but `HTTP_TCPClientTests` added after the list was first
+written: the typed fields, `103`, `421`, `HEAD`, `TRACE`, ALPN and the TLS
+versions among them, many of them the regression tests of findings from
+HTTP1ConformanceTests. On master `e0a9413e` the eleven names select **381** tests
+and the thirty-eight below select **782 passing, 0 failed, 0 skipped**.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests"
 ```
 
 ## Deliberate exclusions and qualification
