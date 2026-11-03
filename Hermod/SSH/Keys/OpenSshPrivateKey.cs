@@ -22,6 +22,9 @@ using System.Buffers;
 using System.Numerics;
 using System.Security.Cryptography;
 
+using Org.BouncyCastle.Crypto.Macs;
+using Org.BouncyCastle.Crypto.Parameters;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
@@ -35,8 +38,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     /// <summary>
     /// Reads and writes the modern OpenSSH private-key format (<c>-----BEGIN OPENSSH PRIVATE KEY-----</c>,
-    /// magic <c>openssh-key-v1</c>). Reading supports both unencrypted keys and passphrase-protected keys
-    /// (<c>aes256-ctr</c> + <c>bcrypt</c> KDF); writing produces unencrypted keys.
+    /// magic <c>openssh-key-v1</c>). Reading supports unencrypted keys and passphrase-protected ones (the
+    /// <c>bcrypt</c> KDF) in every cipher <c>ssh-keygen -Z</c> writes but <c>3des-cbc</c>: AES-CTR and AES-CBC
+    /// with 128, 192 and 256 bits, <c>aes128-gcm</c>/<c>aes256-gcm@openssh.com</c> and
+    /// <c>chacha20-poly1305@openssh.com</c>. Writing produces unencrypted keys.
     /// </summary>
     public static class OpenSshPrivateKey
     {
@@ -46,6 +51,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private const String PemHeader   = "-----BEGIN OPENSSH PRIVATE KEY-----";
         private const String PemFooter   = "-----END OPENSSH PRIVATE KEY-----";
         private static ReadOnlySpan<Byte> AuthMagic => "openssh-key-v1\0"u8;
+
+        private enum Mode { Ctr, Cbc, Gcm, ChaChaPoly }
+
+        // What OpenSSH's cipher table says of each: key and IV length - the bcrypt KDF yields both - and
+        // the length of the tag an AEAD cipher appends after the encrypted area.
+        private sealed record KeyCipher(Mode Mode, Int32 KeyLength, Int32 IvLength, Int32 TagLength);
+
+        private static readonly Dictionary<String, KeyCipher> Ciphers = new () {
+            ["aes128-ctr"]                     = new (Mode.Ctr,        16, 16,  0),
+            ["aes192-ctr"]                     = new (Mode.Ctr,        24, 16,  0),
+            ["aes256-ctr"]                     = new (Mode.Ctr,        32, 16,  0),
+            ["aes128-cbc"]                     = new (Mode.Cbc,        16, 16,  0),
+            ["aes192-cbc"]                     = new (Mode.Cbc,        24, 16,  0),
+            ["aes256-cbc"]                     = new (Mode.Cbc,        32, 16,  0),
+            ["aes128-gcm@openssh.com"]         = new (Mode.Gcm,        16, 12, 16),
+            ["aes256-gcm@openssh.com"]         = new (Mode.Gcm,        32, 12, 16),
+            ["chacha20-poly1305@openssh.com"]  = new (Mode.ChaChaPoly, 64,  0, 16)
+        };
 
         #endregion
 
@@ -77,9 +100,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             _               = reader.ReadBinaryString();        // public key (re-derived from the private key)
             var privateArea = reader.ReadBinaryString();
 
-            var plaintext = cipherName == "none"
-                                ? privateArea
-                                : Decrypt(privateArea, cipherName, kdfName, kdfOptions, Passphrase);
+            if (cipherName == "none")
+                return ParsePrivateArea(privateArea);
+
+            var cipher = CipherFor(cipherName);
+
+            // An AEAD cipher's tag follows the encrypted area, outside its length.
+            var tag = reader.ReadBytes(cipher.TagLength).ToArray();
+
+            var plaintext = Decrypt(privateArea, tag, cipher, kdfName, kdfOptions, Passphrase);
 
             return ParsePrivateArea(plaintext);
 
@@ -154,13 +183,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
-        #region (private) Decrypt(PrivateArea, CipherName, KdfName, KdfOptions, Passphrase)
+        #region (private) Decrypt(PrivateArea, Tag, Cipher, KdfName, KdfOptions, Passphrase)
 
-        private static Byte[] Decrypt(Byte[] PrivateArea, String CipherName, String KdfName, Byte[] KdfOptions, String? Passphrase)
+        private static KeyCipher CipherFor(String CipherName)
         {
 
-            if (CipherName != "aes256-ctr")
-                throw new SshWireException($"Unsupported openssh-key-v1 cipher '{CipherName}' (only aes256-ctr is supported).");
+            if (Ciphers.TryGetValue(CipherName, out var cipher))
+                return cipher;
+
+            throw new SshWireException(CipherName == "3des-cbc"
+                                           ? "The openssh-key-v1 cipher '3des-cbc' is not supported - re-encrypt the key, e.g. 'ssh-keygen -p -Z aes256-ctr'."
+                                           : $"Unsupported openssh-key-v1 cipher '{CipherName}'.");
+
+        }
+
+        private static Byte[] Decrypt(Byte[] PrivateArea, Byte[] Tag, KeyCipher Cipher, String KdfName, Byte[] KdfOptions, String? Passphrase)
+        {
 
             if (KdfName != "bcrypt")
                 throw new SshWireException($"Unsupported openssh-key-v1 KDF '{KdfName}'.");
@@ -172,22 +210,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var salt           = optionsReader.ReadBinaryString();
             var rounds         = (Int32) optionsReader.ReadUInt32();
 
-            // aes256-ctr: 32-byte key + 16-byte IV.
-            var keyIv  = BcryptPbkdf.DeriveKey(Encoding.UTF8.GetBytes(Passphrase), salt, rounds, 32 + 16);
-            var key    = keyIv.AsSpan(0, 32).ToArray();
-            var iv     = keyIv.AsSpan(32, 16).ToArray();
+            var keyIv  = BcryptPbkdf.DeriveKey(Encoding.UTF8.GetBytes(Passphrase), salt, rounds, Cipher.KeyLength + Cipher.IvLength);
+            var key    = keyIv.AsSpan(0, Cipher.KeyLength).ToArray();
+            var iv     = keyIv.AsSpan(Cipher.KeyLength, Cipher.IvLength).ToArray();
 
-            var plaintext = (Byte[]) PrivateArea.Clone();
-            AesCtrXor(key, iv, plaintext);
+            try
+            {
+                switch (Cipher.Mode)
+                {
 
-            CryptographicOperations.ZeroMemory(keyIv);
-            CryptographicOperations.ZeroMemory(key);
+                    case Mode.Ctr:
+                    {
+                        var plaintext = (Byte[]) PrivateArea.Clone();
+                        AesCtrXor(key, iv, plaintext);
+                        return plaintext;
+                    }
 
+                    case Mode.Cbc:
+                    {
+                        if (PrivateArea.Length % 16 != 0)
+                            throw new SshWireException("The encrypted private-key area is not a whole number of AES blocks.");
+                        using var aes = Aes.Create();
+                        aes.Key = key;
+                        return aes.DecryptCbc(PrivateArea, iv, PaddingMode.None);
+                    }
+
+                    // No additional data and the IV as derived: what OpenSSH's cipher_crypt() does with
+                    // sequence number 0.
+                    case Mode.Gcm:
+                    {
+                        var plaintext = new Byte[PrivateArea.Length];
+                        using var gcm = new AesGcm(key, Cipher.TagLength);
+                        try
+                        {
+                            gcm.Decrypt(iv, PrivateArea, Tag, plaintext);
+                        }
+                        catch (AuthenticationTagMismatchException)
+                        {
+                            throw new SshAuthenticationException("The private key failed its integrity check (wrong passphrase?).");
+                        }
+                        return plaintext;
+                    }
+
+                    default:
+                        return ChaChaPolyDecrypt(key, PrivateArea, Tag);
+
+                }
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(keyIv);
+                CryptographicOperations.ZeroMemory(key);
+            }
+
+        }
+
+        // chacha20-poly1305@openssh.com with sequence number 0 and no length header, as OpenSSH uses it for
+        // key files: the first 32 key bytes make the Poly1305 key (keystream block 0) and decrypt the area
+        // (from block 1); the header half of the key has no length to decrypt here.
+        private static Byte[] ChaChaPolyDecrypt(Byte[] Key, Byte[] Ciphertext, Byte[] Tag)
+        {
+
+            var mainKey  = Key.AsSpan(0, 32);
+            var nonce    = new Byte[ChaCha20.NonceSize];
+            var block    = new Byte[ChaCha20.BlockSize];
+            var expected = new Byte[16];
+
+            ChaCha20.Keystream(mainKey, nonce, 0, block);
+
+            var poly = new Poly1305();
+            poly.Init(new KeyParameter(block, 0, 32));
+            poly.BlockUpdate(Ciphertext, 0, Ciphertext.Length);
+            poly.DoFinal(expected, 0);
+
+            CryptographicOperations.ZeroMemory(block);
+
+            if (!CryptographicOperations.FixedTimeEquals(expected, Tag))
+                throw new SshAuthenticationException("The private key failed its integrity check (wrong passphrase?).");
+
+            var plaintext = new Byte[Ciphertext.Length];
+            ChaCha20.Xor(mainKey, nonce, 1, Ciphertext, plaintext);
             return plaintext;
 
         }
 
-        // Raw AES-256-CTR: keystream = AES_ECB(counter), big-endian 128-bit counter starting at the IV.
+        // Raw AES-CTR: keystream = AES_ECB(counter), big-endian 128-bit counter starting at the IV.
         private static void AesCtrXor(Byte[] Key, Byte[] Iv, Span<Byte> Data)
         {
 
