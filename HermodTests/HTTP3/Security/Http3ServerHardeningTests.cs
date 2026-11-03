@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -30,10 +31,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP3.Security;
 
 /// <summary>
 /// Hardening of the server facade: a bounded number of connections, a demux that does not get more
-/// expensive with every client, timers that keep running under steady traffic, and a limit on
-/// buffered request bodies.
+/// expensive with every client, a loop that receives on after a failed receive, timers that keep
+/// running under steady traffic, and a limit on buffered request bodies.
 /// <para>
-/// The first five tests speak over real UDP sockets and keep the real clock, because their subject
+/// The first six tests speak over real UDP sockets and keep the real clock, because their subject
 /// (a connection cap, a third client running into its own timeout, the server's own timer schedule)
 /// is made of real timeouts. Two of them give the server's connections a
 /// <see cref="FakeTimeProvider"/> all the same: what they test is the loop's schedule, and the
@@ -114,6 +115,32 @@ public class Http3ServerHardeningTests
             foreach (Http3Client client in connections)
                 await client.DisposeAsync();
         }
+    }
+
+    [Test]
+    public async Task AFailedReceive_DoesNotEndReceiving()
+    {
+        // A failed receive throws only when awaited. Until 2026-11-01 the loop did not await it:
+        // the failed task stayed in place, every later pass found it completed, and no datagram
+        // was received any more. A real socket here hardly ever fails a receive, so the seam does.
+        using var cert = ServerCertificate.CreateSelfSigned("localhost");
+        var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
+
+        await using var server = new Http3Server(cert,
+            _ => new Http3Response { Status = 200, Body = "ok"u8.ToArray() }, port: 0);
+        int receives = 0;
+        server.ReceiveForTest = (udp, cancellationToken) =>
+            Interlocked.Increment(ref receives) == 1
+                ? ValueTask.FromException<UdpReceiveResult>(new SocketException((int)SocketError.ConnectionReset))
+                : udp.ReceiveAsync(cancellationToken);
+        server.Start();
+
+        await using var client = new Http3Client("localhost", server.Port, validation);
+        await client.ConnectAsync(TimeSpan.FromSeconds(10));
+        Http3Response response = await client.GetAsync("/after-the-failure").WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.That(response.Status, Is.EqualTo(200));
+        Assert.That(receives, Is.GreaterThan(1), "The loop has to receive again after the failure.");
     }
 
     [Test]
