@@ -193,8 +193,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                                : BuildName(Request.RequestId, entries);
                 }
 
-                case SftpPacketType.Stat or SftpPacketType.LStat:
+                case SftpPacketType.Stat:
                     return BuildAttrs(Request.RequestId, await FileSystem.StatAsync(Request.Path, CancellationToken).ConfigureAwait(false));
+
+                case SftpPacketType.LStat:
+                    return BuildAttrs(Request.RequestId, await FileSystem.LStatAsync(Request.Path, CancellationToken).ConfigureAwait(false));
+
+                case SftpPacketType.ReadLink:
+                    return BuildName(Request.RequestId, [ new SftpDirectoryEntry(await FileSystem.ReadLinkAsync(Request.Path, CancellationToken).ConfigureAwait(false), new ()) ]);
+
+                // A link is an entry of its own, so it counts against the file-count quota like a file.
+                case SftpPacketType.Symlink:
+                    Session.Quota?.CheckCanCreate(Request.Path);
+                    await FileSystem.CreateSymbolicLinkAsync(Request.Path, Request.TargetPath, CancellationToken).ConfigureAwait(false);
+                    Session.Quota?.RegisterCreated(Request.Path);
+                    return BuildStatus(Request.RequestId, SftpStatusCode.Ok, "OK");
 
                 case SftpPacketType.FStat:
                 {
@@ -471,8 +484,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                     break;
 
                 case SftpPacketType.OpenDir or SftpPacketType.RealPath or SftpPacketType.Stat or
-                     SftpPacketType.LStat or SftpPacketType.MkDir or SftpPacketType.Remove or SftpPacketType.RmDir:
+                     SftpPacketType.LStat or SftpPacketType.MkDir or SftpPacketType.Remove or SftpPacketType.RmDir or
+                     SftpPacketType.ReadLink:
                     path = reader.ReadString();
+                    break;
+
+                // The target comes first and the link second: OpenSSH swapped the two against the draft
+                // (draft-ietf-secsh-filexfer-02) long ago, and every client since speaks OpenSSH's order.
+                case SftpPacketType.Symlink:
+                    target = reader.ReadString();
+                    path   = reader.ReadString();
                     break;
 
                 case SftpPacketType.SetStat:
@@ -548,6 +569,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                    SftpPacketType.Stat      => SftpPermissions.Stat,
                    SftpPacketType.LStat     => SftpPermissions.Stat,
                    SftpPacketType.FStat     => SftpPermissions.Stat,
+                   SftpPacketType.ReadLink  => SftpPermissions.Stat,
+
+                   // A link is a new entry, like a created file.
+                   SftpPacketType.Symlink   => SftpPermissions.Create,
 
                    // Changing a file's size, times or permissions changes the file.
                    SftpPacketType.SetStat   => SftpPermissions.Write,
@@ -651,7 +676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         private static String LongName(SftpDirectoryEntry Entry)
         {
-            var type = Entry.Attributes.IsDirectory ? 'd' : '-';
+            var type = Entry.Attributes.IsDirectory ? 'd' : Entry.Attributes.IsSymbolicLink ? 'l' : '-';
             var size = Entry.Attributes.Size ?? 0;
             return $"{type}rw-r--r-- 1 owner group {size,10} Jan  1 00:00 {Entry.Name}";
         }

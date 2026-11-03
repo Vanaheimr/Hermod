@@ -32,6 +32,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     /// <see cref="RandomAccess"/> so concurrent operations on one handle are safe. This is the workhorse for
     /// real device-fleet use (paired with the upload-only / download-only access profiles).
     /// </summary>
+    /// <remarks>
+    /// Symbolic links are followed here rather than by the operating system: every link on a path is read
+    /// and the path it leads to checked against the root, so a link that leads out of the root - one a
+    /// client made, or one that was there before - is refused rather than followed. A client can only make
+    /// links that lead into the root, and they are stored relative to the link, so they still do when the
+    /// root moves. What this cannot guard against is another process swapping a directory on the path for
+    /// a link between the check and the open.
+    /// </remarks>
     public sealed class LocalSftpFileSystem : ISftpFileSystem
     {
 
@@ -45,6 +53,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         private readonly Dictionary<String, Object>   handles = [];
         private readonly Lock                         gate    = new ();
         private Int64                                 handleCounter;
+
+        /// <summary>
+        /// The links followed on one path before it is given up as a loop, as Linux's limit.
+        /// </summary>
+        private const Int32 MaxLinkHops = 40;
 
         private static readonly StringComparison PathComparison =
             OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
@@ -153,13 +166,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                 new ("..", SftpFileAttributes.Directory())
             };
 
+            // A listing shows a link as a link, as LSTAT does, not what it points to.
             return Guard(() =>
             {
-                foreach (var dir in Directory.EnumerateDirectories(physical))
-                    entries.Add(new SftpDirectoryEntry(System.IO.Path.GetFileName(dir), DirectoryAttributes(dir)));
-
-                foreach (var file in Directory.EnumerateFiles(physical))
-                    entries.Add(new SftpDirectoryEntry(System.IO.Path.GetFileName(file), FileAttributesFor(file)));
+                foreach (var entry in new DirectoryInfo(physical).EnumerateFileSystemInfos())
+                    entries.Add(new SftpDirectoryEntry(entry.Name, LStatAttributes(entry.FullName)));
 
                 return ValueTask.FromResult(Register(new DirEntry { Entries = entries }));
             });
@@ -191,6 +202,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                 return ValueTask.FromResult(DirectoryAttributes(physical));
 
             throw new SftpException(SftpStatusCode.NoSuchFile, $"No such path: {Path}");
+
+        }
+
+        public ValueTask<SftpFileAttributes> LStatAsync(String Path, CancellationToken CancellationToken = default)
+        {
+
+            var physical = Resolve(Path, FollowFinal: false);
+
+            if (!Exists(physical))
+                throw new SftpException(SftpStatusCode.NoSuchFile, $"No such path: {Path}");
+
+            return Guard(() => ValueTask.FromResult(LStatAttributes(physical)));
+
+        }
+
+        public ValueTask<String> ReadLinkAsync(String Path, CancellationToken CancellationToken = default)
+        {
+
+            var physical = Resolve(Path, FollowFinal: false);
+
+            if (!Exists(physical))
+                throw new SftpException(SftpStatusCode.NoSuchFile, $"No such path: {Path}");
+
+            var target = LinkTarget(physical)
+                             ?? throw new SftpException(SftpStatusCode.Failure, $"Not a symbolic link: {Path}");
+
+            // Never the server's own paths: a relative target is shown as it stands, an absolute one (a link
+            // a client did not make) is mapped back into the root, and one that leads out of it not at all.
+            var landed = Landing(physical, target);
+
+            if (!InRoot(landed))
+                throw new SftpException(SftpStatusCode.PermissionDenied, "The symbolic link leads out of the root jail.");
+
+            return ValueTask.FromResult(System.IO.Path.IsPathRooted(target)
+                                            ? ToVirtual(landed)
+                                            : target.Replace('\\', '/'));
+
+        }
+
+        public ValueTask CreateSymbolicLinkAsync(String LinkPath, String TargetPath, CancellationToken CancellationToken = default)
+        {
+
+            RequireWritable();
+
+            var link = Resolve(LinkPath, FollowFinal: false);
+
+            if (Exists(link))
+                throw new SftpException(SftpStatusCode.Failure, $"Already exists: {LinkPath}");
+
+            // The target is a client path, absolute or relative to the link's directory, and has to lie
+            // within the root. It is stored relative to the link - an absolute one too, which on disk would
+            // name the server's own root - and that is what READLINK reads back.
+            var directory = System.IO.Path.GetDirectoryName(link)!;
+            var target    = Lexical(TargetPath.StartsWith('/')
+                                        ? TargetPath
+                                        : ToVirtual(directory).TrimEnd('/') + "/" + TargetPath);
+            var relative  = System.IO.Path.GetRelativePath(directory, target);
+
+            return Guard(() =>
+            {
+                if (Directory.Exists(target))
+                    Directory.CreateSymbolicLink(link, relative);
+                else
+                    System.IO.File.CreateSymbolicLink(link, relative);
+                return ValueTask.CompletedTask;
+            });
 
         }
 
@@ -258,14 +335,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         public ValueTask MakeDirectoryAsync(String Path, CancellationToken CancellationToken = default)
         {
             RequireWritable();
-            var physical = Resolve(Path);
+            var physical = Resolve(Path, FollowFinal: false);
+            if (LinkTarget(physical) is not null)
+                throw new SftpException(SftpStatusCode.Failure, $"Already exists: {Path}");
             return Guard(() => { Directory.CreateDirectory(physical); return ValueTask.CompletedTask; });
         }
 
+        // A link is removed itself, never what it points to - also a link to a directory, which REMOVE
+        // takes as POSIX unlink() does.
         public ValueTask RemoveAsync(String Path, CancellationToken CancellationToken = default)
         {
             RequireWritable();
-            var physical = Resolve(Path);
+            var physical = Resolve(Path, FollowFinal: false);
+            if (LinkTarget(physical) is not null)
+                return Guard(() => { DeleteLink(physical); return ValueTask.CompletedTask; });
             if (!System.IO.File.Exists(physical))
                 throw new SftpException(SftpStatusCode.NoSuchFile, $"No such file: {Path}");
             return Guard(() => { System.IO.File.Delete(physical); return ValueTask.CompletedTask; });
@@ -274,7 +357,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         public ValueTask RemoveDirectoryAsync(String Path, CancellationToken CancellationToken = default)
         {
             RequireWritable();
-            var physical = Resolve(Path);
+            var physical = Resolve(Path, FollowFinal: false);
+            if (LinkTarget(physical) is not null)
+                throw new SftpException(SftpStatusCode.Failure, $"Not a directory: {Path}");
             if (!Directory.Exists(physical))
                 throw new SftpException(SftpStatusCode.NoSuchFile, $"No such directory: {Path}");
             return Guard(() => { Directory.Delete(physical, recursive: false); return ValueTask.CompletedTask; });
@@ -283,11 +368,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         public ValueTask RenameAsync(String OldPath, String NewPath, CancellationToken CancellationToken = default)
         {
             RequireWritable();
-            var oldPhysical = Resolve(OldPath);
-            var newPhysical = Resolve(NewPath);
+            var oldPhysical = Resolve(OldPath, FollowFinal: false);
+            var newPhysical = Resolve(NewPath, FollowFinal: false);
             return Guard(() =>
             {
-                if (System.IO.File.Exists(oldPhysical))
+                // A link moves itself. A relative one that now leads out of the root is refused on use.
+                if (LinkTarget(oldPhysical) is not null)
+                {
+                    if (Exists(newPhysical))
+                        throw new SftpException(SftpStatusCode.Failure, $"Already exists: {NewPath}");
+                    if (System.IO.File.GetAttributes(oldPhysical).HasFlag(System.IO.FileAttributes.Directory))
+                        Directory.Move(oldPhysical, newPhysical);
+                    else
+                        System.IO.File.Move(oldPhysical, newPhysical, overwrite: false);
+                }
+                else if (System.IO.File.Exists(oldPhysical))
                     System.IO.File.Move(oldPhysical, newPhysical, overwrite: false);
                 else if (Directory.Exists(oldPhysical))
                     Directory.Move(oldPhysical, newPhysical);
@@ -305,21 +400,82 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region (private) path jail
 
-        // Map a client POSIX path to a physical path, guaranteeing it stays within the root jail.
-        private String Resolve(String VirtualPath)
+        // Map a client POSIX path to a physical path within the root jail, following its symbolic links -
+        // the last one too, unless FollowFinal is false (LSTAT, READLINK, and what acts on a link itself).
+        private String Resolve(String VirtualPath, Boolean FollowFinal = true)
+            => FollowLinks(Lexical(VirtualPath), FollowFinal);
+
+        // The path as written, canonicalized: it must be the root itself or live strictly beneath it.
+        private String Lexical(String VirtualPath)
         {
 
             var relative  = VirtualPath.Replace('\\', '/').TrimStart('/');
             var combined  = Path.GetFullPath(Path.Combine(root, relative));
 
-            // Canonicalized path must be the root itself or live strictly beneath it.
-            if (!combined.Equals(root, PathComparison) &&
-                !combined.StartsWith(root + Path.DirectorySeparatorChar, PathComparison))
+            if (!InRoot(combined))
                 throw new SftpException(SftpStatusCode.PermissionDenied, "Path escapes the root jail.");
 
             return combined;
 
         }
+
+        // Walk the path below the root one name at a time. A link is read and replaced by where it leads,
+        // which must again be within the root, and the walk starts over from there - so the path handed to
+        // the operating system holds no link it would follow on its own.
+        private String FollowLinks(String Physical, Boolean FollowFinal)
+        {
+
+            var hops = 0;
+
+            while (true)
+            {
+
+                var relative = Path.GetRelativePath(root, Physical);
+                var names    = relative == "." ? [] : relative.Split(Path.DirectorySeparatorChar);
+                var current  = root;
+                var restart  = false;
+
+                for (var i = 0; i < names.Length && !restart; i++)
+                {
+
+                    var next = Path.Combine(current, names[i]);
+
+                    if ((i < names.Length - 1 || FollowFinal) && LinkTarget(next) is String target)
+                    {
+
+                        if (++hops > MaxLinkHops)
+                            throw new SftpException(SftpStatusCode.Failure, "Too many levels of symbolic links.");
+
+                        var landed = Landing(next, target);
+
+                        if (!InRoot(landed))
+                            throw new SftpException(SftpStatusCode.PermissionDenied, "A symbolic link leads out of the root jail.");
+
+                        Physical = Path.Combine([ landed, .. names[(i + 1)..] ]);
+                        restart  = true;
+
+                    }
+                    else
+                        current = next;
+
+                }
+
+                if (!restart)
+                    return current;
+
+            }
+
+        }
+
+        // Where a link's target leads: an absolute one as it stands, a relative one from the link's directory.
+        private static String Landing(String Link, String Target)
+            => Path.GetFullPath(Path.IsPathRooted(Target)
+                                    ? Target
+                                    : Path.Combine(Path.GetDirectoryName(Link)!, Target));
+
+        private Boolean InRoot(String Physical)
+            => Physical.Equals(root, PathComparison) ||
+               Physical.StartsWith(root + Path.DirectorySeparatorChar, PathComparison);
 
         // Map a physical path back to its POSIX virtual path (never leaking the physical root).
         private String ToVirtual(String Physical)
@@ -339,6 +495,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         /// read-only attribute.
         /// </summary>
         private const UInt32 OwnerWrite = 0x80;
+
+        // The path a symbolic link holds, or null for anything else - a missing path, or one below a file,
+        // included: the operation that follows reports those. Junctions count as links; other reparse
+        // points (deduplicated or cloud files) do not. Nothing here may carry a physical path to the client.
+        private static String? LinkTarget(String Physical)
+        {
+            try
+            {
+                var attributes = System.IO.File.GetAttributes(Physical);
+                if (!attributes.HasFlag(System.IO.FileAttributes.ReparsePoint))
+                    return null;
+                FileSystemInfo info = attributes.HasFlag(System.IO.FileAttributes.Directory)
+                                          ? new DirectoryInfo(Physical)
+                                          : new FileInfo(Physical);
+                return info.LinkTarget;
+            }
+            catch (IOException)                 { return null; }
+            catch (UnauthorizedAccessException) { throw new SftpException(SftpStatusCode.PermissionDenied, "Permission denied."); }
+        }
+
+        // Whether anything is there, a link that leads nowhere included.
+        private static Boolean Exists(String Physical)
+            => LinkTarget(Physical) is not null || System.IO.File.Exists(Physical) || Directory.Exists(Physical);
+
+        // A link goes as itself: a link to a directory on Windows is a directory entry of its own.
+        private static void DeleteLink(String Physical)
+        {
+            if (System.IO.File.GetAttributes(Physical).HasFlag(System.IO.FileAttributes.Directory))
+                Directory.Delete(Physical);
+            else
+                System.IO.File.Delete(Physical);
+        }
+
+        // What LSTAT reports: a link as a link, anything else as STAT would.
+        private static SftpFileAttributes LStatAttributes(String Physical)
+        {
+
+            if (LinkTarget(Physical) is String target)
+            {
+                var info = new FileInfo(Physical);
+                return SftpFileAttributes.SymbolicLink(System.Text.Encoding.UTF8.GetByteCount(target)) with {
+                           AccessTime = new DateTimeOffset(info.LastAccessTimeUtc, TimeSpan.Zero),
+                           ModifyTime = new DateTimeOffset(info.LastWriteTimeUtc,  TimeSpan.Zero)
+                       };
+            }
+
+            return Directory.Exists(Physical)
+                       ? DirectoryAttributes(Physical)
+                       : FileAttributesFor(Physical);
+
+        }
 
         private void RequireWritable()
         {

@@ -170,10 +170,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         }
 
         /// <summary>
-        /// Not supported: SFTP v3 has no in-place truncation on this stream.
+        /// Truncate or extend the remote file to <paramref name="Length"/> bytes, through its handle
+        /// (FSETSTAT with a size). The position stays where it was, as with a <see cref="FileStream"/>.
         /// </summary>
+        public async ValueTask SetLengthAsync(Int64 Length, CancellationToken CancellationToken = default)
+        {
+
+            ObjectDisposedException.ThrowIf(closed, this);
+            ArgumentOutOfRangeException.ThrowIfNegative(Length);
+
+            if (!writable)
+                throw new NotSupportedException("The stream is not writable.");
+
+            await client.SetHandleAttributesAsync(handle, new SftpFileAttributes { Size = Length }, CancellationToken).ConfigureAwait(false);
+
+            length = Length;
+
+        }
+
+        /// <inheritdoc cref="SetLengthAsync"/>
         public override void SetLength(Int64 value)
-            => throw new NotSupportedException("SFTP v3 file streams do not support SetLength.");
+            => SetLengthAsync(value, CancellationToken.None).AsTask().GetAwaiter().GetResult();
 
         #endregion
 

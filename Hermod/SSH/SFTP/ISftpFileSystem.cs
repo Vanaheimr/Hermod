@@ -88,6 +88,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         ValueTask<SftpFileAttributes> StatAsync(String Path, CancellationToken CancellationToken = default);
 
         /// <summary>
+        /// Get the attributes of a path without following it if it is a symbolic link (LSTAT). The default
+        /// is <see cref="StatAsync"/>, which is the right answer for a file system without links.
+        /// </summary>
+        ValueTask<SftpFileAttributes> LStatAsync(String Path, CancellationToken CancellationToken = default)
+            => StatAsync(Path, CancellationToken);
+
+        /// <summary>
+        /// The path a symbolic link holds (READLINK). The default refuses: a file system without links
+        /// has none to read.
+        /// </summary>
+        ValueTask<String> ReadLinkAsync(String Path, CancellationToken CancellationToken = default)
+            => throw new SftpException(SftpStatusCode.OpUnsupported, "This file system has no symbolic links.");
+
+        /// <summary>
+        /// Create the symbolic link <paramref name="LinkPath"/>, holding <paramref name="TargetPath"/>
+        /// (SYMLINK). The default refuses: a file system without links cannot make one.
+        /// </summary>
+        ValueTask CreateSymbolicLinkAsync(String LinkPath, String TargetPath, CancellationToken CancellationToken = default)
+            => throw new SftpException(SftpStatusCode.OpUnsupported, "This file system has no symbolic links.");
+
+        /// <summary>
         /// Create a directory.
         /// </summary>
         ValueTask MakeDirectoryAsync(String Path, CancellationToken CancellationToken = default);

@@ -161,6 +161,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #endregion
 
+        #region RegisterCreated(Path)
+
+        /// <summary>
+        /// Count an entry created without a handle - a symbolic link.
+        /// </summary>
+        public void RegisterCreated(String Path)
+        {
+            lock (gate)
+                filesCreated++;
+        }
+
+        #endregion
+
         #region RegisterWritable(Handle, Path, WasCreated)
 
         /// <summary>
