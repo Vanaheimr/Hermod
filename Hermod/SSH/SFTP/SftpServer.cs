@@ -19,6 +19,7 @@
 
 using System.Text;
 using System.Buffers;
+using System.Globalization;
 using System.Buffers.Binary;
 
 #endregion
@@ -134,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             {
 
                 case SftpPacketType.RealPath:
-                    return BuildName(Request.RequestId, [ new SftpDirectoryEntry(await FileSystem.RealPathAsync(Request.Path, CancellationToken).ConfigureAwait(false), SftpFileAttributes.Directory()) ]);
+                    return BuildName(Request.RequestId, new SftpDirectoryEntry(await FileSystem.RealPathAsync(Request.Path, CancellationToken).ConfigureAwait(false), SftpFileAttributes.Directory()));
 
                 case SftpPacketType.Open:
                 {
@@ -190,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                     var entries = await FileSystem.ReadDirectoryAsync(Request.Handle, CancellationToken).ConfigureAwait(false);
                     return entries.Count == 0
                                ? BuildStatus(Request.RequestId, SftpStatusCode.Eof, "EOF")
-                               : BuildName(Request.RequestId, entries);
+                               : BuildName(Request.RequestId, entries, DateTimeOffset.UtcNow);
                 }
 
                 case SftpPacketType.Stat:
@@ -200,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                     return BuildAttrs(Request.RequestId, await FileSystem.LStatAsync(Request.Path, CancellationToken).ConfigureAwait(false));
 
                 case SftpPacketType.ReadLink:
-                    return BuildName(Request.RequestId, [ new SftpDirectoryEntry(await FileSystem.ReadLinkAsync(Request.Path, CancellationToken).ConfigureAwait(false), new ()) ]);
+                    return BuildName(Request.RequestId, new SftpDirectoryEntry(await FileSystem.ReadLinkAsync(Request.Path, CancellationToken).ConfigureAwait(false), new ()));
 
                 // A link is an entry of its own, so it counts against the file-count quota like a file.
                 case SftpPacketType.Symlink:
@@ -671,7 +672,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             return abw.WrittenSpan.ToArray();
         }
 
-        private static Byte[] BuildName(UInt32 RequestId, IReadOnlyList<SftpDirectoryEntry> Entries)
+        // READDIR: each entry's longname is its line of `ls -l`, which OpenSSH's sftp prints as it comes,
+        // in the server's own time zone, as OpenSSH's server writes it.
+        private static Byte[] BuildName(UInt32 RequestId, IReadOnlyList<SftpDirectoryEntry> Entries, DateTimeOffset Now)
+            => BuildName(RequestId, Entries, entry => LongName(entry, Now, TimeZoneInfo.Local));
+
+        // REALPATH, READLINK: the longname is the name, as OpenSSH's server answers them.
+        private static Byte[] BuildName(UInt32 RequestId, SftpDirectoryEntry Entry)
+            => BuildName(RequestId, [ Entry ], entry => entry.Name);
+
+        private static Byte[] BuildName(UInt32 RequestId, IReadOnlyList<SftpDirectoryEntry> Entries, Func<SftpDirectoryEntry, String> LongNameOf)
         {
             var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
             w.WriteByte((Byte) SftpPacketType.Name);
@@ -680,18 +690,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             foreach (var entry in Entries)
             {
                 w.WriteString(entry.Name);
-                w.WriteString(LongName(entry));
+                w.WriteString(LongNameOf(entry));
                 entry.Attributes.Encode(ref w);
             }
             return abw.WrittenSpan.ToArray();
         }
 
-        private static String LongName(SftpDirectoryEntry Entry)
+        /// <summary>
+        /// The entry's line of <c>ls -l</c>, laid out as OpenSSH's server writes it: type and permission bits,
+        /// one link, owner and group by number, size, modification time and name. A client shows it as it
+        /// comes, so it says what the attributes say, and a '?' where they say nothing. The time is shown in
+        /// <paramref name="Zone"/>, with the hour and minute when it lies within half a year before
+        /// <paramref name="Now"/> and the year otherwise, as <c>ls</c> writes it.
+        /// </summary>
+        internal static String LongName(SftpDirectoryEntry Entry, DateTimeOffset Now, TimeZoneInfo Zone)
         {
-            var type = Entry.Attributes.IsDirectory ? 'd' : Entry.Attributes.IsSymbolicLink ? 'l' : '-';
-            var size = Entry.Attributes.Size ?? 0;
-            return $"{type}rw-r--r-- 1 owner group {size,10} Jan  1 00:00 {Entry.Name}";
+
+            var attributes = Entry.Attributes;
+            var modified   = attributes.ModifyTime ?? attributes.AccessTime;   // what Encode sends as the mtime
+
+            var mode       = attributes.Permissions is { } permissions ? Mode(permissions) : "??????????";
+            var owner      = attributes.UserId?.ToString(CultureInfo.InvariantCulture)  ?? "?";
+            var group      = attributes.GroupId?.ToString(CultureInfo.InvariantCulture) ?? "?";
+            var size       = attributes.Size?.ToString(CultureInfo.InvariantCulture)    ?? "?";
+            var time       = modified is { } m ? Time(m, Now, Zone) : "?";
+
+            return $"{mode}    1 {owner,-8} {group,-8} {size,8} {time,12} {Entry.Name}";
+
         }
+
+        // strmode(3): the type, then read, write and execute for owner, group and others, with setuid,
+        // setgid and sticky in the execute places - lower case where execute is set as well.
+        private static String Mode(UInt32 Permissions)
+        {
+
+            Char Bit(UInt32 Mask, Char Letter)
+                => (Permissions & Mask) != 0 ? Letter : '-';
+
+            Char Execute(UInt32 Mask, UInt32 Special, Char Letter)
+                => (Permissions & Special) == 0 ? Bit(Mask, 'x')
+                 : (Permissions & Mask)    != 0 ? Letter
+                                                : Char.ToUpperInvariant(Letter);
+
+            var type = (Permissions & 0xF000) switch {
+                           0x8000 => '-',
+                           0x4000 => 'd',
+                           0xA000 => 'l',
+                           0x2000 => 'c',
+                           0x6000 => 'b',
+                           0x1000 => 'p',
+                           0xC000 => 's',
+                           _      => '?'
+                       };
+
+            return new String(new[] {
+                                  type,
+                                  Bit(0x100, 'r'), Bit(0x080, 'w'), Execute(0x040, 0x800, 's'),
+                                  Bit(0x020, 'r'), Bit(0x010, 'w'), Execute(0x008, 0x400, 's'),
+                                  Bit(0x004, 'r'), Bit(0x002, 'w'), Execute(0x001, 0x200, 't')
+                              });
+
+        }
+
+        // ls(1): "Nov  4 16:10" within half a year before now, "Nov  4  2025" before that or in the future.
+        private static String Time(DateTimeOffset Modified, DateTimeOffset Now, TimeZoneInfo Zone)
+        {
+
+            var shown = TimeZoneInfo.ConvertTime(Modified, Zone).DateTime;
+            var month = shown.ToString("MMM", CultureInfo.InvariantCulture);
+            var day   = shown.Day.ToString(CultureInfo.InvariantCulture).PadLeft(2);
+
+            return Modified > Now - HalfAYear && Modified <= Now
+                       ? $"{month} {day} {shown.ToString("HH:mm", CultureInfo.InvariantCulture)}"
+                       : $"{month} {day}  {shown.Year.ToString(CultureInfo.InvariantCulture)}";
+
+        }
+
+        private static readonly TimeSpan HalfAYear = TimeSpan.FromSeconds(365 * 24 * 60 * 60 / 2);
 
         #endregion
 
