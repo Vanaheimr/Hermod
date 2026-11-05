@@ -108,6 +108,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         private volatile Exception?                              ended;
 
+        /// <summary>
+        /// Set by <see cref="DisposeAsync"/>: from then on, a send that gets the gate is refused.
+        /// </summary>
+        private Int32                                            disposed;
+
         #endregion
 
         #region Properties
@@ -294,7 +299,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         {
             RecordChannelActivity(Payload);
             await sendGate.WaitAsync(CancellationToken).ConfigureAwait(false);
-            try     { await transport.SendPacketAsync(Payload, CancellationToken).ConfigureAwait(false); }
+            try
+            {
+                if (Volatile.Read(ref disposed) != 0)
+                    throw new SshChannelClosedException();
+                await transport.SendPacketAsync(Payload, CancellationToken).ConfigureAwait(false);
+            }
             finally { sendGate.Release(); }
         }
 
@@ -589,11 +599,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Stop the multiplexer and tear down all channels.
         /// </summary>
+        /// <remarks>
+        /// The send gate is not disposed. Disposing a SemaphoreSlim drops whoever waits for it without an
+        /// answer, and whoever holds it then fails to release it. A channel's EOF queued behind a send in
+        /// flight waited for ever, and so did the direct-tcpip relay that sent it: its socket was never
+        /// closed, and the host behind it - a second jump host - saw a connection that never ended. Not
+        /// disposed, the gate goes to each waiter in turn, and each is refused. It never had a wait
+        /// handle, so there is nothing to free.
+        /// </remarks>
         public async ValueTask DisposeAsync()
         {
+            Interlocked.Exchange(ref disposed, 1);
             await cts.CancelAsync().ConfigureAwait(false);
             try { await runTask.ConfigureAwait(false); } catch { }
-            sendGate.Dispose();
             cts.Dispose();
         }
 

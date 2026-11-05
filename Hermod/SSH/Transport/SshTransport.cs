@@ -96,7 +96,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly SemaphoreSlim sendLock = new (1, 1);
 
         // Set under sendLock by CloseOutputAsync: nothing is written into the pipe after it is
-        // completed - completing gives its buffers back to the pool every connection rents from.
+        // completed - completing gives its buffers back to the pool every connection rents from. Set
+        // by Dispose too: nothing is sealed under the keys it wipes.
         private Boolean outputClosed;
         private Int32   closingOutput;
 
@@ -547,17 +548,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        private async ValueTask<Boolean> TakeSendLock(TimeSpan Within)
-        {
-            try
-            {
-                return await sendLock.WaitAsync(Within).ConfigureAwait(false);
-            }
-            catch (ObjectDisposedException)
-            {
-                return false;
-            }
-        }
+        private Task<Boolean> TakeSendLock(TimeSpan Within)
+            => sendLock.WaitAsync(Within);
 
         #endregion
 
@@ -1266,13 +1258,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Dispose the current directional ciphers and MACs, wiping their key material.
         /// </summary>
+        /// <remarks>
+        /// A send still waiting for the send lock gets it in turn and is refused. The lock is not
+        /// disposed: disposing a SemaphoreSlim drops whoever waits for it without an answer, and such a
+        /// send waited for ever. It never had a wait handle, so there is nothing to free.
+        /// </remarks>
         public void Dispose()
         {
+            outputClosed = true;
             DisposeCipher(sendCipher);
             DisposeCipher(receiveCipher);
             sendMac?.Dispose();
             receiveMac?.Dispose();
-            sendLock.Dispose();
         }
 
         #endregion
