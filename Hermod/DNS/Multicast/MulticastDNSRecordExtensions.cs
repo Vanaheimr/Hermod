@@ -165,14 +165,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region RecordKey(this Record)
 
         /// <summary>
-        /// A dictionary key identifying the record by owner name (case-insensitive), type,
-        /// class and RDATA.
+        /// A dictionary key identifying the record by owner name, type, class and RDATA.
+        /// The owner name is case-insensitive the way RFC 6762 §16 says, in "a" to "z" and
+        /// nothing else, so the key agrees with <see cref="DNSServiceName.Equals(DNSServiceName?)"/>.
         /// </summary>
         /// <param name="Record">A resource record.</param>
         public static String RecordKey(this IDNSResourceRecord Record)
 
             => String.Concat(
-                   Record.DomainName.FullName.ToLowerInvariant(),
+                   DNSServiceName.ASCIICaseFold(Record.DomainName.FullName),
                    "|",
                    ((UInt16) Record.Type).ToString(),
                    "|",
@@ -187,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         /// <summary>
         /// A dictionary key identifying the resource record set of the record
-        /// (owner name case-insensitive, type and class).
+        /// (owner name, type and class), in agreement with <see cref="IsSameRRSet"/>.
         /// </summary>
         /// <param name="Record">A resource record.</param>
         public static String RRSetKey(this IDNSResourceRecord Record)
@@ -195,7 +196,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => RRSetKey(Record.DomainName, Record.Type, Record.Class);
 
         /// <summary>
-        /// A dictionary key identifying a resource record set (owner name case-insensitive, type and class).
+        /// A dictionary key identifying a resource record set (owner name, type and class).
+        /// The owner name is case-insensitive in ASCII letters only (RFC 6762 §16): "all
+        /// UTF-8 multibyte characters (codes 0x80 and higher) are compared by simple binary
+        /// comparison of the raw byte values", so "Café" and "CafÉ" are two names.
         /// </summary>
         /// <param name="Name">The owner name.</param>
         /// <param name="Type">The resource record type.</param>
@@ -205,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       DNSQueryClasses         Class)
 
             => String.Concat(
-                   Name.FullName.ToLowerInvariant(),
+                   DNSServiceName.ASCIICaseFold(Name.FullName),
                    "|",
                    ((UInt16) Type).ToString(),
                    "|",

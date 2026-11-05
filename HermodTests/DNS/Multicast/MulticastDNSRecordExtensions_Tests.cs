@@ -420,6 +420,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
+        #region Keys_FoldOnlyAsciiLetters()
+
+        /// <summary>
+        /// RFC 6762 §16: in name comparisons "a" to "z" match "A" to "Z", and "all UTF-8
+        /// multibyte characters (codes 0x80 and higher) are compared by simple binary
+        /// comparison of the raw byte values". The keys have to say what IsSameRRSet says,
+        /// or the cache and the conflict check take two names for one.
+        /// </summary>
+        [Test]
+        public void Keys_FoldOnlyAsciiLetters()
+        {
+
+            static A At(String Name)
+
+                => new (DNSServiceName.Parse(Name),
+                        DNSQueryClasses.IN,
+                        TimeSpan.FromSeconds(120),
+                        IPv4Address.Parse("10.0.0.7"));
+
+            var cafe        = At("Café.local.");
+            var asciiCase   = At("CAFé.local.");        // differs in the case of ASCII letters: the same name
+            var accentCase  = At("CafÉ.local.");        // differs in the case of an É: another name
+            var kelvin      = At("Kafe.local.");   // KELVIN SIGN, which ToLowerInvariant turns into a "k"
+            var k           = At("kafe.local.");
+
+            Assert.Multiple(() => {
+
+                Assert.That(cafe.  IsSameRRSet(asciiCase),   Is.True);
+                Assert.That(cafe.  RRSetKey(),               Is.EqualTo    (asciiCase. RRSetKey()));
+                Assert.That(cafe.  RecordKey(),              Is.EqualTo    (asciiCase. RecordKey()));
+
+                Assert.That(cafe.  IsSameRRSet(accentCase),  Is.False);
+                Assert.That(cafe.  RRSetKey(),               Is.Not.EqualTo(accentCase.RRSetKey()));
+                Assert.That(cafe.  RecordKey(),              Is.Not.EqualTo(accentCase.RecordKey()));
+
+                Assert.That(kelvin.IsSameRRSet(k),           Is.False);
+                Assert.That(kelvin.RRSetKey(),               Is.Not.EqualTo(k.         RRSetKey()));
+                Assert.That(kelvin.RecordKey(),              Is.Not.EqualTo(k.         RecordKey()));
+
+            });
+
+        }
+
+        #endregion
+
         #endregion
 
     }

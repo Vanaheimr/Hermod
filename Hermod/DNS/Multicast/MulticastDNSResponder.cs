@@ -581,7 +581,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     var uniqueRecords  = publication.UniqueRecords.ToArray();
                     var uniqueNames    = uniqueRecords.Select(record => record.DomainName).
-                                                       DistinctBy(name => name.FullName.ToLowerInvariant()).
+                                                       Distinct().
                                                        ToArray();
 
                     for (var i = 0; i < Options.ProbeCount; i++)
@@ -964,11 +964,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             foreach (var publication in probing)
             {
 
-                foreach (var nameGroup in publication.UniqueRecords.GroupBy(record => record.DomainName.FullName.ToLowerInvariant()))
+                // By DNSServiceName, which compares names as RFC 6762 §16 says: two names
+                // that differ in the case of a letter above ASCII are two names.
+                foreach (var nameGroup in publication.UniqueRecords.GroupBy(record => record.DomainName))
                 {
 
                     var theirs = Probe.Authorities.
-                                     Where (authority => authority.Name.FullName.Equals(nameGroup.Key, StringComparison.OrdinalIgnoreCase)).
+                                     Where (authority => authority.Name.Equals(nameGroup.Key)).
                                      Select(authority => authority.Record).
                                      ToArray();
 
@@ -1039,10 +1041,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     publication.ProbeStarted)
                 {
 
-                    foreach (var nameGroup in publication.UniqueRecords.GroupBy(record => record.DomainName.FullName.ToLowerInvariant()))
+                    foreach (var nameGroup in publication.UniqueRecords.GroupBy(record => record.DomainName))
                     {
 
-                        var conflicting = receivedRecords.FirstOrDefault(record => record.DomainName.FullName.Equals(nameGroup.Key, StringComparison.OrdinalIgnoreCase));
+                        var conflicting = receivedRecords.FirstOrDefault(record => record.DomainName.Equals(nameGroup.Key));
 
                         if (conflicting is null)
                             continue;
@@ -1507,9 +1509,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
+        // RFC 6762 §16: "a" to "z" match "A" to "Z", and nothing else does.
         private static Boolean SameName(String Name1, String Name2)
 
-            => Name1.TrimEnd('.').Equals(Name2.TrimEnd('.'), StringComparison.OrdinalIgnoreCase);
+            => String.Equals(DNSServiceName.ASCIICaseFold(Name1.TrimEnd('.')),
+                             DNSServiceName.ASCIICaseFold(Name2.TrimEnd('.')),
+                             StringComparison.Ordinal);
 
         #endregion
 
