@@ -1034,6 +1034,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             foreach (var publication in candidates)
             {
 
+                // RFC 6762 §8.1: "Apparently conflicting Multicast DNS responses
+                // received *before* the first probe packet is sent MUST be silently
+                // ignored (see discussion of stale probe packets in Section 8.2,
+                // "Simultaneous Probe Tiebreaking", below)."
+                // A publication is Probing through the random delay before its first
+                // probe, and the §9 check below would otherwise take another address
+                // for the name, heard in that delay, for a conflict.
+                if (publication.State == MulticastDNSPublicationState.Probing &&
+                   !publication.ProbeStarted)
+                    continue;
+
                 // RFC 6762 §8.1: an ANY probe claims the complete owner name.  While
                 // probing, any live record with that name is therefore a conflict,
                 // regardless of its record type or data.

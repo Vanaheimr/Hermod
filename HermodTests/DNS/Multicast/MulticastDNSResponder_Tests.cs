@@ -166,8 +166,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #region Probing_IgnoresResponsesBeforeTheFirstProbe()
 
-        [Test]
-        public async Task Probing_IgnoresResponsesBeforeTheFirstProbe()
+        // RFC 6762 §8.1 ignores every response heard before the first probe. A record
+        // of another type was ignored all along; another address for the name was
+        // taken for a §9 conflict until finding 94 of DNSConformanceTests.
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Probing_IgnoresResponsesBeforeTheFirstProbe(Boolean AnotherAddress)
         {
 
             var network  = new InMemoryMulticastDNSNetwork();
@@ -216,15 +220,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             Assert.That(capture.Queries, Is.Empty, "the initial probe delay is still gated");
 
+            IDNSResourceRecord heard = AnotherAddress
+                                           ? new A   (MyHost,
+                                                      DNSQueryClasses.IN,
+                                                      TimeSpan.FromSeconds(120),
+                                                      IPv4Address.Parse("10.0.0.99"))
+                                           : new AAAA(MyHost,
+                                                      DNSQueryClasses.IN,
+                                                      TimeSpan.FromSeconds(120),
+                                                      IPv6Address.Parse("fe80::99"));
+
             await transport.InjectAsync(
                       MulticastDNSMessage.Response(
-                          [ new MulticastDNSRecord(
-                                new AAAA(MyHost,
-                                         DNSQueryClasses.IN,
-                                         TimeSpan.FromSeconds(120),
-                                         IPv6Address.Parse("fe80::99")),
-                                CacheFlush: true
-                            ) ]
+                          [ new MulticastDNSRecord(heard, CacheFlush: true) ]
                       ).Serialize(),
                       Querier
                   );
