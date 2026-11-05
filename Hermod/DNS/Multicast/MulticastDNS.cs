@@ -195,7 +195,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (String.IsNullOrWhiteSpace(Name))
                 return false;
 
-            var name = Name.Trim().TrimEnd('.').ToLowerInvariant();
+            // RFC 6762 §16: only "A" to "Z" fold.
+            var name = DNSServiceName.ASCIICaseFold(Name.Trim().TrimEnd('.'));
 
             return name == "local"                             ||
                    name.EndsWith(".local",                     StringComparison.Ordinal) ||

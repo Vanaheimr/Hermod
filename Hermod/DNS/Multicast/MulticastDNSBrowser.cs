@@ -1033,11 +1033,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
+        // RFC 6762 §16: "a" to "z" match "A" to "Z", and nothing else does, the way
+        // DNSServiceName.Equals compares. Apply compares by DNSServiceName, so a key that
+        // folded more than that would hand an instance records Apply then finds to be
+        // another name's.
         private static String Key(String Name)
-            => Name.TrimEnd('.').ToLowerInvariant();
+            => DNSServiceName.ASCIICaseFold(Name.TrimEnd('.'));
 
         private static Boolean SameName(String Name1, String Name2)
-            => Name1.TrimEnd('.').Equals(Name2.TrimEnd('.'), StringComparison.OrdinalIgnoreCase);
+            => String.Equals(Key(Name1), Key(Name2), StringComparison.Ordinal);
 
         #endregion
 
