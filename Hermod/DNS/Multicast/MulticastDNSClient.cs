@@ -115,7 +115,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public TimeSpan  BrowseMaintenanceInterval  { get; init; } = TimeSpan.FromSeconds(1);
 
         /// <summary>
-        /// The fraction of a record's time-to-live after which a browser re-queries it (RFC 6762 §5.2, default: 0.8).
+        /// The fraction of a record's time-to-live after which a browser first re-queries it;
+        /// while no answer comes, it asks again 5, 10 and 15 % of the lifetime later, each
+        /// time up to 2 % later still (RFC 6762 §5.2, default: 0.8).
         /// </summary>
         public Double    RefreshFraction            { get; init; } = 0.8;
 

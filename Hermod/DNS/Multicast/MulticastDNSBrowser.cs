@@ -94,7 +94,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => HostName is not null && Port.HasValue;
 
         internal Boolean                  Announced          { get; set; }
-        internal Boolean                  RefreshRequested   { get; set; }
+
+        /// <summary>
+        /// How many of RFC 6762 §5.2's queries for the pointer have gone out in its
+        /// current lifetime, of the four it plans.
+        /// </summary>
+        internal Int32                    RefreshesSent      { get; set; }
+
+        /// <summary>
+        /// The random variation of the next of them, as a share of the lifetime.
+        /// </summary>
+        internal Double                   RefreshVariation   { get; set; } = MulticastDNSBrowser.DrawRefreshVariation();
 
         #endregion
 
@@ -158,6 +168,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     {
 
         #region Data
+
+        // RFC 6762 §5.2: "The querier should plan to issue a query at 80% of the record
+        // lifetime, and then if no answer is received, at 85%, 90%, and 95%", and "a random
+        // variation of 2% of the record TTL should be added, so that queries are scheduled to
+        // be performed at 80-82%, 85-87%, 90-92%, and then 95-97% of the TTL." The first is
+        // the client's RefreshFraction.
+        private const    Int32                                             RefreshQueries        = 4;
+        private const    Double                                            RefreshStep           = 0.05;
+        private const    Double                                            MaxRefreshVariation   = 0.02;
 
         private readonly Lock                                              stateLock   = new();
         private readonly Dictionary<String, MulticastDNSServiceInstance>   instances   = [];
@@ -540,8 +559,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         var isNew     = !instances.ContainsKey(Key(ptr.Target.FullName));
                         var instance  = GetOrAddInstance(ptr.Target, Timestamp);
 
+                        // §5.2: "If an answer is received, then the remaining TTL is reset to
+                        // the value given in the answer, and this process repeats".
                         instance.LastSeen          = Timestamp;
-                        instance.RefreshRequested  = false;
+                        instance.RefreshesSent     = 0;
+                        instance.RefreshVariation  = DrawRefreshVariation();
 
                         if (isNew)
                             ApplyCached(instance);
@@ -731,14 +753,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     }
 
                     var lifetime   = pointer.ExpiresAt - pointer.ReceivedAt;
-                    var remaining  = pointer.RemainingTimeToLive(now);
+                    var elapsed    = lifetime - pointer.RemainingTimeToLive(now);
 
-                    // RFC 6762 §5.2: re-query at 80 % of the lifetime.
-                    if (!instance.RefreshRequested &&
+                    // RFC 6762 §5.2: at 80 % of the lifetime, and while no answer comes, at
+                    // 85, 90 and 95 %, each up to 2 % later. Once the four have gone out
+                    // unanswered, "the record is deleted when it reaches 100% of its
+                    // lifetime", and the instance with it.
+                    if (instance.RefreshesSent < RefreshQueries &&
                         lifetime > TimeSpan.Zero &&
-                        remaining < lifetime * (1 - Client.Options.RefreshFraction))
+                        elapsed >= lifetime * (Client.Options.RefreshFraction +
+                                               RefreshStep * instance.RefreshesSent +
+                                               instance.RefreshVariation))
                     {
-                        instance.RefreshRequested = true;
+                        instance.RefreshesSent++;
+                        instance.RefreshVariation = DrawRefreshVariation();
                         refresh.Add(instance);
                     }
 
@@ -1042,6 +1070,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         private static Boolean SameName(String Name1, String Name2)
             => String.Equals(Key(Name1), Key(Name2), StringComparison.Ordinal);
+
+        /// <summary>
+        /// RFC 6762 §5.2's "random variation of 2% of the record TTL", as a share of it.
+        /// </summary>
+        internal static Double DrawRefreshVariation()
+            => Random.Shared.NextDouble() * MaxRefreshVariation;
 
         #endregion
 
