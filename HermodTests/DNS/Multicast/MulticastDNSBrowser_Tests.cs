@@ -641,6 +641,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
+        #region Refresh_AsksAgainAtEightyFiveNinetyAndNinetyFivePercent_WhileUnanswered()
+
+        [Test]
+        public async Task Refresh_AsksAgainAtEightyFiveNinetyAndNinetyFivePercent_WhileUnanswered()
+        {
+
+            var network  = new InMemoryMulticastDNSNetwork();
+            var capture  = new PacketCapture(network);
+            var clock    = new ShiftableTimeProvider();
+
+            await using var clientTransport  = network.CreateTransport(ClientAddress);
+            // A browse interval of an hour, so that every PTR query after the first one is a refresh.
+            await using var client           = new MulticastDNSClient(clientTransport, FastClientOptions(InitialBrowseInterval: TimeSpan.FromHours(1)), clock);
+
+            await client.StartAsync();
+
+            var browser = await client.BrowseAsync(TestService);
+
+            // The query loop's first query.
+            await WaitUntil(() => capture.PTRQueriesFor(TestService).Count == 1);
+
+            // A pointer of a hundred seconds, and nobody to answer for it again.
+            await clientTransport.InjectAsync(
+                      MulticastDNSMessage.Response(
+                          [ new MulticastDNSRecord(new PTR(TestService, DNSQueryClasses.IN, TimeSpan.FromSeconds(100), MyInstance)) ]
+                      ).Serialize(),
+                      PeerSocket("10.0.0.7")
+                  );
+
+            await WaitUntil(() => browser.AllInstances.Count == 1);
+
+            // RFC 6762 §5.2: at 80-82 %, 85-87 %, 90-92 % and 95-97 % of the lifetime, each
+            // looked for just past the end of its window.
+            foreach (var (seconds, refreshes) in new[] { (83, 1), (5, 2), (5, 3), (5, 4) })
+            {
+                clock.Shift(TimeSpan.FromSeconds(seconds));
+                await WaitUntil(() => capture.PTRQueriesFor(TestService).Count == 1 + refreshes);
+            }
+
+            // Four, and no fifth: "If no answer is received after four queries, the record is
+            // deleted when it reaches 100% of its lifetime."
+            await Task.Delay(300);
+
+            Assert.That(capture.PTRQueriesFor(TestService), Has.Count.EqualTo(5));
+
+        }
+
+        #endregion
+
         #region QueryLoop_SendsAnInitialPTRQuery_AndRepeatsItWithADoublingInterval()
 
         [Test]
