@@ -120,8 +120,14 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             //this.ServiceCheckLock       = new Lock();
 
+            // Started, not waited for: a tick that waited held a thread of the
+            // pool until its checks were done, and the checks need the pool to
+            // get done. With a few hundred wardens that is the whole pool, and
+            // everything else in the process stands still until it grows. A
+            // tick while the last one is still at work is skipped - see
+            // ServiceCheckLock.
             this.ServiceCheckTimer      = new Timer(
-                                              state => Task.Run(() => RunWardenChecks(state)).GetAwaiter().GetResult(),
+                                              state => _ = RunWardenChecksLogged(state),
                                               null,
                                               this.InitialDelay,
                                               this.CheckEvery
@@ -131,6 +137,29 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         #endregion
 
+
+        #region (private, Timer) RunWardenChecksLogged(Status)
+
+        /// <summary>
+        /// One tick: the checks, with whatever escapes them written down rather
+        /// than left unobserved - a tick that comes after the warden was
+        /// disposed finds its lock gone.
+        /// </summary>
+        private async Task RunWardenChecksLogged(Object? Status)
+        {
+            try
+            {
+                await RunWardenChecks(Status).ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException) when (disposed)
+            { }
+            catch (Exception e)
+            {
+                DebugX.LogT($"Warden '{Id}' led to an exception: {e.Message}{Environment.NewLine}{e.StackTrace}");
+            }
+        }
+
+        #endregion
 
         #region (private, Timer) RunWardenChecks(Status)
 
@@ -212,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
                     }
 
-                    Task.WaitAll(allTasks);
+                    await Task.WhenAll(allTasks).ConfigureAwait(false);
 
                 }
                 catch (Exception e)
@@ -515,6 +544,12 @@ namespace org.GraphDefined.Vanaheimr.Warden
                     ServiceCheckTimer?.Dispose(mre);
                     await Task.Run(() => mre.WaitOne()).ConfigureAwait(false);
                 }
+
+                // And for the tick at work, which its callback no longer waits
+                // for: it took the lock before its callback returned, so the
+                // lock is free once it is done. The lock is disposed of below,
+                // and the DNS client its checks may still be using.
+                await ServiceCheckLock.WaitAsync().ConfigureAwait(false);
 
                 // Dispose DNS client, where it is this warden's own
                 if (ownsDNSClient)
