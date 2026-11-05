@@ -370,6 +370,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+
+        #region HermodsOwnWebFilesLieUnderItsHTTPRoot()
+
+        /// <summary>
+        /// HTTPAPI.HTTPRoot and HTTPExtAPI.HTTPRoot are the prefix every caller
+        /// puts in front of a name to find one of Hermod's own embedded web
+        /// files. Those files sit below HTTP/HTTPAPI/HTTPRoot, so their manifest
+        /// names carry that path; the constants once said
+        /// "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot." and found none of them.
+        /// </summary>
+        [Test]
+        public void HermodsOwnWebFilesLieUnderItsHTTPRoot()
+        {
+
+            var hermod    = typeof(HTTPExtAPI).Assembly;
+            var webFiles  = hermod.GetManifestResourceNames().
+                                   Where(name => name.Contains(".HTTPRoot.", StringComparison.Ordinal)).
+                                   ToArray();
+
+            Assert.Multiple(() => {
+
+                Assert.That(webFiles,                                                                         Is.Not.Empty);
+                Assert.That(webFiles,                                                                         Has.All.StartWith(HTTPAPI.HTTPRoot));
+
+                Assert.That(HTTPExtAPI.HTTPRoot,                                                              Is.EqualTo(HTTPAPI.HTTPRoot));
+                Assert.That(hermod.GetManifestResourceStream(HTTPAPI.   HTTPRoot + "css.FontAwesome.css.all.min.css"),  Is.Not.Null);
+                Assert.That(hermod.GetManifestResourceStream(HTTPExtAPI.HTTPRoot + "css.FontAwesome.css.all.min.css"),  Is.Not.Null);
+
+            });
+
+        }
+
+        #endregion
+
+        #region HermodsFontAwesomeIsServedThroughHTTPExtAPIHTTPRoot()
+
+        /// <summary>
+        /// What a site built on HTTPExtAPI does to serve Hermod's FontAwesome:
+        /// map Hermod's assembly by HTTPExtAPI.HTTPRoot. Before the constant was
+        /// put right, both requests were a 404, and a site only had FontAwesome
+        /// when another assembly in its list carried a copy of its own.
+        /// </summary>
+        [Test]
+        public async Task HermodsFontAwesomeIsServedThroughHTTPExtAPIHTTPRoot()
+
+            => await WithExtAPI(async (server, extAPI) => {
+
+                   extAPI.MapResourceAssembliesFolder(HTTPHostname.Any,
+                                                      HTTPPath.Root + "hermod",
+                                                      [ new Tuple<String, Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly) ],
+                                                      RequireAuthentication: false);
+
+                   var css   = await Get(server, "/hermod/css/FontAwesome/css/all.min.css");
+                   var font  = await Get(server, "/hermod/css/FontAwesome/webfonts/fa-solid-900.woff2");
+
+                   Assert.Multiple(() => {
+
+                       Assert.That(css.Status,        Is.EqualTo(200));
+                       Assert.That(css.ContentType,   Does.StartWith("text/css"));
+                       Assert.That(css.Body,          Does.Contain("Font Awesome"));
+
+                       Assert.That(font.Status,       Is.EqualTo(200));
+                       Assert.That(font.ContentType,  Does.StartWith("font/woff2"));
+
+                   });
+
+               });
+
+        #endregion
+
     }
 
 }

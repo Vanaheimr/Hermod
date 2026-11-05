@@ -207,8 +207,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         /// <summary>
         /// The HTTP root for embedded resources.
+        /// The files are embedded from HTTP/HTTPAPI/HTTPRoot without a LogicalName,
+        /// so their manifest names carry that folder path, and so must this prefix.
         /// </summary>
-        public    const    String                                                      HTTPRoot          = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+        public    const    String                                                      HTTPRoot          = "org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPAPI.HTTPRoot.";
 
         private   readonly ConcurrentDictionary<String, PathNode>                      routeNodes        = [];
         private   readonly Object                                                       routeRegistrationLock = new ();
