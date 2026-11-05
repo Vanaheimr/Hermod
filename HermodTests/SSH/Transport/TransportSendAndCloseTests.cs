@@ -31,7 +31,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
     /// <summary>
     /// A packet whose flush is cut off still has its sequence number, and a
     /// connection is closed only after the send in flight is done with the
-    /// writer - or cut off, where it will not be.
+    /// writer - or cut off, where it will not be. A send waiting behind it
+    /// gets an answer, whatever was disposed in the meantime.
     /// </summary>
     /// <remarks>
     /// One full test run had a client read a packet that failed its Poly1305
@@ -280,6 +281,92 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                     Assert.That(writer.IsCompleted,             Is.True,  "closed, and the writer is not completed");
                     Assert.That(writer.CompletedWhileFlushing,  Is.False, "the writer was completed under a flush");
                 });
+
+            }
+
+        }
+
+        #endregion
+
+        #region A_Send_Waiting_For_The_Lock_Ends_When_The_Transport_Is_Disposed
+
+        /// <summary>
+        /// A send waits for the lock behind one held at its flush, and the
+        /// transport is disposed: once the send in flight is done, the one
+        /// waiting gets the lock and is refused. Disposed, the lock dropped it
+        /// without an answer, and it waited for ever.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task A_Send_Waiting_For_The_Lock_Ends_When_The_Transport_Is_Disposed(CancellationToken CancellationToken)
+        {
+
+            var (client, server, writer) = await Connected();
+
+            using (server)
+            {
+
+                writer.Close();
+
+                var sending = client.SendPacketAsync(new Byte[] { 94, 1, 2, 3 }, CancellationToken).AsTask();
+
+                await writer.Entered.Task.WaitAsync(CancellationToken);
+
+                // No token, as a channel's EOF is sent.
+                var waiting = client.SendPacketAsync(new Byte[] { 94, 4, 5, 6 }).AsTask();
+
+                client.Dispose();
+                writer.Let();
+
+                Assert.That(async () => await waiting.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken),
+                            Throws.InstanceOf<SshConnectionClosedException>(), "the send waiting for the lock was not refused");
+
+                Assert.That(async () => await sending, Throws.Nothing, "the send in flight failed");
+
+            }
+
+        }
+
+        #endregion
+
+        #region A_Send_Waiting_For_The_Gate_Ends_When_The_Multiplexer_Is_Disposed
+
+        /// <summary>
+        /// The same one level up: a send waits for the multiplexer's gate
+        /// behind one held at its flush, and the multiplexer is disposed. The
+        /// one waiting is refused once the gate is free. Disposed, the gate
+        /// dropped it: a channel's EOF waiting there never went out, and the
+        /// relay that sent it never closed its socket.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task A_Send_Waiting_For_The_Gate_Ends_When_The_Multiplexer_Is_Disposed(CancellationToken CancellationToken)
+        {
+
+            var (client, server, writer) = await Connected();
+
+            using (client)
+            using (server)
+            {
+
+                var mux = new SshChannelMultiplexer(client) { RekeyLimits = null }.Start();
+
+                writer.Close();
+
+                var sending = mux.SendAsync(new Byte[] { 94, 1, 2, 3 }, CancellationToken).AsTask();
+
+                await writer.Entered.Task.WaitAsync(CancellationToken);
+
+                // No token, as a channel's EOF is sent.
+                var waiting = mux.SendAsync(new Byte[] { 94, 4, 5, 6 }).AsTask();
+
+                await mux.DisposeAsync();
+                writer.Let();
+
+                Assert.That(async () => await waiting.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken),
+                            Throws.InstanceOf<SshChannelClosedException>(), "the send waiting for the gate was not refused");
+
+                Assert.That(async () => await sending, Throws.Nothing, "the send in flight failed");
 
             }
 
