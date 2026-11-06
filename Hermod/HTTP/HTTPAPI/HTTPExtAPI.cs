@@ -1300,9 +1300,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public new const           String           DefaultHTTPServiceName               = "GraphDefined HTTPExt API";
 
         /// <summary>
-        /// The HTTP root for embedded resources.
+        /// The HTTP root for embedded resources: the same assembly and folder as HTTPAPI.HTTPRoot.
         /// </summary>
-        public new const           String           HTTPRoot                             = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+        public new const           String           HTTPRoot                             = HTTPAPI.HTTPRoot;
 
         ///// <summary>
         ///// The default HTTP server port.
