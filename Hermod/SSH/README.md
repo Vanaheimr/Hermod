@@ -34,6 +34,7 @@ the interesting mistakes live. The ChaCha20 core is ours too, and vectorised
 | `SFTP/` | SFTP v3 client and server, file-system abstractions, `SftpFileStream`, OpenSSH extensions |
 | `Forwarding/` | `NetworkAcl` and the `ForwardingPolicy` presets for `direct-tcpip` and `tcpip-forward` |
 | `Recording/` | Session recording: asciicast v2 and an SFTP transcript |
+| `Messaging/` | Whole messages over a subsystem channel: `SshMessageServer`, `SshMessageClient`, the frames - see its README |
 | `Client/` | The high-level `SshClient` façade |
 | `Server/` | The high-level `SshServer` façade |
 
@@ -172,6 +173,22 @@ ForwardingPolicy.Custom(NetworkAcl.DenyByDefault()
 
 `ProxyJump` chains connections the way `ssh -J` does: the tunnel opened on the first hop becomes
 the transport of the second.
+
+### Subsystems of your own, and messages over them
+
+`SshServerOptions.Subsystems` serves subsystems besides SFTP, session by session. The factory is
+told who signed in and which name they asked for, and answers a handler or null. The handler gets
+the session and the channel, and the server closes the channel once it returns.
+`SshClient.OpenSubsystemAsync(name)` is the client's side.
+
+A credential can be confined to some subsystems with `SshSessionRestrictions.PermittedSubsystems`:
+it then gets only those, and no shell, no exec and no forced command.
+
+`Messaging/` puts whole messages, text or binary, over such a subsystem: HELLO and WELCOME
+negotiate a subprotocol, and frames are length-checked before anything is allocated for them. It is
+what a WebSocket does over HTTP. `SshMessageServer` and `SshMessageClient` are the two ends, and an
+`SshMessageConnection` is an `IMessageConnection` just as a WebSocket connection is. The protocol is
+written down in [`Messaging/README.md`](Messaging/README.md).
 
 ## Algorithms
 

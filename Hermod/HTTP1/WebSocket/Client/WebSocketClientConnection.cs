@@ -26,6 +26,7 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Messaging;
 
 using static org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame;
 
@@ -693,6 +694,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+
+        #region IMessageConnection
+
+        /// <summary>
+        /// Messages go over an HTTP WebSocket.
+        /// </summary>
+        public MessageTransport Transport
+            => MessageTransport.WebSocket;
+
+        /// <summary>
+        /// This end opened the connection.
+        /// </summary>
+        public ConnectionRole Role
+            => ConnectionRole.Client;
+
+        /// <summary>
+        /// The subprotocol the server chose in its upgrade response, if it chose one.
+        /// </summary>
+        public String? Subprotocol
+            => HTTPResponse?.SecWebSocketProtocol;
+
+        /// <summary>
+        /// Send a text message, as the client sends it: masked, compressed where that was agreed, and
+        /// with the client's events - on this connection only. Once the client has moved on to another
+        /// connection, nothing is sent here.
+        /// </summary>
+        /// <param name="Text">The text.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public Task<SentStatus> SendTextMessage(String             Text,
+                                                CancellationToken  CancellationToken   = default)
+
+            => IsClientsCurrentConnection
+                   ? WebSocketClient.SendTextMessage(Text, CancellationToken: CancellationToken)
+                   : Task.FromResult(SentStatus.FatalError);
+
+        /// <summary>
+        /// Send a binary message, as the client sends it: masked, compressed where that was agreed, and
+        /// with the client's events - on this connection only. Once the client has moved on to another
+        /// connection, nothing is sent here.
+        /// </summary>
+        /// <param name="Bytes">The bytes.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public Task<SentStatus> SendBinaryMessage(Byte[]             Bytes,
+                                                  CancellationToken  CancellationToken   = default)
+
+            => IsClientsCurrentConnection
+                   ? WebSocketClient.SendBinaryMessage(Bytes, CancellationToken: CancellationToken)
+                   : Task.FromResult(SentStatus.FatalError);
+
+        /// <summary>
+        /// Whether the client still speaks over this connection: a client that reconnected sends over
+        /// its new one, and a message meant for this one must not go there.
+        /// </summary>
+        private Boolean IsClientsCurrentConnection
+            => !IsClosed && ReferenceEquals(WebSocketClient.CurrentConnection, this);
+
+        /// <summary>
+        /// Close this connection with a close frame of the given code - RFC 6455's numbers, which
+        /// <see cref="MessageCloseCode"/> shares. The client itself stays: where it has a reconnect
+        /// policy, it may connect again.
+        /// </summary>
+        Task IMessageConnection.Close(MessageCloseCode   Code,
+                                      String?            Reason,
+                                      CancellationToken  CancellationToken)
+
+            => Close((ClosingStatusCode) (UInt16) Code, Reason, CancellationToken);
+
+        #endregion
 
         #region Custom data
 

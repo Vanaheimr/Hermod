@@ -29,6 +29,7 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Messaging;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 using static org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame;
@@ -995,6 +996,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+
+        #region IMessageConnection
+
+        /// <summary>
+        /// Messages go over an HTTP WebSocket.
+        /// </summary>
+        public MessageTransport Transport
+            => MessageTransport.WebSocket;
+
+        /// <summary>
+        /// This end accepted the connection.
+        /// </summary>
+        public ConnectionRole Role
+            => ConnectionRole.Server;
+
+        /// <summary>
+        /// The subprotocol the server chose in its upgrade response, if it chose one.
+        /// </summary>
+        public String? Subprotocol
+            => HTTPResponse?.SecWebSocketProtocol;
+
+        /// <summary>
+        /// Send a text message, as the server sends it: compressed where that was agreed, and with the
+        /// server's events.
+        /// </summary>
+        /// <param name="Text">The text.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public Task<SentStatus> SendTextMessage(String             Text,
+                                                CancellationToken  CancellationToken   = default)
+
+            => WebSocketServer.SendTextMessage(this, Text, CancellationToken: CancellationToken);
+
+        /// <summary>
+        /// Send a binary message, as the server sends it: compressed where that was agreed, and with the
+        /// server's events.
+        /// </summary>
+        /// <param name="Bytes">The bytes.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public Task<SentStatus> SendBinaryMessage(Byte[]             Bytes,
+                                                  CancellationToken  CancellationToken   = default)
+
+            => WebSocketServer.SendBinaryMessage(this, Bytes, CancellationToken: CancellationToken);
+
+        /// <summary>
+        /// Close this connection with a close frame of the given code - RFC 6455's numbers, which
+        /// <see cref="MessageCloseCode"/> shares.
+        /// </summary>
+        Task IMessageConnection.Close(MessageCloseCode   Code,
+                                      String?            Reason,
+                                      CancellationToken  CancellationToken)
+
+            => Close((ClosingStatusCode) (UInt16) Code, Reason, CancellationToken);
+
+        #endregion
 
         #region Custom data
 

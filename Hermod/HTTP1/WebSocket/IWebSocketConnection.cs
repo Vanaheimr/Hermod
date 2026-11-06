@@ -21,6 +21,7 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Messaging;
 
 using static org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame;
 
@@ -32,7 +33,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <summary>
     /// The common interface for all HTTP WebSockets connections.
     /// </summary>
-    public interface IWebSocketConnection
+    /// <remarks>
+    /// A <see cref="IMessageConnection"/> whose <see cref="IMessageConnection.Transport"/> is
+    /// <see cref="MessageTransport.WebSocket"/>: what it has in common with other message connections -
+    /// sockets, counters, custom data, sending and closing - is declared there.
+    /// </remarks>
+    public interface IWebSocketConnection : IMessageConnection
     {
 
         #region Metadata
@@ -48,35 +54,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         HTTPResponse?            HTTPResponse                  { get; }
 
         /// <summary>
-        /// The connection creation timestamp.
-        /// </summary>
-        DateTimeOffset           ConnectedSince                { get; }
-
-        /// <summary>
         /// The last time data was sent.
         /// </summary>
-        DateTimeOffset?          LastSentTimestamp             { get; set; }
+        new DateTimeOffset?      LastSentTimestamp             { get; set; }
 
         /// <summary>
         /// The last time data was received.
         /// </summary>
-        DateTimeOffset?          LastReceivedTimestamp         { get; set; }
+        new DateTimeOffset?      LastReceivedTimestamp         { get; set; }
 
         /// <summary>
         /// Whether the connection is still assumed to be alive.
         /// </summary>
-        Boolean                  IsAlive                       { get; set; }
-
-
-        /// <summary>
-        /// The number of WebSocket messages received.
-        /// </summary>
-        UInt64                   MessagesReceivedCounter       { get; }
-
-        /// <summary>
-        /// The number of WebSocket messages sent.
-        /// </summary>
-        UInt64                   MessagesSentCounter           { get; }
+        new Boolean              IsAlive                       { get; set; }
 
         /// <summary>
         /// The number of WebSocket frames received.
@@ -107,16 +97,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
         #region Sockets
-
-        /// <summary>
-        /// The local TCP socket.
-        /// </summary>
-        IPSocket                 LocalSocket                   { get; }
-
-        /// <summary>
-        /// The remote TCP socket.
-        /// </summary>
-        IPSocket                 RemoteSocket                  { get; }
 
         /// <summary>
         /// The amount of time a read operation blocks waiting for data.
@@ -222,63 +202,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         Task Close(ClosingStatusCode? StatusCode          = ClosingStatusCode.NormalClosure,
                    String?            Reason              = null,
                    CancellationToken  CancellationToken   = default);
-
-        #endregion
-
-
-        #region Custom data
-
-        /// <summary>
-        /// Add custom data to this HTTP WebSocket client connection.
-        /// </summary>
-        /// <param name="Key">A key.</param>
-        /// <param name="Value">A value.</param>
-        Boolean TryAddCustomData(String Key, Object? Value);
-
-        /// <summary>
-        /// Add custom data to this HTTP WebSocket client connection.
-        /// </summary>
-        /// <param name="Key">A key.</param>
-        /// <param name="Value">A new value.</param>
-        /// <param name="ComparisonValue">The old value to be updated.</param>
-        Boolean TryAddCustomData(String  Key,
-                                 Object? NewValue,
-                                 Object? ComparisonValue);
-
-        /// <summary>
-        /// Checks whether the given data key is present within this HTTP WebSocket client connection.
-        /// </summary>
-        /// <param name="Key">A key.</param>
-        Boolean HasCustomData(String Key);
-
-        /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP WebSocket client connection.
-        /// </summary>
-        /// <param name="Key">A key.</param>
-        Object? TryGetCustomData(String Key);
-
-        /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP WebSocket client connection.
-        /// </summary>
-        /// <typeparam name="T">The type of the stored value.</typeparam>
-        /// <param name="Key">A key.</param>
-        T? TryGetCustomDataAs<T>(String Key)
-            where T : struct;
-
-        /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP WebSocket client connection.
-        /// </summary>
-        /// <param name="Key">A key.</param>
-        /// <param name="Value">The requested value.</param>
-        Boolean TryGetCustomData(String Key, out Object? Value);
-
-        /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP WebSocket client connection.
-        /// </summary>
-        /// <typeparam name="T">The type of the stored value.</typeparam>
-        /// <param name="Key">A key.</param>
-        /// <param name="Value">The requested value.</param>
-        Boolean TryGetCustomDataAs<T>(String Key, out T? Value);
 
         #endregion
 

@@ -122,6 +122,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         protected                 WebSocketClientConnection?  webSocketClientConnection;
 
+        /// <summary>
+        /// The connection this client speaks over now - for a connection to tell whether it still is.
+        /// </summary>
+        internal WebSocketClientConnection? CurrentConnection
+            => webSocketClientConnection;
+
         #endregion
 
         #region Properties
