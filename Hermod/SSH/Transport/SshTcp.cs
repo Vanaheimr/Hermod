@@ -185,14 +185,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public async Task<(IDuplexPipe Pipe, IPSocket? Peer)> AcceptWithPeerAsync(CancellationToken CancellationToken = default)
         {
 
+            var (pipe, peer, _) = await AcceptWithEndpointsAsync(CancellationToken).ConfigureAwait(false);
+
+            return (pipe, peer);
+
+        }
+
+        /// <summary>
+        /// Accept the next incoming connection, keeping both of its ends alongside the pipe: where the
+        /// client connected from, and where it connected to. A listener on every address
+        /// (<c>0.0.0.0</c>, <c>::</c>) knows only that; the connection knows which of the machine's
+        /// addresses - which network - it came in on.
+        /// </summary>
+        /// <param name="CancellationToken">An optional token to cancel the accept.</param>
+        public async Task<(IDuplexPipe Pipe, IPSocket? Peer, IPSocket? Local)> AcceptWithEndpointsAsync(CancellationToken CancellationToken = default)
+        {
+
             var client = await socket.AcceptAsync(CancellationToken).ConfigureAwait(false);
             client.NoDelay = true;
 
-            var peer = client.RemoteEndPoint is IPEndPoint remote
-                           ? IPSocket.FromIPEndPoint(remote)
-                           : (IPSocket?) null;
+            var peer  = client.RemoteEndPoint is IPEndPoint remote
+                            ? IPSocket.FromIPEndPoint(remote)
+                            : (IPSocket?) null;
 
-            return (SshTcp.AsDuplexPipe(client), peer);
+            var local = client.LocalEndPoint  is IPEndPoint here
+                            ? IPSocket.FromIPEndPoint(here)
+                            : (IPSocket?) null;
+
+            return (SshTcp.AsDuplexPipe(client), peer, local);
 
         }
 

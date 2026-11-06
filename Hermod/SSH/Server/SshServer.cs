@@ -35,6 +35,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
     using IPAddress = System.Net.IPAddress;
 
     /// <summary>
+    /// Asked once a client has signed in, with the whole session: null lets it in, a reason refuses it -
+    /// see <see cref="SshServerOptions.AuthorizeSession"/>.
+    /// </summary>
+    /// <param name="Session">Who signed in, how, with which key, from where and to where.</param>
+    /// <param name="CancellationToken">Fires when the connection ends, or the server stops.</param>
+    public delegate ValueTask<String?> SshSessionAuthorizer(SshSessionInfo     Session,
+                                                            CancellationToken  CancellationToken);
+
+
+    /// <summary>
     /// Options for a high-level <see cref="SshServer"/>: the host keys, the authenticator, an exec handler,
     /// the port-forwarding policy and an optional typed audit sink.
     /// </summary>
@@ -51,6 +61,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         /// The user authenticator (public keys / certificates / password / 2FA).
         /// </summary>
         public required ISshUserAuthenticator       Authenticator     { get; init; }
+
+        /// <summary>
+        /// Asked once a client has signed in, before it may open anything - with the whole session: who,
+        /// how, with which key, from where, and to which of this machine's addresses. Null lets it in; a
+        /// reason refuses it: the refusal is audited with that reason, and the client is disconnected
+        /// with a plain "not permitted", which tells it nothing of the rules it met.
+        /// </summary>
+        /// <remarks>
+        /// For what the authenticator cannot decide, because it is asked before the session is known:
+        /// a key good from one network and not from another, an account that may not sign in on the
+        /// address a device network is reached by. An authorizer that fails refuses, as an unanswered
+        /// question must not count as a yes.
+        /// </remarks>
+        public SshSessionAuthorizer?                AuthorizeSession  { get; init; }
 
         /// <summary>
         /// Handles <c>exec</c> sessions, and <c>shell</c> sessions where there is no
@@ -179,6 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         /// </summary>
         private sealed class Connection(Int64              Id,
                                         IPSocket?          Peer,
+                                        IPSocket?          Local,
                                         String             Address,
                                         SshAuditContext?   Audit,
                                         CancellationToken  ServerToken) : IDisposable
@@ -187,6 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             public Int64                    Id        { get; } = Id;
             public String                   IdText    { get; } = Id.ToString();
             public IPSocket?                Peer      { get; } = Peer;
+            public IPSocket?                Local     { get; } = Local;
             public String                   Address   { get; } = Address;
             public SshAuditContext?         Audit     { get; } = Audit;
             public CancellationTokenSource  Ending    { get; } = CancellationTokenSource.CreateLinkedTokenSource(ServerToken);
@@ -277,10 +303,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                 IDuplexPipe  pipe;
                 IPSocket?    peer;
+                IPSocket?    local;
 
                 try
                 {
-                    (pipe, peer) = await listener!.AcceptWithPeerAsync(CancellationToken).ConfigureAwait(false);
+                    (pipe, peer, local) = await listener!.AcceptWithEndpointsAsync(CancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception) when (CancellationToken.IsCancellationRequested || stopping.IsCancellationRequested)
                 {
@@ -321,7 +348,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                 }
 
                 var id          = Interlocked.Increment(ref nextConnectionId);
-                var connection  = new Connection(id, peer, address, Audit(id.ToString(), peer), CancellationToken);
+                var connection  = new Connection(id, peer, local, address, Audit(id.ToString(), peer), CancellationToken);
 
                 // Registered before it runs, so that a connection that ends at once is removed after it
                 // was added and not before.
@@ -491,9 +518,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                                                  auth.Method,
                                                  auth.PublicKeyBlob,
                                                  Connection.Peer,
-                                                 listener?.LocalEndPoint,
+                                                 Connection.Local ?? listener?.LocalEndPoint,
                                                  transport.PeerIdentification,
                                                  auth.Restrictions);
+
+                // What the authenticator could not decide without the session: whether this one may
+                // come in, from where it came and to where.
+                if (options.AuthorizeSession is SshSessionAuthorizer authorize)
+                {
+
+                    String? refusal;
+
+                    try
+                    {
+                        refusal = await authorize(session, token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                    catch (Exception exception)
+                    {
+                        refusal = $"the server could not decide: {exception.Message}";
+                    }
+
+                    if (refusal is not null)
+                    {
+                        await EmitAsync(audit, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "session", auth.Username, refusal)).ConfigureAwait(false);
+                        await SendDisconnectAsync(transport, DisconnectReason.NoMoreAuthMethodsAvailable, "not permitted").ConfigureAwait(false);
+                        return;
+                    }
+
+                }
 
                 await using var mux = new SshChannelMultiplexer(transport) {
                                           RekeyLimits = options.RekeyLimits
