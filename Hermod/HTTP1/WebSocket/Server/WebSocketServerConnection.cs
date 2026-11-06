@@ -136,6 +136,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </remarks>
         private volatile  Boolean                                switchedProtocols;
 
+        /// <summary>
+        /// Whether a 101 Switching Protocols is being sent, or has been - see
+        /// <see cref="upgradeSendEnded"/>.
+        /// </summary>
+        private volatile  Boolean                                answeringUpgrade;
+
+        /// <summary>
+        /// Completed once the sending of a 101 Switching Protocols has ended,
+        /// whether it went out or not.
+        /// </summary>
+        /// <remarks>
+        /// Its client reads the 101 while it is being sent and counts itself on
+        /// the WebSocket from then on - before switchedProtocols is set, which
+        /// it is only once the send has returned. A close in that moment found
+        /// the connection not switched and closed it without the close frame
+        /// that client was owed: a server shut down just after a client had
+        /// connected told it nothing, and the client found out from a connection
+        /// that broke. A close that has a frame to send waits for this first.
+        /// </remarks>
+        private readonly  TaskCompletionSource                   upgradeSendEnded       = new (TaskCreationOptions.RunContinuationsAsynchronously);
+
         private           UInt64                                 messagesReceivedCounter;
         private           UInt64                                 messagesSentCounter;
         private           UInt64                                 framesReceivedCounter;
@@ -706,7 +727,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
             switchedProtocols = true;
             upgradeAnswered.TrySetResult();
+            upgradeSendEnded.TrySetResult();
         }
+
+        #endregion
+
+        #region (internal) AnsweringUpgrade()
+
+        /// <summary>
+        /// A 101 Switching Protocols is about to be sent: a close that has a
+        /// close frame to send waits until the sending has ended - see
+        /// upgradeSendEnded.
+        /// </summary>
+        internal void AnsweringUpgrade()
+
+            => answeringUpgrade = true;
+
+        #endregion
+
+        #region (internal) UpgradeNotAnswered()
+
+        /// <summary>
+        /// The 101 Switching Protocols could not be sent: a close waiting for it
+        /// waits no longer, and sends no frame, as switchedProtocols says.
+        /// </summary>
+        internal void UpgradeNotAnswered()
+
+            => upgradeSendEnded.TrySetResult();
 
         #endregion
 
@@ -829,6 +876,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
             if (IsClosed)
                 return;
+
+            // A 101 on its way out may have been read already, and its client is
+            // owed the close frame - which this would leave out while
+            // switchedProtocols is not yet set. So a close that has a frame to
+            // send waits for that send to end - for no longer than it would
+            // wait to send the close frame itself - and decides after it.
+            if ((StatusCode.HasValue || Reason is not null) &&
+                answeringUpgrade &&
+                !upgradeSendEnded.Task.IsCompleted)
+            {
+
+                try
+                {
+                    await upgradeSendEnded.Task.WaitAsync(DefaultCloseTimeout, CancellationToken);
+                }
+                catch
+                { }
+
+                if (IsClosed)
+                    return;
+
+            }
 
             // The server's close, unless somebody said before: where the client
             // closed, the connection loop has said so before it calls this. Said

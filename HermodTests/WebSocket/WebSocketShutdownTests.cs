@@ -204,6 +204,89 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
+        #region AClientWhoseAnswerWasOnItsWayIsToldAsWell()
+
+        /// <summary>
+        /// A server shut down while it was still sending a client its 101 tells
+        /// that client as well: the close waits for the 101 to have gone out,
+        /// and the client - on the WebSocket as soon as it has read it - is
+        /// sent the close frame after it.
+        /// </summary>
+        /// <remarks>
+        /// Such a close used to find the connection not yet switched, which it
+        /// is only once the send of the 101 has returned, and closed it without
+        /// a frame: the client either never got its 101 or read it and then a
+        /// connection that broke. Found by a charging station stopped just after
+        /// an app had connected to it. The 101 goes out a byte at a time here,
+        /// which stretches that moment from a few instructions to some hundred
+        /// milliseconds at least.
+        /// </remarks>
+        [Test]
+        public async Task AClientWhoseAnswerWasOnItsWayIsToldAsWell()
+        {
+
+            var shuttingDown  = new WebSocketMirrorServer(HTTPPort:                    IPPort.Zero,
+                                                          RequireAuthentication:       false,
+                                                          SlowNetworkSimulationDelay:  TimeSpan.FromMilliseconds(1),
+                                                          AutoStart:                   true);
+
+            server            = shuttingDown;
+
+            Task? shutdown    = null;
+
+            // Accepted, and its 101 about to be sent: the server is shut down
+            // once that send has begun - its answer is set just before - and
+            // long before it can have ended.
+            shuttingDown.OnWebSocketConnectionAccepted += (timestamp, webSocketServer, connection, sharedSubprotocols, selectedSubprotocol, eventTrackingId, ct) => {
+
+                shutdown = Task.Run(async () => {
+
+                               while (connection.HTTPResponse is null)
+                                   await Task.Delay(1);
+
+                               await Task.Delay(30);
+
+                               await shuttingDown.Shutdown("Going.");
+
+                           });
+
+                return Task.CompletedTask;
+
+            };
+
+            ClientWebSocket? client  = null;
+            String?          failed  = null;
+
+            try
+            {
+                client = await Connect($"ws://127.0.0.1:{shuttingDown.IPPort}/");
+            }
+            catch (Exception e)
+            {
+                failed = e.Message;
+            }
+
+            var (status, reason, problem) = client is not null
+                                                ? await ReceiveClose(client)
+                                                : (null, null, $"The client never got onto the WebSocket: {failed}");
+
+            if (shutdown is not null)
+                await shutdown;
+
+            server = null;
+            await shuttingDown.DisposeAsync();
+            client?.Dispose();
+
+            Assert.Multiple(() => {
+                Assert.That(shutdown,  Is.Not.Null,                                         "the server never accepted the connection");
+                Assert.That(status,    Is.EqualTo(WebSocketCloseStatus.EndpointUnavailable), problem);
+                Assert.That(reason,    Is.EqualTo("Going."));
+            });
+
+        }
+
+        #endregion
+
 
         #region (private) ShutDownTheServer(Message = null)
 

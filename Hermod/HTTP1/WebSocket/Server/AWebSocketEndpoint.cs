@@ -1940,15 +1940,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         webSocketConnection.HTTPResponse = httpResponse;
 
-                                                        var success = await webSocketConnection.Send(OnTheWire(httpResponse));
+                                                        var upgrading = httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols;
 
-                                                        // Only a 101 that went out opens the connection for frames. Any other
-                                                        // answer is the last thing said on it, see above, and so is a 101 that
-                                                        // could not be sent.
-                                                        if (success == SentStatus.Success &&
-                                                            httpResponse.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols)
+                                                        // A close in the moment the 101 is sent waits for it: its client
+                                                        // may read it before the send returns. See AnsweringUpgrade.
+                                                        if (upgrading)
+                                                            webSocketConnection.AnsweringUpgrade();
+
+                                                        var success = SentStatus.Error;
+
+                                                        try
                                                         {
-                                                            webSocketConnection.UpgradeAnswered();
+                                                            success = await webSocketConnection.Send(OnTheWire(httpResponse));
+                                                        }
+                                                        finally
+                                                        {
+
+                                                            // Only a 101 that went out opens the connection for frames. Any other
+                                                            // answer is the last thing said on it, see above, and so is a 101 that
+                                                            // could not be sent - which a close waiting for it is told as well.
+                                                            if (upgrading)
+                                                            {
+                                                                if (success == SentStatus.Success)
+                                                                    webSocketConnection.UpgradeAnswered();
+                                                                else
+                                                                    webSocketConnection.UpgradeNotAnswered();
+                                                            }
+
                                                         }
 
                                                         await LogEvent(
