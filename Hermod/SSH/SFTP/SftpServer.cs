@@ -44,11 +44,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         /// per-session size quotas are enforced (a quota overrun discards the partial upload) and upload/
         /// download throughput is throttled via a token bucket.
         /// </summary>
+        /// <remarks>
+        /// A client that breaks the protocol - a packet longer than <see cref="MaxPacketLength"/>, or one
+        /// that cannot be read - ends the session, as with OpenSSH's sftp-server: the channel is closed,
+        /// so that the client is not left waiting for answers that will not come, and the
+        /// <see cref="SshWireException"/> is thrown for the caller to log.
+        /// </remarks>
         public static async ValueTask ServeAsync(ISftpDuplex        Channel,
                                                  ISftpFileSystem    FileSystem,
                                                  SshAccessProfile?  Profile            = null,
                                                  SftpLimits?        Limits             = null,
                                                  CancellationToken  CancellationToken  = default)
+        {
+
+            try
+            {
+                await ServeRequestsAsync(Channel, FileSystem, Profile, Limits, CancellationToken).ConfigureAwait(false);
+            }
+            catch (SshWireException)
+            {
+
+                try
+                {
+                    await Channel.CloseAsync(CancellationToken).ConfigureAwait(false);
+                }
+                catch
+                { }
+
+                throw;
+
+            }
+
+        }
+
+        private static async ValueTask ServeRequestsAsync(ISftpDuplex        Channel,
+                                                          ISftpFileSystem    FileSystem,
+                                                          SshAccessProfile?  Profile,
+                                                          SftpLimits?        Limits,
+                                                          CancellationToken  CancellationToken)
         {
 
             var session = new SftpSession(
@@ -772,13 +805,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region (private) framing
 
+        /// <summary>
+        /// The largest SFTP packet read from the other side, server or client: 256 KiB, as OpenSSH's
+        /// sftp-server and sftp take it (SFTP_MAX_MSG_LENGTH). The packet's length comes from the peer,
+        /// and its buffer is allocated before a byte of it has arrived - so without a bound, four bytes
+        /// would have this side allocate up to 2 GiB, or fail on a length beyond Int32.
+        /// </summary>
+        /// <remarks>
+        /// More than this server asks for in limits@openssh.com (34 000), so that a client that never
+        /// asks, and sends what OpenSSH's server would take, is still served.
+        /// </remarks>
+        public const Int32 MaxPacketLength = 256 * 1024;
+
         internal static async ValueTask<Byte[]?> ReadPacketAsync(ISftpDuplex Channel, CancellationToken CancellationToken)
         {
+
             var lengthBytes = await Channel.TryReadExactAsync(4, CancellationToken).ConfigureAwait(false);
             if (lengthBytes is null)
                 return null;
+
             var length = BinaryPrimitives.ReadUInt32BigEndian(lengthBytes);
+
+            // Not even the packet type: nothing to read, and nothing to answer.
+            if (length == 0)
+                throw new SshWireException("An SFTP packet without a type.");
+
+            if (length > MaxPacketLength)
+                throw new SshWireException($"An SFTP packet of {length} bytes, more than the {MaxPacketLength} read.");
+
             return await Channel.ReadExactAsync((Int32) length, CancellationToken).ConfigureAwait(false);
+
         }
 
         internal static async ValueTask SendAsync(ISftpDuplex Channel, ReadOnlyMemory<Byte> Body, CancellationToken CancellationToken)
