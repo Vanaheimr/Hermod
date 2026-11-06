@@ -296,7 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             lock (stateLock)
             {
 
-                foreach (var entry in Client.CachedRecords(ServiceType, DNSResourceRecordTypes.PTR))
+                foreach (var entry in CachedOfClassIN(ServiceType, DNSResourceRecordTypes.PTR))
                 {
 
                     if (entry.Record is not PTR ptr)
@@ -406,7 +406,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         private IEnumerable<MulticastDNSCacheEntry> KnownAnswers(DateTimeOffset Now)
 
-            => Client.CachedRecords(ServiceType, DNSResourceRecordTypes.PTR).
+            => CachedOfClassIN(ServiceType, DNSResourceRecordTypes.PTR).
                       Where(entry => entry.IsKnownAnswerAt(Now));
 
         #endregion
@@ -524,7 +524,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                  CancellationToken   CancellationToken)
         {
 
-            if (!IsRunning)
+            // RFC 1034 §3.7.1: the browser's question is of class IN, and a class
+            // "matches just that class".
+            if (!IsRunning || Record.Record.Class != DNSQueryClasses.IN)
                 return;
 
             var added    = new List<MulticastDNSServiceInstance>();
@@ -590,7 +592,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             // A host name learnt from the SRV record may already have cached addresses
                             // (announcements list them before the browser asks).
                             if (changed && Record.Record is SRV && detailInstance.HostName is not null)
-                                foreach (var address in Client.CachedRecords().Where(address => SameName(address.Record.DomainName.FullName, detailInstance.HostName.FullName)))
+                                foreach (var address in CachedOfClassIN().Where(address => SameName(address.Record.DomainName.FullName, detailInstance.HostName.FullName)))
                                     Apply(detailInstance, address.Record);
 
                             if (detailInstance.HostName is not null && detailInstance.Addresses.Count == 0)
@@ -635,7 +637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                 CancellationToken       CancellationToken)
         {
 
-            if (!IsRunning)
+            if (!IsRunning || Entry.Record.Class != DNSQueryClasses.IN)
                 return;
 
             var removed  = new List<MulticastDNSServiceInstance>();
@@ -651,7 +653,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     case PTR ptr when ptr.DomainName.Equals(ServiceType):
 
                         // Another PTR for the same instance may still be cached (e.g. from another source).
-                        if (Client.CachedRecords(ServiceType, DNSResourceRecordTypes.PTR).Any(other => other.Record is PTR otherPtr && otherPtr.Target.Equals(ptr.Target)))
+                        if (CachedOfClassIN(ServiceType, DNSResourceRecordTypes.PTR).Any(other => other.Record is PTR otherPtr && otherPtr.Target.Equals(ptr.Target)))
                             break;
 
                         if (instances.Remove(Key(ptr.Target.FullName), out var gone) && gone.Announced)
@@ -737,7 +739,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             lock (stateLock)
             {
 
-                var pointers = Client.CachedRecords(ServiceType, DNSResourceRecordTypes.PTR);
+                var pointers = CachedOfClassIN(ServiceType, DNSResourceRecordTypes.PTR);
 
                 foreach (var instance in instances.Values)
                 {
@@ -856,7 +858,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private void ApplyCached(MulticastDNSServiceInstance Instance)
         {
 
-            foreach (var detail in Client.CachedRecords(Instance.InstanceName).Where(entry => entry.Record is not SRV))
+            foreach (var detail in CachedOfClassIN(Instance.InstanceName).Where(entry => entry.Record is not SRV))
                 Apply(Instance, detail.Record);
 
             if (PreferredService(Instance) is SRV srv)
@@ -872,7 +874,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (Instance.HostName is null)
                 return;
 
-            foreach (var address in Client.CachedRecords().Where(address => SameName(address.Record.DomainName.FullName, Instance.HostName.FullName)))
+            foreach (var address in CachedOfClassIN().Where(address => SameName(address.Record.DomainName.FullName, Instance.HostName.FullName)))
                 Apply(Instance, address.Record);
 
         }
@@ -887,7 +889,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private SRV? PreferredService(MulticastDNSServiceInstance Instance)
         {
 
-            var services = Client.CachedRecords(Instance.InstanceName, DNSResourceRecordTypes.SRV).
+            var services = CachedOfClassIN(Instance.InstanceName, DNSResourceRecordTypes.SRV).
                                   Where(entry => entry.Record is SRV).
                                   ToArray();
 
@@ -1076,6 +1078,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         internal static Double DrawRefreshVariation()
             => Random.Shared.NextDouble() * MaxRefreshVariation;
+
+        /// <summary>
+        /// The client's cached records of class IN, the class of the browser's question
+        /// (RFC 1034 §3.7.1: a class "matches just that class").
+        /// </summary>
+        private IReadOnlyList<MulticastDNSCacheEntry> CachedOfClassIN(DNSServiceName?          Name  = null,
+                                                                      DNSResourceRecordTypes?  Type  = null)
+
+            => [.. Client.CachedRecords(Name, Type).Where(entry => entry.Record.Class == DNSQueryClasses.IN)];
 
         #endregion
 

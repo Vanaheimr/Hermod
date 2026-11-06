@@ -548,6 +548,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
+        #region Query_TakesOnlyRecordsOfClassIN()
+
+        [Test]
+        public async Task Query_TakesOnlyRecordsOfClassIN()
+        {
+
+            var network  = new InMemoryMulticastDNSNetwork();
+            var capture  = new PacketCapture(network);
+
+            await using var clientTransport  = network.CreateTransport(ClientAddress);
+            await using var client           = new MulticastDNSClient(clientTransport, FastClientOptions());
+
+            await client.StartAsync();
+
+            // RFC 1034 §3.7.1: a query "asks for RRs which match", and a class "matches just
+            // that class". A lookup asks of class IN, so records of class CH answer nothing.
+            var chaosAddress  = new A   (MyHostName, DNSQueryClasses.CH, TimeSpan.FromSeconds(120), IPv4Address.Parse("10.0.0.66"));
+            var hostDomain    = DomainName.Parse("myhost.local.");
+            var chaosDenial   = new NSEC(hostDomain, DNSQueryClasses.CH, TimeSpan.FromSeconds(120), hostDomain, MulticastDNSTypeBitmap.Encode([ DNSResourceRecordTypes.TXT ]));
+
+            Task Hear(IDNSResourceRecord Record)
+                => clientTransport.InjectAsync(MulticastDNSMessage.Response([ new MulticastDNSRecord(Record) ]).Serialize(), PeerSocket("10.0.0.7"));
+
+            // Cached before the lookup.
+            await Hear(chaosAddress);
+            var fromTheCache = await client.Query(MyHostName, [ DNSResourceRecordTypes.A ]);
+
+            // Heard while the lookup waits.
+            capture.Clear();
+            var waiting = client.Query(MyHostName, [ DNSResourceRecordTypes.A ], ForceUpdate: true);
+            await WaitUntil(() => capture.Queries.Any(query => query.Sender == clientTransport));
+            await Hear(chaosAddress);
+            var fromTheLink = await waiting;
+
+            // A denial of class CH, heard while a lookup for an AAAA record waits.
+            capture.Clear();
+            var denied = client.Query(MyHostName, [ DNSResourceRecordTypes.AAAA ]);
+            await WaitUntil(() => capture.Queries.Any(query => query.Sender == clientTransport));
+            await Hear(chaosDenial);
+            var fromTheDenial = await denied;
+
+            Assert.Multiple(() => {
+                Assert.That(fromTheCache.Answers,    Is.Empty, "an address of class CH in the cache is no answer");
+                Assert.That(fromTheLink.Answers,     Is.Empty, "nor is one heard while the lookup waits");
+                Assert.That(fromTheDenial.IsTimeout, Is.True,  "and a denial of class CH denies nothing to a lookup of class IN");
+            });
+
+        }
+
+        #endregion
+
         #region LinkLocalIPv6Addresses_AreFiltered_UnlessIncluded()
 
         [Test]

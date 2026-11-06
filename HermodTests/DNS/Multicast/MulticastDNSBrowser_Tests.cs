@@ -690,6 +690,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         #endregion
 
+        #region Browser_TakesOnlyRecordsOfClassIN()
+
+        [Test]
+        public async Task Browser_TakesOnlyRecordsOfClassIN()
+        {
+
+            var network  = new InMemoryMulticastDNSNetwork();
+
+            await using var clientTransport  = network.CreateTransport(ClientAddress);
+            await using var client           = new MulticastDNSClient(clientTransport, FastClientOptions());
+
+            await client.StartAsync();
+
+            var browser  = await client.BrowseAsync(TestService);
+            var added    = 0;
+
+            browser.OnInstanceAdded += (timestamp, sender, instance, ct) => { Interlocked.Increment(ref added); return Task.CompletedTask; };
+
+            // RFC 1034 §3.7.1: the browser's question is of class IN, and a class "matches just
+            // that class". A service announced in class CH is no instance.
+            await clientTransport.InjectAsync(
+                      MulticastDNSMessage.Response([
+                          new MulticastDNSRecord(new PTR(TestService, DNSQueryClasses.CH, TimeSpan.FromSeconds(4500), MyInstance)),
+                          new MulticastDNSRecord(new SRV(MyInstance,  DNSQueryClasses.CH, TimeSpan.FromSeconds(120), 0, 0, IPPort.Parse((UInt16) 8443), DomainName.Parse("myhost.local."))),
+                          new MulticastDNSRecord(new A  (MyHostName,  DNSQueryClasses.CH, TimeSpan.FromSeconds(120), IPv4Address.Parse("10.0.0.66")))
+                      ]).Serialize(),
+                      PeerSocket("10.0.0.7")
+                  );
+
+            await Task.Delay(300);
+
+            Assert.Multiple(() => {
+                Assert.That(browser.AllInstances,        Is.Empty);
+                Assert.That(Volatile.Read(ref added),    Is.EqualTo(0));
+            });
+
+        }
+
+        #endregion
+
         #region QueryLoop_SendsAnInitialPTRQuery_AndRepeatsItWithADoublingInterval()
 
         [Test]

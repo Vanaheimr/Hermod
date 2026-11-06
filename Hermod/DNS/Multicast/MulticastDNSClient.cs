@@ -249,8 +249,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             public Boolean                         IsNegative    { get; set; }
             public TaskCompletionSource            Signal        { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+            // RFC 1034 §3.7.1: a query "asks for RRs which match", and a class "matches
+            // just that class". The questions of a lookup are of class IN.
             public Boolean Matches(IDNSResourceRecord Record)
-                => Name.Equals(Record.DomainName) &&
+                => IsOfClassIN(Record) &&
+                   Name.Equals(Record.DomainName) &&
                    (Types.Contains(DNSResourceRecordTypes.Any) || Types.Contains(Record.Type));
 
         }
@@ -492,7 +495,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 var cached = CachedRecords(DNSServiceName).
-                                 Where(entry => types.Contains(DNSResourceRecordTypes.Any) || types.Contains(entry.Record.Type)).
+                                 Where(entry => IsOfClassIN(entry.Record) &&
+                                                (types.Contains(DNSResourceRecordTypes.Any) || types.Contains(entry.Record.Type))).
                                  Select(entry => entry.Record).
                                  ToArray();
 
@@ -939,7 +943,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     var negative = Response.Answers.
                                        Select(record => record.Record).
                                        OfType<NSEC>().
-                                       Where (nsec => query.Name.Equals(nsec.DomainName)).
+                                       Where (nsec => IsOfClassIN(nsec) && query.Name.Equals(nsec.DomainName)).
                                        ToArray();
 
                     if (negative.Length > 0 &&
@@ -955,7 +959,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         continue;
 
                     query.Answers.    AddRange(matches.Select(record => record.Record));
-                    query.Additionals.AddRange(records.Where(record => !record.IsGoodbye && !matches.Contains(record)).
+                    query.Additionals.AddRange(records.Where(record => !record.IsGoodbye && !matches.Contains(record) && IsOfClassIN(record.Record)).
                                                        Select(record => record.Record));
                     query.Signal.TrySetResult();
 
@@ -1047,7 +1051,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return [];
 
             return CachedRecords(Name).
-                       Where (entry => entry.IsKnownAnswerAt(now) &&
+                       Where (entry => IsOfClassIN(entry.Record) &&
+                                       entry.IsKnownAnswerAt(now) &&
                                        !QueriedTypes.Contains(entry.Record.Type)).
                        Select(entry => new MulticastDNSRecord(entry.Record, false, entry.RemainingTimeToLive(now)));
 
@@ -1065,7 +1070,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 {
 
                     case PTR ptr:
-                        foreach (var entry in CachedRecords(ptr.Target).Where(entry => entry.Record.Type is DNSResourceRecordTypes.SRV or DNSResourceRecordTypes.TXT))
+                        foreach (var entry in CachedRecords(ptr.Target).Where(entry => IsOfClassIN(entry.Record) &&
+                                                                                      entry.Record.Type is DNSResourceRecordTypes.SRV or DNSResourceRecordTypes.TXT))
                         {
                             related.Add(entry.Record);
                             if (entry.Record is SRV srv)
@@ -1092,10 +1098,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return [];
 
             return CachedRecords(name).
-                       Where (entry => entry.Record.Type is DNSResourceRecordTypes.A or DNSResourceRecordTypes.AAAA).
+                       Where (entry => IsOfClassIN(entry.Record) &&
+                                       entry.Record.Type is DNSResourceRecordTypes.A or DNSResourceRecordTypes.AAAA).
                        Select(entry => entry.Record);
 
         }
+
+        /// <summary>
+        /// Whether the record is of class IN, the class of every question a lookup asks.
+        /// </summary>
+        private static Boolean IsOfClassIN(IDNSResourceRecord Record)
+            => Record.Class == DNSQueryClasses.IN;
 
         private IDNSResourceRecord[] FilterAddresses(IEnumerable<IDNSResourceRecord> Records)
 
