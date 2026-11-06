@@ -117,7 +117,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <para>
         /// A credential confined to one command (<c>force-command</c>) is never given a shell: its shell
         /// request runs that command with the exec handler instead, as before - and is refused where there
-        /// is no exec handler, rather than widened into the shell it was not given.
+        /// is no exec handler, rather than widened into the shell it was not given. Nor is it given a
+        /// subsystem: as with sshd, that request runs the forced command too, with the subsystem's name as
+        /// the original command - except for a credential forced to plain <c>internal-sftp</c>, which is
+        /// served SFTP, and only SFTP.
         /// </para>
         /// </remarks>
         /// <param name="Channel">The session channel.</param>
@@ -160,6 +163,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 {
                     var name    = ReadString(request.Value.Data);
                     var reason  = "not served";
+
+                    // A credential confined to one command (force-command) is confined for a subsystem as
+                    // well, as sshd does it: the forced command runs instead, with the subsystem's name as
+                    // the original command. The one exception is sshd's too: a credential forced to plain
+                    // "internal-sftp" is one meant for SFTP and nothing else, and is served SFTP.
+                    if (restrictions.ForcedCommand is String forced && !(forced == InternalSftp && name == "sftp"))
+                    {
+
+                        // internal-sftp with options (-R for read-only, -d, -P ...) asks for limits this
+                        // server cannot apply - and serving SFTP without them would grant more than the
+                        // credential's issuer meant. Neither is it a command an exec handler could run.
+                        if (IsInternalSftp(forced) || ExecHandler is null)
+                        {
+                            await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "subsystem", name, IsInternalSftp(forced) ? "force-command internal-sftp: only SFTP, without options, is served" : "force-command: no command is run here"), CancellationToken).ConfigureAwait(false);
+                            if (request.Value.WantReply) await Channel.ReplyAsync(false, CancellationToken).ConfigureAwait(false);
+                            continue;
+                        }
+
+                        await RunExecAsync(Channel, Session, ExecHandler, AuditSink, forced, name, hasPty, request.Value.WantReply, CancellationToken).ConfigureAwait(false);
+                        return;
+
+                    }
 
                     Func<SshMuxChannel, CancellationToken, ValueTask>? serve = null;
 
@@ -222,23 +247,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     // client asked for — including a bare shell request. What it asked for is kept for
                     // the handler's information only (OpenSSH's SSH_ORIGINAL_COMMAND).
                     var forced    = restrictions.ForcedCommand;
-                    var command   = forced ?? requested;
 
-                    await EmitAsync(AuditSink, new ExecRequestedEvent(DateTimeOffset.UtcNow, command), CancellationToken).ConfigureAwait(false);
-
-                    if (request.Value.WantReply)
-                        await Channel.ReplyAsync(true, CancellationToken).ConfigureAwait(false);
-
-                    var channel = Channel;
-                    var context = new SshExecContext(command, Session.Username,
-                                                     (data, isErr, ct) => isErr ? channel.SendErrorAsync(data, ct) : channel.SendDataAsync(data, ct),
-                                                     hasPty: hasPty,
-                                                     originalCommand: forced is null ? null : requested);
-
-                    var exit = await ExecHandler(context, CancellationToken).ConfigureAwait(false);
-
-                    await Channel.SendRequestAsync("exit-status", false, EncodeUInt32((UInt32) exit), CancellationToken).ConfigureAwait(false);
-                    await Channel.CloseAsync(CancellationToken).ConfigureAwait(false);
+                    await RunExecAsync(Channel, Session, ExecHandler, AuditSink, forced ?? requested, forced is null ? null : requested, hasPty, request.Value.WantReply, CancellationToken).ConfigureAwait(false);
                     return;
                 }
 
@@ -342,6 +352,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 }
 
             }
+
+        }
+
+        #endregion
+
+        #region (private) RunExecAsync(Channel, Session, Handler, AuditSink, Command, OriginalCommand, HasPty, WantReply, CancellationToken)
+
+        /// <summary>
+        /// The forced command of a credential confined to one (<c>force-command</c>), and sshd's name for
+        /// its own SFTP server: a credential forced to it is served SFTP and nothing else.
+        /// </summary>
+        private const String InternalSftp = "internal-sftp";
+
+        /// <summary>
+        /// Whether a forced command is <c>internal-sftp</c>, with options or without - as sshd tells.
+        /// </summary>
+        private static Boolean IsInternalSftp(String ForcedCommand)
+
+            => ForcedCommand.StartsWith(InternalSftp, StringComparison.Ordinal) &&
+               (ForcedCommand.Length == InternalSftp.Length || ForcedCommand[InternalSftp.Length] is ' ' or '\t');
+
+
+        /// <summary>
+        /// Run a command with the exec handler, then tell the client its exit status and close the channel.
+        /// </summary>
+        /// <param name="Command">The command to run: the client's, or the credential's forced one.</param>
+        /// <param name="OriginalCommand">What the client asked for, where a forced command replaced it.</param>
+        private static async ValueTask RunExecAsync(SshMuxChannel      Channel,
+                                                    SshSessionInfo     Session,
+                                                    SshExecHandler     Handler,
+                                                    ISshAuditSink?     AuditSink,
+                                                    String             Command,
+                                                    String?            OriginalCommand,
+                                                    Boolean            HasPty,
+                                                    Boolean            WantReply,
+                                                    CancellationToken  CancellationToken)
+        {
+
+            await EmitAsync(AuditSink, new ExecRequestedEvent(DateTimeOffset.UtcNow, Command), CancellationToken).ConfigureAwait(false);
+
+            if (WantReply)
+                await Channel.ReplyAsync(true, CancellationToken).ConfigureAwait(false);
+
+            var context = new SshExecContext(Command, Session.Username,
+                                             (data, isErr, ct) => isErr ? Channel.SendErrorAsync(data, ct) : Channel.SendDataAsync(data, ct),
+                                             hasPty: HasPty,
+                                             originalCommand: OriginalCommand);
+
+            var exit = await Handler(context, CancellationToken).ConfigureAwait(false);
+
+            await Channel.SendRequestAsync("exit-status", false, EncodeUInt32((UInt32) exit), CancellationToken).ConfigureAwait(false);
+            await Channel.CloseAsync(CancellationToken).ConfigureAwait(false);
 
         }
 

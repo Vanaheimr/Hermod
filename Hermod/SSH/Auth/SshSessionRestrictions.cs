@@ -41,9 +41,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// </summary>
     /// <param name="ForcedCommand">
     /// The command this credential is confined to (<c>force-command</c>). When set, it replaces whatever
-    /// the client asked to run — including a plain shell request — and the client's original request is
-    /// preserved as <see cref="SshExecContext.OriginalCommand"/> (OpenSSH exposes it as
-    /// <c>SSH_ORIGINAL_COMMAND</c>).
+    /// the client asked to run — including a plain shell request, and a subsystem request — and the
+    /// client's original request is preserved as <see cref="SshExecContext.OriginalCommand"/> (OpenSSH
+    /// exposes it as <c>SSH_ORIGINAL_COMMAND</c>). As with sshd, plain <c>internal-sftp</c> is the one
+    /// forced command that serves a subsystem: SFTP, and only SFTP.
     /// </param>
     /// <param name="SourceAddresses">
     /// The addresses this credential may be used from (<c>source-address</c>). Empty means unrestricted.
