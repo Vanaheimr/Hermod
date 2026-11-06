@@ -689,6 +689,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region IsOwnAddress(Address)
+
+        /// <summary>
+        /// Whether the given address is one of the configured local addresses or an address
+        /// of an interface this transport uses. Unlike LocalAddresses this includes the IPv6
+        /// link-local addresses, which multicasts to FF02::FB are sent from.
+        /// </summary>
+        /// <param name="Address">The source address of a datagram.</param>
+        public Boolean IsOwnAddress(IIPAddress Address)
+        {
+
+            var bytes = Address.GetBytes();
+
+            return localAddresses.Any(local => local.Equals(Address)) ||
+                   interfaces.Any(info => info.IPv4Addresses.Concat(info.IPv6Addresses).
+                                              Any(own => own.GetAddressBytes().AsSpan().SequenceEqual(bytes)));
+
+        }
+
+        #endregion
+
+
         #region DisposeAsync()
 
         /// <summary>

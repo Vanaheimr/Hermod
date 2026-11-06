@@ -824,7 +824,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 if (Datagram.WasReceivedViaMulticast &&
-                    !Transport.LocalAddresses.Any(address => address.Equals(Datagram.RemoteSocket.IPAddress)))
+                    !Transport.IsOwnAddress(Datagram.RemoteSocket.IPAddress))
                 {
                     foreach (var browser in Browsers)
                         browser.ObserveQuery(message);

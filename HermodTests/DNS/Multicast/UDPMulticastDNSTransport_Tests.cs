@@ -17,6 +17,10 @@
 
 #region Usings
 
+using System.Collections.Concurrent;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -162,6 +166,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 await Task.Delay(50);
 
             Assert.That(browser.Instances, Is.Empty);
+
+        }
+
+        #endregion
+
+        #region Browser_DoesNotTakeItsOwnIPv6QueryForAnotherHosts()
+
+        /// <summary>
+        /// RFC 6762 §7.3 lets another host's query stand in for one's own. A host hears its own
+        /// queries as well, and over IPv6 they come back from the interface's link-local address,
+        /// which LocalAddresses does not list by default. Taken for another host's, the copy of
+        /// each query cost the browser its next one.
+        /// </summary>
+        [Test]
+        public async Task Browser_DoesNotTakeItsOwnIPv6QueryForAnotherHosts()
+        {
+
+            var link = NetworkInterface.GetAllNetworkInterfaces().
+                           Where (nic => nic.OperationalStatus    == OperationalStatus.Up &&
+                                         nic.SupportsMulticast                            &&
+                                         nic.NetworkInterfaceType != NetworkInterfaceType.Loopback).
+                           Select(nic => nic.GetIPProperties().UnicastAddresses.Select(unicast => unicast.Address).ToArray()).
+                           FirstOrDefault(addresses => addresses.Any(address => address.AddressFamily == AddressFamily.InterNetwork) &&
+                                                       addresses.Any(address => address.IsIPv6LinkLocal));
+
+            if (link is null)
+                Assert.Ignore("No multicast capable interface carries an IPv4 and an IPv6 link-local address.");
+
+            var ipv4         = link.First(address => address.AddressFamily == AddressFamily.InterNetwork).GetAddressBytes();
+            var port         = TestPort();
+            var serviceType  = DNSServiceName.Parse("_owntest._tcp.local.");
+
+            // Default options: IPv6 on, link-local addresses left out of LocalAddresses.
+            await using var listener   = new UDPMulticastDNSTransport(new UDPMulticastDNSTransportOptions { Port = port });
+            await using var transport  = new UDPMulticastDNSTransport(new UDPMulticastDNSTransportOptions { Port = port });
+
+            var queries = new ConcurrentQueue<MulticastDNSDatagram>();
+            listener.OnDatagramReceived += (_, _, datagram, _) => {
+                if (datagram.RemoteSocket.IPAddress.GetBytes().SequenceEqual(ipv4) &&
+                    MulticastDNSMessage.TryParse(datagram.Payload, out var message, out _) &&
+                    message is not null && message.IsQuery &&
+                    message.Questions.Any(question => question.Name.Equals(serviceType)))
+                {
+                    queries.Enqueue(datagram);
+                }
+                return Task.CompletedTask;
+            };
+
+            await listener. StartAsync();
+            await transport.StartAsync();
+
+            await using var client = new MulticastDNSClient(transport, new MulticastDNSClientOptions {
+                                                                           InitialBrowseInterval  = TimeSpan.FromMilliseconds(200),
+                                                                           MinInitialBrowseDelay  = TimeSpan.Zero,
+                                                                           MaxInitialBrowseDelay  = TimeSpan.Zero
+                                                                       });
+            await client.StartAsync();
+            await client.BrowseAsync(serviceType);
+
+            // Queries at 0, 200, 600 and 1400 ms, the next at 3000 ms.
+            await Task.Delay(TimeSpan.FromMilliseconds(2300));
+
+            Assert.That(queries, Has.Count.EqualTo(4));
 
         }
 

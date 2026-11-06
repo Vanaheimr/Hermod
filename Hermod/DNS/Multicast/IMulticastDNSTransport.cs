@@ -131,6 +131,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         Boolean IsLegacyUnicast(IPSocket RemoteSocket)
             => RemoteSocket.Port != Port;
 
+
+        /// <summary>
+        /// Whether the given address is one this host sends from, so that a datagram from it
+        /// is the host's own, heard back by multicast loopback. LocalAddresses lists what may
+        /// be advertised, and may leave out addresses the host does send from: a multicast to
+        /// FF02::FB leaves from the interface's IPv6 link-local address.
+        /// </summary>
+        /// <param name="Address">The source address of a datagram.</param>
+        Boolean IsOwnAddress(IIPAddress Address)
+            => LocalAddresses.Any(local => local.Equals(Address));
+
     }
 
 }
