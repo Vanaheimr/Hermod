@@ -59,10 +59,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <c>permit-port-forwarding</c>). Intersects with the server's own <see cref="ForwardingPolicy"/> —
     /// the stricter side wins.
     /// </param>
+    /// <param name="PermittedSubsystems">
+    /// The subsystems this credential is confined to, by name; null for no such confinement. A credential
+    /// confined to subsystems gets <b>only</b> these: no shell, no exec, and no forced command either -
+    /// the credential of a device that is to speak one protocol, and nothing else, over this server.
+    /// </param>
     public sealed record SshSessionRestrictions(String?                ForcedCommand        = null,
                                                 IReadOnlyList<IpCidr>? SourceAddresses      = null,
                                                 Boolean                AllowPty             = true,
-                                                Boolean                AllowPortForwarding  = true)
+                                                Boolean                AllowPortForwarding  = true,
+                                                IReadOnlySet<String>?  PermittedSubsystems  = null)
     {
 
         /// <summary>
@@ -89,10 +95,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                               var (a, b)               => (IReadOnlyList<IpCidr>) [.. a!.Where(cidr => b!.Any(o => o.Equals(cidr)))]
                           };
 
+            // Confined by both: only what both permit.
+            var subsystems = (PermittedSubsystems, Other.PermittedSubsystems) switch {
+                                 (null, var b)            => b,
+                                 (var a, null)            => a,
+                                 var (a, b)               => (IReadOnlySet<String>) new HashSet<String>(a!.Where(b!.Contains), StringComparer.Ordinal)
+                             };
+
             return new SshSessionRestrictions(command,
                                               sources,
                                               AllowPty            && Other.AllowPty,
-                                              AllowPortForwarding && Other.AllowPortForwarding);
+                                              AllowPortForwarding && Other.AllowPortForwarding,
+                                              subsystems);
 
         }
 
@@ -106,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Whether anything is actually restricted.
         /// </summary>
         public Boolean IsRestricted
-            => ForcedCommand is not null || SourceAddresses?.Count > 0 || !AllowPty || !AllowPortForwarding;
+            => ForcedCommand is not null || SourceAddresses?.Count > 0 || !AllowPty || !AllowPortForwarding || PermittedSubsystems is not null;
 
         /// <summary>
         /// Whether a peer at the given address may use this credential. An unknown peer address is

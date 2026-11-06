@@ -125,6 +125,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         public SftpSessionFactory?                  SftpSessions      { get; init; }
 
         /// <summary>
+        /// Serves subsystems besides <c>sftp</c>, session by session: asked when a session requests one,
+        /// with who signed in and the name asked for, it answers how to serve it - or null, and the request
+        /// is refused and audited as one that is not served. <c>sftp</c> stays with the SFTP options above.
+        /// </summary>
+        /// <remarks>
+        /// The handler is given the session and its channel, and the server closes the channel once the
+        /// handler returns - see <see cref="SshSubsystemContext"/>.
+        /// </remarks>
+        public SshSubsystemFactory?                 Subsystems        { get; init; }
+
+        /// <summary>
         /// The port-forwarding policy (default: off).
         /// </summary>
         public ForwardingPolicy                     ForwardingPolicy  { get; init; } = ForwardingPolicy.None;
@@ -773,7 +784,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             if (Info.ChannelType == "session")
             {
 
-                if (options.ExecHandler is null && options.ShellHandler is null && options.SftpFileSystem is null && options.SftpSessions is null)
+                if (options.ExecHandler is null && options.ShellHandler is null && options.SftpFileSystem is null && options.SftpSessions is null && options.Subsystems is null)
                     return false;
 
                 if (Interlocked.Increment(ref Connection.Sessions) > options.Limits.MaxSessions)
@@ -857,6 +868,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                     ["sftp"] = (ch, ct) => SftpServer.ServeAsync(new StreamSftpDuplex(ch.AsStream()), options.SftpFileSystem, options.SftpProfile, options.SftpLimits, ct)
                 };
 
+            // Every other subsystem, where the server serves any: asked after SFTP, and never for "sftp",
+            // which stays the SFTP options' to serve or refuse.
+            if (options.Subsystems is SshSubsystemFactory factory)
+            {
+
+                var sftpFor = subsystemFor;
+
+                subsystemFor = async (name, ct) => {
+
+                    if (name == "sftp")
+                        return sftpFor is not null
+                                   ? await sftpFor(name, ct).ConfigureAwait(false)
+                                   : null;
+
+                    if (await factory(Session, name, ct).ConfigureAwait(false) is not SshSubsystemHandler handler)
+                        return null;
+
+                    return (channel, token) => ServeSubsystemAsync(channel, Session, name, handler, token);
+
+                };
+
+            }
+
             try
             {
                 await SshSessionChannel.ServeAsync(Channel,
@@ -876,6 +910,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             {
                 if (answered is not null && Volatile.Read(ref started) == 0)
                     await DisposeFileSystemAsync(answered.FileSystem).ConfigureAwait(false);
+            }
+
+        }
+
+        #endregion
+
+        #region (private) ServeSubsystemAsync(Channel, Session, Name, Handler, CancellationToken)
+
+        /// <summary>
+        /// Serve a subsystem the factory answered for: the handler is told when the client closed the
+        /// channel and when the server is stopping, and once it returns - or fails - the channel is closed,
+        /// so that no client is left with a channel nobody serves.
+        /// </summary>
+        private async ValueTask ServeSubsystemAsync(SshMuxChannel        Channel,
+                                                    SshSessionInfo       Session,
+                                                    String               Name,
+                                                    SshSubsystemHandler  Handler,
+                                                    CancellationToken    CancellationToken)
+        {
+
+            using var closed  = new CancellationTokenSource();
+            using var ended   = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, stopping.Token, closed.Token);
+
+            _ = Channel.Closed.ContinueWith(_ => {
+                    try { closed.Cancel(); } catch (ObjectDisposedException) { }
+                }, TaskScheduler.Default);
+
+            try
+            {
+                await Handler(new SshSubsystemContext(Session, Name, Channel, closed.Token, stopping.Token), ended.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+                try
+                {
+                    await Channel.CloseAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                { }
             }
 
         }

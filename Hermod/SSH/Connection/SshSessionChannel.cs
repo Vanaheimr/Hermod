@@ -164,6 +164,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     var name    = ReadString(request.Value.Data);
                     var reason  = "not served";
 
+                    // A credential confined to some subsystems gets those, and no other.
+                    if (restrictions.PermittedSubsystems is { } permitted && !permitted.Contains(name))
+                    {
+                        await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "subsystem", name, "not permitted for this credential"), CancellationToken).ConfigureAwait(false);
+                        if (request.Value.WantReply) await Channel.ReplyAsync(false, CancellationToken).ConfigureAwait(false);
+                        continue;
+                    }
+
                     // A credential confined to one command (force-command) is confined for a subsystem as
                     // well, as sshd does it: the forced command runs instead, with the subsystem's name as
                     // the original command. The one exception is sshd's too: a credential forced to plain
@@ -174,9 +182,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                         // internal-sftp with options (-R for read-only, -d, -P ...) asks for limits this
                         // server cannot apply - and serving SFTP without them would grant more than the
                         // credential's issuer meant. Neither is it a command an exec handler could run.
-                        if (IsInternalSftp(forced) || ExecHandler is null)
+                        // And a credential confined to subsystems as well runs no command at all.
+                        if (IsInternalSftp(forced) || ExecHandler is null || restrictions.PermittedSubsystems is not null)
                         {
-                            await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "subsystem", name, IsInternalSftp(forced) ? "force-command internal-sftp: only SFTP, without options, is served" : "force-command: no command is run here"), CancellationToken).ConfigureAwait(false);
+                            await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "subsystem", name, IsInternalSftp(forced)                       ? "force-command internal-sftp: only SFTP, without options, is served"
+                                                                                                                  : restrictions.PermittedSubsystems is not null ? "force-command: the credential is confined to subsystems, and runs no command"
+                                                                                                                                                                 : "force-command: no command is run here"), CancellationToken).ConfigureAwait(false);
                             if (request.Value.WantReply) await Channel.ReplyAsync(false, CancellationToken).ConfigureAwait(false);
                             continue;
                         }
@@ -212,6 +223,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                         return;
                     }
                     await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "subsystem", name, reason), CancellationToken).ConfigureAwait(false);
+                    if (request.Value.WantReply) await Channel.ReplyAsync(false, CancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                // A credential confined to subsystems gets neither a shell nor a command.
+                if (type is "exec" or "shell" && restrictions.PermittedSubsystems is not null)
+                {
+                    await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, type, type == "exec" ? ReadString(request.Value.Data) : "", "the credential is confined to subsystems"), CancellationToken).ConfigureAwait(false);
                     if (request.Value.WantReply) await Channel.ReplyAsync(false, CancellationToken).ConfigureAwait(false);
                     continue;
                 }

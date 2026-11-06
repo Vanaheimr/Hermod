@@ -45,7 +45,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public static IDuplexPipe AsDuplexPipe(Socket Socket)
         {
             var stream = new NetworkStream(Socket, ownsSocket: true);
-            return new DuplexPipe(PipeReader.Create(stream), PipeWriter.Create(stream)) { Abort = stream.Dispose };
+            return new DuplexPipe(PipeReader.Create(stream), PipeWriter.Create(stream)) {
+                       Abort         = stream.Dispose,
+                       LocalSocket   = Socket.LocalEndPoint  is IPEndPoint local  ? IPSocket.FromIPEndPoint(local)  : null,
+                       RemoteSocket  = Socket.RemoteEndPoint is IPEndPoint remote ? IPSocket.FromIPEndPoint(remote) : null
+                   };
         }
 
         #endregion

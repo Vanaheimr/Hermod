@@ -50,6 +50,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public Action?     Abort     { get; init; }
 
         /// <summary>
+        /// Where this end of the connection is, for a pipe over a socket; null otherwise.
+        /// </summary>
+        public IPSocket?   LocalSocket   { get; init; }
+
+        /// <summary>
+        /// Where the other end of the connection is, for a pipe over a socket; null otherwise.
+        /// </summary>
+        public IPSocket?   RemoteSocket  { get; init; }
+
+        /// <summary>
         /// Create a duplex pipe from a reader and a writer.
         /// </summary>
         public DuplexPipe(PipeReader Input, PipeWriter Output)

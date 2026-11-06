@@ -176,6 +176,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// </summary>
         public SshChannelMultiplexer Multiplexer => mux;
 
+        /// <summary>
+        /// Completes - never faults - once the connection has ended, for whatever reason: the server
+        /// closed it, it failed, the keepalive gave up, or this client was disposed of.
+        /// <see cref="EndReason"/> then says why.
+        /// </summary>
+        public Task Closed => mux.Completion;
+
+        /// <summary>
+        /// Why the connection ended, once it has; null while it lasts.
+        /// </summary>
+        public Exception? EndReason => mux.EndReason;
+
+        /// <summary>
+        /// The host key the server proved itself with - the one <see cref="SshClientOptions.VerifyHostKey"/>
+        /// accepted.
+        /// </summary>
+        public Byte[] ServerHostKey => transport.ServerHostKey;
+
+        /// <summary>
+        /// Where this end of the TCP connection is - null when it runs through a jump host's tunnel.
+        /// </summary>
+        public IPSocket? LocalSocket => (pipe as DuplexPipe)?.LocalSocket;
+
+        /// <summary>
+        /// Where the server's end of the TCP connection is - null when it runs through a jump host's tunnel.
+        /// </summary>
+        public IPSocket? RemoteSocket => (pipe as DuplexPipe)?.RemoteSocket;
+
         #endregion
 
         #region Constructor(s)
@@ -512,6 +540,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                                                                      CancellationToken  CancellationToken = default)
 
             => SshRemoteForwarding.RequestRemoteForwardAsync(mux, BindHost, BindPort, LocalHost, LocalPort, CancellationToken);
+
+        #endregion
+
+        #region OpenSubsystemAsync(Name, CancellationToken)
+
+        /// <summary>
+        /// Open a session channel and ask for the given subsystem on it - <c>ssh -s host Name</c>. The
+        /// channel is then the subsystem's: read from <see cref="SshMuxChannel.Input"/>, send with
+        /// <see cref="SshMuxChannel.SendDataAsync"/>, one writer at a time.
+        /// </summary>
+        /// <param name="Name">The subsystem, e.g. "sftp" or "ocpp@open.charging.cloud".</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        /// <exception cref="SshWireException">The server refused the subsystem; the channel is closed again.</exception>
+        public async ValueTask<SshMuxChannel> OpenSubsystemAsync(String             Name,
+                                                                 CancellationToken  CancellationToken   = default)
+        {
+
+            var channel = await mux.OpenChannelAsync("session", CancellationToken: CancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                if (await channel.SendRequestAsync("subsystem", true, SshSessionChannel.EncodeString(Name), CancellationToken).ConfigureAwait(false))
+                    return channel;
+            }
+            catch
+            {
+                try { await channel.CloseAsync(CancellationToken.None).ConfigureAwait(false); } catch { }
+                throw;
+            }
+
+            try { await channel.CloseAsync(CancellationToken.None).ConfigureAwait(false); } catch { }
+
+            throw new SshWireException($"The server refused the '{Name}' subsystem.");
+
+        }
 
         #endregion
 

@@ -109,6 +109,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private volatile Exception?                              ended;
 
         /// <summary>
+        /// Completes once the receive loop is gone - see <see cref="Completion"/>.
+        /// </summary>
+        private readonly TaskCompletionSource                    completion = new (TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>
         /// Set by <see cref="DisposeAsync"/>: from then on, a send that gets the gate is refused.
         /// </summary>
         private Int32                                            disposed;
@@ -139,6 +144,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Whether this end is the server.
         /// </summary>
         public Boolean IsServer => transport.IsServer;
+
+        /// <summary>
+        /// Completes - never faults - once the connection has ended: the peer closed it, it failed, a
+        /// keepalive went unanswered, or this side disposed of it. <see cref="EndReason"/> then says why.
+        /// A multiplexer never <see cref="Start"/>ed never ends this way.
+        /// </summary>
+        public Task Completion => completion.Task;
+
+        /// <summary>
+        /// Why the connection ended, once it has (<see cref="SshChannelClosedException"/> for an orderly
+        /// end); null while it lasts.
+        /// </summary>
+        public Exception? EndReason => completion.Task.IsCompleted ? ended : null;
 
         /// <summary>
         /// Decides whether to accept an inbound channel-open (default: accept only <c>session</c>). Return
@@ -590,6 +608,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             ended ??= closed;
             foreach (var ch in channels.Values) ch.Fault(ended);
             accepted.Writer.TryComplete();
+            completion.TrySetResult();
         }
 
         #endregion
