@@ -495,7 +495,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             RemotePort
                         );
 
-                        return await QueryViaTCPFallbackAsync(dnsQuery, effectiveTimeout, timeoutCTS.Token).
+                        // The retry is the same query, with what is left of its one
+                        // deadline. It is handed the caller's token rather than
+                        // timeoutCTS's, which carries that deadline too: the retry's
+                        // catches tell a deadline from a cancellation by asking
+                        // whether the token they were given was cancelled, and with
+                        // timeoutCTS's it always was - a retry that ran out of time
+                        // came back as a failure, never as a timeout.
+                        return await QueryViaTCPFallbackAsync(dnsQuery, effectiveTimeout, stopwatch, CancellationToken).
                                          ConfigureAwait(false);
                     }
 
@@ -666,19 +673,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private) QueryViaTCPFallbackAsync(DNSQuery, Timeout, CancellationToken)
+        #region (private) QueryViaTCPFallbackAsync(DNSQuery, Timeout, Asked, CancellationToken)
 
         /// <summary>
         /// TCP fallback for truncated UDP responses (RFC 5966).
         /// </summary>
+        /// <param name="DNSQuery">The query to ask again over TCP.</param>
+        /// <param name="Timeout">The query's timeout, whose deadline the UDP attempt started.</param>
+        /// <param name="Asked">The query's stopwatch, running since the UDP attempt began.</param>
+        /// <param name="CancellationToken">The caller's cancellation token, without the deadline.</param>
         private async Task<DNSInfo> QueryViaTCPFallbackAsync(DNSPacket          DNSQuery,
                                                              TimeSpan           Timeout,
+                                                             Stopwatch          Asked,
                                                              CancellationToken  CancellationToken)
         {
 
             Socket? socket = null;
 
-            var stopwatch = Stopwatch.StartNew();
+            // The same query, so the same clock: what is left of its deadline bounds
+            // the retry, and the runtime a result reports is the query's.
+            var stopwatch = Asked;
 
             try
             {
@@ -691,7 +705,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          : new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
 
                 using var timeoutCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, lifetime.Token);
-                timeoutCTS.CancelAfter(Timeout);
+                var remaining        = Timeout - stopwatch.Elapsed;
+                timeoutCTS.CancelAfter(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero);
 
                 await socket.ConnectAsync(endPoint, timeoutCTS.Token).
                              ConfigureAwait(false);
