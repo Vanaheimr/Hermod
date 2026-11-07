@@ -19,6 +19,7 @@
 
 using System.Text;
 using System.Net;
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -1273,7 +1274,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var validatedWebSocket      = new List<String>();
             var newWebSocketConnection  = new List<String>();
             var httpRequests            = new List<HTTPRequest>();
-            var httpResponses           = new List<HTTPResponse>();
+            // Two connections answer, and each reports its answer once it has gone out: the 101 of the
+            // second can be reported before the 401 of the first. So every answer is kept with its request.
+            var httpResponses           = new ConcurrentQueue<(HTTPRequest Request, HTTPResponse Response)>();
             var messageRequests         = new List<WebSocketFrame>();
             var messageResponses        = new List<WebSocketFrame>();
             var textMessageRequests     = new List<String>();
@@ -1320,7 +1323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             };
 
             webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse, cancellationToken) => {
-                httpResponses.Add(httpResponse);
+                httpResponses.Enqueue((httpRequest, httpResponse));
                 return Task.CompletedTask;
             };
 
@@ -1388,6 +1391,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
+            // The 401 of the first connection may be reported after the second one has opened.
+            Assert.That(
+                SpinWait.SpinUntil(() => httpResponses.Count == 2, TimeSpan.FromSeconds(5)),
+                Is.True,
+                "Timed out waiting for both HTTP responses."
+            );
+
             // 2 because of the way .NET handles HTTP authentication!
             Assert.That(validatedTCP.          Count, Is.EqualTo(2), validatedTCP.          AggregateCSV());
             Assert.That(newTCPConnection.      Count, Is.EqualTo(2), newTCPConnection.      AggregateCSV());
@@ -1438,7 +1448,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Check HTTP response
 
-            var httpResponse1  = httpResponses.First();
+            var httpResponse1  = httpResponses.Single(answer => ReferenceEquals(answer.Request, httpRequest1)).Response;
             var response1      = httpResponse1.EntirePDU;
             var httpBody1      = httpResponse1.HTTPBodyAsUTF8String;
 
@@ -1447,7 +1457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             // WWW-Authenticate:         Basic realm="Access to the web sockets server", charset ="UTF-8"
             // Connection:               Close
 
-            var httpResponse2  = httpResponses.ElementAt(1);
+            var httpResponse2  = httpResponses.Single(answer => ReferenceEquals(answer.Request, httpRequest2)).Response;
             var response2      = httpResponse2.EntirePDU;
             var httpBody2      = httpResponse2.HTTPBodyAsUTF8String;
 
@@ -1550,7 +1560,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var validatedWebSocket      = new List<String>();
             var newWebSocketConnection  = new List<String>();
             var httpRequests            = new List<HTTPRequest>();
-            var httpResponses           = new List<HTTPResponse>();
+            // Two connections answer, and may report their answers at the same moment.
+            var httpResponses           = new ConcurrentQueue<HTTPResponse>();
             var messageRequests         = new List<WebSocketFrame>();
             var messageResponses        = new List<WebSocketFrame>();
             var textMessageRequests     = new List<String>();
@@ -1598,7 +1609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             };
 
             webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse, cancellationToken) => {
-                httpResponses.Add(httpResponse);
+                httpResponses.Enqueue(httpResponse);
                 return Task.CompletedTask;
             };
 
