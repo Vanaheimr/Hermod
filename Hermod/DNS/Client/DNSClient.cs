@@ -1574,7 +1574,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     if (!AcceptCookie(serverKey, storedCookie, response))
                     {
 
-                        response = DNSInfo.Invalid(DNSServer, response.QueryId);
+                        response = DNSInfo.Invalid(DNSServer, response.QueryId, response.Timeout, response.Runtime);
 
                         attempts++;
 

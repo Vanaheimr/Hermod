@@ -312,7 +312,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 //throw new Exception("Security Alert: Mallory might send us faked DNS replies! [" + ExpectedTransactionId + " != " + requestId + "]");
                 return DNSInfo.Invalid(
                            Origin,
-                           requestId
+                           requestId,
+                           Timeout,
+                           Runtime
                        );
 
             var Byte2            = DNSResponseStream.ReadByte();
@@ -357,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var expected = ExpectedQuestions.ToArray();
 
             if (QuestionCount != expected.Length)
-                return Invalid(Origin, requestId);
+                return Invalid(Origin, requestId, Timeout, Runtime);
 
             for (var i = 0; i < QuestionCount; ++i)
             {
@@ -376,7 +378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                             questionName.       TrimEnd('.'),
                                                             StringComparison.OrdinalIgnoreCase)))
                 {
-                    return Invalid(Origin, requestId);
+                    return Invalid(Origin, requestId, Timeout, Runtime);
                 }
 
             }
@@ -535,8 +537,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     Timeout);
 
 
+        /// <summary>
+        /// Create a DNSInfo representing a response that may not be used: one whose
+        /// transaction id or question does not match the query (RFC 5452 §9.1), or
+        /// whose cookie does not (RFC 7873 §5.3).
+        /// </summary>
+        /// <param name="Origin">The server that sent it.</param>
+        /// <param name="QueryId">The transaction id the response carried.</param>
+        /// <param name="Timeout">The timeout the query had.</param>
+        /// <param name="Runtime">How long the query took until the response arrived.</param>
+        /// <remarks>
+        /// Timeout and runtime used to be zero whatever the query had. A refused
+        /// response is a failed query like any other, and DNSInfo.Failed reports
+        /// both: a caller reading them could not tell a refusal from a query that
+        /// was given no time and took none. They stay optional for a caller that
+        /// knows neither.
+        /// </remarks>
         public static DNSInfo Invalid(DNSServerConfig  Origin,
-                                      Int32            QueryId)
+                                      Int32            QueryId,
+                                      TimeSpan?        Timeout   = null,
+                                      TimeSpan?        Runtime   = null)
 
             => new (Origin,
                     QueryId,
@@ -550,8 +570,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     [],
                     false,
                     false,
-                    TimeSpan.Zero,
-                    TimeSpan.Zero);
+                    Timeout ?? TimeSpan.Zero,
+                    Runtime ?? TimeSpan.Zero);
 
 
         /// <summary>
