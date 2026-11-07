@@ -159,11 +159,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         /// arrives in the middle of the exchange, and must be delivered after it, not dropped or refused.
         ///
         /// <para>
-        /// How many rekeys that makes is not fixed. What the client has in flight when our KEXINIT goes
-        /// out still arrives under the old key and counts towards it, and how much that is depends on
-        /// the scheduler - a loaded CI runner managed 5 rekeys where a megabyte at 64 KiB a key would
-        /// allow 16. So this asks for repetition,
-        /// not for a number - the sender's tests, whose rekeys follow the bytes exactly, do that.
+        /// How many rekeys a megabyte makes is not fixed. What the client sends before it sees our
+        /// KEXINIT still arrives under the old key and counts towards it, and the channel's window lets
+        /// it send the whole megabyte before then: how much it does depends on the scheduler. A loaded
+        /// CI runner managed 5 rekeys where 16 would fit, and another one managed a single rekey. So
+        /// the client sends a quarter at a time, four keys' worth each, and goes on once the server has
+        /// renewed its keys: every quarter makes a rekey, whatever the scheduler does. The sender's
+        /// tests, whose rekeys follow the bytes exactly, ask for a number.
         /// </para>
         /// </summary>
         [Test]
@@ -174,15 +176,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var connected = await Connect(null, Every64KiB, CancellationToken);
 
             var data      = RandomNumberGenerator.GetBytes(Megabyte);
+            var quarter   = Megabyte / 4;
             var receiving = Receive(connected.ServerChannel, CancellationToken);
 
-            await Send(connected.ClientChannel, data, CancellationToken);
+            for (var offset = 0; offset < Megabyte; offset += quarter)
+            {
+
+                var keys = connected.ServerTransport.KeyExchangeCount;
+
+                await connected.ClientChannel.SendDataAsync(data.AsMemory(offset, quarter), CancellationToken);
+
+                while (connected.ServerTransport.KeyExchangeCount == keys)
+                    await Task.Delay(10, CancellationToken);
+
+            }
+
+            await connected.ClientChannel.SendEofAsync(CancellationToken);
 
             await receiving;
 
             Assert.Multiple(() => {
                 Assert.That(receiving.Result,                                 Is.EqualTo(data), "every byte, in order, across the rekeys");
-                Assert.That(connected.ServerTransport.KeyExchangeCount,     Is.GreaterThanOrEqualTo(3), "the handshake and at least two rekeys");
+                Assert.That(connected.ServerTransport.KeyExchangeCount,     Is.GreaterThanOrEqualTo(5), "the handshake and a rekey for every quarter");
                 Assert.That(connected.ClientTransport.KeyExchangeCount,     Is.EqualTo(connected.ServerTransport.KeyExchangeCount));
             });
 
