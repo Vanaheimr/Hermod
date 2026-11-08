@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -65,40 +66,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         public async Task TheTargetsAnswer_ArrivesAfterTheEndOfTheQuestion(String Direction, CancellationToken CancellationToken)
         {
 
-            var target = new TcpListener(IPAddress.Loopback, 0);
-            target.Start();
-
-            var served = Task.Run(async () => {
-                using var connection = await target.AcceptTcpClientAsync(CancellationToken);
+            await using var target = new Target(async connection => {
                 var stream   = connection.GetStream();
                 var question = await ReadToEndAsync(stream, CancellationToken);
                 await stream.WriteAsync(Encoding.UTF8.GetBytes(new String(question.Reverse().ToArray())), CancellationToken);
             }, CancellationToken);
 
-            try
-            {
+            await ThroughAForwardAsync(Direction, target.Port, async port => {
 
-                await ThroughAForwardAsync(Direction, (UInt16) ((IPEndPoint) target.LocalEndpoint).Port, async port => {
+                using var local = new TcpClient();
+                await local.ConnectAsync(IPAddress.Loopback, port, CancellationToken);
 
-                    using var local = new TcpClient();
-                    await local.ConnectAsync(IPAddress.Loopback, port, CancellationToken);
+                var stream = local.GetStream();
+                await stream.WriteAsync(Encoding.UTF8.GetBytes(Question), CancellationToken);
+                local.Client.Shutdown(SocketShutdown.Send);
 
-                    var stream = local.GetStream();
-                    await stream.WriteAsync(Encoding.UTF8.GetBytes(Question), CancellationToken);
-                    local.Client.Shutdown(SocketShutdown.Send);
+                Assert.That(await ReadToEndAsync(stream, CancellationToken), Is.EqualTo(new String(Question.Reverse().ToArray())),
+                            "the target's answer to the whole question");
 
-                    Assert.That(await ReadToEndAsync(stream, CancellationToken), Is.EqualTo(new String(Question.Reverse().ToArray())),
-                                "the target's answer to the whole question");
-
-                }, CancellationToken);
-
-                await served;
-
-            }
-            finally
-            {
-                target.Stop();
-            }
+            }, CancellationToken);
 
         }
 
@@ -116,41 +102,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         public async Task WhatIsSentAfterTheTargetStoppedSpeaking_StillArrives(String Direction, CancellationToken CancellationToken)
         {
 
-            var target = new TcpListener(IPAddress.Loopback, 0);
-            target.Start();
+            // Whatever each connection sent the target; the forward's is the one the late words reached.
+            var received   = new ConcurrentQueue<String>();
+            var lateWords  = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var received = Task.Run(async () => {
-                using var connection = await target.AcceptTcpClientAsync(CancellationToken);
+            await using var target = new Target(async connection => {
                 var stream = connection.GetStream();
                 await stream.WriteAsync(Encoding.UTF8.GetBytes(Greeting), CancellationToken);
                 connection.Client.Shutdown(SocketShutdown.Send);
-                return await ReadToEndAsync(stream, CancellationToken);
+                var text = await ReadToEndAsync(stream, CancellationToken);
+                received.Enqueue(text);
+                if (text == LateWords)
+                    lateWords.TrySetResult();
             }, CancellationToken);
 
-            try
-            {
+            await ThroughAForwardAsync(Direction, target.Port, async port => {
 
-                await ThroughAForwardAsync(Direction, (UInt16) ((IPEndPoint) target.LocalEndpoint).Port, async port => {
+                using var local = new TcpClient();
+                await local.ConnectAsync(IPAddress.Loopback, port, CancellationToken);
 
-                    using var local = new TcpClient();
-                    await local.ConnectAsync(IPAddress.Loopback, port, CancellationToken);
+                var stream = local.GetStream();
 
-                    var stream = local.GetStream();
+                Assert.That(await ReadToEndAsync(stream, CancellationToken), Is.EqualTo(Greeting), "everything the target said");
 
-                    Assert.That(await ReadToEndAsync(stream, CancellationToken), Is.EqualTo(Greeting), "everything the target said");
+                await stream.WriteAsync(Encoding.UTF8.GetBytes(LateWords), CancellationToken);
+                local.Client.Shutdown(SocketShutdown.Send);
 
-                    await stream.WriteAsync(Encoding.UTF8.GetBytes(LateWords), CancellationToken);
-                    local.Client.Shutdown(SocketShutdown.Send);
+                try
+                {
+                    await lateWords.Task.WaitAsync(TimeSpan.FromSeconds(10), CancellationToken);
+                }
+                catch (TimeoutException)
+                {
+                    Assert.Fail($"What was sent after the target's end did not reach it; it received {received.Count} time(s): " +
+                                String.Join(", ", received.Select(text => $"'{text}'")));
+                }
 
-                    Assert.That(await received, Is.EqualTo(LateWords), "what was sent after the target's end reached it");
-
-                }, CancellationToken);
-
-            }
-            finally
-            {
-                target.Stop();
-            }
+            }, CancellationToken);
 
         }
 
@@ -158,6 +146,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
 
         #region (private) helpers
+
+        #region (private class) Target
+
+        /// <summary>
+        /// The target of a forward, on a loopback port of its own, serving every connection made to it
+        /// until disposed - not the first alone. The forward's connection need not be the first: the port
+        /// was free a moment ago, and a test of another process on this machine may keep a port it was
+        /// handed back as one where nobody listens. ChargyCore's AnUnreachableEndpointIsPassedOver polls
+        /// such a port for seconds, and Windows hands ports out in ascending order: once the counter has
+        /// come round, the port is given to this listener, and the poll reaches it. A target that took
+        /// only the first connection read that stranger's request to its end, and the forward's waited
+        /// in the backlog until CancelAfter.
+        /// </summary>
+        private sealed class Target : IAsyncDisposable
+        {
+
+            private readonly TcpListener                 listener     = new (IPAddress.Loopback, 0);
+            private readonly ConcurrentQueue<TcpClient>  connections  = new ();
+            private readonly ConcurrentQueue<Task>       serving      = new ();
+            private readonly Task                        accepting;
+
+            /// <summary>
+            /// The port the target listens on.
+            /// </summary>
+            public UInt16 Port { get; }
+
+            /// <summary>
+            /// Listen, and serve each connection with <paramref name="Serve"/>, which closes it when done.
+            /// </summary>
+            public Target(Func<TcpClient, Task> Serve, CancellationToken CancellationToken)
+            {
+
+                listener.Start();
+                Port = (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port;
+
+                accepting = Task.Run(async () => {
+                    try
+                    {
+                        while (true)
+                        {
+                            var connection = await listener.AcceptTcpClientAsync(CancellationToken);
+                            connections.Enqueue(connection);
+                            serving.Enqueue(Task.Run(async () => {
+                                using (connection)
+                                    await Serve(connection);
+                            }));
+                        }
+                    }
+                    catch
+                    {
+                        // Stopped, or the test is over.
+                    }
+                });
+
+            }
+
+            /// <summary>
+            /// Stop listening, and end the connections still served - a stranger's may wait for ever.
+            /// </summary>
+            public async ValueTask DisposeAsync()
+            {
+
+                listener.Stop();
+                await accepting;
+
+                foreach (var connection in connections)
+                    connection.Dispose();
+
+                foreach (var served in serving)
+                {
+                    try   { await served; }
+                    catch { }
+                }
+
+            }
+
+        }
+
+        #endregion
 
         /// <summary>
         /// Our client and our server, with a forward to <paramref name="TargetPort"/> in the given
