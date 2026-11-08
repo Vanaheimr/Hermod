@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
 using System.Threading.Channels;
@@ -76,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private UInt32                         remoteId;
         private Int64                          remoteWindow;
         private TaskCompletionSource?          windowGrew;
-        private Boolean                        sentEof, sentClose, inboundDone;
+        private Boolean                        sentEof, sentClose, sentExit, inboundDone;
         private Stream?                        inputStream, errorStream;
 
         #endregion
@@ -167,12 +168,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Send a channel request; when <paramref name="WantReply"/>, await the SUCCESS/FAILURE reply.
         /// </summary>
+        /// <remarks>
+        /// An <c>exit-status</c> or <c>exit-signal</c> sent this way is the channel's exit, so that
+        /// <see cref="SendExitStatusAsync"/> sends no second one.
+        /// </remarks>
         public async ValueTask<Boolean> SendRequestAsync(String Type, Boolean WantReply, Byte[] Payload, CancellationToken CancellationToken = default)
         {
+            if (Type is "exit-status" or "exit-signal")
+                lock (sync) sentExit = true;
             TaskCompletionSource<Boolean>? tcs = null;
             if (WantReply) { tcs = new TaskCompletionSource<Boolean>(TaskCreationOptions.RunContinuationsAsynchronously); requestReplies.Enqueue(tcs); }
             await mux.SendAsync(SshChannelWire.ChannelRequest(remoteId, Type, WantReply, Payload), CancellationToken).ConfigureAwait(false);
             return tcs is null || await tcs.Task.WaitAsync(CancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Tell the peer how the program behind this channel ended: the channel request <c>exit-status</c>
+        /// (RFC 4254, section 6.10), once. Not where an <c>exit-status</c> or <c>exit-signal</c> went out
+        /// already, and not after CLOSE, after which nothing may be sent on the channel. Whether it was sent.
+        /// </summary>
+        /// <param name="ExitStatus">The exit status: 0 for success.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        public async ValueTask<Boolean> SendExitStatusAsync(UInt32 ExitStatus, CancellationToken CancellationToken = default)
+        {
+
+            Boolean send;
+            lock (sync) { send = !sentExit && !sentClose; sentExit = true; }
+
+            if (!send)
+                return false;
+
+            var payload = new Byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(payload, ExitStatus);
+
+            await mux.SendAsync(SshChannelWire.ChannelRequest(remoteId, "exit-status", false, payload), CancellationToken).ConfigureAwait(false);
+
+            return true;
+
         }
 
         /// <summary>

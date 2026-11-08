@@ -22,6 +22,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// Serves one subsystem on one session's channel - until the client closes it, the server stops, or
     /// the handler is done. The server closes the channel once the handler returns.
     /// </summary>
+    /// <remarks>
+    /// Before it closes the channel, the server sends the exit-status of RFC 4254, section 6.10: 0 where
+    /// the handler returned, 1 where it threw. A handler that has a status of its own to tell sends it
+    /// with <see cref="SshMuxChannel.SendExitStatusAsync"/>, and the server then sends none.
+    /// </remarks>
     /// <param name="Context">Who asked, for what, and on which channel.</param>
     /// <param name="CancellationToken">Fires when the channel is closed, the server stops, or the connection ends.</param>
     public delegate ValueTask SshSubsystemHandler(SshSubsystemContext  Context,

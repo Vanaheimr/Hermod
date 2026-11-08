@@ -923,6 +923,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         /// channel and when the server is stopping, and once it returns - or fails - the channel is closed,
         /// so that no client is left with a channel nobody serves.
         /// </summary>
+        /// <remarks>
+        /// Before the channel is closed the client is told how the subsystem ended, as sshd tells it when
+        /// the program behind a subsystem exits: exit-status 0 where the handler returned, 1 where it
+        /// failed - unless the handler sent an exit-status of its own, or the channel is closed already.
+        /// Without one, OpenSSH's <c>ssh -s</c> counts the subsystem as failed (exit code 255), however
+        /// well it went.
+        /// </remarks>
         private async ValueTask ServeSubsystemAsync(SshMuxChannel        Channel,
                                                     SshSessionInfo       Session,
                                                     String               Name,
@@ -937,18 +944,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                     try { closed.Cancel(); } catch (ObjectDisposedException) { }
                 }, TaskScheduler.Default);
 
+            var exitStatus = 1U;
+
             try
             {
                 await Handler(new SshSubsystemContext(Session, Name, Channel, closed.Token, stopping.Token), ended.Token).ConfigureAwait(false);
+                exitStatus = 0U;
             }
             finally
             {
+
+                try
+                {
+                    await Channel.SendExitStatusAsync(exitStatus, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                { }
+
                 try
                 {
                     await Channel.CloseAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 { }
+
             }
 
         }
