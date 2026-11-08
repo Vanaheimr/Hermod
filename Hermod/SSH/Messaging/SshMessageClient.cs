@@ -353,7 +353,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             using (var gone = CancellationTokenSource.CreateLinkedTokenSource(stopping.Token))
             {
 
-                // The SSH connection ending ends the channel's reads too; this only makes it prompt.
+                // The SSH connection ending tells the handlers at once. The channel's reads end on their
+                // own, after what arrived before.
                 _ = Ssh.Closed.ContinueWith(_ => {
                         try { gone.Cancel(); } catch (ObjectDisposedException) { }
                     }, TaskScheduler.Default);
