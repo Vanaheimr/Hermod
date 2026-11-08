@@ -343,7 +343,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override Int32 GetHashCode()
 
-            => InternalId?.GetHashCode() ?? 0;
+            => InternalId is not null
+                   ? StringComparer.OrdinalIgnoreCase.GetHashCode(InternalId)
+                   : 0;
 
         #endregion
 
