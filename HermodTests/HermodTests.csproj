@@ -24,7 +24,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <!-- Test-only reference peer (the real gRPC client) for the HTTP/2 gRPC
          interop tests — does not count against the core stack's BCL-only rule. -->
-    <PackageReference Include="Grpc.Net.Client" Version="2.84.0" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.85.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="NUnit" Version="5.0.0" />
     <PackageReference Include="NUnit.Analyzers" Version="4.15.0" PrivateAssets="all" />
