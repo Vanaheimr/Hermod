@@ -1276,7 +1276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var httpRequests            = new List<HTTPRequest>();
             // Two connections answer, and each reports its answer once it has gone out: the 101 of the
             // second can be reported before the 401 of the first. So every answer is kept with its request.
-            var httpResponses           = new ConcurrentQueue<(HTTPRequest Request, HTTPResponse Response)>();
+            var httpResponses           = new ConcurrentQueue<(HTTPRequest? Request, HTTPResponse Response)>();
             var messageRequests         = new List<WebSocketFrame>();
             var messageResponses        = new List<WebSocketFrame>();
             var textMessageRequests     = new List<String>();
