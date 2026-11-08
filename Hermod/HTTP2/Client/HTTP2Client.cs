@@ -86,9 +86,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             try
             {
 
-                await tcp.ConnectAsync(
+                // With the DNS client of the options, never with the resolver of the operating system.
+                await DNS.NameResolution.ConnectAsync(
+                          tcp,
                           Host,
                           Port,
+                          Options?.DNSClient,
                           CancellationToken
                       );
 

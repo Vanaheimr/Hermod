@@ -40,6 +40,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public int      MaxRefusedStreamRetries { get; init; } = 2;
 
         /// <summary>
+        /// The DNS client a host name is resolved with, never the resolver of the operating
+        /// system: an IP address or "localhost" needs none, and a host name without one is
+        /// refused with a <see cref="DNS.NameResolutionException"/>.
+        /// </summary>
+        public DNS.IDNSClient? DNSClient        { get; init; }
+
+        /// <summary>
         /// When greater than zero, send a PING after this much inactivity to check
         /// the connection is still alive. Zero (the default) disables keepalive.
         /// </summary>

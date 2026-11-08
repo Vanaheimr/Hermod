@@ -238,7 +238,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         [Test(Description = "M-4 - RFC 8461 §3.3: the resolver's own handler follows no redirects")]
         public void The_default_handler_follows_no_redirects()
         {
-            using var handler = (SocketsHttpHandler) MtaStsResolver.CreateDefaultHandler();
+            using var handler = (SocketsHttpHandler) MtaStsResolver.CreateDefaultHandler(null);
             Assert.That(handler.AllowAutoRedirect, Is.False);
         }
 

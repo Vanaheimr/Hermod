@@ -21,6 +21,8 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.Common;
 
 /// <summary>
@@ -61,9 +63,15 @@ public sealed class ModbusTCPClient : IAsyncDisposable
         => tlsStream is not null;
 
 
+    /// <summary>
+    /// Connect to a Modbus TCP server. A host name is resolved with the given DNS client, never with the
+    /// resolver of the operating system: an IP address or "localhost" needs none, and a host name without
+    /// one is refused with a <see cref="NameResolutionException"/>.
+    /// </summary>
     public static async Task<ModbusTCPClient> ConnectAsync(String             host,
-                                                            UInt16             port,
-                                                            TimeSpan           connectTimeout,
+                                                           UInt16             port,
+                                                           IDNSClient?        dnsClient,
+                                                           TimeSpan           connectTimeout,
                                                            CancellationToken  ct)
     {
 
@@ -77,8 +85,8 @@ public sealed class ModbusTCPClient : IAsyncDisposable
         try
         {
 
-            await tcp.ConnectAsync(host, port, cts.Token).
-                      ConfigureAwait(false);
+            await NameResolution.ConnectAsync(tcp, host, port, dnsClient, cts.Token).
+                                 ConfigureAwait(false);
 
         }
         catch
@@ -95,8 +103,14 @@ public sealed class ModbusTCPClient : IAsyncDisposable
     }
 
 
+    /// <summary>
+    /// Connect to a Modbus/TLS server. A host name is resolved with the given DNS client, never with the
+    /// resolver of the operating system: an IP address or "localhost" needs none, and a host name without
+    /// one is refused with a <see cref="NameResolutionException"/>.
+    /// </summary>
     public static async Task<ModbusTCPClient> ConnectTLSAsync(String             host,
                                                               UInt16             port,
+                                                              IDNSClient?        dnsClient,
                                                               X509Certificate2   clientCertificate,
                                                               X509Certificate2   trustedCA,
                                                               TimeSpan           connectTimeout,
@@ -120,8 +134,8 @@ public sealed class ModbusTCPClient : IAsyncDisposable
             using (var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
             {
                 connectCts.CancelAfter(connectTimeout);
-                await tcp.ConnectAsync(host, port, connectCts.Token).
-                          ConfigureAwait(false);
+                await NameResolution.ConnectAsync(tcp, host, port, dnsClient, connectCts.Token).
+                                     ConfigureAwait(false);
             }
 
             var networkStream = tcp.GetStream();

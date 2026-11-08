@@ -56,12 +56,22 @@ var policy = HostKeyPolicy.Pin("SHA256:5Q3…").OrKnownHostsFile("known_hosts");
 await using var client = await SshClient.ConnectAsync("host.example.org", 22, new SshClientOptions {
     Username       = "achim",
     Credentials    = [ key ],
-    VerifyHostKey  = blob => policy.Verify("host.example.org", IPPort.Parse("22"), blob)
+    VerifyHostKey  = blob => policy.Verify("host.example.org", IPPort.Parse("22"), blob),
+    DNSClient      = dnsClient
 });
 
 var result = await client.ExecuteAsync("uname -a");
 Console.WriteLine($"[{result.ExitCode}] {result.StandardOutput}");
 ```
+
+A host name is resolved with `DNSClient` - the server's, the first jump host's, the local target of
+a remote forward - and **never with the resolver of the operating system**: an application that
+resolves its names securely, with name servers of its own, DNS over TLS or HTTPS and DNSSEC, must not
+be dialled around them. An IP address, or `localhost`, needs no DNS client; a host name without one is
+refused with an `SshNameResolutionException`. On the server, a forwarding target is resolved with
+`SshServerOptions.DNSClient` where there is no `AddressResolver`, and is otherwise reached by IP
+address only. `SshTcp.ResolveAsync` and `SshTcp.ResolverOf` are where all of them resolve, through
+`NameResolution.ResolveAsync`, the one place all of Hermod does (see the DNS README).
 
 One connection carries everything at once — exec, SFTP and tunnels multiplex over it:
 

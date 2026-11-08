@@ -32,6 +32,7 @@ using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Security;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -39,11 +40,17 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.Argus
 {
 
+    /// <summary>
+    /// A monitor of an HTTPS URL. Its host name is resolved with the given DNS client, never with
+    /// the resolver of the operating system: an IP address or "localhost" needs none, and a host
+    /// name without one fails every check.
+    /// </summary>
     public class HTTPSMonitor(String                                Name,
                               URL                                   URL,
                               MeasurementStore                      MeasurementStore,
                               IReadOnlyDictionary<String, String>?  RequestHeaders   = null,
-                              MeasurementHandler?                   OnMeasurement    = null)
+                              MeasurementHandler?                   OnMeasurement    = null,
+                              IDNSClient?                           DNSClient        = null)
 
         : IMonitor
 
@@ -177,11 +184,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Argus
             {
 
                 stopwatch.Restart();
-                var addresses = await Dns.GetHostAddressesAsync(URL.Host.ToString(), ct);
+                var addresses = await NameResolution.ResolveAsync(URL.Host.ToString(), DNSClient, ct);
                 dnsDelay = stopwatch.Elapsed;
-
-                if (addresses.Length == 0)
-                    throw new Exception("DNS: keine Adressen");
 
                 var ipAddress  = addresses[0];
                 var port       = URL.Port ?? (URL.Scheme == URIScheme.https

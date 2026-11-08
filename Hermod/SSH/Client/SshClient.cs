@@ -21,6 +21,7 @@ using System.Buffers;
 using System.IO.Pipelines;
 
 using org.GraphDefined.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 
@@ -42,6 +43,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// The user to authenticate as.
         /// </summary>
         public required String                    Username       { get; init; }
+
+        /// <summary>
+        /// The DNS client a host name is resolved with: the server's, the first jump host's, and the local
+        /// target of a remote forward. An IP address, or "localhost", needs none; a host name without one is
+        /// refused with an <see cref="SshNameResolutionException"/>. The resolver of the operating system is
+        /// never asked - a node whose names are resolved securely must not be dialled around them.
+        /// </summary>
+        public IDNSClient?                        DNSClient      { get; init; }
 
         /// <summary>
         /// The host-key trust decision — <b>required</b>, because omitting it would leave the server
@@ -162,6 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         private readonly SshTransport             transport;
         private readonly SshChannelMultiplexer    mux;
         private readonly SshClient?               through;
+        private readonly IDNSClient?              dnsClient;
         private readonly CancellationTokenSource  stopping   = new ();
         private          Task                     keepAlive  = Task.CompletedTask;
         private          Int32                    disposed;
@@ -208,11 +218,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region Constructor(s)
 
-        private SshClient(IDuplexPipe Pipe, SshTransport Transport, SshChannelMultiplexer Mux, SshClient? Through)
+        private SshClient(IDuplexPipe Pipe, SshTransport Transport, SshChannelMultiplexer Mux, SshClient? Through, IDNSClient? DNSClient)
         {
             this.pipe      = Pipe;
             this.transport = Transport;
             this.mux       = Mux;
+            this.dnsClient = DNSClient;
             this.through   = Through;
         }
 
@@ -277,7 +288,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                                      HostKeysReceived     = null
                                  };
 
+            // The jump host's own options may name no DNS client: the server's resolves its name then.
             return options with {
+                       DNSClient        = options.DNSClient ?? Server.DNSClient,
                        ProxyJump        = [],
                        JumpHostOptions  = null
                    };
@@ -305,7 +318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                 try
                 {
                     pipe      = Through is null
-                                    ? await SshTcp.ConnectAsync(host, IPPort.Parse(port), connecting.Token).ConfigureAwait(false)
+                                    ? await SshTcp.ConnectAsync(host, IPPort.Parse(port), Options.DNSClient, connecting.Token).ConfigureAwait(false)
                                     : DuplexPipe.FromStream(await Through.OpenTcpStreamAsync(host, port, connecting.Token).ConfigureAwait(false));
                     transport = await SshTransport.ClientHandshakeAsync(pipe, VerifyHostKey: Options.VerifyHostKey, CancellationToken: connecting.Token).ConfigureAwait(false);
                 }
@@ -361,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                                        : transport.ServerHostKey,
                                    Options.HostKeysReceived);
 
-            var client = new SshClient(pipe, transport, mux.Start(), Through);
+            var client = new SshClient(pipe, transport, mux.Start(), Through, Options.DNSClient);
 
             if (Options.KeepAliveInterval is TimeSpan interval)
                 client.keepAlive = client.KeepAliveAsync(interval, Math.Max(1, Options.KeepAliveCountMax));
@@ -528,7 +541,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// loopback addresses, <c>""</c> or <c>"*"</c> for every address, or an IP address.</param>
         /// <param name="BindPort">The port the server listens on, or 0 to let it choose;
         /// <see cref="SshRemoteForward.BoundPort"/> says which it chose.</param>
-        /// <param name="LocalHost">The host each forwarded connection is relayed to.</param>
+        /// <param name="LocalHost">The host each forwarded connection is relayed to - resolved, where it is a
+        /// host name, with <see cref="SshClientOptions.DNSClient"/>.</param>
         /// <param name="LocalPort">The port each forwarded connection is relayed to.</param>
         /// <param name="CancellationToken">Cancels the request, not the forward: that lives until it is
         /// cancelled or disposed, or the connection ends.</param>
@@ -539,7 +553,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                                                                      UInt16             LocalPort,
                                                                      CancellationToken  CancellationToken = default)
 
-            => SshRemoteForwarding.RequestRemoteForwardAsync(mux, BindHost, BindPort, LocalHost, LocalPort, CancellationToken);
+            => SshRemoteForwarding.RequestRemoteForwardAsync(mux, BindHost, BindPort, LocalHost, LocalPort, CancellationToken, dnsClient);
 
         #endregion
 

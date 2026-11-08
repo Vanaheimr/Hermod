@@ -312,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             var port     = ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
             var accepted = listener.AcceptTcpClientAsync();
 
-            using var http = new HttpClient(MtaStsResolver.CreateDefaultHandler(PublicAddresses.IsPublic));
+            using var http = new HttpClient(MtaStsResolver.CreateDefaultHandler(null, PublicAddresses.IsPublic));
 
             var error = await Assert.ThrowsAsync<HttpRequestException>(() => http.GetAsync($"http://127.0.0.1:{port}/.well-known/mta-sts.txt"));
             Assert.That(error!.Message, Does.Contain("no public address"));
@@ -325,7 +325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         [Test]
         public void The_handler_for_public_addresses_uses_no_proxy()
         {
-            using var handler = (SocketsHttpHandler) MtaStsResolver.CreateDefaultHandler(PublicAddresses.IsPublic);
+            using var handler = (SocketsHttpHandler) MtaStsResolver.CreateDefaultHandler(null, PublicAddresses.IsPublic);
             Assert.That(handler.UseProxy,           Is.False, "a proxy would be connected to instead - one in this network");
             Assert.That(handler.AllowAutoRedirect,  Is.False);
             Assert.That(handler.ConnectCallback,    Is.Not.Null);
@@ -347,7 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 await stream.WriteAsync("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok"u8.ToArray());
             });
 
-            using var http = new HttpClient(MtaStsResolver.CreateDefaultHandler(address => System.Net.IPAddress.IsLoopback(address)));
+            using var http = new HttpClient(MtaStsResolver.CreateDefaultHandler(null, address => System.Net.IPAddress.IsLoopback(address)));
 
             Assert.That(await http.GetStringAsync($"http://localhost:{port}/"), Is.EqualTo("ok"));
 
