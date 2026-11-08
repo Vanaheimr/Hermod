@@ -554,7 +554,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Read messages until the connection ends, raising the endpoint's events on the way - and close
         /// the channel at the end, whichever way it ended.
         /// </summary>
-        /// <param name="Stopped">Ends reading at once: the channel or the connection went.</param>
+        /// <remarks>
+        /// The reads end when this side ends the connection, or when the channel's input ends: the other
+        /// side closed the channel, or the SSH connection went. <paramref name="Stopped"/> does not end
+        /// them. The other side's CLOSE frame comes just before it closes the channel, and a side still
+        /// busy with the message before it has not read it yet when the channel or the connection ends.
+        /// A read cancelled then lost the CLOSE, and the connection was recorded as ended without one.
+        /// </remarks>
+        /// <param name="Stopped">Tells the handlers that the channel or the connection went.</param>
         internal async Task RunAsync(CancellationToken Stopped)
         {
 
@@ -567,7 +574,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 while (true)
                 {
 
-                    var frame = await SshMessageFraming.ReadAsync(Channel.Input, MaxMessageSizeIn, token).ConfigureAwait(false);
+                    // Not with the handlers' token: what the other side sent before it went is read first.
+                    var frame = await SshMessageFraming.ReadAsync(Channel.Input, MaxMessageSizeIn, lifetime.Token).ConfigureAwait(false);
 
                     if (frame is not SshMessageFrame received)
                     {

@@ -590,6 +590,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region ServerThatStops_SaysGoingAway_ToAClientStillBusyWithAMessage
+
+        /// <summary>
+        /// The server's CLOSE arrives while the client is still busy with the message before it, and the
+        /// SSH connection has ended by the time the client is done: the CLOSE is read all the same.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task ServerThatStops_SaysGoingAway_ToAClientStillBusyWithAMessage(CancellationToken CancellationToken)
+        {
+
+            var running = await StartAsync(CancellationToken);
+            await using var client = Client(running);
+
+            var clientBusy   = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var clientClosed = new TaskCompletionSource<SshMessageCloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            // Busy until the client has seen its SSH connection end: the handler's token tells of that.
+            client.OnTextMessageReceived += async (timestamp, sender, connection, text, ct) => {
+                clientBusy.TrySetResult();
+                try { await Task.Delay(TimeSpan.FromSeconds(5), ct); } catch (OperationCanceledException) { }
+            };
+            client.OnConnectionClosed    += (timestamp, sender, connection, close, ct) => { clientClosed.TrySetResult(close); return Task.CompletedTask; };
+
+            await client.ConnectAsync(CancellationToken);
+            var serverSide = await ServerSideOf(running);
+
+            Assert.That(await serverSide.SendTextMessage("[2,\"19223202\",\"Reset\",{}]"), Is.EqualTo(SentStatus.Success));
+            await Within(clientBusy.Task, "The client's receipt");
+
+            await running.DisposeAsync();
+
+            var close = await Within(clientClosed.Task, "The client's close");
+
+            Assert.Multiple(() => {
+                Assert.That(close.Code,   Is.EqualTo(MessageCloseCode.GoingAway));
+                Assert.That(close.ByPeer, Is.True);
+            });
+
+        }
+
+        #endregion
+
+        #region ClientThatCloses_IsHeard_ByAServerStillBusyWithAMessage
+
+        /// <summary>
+        /// The client's CLOSE arrives while the server is still busy with the message before it, and the
+        /// channel has been closed by the time the server is done: the CLOSE is read all the same.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task ClientThatCloses_IsHeard_ByAServerStillBusyWithAMessage(CancellationToken CancellationToken)
+        {
+
+            await using var running = await StartAsync(CancellationToken);
+            await using var client  = Client(running);
+
+            var serverBusy   = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var serverClosed = new TaskCompletionSource<SshMessageCloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            // Busy until the server has seen the channel closed: the handler's token tells of that.
+            running.Messages.OnTextMessageReceived += async (timestamp, sender, connection, text, ct) => {
+                serverBusy.TrySetResult();
+                try { await Task.Delay(TimeSpan.FromSeconds(5), ct); } catch (OperationCanceledException) { }
+            };
+            running.Messages.OnConnectionClosed    += (timestamp, sender, connection, close, ct) => { serverClosed.TrySetResult(close); return Task.CompletedTask; };
+
+            var connection = await client.ConnectAsync(CancellationToken);
+
+            Assert.That(await connection.SendTextMessage("[2,\"19223203\",\"BootNotification\",{}]"), Is.EqualTo(SentStatus.Success));
+            await Within(serverBusy.Task, "The server's receipt");
+
+            await connection.Close(MessageCloseCode.PolicyViolation, "the station is decommissioned");
+
+            var close = await Within(serverClosed.Task, "The server's close");
+
+            Assert.That(close, Is.EqualTo(new SshMessageCloseInfo(MessageCloseCode.PolicyViolation, "the station is decommissioned", ByPeer: true)));
+
+        }
+
+        #endregion
+
         #region ConcurrentSenders_NeverInterleave
 
         /// <summary>
