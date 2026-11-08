@@ -260,12 +260,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <see cref="SshChannelMultiplexer.ChannelAcceptor"/>.
         /// </remarks>
         /// <exception cref="SshForwardingException">The server refused, or did not say which port it chose.</exception>
+        /// <param name="DNSClient">The DNS client <paramref name="LocalHost"/> is resolved with, where it is a host name; without one only an IP address or "localhost" is reached.</param>
         public static async ValueTask<SshRemoteForward> RequestRemoteForwardAsync(SshChannelMultiplexer  Mux,
                                                                                  String                 BindHost,
                                                                                  UInt16                 BindPort,
                                                                                  String                 LocalHost,
                                                                                  UInt16                 LocalPort,
-                                                                                 CancellationToken      CancellationToken = default)
+                                                                                 CancellationToken      CancellationToken  = default,
+                                                                                 DNS.IDNSClient?        DNSClient          = null)
         {
 
             var forwards = ClientForwards(Mux);
@@ -276,7 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             if (BindPort != 0)
             {
-                forward = new SshRemoteForward(Mux, forwards, BindHost, BindPort, LocalHost, LocalPort);
+                forward = new SshRemoteForward(Mux, forwards, BindHost, BindPort, LocalHost, LocalPort, DNSClient);
                 if (!forwards.TryAdd((BindHost, BindPort), forward))
                     throw new SshForwardingException($"This connection already forwards {BindHost}:{BindPort}.");
             }
@@ -315,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (chosen is 0 or > UInt16.MaxValue)
                 throw new SshForwardingException($"The server accepted the remote forward on {BindHost}:0, but did not say which port it chose.");
 
-            forward = new SshRemoteForward(Mux, forwards, BindHost, (UInt16) chosen, LocalHost, LocalPort);
+            forward = new SshRemoteForward(Mux, forwards, BindHost, (UInt16) chosen, LocalHost, LocalPort, DNSClient);
 
             if (!forwards.TryAdd((BindHost, (UInt16) chosen), forward))
                 throw new SshForwardingException($"The server chose {BindHost}:{chosen}, which this connection already forwards.");
@@ -363,14 +365,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Connect to the local target of a remote forward and relay one forwarded channel to it.
         /// </summary>
-        internal static async Task ConnectAndRelayAsync(SshMuxChannel Channel, String LocalHost, UInt16 LocalPort, CancellationToken CancellationToken)
+        internal static async Task ConnectAndRelayAsync(SshMuxChannel Channel, String LocalHost, UInt16 LocalPort, DNS.IDNSClient? DNSClient, CancellationToken CancellationToken)
         {
+
+            // Resolved as every host is here: never by the operating system.
+            IReadOnlyList<IPAddress> addresses;
+
+            try
+            {
+                addresses = await SshTcp.ResolveAsync(LocalHost, DNSClient, CancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                await Channel.CloseAsync(CancellationToken).ConfigureAwait(false);
+                throw;
+            }
 
             var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
 
             try
             {
-                await socket.ConnectAsync(LocalHost, LocalPort, CancellationToken).ConfigureAwait(false);
+                await socket.ConnectAsync([.. addresses], LocalPort, CancellationToken).ConfigureAwait(false);
             }
             catch
             {

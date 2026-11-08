@@ -106,6 +106,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Serve <c>direct-tcpip</c> requests on this connection: accept a channel, gate its destination
         /// against <paramref name="Policy"/>, connect to the (already-resolved) address and relay the bytes.
+        /// A destination's host name is resolved with <paramref name="Resolver"/> - SshTcp.ResolverOf(DNSClient)
+        /// for a DNS client; without one only IP addresses and "localhost" are reached, and the resolver of the
+        /// operating system is never asked.
         /// A denied destination is refused with ADMINISTRATIVELY_PROHIBITED and the loop keeps serving. The
         /// call returns once a permitted forward has been relayed to completion (single-forward per call).
         /// </summary>
@@ -206,15 +209,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             catch (IOException) { }
         }
 
-        private static ValueTask<IReadOnlyList<IPAddress>> DefaultResolver(String Host, CancellationToken CancellationToken)
-        {
-            if (IPAddress.TryParse(Host, out var literal))
-                return ValueTask.FromResult<IReadOnlyList<IPAddress>>([literal]);
-            return ResolveViaDnsAsync(Host, CancellationToken);
-        }
-
-        private static async ValueTask<IReadOnlyList<IPAddress>> ResolveViaDnsAsync(String Host, CancellationToken CancellationToken)
-            => await System.Net.Dns.GetHostAddressesAsync(Host, CancellationToken).ConfigureAwait(false);
+        // Without a DNS client: IP addresses and "localhost" only, never the resolver of the operating system.
+        private static readonly SshAddressResolver DefaultResolver = SshTcp.ResolverOf(null);
 
         #endregion
 

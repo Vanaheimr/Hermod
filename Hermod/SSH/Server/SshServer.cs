@@ -141,10 +141,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         public ForwardingPolicy                     ForwardingPolicy  { get; init; } = ForwardingPolicy.None;
 
         /// <summary>
-        /// Resolves a forwarding target's hostname to addresses; defaults to system DNS. The same seam
-        /// <see cref="SshForwarding"/> uses — injectable so the ACL's dial-time binding can be tested.
+        /// Resolves a forwarding target's hostname to addresses; by default with <see cref="DNSClient"/>. The
+        /// same seam <see cref="SshForwarding"/> uses — injectable so the ACL's dial-time binding can be tested.
         /// </summary>
         public SshAddressResolver?                  AddressResolver   { get; init; }
+
+        /// <summary>
+        /// The DNS client a forwarding target's host name is resolved with, where there is no
+        /// <see cref="AddressResolver"/>. Without either, a forward reaches IP addresses and "localhost" only:
+        /// the resolver of the operating system is never asked.
+        /// </summary>
+        public DNS.IDNSClient?                      DNSClient         { get; init; }
 
         /// <summary>
         /// An optional typed audit-event sink. Every event of a connection carries the connection's id and
@@ -807,7 +814,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             {
 
                 var (host, port) = ParseDirectTcpIp(Info.TypeData);
-                var addresses    = await ResolveAsync(host).ConfigureAwait(false);
+
+                IReadOnlyList<IPAddress> addresses;
+
+                // A target that cannot be resolved is refused as one the policy does not allow.
+                try
+                {
+                    addresses = await ResolveAsync(host).ConfigureAwait(false);
+                }
+                catch (SshNameResolutionException)
+                {
+                    return false;
+                }
 
                 // An early refusal, so a forbidden target is rejected with CHANNEL_OPEN_FAILURE rather than
                 // being accepted and then dropped. This is *not* the authoritative check: the binding
@@ -1283,9 +1301,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             if (options.AddressResolver is not null)
                 return await options.AddressResolver(Host, CancellationToken.None).ConfigureAwait(false);
 
-            return IPAddress.TryParse(Host, out var literal)
-                       ? [literal]
-                       : await System.Net.Dns.GetHostAddressesAsync(Host).ConfigureAwait(false);
+            // Never the resolver of the operating system.
+            return await SshTcp.ResolveAsync(Host, options.DNSClient).ConfigureAwait(false);
 
         }
 

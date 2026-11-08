@@ -22,6 +22,7 @@ using System.Net.Sockets;
 using System.IO.Pipelines;
 
 using org.GraphDefined.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -81,21 +82,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
-        #region ConnectAsync(Host, Port, CancellationToken = default)
+        #region ConnectAsync(Host, Port, DNSClient, CancellationToken = default)
 
         /// <summary>
-        /// Connect to a host name (or IP literal) and port and return the connection as a duplex pipe.
+        /// Connect to a host name or IP address and port and return the connection as a duplex pipe. A host
+        /// name is resolved with the given DNS client, and never with the resolver of the operating system:
+        /// see <see cref="ResolveAsync"/>. Its addresses are tried in turn, IPv6 first.
         /// </summary>
+        /// <param name="Host">A host name, an IP address, or "localhost".</param>
+        /// <param name="Port">The port.</param>
+        /// <param name="DNSClient">The DNS client a host name is resolved with; an IP address and "localhost" need none.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        /// <exception cref="SshNameResolutionException">A host name without a DNS client, or one it found no address for.</exception>
         public static async Task<IDuplexPipe> ConnectAsync(String             Host,
                                                            IPPort             Port,
+                                                           IDNSClient?        DNSClient,
                                                            CancellationToken  CancellationToken = default)
         {
 
-            var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            var addresses  = await ResolveAsync(Host, DNSClient, CancellationToken).ConfigureAwait(false);
+
+            var socket     = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
 
             try
             {
-                await socket.ConnectAsync(Host, Port.ToInt32(), CancellationToken).ConfigureAwait(false);
+                await socket.ConnectAsync([.. addresses], Port.ToInt32(), CancellationToken).ConfigureAwait(false);
             }
             catch
             {
@@ -108,6 +119,97 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         }
 
         #endregion
+
+        #region ResolveAsync(Host, DNSClient, CancellationToken = default)
+
+        /// <summary>
+        /// The addresses of a host to connect to: an IP address is itself, "localhost" the loopback addresses,
+        /// and a host name what the given DNS client finds for it - IPv6 first, with the Resolution Delay of
+        /// RFC 8305 (see IDNSClient.Query_IPAddressesToConnect).
+        /// </summary>
+        /// <remarks>
+        /// The resolver of the operating system is never asked. A node whose names are resolved securely - its
+        /// own name servers, DNS over TLS or HTTPS, DNSSEC - must not be dialled around them: a name resolved
+        /// by the operating system is one an attacker on the local network, or a name server nobody chose, may
+        /// have answered. So a host name without a DNS client is refused rather than looked up some other way.
+        /// </remarks>
+        /// <param name="Host">A host name, an IP address (an IPv6 address in brackets, too), or "localhost".</param>
+        /// <param name="DNSClient">The DNS client a host name is resolved with.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        /// <exception cref="SshNameResolutionException">A host name without a DNS client, no host name at all, or one it found no address for.</exception>
+        public static async Task<IReadOnlyList<System.Net.IPAddress>> ResolveAsync(String             Host,
+                                                                                   IDNSClient?        DNSClient,
+                                                                                   CancellationToken  CancellationToken = default)
+        {
+
+            var host = Host.Trim();
+
+            if (IPAddress.IsIPv4(host))
+                return [ IPv4Address.Parse(host).ToDotNet() ];
+
+            // As it comes out of a URL, with its brackets, and its zone percent-encoded.
+            if (IPv6Address.TryParseURIHost(host, out var ipv6))
+                return [ ipv6.ToDotNet() ];
+
+            if (IPAddress.IsIPv4Localhost(host))
+                return [ System.Net.IPAddress.Loopback, System.Net.IPAddress.IPv6Loopback ];
+
+            if (IPAddress.IsIPv6Localhost(host))
+                return [ System.Net.IPAddress.IPv6Loopback ];
+
+            if (DNSClient is null)
+                throw new SshNameResolutionException(Host, $"'{Host}' is a host name, and no DNS client was given to resolve it; the resolver of the operating system is not asked.");
+
+            if (!DomainName.TryParse(host, out var domainName, out var notAName))
+                throw new SshNameResolutionException(Host, $"'{Host}' is neither an IP address nor a host name: {notAName}");
+
+            var addresses = (await DNSClient.Query_IPAddressesToConnect(
+                                       domainName,
+                                       RecursionDesired:   true,
+                                       CancellationToken:  CancellationToken
+                                   ).ConfigureAwait(false)).
+                                Select(address => address.ToDotNet()).
+                                ToArray();
+
+            if (addresses.Length == 0)
+                throw new SshNameResolutionException(Host, $"'{Host}' could not be resolved: its name servers named no address for it.");
+
+            return addresses;
+
+        }
+
+        #endregion
+
+        #region ResolverOf(DNSClient)
+
+        /// <summary>
+        /// A resolver of forwarding targets that resolves as <see cref="ResolveAsync"/> does: host names with
+        /// the given DNS client - or, without one, none at all.
+        /// </summary>
+        /// <param name="DNSClient">The DNS client host names are resolved with.</param>
+        public static SshAddressResolver ResolverOf(IDNSClient? DNSClient)
+
+            => async (host, cancellationToken) => await ResolveAsync(host, DNSClient, cancellationToken).ConfigureAwait(false);
+
+        #endregion
+
+    }
+
+
+    /// <summary>
+    /// A host that could not be resolved to an address to connect to: a host name without a DNS client to
+    /// resolve it with, or one its name servers named no address for.
+    /// </summary>
+    /// <param name="Host">The host, as it was given.</param>
+    /// <param name="Message">What is wrong, as a sentence.</param>
+    public sealed class SshNameResolutionException(String  Host,
+                                                   String  Message) : IOException(Message)
+    {
+
+        /// <summary>
+        /// The host, as it was given.
+        /// </summary>
+        public String Host { get; } = Host;
 
     }
 

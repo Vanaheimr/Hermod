@@ -39,6 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly SshChannelMultiplexer                                                   mux;
         private readonly ConcurrentDictionary<(String Address, UInt16 Port), SshRemoteForward>  registry;
         private readonly CancellationTokenSource                                                 cts = new ();
+        private readonly DNS.IDNSClient?                                                         dnsClient;
         private          Int32                                                                   disposed;
 
         #endregion
@@ -74,10 +75,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                   String                                                                  BindHost,
                                   UInt16                                                                  BoundPort,
                                   String                                                                  LocalHost,
-                                  UInt16                                                                  LocalPort)
+                                  UInt16                                                                  LocalPort,
+                                  DNS.IDNSClient?                                                         DNSClient)
         {
 
             this.mux        = Mux;
+            this.dnsClient  = DNSClient;
             this.registry   = Registry;
 
             this.BindHost   = BindHost;
@@ -111,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 return Channel.CloseAsync().AsTask();
             }
 
-            return SshRemoteForwarding.ConnectAndRelayAsync(Channel, LocalHost, LocalPort, token);
+            return SshRemoteForwarding.ConnectAndRelayAsync(Channel, LocalHost, LocalPort, dnsClient, token);
 
         }
 
