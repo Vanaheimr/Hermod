@@ -21,6 +21,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Styx;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
@@ -56,11 +57,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <summary>
         /// Create a new UDP sender.
         /// </summary>
-        /// <param name="Hostname">The hostname to send the UDP data.</param>
+        /// <param name="Hostname">An IPv4 address or "localhost": a host name is resolved by <see cref="ResolveAsync(String, IPPort, IDNSClient?, CancellationToken)"/>.</param>
         /// <param name="Port">The IP port to send the UDP data.</param>
         public UDPSender(String Hostname, IPPort Port)
             : base(Message => Message, Hostname, Port)
         { }
+
+        #endregion
+
+        #region (static) ResolveAsync(Hostname, Port, DNSClient, CancellationToken = default)
+
+        /// <summary>
+        /// Create a new UDP sender to a host, resolved with the given DNS client - never with the resolver of the operating system.
+        /// </summary>
+        /// <param name="Hostname">A host name, an IPv4 address, or "localhost".</param>
+        /// <param name="Port">The IP port to send the UDP data.</param>
+        /// <param name="DNSClient">The DNS client a host name is resolved with.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        /// <exception cref="NameResolutionException">A host name without a DNS client, or one it found no IPv4 address for.</exception>
+        public static async Task<UDPSender> ResolveAsync(String             Hostname,
+                                                         IPPort             Port,
+                                                         IDNSClient?        DNSClient,
+                                                         CancellationToken  CancellationToken = default)
+
+            => new (await IPv4AddressOf(Hostname, DNSClient, CancellationToken), Port);
 
         #endregion
 
@@ -108,7 +128,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         private String hostname;
 
         /// <summary>
-        /// The hostname to send the UDP data.
+        /// The host to send the UDP data: an IPv4 address or "localhost". A host name is refused, and never
+        /// handed to the resolver of the operating system: resolve it with a DNS client, as
+        /// <see cref="IPv4AddressOf"/> does, and set the <see cref="IPAddress"/>.
         /// </summary>
         public String Hostname
         {
@@ -124,19 +146,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                 if (value is null)
                     throw new ArgumentNullException("The hostname must not be null!");
 
-                try
-                {
+                if (!NameResolution.TryLiteral(value, out var addresses) ||
+                    addresses.FirstOrDefault(address => address.AddressFamily == AddressFamily.InterNetwork) is not System.Net.IPAddress ipv4)
+                    throw new ArgumentException($"'{value}' is no IPv4 address: a host name is resolved with a DNS client (UDPSender.ResolveAsync), never with the resolver of the operating system.", nameof(Hostname));
 
-                    var IPAdresses = Dns.GetHostAddresses(value);
-
-                    ipAddress      = IPv4Address.Parse(IPAdresses[0].ToString());
-                    DotNetIPAddress = IPAdresses[0];
-
-                }
-                catch (Exception e)
-                {
-                    throw new ArgumentException("The DNS lookup of the hostname lead to an error!", e);
-                }
+                ipAddress       = IPv4Address.Parse(ipv4.ToString());
+                DotNetIPAddress = ipv4;
 
                 hostname = value;
 
@@ -327,6 +342,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         }
 
         #endregion
+
+        #endregion
+
+
+        #region (static) IPv4AddressOf(Hostname, DNSClient, CancellationToken = default)
+
+        /// <summary>
+        /// The IPv4 address to send the UDP data to a host: resolved with the given DNS client - never with
+        /// the resolver of the operating system. A UDP sender sends over IPv4.
+        /// </summary>
+        /// <param name="Hostname">A host name, an IPv4 address, or "localhost".</param>
+        /// <param name="DNSClient">The DNS client a host name is resolved with.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        /// <exception cref="NameResolutionException">A host name without a DNS client, or one it found no IPv4 address for.</exception>
+        public static async Task<IIPAddress> IPv4AddressOf(String             Hostname,
+                                                           IDNSClient?        DNSClient,
+                                                           CancellationToken  CancellationToken = default)
+        {
+
+            var addresses = await NameResolution.ResolveAsync(Hostname, DNSClient, CancellationToken);
+
+            return addresses.FirstOrDefault(address => address.AddressFamily == AddressFamily.InterNetwork) is System.Net.IPAddress ipv4
+                       ? IPv4Address.Parse(ipv4.ToString())
+                       : throw new NameResolutionException(Hostname, $"'{Hostname}' has no IPv4 address ({String.Join(", ", addresses)}), and a UDP sender sends over IPv4.");
+
+        }
 
         #endregion
 

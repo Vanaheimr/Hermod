@@ -119,6 +119,34 @@ concerns:
   (RFC 7871)
 
 
+## NameResolution — Never the Operating System's Resolver
+
+Every client in Hermod that is given a host to connect to turns it into addresses in one place,
+`NameResolution.ResolveAsync(Host, DNSClient)`: an IP address is itself (an IPv6 address in
+brackets, or with its zone — `fe80::1%14` — too), `localhost` the loopback addresses, and a host
+name what the given DNS client finds for it, IPv6 first (`Query_IPAddressesToConnect`, RFC 8305).
+A host name without a DNS client is refused with a `NameResolutionException`; the resolver of the
+operating system is **never** asked. An application that resolves its names securely — its own
+name servers, DNS over TLS or HTTPS, DNSSEC — must not be dialled around them.
+
+`NameResolution.ConnectAsync` connects a `Socket` or `TcpClient` that way, and
+`NameResolution.HTTPHandler` is a `SocketsHttpHandler` whose `ConnectCallback` does it (and which
+uses no proxy, whose name the system would look up). The clients take their DNS client as follows:
+
+| Client                                   | DNS client                                     |
+|------------------------------------------|------------------------------------------------|
+| `ATCPClient` (HTTP/1.1, WebSocket, TCP) | `DNSClient` — without one, a `DNSClient` of its own, which asks the name servers of the network configuration itself |
+| `SshClient`, `SshServer` (forwarding)    | `SshClientOptions.DNSClient`, `SshServerOptions.DNSClient` |
+| `HTTP2Client`, `HTTP2ClientPool`         | `HTTP2ClientOptions.DNSClient`                 |
+| `Http3Client`                            | constructor parameter `dnsClient`              |
+| `SMTPOutboundClient`, `MtaStsResolver`   | the DNS client they already take for MX and TXT |
+| `PublicAddresses.ResolveAsync`           | parameter `DNSClient`                          |
+| SunSpec `ModbusTCPClient`                | `ConnectAsync`/`ConnectTLSAsync` parameter `dnsClient` |
+| `TLS_Warden`                             | parameter `DNSClient` of every check           |
+| Argus `HTTPSMonitor`                     | constructor parameter `DNSClient`              |
+| `UDPSender`                              | `UDPSender.ResolveAsync(Hostname, Port, DNSClient)`; its `Hostname` takes IPv4 addresses only |
+
+
 ## CNAME / DNAME Chasing
 
 When a DNS response contains CNAME or DNAME records but not the originally

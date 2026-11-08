@@ -23,6 +23,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -151,11 +152,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             };
 
 
-        public static HttpClientHandler CreateHTTPClientHandler(CheckResult Check)
+        /// <summary>
+        /// An HTTP handler that records the server's certificates into the check result, and resolves
+        /// the host name with the given DNS client - never with the resolver of the operating system.
+        /// </summary>
+        /// <param name="Check">The check result to record into.</param>
+        /// <param name="DNSClient">The DNS client host names are resolved with.</param>
+        public static SocketsHttpHandler CreateHTTPClientHandler(CheckResult  Check,
+                                                                 IDNSClient?  DNSClient)
+        {
 
-            => new() {
-                   ServerCertificateCustomValidationCallback = CreateRemoteCertificateValidationFunc(Check)
-               };
+            var handler = NameResolution.HTTPHandler(DNSClient);
+
+            handler.SslOptions.RemoteCertificateValidationCallback = CreateRemoteCertificateValidationCallback(Check);
+
+            return handler;
+
+        }
 
 
         public static RemoteCertificateValidationCallback CreateRemoteCertificateValidationCallback(CheckResult Check)
@@ -172,6 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static void StartCheckAll(IEnumerable<Check>   Checks,
                                          TimeSpan             DelayBetweenIterations,
                                          Action<CheckResult>  HandleCheckResult,
+                                         IDNSClient?          DNSClient,
                                          UInt16               ConcurrencyLimit    = 10,
                                          CancellationToken    CancellationToken   = default)
         {
@@ -183,6 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     await foreach (var checkResult in CheckAllAsync(
                                                           Checks,
                                                           DelayBetweenIterations,
+                                                          DNSClient,
                                                           ConcurrencyLimit,
                                                           CancellationToken
                                                       ))
@@ -210,6 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public static async IAsyncEnumerable<CheckResult> CheckAllAsync(IEnumerable<Check>                          Checks,
                                                                         TimeSpan                                    DelayBetweenIterations,
+                                                                        IDNSClient?                                 DNSClient,
                                                                         UInt16                                      ConcurrencyLimit    = 10,
                                                                         [EnumeratorCancellation] CancellationToken  CancellationToken   = default)
         {
@@ -218,6 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 await foreach (var checkResult in CheckAllAsync(
                                                       Checks,
+                                                      DNSClient,
                                                       ConcurrencyLimit,
                                                       CancellationToken
                                                   ))
@@ -244,6 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CheckAllAsync (Checks, ConcurrencyLimit = 10, ...)
 
         public static async IAsyncEnumerable<CheckResult> CheckAllAsync(IEnumerable<Check>                          Checks,
+                                                                        IDNSClient?                                 DNSClient,
                                                                         UInt16                                      ConcurrencyLimit    = 10,
                                                                         [EnumeratorCancellation] CancellationToken  CancellationToken   = default)
         {
@@ -255,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                await semaphore.WaitAsync(CancellationToken);
                                                try
                                                {
-                                                   return await Check(check, CancellationToken);
+                                                   return await Check(check, DNSClient, CancellationToken);
                                                }
                                                catch (Exception ex)
                                                {
@@ -286,6 +304,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CheckAll      (Checks, ConcurrencyLimit = 10, ...)
 
         public static async Task<IEnumerable<CheckResult>> CheckAll(IEnumerable<Check>  Checks,
+                                                                    IDNSClient?         DNSClient,
                                                                     UInt16              ConcurrencyLimit    = 10,
                                                                     CancellationToken   CancellationToken   = default)
         {
@@ -301,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     try
                     {
-                        return await Check(check, CancellationToken);
+                        return await Check(check, DNSClient, CancellationToken);
                     }
 
                     finally
@@ -342,18 +361,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Check         (Check, ...)
 
+        /// <summary>
+        /// Check the TLS certificates of an https://, smtp:// or imap:// URL. Its host name is resolved
+        /// with the given DNS client, never with the resolver of the operating system: an IP address or
+        /// "localhost" needs none, and a host name without one fails the check.
+        /// </summary>
+        /// <param name="Check">The check.</param>
+        /// <param name="DNSClient">The DNS client host names are resolved with.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
         public static Task<CheckResult> Check(Check              Check,
+                                              IDNSClient?        DNSClient,
                                               CancellationToken  CancellationToken   = default)
         {
 
             if      (Check.URL.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-                return CheckHTTPS(Check, CancellationToken);
+                return CheckHTTPS(Check, DNSClient, CancellationToken);
 
             else if (Check.URL.StartsWith("smtp://",  StringComparison.OrdinalIgnoreCase))
-                return CheckSMTP (Check, CancellationToken);
+                return CheckSMTP (Check, DNSClient, CancellationToken);
 
             else if (Check.URL.StartsWith("imap://",  StringComparison.OrdinalIgnoreCase))
-                return CheckIMAP (Check, CancellationToken);
+                return CheckIMAP (Check, DNSClient, CancellationToken);
 
             else
                 throw new ArgumentException($"Unsupported URL scheme in {Check.URL}", nameof(Check));
@@ -365,6 +393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CheckHTTPS    (Check, ...)
 
         public static async Task<CheckResult> CheckHTTPS(Check              Check,
+                                                         IDNSClient?        DNSClient,
                                                          CancellationToken  CancellationToken   = default)
         {
 
@@ -376,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             try
             {
 
-                using (var certClient = new HttpClient(CreateHTTPClientHandler(checkResult)))
+                using (var certClient = new HttpClient(CreateHTTPClientHandler(checkResult, DNSClient)))
                 {
 
                     var response = await certClient.GetAsync(Check.URL, CancellationToken);
@@ -408,6 +437,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CheckSMTP     (Check, ...)
 
         public static async Task<CheckResult> CheckSMTP(Check              Check,
+                                                        IDNSClient?        DNSClient,
                                                         CancellationToken  CancellationToken   = default)
         {
 
@@ -424,7 +454,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 using (var client = new TcpClient())
                 {
 
-                    await client.ConnectAsync(host, port);
+                    await NameResolution.ConnectAsync(client, host, port, DNSClient, CancellationToken);
 
                     using (var stream = client.GetStream())
                     using (var reader = new StreamReader(stream))
@@ -512,6 +542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CheckIMAP     (Check, ...)
 
         public static async Task<CheckResult> CheckIMAP(Check              Check,
+                                                        IDNSClient?        DNSClient,
                                                         CancellationToken  CancellationToken   = default)
         {
 
@@ -528,7 +559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 using (var client = new TcpClient())
                 {
 
-                    await client.ConnectAsync(host, port);
+                    await NameResolution.ConnectAsync(client, host, port, DNSClient, CancellationToken);
 
                     using (var stream = client.GetStream())
                     using (var reader = new StreamReader(stream))

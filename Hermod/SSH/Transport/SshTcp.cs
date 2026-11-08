@@ -142,39 +142,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                                                    CancellationToken  CancellationToken = default)
         {
 
-            var host = Host.Trim();
-
-            if (IPAddress.IsIPv4(host))
-                return [ IPv4Address.Parse(host).ToDotNet() ];
-
-            // As it comes out of a URL, with its brackets, and its zone percent-encoded.
-            if (IPv6Address.TryParseURIHost(host, out var ipv6))
-                return [ ipv6.ToDotNet() ];
-
-            if (IPAddress.IsIPv4Localhost(host))
-                return [ System.Net.IPAddress.Loopback, System.Net.IPAddress.IPv6Loopback ];
-
-            if (IPAddress.IsIPv6Localhost(host))
-                return [ System.Net.IPAddress.IPv6Loopback ];
-
-            if (DNSClient is null)
-                throw new SshNameResolutionException(Host, $"'{Host}' is a host name, and no DNS client was given to resolve it; the resolver of the operating system is not asked.");
-
-            if (!DomainName.TryParse(host, out var domainName, out var notAName))
-                throw new SshNameResolutionException(Host, $"'{Host}' is neither an IP address nor a host name: {notAName}");
-
-            var addresses = (await DNSClient.Query_IPAddressesToConnect(
-                                       domainName,
-                                       RecursionDesired:   true,
-                                       CancellationToken:  CancellationToken
-                                   ).ConfigureAwait(false)).
-                                Select(address => address.ToDotNet()).
-                                ToArray();
-
-            if (addresses.Length == 0)
-                throw new SshNameResolutionException(Host, $"'{Host}' could not be resolved: its name servers named no address for it.");
-
-            return addresses;
+            // NameResolution is the one place Hermod resolves; SSH's own exception says where it was asked from.
+            try
+            {
+                return await NameResolution.ResolveAsync(Host, DNSClient, CancellationToken).ConfigureAwait(false);
+            }
+            catch (NameResolutionException e) when (e is not SshNameResolutionException)
+            {
+                throw new SshNameResolutionException(e.Host, e.Message);
+            }
 
         }
 
@@ -203,15 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <param name="Host">The host, as it was given.</param>
     /// <param name="Message">What is wrong, as a sentence.</param>
     public sealed class SshNameResolutionException(String  Host,
-                                                   String  Message) : IOException(Message)
-    {
-
-        /// <summary>
-        /// The host, as it was given.
-        /// </summary>
-        public String Host { get; } = Host;
-
-    }
+                                                   String  Message) : NameResolutionException(Host, Message);
 
 
     /// <summary>

@@ -20,6 +20,7 @@
 using System.Net;
 using System.Net.Sockets;
 
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
 
@@ -54,6 +55,7 @@ public sealed class Http3Client : IAsyncDisposable
 
     private readonly string _host;
     private readonly int _port;
+    private readonly IDNSClient? _dnsClient;
     private readonly TimeProvider _timeProvider;
     private readonly Http3ClientConnection _connection;
     private readonly SemaphoreSlim _mutex = new(1, 1);
@@ -72,10 +74,12 @@ public sealed class Http3Client : IAsyncDisposable
                        ulong webTransportMaxSessions = 0,
                        TimeProvider? timeProvider = null,
                        KeyLog? keyLog = null,
-                       ServerCertificate? clientCertificate = null)
+                       ServerCertificate? clientCertificate = null,
+                       IDNSClient? dnsClient = null)
     {
         _host = host;
         _port = port;
+        _dnsClient = dnsClient;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _connection = new Http3ClientConnection(host,
             certificateValidation: certificateValidation,
@@ -96,7 +100,10 @@ public sealed class Http3Client : IAsyncDisposable
     /// <summary>
     /// Establishes the QUIC/TLS connection (socket, handshake, HTTP/3 initialisation) and starts the
     /// background pump. Throws <see cref="TimeoutException"/> when the handshake is not confirmed
-    /// within <paramref name="timeout"/> (default 10 s).
+    /// within <paramref name="timeout"/> (default 10 s). A host name is resolved with the DNS client
+    /// given to the constructor, never with the resolver of the operating system: an IP address or
+    /// "localhost" needs none, and a host name without one is refused with a
+    /// <see cref="NameResolutionException"/>.
     /// </summary>
     public async Task ConnectAsync(TimeSpan? timeout = null, CancellationToken cancellationToken = default)
     {
@@ -104,9 +111,11 @@ public sealed class Http3Client : IAsyncDisposable
         if (_pumpTask is not null)
             throw new InvalidOperationException("ConnectAsync has already been called.");
 
-        System.Net.IPAddress address = (await Dns.GetHostAddressesAsync(_host, cancellationToken).ConfigureAwait(false))
-            .First(a => a.AddressFamily == AddressFamily.InterNetwork);
-        _udp = new UdpClient(AddressFamily.InterNetwork);
+        // IPv4 first, as before, for a server listening on IPv4's any address.
+        var addresses = await NameResolution.ResolveAsync(_host, _dnsClient, cancellationToken).ConfigureAwait(false);
+        System.Net.IPAddress address = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)
+                                    ?? addresses[0];
+        _udp = new UdpClient(address.AddressFamily);
         DisableIcmpUnreachableException(_udp);
         _udp.Connect(new IPEndPoint(address, _port));
 

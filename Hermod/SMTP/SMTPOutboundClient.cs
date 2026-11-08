@@ -290,15 +290,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         CancellationToken   ct)
         {
 
-            // The internet's addresses only, when so configured - for an MX host, never for a smart
+            // The addresses of the host, from the DNS client - never from the resolver of the operating
+            // system - and the internet's only, when so configured, for an MX host, never for a smart
             // host. Asked before anything else is looked up for this host; connected to are then
             // these addresses, not the name, which could have others a moment later.
-            System.Net.IPAddress[]? addresses = null;
+            var all       = await PublicAddresses.ResolveAsync(mxHost, _dnsClient, ct);
+            var addresses = all;
 
             if (route.Host is null && _config.PublicAddressesOnly)
             {
 
-                var all   = await PublicAddresses.ResolveAsync(mxHost, ct);
                 addresses = [.. all.Where(_config.IsPublicAddress)];
 
                 if (addresses.Length == 0)
@@ -366,10 +367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             _logger.Log(LogLevel.Debug, $"Connecting to {mxHost}:{port}");
 
-            if (addresses is not null)
-                await client.ConnectAsync(addresses, port, connectCts.Token);
-            else
-                await client.ConnectAsync(mxHost, port, connectCts.Token);
+            await client.ConnectAsync(addresses, port, connectCts.Token);
 
             // TLS-RPT session context (RFC 8460): remember the peer/local IPs and record the
             // outcome under the policy type that governs this session.

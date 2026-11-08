@@ -127,18 +127,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region ResolveAsync(Host, CancellationToken)
+        #region ResolveAsync(Host, DNSClient, CancellationToken)
 
         /// <summary>
-        /// The addresses of a host name - the address itself when it is one - from the
-        /// resolver of the system, as a connection to the name would have them.
+        /// The addresses of a host name - the address itself when it is one - as the given DNS
+        /// client has them; never from the resolver of the operating system (see
+        /// <see cref="DNS.NameResolution.ResolveAsync"/>).
         /// </summary>
+        /// <param name="Host">A host name, an IP address, or an SMTP address literal.</param>
+        /// <param name="DNSClient">The DNS client a host name is resolved with.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        /// <exception cref="DNS.NameResolutionException">A host name without a DNS client, or one it found no address for.</exception>
         public static async Task<NetAddress[]> ResolveAsync(String             Host,
+                                                           DNS.IDNSClient?    DNSClient,
                                                            CancellationToken  CancellationToken   = default)
 
             => TryParseLiteral(Host, out var literal)
                    ? [ literal ]
-                   : await Dns.GetHostAddressesAsync(Host, CancellationToken);
+                   : [.. await DNS.NameResolution.ResolveAsync(Host, DNSClient, CancellationToken)];
 
         #endregion
 

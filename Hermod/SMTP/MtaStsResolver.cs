@@ -72,7 +72,7 @@ public sealed partial class MtaStsResolver : IDisposable
     {
         _dnsClient = dnsClient;
         _logger = logger;
-        _httpClient = new HttpClient(httpHandler ?? CreateDefaultHandler(allowAddress), disposeHandler: httpHandler is null)
+        _httpClient = new HttpClient(httpHandler ?? CreateDefaultHandler(dnsClient, allowAddress), disposeHandler: httpHandler is null)
         {
             Timeout                       = TimeSpan.FromSeconds(30),
             MaxResponseContentBufferSize  = MaxPolicySize
@@ -83,45 +83,21 @@ public sealed partial class MtaStsResolver : IDisposable
     /// <summary>
     /// RFC 8461 §3.3: "HTTP 3xx redirects MUST NOT be followed, and HTTP caching ... MUST NOT be
     /// used" - HttpClient does no HTTP caching, and this handler follows no redirects.
+    /// A policy host's name is resolved with the DNS client, never with the resolver of the
+    /// operating system, and so without a proxy, whose name the system would look up.
     /// </summary>
+    /// <param name="dnsClient">The DNS client the policy host's name is resolved with.</param>
     /// <param name="allowAddress">
     /// Which addresses it may connect to, or null for any. Asked at every connection, with the
-    /// addresses the name has then - and so without a proxy, which would be connected to instead.
+    /// addresses the name has then.
     /// </param>
-    internal static HttpMessageHandler CreateDefaultHandler(Func<System.Net.IPAddress, Boolean>? allowAddress = null)
+    internal static HttpMessageHandler CreateDefaultHandler(IDNSClient?                           dnsClient,
+                                                            Func<System.Net.IPAddress, Boolean>?  allowAddress = null)
     {
 
-        var handler = new SocketsHttpHandler { AllowAutoRedirect = false };
+        var handler = NameResolution.HTTPHandler(dnsClient, allowAddress);
 
-        if (allowAddress is not null)
-        {
-
-            handler.UseProxy        = false;
-            handler.ConnectCallback = async (context, ct) => {
-
-                var addresses = await PublicAddresses.ResolveAsync(context.DnsEndPoint.Host, ct);
-                var allowed   = addresses.Where(allowAddress).ToArray();
-
-                if (allowed.Length == 0)
-                    throw new HttpRequestException($"{context.DnsEndPoint.Host} has no public address ({String.Join(", ", addresses.Select(address => address.ToString()))})");
-
-                // Either family: a dual-mode socket where there is IPv6.
-                var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-
-                try
-                {
-                    await socket.ConnectAsync(allowed, context.DnsEndPoint.Port, ct);
-                    return new NetworkStream(socket, ownsSocket: true);
-                }
-                catch
-                {
-                    socket.Dispose();
-                    throw;
-                }
-
-            };
-
-        }
+        handler.AllowAutoRedirect = false;
 
         return handler;
 
