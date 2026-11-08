@@ -120,7 +120,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// is no exec handler, rather than widened into the shell it was not given. Nor is it given a
         /// subsystem: as with sshd, that request runs the forced command too, with the subsystem's name as
         /// the original command - except for a credential forced to plain <c>internal-sftp</c>, which is
-        /// served SFTP, and only SFTP.
+        /// served SFTP, and only SFTP. Asking for a command or a shell, a credential forced to
+        /// <c>internal-sftp</c> - with options or without - is told, as sshd tells it, that the service
+        /// allows SFTP alone, and the channel ends with exit status 1: <c>internal-sftp</c> is no command
+        /// for an exec handler to run.
         /// </para>
         /// </remarks>
         /// <param name="Channel">The session channel.</param>
@@ -233,6 +236,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, type, type == "exec" ? ReadString(request.Value.Data) : "", "the credential is confined to subsystems"), CancellationToken).ConfigureAwait(false);
                     if (request.Value.WantReply) await Channel.ReplyAsync(false, CancellationToken).ConfigureAwait(false);
                     continue;
+                }
+
+                // A credential forced to internal-sftp is meant for SFTP and nothing else. sshd answers its
+                // shell or command with one line and exit status 1 (SUBSYSTEM_INT_SFTP_ERROR), rather than
+                // running "internal-sftp" as a command - and so does this server, exec handler or not.
+                if (type is "exec" or "shell" && restrictions.ForcedCommand is String sftpOnly && IsInternalSftp(sftpOnly))
+                {
+
+                    await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, type, type == "exec" ? ReadString(request.Value.Data) : "", "force-command internal-sftp: only SFTP is served"), CancellationToken).ConfigureAwait(false);
+
+                    if (request.Value.WantReply)
+                        await Channel.ReplyAsync(true, CancellationToken).ConfigureAwait(false);
+
+                    await Channel.SendDataAsync(System.Text.Encoding.UTF8.GetBytes(hasPty ? "This service allows sftp connections only.\r\n" : "This service allows sftp connections only.\n"), CancellationToken).ConfigureAwait(false);
+                    await Channel.SendRequestAsync("exit-status", false, EncodeUInt32(1), CancellationToken).ConfigureAwait(false);
+                    await Channel.CloseAsync(CancellationToken).ConfigureAwait(false);
+
+                    return;
+
                 }
 
                 // A shell, where the credential is not confined to one command.

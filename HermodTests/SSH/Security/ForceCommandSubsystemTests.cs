@@ -286,6 +286,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region ForcedInternalSftp_ExecAndShell_AreToldItIsSftpOnly
+
+        /// <summary>
+        /// A credential forced to <c>internal-sftp</c> - with options or without - asking for a command or
+        /// a shell is told, as sshd tells it, that the service allows SFTP alone, and the channel ends with
+        /// exit status 1: the exec handler is not handed "internal-sftp" as a command to run, whether there
+        /// is one or not.
+        /// </summary>
+        [TestCase("internal-sftp",     "exec",  true)]
+        [TestCase("internal-sftp",     "shell", true)]
+        [TestCase("internal-sftp",     "exec",  false)]
+        [TestCase("internal-sftp",     "shell", false)]
+        [TestCase("internal-sftp -R",  "exec",  true)]
+        [TestCase("internal-sftp\t-d /x", "shell", true)]
+        [CancelAfter(25000)]
+        public async Task ForcedInternalSftp_ExecAndShell_AreToldItIsSftpOnly(String ForcedCommand, String Request, Boolean WithExec, CancellationToken CancellationToken)
+        {
+
+            var (credential, trust) = IssueForcedTo(ForcedCommand);
+
+            await using var running = await StartAsync(trust, PerSession: false, WithExec, CancellationToken);
+            await using var client  = await ConnectAsync(running, credential, CancellationToken);
+
+            var channel  = await client.Multiplexer.OpenChannelAsync("session", CancellationToken: CancellationToken);
+            var accepted = await channel.SendRequestAsync(Request, true, Request == "exec" ? SshSessionChannel.EncodeString("ls -la") : Array.Empty<Byte>(), CancellationToken);
+
+            var (result, ended) = await CaptureWithin5s(channel, CancellationToken);
+
+            Assert.That(ended, Is.True, "the channel did not end");
+
+            Assert.Multiple(() => {
+
+                Assert.That(accepted,                Is.True,                                          "sshd accepts it, and answers");
+                Assert.That(result!.StandardOutput,  Is.EqualTo("This service allows sftp connections only.\n"));
+                Assert.That(result!.ExitCode,        Is.EqualTo(1));
+
+                Assert.That(running.Audit.Events.OfType<ExecRequestedEvent>(),                                     Is.Empty, "the exec handler ran");
+                Assert.That(running.Audit.Events.OfType<PolicyDeniedEvent>().Where(e => e.PolicyType == Request).
+                                                                             Select(e => e.Reason),                Has.Some.Contains("internal-sftp"), "the refusal was not audited");
+
+            });
+
+        }
+
+        #endregion
+
+        #region ForcedCommand_ExecAndShell_RunTheForcedCommand
+
+        /// <summary>
+        /// A credential forced to any other command still runs that command for a command or a shell,
+        /// with what the client asked for as the original command.
+        /// </summary>
+        [TestCase("exec",  "ls -la")]
+        [TestCase("shell", "")]
+        [CancelAfter(25000)]
+        public async Task ForcedCommand_ExecAndShell_RunTheForcedCommand(String Request, String Original, CancellationToken CancellationToken)
+        {
+
+            var (credential, trust) = IssueForcedTo("/usr/bin/backup-only");
+
+            await using var running = await StartAsync(trust, PerSession: false, WithExec: true, CancellationToken);
+            await using var client  = await ConnectAsync(running, credential, CancellationToken);
+
+            var channel  = await client.Multiplexer.OpenChannelAsync("session", CancellationToken: CancellationToken);
+            var accepted = await channel.SendRequestAsync(Request, true, Request == "exec" ? SshSessionChannel.EncodeString(Original) : Array.Empty<Byte>(), CancellationToken);
+
+            var (result, ended) = await CaptureWithin5s(channel, CancellationToken);
+
+            Assert.That(ended, Is.True, "the channel did not end");
+
+            Assert.Multiple(() => {
+                Assert.That(accepted,                Is.True);
+                Assert.That(result!.StandardOutput,  Is.EqualTo($"ran:/usr/bin/backup-only|original:{Original}\n"));
+                Assert.That(result!.ExitCode,        Is.EqualTo(0));
+            });
+
+        }
+
+        #endregion
+
     }
 
 }
