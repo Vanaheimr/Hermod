@@ -43,11 +43,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region (private) Fixture
 
-        private const String OCPP = "ocpp@open.charging.cloud";
-        private const String WWCP = "wwcp@open.charging.cloud";
+        private const String OCPP   = "ocpp@open.charging.cloud";
+        private const String WWCP   = "wwcp@open.charging.cloud";
+        private const String Fails  = "fails@test.open.charging.cloud";
+        private const String Own    = "own@test.open.charging.cloud";
+        private const String Raw    = "raw@test.open.charging.cloud";
 
         private readonly ISshHostKey  hostKey  = SshHostKey.GenerateEd25519();
         private readonly ISshHostKey  userKey  = SshHostKey.GenerateEd25519();
+
+        /// <summary>
+        /// Whether a second exit-status the handler of <see cref="Own"/> tried to send went out.
+        /// </summary>
+        private readonly ConcurrentQueue<Boolean> secondExitStatusSent = new ();
 
         /// <summary>
         /// Takes the one key, and confines the session as told.
@@ -71,7 +79,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         }
 
         /// <summary>
-        /// A server that serves OCPP and WWCP by echoing one line, SFTP over memory, a shell and exec.
+        /// A server that serves OCPP and WWCP by echoing one line, SFTP over memory, a shell and exec - and
+        /// three subsystems that end otherwise: one whose handler fails, and two that send an exit-status
+        /// of their own, with <see cref="SshMuxChannel.SendExitStatusAsync"/> and as a raw channel request.
         /// </summary>
         private async Task<Running> StartAsync(SshSessionRestrictions? Restrictions, CancellationToken CancellationToken)
         {
@@ -91,13 +101,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                                                     asked.Enqueue((session.Username, name));
 
-                                                    return ValueTask.FromResult<SshSubsystemHandler?>(name is OCPP or WWCP
-                                                        ? async (context, token) => {
-                                                              served.Enqueue(context.Name);
-                                                              await context.Channel.SendDataAsync(System.Text.Encoding.UTF8.GetBytes($"{context.Name} for {context.Session.Username}\n"), token);
-                                                              // and return: the server closes the channel
-                                                          }
-                                                        : null);
+                                                    return ValueTask.FromResult<SshSubsystemHandler?>(name switch {
+
+                                                        OCPP or WWCP  => async (context, token) => {
+                                                                             served.Enqueue(context.Name);
+                                                                             await context.Channel.SendDataAsync(System.Text.Encoding.UTF8.GetBytes($"{context.Name} for {context.Session.Username}\n"), token);
+                                                                             // and return: the server closes the channel
+                                                                         },
+
+                                                        Fails         => async (context, token) => {
+                                                                             await context.Channel.SendDataAsync("about to fail\n"u8.ToArray(), token);
+                                                                             throw new InvalidOperationException("The handler failed.");
+                                                                         },
+
+                                                        Own           => async (context, token) => {
+                                                                             await context.Channel.SendDataAsync("done\n"u8.ToArray(), token);
+                                                                             await context.Channel.SendExitStatusAsync(7, token);
+                                                                             secondExitStatusSent.Enqueue(await context.Channel.SendExitStatusAsync(9, token));
+                                                                         },
+
+                                                        Raw           => async (context, token) => {
+                                                                             await context.Channel.SendDataAsync("done\n"u8.ToArray(), token);
+                                                                             await context.Channel.SendRequestAsync("exit-status", false, [ 0, 0, 0, 5 ], token);
+                                                                         },
+
+                                                        _             => null
+
+                                                    });
 
                                                 }
                           });
@@ -129,6 +159,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             return await channel.SendRequestAsync(Type, true, Payload, CancellationToken);
         }
 
+        /// <summary>
+        /// The data of a subsystem's channel to its end, and every exit-status that came on it before it
+        /// was closed.
+        /// </summary>
+        private static async Task<(String Text, UInt32[] ExitStatuses)> RunToTheEndAsync(SshMuxChannel Channel)
+        {
+
+            var text = await ReadToTheEndAsync(Channel);
+
+            using var within  = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var statuses      = new List<UInt32>();
+
+            while (await Channel.ReadRequestAsync(within.Token) is SshChannelRequest request)
+                if (request.Type == "exit-status")
+                    statuses.Add(System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(request.Data));
+
+            return (text, [.. statuses]);
+
+        }
+
         #endregion
 
 
@@ -153,6 +203,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(wwcpText,                     Is.EqualTo($"{WWCP} for cs001\n"));
                 Assert.That(running.Asked.Select(a => a.Name), Is.EqualTo(new[] { OCPP, WWCP }));
                 Assert.That(running.Asked.Select(a => a.User), Is.All.EqualTo("cs001"));
+            });
+
+        }
+
+        #endregion
+
+        #region ExitStatus_IsZero_WhereTheHandlerReturned_AndOne_WhereItFailed
+
+        /// <summary>
+        /// As sshd tells how the program behind a subsystem exited: without it, OpenSSH's <c>ssh -s</c>
+        /// counts every subsystem as failed (exit code 255), however well it went.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task ExitStatus_IsZero_WhereTheHandlerReturned_AndOne_WhereItFailed(CancellationToken CancellationToken)
+        {
+
+            await using var running = await StartAsync(null, CancellationToken);
+            await using var client  = await ConnectAsync(running, CancellationToken);
+
+            var ocpp   = await RunToTheEndAsync(await client.OpenSubsystemAsync(OCPP,  CancellationToken));
+            var fails  = await RunToTheEndAsync(await client.OpenSubsystemAsync(Fails, CancellationToken));
+
+            Assert.Multiple(() => {
+                Assert.That(ocpp. Text,          Is.EqualTo($"{OCPP} for cs001\n"));
+                Assert.That(ocpp. ExitStatuses,  Is.EqualTo(new UInt32[] { 0 }), "a handler that returned did not end with exit-status 0, once");
+                Assert.That(fails.Text,          Is.EqualTo("about to fail\n"));
+                Assert.That(fails.ExitStatuses,  Is.EqualTo(new UInt32[] { 1 }), "a handler that failed did not end with exit-status 1, once");
+            });
+
+        }
+
+        #endregion
+
+        #region ExitStatus_OfTheHandlersOwn_IsTheOnlyOne
+
+        /// <summary>
+        /// A handler with a status of its own to tell - e.g. NTS-KE, whose answer may be an Error record -
+        /// sends it, and the server adds none: whether with SendExitStatusAsync, which sends one only once,
+        /// or as a channel request of its own.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task ExitStatus_OfTheHandlersOwn_IsTheOnlyOne(CancellationToken CancellationToken)
+        {
+
+            await using var running = await StartAsync(null, CancellationToken);
+            await using var client  = await ConnectAsync(running, CancellationToken);
+
+            var own  = await RunToTheEndAsync(await client.OpenSubsystemAsync(Own, CancellationToken));
+            var raw  = await RunToTheEndAsync(await client.OpenSubsystemAsync(Raw, CancellationToken));
+
+            Assert.Multiple(() => {
+                Assert.That(own.Text,              Is.EqualTo("done\n"));
+                Assert.That(own.ExitStatuses,      Is.EqualTo(new UInt32[] { 7 }), "the handler's exit-status was not the only one");
+                Assert.That(secondExitStatusSent,  Is.EqualTo(new[] { false }),    "a second exit-status went out");
+                Assert.That(raw.Text,              Is.EqualTo("done\n"));
+                Assert.That(raw.ExitStatuses,      Is.EqualTo(new UInt32[] { 5 }), "the server added an exit-status to the handler's raw one");
             });
 
         }
