@@ -117,15 +117,21 @@ concerns:
 - **EDNS Client Subnet auto-injection** — set `DNSClient.ClientSubnet` once,
   and the truncated client subnet is added to every outgoing query
   (RFC 7871)
+- **Special-use names** (RFC 6761 §6.3, §6.4) — `localhost.` and every name
+  below it are the loopback addresses for A and AAAA and NODATA for any other
+  type, and `invalid.` and every name below it NXDOMAIN, answered by
+  `SpecialUseNames` without a name server, with the cache or without it
 
 
 ## NameResolution — Never the Operating System's Resolver
 
 Every client in Hermod that is given a host to connect to turns it into addresses in one place,
 `NameResolution.ResolveAsync(Host, DNSClient)`: an IP address is itself (an IPv6 address in
-brackets, or with its zone — `fe80::1%14` — too), `localhost` the loopback addresses, and a host
-name what the given DNS client finds for it, IPv6 first (`Query_IPAddressesToConnect`, RFC 8305).
-A host name without a DNS client is refused with a `NameResolutionException`; the resolver of the
+brackets, or with its zone — `fe80::1%14` — too), `localhost` and every name below it the loopback
+addresses (RFC 6761 §6.3), and a host name what the given DNS client finds for it, IPv6 first
+(`Query_IPAddressesToConnect`, RFC 8305). A name below `invalid.` is refused without asking the
+DNS client (RFC 6761 §6.4), and so is a host name without a DNS client, each with a
+`NameResolutionException`; the resolver of the
 operating system is **never** asked. An application that resolves its names securely — its own
 name servers, DNS over TLS or HTTPS, DNSSEC — must not be dialled around them.
 

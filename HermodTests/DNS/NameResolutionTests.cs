@@ -46,9 +46,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
     /// operating system.
     /// </summary>
     /// <remarks>
-    /// Each client is sent to a name below .invalid, which no resolver of an operating system answers
-    /// (RFC 6761 §6.4): it reaches its server only through the stand-in DNS client, which points it at the
-    /// loopback. Without a DNS client, the name is refused.
+    /// Each client is sent to a name below .test, which no public name server answers, and which a name
+    /// resolution API sends to its configured server like any other name (RFC 6761 §6.2): it reaches its
+    /// server only through the stand-in DNS client, which points it at the loopback. Without a DNS client,
+    /// the name is refused. Not below .invalid, as these tests once were: an "invalid" name is answered
+    /// with nothing before any DNS client is asked (RFC 6761 §6.4).
     /// </remarks>
     [TestFixture]
     public class NameResolutionTests
@@ -184,6 +186,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
 
         }
 
+        /// <summary>
+        /// "localhost." and every name below it are the loopback addresses (RFC 6761 §6.3), however they are
+        /// written, and the DNS client - which here would name another address - is not asked.
+        /// </summary>
+        [TestCase("www.localhost")]
+        [TestCase("www.localhost.")]
+        [TestCase("localhost.")]
+        [TestCase("App.LocalHost")]
+        public async Task ALocalhostNameIsTheLoopbackWithoutAskingTheDNSClient(String Host)
+        {
+
+            var dnsClient = new FakeDNSClient();
+            dnsClient.IPv4Addresses.Add(IPv4Address.Parse("192.0.2.7"));
+
+            var withoutClient  = await NameResolution.ResolveAsync(Host, null);
+            var withClient     = await NameResolution.ResolveAsync(Host, dnsClient);
+
+            Assert.That(withoutClient.Select(address => address.ToString()), Is.EqualTo(new[] { "127.0.0.1", "::1" }));
+            Assert.That(withClient.   Select(address => address.ToString()), Is.EqualTo(new[] { "127.0.0.1", "::1" }));
+            Assert.That(AskedFor(dnsClient),                                 Is.Empty);
+
+        }
+
+        /// <summary>
+        /// "invalid." and every name below it resolve to nothing (RFC 6761 §6.4), and the DNS client - which
+        /// here would name an address - is not asked.
+        /// </summary>
+        [TestCase("host.invalid")]
+        [TestCase("host.invalid.")]
+        [TestCase("invalid")]
+        public async Task AnInvalidNameIsRefusedWithoutAskingTheDNSClient(String Host)
+        {
+
+            var dnsClient = new FakeDNSClient();
+            dnsClient.IPv4Addresses.Add(IPv4Address.Parse("192.0.2.7"));
+
+            var refused = await Assert.ThrowsAsync<NameResolutionException>(async () => await NameResolution.ResolveAsync(Host, dnsClient));
+
+            Assert.That(refused!.Host,        Is.EqualTo(Host));
+            Assert.That(refused.Message,      Does.Contain("\"invalid\""));
+            Assert.That(AskedFor(dnsClient),  Is.Empty);
+
+        }
+
         [Test]
         public async Task SSHsRefusalIsOneOfNameResolution()
         {
@@ -202,13 +248,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
             using var client    = new TcpClient();
             var       dnsClient = Loopback();
 
-            await NameResolution.ConnectAsync(client, "csms.invalid", server.Port, dnsClient);
+            await NameResolution.ConnectAsync(client, "csms.test", server.Port, dnsClient);
 
             Assert.That(client.Connected,                  Is.True);
-            Assert.That(AskedFor(dnsClient),               Is.EqualTo(new[] { "csms.invalid" }));
+            Assert.That(AskedFor(dnsClient),               Is.EqualTo(new[] { "csms.test" }));
 
             using var unresolved = new TcpClient();
-            await Assert.ThrowsAsync<NameResolutionException>(async () => await NameResolution.ConnectAsync(unresolved, "csms.invalid", server.Port, null));
+            await Assert.ThrowsAsync<NameResolutionException>(async () => await NameResolution.ConnectAsync(unresolved, "csms.test", server.Port, null));
 
         }
 
@@ -229,11 +275,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
                                            );
 
             var dnsClient   = Loopback();
-            var connection  = await HTTP2Client.ConnectAsync("h2.invalid", server.Port, Options: new HTTP2ClientOptions { DNSClient = dnsClient }, Cleartext: true, CancellationToken: CancellationToken);
+            var connection  = await HTTP2Client.ConnectAsync("h2.test", server.Port, Options: new HTTP2ClientOptions { DNSClient = dnsClient }, Cleartext: true, CancellationToken: CancellationToken);
 
             try
             {
-                var response = await connection.SendRequestAsync(HTTPMethod.GET, URIScheme.http, $"h2.invalid:{server.Port}", "/");
+                var response = await connection.SendRequestAsync(HTTPMethod.GET, URIScheme.http, $"h2.test:{server.Port}", "/");
                 Assert.That(Encoding.UTF8.GetString(response.Body), Is.EqualTo("here"));
             }
             finally
@@ -241,10 +287,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
                 await connection.CloseAsync();
             }
 
-            Assert.That(AskedFor(dnsClient), Is.EqualTo(new[] { "h2.invalid" }));
+            Assert.That(AskedFor(dnsClient), Is.EqualTo(new[] { "h2.test" }));
 
             await Assert.ThrowsAsync<NameResolutionException>(async () =>
-                await HTTP2Client.ConnectAsync("h2.invalid", server.Port, Cleartext: true, CancellationToken: CancellationToken));
+                await HTTP2Client.ConnectAsync("h2.test", server.Port, Cleartext: true, CancellationToken: CancellationToken));
 
         }
 
@@ -257,7 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
         public async Task AnHTTP3ClientDialsAHostNameThroughItsDNSClient(CancellationToken CancellationToken)
         {
 
-            using var certificate = ServerCertificate.CreateSelfSigned("h3.invalid");
+            using var certificate = ServerCertificate.CreateSelfSigned("h3.test");
             var validation        = new CertificateValidationOptions { CustomTrustRoots = [ certificate.Certificate ] };
 
             await using var server = new Http3Server(certificate, request => new Http3Response { Status = 200, Body = Encoding.UTF8.GetBytes("here") }, port: 0);
@@ -265,15 +311,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
 
             var dnsClient = Loopback();
 
-            await using (var client = new Http3Client("h3.invalid", server.Port, validation, dnsClient: dnsClient))
+            await using (var client = new Http3Client("h3.test", server.Port, validation, dnsClient: dnsClient))
             {
                 await client.ConnectAsync(TimeSpan.FromSeconds(10), CancellationToken);
                 Assert.That((await client.GetAsync("/", CancellationToken)).BodyText, Is.EqualTo("here"));
             }
 
-            Assert.That(AskedFor(dnsClient), Is.EqualTo(new[] { "h3.invalid" }));
+            Assert.That(AskedFor(dnsClient), Is.EqualTo(new[] { "h3.test" }));
 
-            await using var unresolved = new Http3Client("h3.invalid", server.Port, validation);
+            await using var unresolved = new Http3Client("h3.test", server.Port, validation);
             await Assert.ThrowsAsync<NameResolutionException>(async () => await unresolved.ConnectAsync(TimeSpan.FromSeconds(10), CancellationToken));
 
         }
@@ -289,16 +335,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
             using var server    = new OneConnection();
             var       dnsClient = Loopback();
 
-            await using (var client = await ModbusTCPClient.ConnectAsync("meter.invalid", server.Port, dnsClient, TimeSpan.FromSeconds(5), CancellationToken.None))
+            await using (var client = await ModbusTCPClient.ConnectAsync("meter.test", server.Port, dnsClient, TimeSpan.FromSeconds(5), CancellationToken.None))
             {
                 Assert.That(client.IsTLS, Is.False);
             }
 
             Assert.That(await server.WasConnectedToAsync(), Is.True);
-            Assert.That(AskedFor(dnsClient),                Is.EqualTo(new[] { "meter.invalid" }));
+            Assert.That(AskedFor(dnsClient),                Is.EqualTo(new[] { "meter.test" }));
 
             await Assert.ThrowsAsync<NameResolutionException>(async () =>
-                await ModbusTCPClient.ConnectAsync("meter.invalid", server.Port, null, TimeSpan.FromSeconds(5), CancellationToken.None));
+                await ModbusTCPClient.ConnectAsync("meter.test", server.Port, null, TimeSpan.FromSeconds(5), CancellationToken.None));
 
         }
 
@@ -314,17 +360,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
             var       port      = IPPort.Parse((UInt16) ((System.Net.IPEndPoint) receiver.Client.LocalEndPoint!).Port);
             var       dnsClient = Loopback();
 
-            using var sender    = await UDPSender.ResolveAsync("syslog.invalid", port, dnsClient);
+            using var sender    = await UDPSender.ResolveAsync("syslog.test", port, dnsClient);
 
             sender.Send(Encoding.ASCII.GetBytes("here"));
 
             var received = await receiver.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(5));
 
             Assert.That(Encoding.ASCII.GetString(received.Buffer), Is.EqualTo("here"));
-            Assert.That(AskedFor(dnsClient),                        Is.EqualTo(new[] { "syslog.invalid" }));
+            Assert.That(AskedFor(dnsClient),                        Is.EqualTo(new[] { "syslog.test" }));
 
-            Assert.Throws<ArgumentException>(() => new UDPSender("syslog.invalid", port), "A host name was resolved some other way.");
-            await Assert.ThrowsAsync<NameResolutionException>(async () => await UDPSender.ResolveAsync("syslog.invalid", port, null));
+            Assert.Throws<ArgumentException>(() => new UDPSender("syslog.test", port), "A host name was resolved some other way.");
+            await Assert.ThrowsAsync<NameResolutionException>(async () => await UDPSender.ResolveAsync("syslog.test", port, null));
 
         }
 
@@ -339,10 +385,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
             var dnsClient = new FakeDNSClient();
             dnsClient.IPv4Addresses.Add(IPv4Address.Parse("192.0.2.25"));
 
-            Assert.That((await PublicAddresses.ResolveAsync("mx.invalid",    dnsClient)).Select(address => address.ToString()), Is.EqualTo(new[] { "192.0.2.25" }));
+            Assert.That((await PublicAddresses.ResolveAsync("mx.test",    dnsClient)).Select(address => address.ToString()), Is.EqualTo(new[] { "192.0.2.25" }));
             Assert.That((await PublicAddresses.ResolveAsync("[192.0.2.26]",  null)).     Select(address => address.ToString()), Is.EqualTo(new[] { "192.0.2.26" }));
 
-            await Assert.ThrowsAsync<NameResolutionException>(async () => await PublicAddresses.ResolveAsync("mx.invalid", null));
+            await Assert.ThrowsAsync<NameResolutionException>(async () => await PublicAddresses.ResolveAsync("mx.test", null));
 
         }
 
@@ -365,10 +411,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
                                                 dnsClient,
                                                 new QuietSMTPLogger());
 
-            await relay.SendAsync("mx.invalid", "sender@client.example", [ "you@mx.invalid" ], "Subject: here\r\n\r\nhello\r\n");
+            await relay.SendAsync("mx.test", "sender@client.example", [ "you@mx.test" ], "Subject: here\r\n\r\nhello\r\n");
 
             Assert.That(await server.WasConnectedToAsync(), Is.True, "The MX host was not reached through the DNS client.");
-            Assert.That(AskedFor(dnsClient),                Does.Contain("mx.invalid"));
+            Assert.That(AskedFor(dnsClient),                Does.Contain("mx.test"));
 
         }
 
@@ -386,17 +432,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
 
             using (var http = new HttpClient(MtaStsResolver.CreateDefaultHandler(dnsClient)))
             {
-                Assert.That(await http.GetStringAsync($"http://mta-sts.mx.invalid:{server.Port}/"), Is.EqualTo("ok"));
+                Assert.That(await http.GetStringAsync($"http://mta-sts.mx.test:{server.Port}/"), Is.EqualTo("ok"));
             }
 
-            Assert.That(AskedFor(dnsClient), Is.EqualTo(new[] { "mta-sts.mx.invalid" }));
+            Assert.That(AskedFor(dnsClient), Is.EqualTo(new[] { "mta-sts.mx.test" }));
 
             using var handler = (SocketsHttpHandler) MtaStsResolver.CreateDefaultHandler(dnsClient);
             Assert.That(handler.UseProxy,         Is.False, "A proxy's name would be the system's to look up.");
             Assert.That(handler.ConnectCallback,  Is.Not.Null);
 
             using var unresolved = new HttpClient(MtaStsResolver.CreateDefaultHandler(null));
-            var refused = await Assert.ThrowsAsync<HttpRequestException>(async () => await unresolved.GetStringAsync($"http://mta-sts.mx.invalid:{server.Port}/"));
+            var refused = await Assert.ThrowsAsync<HttpRequestException>(async () => await unresolved.GetStringAsync($"http://mta-sts.mx.test:{server.Port}/"));
             Assert.That(refused!.InnerException, Is.InstanceOf<NameResolutionException>());
 
         }
@@ -414,14 +460,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
             using var https     = new OneConnection();
             var       dnsClient = Loopback();
 
-            await TLS_Warden.Check(new Check($"smtp://mail.invalid:{smtp.Port}"),   dnsClient, CancellationToken);
-            await TLS_Warden.Check(new Check($"https://web.invalid:{https.Port}/"), dnsClient, CancellationToken);
+            await TLS_Warden.Check(new Check($"smtp://mail.test:{smtp.Port}"),   dnsClient, CancellationToken);
+            await TLS_Warden.Check(new Check($"https://web.test:{https.Port}/"), dnsClient, CancellationToken);
 
             Assert.That(await smtp. WasConnectedToAsync(), Is.True, "The SMTP server was not reached through the DNS client.");
             Assert.That(await https.WasConnectedToAsync(), Is.True, "The HTTPS server was not reached through the DNS client.");
-            Assert.That(AskedFor(dnsClient),                Is.EquivalentTo(new[] { "mail.invalid", "web.invalid" }));
+            Assert.That(AskedFor(dnsClient),                Is.EquivalentTo(new[] { "mail.test", "web.test" }));
 
-            var unresolved = await TLS_Warden.Check(new Check($"smtp://mail.invalid:{smtp.Port}"), null, CancellationToken);
+            var unresolved = await TLS_Warden.Check(new Check($"smtp://mail.test:{smtp.Port}"), null, CancellationToken);
             Assert.That(unresolved.ErrorMessages, Has.Some.Contains("no DNS client"));
 
         }
@@ -443,14 +489,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
                 using var server    = new OneConnection("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
                 var       dnsClient = Loopback();
 
-                var (status, error) = await MeasureOnce(URL.Parse($"http://monitor.invalid:{server.Port}/"), logDirectory, dnsClient, CancellationToken);
+                var (status, error) = await MeasureOnce(URL.Parse($"http://monitor.test:{server.Port}/"), logDirectory, dnsClient, CancellationToken);
 
                 Assert.That(await server.WasConnectedToAsync(), Is.True, "The monitored server was not reached through the DNS client.");
-                Assert.That(await server.Received,              Does.Contain("Host: monitor.invalid"));
+                Assert.That(await server.Received,              Does.Contain("Host: monitor.test"));
                 Assert.That(status,                Is.EqualTo(200), error);
-                Assert.That(AskedFor(dnsClient),   Is.EqualTo(new[] { "monitor.invalid" }));
+                Assert.That(AskedFor(dnsClient),   Is.EqualTo(new[] { "monitor.test" }));
 
-                var (_, unresolved) = await MeasureOnce(URL.Parse($"http://monitor.invalid:{server.Port}/"), logDirectory, null, CancellationToken);
+                var (_, unresolved) = await MeasureOnce(URL.Parse($"http://monitor.test:{server.Port}/"), logDirectory, null, CancellationToken);
                 Assert.That(unresolved, Does.Contain("no DNS client"));
 
             }

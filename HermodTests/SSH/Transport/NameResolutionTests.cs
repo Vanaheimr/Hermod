@@ -145,8 +145,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                                      DNSClient      = dnsClient
                                  };
 
-                // .invalid is a name no resolver of an operating system answers (RFC 6761).
-                await using (var client = await SshClient.ConnectAsync("csms.invalid", port, login, CancellationToken))
+                // .test is a name no public name server answers, and one a resolver sends to its
+                // configured server like any other (RFC 6761 §6.2) - here, the stand-in DNS client.
+                await using (var client = await SshClient.ConnectAsync("csms.test", port, login, CancellationToken))
                 {
                     var result = await client.ExecuteAsync("where", CancellationToken);
                     Assert.That(result.StandardOutput, Is.EqualTo("here\n"));
@@ -155,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(dnsClient.QueryCount, Is.GreaterThan(0), "The DNS client was not asked.");
 
                 await Assert.ThrowsAsync<SshNameResolutionException>(async () =>
-                    await SshClient.ConnectAsync("csms.invalid", port, login with { DNSClient = null }, CancellationToken));
+                    await SshClient.ConnectAsync("csms.test", port, login with { DNSClient = null }, CancellationToken));
 
             }
             finally

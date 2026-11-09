@@ -600,6 +600,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var stopWatch = Stopwatch.StartNew();
 
+            // RFC 6761 §6.3 and §6.4: a localhost name and an "invalid" name are answered here and sent
+            // to no server - before the cache, whose entry for "localhost." covers neither the names below
+            // it nor a type other than A and AAAA, and which a client may have none of, look past, or have
+            // emptied with SetDNSServers. Before the list of servers, too, because none is needed.
+            if (DNSServiceName.IsNotNullOrEmpty() &&
+                SpecialUseNames.TryAnswer(DNSServiceName,
+                                          ResourceRecordTypes,
+                                          recursionAsked,
+                                          effectiveTimeout,
+                                          stopWatch.Elapsed,
+                                          out var specialUseAnswer))
+            {
+                return specialUseAnswer;
+            }
+
             if (DNSServiceName.IsNullOrEmpty() || dnsServers.Count == 0)
                 return new DNSInfo(
 

@@ -33,9 +33,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// An application that resolves its names securely - its own name servers, DNS over TLS or HTTPS,
     /// DNSSEC - must not be dialled around them: a name resolved by the operating system is one an
     /// attacker on the local network, or a name server nobody chose, may have answered, and nothing
-    /// would say so. So an IP address is itself, "localhost" the loopback addresses, a host name what
-    /// the DNS client given finds for it - and a host name without a DNS client is refused rather than
-    /// looked up some other way.
+    /// would say so. So an IP address is itself, "localhost" and every name below it the loopback
+    /// addresses, an "invalid" name nothing, a host name what the DNS client given finds for it - and a
+    /// host name without a DNS client is refused rather than looked up some other way. The two special-use
+    /// names are answered here, without asking the DNS client, as RFC 6761 §6.3 and §6.4 ask of a name
+    /// resolution API: a DNS client may be one that carries every query to its server.
     /// </remarks>
     public static class NameResolution
     {
@@ -44,7 +46,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         /// <summary>
         /// The addresses a host is without asking anybody: an IPv4 address, an IPv6 address - in brackets
-        /// as a URL has it, and with its zone, percent-encoded or not - or "localhost".
+        /// as a URL has it, and with its zone, percent-encoded or not - or "localhost" and every name
+        /// below it (RFC 6761 §6.3).
         /// </summary>
         /// <param name="Host">A host.</param>
         /// <param name="Addresses">Its addresses, when it is one of these.</param>
@@ -93,6 +96,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return true;
             }
 
+            // RFC 6761 §6.3: "localhost." and every name below it, with the root's dot or without, are
+            // the loopback addresses - not only the text "localhost" above.
+            if (DNSServiceName.TryParse(host, out var name, out _) &&
+                SpecialUseNames.IsLocalhost(name))
+            {
+                Addresses = [ System.Net.IPAddress.Loopback, System.Net.IPAddress.IPv6Loopback ];
+                return true;
+            }
+
             Addresses = [];
             return false;
 
@@ -111,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Host">A host name, an IP address (an IPv6 address in brackets, or with its zone, too), or "localhost".</param>
         /// <param name="DNSClient">The DNS client a host name is resolved with.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
-        /// <exception cref="NameResolutionException">A host name without a DNS client, no host name at all, or one it found no address for.</exception>
+        /// <exception cref="NameResolutionException">A host name without a DNS client, no host name at all, an "invalid" name, or one it found no address for.</exception>
         public static async Task<IReadOnlyList<System.Net.IPAddress>> ResolveAsync(String             Host,
                                                                                    IDNSClient?        DNSClient,
                                                                                    CancellationToken  CancellationToken = default)
@@ -121,6 +133,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return literal;
 
             var host = Host.Trim();
+
+            // RFC 6761 §6.4: an "invalid" name has no address, and the DNS client is not asked for one.
+            if (DNSServiceName.TryParse(host, out var name, out _) &&
+                SpecialUseNames.IsInvalid(name))
+                throw new NameResolutionException(Host, $"'{Host}' is an \"invalid\" name, which resolves to no address (RFC 6761 §6.4); no DNS client is asked.");
 
             if (DNSClient is null)
                 throw new NameResolutionException(Host, $"'{Host}' is a host name, and no DNS client was given to resolve it; the resolver of the operating system is not asked.");
