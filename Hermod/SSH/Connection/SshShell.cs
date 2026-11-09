@@ -217,6 +217,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     {
 
         /// <summary>
+        /// The keying material exporter of the connection the session runs on: keys bound to its key
+        /// exchange, for a protocol in one of its channels - NTS-KE over SSH, say. Null where the session
+        /// was not made by a server's connection.
+        /// </summary>
+        /// <remarks>
+        /// One for the connection, not for the session or the channel: every channel of the connection
+        /// gets the same keys for the same label and context.
+        /// </remarks>
+        public SshExporter? Exporter { get; init; }
+
+        /// <summary>
         /// The SHA-256 fingerprint of the key that authenticated ("SHA256:..."), or null.
         /// </summary>
         public String? PublicKeyFingerprint

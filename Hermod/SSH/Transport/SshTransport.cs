@@ -73,6 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private Byte[]               exchangeHash   = [];
         private Byte[]               serverHostKey  = [];
         private NegotiatedAlgorithms algorithms     = null!;
+        private SshExporter?         exporter;
 
         // Whether a key exchange is currently running. Only strict KEX cares: it forbids the otherwise
         // always-legal SSH_MSG_IGNORE / DEBUG / UNIMPLEMENTED while the exchange is in flight.
@@ -166,6 +167,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// The exchange hash H of the most recent key exchange.
         /// </summary>
         public Byte[]                ExchangeHash      => exchangeHash;
+
+        /// <summary>
+        /// The keying material exporter of the connection, fixed by the first key exchange and kept
+        /// across rekeys; null before the first one.
+        /// </summary>
+        public SshExporter?          Exporter          => exporter;
 
         /// <summary>
         /// The algorithms negotiated in the most recent key exchange.
@@ -1120,6 +1127,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             algorithms     = negotiated;
             exchangeHash   = h;
             serverHostKey  = kS;
+
+            // The exporter of the connection rests on the first exchange alone, like the session id:
+            // a rekey leaves it as it is.
+            if (IsInitial)
+                exporter   = SshExporter.Create(kex.HashAlgorithm, kEncoded, h, sessionId);
+
             KeyExchangeCount++;
 
             // Fresh keys: the limits count from here.
@@ -1256,7 +1269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #region Dispose()
 
         /// <summary>
-        /// Dispose the current directional ciphers and MACs, wiping their key material.
+        /// Dispose the current directional ciphers and MACs and the exporter, wiping their key material.
         /// </summary>
         /// <remarks>
         /// A send still waiting for the send lock gets it in turn and is refused. The lock is not
@@ -1270,6 +1283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             DisposeCipher(receiveCipher);
             sendMac?.Dispose();
             receiveMac?.Dispose();
+            exporter?.Dispose();
         }
 
         #endregion

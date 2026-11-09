@@ -538,7 +538,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                                                  Connection.Peer,
                                                  Connection.Local ?? listener?.LocalEndPoint,
                                                  transport.PeerIdentification,
-                                                 auth.Restrictions);
+                                                 auth.Restrictions) {
+                                  Exporter = transport.Exporter
+                              };
 
                 // What the authenticator could not decide without the session: whether this one may
                 // come in, from where it came and to where.

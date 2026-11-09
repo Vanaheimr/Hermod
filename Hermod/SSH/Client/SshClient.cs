@@ -205,6 +205,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         public Byte[] ServerHostKey => transport.ServerHostKey;
 
         /// <summary>
+        /// The keying material exporter of the connection: the keys the server gets from
+        /// <see cref="SshSessionInfo.Exporter"/> for the same label and context, and no other connection.
+        /// </summary>
+        public SshExporter Exporter => transport.Exporter!;
+
+        /// <summary>
         /// Where this end of the TCP connection is - null when it runs through a jump host's tunnel.
         /// </summary>
         public IPSocket? LocalSocket => (pipe as DuplexPipe)?.LocalSocket;
