@@ -265,7 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     DNSResourceRecordTypes.PTR         => PTR.       TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.HINFO       => HINFO.     TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.MX          => MX.        TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
-                    DNSResourceRecordTypes.TXT         => TXT.       TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.TXT         => TXT.       TryParseZoneFile(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.RP          => RP.        TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.AFSDB       => AFSDB.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.LOC         => LOC.       TryParseFromJSON(DomainName, TimeToLive, RData),
@@ -293,7 +293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     DNSResourceRecordTypes.ZONEMD      => ZONEMD.    TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.SVCB        => SVCB.      TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
                     DNSResourceRecordTypes.HTTPS       => HTTPS.     TryParseFromJSON(DomainName, TimeToLive, RData, Origin),
-                    DNSResourceRecordTypes.SPF         => SPF.       TryParseFromJSON(DomainName, TimeToLive, RData),
+                    DNSResourceRecordTypes.SPF         => SPF.       TryParseZoneFile(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.EUI48       => EUI48.     TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.EUI64       => EUI64.     TryParseFromJSON(DomainName, TimeToLive, RData),
                     DNSResourceRecordTypes.CAA         => CAA.       TryParseFromJSON(DomainName, TimeToLive, RData),
@@ -645,19 +645,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (internal static) TryParseMnemonic(Text, out Value)
+
+        /// <summary>
+        /// Read a class or type mnemonic: one of the names, and nothing else.
+        /// </summary>
+        /// <remarks>
+        /// RFC 1035 §5.1: "Class and type use the standard mnemonics, TTL is a
+        /// decimal integer." Enum.TryParse takes more than a name. It takes a
+        /// decimal, and a comma-separated list of names, whose values it
+        /// combines with a bitwise OR, and asking Enum.IsDefined afterwards
+        /// only asks whether the result has a name. So a class reader took a
+        /// TTL of 1 for IN and of 3 for CH, which the zone-file header tries
+        /// before the TTL, and a type reader took "A,MX" for MX. A mnemonic is
+        /// looked up by its name here, with the case of its letters ignored
+        /// (RFC 1035 §2.3.3).
+        /// </remarks>
+        /// <param name="Text">The text of one token.</param>
+        /// <param name="Value">The class or type the mnemonic names.</param>
+        internal static Boolean TryParseMnemonic<TEnum>(String     Text,
+                                                        out TEnum  Value)
+
+            where TEnum : struct, Enum
+
+            => Mnemonics<TEnum>.ByName.TryGetValue(Text, out Value);
+
+
+        private static class Mnemonics<TEnum>
+
+            where TEnum : struct, Enum
+
+        {
+
+            internal static readonly Dictionary<String, TEnum> ByName = Build();
+
+            private static Dictionary<String, TEnum> Build()
+            {
+
+                var byName = new Dictionary<String, TEnum>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var name in Enum.GetNames<TEnum>())
+                    byName.TryAdd(name, Enum.Parse<TEnum>(name));
+
+                return byName;
+
+            }
+
+        }
+
+        #endregion
+
         #region (private static) TryParseDNSQueryClass(Text, out Class)
 
         private static Boolean TryParseDNSQueryClass(String               Text,
                                                      out DNSQueryClasses  Class)
         {
 
-            Class = default;
-
-            if (Enum.TryParse(Text, true, out Class) &&
-                Enum.IsDefined(Class))
-            {
+            if (TryParseMnemonic(Text, out Class))
                 return true;
-            }
 
             // RFC 3597 §5: a class with no mnemonic is written "CLASS" followed
             // by the decimal code — and a bare decimal is therefore not a class
@@ -687,11 +732,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                              out DNSResourceRecordTypes  Type)
         {
 
-            if (Enum.TryParse (Text, true, out Type) &&
-                Enum.IsDefined(Type))
-            {
+            if (TryParseMnemonic(Text, out Type))
                 return true;
-            }
 
             if (Text.StartsWith("TYPE", StringComparison.OrdinalIgnoreCase) &&
                 UInt16.TryParse(Text[4..], NumberStyles.Integer, CultureInfo.InvariantCulture, out var typeId))
@@ -871,8 +913,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                       out UInt16  TypeId)
         {
 
-            if (Enum.TryParse<DNSResourceRecordTypes>(Text, true, out var resourceRecordType) &&
-                Enum.IsDefined(resourceRecordType))
+            if (TryParseMnemonic<DNSResourceRecordTypes>(Text, out var resourceRecordType))
             {
                 TypeId = (UInt16) resourceRecordType;
                 return true;

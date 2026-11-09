@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSServiceName">The DNS Service Name of this URI resource record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="Weight">The relative weight for entries with the same priority.</param>
-        /// <param name="Target">The domain name of the target host.</param>
+        /// <param name="Target">The URI of the target, of any scheme (RFC 7553 §4.4).</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         public static void CacheURI(this DNSClient   DNSClient,
@@ -49,6 +49,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     UInt16           Priority,
                                     UInt16           Weight,
                                     URL              Target,
+                                    DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                    TimeSpan?        TimeToLive   = null)
+
+            => DNSClient.CacheURI(DNSServiceName,
+                                  Priority,
+                                  Weight,
+                                  Target.ToString(),
+                                  Class,
+                                  TimeToLive);
+
+
+        /// <summary>
+        /// Add a DNS URI record cache entry.
+        /// </summary>
+        /// <param name="DNSClient">A DNS client.</param>
+        /// <param name="DNSServiceName">The DNS Service Name of this URI resource record.</param>
+        /// <param name="Priority">The priority of this target host.</param>
+        /// <param name="Weight">The relative weight for entries with the same priority.</param>
+        /// <param name="Target">The URI of the target, of any scheme (RFC 7553 §4.4).</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        public static void CacheURI(this DNSClient   DNSClient,
+                                    DNSServiceName   DNSServiceName,
+                                    UInt16           Priority,
+                                    UInt16           Weight,
+                                    String           Target,
                                     DNSQueryClasses  Class        = DNSQueryClasses.IN,
                                     TimeSpan?        TimeToLive   = null)
         {
@@ -105,9 +131,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public UInt16  Weight      { get; }
 
         /// <summary>
-        /// The URI of the target, enclosed in double-quote characters in presentation format.
+        /// The URI of the target, as the record carries it: enclosed in
+        /// double-quote characters in presentation format, the remaining
+        /// octets of the RDATA on the wire (RFC 7553 §4.4, §4.5).
         /// </summary>
-        public URL     Target      { get; }
+        /// <remarks>
+        /// Text, not a URL. RFC 7553 §4.4 takes any URI of RFC 3986, and most
+        /// schemes have no "//": mailto:, tel:, urn:. And RFC 3597 §3 has a
+        /// server preserve the RDATA of a known type exactly, so the target is
+        /// handed on as it came, whatever a URL reader would have made of it.
+        /// </remarks>
+        public String  Target      { get; }
 
         #endregion
 
@@ -135,13 +169,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.Weight    = Stream.ReadUInt16BE();
 
             // RFC 7553 §4.5: the Target is the remaining octets of the RDATA.
-            this.Target    = URL.Parse(ReadTarget(Stream, rdLength));
+            // They are kept as they are. A URL reader put "https://" in front
+            // of every target without "://", mailto: and urn: among them, and
+            // refused the ones it could then not take apart.
+            this.Target    = ReadTarget(Stream, rdLength);
 
         }
 
         #endregion
 
-        #region URI(DNSServiceName, Class, TimeToLive, Priority, Weight, Port, Target)
+        #region URI(DNSServiceName, Class, TimeToLive, Priority, Weight, Target)
 
         /// <summary>
         ///  Create a new DNS URI record.
@@ -151,13 +188,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The time to live of this URI record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="Weight">The relative weight for entries with the same priority.</param>
-        /// <param name="Target">The domain name of the target host.</param>
+        /// <param name="Target">The URI of the target, of any scheme (RFC 7553 §4.4).</param>
         public URI(DNSServiceName   DNSServiceName,
                    DNSQueryClasses  Class,
                    TimeSpan         TimeToLive,
                    UInt16           Priority,
                    UInt16           Weight,
-                   URL              Target)
+                   String           Target)
 
             : base(DNSServiceName,
                    TypeId,
@@ -167,11 +204,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
+            // RFC 7553 §4.4: "The Target MUST NOT be an empty URI ("")."
+            if (String.IsNullOrEmpty(Target))
+                throw new ArgumentException("The target of a URI record must not be empty (RFC 7553 §4.4)!", nameof(Target));
+
             this.Priority  = Priority;
             this.Weight    = Weight;
             this.Target    = Target;
 
         }
+
+        #endregion
+
+        #region URI(DNSServiceName, Class, TimeToLive, Priority, Weight, Target)
+
+        /// <summary>
+        ///  Create a new DNS URI record whose target is a URL.
+        /// </summary>
+        /// <param name="DNSServiceName">The DNS Service Name of this URI record.</param>
+        /// <param name="Class">The DNS query class of this URI record.</param>
+        /// <param name="TimeToLive">The time to live of this URI record.</param>
+        /// <param name="Priority">The priority of this target host.</param>
+        /// <param name="Weight">The relative weight for entries with the same priority.</param>
+        /// <param name="Target">The URL of the target.</param>
+        public URI(DNSServiceName   DNSServiceName,
+                   DNSQueryClasses  Class,
+                   TimeSpan         TimeToLive,
+                   UInt16           Priority,
+                   UInt16           Weight,
+                   URL              Target)
+
+            : this(DNSServiceName,
+                   Class,
+                   TimeToLive,
+                   Priority,
+                   Weight,
+                   Target.ToString())
+
+        { }
 
         #endregion
 
@@ -192,10 +262,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // RFC 7553 §4.5: "The length of the Target field MUST be greater than
             // zero", and §4.4 that the Target "MUST NOT be an empty URI" — so an
             // RDLENGTH of exactly four, Priority and Weight with nothing behind
-            // them, is the one length this type may never have. The empty string
-            // was refused one line below already, by a URL parser that happens not
-            // to take it; saying it here states the rule rather than leaning on
-            // that. No record changes hands differently for it.
+            // them, is the one length this type may never have. Those two MUSTs
+            // are all RFC 7553 asks of the target's octets, and all this reader
+            // asks: one octet is a target, whatever it says.
             if (RDLength < 5)
                 throw new InvalidDataException($"URI RDATA of {RDLength} bytes leaves nothing for the target, which RFC 7553 §4.5 requires to be at least one octet!");
 
@@ -226,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (parts.Length < 3) return null;
                 return new URI(Name, DNSQueryClasses.IN, TimeToLive,
                                UInt16.Parse(parts[0]), UInt16.Parse(parts[1]),
-                               HTTP.URL.Parse(parts[2].Trim('"')));
+                               parts[2].Trim('"'));
             }
             catch { return null; }
         }
@@ -258,7 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // — plain octets, NOT a domain name and NOT a character-string, so
             // it carries neither a length prefix nor label encoding, and name
             // compression MUST NOT be applied to it.
-            var target   = Encoding.ASCII.GetBytes(Target.ToString());
+            var target   = Encoding.ASCII.GetBytes(Target);
 
             var dataLen  = 2 + 2 + target.Length;
 

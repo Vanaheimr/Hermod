@@ -288,11 +288,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                     out DNSResourceRecordTypes  TypeCovered)
         {
 
-            if (Enum.TryParse(Text, true, out TypeCovered) &&
-                Enum.IsDefined(TypeCovered))
-            {
+            // RFC 4034 §3.2: "The Type Covered field is represented as an RR
+            // type mnemonic." A mnemonic, not a list of them: "A,MX" named MX
+            // here, the two values combined.
+            if (TryParseMnemonic(Text, out TypeCovered))
                 return true;
-            }
 
             if (Text.StartsWith("TYPE", StringComparison.OrdinalIgnoreCase) &&
                 UInt16.TryParse(Text[4..], out var typeId))

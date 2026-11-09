@@ -164,7 +164,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <returns>The parsed resource record, or null if parsing fails.</returns>
         public static SPF? TryParseFromJSON(DomainName Name, TimeSpan TimeToLive, String Data)
         {
-            try { return new SPF(Name, DNSQueryClasses.IN, TimeToLive, Data.Trim('"')); }
+            try
+            {
+
+                // Google's bare text, or Cloudflare's presentation format: see
+                // TXT.TryParseFromJSON.
+                return TXT.IsPresentationFormat(Data, out var strings)
+                           ? new SPF(Name, DNSQueryClasses.IN, TimeToLive, String.Concat(strings))
+                           : new SPF(Name, DNSQueryClasses.IN, TimeToLive, Data);
+
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (static) TryParseZoneFile(Name, TimeToLive, RData)
+
+        /// <summary>
+        /// Try to parse this resource record from the RDATA of a zone-file line:
+        /// character-strings, each quoted or not (RFC 1035 §5.1).
+        /// </summary>
+        /// <param name="Name">The owner name of this resource record.</param>
+        /// <param name="TimeToLive">The TTL of this resource record.</param>
+        /// <param name="RData">The RDATA as written.</param>
+        /// <returns>The parsed resource record, or null if parsing fails.</returns>
+        public static SPF? TryParseZoneFile(DomainName Name, TimeSpan TimeToLive, String RData)
+        {
+            try
+            {
+
+                // The same character-strings as a TXT's, read by the same reader
+                // (RFC 1035 §5.1), and then the one text RFC 7208 §3.3 makes of
+                // them: "concatenated together without adding spaces". Taking
+                // the quotes off both ends and keeping the rest kept every escape
+                // and the quotes between two strings.
+                return TXT.TryParseCharacterStrings(RData, out var strings)
+                           ? new SPF(Name, DNSQueryClasses.IN, TimeToLive, String.Concat(strings))
+                           : null;
+
+            }
             catch { return null; }
         }
 

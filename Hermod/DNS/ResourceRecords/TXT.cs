@@ -377,9 +377,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Try to parse this resource record from a DNS JSON API "data" field
         /// (e.g. Google dns.google/resolve or Cloudflare cloudflare-dns.com/dns-query).
-        /// A data field consisting of several quoted strings ("a" "b") keeps them
-        /// as separate character-strings; anything else is a single text.
         /// </summary>
+        /// <remarks>
+        /// The two APIs write a TXT's data two ways. Cloudflare's is the
+        /// presentation format, every character-string quoted, and it is read
+        /// as a zone file's RDATA is. Google's is the text: the strings joined,
+        /// nothing quoted and nothing escaped, "v=spf1 a mx -all" for the one
+        /// string v=spf1 a mx -all. That is one text, split again into
+        /// character-strings of at most 255 octets.
+        /// </remarks>
         /// <param name="Name">The owner name of this resource record.</param>
         /// <param name="TimeToLive">The TTL of this resource record.</param>
         /// <param name="Data">The "data" field value from the JSON response.</param>
@@ -389,21 +395,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             try
             {
 
-                // Whenever the text is quoted, it is read by the reader that knows
-                // what a quote and a backslash mean. That used to be true only for
-                // two or more character-strings, and one is the common case: every
-                // SPF, DKIM and DMARC record is a single quoted string, and each of
-                // them arrived with its RFC 1035 §5.1 escapes still in the data.
-                if (TryParseQuotedStrings(Data, out var quotedStrings))
-                    return new TXT(Name, DNSQueryClasses.IN, TimeToLive, quotedStrings);
-
-                // Unquoted, it is one character-string that cannot contain a blank,
-                // so there is nothing to unescape and nothing to split on.
-                return new TXT(Name, DNSQueryClasses.IN, TimeToLive, Data.Trim('"'));
+                return IsPresentationFormat(Data, out var strings)
+                           ? new TXT(Name, DNSQueryClasses.IN, TimeToLive, strings)
+                           : new TXT(Name, DNSQueryClasses.IN, TimeToLive, Data);
 
             }
             catch { return null; }
         }
+
+        #endregion
+
+        #region (static) TryParseZoneFile(Name, TimeToLive, RData)
+
+        /// <summary>
+        /// Try to parse this resource record from the RDATA of a zone-file line:
+        /// character-strings, each quoted or not (RFC 1035 §5.1).
+        /// </summary>
+        /// <param name="Name">The owner name of this resource record.</param>
+        /// <param name="TimeToLive">The TTL of this resource record.</param>
+        /// <param name="RData">The RDATA as written.</param>
+        /// <returns>The parsed resource record, or null if parsing fails.</returns>
+        public static TXT? TryParseZoneFile(DomainName Name, TimeSpan TimeToLive, String RData)
+        {
+            try
+            {
+
+                // Every character-string is read by the reader that knows what a
+                // quote and a backslash mean, whichever way it is written. A
+                // second path used to take whatever that reader refused, and any
+                // line that was not quoted strings only, and keep the text as it
+                // lay between the outer quotes: "a b" for two strings, a\;b with
+                // its backslash, "a\256b" as six characters.
+                return TryParseCharacterStrings(RData, out var strings)
+                           ? new TXT(Name, DNSQueryClasses.IN, TimeToLive, strings)
+                           : null;
+
+            }
+            catch { return null; }
+        }
+
+        #endregion
+
+        #region (static) IsPresentationFormat(Data, out Strings)
+
+        /// <summary>
+        /// Whether a JSON API's TXT data is written in the presentation format
+        /// rather than as Google's bare text: it starts with a quote, and it
+        /// reads as character-strings to the end.
+        /// </summary>
+        /// <remarks>
+        /// Google's text is whatever the record holds, so it may begin with a
+        /// quote too. Text that begins with one and does not read to the end is
+        /// still one text, and only a JSON API's data may be taken that way: a
+        /// zone file has no second form, and refuses it.
+        /// </remarks>
+        /// <param name="Data">The "data" field value from the JSON response.</param>
+        /// <param name="Strings">The character-strings, when it is the presentation format.</param>
+        public static Boolean IsPresentationFormat(String                                 Data,
+                                                   [NotNullWhen(true)] out List<String>?  Strings)
+        {
+
+            Strings = null;
+
+            return Data.TrimStart().StartsWith('"') &&
+                   TryParseCharacterStrings(Data, out Strings);
+
+        }
+
+        #endregion
+
+        #region (static) PresentationOf(Text)
+
+        /// <summary>
+        /// The presentation format of one text: character-strings of at most 255
+        /// octets each, quoted, with a quote and a backslash escaped.
+        /// </summary>
+        /// <param name="Text">A text, such as a JSON API's bare TXT data.</param>
+        public static String PresentationOf(String Text)
+
+            => String.Join(' ',
+                           SplitText(Text).Select(text => $"\"{text.Replace("\\", "\\\\").Replace("\"", "\\\"")}\""));
 
         #endregion
 
@@ -528,97 +599,155 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private static) TryParseQuotedStrings(Text, out Strings)
+        #region (internal static) TryParseCharacterStrings(Text, out Strings)
 
-        private static Boolean TryParseQuotedStrings(String                                   Text,
-                                                     [NotNullWhen(true)] out List<String>?    Strings)
+        /// <summary>
+        /// Read the character-strings of a TXT-shaped RDATA in presentation
+        /// format, each written either way RFC 1035 §5.1 allows.
+        /// </summary>
+        /// <remarks>
+        /// RFC 1035 §5.1: a character-string "is expressed in one or two ways:
+        /// as a contiguous set of characters without interior spaces, or as a
+        /// string beginning with a " and ending with a "". The two may be mixed
+        /// on one line, and the file's two escapes hold in both. A quote ends a
+        /// string written without quotes and starts the next, as it does in
+        /// BIND. Whatever this reader refuses is not read some other way: a
+        /// fallback that took the text as it lay kept backslashes and quotes
+        /// the record never had.
+        /// </remarks>
+        /// <param name="Text">The RDATA as written.</param>
+        /// <param name="Strings">The character-strings, unescaped.</param>
+        internal static Boolean TryParseCharacterStrings(String                                 Text,
+                                                         [NotNullWhen(true)] out List<String>?  Strings)
         {
 
             Strings = null;
 
-            var text = Text.Trim();
+            var strings  = new List<String>();
+            var current  = new StringBuilder();
+            var i        = 0;
 
-            if (text.Length == 0 || text[0] != '"')
-                return false;
-
-            var strings   = new List<String>();
-            var current   = new StringBuilder();
-            var inString  = false;
-
-            for (var i = 0; i < text.Length; i++)
+            while (i < Text.Length)
             {
 
-                var character = text[i];
-
-                if (inString)
+                if (Char.IsWhiteSpace(Text[i]))
                 {
+                    i++;
+                    continue;
+                }
+
+                var quoted = Text[i] == '"';
+
+                if (quoted)
+                    i++;
+
+                current.Clear();
+
+                while (true)
+                {
+
+                    if (i >= Text.Length)
+                    {
+
+                        // A quoted string ends in a quote, and one that runs out
+                        // first is not one.
+                        if (quoted)
+                            return false;
+
+                        break;
+
+                    }
+
+                    var character = Text[i];
+
+                    if (character == '"')
+                    {
+
+                        // The closing quote of this string, or the opening quote
+                        // of the next one after a string without quotes.
+                        if (quoted)
+                            i++;
+
+                        break;
+
+                    }
+
+                    if (!quoted && Char.IsWhiteSpace(character))
+                        break;
 
                     if (character == '\\')
                     {
 
-                        // RFC 1035 §5.1: "\DDD where each D is a digit is the octet
-                        // corresponding to the decimal number described by DDD. The
-                        // resulting octet is assumed to be text and is not checked
-                        // for special meaning." Three digits or none: a backslash
-                        // followed by one or two digits is the other form.
-                        if (i + 3 < text.Length &&
-                            Char.IsAsciiDigit(text[i + 1]) &&
-                            Char.IsAsciiDigit(text[i + 2]) &&
-                            Char.IsAsciiDigit(text[i + 3]))
-                        {
-
-                            var value = (text[i + 1] - '0') * 100 +
-                                        (text[i + 2] - '0') *  10 +
-                                        (text[i + 3] - '0');
-
-                            if (value > 255)
-                                return false;
-
-                            current.Append((Char) value);
-                            i += 3;
-                            continue;
-
-                        }
-
-                        // "\X where X is any character other than a digit (0-9), is
-                        // used to quote that character so that its special meaning
-                        // does not apply." A backslash at the very end quotes
-                        // nothing, and a character-string that ends in one is not
-                        // one this reader can finish.
-                        if (i + 1 >= text.Length)
+                        if (!TryParseEscape(Text, ref i, current))
                             return false;
 
-                        current.Append(text[i + 1]);
-                        i++;
                         continue;
 
-                    }
-
-                    if (character == '"')
-                    {
-                        strings.Add(current.ToString());
-                        current.Clear();
-                        inString = false;
-                        continue;
                     }
 
                     current.Append(character);
-                    continue;
+                    i++;
 
                 }
 
-                if (character == '"')
-                    inString = true;
-
-                else if (!Char.IsWhiteSpace(character))
-                    return false;
+                strings.Add(current.ToString());
 
             }
 
-            if (inString)
+            Strings = strings;
+            return true;
+
+        }
+
+        #endregion
+
+        #region (private static) TryParseEscape(Text, ref Index, Builder)
+
+        /// <summary>
+        /// Read the escape at Text[Index], which is a backslash, append what it
+        /// stands for, and move Index past it.
+        /// </summary>
+        private static Boolean TryParseEscape(String         Text,
+                                              ref Int32      Index,
+                                              StringBuilder  Builder)
+        {
+
+            // A backslash at the very end quotes nothing.
+            if (Index + 1 >= Text.Length)
                 return false;
 
-            Strings = strings;
+            var next = Text[Index + 1];
+
+            // RFC 1035 §5.1: "\X where X is any character other than a digit
+            // (0-9), is used to quote that character so that its special
+            // meaning does not apply."
+            if (!Char.IsAsciiDigit(next))
+            {
+                Builder.Append(next);
+                Index += 2;
+                return true;
+            }
+
+            // "\DDD where each D is a digit is the octet corresponding to the
+            // decimal number described by DDD." A digit after the backslash
+            // makes this form, and it has three of them: one or two are neither
+            // form, and a number past 255 is no octet.
+            if (Index + 3 >= Text.Length ||
+                !Char.IsAsciiDigit(Text[Index + 2]) ||
+                !Char.IsAsciiDigit(Text[Index + 3]))
+            {
+                return false;
+            }
+
+            var value = (next           - '0') * 100 +
+                        (Text[Index + 2] - '0') *  10 +
+                        (Text[Index + 3] - '0');
+
+            if (value > 255)
+                return false;
+
+            Builder.Append((Char) value);
+            Index += 4;
             return true;
 
         }

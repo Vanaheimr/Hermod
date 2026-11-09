@@ -1696,6 +1696,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // also how this API names one.
             var mnemonic = ADNSResourceRecord.TypeName((DNSResourceRecordTypes) type);
 
+            // The one exception to "the data field is the presentation form":
+            // Google writes a TXT's or an SPF's data as the bare text, the
+            // character-strings joined with nothing quoted or escaped, where
+            // Cloudflare quotes each string. Read as a zone file reads RDATA,
+            // the bare text would be split at every blank. It is one text, so
+            // it is written down as one before the zone-file reader sees it.
+            if ((type == (UInt16) DNSResourceRecordTypes.TXT ||
+                 type == (UInt16) DNSResourceRecordTypes.SPF) &&
+                !TXT.IsPresentationFormat(data, out _))
+            {
+                data = TXT.PresentationOf(data);
+            }
+
             return ADNSResourceRecord.TryParseZoneFileString(
                        $"{name} {ttl} IN {mnemonic} {data}",
                        out ResourceRecord,
