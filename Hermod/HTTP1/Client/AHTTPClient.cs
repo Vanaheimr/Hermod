@@ -914,6 +914,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            // Refused before anything is opened or sent: a one-time password that
+            // was asked to be bound to the TLS session cannot be, see TOTPConfig.
+            if (TOTPConfig?.UseTLSExporterMaterial == true)
+                return new HTTPResponse.Builder(Request) {
+                           HTTPStatusCode  = HTTPStatusCode.ClientError,
+                           Content         = $"Not sent to {RemoteURL}: {TOTPConfig.TLSChannelBindingNotAvailable}".ToUTF8Bytes(),
+                           ContentType     = HTTPContentType.Text.PLAIN,
+                           Runtime         = TimeSpan.Zero
+                       };
+
             ConsumeResponseChunkedTEImmediately ??= this.ConsumeResponseChunkedTEImmediately ?? true;
 
             var success = await sendRequestSemaphore.WaitAsync(
@@ -1972,6 +1982,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (TOTPConfig is null)
                 return null;
+
+            // A token computed without the keying material and labelled as bound
+            // is refused by every verifier that binds - and was what this sent.
+            if (TOTPConfig.UseTLSExporterMaterial == true && TLSExporterMaterial is null)
+                throw new InvalidOperationException(TOTPConfig.TLSChannelBindingNotAvailable);
 
             var (current, _, _)  = TOTPGenerator.GenerateTOTP(
                                        TOTPConfig.SharedSecret,

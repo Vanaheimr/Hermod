@@ -167,7 +167,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The optional Time-Based One-Time Password (TOTP) configuration.
         /// </summary>
+        /// <remarks>
+        /// A current token of it goes with every attempt to connect: under
+        /// <see cref="TOTPLogin"/> in "Authorization: TOTP" where there is one,
+        /// and in the "TOTP" request header otherwise, as the HTTP client sends
+        /// it. Never bound to the TLS session: this client's TLS exports no
+        /// keying material, so a configuration that asks for the binding is
+        /// refused rather than sent unbound.
+        /// </remarks>
         public TOTPConfig?                                                     TOTPConfig                                { get; set; }
+
+        /// <summary>
+        /// The optional login under which the one-time password of
+        /// <see cref="TOTPConfig"/> goes in "Authorization: TOTP".
+        /// </summary>
+        /// <remarks>
+        /// That header is the one a WebSocket server verifies a one-time password
+        /// in. Without a login, the password goes in the "TOTP" request header,
+        /// for a server that knows who is calling by other means.
+        /// </remarks>
+        public String?                                                         TOTPLogin                                 { get; set; }
 
         /// <summary>
         /// The HTTP user agent identification.
@@ -532,6 +551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                Boolean?                                                        AllowRenegotiation               = null,
                                Boolean?                                                        AllowTLSResume                   = null,
                                TOTPConfig?                                                     TOTPConfig                       = null,
+                               String?                                                         TOTPLogin                        = null,
 
                                IPVersionPreference?                                            IPVersionPreference              = null,
                                TimeSpan?                                                       ConnectTimeout                   = null,
@@ -606,6 +626,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.SecWebSocketProtocols              = SecWebSocketProtocols   ?? [];
             this.TOTPConfig                         = TOTPConfig;
+            this.TOTPLogin                          = TOTPLogin;
 
             this.DisableMaintenanceTasks            = DisableMaintenanceTasks;
             this.MaintenanceEvery                   = MaintenanceEvery        ?? DefaultMaintenanceEvery;
@@ -687,6 +708,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                Boolean?                                                        AllowRenegotiation               = null,
                                Boolean?                                                        AllowTLSResume                   = null,
                                TOTPConfig?                                                     TOTPConfig                       = null,
+                               String?                                                         TOTPLogin                        = null,
 
                                IPVersionPreference?                                            IPVersionPreference              = null,
                                TimeSpan?                                                       ConnectTimeout                   = null,
@@ -762,6 +784,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.SecWebSocketProtocols              = SecWebSocketProtocols   ?? [];
             this.TOTPConfig                         = TOTPConfig;
+            this.TOTPLogin                          = TOTPLogin;
 
             this.DisableMaintenanceTasks            = DisableMaintenanceTasks;
             this.MaintenanceEvery                   = MaintenanceEvery        ?? DefaultMaintenanceEvery;
@@ -846,6 +869,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                Boolean?                                                        AllowRenegotiation               = null,
                                Boolean?                                                        AllowTLSResume                   = null,
                                TOTPConfig?                                                     TOTPConfig                       = null,
+                               String?                                                         TOTPLogin                        = null,
 
                                IPVersionPreference?                                            IPVersionPreference              = null,
                                TimeSpan?                                                       ConnectTimeout                   = null,
@@ -922,6 +946,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.SecWebSocketProtocols              = SecWebSocketProtocols   ?? [];
             this.TOTPConfig                         = TOTPConfig;
+            this.TOTPLogin                          = TOTPLogin;
 
             this.DisableMaintenanceTasks            = DisableMaintenanceTasks;
             this.MaintenanceEvery                   = MaintenanceEvery        ?? DefaultMaintenanceEvery;
@@ -976,6 +1001,98 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #region (private) WhyTheTOTPCannotBeSent()
+
+        /// <summary>
+        /// Why the one-time password this client was given cannot go with its
+        /// attempts to connect - or null, where it can or where there is none.
+        /// </summary>
+        /// <remarks>
+        /// Each of these is a configuration that would otherwise leave as
+        /// something it does not say: a login with no password to it, two
+        /// things for the one Authorization header, a token weaker than asked
+        /// for. A client that went out with any of them was answered 401 at
+        /// best and let in on less than it was told to show at worst.
+        /// </remarks>
+        private String? WhyTheTOTPCannotBeSent()
+        {
+
+            if (TOTPLogin is not null && TOTPLogin.Trim().Length == 0)
+                return "An empty TOTP login was given; a one-time password needs a login to go in the Authorization header under.";
+
+            if (TOTPLogin is not null && TOTPConfig is null)
+                return $"A TOTP login ('{TOTPLogin}') was given without a TOTP configuration to make its one-time password from.";
+
+            if (TOTPLogin is not null && HTTPAuthentication is not null)
+                return "Both an HTTP authentication and a TOTP login were given, and an upgrade request has one Authorization header.";
+
+            if (TOTPConfig?.UseTLSExporterMaterial == true)
+                return TOTPConfig.TLSChannelBindingNotAvailable;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (private) AuthorizationOfThisAttempt()
+
+        /// <summary>
+        /// What the upgrade request of this attempt authenticates with: a
+        /// one-time password of this moment under the TOTP login where there is
+        /// one, and the HTTP authentication given otherwise.
+        /// </summary>
+        /// <remarks>
+        /// Made anew for every attempt, a reconnect hours later included: a
+        /// one-time password is current for one validity period, and the one
+        /// the client started with would be refused by then.
+        /// </remarks>
+        private IHTTPAuthentication? AuthorizationOfThisAttempt()
+        {
+
+            if (TOTPLogin is null || TOTPConfig is null)
+                return HTTPAuthentication;
+
+            // Changed since Connect checked it, which is the only way to get
+            // here with a configuration that cannot be sent.
+            if (WhyTheTOTPCannotBeSent() is String why)
+                throw new InvalidOperationException(why);
+
+            return HTTPTOTPAuthentication.Create(
+                       TOTPLogin.Trim(),
+                       CurrentTOTP(TOTPConfig),
+                       TOTPHTTPHeaderType.RAW
+                   );
+
+        }
+
+        #endregion
+
+        #region (private static) CurrentTOTP(Config)
+
+        /// <summary>
+        /// The one-time password of this moment, unbound: see TOTPConfig.
+        /// </summary>
+        private static String CurrentTOTP(TOTPConfig Config)
+        {
+
+            if (Config.UseTLSExporterMaterial == true)
+                throw new InvalidOperationException(TOTPConfig.TLSChannelBindingNotAvailable);
+
+            return TOTPGenerator.GenerateTOTP(
+                       Config.SharedSecret,
+                       Config.ValidityTime,
+                       Config.Length,
+                       Config.Alphabet,
+                       null,
+                       null,
+                       Config.HashAlgorithm
+                   ).Current;
+
+        }
+
+        #endregion
+
         #region (private) SendHTTPRequest(HTTPRequestBuilder, HTTPAuthorization, CancellationToken = default)
 
         private async Task<Tuple<HTTPRequest, String>>
@@ -1010,6 +1127,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                           SecWebSocketVersion   = "13",
                                           Authorization         = HTTPAuthorization
                                       };
+
+            // A one-time password without a login goes in the "TOTP" request
+            // header, as the HTTP client sends it; with one, it is the
+            // Authorization above.
+            if (TOTPConfig is not null && TOTPLogin is null)
+                httpRequestBuilder.TOTP = new TOTPHTTPHeader(
+                                              TOTPHTTPHeaderType.RAW,
+                                              CurrentTOTP(TOTPConfig)
+                                          );
 
             // Offer the 'permessage-deflate' extension (RFC 7692), if enabled.
             if (EnablePerMessageDeflate)
@@ -1163,6 +1289,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         {
 
+            // Before anything is opened: a one-time password that cannot be sent
+            // as it was configured is not sent in some other way.
+            if (WhyTheTOTPCannotBeSent() is String why)
+                throw new InvalidOperationException(why);
+
             RequestTimeout ??= this.RequestTimeout;
 
             HTTPResponse? waitingForHTTPResponse  = null;
@@ -1196,7 +1327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         var responseTuple     = await SendHTTPRequest(
                                                           HTTPRequestBuilder,
-                                                          HTTPAuthentication,
+                                                          AuthorizationOfThisAttempt(),
                                                           CancellationToken
                                                       );
 

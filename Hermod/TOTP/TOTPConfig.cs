@@ -35,6 +35,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public class TOTPConfig
     {
 
+        #region Data
+
+        /// <summary>
+        /// Why Hermod's HTTP and WebSocket clients send nothing for a
+        /// configuration that asks for TLS channel binding.
+        /// </summary>
+        /// <remarks>
+        /// Binding the token needs TLS exporter material (RFC 8446 §7.5), and
+        /// SslStream, which these clients' TLS is, exports none. A token
+        /// computed without it and sent as bound is refused by any verifier that
+        /// binds; sent as raw, it is weaker than what was configured. Neither is
+        /// what somebody who asked for the binding wants, so nothing is sent.
+        /// </remarks>
+        public const String TLSChannelBindingNotAvailable =
+            "The TOTP configuration asks for TLS channel binding, and this client's TLS (SslStream) exports no keying " +
+            "material to bind the token with; nothing is sent rather than a token weaker than configured.";
+
+        #endregion
+
         #region Properties
 
         /// <summary>
