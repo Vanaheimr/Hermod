@@ -223,7 +223,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         /// <remarks>
         /// One for the connection, not for the session or the channel: every channel of the connection
-        /// gets the same keys for the same label and context.
+        /// gets the same keys for the same nonce, label and context. A protocol keeps its runs apart
+        /// with a fresh nonce for every one.
         /// </remarks>
         public SshExporter? Exporter { get; init; }
 

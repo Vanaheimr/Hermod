@@ -34,27 +34,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <remarks>
     /// <para>
     /// SSH defines none. This is the one of section 4.3 of the white paper "NTS Key Establishment
-    /// over SSH" of Open Charging Technology, built the way RFC 4253, section 7.2 derives the keys of
-    /// the connection itself, with a label in place of the letters "A" to "F":
+    /// over SSH" of Open Charging Technology and of method 0x0001 of its SSH Key Binding record, built
+    /// the way RFC 4253, section 7.2 derives the keys of the connection itself, with a label in place
+    /// of the letters "A" to "F", and with a nonce for every export:
     /// </para>
     /// <code>
-    /// exporter_secret          = HASH(K || H || string("ssh-exporter@open.charging.cloud") || session_id)
-    /// Export(label, context, L) = HKDF-Expand(exporter_secret, string(label) || string(context), L)
+    /// exporter_secret                  = HASH(K || H || string("ssh-exporter@open.charging.cloud") || session_id)
+    /// PRK                              = HKDF-Extract(salt = nonce, IKM = exporter_secret)
+    /// Export(nonce, label, context, L) = HKDF-Expand(PRK, string(label) || string(context), L)
     /// </code>
     /// <para>
     /// K and H as the key exchange method encodes them for its own key derivation - an mpint for the
     /// classical methods, a string for the hybrid post-quantum ones - and HASH, like the HMAC of
-    /// HKDF-Expand (RFC 5869), is the hash function of the key exchange method.
+    /// HKDF-Extract and HKDF-Expand (RFC 5869), is the hash function of the key exchange method.
     /// </para>
     /// <para>
     /// It rests on K, which only the two ends hold. The session id alone would not do: it is signed in
     /// public key authentication and handed to agents, so it is no secret.
     /// </para>
     /// <para>
-    /// The first key exchange fixes it for the life of the connection. A rekey changes the keys of
-    /// the connection, not this, as KeyUpdate leaves the exporter of TLS 1.3 alone. So one label and
-    /// one context give the same keys every time on one connection, and a protocol that needs fresh
-    /// keys for every run uses the exporter once per connection.
+    /// The first key exchange fixes exporter_secret for the life of the connection. A rekey changes
+    /// the keys of the connection, not this, as KeyUpdate leaves the exporter of TLS 1.3 alone, so both
+    /// ends agree on it however rekeys and exports interleave. What keeps one export apart from the
+    /// next on the same connection is the nonce: one end chooses it afresh for every run of its
+    /// protocol and sends it to the other. It need not be secret.
     /// </para>
     /// </remarks>
     public sealed class SshExporter : IDisposable
@@ -76,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #region Properties
 
         /// <summary>
-        /// The hash function of the key exchange method, which HKDF-Expand takes its HMAC from.
+        /// The hash function of the key exchange method, which HKDF takes its HMAC from.
         /// </summary>
         public HashAlgorithmName  HashAlgorithm    { get; }
 
@@ -145,18 +148,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
-        #region (static) Expand        (HashAlgorithm, ExporterSecret, Label, Context, Length)
+        #region (static) Extract       (HashAlgorithm, ExporterSecret, Nonce)
 
         /// <summary>
-        /// HKDF-Expand(PRK = exporter_secret, info = string(label) || string(context), L).
+        /// PRK = HKDF-Extract(salt = nonce, IKM = exporter_secret): the key of one export.
         /// </summary>
         /// <param name="HashAlgorithm">The hash function of the key exchange method.</param>
         /// <param name="ExporterSecret">The exporter_secret, as long as a hash of that function.</param>
+        /// <param name="Nonce">What keeps this export apart from every other of the connection.</param>
+        /// <exception cref="ArgumentException">An empty nonce, which keeps nothing apart.</exception>
+        public static Byte[] Extract(HashAlgorithmName   HashAlgorithm,
+                                     ReadOnlySpan<Byte>  ExporterSecret,
+                                     ReadOnlySpan<Byte>  Nonce)
+        {
+
+            if (Nonce.IsEmpty)
+                throw new ArgumentException("An export needs a nonce of its own.", nameof(Nonce));
+
+            var prk = new Byte[HashLengthOf(HashAlgorithm)];
+
+            HKDF.Extract(HashAlgorithm,
+                         ExporterSecret,
+                         Nonce,
+                         prk);
+
+            return prk;
+
+        }
+
+        private static Int32 HashLengthOf(HashAlgorithmName HashAlgorithm)
+
+            => HashAlgorithm.Name switch {
+                   "SHA1"    => 20,
+                   "SHA256"  => 32,
+                   "SHA384"  => 48,
+                   "SHA512"  => 64,
+                   _         => throw new ArgumentException($"No key exchange method hashes with {HashAlgorithm.Name}.", nameof(HashAlgorithm))
+               };
+
+        #endregion
+
+        #region (static) Expand        (HashAlgorithm, ExporterSecret, Nonce, Label, Context, Length)
+
+        /// <summary>
+        /// HKDF-Expand(PRK = HKDF-Extract(salt = nonce, IKM = exporter_secret),
+        /// info = string(label) || string(context), L).
+        /// </summary>
+        /// <remarks>
+        /// Public for test vectors, and for a server that hands the exchange to another process along
+        /// with the exporter_secret of the connection.
+        /// </remarks>
+        /// <param name="HashAlgorithm">The hash function of the key exchange method.</param>
+        /// <param name="ExporterSecret">The exporter_secret, as long as a hash of that function.</param>
+        /// <param name="Nonce">What keeps this export apart from every other of the connection.</param>
         /// <param name="Label">What the keys are for, e.g. "EXPORTER-network-time-security".</param>
         /// <param name="Context">What sets these keys apart from others of the same label.</param>
         /// <param name="Length">How many octets to derive, at most 255 hashes.</param>
+        /// <exception cref="ArgumentException">An empty nonce, which keeps nothing apart.</exception>
         public static Byte[] Expand(HashAlgorithmName   HashAlgorithm,
                                     ReadOnlySpan<Byte>  ExporterSecret,
+                                    ReadOnlySpan<Byte>  Nonce,
                                     String              Label,
                                     ReadOnlySpan<Byte>  Context,
                                     Int32               Length)
@@ -164,12 +215,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(Length);
 
-            var output = new Byte[Length];
+            var prk     = Extract(HashAlgorithm, ExporterSecret, Nonce);
+            var output  = new Byte[Length];
 
-            HKDF.Expand(HashAlgorithm,
-                        ExporterSecret,
-                        output,
-                        Info(Label, Context));
+            try
+            {
+                HKDF.Expand(HashAlgorithm,
+                            prk,
+                            output,
+                            Info(Label, Context));
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(prk);
+            }
 
             return output;
 
@@ -194,16 +253,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #endregion
 
 
-        #region Export(Label, Context, Length)
+        #region Export(Nonce, Label, Context, Length)
 
         /// <summary>
-        /// Keys for a protocol in this connection: the same on both ends, and on no other connection.
+        /// Keys for one run of a protocol in this connection: the same on both ends for the same nonce,
+        /// other ones for another nonce, and on no other connection.
         /// </summary>
+        /// <param name="Nonce">What keeps this export apart from every other of the connection: chosen afresh by one end for every run, and sent to the other.</param>
         /// <param name="Label">What the keys are for, e.g. "EXPORTER-network-time-security".</param>
         /// <param name="Context">What sets these keys apart from others of the same label.</param>
         /// <param name="Length">How many octets to derive, at most 255 hashes.</param>
+        /// <exception cref="ArgumentException">An empty nonce, which keeps nothing apart.</exception>
         /// <exception cref="ObjectDisposedException">The connection has ended, and its exporter with it.</exception>
-        public Byte[] Export(String              Label,
+        public Byte[] Export(ReadOnlySpan<Byte>  Nonce,
+                             String              Label,
                              ReadOnlySpan<Byte>  Context,
                              Int32               Length)
         {
@@ -214,7 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                 ObjectDisposedException.ThrowIf(disposed, this);
 
-                return Expand(HashAlgorithm, secret, Label, Context, Length);
+                return Expand(HashAlgorithm, secret, Nonce, Label, Context, Length);
 
             }
 

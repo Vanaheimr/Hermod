@@ -206,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         /// <summary>
         /// The keying material exporter of the connection: the keys the server gets from
-        /// <see cref="SshSessionInfo.Exporter"/> for the same label and context, and no other connection.
+        /// <see cref="SshSessionInfo.Exporter"/> for the same nonce, label and context, and no other connection.
         /// </summary>
         public SshExporter Exporter => transport.Exporter!;
 
