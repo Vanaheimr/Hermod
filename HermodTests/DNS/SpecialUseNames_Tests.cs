@@ -219,6 +219,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
+        #region TheIPv4OnlyReverseNames_AreAnsweredWithoutAServer(Name, Type, ResponseCode, PTRs)
+
+        /// <summary>
+        /// RFC 8880 §7.2, item 3: a PTR to ipv4only.arpa for the two names, NODATA for another type, NXDOMAIN below
+        /// them - from a client that has no server to ask.
+        /// </summary>
+        [TestCase("170.0.0.192.in-addr.arpa.",    DNSResourceRecordTypes.PTR, DNSResponseCodes.NoError,   1)]
+        [TestCase("171.0.0.192.IN-ADDR.ARPA.",    DNSResourceRecordTypes.PTR, DNSResponseCodes.NoError,   1)]
+        [TestCase("170.0.0.192.in-addr.arpa.",    DNSResourceRecordTypes.Any, DNSResponseCodes.NoError,   1)]
+        [TestCase("170.0.0.192.in-addr.arpa.",    DNSResourceRecordTypes.A,   DNSResponseCodes.NoError,   0)]
+        [TestCase("x.171.0.0.192.in-addr.arpa.",  DNSResourceRecordTypes.PTR, DNSResponseCodes.NameError, 0)]
+        public async Task TheIPv4OnlyReverseNames_AreAnsweredWithoutAServer(String                  Name,
+                                                                            DNSResourceRecordTypes  Type,
+                                                                            DNSResponseCodes        ResponseCode,
+                                                                            Int32                   PTRs)
+        {
+
+            using var client = WithoutServers();
+
+            var answer = await client.Query(DNSServiceName.Parse(Name), [ Type ]);
+
+            Assert.Multiple(() => {
+                Assert.That(SpecialUseNames.IsIPv4OnlyReverse(DNSServiceName.Parse(Name)),  Is.True);
+                Assert.That(answer.ResponseCode,                                              Is.EqualTo(ResponseCode));
+                Assert.That(answer.Answers.Count(),                                           Is.EqualTo(PTRs));
+                Assert.That(answer.Answers.OfType<PTR>().Select(ptr => ptr.Target.FullName.TrimEnd('.')),
+                            Is.All.EqualTo("ipv4only.arpa"));
+            });
+
+        }
+
+        #endregion
+
+        #region ANameBesideTheIPv4OnlyReverseOnes_IsNotSpecial(Name)
+
+        [TestCase("172.0.0.192.in-addr.arpa.")]
+        [TestCase("0.0.192.in-addr.arpa.")]
+        [TestCase("170.0.0.193.in-addr.arpa.")]
+        [TestCase("1170.0.0.192.in-addr.arpa.")]
+        [TestCase("170.00.0.192.in-addr.arpa.")]
+        [TestCase("ipv4only.arpa.")]
+        public void ANameBesideTheIPv4OnlyReverseOnes_IsNotSpecial(String Name)
+        {
+            Assert.That(SpecialUseNames.IsIPv4OnlyReverse(DNSServiceName.Parse(Name)), Is.False);
+        }
+
+        #endregion
+
         #region ANameBesideTheLinkLocalOnes_IsNotLinkLocal(Name)
 
         /// <summary>

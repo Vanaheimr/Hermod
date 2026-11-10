@@ -52,6 +52,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// caching server do, unless it was told to send them anyway.
     /// </para>
     /// <para>
+    /// RFC 8880 §7.2, item 3, asks libraries to answer the reverse names of ipv4only.arpa's two addresses
+    /// themselves: "170.0.0.192.in-addr.arpa." and "171.0.0.192.in-addr.arpa." point to "ipv4only.arpa.", have
+    /// nothing of any other type, and nothing below them.
+    /// </para>
+    /// <para>
     /// "test." and the private-address reverse names are special too, but not to a resolver: item 3 of §6.1
     /// and §6.2 asks resolution APIs to send them to their servers like any other name. Item 5 asks
     /// authoritative servers to answer them negatively "unless explicitly configured by the administrator to
@@ -113,6 +118,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Name">A name.</param>
         public static Boolean IsLinkLocal(DNSServiceName Name)
             => LinkLocalDomain(Name) is not null;
+
+        #endregion
+
+        #region IsIPv4OnlyReverse(Name)
+
+        /// <summary>
+        /// Whether the name is "170.0.0.192.in-addr.arpa." or "171.0.0.192.in-addr.arpa.", the reverse names of the
+        /// two addresses of ipv4only.arpa, or a name below one (RFC 8880 §7.2).
+        /// </summary>
+        /// <param name="Name">A name.</param>
+        public static Boolean IsIPv4OnlyReverse(DNSServiceName Name)
+            => IPv4OnlyReverseDepth(Name) >= 0;
+
+        #endregion
+
+        #region (private) IPv4OnlyReverseDepth(Name)
+
+        // How many labels the name has below one of the two reverse names - 0 for the name itself - or -1 when
+        // it is neither of them nor below one. The octets compare as RFC 1035 §3.5 writes them.
+        private static Int32 IPv4OnlyReverseDepth(DNSServiceName Name)
+        {
+
+            var labels = Name.Labels;
+
+            if (labels.Count >= 6                                                                         &&
+                DNSServiceName.ASCIICaseFold(labels[^1]).Equals("arpa",    StringComparison.Ordinal) &&
+                DNSServiceName.ASCIICaseFold(labels[^2]).Equals("in-addr", StringComparison.Ordinal) &&
+                labels[^3] == "192" &&
+                labels[^4] == "0"   &&
+                labels[^5] == "0"   &&
+                labels[^6] is "170" or "171")
+            {
+                return labels.Count - 6;
+            }
+
+            return -1;
+
+        }
 
         #endregion
 
@@ -325,10 +368,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region TryAnswer(Name, Types, RecursionDesired, Timeout, Runtime, AnswerLinkLocalNames, out Answer)
 
         /// <summary>
-        /// The answer RFC 6761, RFC 6762 and RFC 7686 give for a query about a special-use name, which no name
-        /// server is asked for: for a localhost name the loopback addresses for A and AAAA, and NODATA for any
+        /// The answer RFC 6761, RFC 6762, RFC 7686 and RFC 8880 give for a query about a special-use name, which no
+        /// name server is asked for: for a localhost name the loopback addresses for A and AAAA, and NODATA for any
         /// other type; for an "invalid" and a .onion name NXDOMAIN, and for a link-local name NXDOMAIN unless
-        /// those are to go to the servers.
+        /// those are to go to the servers; for the reverse names of ipv4only.arpa a PTR to it, NODATA for any
+        /// other type, and NXDOMAIN below them.
         /// </summary>
         /// <param name="Name">The name asked about.</param>
         /// <param name="Types">The types asked for; none is ANY.</param>
@@ -365,6 +409,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     types.Add(DNSResourceRecordTypes.Any);
 
                 Answer = Made(DNSResponseCodes.NoError, LoopbackAddresses(Name, types, TimeToLive), RecursionDesired, Timeout, Runtime);
+                return true;
+
+            }
+
+            // RFC 8880 §7.2, item 3: "PTR queries yield the result 'ipv4only.arpa'; all other query types yield a
+            // negative ("no error no answer") response. For all subdomains of these two reverse mapping domains,
+            // all queries yield an NXDOMAIN response."
+            var ipv4OnlyReverseDepth = IPv4OnlyReverseDepth(Name);
+
+            if (ipv4OnlyReverseDepth > 0)
+            {
+                Answer = Made(DNSResponseCodes.NameError, [], RecursionDesired, Timeout, Runtime);
+                return true;
+            }
+
+            if (ipv4OnlyReverseDepth == 0)
+            {
+
+                var types = Types.ToHashSet();
+
+                Answer = Made(DNSResponseCodes.NoError,
+                              types.Count == 0                          ||
+                              types.Contains(DNSResourceRecordTypes.PTR) ||
+                              types.Contains(DNSResourceRecordTypes.Any)
+                                  ? [ new PTR(Name, DNSQueryClasses.IN, TimeToLive, DNSServiceName.Parse("ipv4only.arpa.")) ]
+                                  : [],
+                              RecursionDesired,
+                              Timeout,
+                              Runtime);
+
                 return true;
 
             }

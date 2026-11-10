@@ -150,6 +150,10 @@ concerns:
   any other type, and `invalid.` and `onion.`, each with every name below it,
   NXDOMAIN, answered by `SpecialUseNames` without a name server, with the cache
   or without it
+- **The reverse names of ipv4only.arpa** (RFC 8880 §7.2) —
+  `170.0.0.192.in-addr.arpa.` and `171.0.0.192.in-addr.arpa.` are answered
+  without a name server: a PTR to `ipv4only.arpa.`, NODATA for any other type,
+  NXDOMAIN below them
 - **Link-local names** (RFC 6762 §22.1) — `local.` and the link-local reverse
   domains are not sent to the configured unicast servers: what the cache holds
   for them (`CacheA`, `CacheSRV`, …) is the answer, and anything else NXDOMAIN;
