@@ -45,6 +45,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
 
     /// <summary>
+    /// Asked for every connection as soon as it is accepted, before a byte is sent: null goes on with the
+    /// handshake, a reason closes the connection - see <see cref="SshServerOptions.AuthorizeConnection"/>.
+    /// </summary>
+    /// <param name="Peer">Where the connection comes from, or null where the socket could not tell.</param>
+    /// <param name="Local">Which of this machine's addresses it reached, or null where the socket could not tell.</param>
+    public delegate String? SshConnectionAuthorizer(IPSocket?  Peer,
+                                                    IPSocket?  Local);
+
+
+    /// <summary>
     /// Options for a high-level <see cref="SshServer"/>: the host keys, the authenticator, an exec handler,
     /// the port-forwarding policy and an optional typed audit sink.
     /// </summary>
@@ -61,6 +71,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         /// The user authenticator (public keys / certificates / password / 2FA).
         /// </summary>
         public required ISshUserAuthenticator       Authenticator     { get; init; }
+
+        /// <summary>
+        /// Asked for every connection as soon as it is accepted, before the version exchange, so before
+        /// this server has sent a byte. It is told where the connection comes from and which of this
+        /// machine's addresses it reached. Null goes on with the handshake. A reason closes the
+        /// connection without a word: the refusal is audited with that reason, and the client sees a
+        /// connection that closed rather than an SSH server, with neither its version nor its host key.
+        /// </summary>
+        /// <remarks>
+        /// For what an address alone decides, such as an access list. A client turned away here learns
+        /// nothing of this server. One turned away by <see cref="AuthorizeSession"/> has already seen its
+        /// version and host key, and has signed in. A refused connection does not count against the
+        /// <see cref="SshServerLimits"/>. The authorizer is asked in the loop that accepts connections,
+        /// so it has to answer at once: a lookup, not a question to another server. An authorizer that
+        /// fails refuses, as an unanswered question must not count as a yes.
+        /// </remarks>
+        public SshConnectionAuthorizer?             AuthorizeConnection  { get; init; }
 
         /// <summary>
         /// Asked once a client has signed in, before it may open anything - with the whole session: who,
@@ -356,6 +383,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                 }
 
                 var address  = AddressOf(peer);
+
+                // Before anything is sent, and before the connection counts against the limits: a client
+                // turned away by where it comes from learns nothing of this server, not even that it is one.
+                if (options.AuthorizeConnection is SshConnectionAuthorizer authorizeConnection)
+                {
+
+                    String? refusal;
+
+                    try
+                    {
+                        refusal = authorizeConnection(peer, local);
+                    }
+                    catch (Exception exception)
+                    {
+                        refusal = $"the server could not decide: {exception.Message}";
+                    }
+
+                    if (refusal is not null)
+                    {
+                        await EmitAsync(Audit(null, peer), new PolicyDeniedEvent(DateTimeOffset.UtcNow, "connection", address, refusal)).ConfigureAwait(false);
+                        await CloseAsync(pipe).ConfigureAwait(false);
+                        continue;
+                    }
+
+                }
+
                 var refused  = Admit(address);
 
                 if (refused is not null)
