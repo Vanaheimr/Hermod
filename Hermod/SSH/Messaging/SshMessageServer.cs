@@ -266,6 +266,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (first is not SshMessageFrame frame)
                 return;
 
+            #endregion
+
+            await ServeAfterAsync(Context, frame, CancellationToken).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region ServeAfterAsync(Context, First, CancellationToken)
+
+        /// <summary>
+        /// Serve one client whose first frame was read already - by a handler in front of several servers
+        /// that read the HELLO to choose one of them (see <see cref="RoutedBySubprotocol"/>).
+        /// </summary>
+        /// <param name="Context">The client's channel.</param>
+        /// <param name="First">The client's first frame, read already: its HELLO, or what came instead.</param>
+        /// <param name="CancellationToken">Ends serving it.</param>
+        public async ValueTask ServeAfterAsync(SshSubsystemContext  Context,
+                                               SshMessageFrame      First,
+                                               CancellationToken    CancellationToken)
+        {
+
+            var channel  = Context.Channel;
+            var frame    = First;
+
+            #region The client's HELLO
+
             if (frame.Type != SshMessageFrameType.Hello)
             {
                 await RefuseAsync(channel, SshMessageRefusal.HelloExpected, $"Expected HELLO, not a frame of kind 0x{(Byte) frame.Type:x2}.").ConfigureAwait(false);
@@ -399,6 +426,101 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
 
         }
+
+        #endregion
+
+        #region (static) RoutedBySubprotocol(Servers)
+
+        /// <summary>
+        /// One handler in front of several servers of the same subsystem - one per node that speaks a
+        /// version, say: it reads the HELLO, and hands the client to the first server that speaks the
+        /// client's first choice it can serve, as that server would have chosen it. A client that offers
+        /// none of them is refused with "unsupported-subprotocol", naming what they speak together; one
+        /// that offers none at all goes to the first server.
+        /// </summary>
+        /// <remarks>
+        /// For "OCPP over SSH" a charging station's commissioning listener: OCPP 2.x and OCPP 1.6 are two
+        /// nodes, and a subsystem has one handler (white paper "OCPP over SSH", decision 13).
+        /// </remarks>
+        /// <param name="Servers">The servers, by preference where a client's choice is spoken by several.</param>
+        public static SshSubsystemHandler RoutedBySubprotocol(params SshMessageServer[] Servers)
+
+            => async (context, cancellationToken) => {
+
+                   if (Servers.Length == 0)
+                       return;
+
+                   var helloTimeout = Servers[0].Options.HelloTimeout;
+
+                   SshMessageFrame? first;
+
+                   using (var helloWithin = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+                   {
+
+                       helloWithin.CancelAfter(helloTimeout);
+
+                       try
+                       {
+                           first = await SshMessageFraming.ReadAsync(context.Channel.Input, 0, helloWithin.Token).ConfigureAwait(false);
+                       }
+                       catch (OperationCanceledException)
+                       {
+                           return;
+                       }
+                       catch (SshMessageProtocolException exception)
+                       {
+                           await RefuseAsync(context.Channel, SshMessageRefusal.InvalidHello, exception.Message).ConfigureAwait(false);
+                           return;
+                       }
+                       catch (Exception)
+                       {
+                           return;
+                       }
+
+                   }
+
+                   if (first is not SshMessageFrame frame)
+                       return;
+
+                   // A frame that is no HELLO, or one that cannot be read, is the first server's to refuse.
+                   var chosen = Servers[0];
+
+                   if (frame.Type == SshMessageFrameType.Hello)
+                   {
+
+                       try
+                       {
+
+                           var hello = SshMessageHello.Parse(frame.Payload);
+
+                           if (hello.Subprotocols.Count > 0)
+                           {
+
+                               var serving = hello.Subprotocols.
+                                                 Select (offered => Servers.FirstOrDefault(server => server.Options.Subprotocols.Contains(offered, StringComparer.Ordinal))).
+                                                 FirstOrDefault(server => server is not null);
+
+                               if (serving is null)
+                               {
+                                   await RefuseAsync(context.Channel,
+                                                     SshMessageRefusal.UnsupportedSubprotocol,
+                                                     $"This subsystem speaks {String.Join(", ", Servers.SelectMany(server => server.Options.Subprotocols).Distinct(StringComparer.Ordinal).Select(id => $"'{id}'"))}.").ConfigureAwait(false);
+                                   return;
+                               }
+
+                               chosen = serving;
+
+                           }
+
+                       }
+                       catch (SshMessageProtocolException)
+                       { }
+
+                   }
+
+                   await chosen.ServeAfterAsync(context, frame, cancellationToken).ConfigureAwait(false);
+
+               };
 
         #endregion
 

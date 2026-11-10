@@ -847,6 +847,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         #endregion
 
 
+        #region RoutedBySubprotocol_HandsEachClientToTheServerOfItsVersion
+
+        /// <summary>
+        /// One handler in front of two servers of one subsystem - OCPP 2.x and OCPP 1.6, as two nodes of a
+        /// charging station: each client is welcomed by the server that speaks its first choice, and one
+        /// that offers neither is refused with what both speak.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task RoutedBySubprotocol_HandsEachClientToTheServerOfItsVersion(CancellationToken CancellationToken)
+        {
+
+            var twoX     = new SshMessageServer(new SshMessageServerOptions { Subsystem = OCPP, Subprotocols = [ "ocpp2.1", "ocpp2.0.1" ] });
+            var oneSix   = new SshMessageServer(new SshMessageServerOptions { Subsystem = OCPP, Subprotocols = [ "ocpp1.6" ] });
+            var routed   = SshMessageServer.RoutedBySubprotocol(twoX, oneSix);
+
+            await using var server = new SshServer(new SshServerOptions {
+                                         HostKeys       = [ hostKey ],
+                                         Authenticator  = SshUserAuthenticator.ForAuthorizedKeys(stationKey.PublicKeyBlob),
+                                         Subsystems     = (session, name, ct) => ValueTask.FromResult<SshSubsystemHandler?>(name == OCPP ? routed : null)
+                                     });
+
+            await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
+
+            var running = new Running(server, (UInt16) server.LocalEndPoint.Port.ToInt32(), twoX, new CollectingAuditSink());
+
+            await using var old      = Client(running, o => o with { Subprotocols = [ "ocpp1.6" ] });
+            await using var current  = Client(running, o => o with { Subprotocols = [ "ocpp2.1", "ocpp1.6" ] });
+            await using var stranger = Client(running, o => o with { Subprotocols = [ "ocpp1.5" ] });
+
+            var oldConnection      = await old.    ConnectAsync(CancellationToken);
+            var currentConnection  = await current.ConnectAsync(CancellationToken);
+            var refused            = await Assert.ThrowsAsync<SshMessageRefusedException>(async () => await stranger.ConnectAsync(CancellationToken));
+
+            await Within(Task.Run(async () => { while (!oneSix.Connections.Any() || !twoX.Connections.Any()) await Task.Delay(10); }), "Both servers' connections");
+
+            Assert.Multiple(() => {
+                Assert.That(oldConnection.Subprotocol,      Is.EqualTo("ocpp1.6"));
+                Assert.That(currentConnection.Subprotocol,  Is.EqualTo("ocpp2.1"));
+                Assert.That(oneSix.Connections.Count(),     Is.EqualTo(1), "the 1.6 client was not served by the 1.6 server");
+                Assert.That(twoX.  Connections.Count(),     Is.EqualTo(1), "the 2.1 client was not served by the 2.x server");
+                Assert.That(refused!.Code,                  Is.EqualTo(SshMessageRefusal.UnsupportedSubprotocol));
+                Assert.That(refused.Description,            Does.Contain("'ocpp2.1'").And.Contain("'ocpp1.6'"));
+            });
+
+        }
+
+        #endregion
+
         #region Refused_WithRetryAfter_TellsTheClientWhenToComeBack
 
         [Test]
