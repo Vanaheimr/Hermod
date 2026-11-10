@@ -408,6 +408,13 @@ unchanged and shown in RFC 3597 §5's generic form.
 | CSYNC      | RFC 7477  | Child-to-parent synchronization              |
 | ZONEMD     | RFC 8976  | Zone message digest                          |
 
+A signature is taken over the canonical form of RFC 4034 §6.2
+(`DNSSECCanonical`), for the validator and the signer alike. Its item 3
+lowercases the names inside the RDATA of the types RFC 3597 §7 lists — NS,
+CNAME, SOA, PTR, MX, RP, AFSDB, SRV, NAPTR, KX, DNAME, RRSIG and the rest of
+that closed list, without NSEC and HINFO (RFC 6840 §5.1) — and only of those:
+an LP's or a HIP's names keep the case they were written in.
+
 ### Security / Certificate Records
 
 | Type       | RFC       | Description                                  |

@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // carrying now — a cache counts the latter down.
                 record.WriteUInt32BE(Signature.OriginalTTL);
 
-                var rdata = ADNSResourceRecord.RDataOf(resourceRecord);
+                var rdata = CanonicalRData(resourceRecord);
 
                 record.WriteUInt16BE((UInt16) rdata.Length);
                 record.Write        (rdata, 0, rdata.Length);
@@ -115,6 +115,182 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 stream.Write(record, 0, record.Length);
 
             return stream.ToArray();
+
+        }
+
+        #endregion
+
+        #region (static) CanonicalRData(ResourceRecord)
+
+        /// <summary>
+        /// The RDATA of a resource record in its DNSSEC canonical form (RFC 4034
+        /// §6.2): uncompressed, and with the names it holds lowercased if — and
+        /// only if — its type is one whose names the canonical form lowercases.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Item 3 of §6.2 names the types: "NS, MD, MF, CNAME, SOA, MB, MG, MR, PTR,
+        /// HINFO, MINFO, MX, HINFO, RP, AFSDB, RT, SIG, PX, NXT, NAPTR, KX, SRV,
+        /// DNAME, A6, RRSIG, or NSEC". RFC 6840 §5.1 takes two off it — NSEC, whose
+        /// next name is not lowercased, and HINFO, since "HINFO records contain no
+        /// domain names" — and RFC 3597 §7 closes it: for every type published after RFC
+        /// 3597 "the canonical form is such that no downcasing of embedded domain
+        /// names takes place". So an MX's exchanger and a KX's are lowercased, and
+        /// an LP's FQDN or a HIP's rendezvous servers keep the case they were
+        /// written in.
+        /// </para>
+        /// <para>
+        /// The list is closed, so it is written out here type code by type code,
+        /// with each type's layout — and it works on the octets rather than on a
+        /// record class, because RFC 3597 §7 applies to the old types whether or
+        /// not this build has a parser for them: an RT or a PX that arrives as an
+        /// unknown record is still lowercased the way its signer lowercased it.
+        /// </para>
+        /// <para>
+        /// Only the 26 letters A to Z are changed, as §6.2 says: "all uppercase
+        /// US-ASCII letters". Any other octet of a label is left as it is.
+        /// </para>
+        /// </remarks>
+        /// <param name="ResourceRecord">A resource record.</param>
+        public static Byte[] CanonicalRData(IDNSResourceRecord ResourceRecord)
+
+            => CanonicalRData((UInt16) ResourceRecord.Type,
+                              ADNSResourceRecord.RDataOf(ResourceRecord));
+
+
+        /// <summary>
+        /// The canonical form of the given RDATA of the given type (RFC 4034 §6.2
+        /// item 3, RFC 6840 §5.1, RFC 3597 §7).
+        /// </summary>
+        /// <param name="Type">The type code of the record the RDATA belongs to.</param>
+        /// <param name="RData">The uncompressed RDATA.</param>
+        public static Byte[] CanonicalRData(UInt16  Type,
+                                            Byte[]  RData)
+        {
+
+            var canonical = (Byte[]) RData.Clone();
+
+            switch (Type)
+            {
+
+                // One name and nothing else: NS, MD, MF, CNAME, MB, MG, MR, PTR
+                // (RFC 1035 §3.3), and DNAME (RFC 6672 §2.1).
+                case 2: case 3: case 4: case 5: case 7: case 8: case 9: case 12: case 39:
+                    LowercaseNames(canonical, 0, 1);
+                    break;
+
+                // Two names: SOA's MNAME and RNAME, with its five numbers behind
+                // them (RFC 1035 §3.3.13); MINFO's RMAILBX and EMAILBX (§3.3.7);
+                // RP's mailbox and TXT name (RFC 1183 §2.2).
+                case 6: case 14: case 17:
+                    LowercaseNames(canonical, 0, 2);
+                    break;
+
+                // A 16-bit field and a name: MX (RFC 1035 §3.3.9), AFSDB and RT
+                // (RFC 1183 §1, §3.3), KX (RFC 2230 §3.1).
+                case 15: case 18: case 21: case 36:
+                    LowercaseNames(canonical, 2, 1);
+                    break;
+
+                // A 16-bit preference and two names: PX (RFC 2163 §4).
+                case 26:
+                    LowercaseNames(canonical, 2, 2);
+                    break;
+
+                // Priority, weight and port, then the target: SRV (RFC 2782).
+                case 33:
+                    LowercaseNames(canonical, 6, 1);
+                    break;
+
+                // Order and preference, three character-strings, then the
+                // replacement: NAPTR (RFC 3403 §4.1).
+                case 35:
+                    {
+
+                        var offset = 4;
+
+                        for (var i = 0; i < 3 && offset < canonical.Length; i++)
+                            offset += 1 + canonical[offset];
+
+                        LowercaseNames(canonical, offset, 1);
+
+                    }
+                    break;
+
+                // Eighteen octets of fixed fields, then the signer's name, then the
+                // signature: SIG (RFC 2535 §4.1) and RRSIG (RFC 4034 §3.1), the
+                // latter kept on the list by RFC 6840 §5.1.
+                case 24: case 46:
+                    LowercaseNames(canonical, 18, 1);
+                    break;
+
+                // The next domain name, then the type bit map: NXT (RFC 2535 §5.2).
+                // NSEC has the same layout and is off the list (RFC 6840 §5.1).
+                case 30:
+                    LowercaseNames(canonical, 0, 1);
+                    break;
+
+                // A6 (RFC 2874 §3.1): a prefix length, the address suffix that
+                // length leaves, and — unless the length is zero — the prefix name.
+                case 38:
+                    if (canonical.Length > 0 && canonical[0] is > 0 and <= 128)
+                        LowercaseNames(canonical, 1 + (128 - canonical[0] + 7) / 8, 1);
+                    break;
+
+            }
+
+            return canonical;
+
+        }
+
+        #endregion
+
+        #region (private static) LowercaseNames(RData, Offset, Count)
+
+        /// <summary>
+        /// Lowercase the letters A to Z in the labels of the given number of
+        /// consecutive uncompressed names, starting at the given offset.
+        /// </summary>
+        /// <remarks>
+        /// RDATA serialized for DNSSEC is uncompressed by item 1 of §6.2, so a
+        /// pointer here would be a malformed record; the walk stops at one rather
+        /// than reading past it, and stops at the end of the RDATA in any case.
+        /// </remarks>
+        private static void LowercaseNames(Byte[]  RData,
+                                           Int32   Offset,
+                                           Int32   Count)
+        {
+
+            var index = Offset;
+
+            for (var name = 0; name < Count; name++)
+            {
+
+                while (index < RData.Length)
+                {
+
+                    var length = RData[index];
+
+                    if (length == 0)
+                    {
+                        index++;
+                        break;
+                    }
+
+                    if ((length & 0xC0) != 0)
+                        return;
+
+                    var end = Math.Min(index + 1 + length, RData.Length);
+
+                    for (var i = index + 1; i < end; i++)
+                        if (RData[i] is >= (Byte) 'A' and <= (Byte) 'Z')
+                            RData[i] = (Byte) (RData[i] + ('a' - 'A'));
+
+                    index += 1 + length;
+
+                }
+
+            }
 
         }
 
