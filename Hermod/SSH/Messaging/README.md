@@ -31,7 +31,7 @@ byte[]  payload   length - 1 bytes
 |--------|---------|------------------|---------|
 | `0x01` | HELLO   | client → server  | JSON object, see below |
 | `0x02` | WELCOME | server → client  | JSON object, see below |
-| `0x03` | REFUSED | server → client  | JSON object `{"code": "...", "description": "..."}` |
+| `0x03` | REFUSED | server → client  | JSON object `{"code": "...", "description": "...", "retryAfter": 30}` |
 | `0x10` | TEXT    | both             | UTF-8 text |
 | `0x11` | BINARY  | both             | bytes |
 | `0x20` | PING    | both             | any bytes |
@@ -39,7 +39,7 @@ byte[]  payload   length - 1 bytes
 | `0x30` | CLOSE   | both             | `uint16` close code (big-endian), then a UTF-8 reason; may be empty |
 
 - A side checks a frame's length **before** it allocates anything for it.
-  - TEXT and BINARY may be as long as the receiver's limit (`maxMessageSize`). Hermod's default is 16 MiB.
+  - TEXT and BINARY may be as long as the receiver's limit (`maxMessageSize`). Hermod's default is 64 MiB, as for its WebSockets.
   - Every other kind may have at most 64 KiB of payload.
   - A longer frame ends the connection: CLOSE `1009` for TEXT and BINARY, `1002` otherwise.
 - TEXT that is not valid UTF-8 ends the connection with CLOSE `1007`.
@@ -54,7 +54,7 @@ byte[]  payload   length - 1 bytes
 2. The client sends **HELLO**:
 
    ```json
-   { "subprotocols": [ "ocpp2.1", "ocpp2.0.1" ], "maxMessageSize": 16777216, "...": "..." }
+   { "subprotocols": [ "ocpp2.1", "ocpp2.0.1" ], "maxMessageSize": 67108864, "...": "..." }
    ```
 
    - `subprotocols` is optional. It lists what the client speaks, by preference: at most 32
@@ -69,7 +69,7 @@ byte[]  payload   length - 1 bytes
    - **WELCOME**:
 
      ```json
-     { "subprotocol": "ocpp2.1", "maxMessageSize": 16777216, "...": "..." }
+     { "subprotocol": "ocpp2.1", "maxMessageSize": 67108864, "...": "..." }
      ```
 
      - `subprotocol` is the client's first choice that the server speaks. It is left out where the
@@ -78,9 +78,22 @@ byte[]  payload   length - 1 bytes
      - A client checks that the subprotocol chosen is one it offered.
    - **REFUSED**, with a code such as `unsupported-subprotocol`, `invalid-hello`, or one of the
      application's. The server closes the channel after it.
+     - A refusal is final: the client does not try again by itself.
+     - Except where it carries `retryAfter`, a whole number of seconds from 0 to 86400: the client may
+       try again once that time has passed, as after an HTTP `409` with `Retry-After`. Hermod's
+       client waits at least that long before its next attempt. The code
+       `connection-exists` says the client's identity has a connection this one may not take over.
 4. After WELCOME, both sides send TEXT, BINARY, PING and PONG in any order. Neither sends a message
    larger than the other side's `maxMessageSize`. A HELLO, WELCOME or REFUSED from then on is a
    protocol error.
+
+## Liveness
+
+- A side that sends PINGs every so often (Hermod: `PingEvery`, on the server and on the client) takes
+  the other side for dead once nothing at all has come from it for a number of those intervals
+  (`MaxOutstandingPings`, 3 by default): no message, no PONG, no frame. It then closes the channel
+  without a CLOSE, which a dead peer could not read, as Hermod's WebSockets do.
+- Every frame counts, not only a PONG: a PONG may have to wait behind a long message.
 
 ## The end
 

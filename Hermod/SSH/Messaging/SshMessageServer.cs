@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 
 using Newtonsoft.Json.Linq;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Messaging;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Server;
 
@@ -60,13 +61,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public IReadOnlyDictionary<String, Object?>?         CustomData       { get; }
 
-        private SshHelloVerdict(Boolean Accepted, String? RefusalCode, String? Description, JObject? WelcomeProperties, IReadOnlyDictionary<String, Object?>? CustomData)
+        /// <summary>
+        /// After how long the client may try again, where it is not served now but may be later.
+        /// </summary>
+        public TimeSpan?                                     RetryAfter       { get; }
+
+        private SshHelloVerdict(Boolean Accepted, String? RefusalCode, String? Description, JObject? WelcomeProperties, IReadOnlyDictionary<String, Object?>? CustomData, TimeSpan? RetryAfter = null)
         {
             this.Accepted           = Accepted;
             this.RefusalCode        = RefusalCode;
             this.Description        = Description;
             this.WelcomeProperties  = WelcomeProperties;
             this.CustomData         = CustomData;
+            this.RetryAfter         = RetryAfter;
         }
 
         /// <summary>
@@ -84,10 +91,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         /// <param name="Code">Why, as a code the client can act on.</param>
         /// <param name="Description">Why, in words.</param>
-        public static SshHelloVerdict Refuse(String   Code,
-                                             String?  Description   = null)
+        /// <param name="RetryAfter">After how long the client may try again, as "retryAfter" in whole
+        /// seconds; null for a refusal that is final.</param>
+        public static SshHelloVerdict Refuse(String     Code,
+                                             String?    Description   = null,
+                                             TimeSpan?  RetryAfter    = null)
 
-            => new (false, Code, Description, null, null);
+            => new (false, Code, Description, null, null, RetryAfter);
 
     }
 
@@ -139,6 +149,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Every how long a PING is sent on every connection; null for none.
         /// </summary>
         public TimeSpan?                     PingEvery          { get; init; }
+
+        /// <summary>
+        /// After how many <see cref="PingEvery"/> intervals without any frame from a client - a message, a
+        /// PONG or anything else - the client is taken for dead and its channel is closed, without a CLOSE
+        /// it could not read: 3 by default, as for a WebSocket; 0 never to give up on it.
+        /// </summary>
+        public UInt32                        MaxOutstandingPings { get; init; } = DefaultMaxOutstandingPings;
+
+        /// <summary>
+        /// The default of <see cref="MaxOutstandingPings"/>: 3.
+        /// </summary>
+        public const UInt32                  DefaultMaxOutstandingPings = 3;
 
     }
 
@@ -307,7 +329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             if (!verdict.Accepted)
             {
-                await RefuseAsync(channel, verdict.RefusalCode ?? "refused", verdict.Description).ConfigureAwait(false);
+                await RefuseAsync(channel, verdict.RefusalCode ?? "refused", verdict.Description, verdict.RetryAfter).ConfigureAwait(false);
                 return;
             }
 
@@ -357,7 +379,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 await RaiseNewConnection(connection, CancellationToken).ConfigureAwait(false);
 
                 var pinging = Options.PingEvery is TimeSpan every
-                                  ? PingAsync(connection, every)
+                                  ? PingAsync(connection, every, Options.MaxOutstandingPings)
                                   : Task.CompletedTask;
 
                 await connection.RunAsync(Context.Closed).ConfigureAwait(false);
@@ -387,11 +409,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         private static async Task RefuseAsync(SshMuxChannel  Channel,
                                               String         Code,
-                                              String?        Description)
+                                              String?        Description,
+                                              TimeSpan?      RetryAfter   = null)
         {
             try
             {
-                await Channel.SendDataAsync(SshMessageFraming.Encode(SshMessageFrameType.Refused, SshMessageRefusal.Encode(Code, Description))).ConfigureAwait(false);
+                await Channel.SendDataAsync(SshMessageFraming.Encode(SshMessageFrameType.Refused, SshMessageRefusal.Encode(Code, Description, RetryAfter))).ConfigureAwait(false);
             }
             catch
             { }
@@ -399,20 +422,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
-        #region (internal static) PingAsync(Connection, Every)
+        #region (internal static) PingAsync(Connection, Every, MaxOutstandingPings)
 
         /// <summary>
-        /// A PING every so often, until the connection ends - carrying when it was sent.
+        /// A PING every so often, until the connection ends - carrying when it was sent. A peer from which
+        /// nothing has come for <paramref name="MaxOutstandingPings"/> intervals - no message, no PONG, no
+        /// frame at all - is taken for dead, and the connection is ended without a CLOSE (see
+        /// <see cref="SshMessageConnection.AbortAsync"/>), as a WebSocket of Hermod ends one whose pongs
+        /// stay away. Every frame counts, not only a PONG: a PONG may wait behind a long message.
         /// </summary>
         internal static async Task PingAsync(SshMessageConnection  Connection,
-                                             TimeSpan              Every)
+                                             TimeSpan              Every,
+                                             UInt32                MaxOutstandingPings   = SshMessageServerOptions.DefaultMaxOutstandingPings)
         {
             try
             {
                 while (true)
                 {
+
                     await Task.Delay(Every, Connection.Ended).ConfigureAwait(false);
+
+                    var silence = Timestamp.Now - (Connection.LastReceivedTimestamp ?? Connection.ConnectedSince);
+
+                    if (MaxOutstandingPings > 0 && silence > TimeSpan.FromTicks(Every.Ticks * MaxOutstandingPings))
+                    {
+                        await Connection.AbortAsync($"Nothing came from the peer for {silence.TotalSeconds:0} s, {MaxOutstandingPings} PINGs of {Every.TotalSeconds:0.###} s.").ConfigureAwait(false);
+                        return;
+                    }
+
                     await Connection.SendPing(BitConverter.GetBytes(DateTimeOffset.UtcNow.UtcTicks), Connection.Ended).ConfigureAwait(false);
+
                 }
             }
             catch (OperationCanceledException)

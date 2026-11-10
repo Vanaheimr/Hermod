@@ -99,6 +99,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public TimeSpan?                                 PingEvery          { get; init; }
 
         /// <summary>
+        /// After how many <see cref="PingEvery"/> intervals without any frame from the server - a message,
+        /// a PONG or anything else - the server is taken for dead and the channel is closed, without a
+        /// CLOSE it could not read: 3 by default, as for a WebSocket; 0 never to give up on it.
+        /// </summary>
+        public UInt32                                    MaxOutstandingPings { get; init; } = SshMessageServerOptions.DefaultMaxOutstandingPings;
+
+        /// <summary>
         /// How the client connects again after a connection ended that it did not end itself - or failed
         /// to be made; null to stay disconnected.
         /// </summary>
@@ -290,8 +297,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                     if (frame.Type == SshMessageFrameType.Refused)
                     {
-                        var (code, description) = SshMessageRefusal.Decode(frame.Payload);
-                        throw new SshMessageRefusedException(code, description);
+                        var (code, description, retryAfter) = SshMessageRefusal.Decode(frame.Payload);
+                        throw new SshMessageRefusedException(code, description, retryAfter);
                     }
 
                     if (frame.Type != SshMessageFrameType.Welcome)
@@ -362,7 +369,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             await Task.Yield();
 
             var pinging = Options.PingEvery is TimeSpan every
-                              ? SshMessageServer.PingAsync(Connection, every)
+                              ? SshMessageServer.PingAsync(Connection, every, Options.MaxOutstandingPings)
                               : Task.CompletedTask;
 
             using (var gone = CancellationTokenSource.CreateLinkedTokenSource(stopping.Token))
@@ -392,12 +399,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             await Ssh.DisposeAsync().ConfigureAwait(false);
 
+            // A server that refused with a "retryAfter" is not asked again before then.
+            TimeSpan? retryAfter = null;
+
             for (var attempt = 1u; Volatile.Read(ref stopped) == 0; attempt++)
             {
 
                 try
                 {
-                    await Task.Delay(policy.DelayForAttempt(attempt), stopping.Token).ConfigureAwait(false);
+                    await Task.Delay(Later(policy.DelayForAttempt(attempt), retryAfter), stopping.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -417,9 +427,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 catch (Exception exception)
                 {
 
+                    retryAfter = (exception as SshMessageRefusedException)?.RetryAfter;
+
                     var last = policy.MaxAttempts is UInt32 max && attempt >= max;
 
-                    await RaiseConnectFailed(exception, attempt, last ? null : policy.DelayForAttempt(attempt + 1)).ConfigureAwait(false);
+                    await RaiseConnectFailed(exception, attempt, last ? null : Later(policy.DelayForAttempt(attempt + 1), retryAfter)).ConfigureAwait(false);
 
                     if (last)
                         return;
@@ -429,6 +441,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
 
         }
+
+        #endregion
+
+        #region (private static) Later(Delay, RetryAfter)
+
+        private static TimeSpan Later(TimeSpan   Delay,
+                                      TimeSpan?  RetryAfter)
+
+            => RetryAfter is TimeSpan after && after > Delay
+                   ? after
+                   : Delay;
 
         #endregion
 
