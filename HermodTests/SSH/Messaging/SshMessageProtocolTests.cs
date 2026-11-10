@@ -61,7 +61,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         private async Task<Running> StartAsync(CancellationToken                                  CancellationToken,
                                                Func<SshMessageServerOptions, SshMessageServerOptions>?  Configure  = null,
-                                               SshHelloValidator?                                  Validate   = null)
+                                               SshHelloValidator?                                  Validate   = null,
+                                               (String Name, SshSubsystemHandler Handler)?         Further    = null)
         {
 
             var messages = new SshMessageServer((Configure ?? (o => o))(new SshMessageServerOptions {
@@ -77,7 +78,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                                HostKeys       = [ hostKey ],
                                Authenticator  = SshUserAuthenticator.ForAuthorizedKeys(stationKey.PublicKeyBlob),
                                AuditSink      = audit,
-                               Subsystems     = (session, name, ct) => ValueTask.FromResult(name == OCPP ? messages.Handler : null)
+                               Subsystems     = (session, name, ct) => ValueTask.FromResult(name == OCPP
+                                                                                            ? messages.Handler
+                                                                                            : Further is { } further && name == further.Name
+                                                                                                  ? further.Handler
+                                                                                                  : null)
                            });
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
@@ -555,6 +560,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(atClient, Is.EqualTo(new SshMessageCloseInfo(MessageCloseCode.PolicyViolation, "the station is decommissioned", ByPeer: false)));
                 Assert.That(connection.IsAlive,                 Is.False);
                 Assert.That(running.Messages.Connections,       Is.Empty);
+            });
+
+        }
+
+        #endregion
+
+        #region TheSshConnection_CarriesAFurtherChannel_AndStaysTheClients
+
+        /// <summary>
+        /// The SSH connection of the messages is handed out while they go over it: another subsystem of the
+        /// same server is opened on it as a further channel - NTS-KE beside OCPP, section 8.3 of the white
+        /// paper "NTS Key Establishment over SSH" - and that channel ending leaves the messages going. It is
+        /// handed out no more once they end.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task TheSshConnection_CarriesAFurtherChannel_AndStaysTheClients(CancellationToken CancellationToken)
+        {
+
+            const String Time = "time@test";
+
+            await using var running = await StartAsync(CancellationToken,
+                                                       Further: (Time, async (context, ct) => await context.Channel.SendDataAsync("tick"u8.ToArray(), ct)));
+            await using var client  = Client(running);
+
+            var serverGotText = new TaskCompletionSource<String>(TaskCreationOptions.RunContinuationsAsynchronously);
+            running.Messages.OnTextMessageReceived += (timestamp, sender, connection, text, ct) => { serverGotText.TrySetResult(text); return Task.CompletedTask; };
+
+            var before     = client.Ssh;
+            var connection = await client.ConnectAsync(CancellationToken);
+            var ssh        = client.Ssh;
+
+            Assert.That(ssh, Is.Not.Null, "No SSH connection while the messages go over one.");
+
+            var channel    = await ssh!.OpenSubsystemAsync(Time, CancellationToken);
+            using var read = new MemoryStream();
+            await channel.Input.CopyToAsync(read, CancellationToken);
+
+            Assert.That(await connection.SendTextMessage("[2,\"19223203\",\"Heartbeat\",{}]"), Is.EqualTo(SentStatus.Success));
+
+            var text       = await Within(serverGotText.Task, "The server's receipt after the further channel ended");
+
+            await connection.Close(MessageCloseCode.NormalClosure);
+
+            Assert.Multiple(() => {
+                Assert.That(before,                              Is.Null, "An SSH connection before any was made.");
+                Assert.That(Encoding.UTF8.GetString(read.ToArray()), Is.EqualTo("tick"));
+                Assert.That(text,                                Does.Contain("Heartbeat"));
+                Assert.That(ssh.ServerHostKey,                   Is.EqualTo(hostKey.PublicKeyBlob), "Not the connection the messages went over.");
+                Assert.That(client.Ssh,                          Is.Null, "An SSH connection handed out after the messages ended.");
             });
 
         }

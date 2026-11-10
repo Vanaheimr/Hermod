@@ -143,6 +143,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public Boolean                  IsConnected   => connection?.IsAlive == true;
 
+        /// <summary>
+        /// The SSH connection the messages go over, while they do - for a further channel on it, such as
+        /// another subsystem of the same server: the key exchange of NTS, as section 8.3 of the white paper
+        /// "NTS Key Establishment over SSH" has it, with the login, the host key and the exporter of this
+        /// connection. Null where there is no connection that lasts.
+        /// </summary>
+        /// <remarks>
+        /// It stays this client's. Whoever opens a channel on it closes that channel, never the connection:
+        /// it ends with the messages, and the next connection a reconnect makes is a connection of its own.
+        /// </remarks>
+        public SshClient?               Ssh
+            => connection?.IsAlive == true && sshClient is SshClient ssh && !ssh.Closed.IsCompleted
+                   ? ssh
+                   : null;
+
         #endregion
 
         #region Events
