@@ -20,6 +20,7 @@
 using org.GraphDefined.Vanaheimr.Illias;
 
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 #endregion
@@ -686,10 +687,256 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region (internal static) TryReadUncompressedName(RData, ref Offset, out Name)
 
+        /// <summary>
+        /// Read one domain name out of RDATA that holds it uncompressed, and move
+        /// the offset past it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// For the record types whose own specification forbids compressing their
+        /// names — KX (RFC 2230 §3.1), HIP (RFC 8005 §5.6), LP (RFC 6742 §2.4.1.2) —
+        /// and for every type after RFC 1035 (RFC 3597 §4). Their RDATA is read as a
+        /// block of RDLENGTH octets, so a compression pointer in it points into a
+        /// message this reader cannot see, and following it would read whatever
+        /// lies at that offset of the RDATA instead. A pointer is therefore not a
+        /// pointer here but the end of a well-formed name, and the read fails. BIND
+        /// refuses the same RDATA for the same reason, "disallowed".
+        /// </para>
+        /// <para>
+        /// So does a label that runs past the RDATA and a name with no root label
+        /// before the RDATA ends: either way there is no name to read, and a guess
+        /// would move the boundary to whatever follows it.
+        /// </para>
+        /// </remarks>
+        /// <param name="RData">The RDATA of one record.</param>
+        /// <param name="Offset">Where the name begins; on success, where it ends.</param>
+        /// <param name="Name">The name read.</param>
+        internal static Boolean TryReadUncompressedName(Byte[]                                RData,
+                                                        ref Int32                             Offset,
+                                                        [NotNullWhen(true)] out DomainName?   Name)
+        {
 
+            Name       = null;
 
+            var start  = Offset;
+            var index  = Offset;
 
+            while (true)
+            {
+
+                if (index >= RData.Length)
+                    return false;
+
+                var length = RData[index];
+
+                // 11 is a pointer, 01 and 10 are the reserved label types of
+                // RFC 1035 §4.1.4 and RFC 6891 §5: none of them is a length.
+                if ((length & 0xC0) != 0)
+                    return false;
+
+                index++;
+
+                if (length == 0)
+                    break;
+
+                if (index + length > RData.Length)
+                    return false;
+
+                index += length;
+
+            }
+
+            // RFC 1035 §2.3.4: "255 octets or less", counted on the wire.
+            if (index - start > 255)
+                return false;
+
+            try
+            {
+
+                using var stream = new MemoryStream(RData, start, index - start);
+
+                Name = DomainName.FromWire(ExtractName(stream));
+
+            }
+            catch
+            {
+                return false;
+            }
+
+            Offset = index;
+            return true;
+
+        }
+
+        #endregion
+
+        #region (static) TryParseLocator64(Text, out Value)
+
+        /// <summary>
+        /// Parse the presentation form of a 64-bit ILNP value, a NID's NodeID or an
+        /// L64's Locator64 (RFC 6742 §2.1.2, §2.3.2).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Both sections say the same three things: the value is written "using
+        /// the same syntax ... used for AAAA records", as "groups of 4 hexadecimal
+        /// digits separated by colons", and the "'compressed' display format
+        /// (e.g., using "::") ... MUST NOT be used" — "to avoid confusion with a
+        /// 128-bit IPv6 address".
+        /// </para>
+        /// <para>
+        /// So exactly four groups and no "::". A group is one to four hexadecimal
+        /// digits in either case, which is what the AAAA syntax allows a group to
+        /// be and what BIND reads: "14:4fff:ff20:ee64" and "0014:4FFF:FF20:EE64"
+        /// are the same value, while a fifth digit, a fifth group, a missing group
+        /// and an empty one are all refused.
+        /// </para>
+        /// </remarks>
+        /// <param name="Text">The text form.</param>
+        /// <param name="Value">The 64-bit value.</param>
+        public static Boolean TryParseLocator64(String      Text,
+                                                out UInt64  Value)
+        {
+
+            Value = 0;
+
+            var groups = Text.Split(':');
+
+            if (groups.Length != 4)
+                return false;
+
+            foreach (var group in groups)
+            {
+
+                if (group.Length is < 1 or > 4)
+                    return false;
+
+                UInt16 groupValue = 0;
+
+                foreach (var character in group)
+                {
+
+                    var digit = character switch {
+                                    >= '0' and <= '9' => character - '0',
+                                    >= 'a' and <= 'f' => character - 'a' + 10,
+                                    >= 'A' and <= 'F' => character - 'A' + 10,
+                                    _                 => -1
+                                };
+
+                    if (digit < 0)
+                        return false;
+
+                    groupValue = (UInt16) ((groupValue << 4) | digit);
+
+                }
+
+                Value = (Value << 16) | groupValue;
+
+            }
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region (static) ToLocator64Text(Value)
+
+        /// <summary>
+        /// The presentation form of a 64-bit ILNP value: four colon-separated
+        /// groups, never compressed (RFC 6742 §2.1.2, §2.3.2).
+        /// </summary>
+        /// <remarks>
+        /// Each group is written the way RFC 5952 §4.1 and §4.3 write an AAAA
+        /// group — lowercase, its leading zeros suppressed — which is what the RFC
+        /// asks for by naming the AAAA syntax, and what BIND writes:
+        /// "0014:4fff:ff20:ee64" comes out of named-checkzone as
+        /// "14:4fff:ff20:ee64". The one AAAA rule that does not carry over is
+        /// RFC 5952 §4.2's "::", which §2.1.2 forbids outright.
+        /// </remarks>
+        /// <param name="Value">The 64-bit value.</param>
+        public static String ToLocator64Text(UInt64 Value)
+
+            => String.Join(':',
+                           Enumerable.Range(0, 4).
+                                      Select(group => ((UInt16) (Value >> (48 - 16 * group))).ToString("x")));
+
+        #endregion
+
+        #region (static) TryParseDottedQuad(Text, out Octets)
+
+        /// <summary>
+        /// Parse an IPv4 address in the strict dotted-quad form: four decimal
+        /// numbers from 0 to 255, separated by periods, none with a leading zero.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// RFC 6742 §2.2.2 writes an L32's Locator32 "using the same syntax used
+        /// for existing DNS A records (i.e., 4 decimal numbers separated by
+        /// periods without any embedded spaces)". Its own examples in §2.2.3 then
+        /// wrote "10.1.02.0", and Erratum 3413 (verified) corrected them to
+        /// "10.1.2.0" — a leading zero is where a reader that follows inet_aton
+        /// takes the number for octal, so "010" would be eight to one reader and
+        /// ten to another. BIND refuses it as a "bad dotted quad".
+        /// </para>
+        /// <para>
+        /// Kept apart from the IPv4 address parser, which serves more than zone
+        /// files and is not the place to decide this for every caller.
+        /// </para>
+        /// </remarks>
+        /// <param name="Text">The text form.</param>
+        /// <param name="Octets">The four octets.</param>
+        public static Boolean TryParseDottedQuad(String                            Text,
+                                                 [NotNullWhen(true)] out Byte[]?   Octets)
+        {
+
+            Octets = null;
+
+            var parts = Text.Split('.');
+
+            if (parts.Length != 4)
+                return false;
+
+            var octets = new Byte[4];
+
+            for (var i = 0; i < 4; i++)
+            {
+
+                var part = parts[i];
+
+                if (part.Length is < 1 or > 3)
+                    return false;
+
+                if (part.Length > 1 && part[0] == '0')
+                    return false;
+
+                var value = 0;
+
+                foreach (var character in part)
+                {
+
+                    if (character is < '0' or > '9')
+                        return false;
+
+                    value = value * 10 + (character - '0');
+
+                }
+
+                if (value > 255)
+                    return false;
+
+                octets[i] = (Byte) value;
+
+            }
+
+            Octets = octets;
+            return true;
+
+        }
+
+        #endregion
 
     }
 

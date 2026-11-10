@@ -380,6 +380,18 @@ silently swallowed.
 | CAA      | RFC 8659  | Certification authority authorization          |
 | EUI48    | RFC 7043  | 48-bit MAC address                             |
 | EUI64    | RFC 7043  | 64-bit MAC address                             |
+| KX       | RFC 2230  | Key exchanger, never compressed                |
+| HIP      | RFC 8005  | Host Identity Protocol: HIT, key, rendezvous   |
+| NID      | RFC 6742  | ILNP node identifier                           |
+| L32      | RFC 6742  | ILNPv4 locator                                 |
+| L64      | RFC 6742  | ILNPv6 locator                                 |
+| LP       | RFC 6742  | ILNP locator pointer                           |
+
+KX, HIP and LP read their names out of the RDATA alone and never follow a
+compression pointer there, which their RFCs forbid. RDATA that is not the
+type it claims — a NID of nine octets, a HIP whose key runs past the end —
+is kept as the octets that arrived (`UnparsedRData`), written back
+unchanged and shown in RFC 3597 §5's generic form.
 
 ### DNSSEC Records
 

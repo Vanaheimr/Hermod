@@ -148,6 +148,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         NAPTR        = 35,
 
         /// <summary>
+        /// Key Exchanger record (RFC 2230), which names the host that will do the
+        /// IPsec key exchange for the owner.
+        /// </summary>
+        KX           = 36,
+
+        /// <summary>
         /// Certificate record (RFC 4398), which stores certificates (PKIX, SPKI, PGP, etc.) in DNS.
         /// </summary>
         CERT         = 37,
@@ -224,6 +230,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         SMIMEA       = 53,
 
         /// <summary>
+        /// Host Identity Protocol record (RFC 8005), which carries a host's HIT,
+        /// its Host Identity and the rendezvous servers it can be reached through.
+        /// </summary>
+        HIP          = 55,
+
+        /// <summary>
         /// Child DS record (RFC 7344), used for automated DNSSEC key rotation between child and parent zone.
         /// </summary>
         CDS          = 59,
@@ -262,6 +274,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Sender Policy Framework record (RFC 7208), which specifies the mail servers allowed to send email for a domain.
         /// </summary>
         SPF          = 99,
+
+        /// <summary>
+        /// Node Identifier record (RFC 6742), the 64-bit node identifier of an
+        /// ILNP-capable host.
+        /// </summary>
+        NID          = 104,
+
+        /// <summary>
+        /// 32-bit Locator record (RFC 6742), an ILNPv4 locator.
+        /// </summary>
+        L32          = 105,
+
+        /// <summary>
+        /// 64-bit Locator record (RFC 6742), an ILNPv6 locator.
+        /// </summary>
+        L64          = 106,
+
+        /// <summary>
+        /// Locator Pointer record (RFC 6742), the name of a subnetwork whose L32
+        /// and L64 records hold the locators.
+        /// </summary>
+        LP           = 107,
 
         /// <summary>
         /// EUI-48 address record (RFC 7043), stores a 48-bit MAC address.
