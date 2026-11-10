@@ -58,6 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly String[]?               keyExchanges;
         private readonly String[]?               hostKeyAlgorithms;
         private readonly String[]                serverSignatureAlgorithms;
+        private readonly Boolean                 requireStrictKex;
 
         private readonly Dictionary<String, String>  peerExtensions = [];
 
@@ -275,9 +276,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                              String[]?               Macs,
                              String[]?               KeyExchanges,
                              String[]?               HostKeyAlgorithms,
-                             String[]?               ServerSignatureAlgorithms)
+                             String[]?               ServerSignatureAlgorithms,
+                             Boolean                 RequireStrictKex)
         {
 
+            this.requireStrictKex           = RequireStrictKex;
             this.pipe                       = Pipe;
             this.isServer                   = IsServer;
             this.vC                         = V_C;
@@ -306,6 +309,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Connect as the client: version exchange, then the initial key exchange, returning an
         /// established transport ready for encrypted traffic and later rekeys.
         /// </summary>
+        /// <param name="RequireStrictKex">End the connection with an <see cref="SshStrictKexRequiredException"/>
+        /// where the server does not signal strict KEX.</param>
         public static async ValueTask<SshTransport> ClientHandshakeAsync(IDuplexPipe               Pipe,
                                                                          SshIdentificationString?  LocalIdentification  = null,
                                                                          Func<Byte[], Boolean>?    VerifyHostKey        = null,
@@ -313,6 +318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                                          String[]?                 Macs                 = null,
                                                                          String[]?                 KeyExchanges         = null,
                                                                          String[]?                 HostKeyAlgorithms    = null,
+                                                                         Boolean                   RequireStrictKex     = false,
                                                                          CancellationToken         CancellationToken    = default)
         {
 
@@ -322,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             var transport = new SshTransport(Pipe, IsServer: false, localId.ToWireBytes(), remote.WireBytes,
                                              HostKeys: null, VerifyHostKey, Ciphers, Macs, KeyExchanges, HostKeyAlgorithms,
-                                             ServerSignatureAlgorithms: null) {
+                                             ServerSignatureAlgorithms: null, RequireStrictKex) {
                                  PeerIdentification = remote.Identification
                              };
 
@@ -348,10 +354,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                                    String[]?                 KeyExchanges               = null,
                                                                    String[]?                 ServerSignatureAlgorithms  = null,
                                                                    Int32?                    MaxPacketLength            = null,
+                                                                   Boolean                   RequireStrictKex           = false,
                                                                    CancellationToken         CancellationToken          = default)
 
             => ServerHandshakeAsync(Pipe, [ HostKey ], LocalIdentification, Ciphers, Macs, KeyExchanges,
-                                    ServerSignatureAlgorithms, MaxPacketLength, CancellationToken);
+                                    ServerSignatureAlgorithms, MaxPacketLength, RequireStrictKex, CancellationToken);
 
         #endregion
 
@@ -362,6 +369,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// the client picks decides the key that signs - the first that can, so for two keys of the same
         /// kind the earlier one. That key then stays the host key for the life of the connection.
         /// </summary>
+        /// <param name="RequireStrictKex">End the connection with an <see cref="SshStrictKexRequiredException"/>
+        /// where the client does not signal strict KEX.</param>
         public static async ValueTask<SshTransport> ServerHandshakeAsync(IDuplexPipe                 Pipe,
                                                                          IReadOnlyList<ISshHostKey>  HostKeys,
                                                                          SshIdentificationString?    LocalIdentification        = null,
@@ -370,6 +379,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                                          String[]?                   KeyExchanges               = null,
                                                                          String[]?                   ServerSignatureAlgorithms  = null,
                                                                          Int32?                      MaxPacketLength            = null,
+                                                                         Boolean                     RequireStrictKex           = false,
                                                                          CancellationToken           CancellationToken          = default)
         {
 
@@ -382,7 +392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             var transport = new SshTransport(Pipe, IsServer: true, remote.WireBytes, localId.ToWireBytes(),
                                              HostKeys, VerifyHostKey: null, Ciphers, Macs, KeyExchanges, HostKeyAlgorithms: null,
-                                             ServerSignatureAlgorithms) {
+                                             ServerSignatureAlgorithms, RequireStrictKex) {
                                  PeerIdentification      = remote.Identification,
                                  MaxInboundPacketLength  = MaxPacketLength ?? SshPacketFraming.MaxPacketLength
                              };
@@ -987,6 +997,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             var negotiated = AlgorithmNegotiation.Negotiate(clientInit, serverInit, WeAreServer: isServer);
             SshKexCore.EnsureSupported(negotiated);
+
+            // A side that requires strict KEX ends a connection whose peer did not signal it in its first
+            // KEXINIT, before anything is authenticated over it - Terrapin truncates exactly that start.
+            if (IsInitial && requireStrictKex && !negotiated.StrictKex)
+                throw new SshStrictKexRequiredException(isServer);
 
             // Strict KEX is agreed by the first exchange and holds for the connection. OpenSSH's PROTOCOL
             // calls its marker "only valid in the initial SSH2_MSG_KEXINIT", to be ignored after, and

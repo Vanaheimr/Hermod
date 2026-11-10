@@ -195,6 +195,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         public Boolean                              AdvertiseHostKeys { get; init; } = true;
 
         /// <summary>
+        /// Refuse a client that does not signal strict KEX (<c>kex-strict-c-v00@openssh.com</c>), the
+        /// protection against Terrapin (CVE-2023-48795): its connection ends after the first key exchange,
+        /// before it may authenticate, and the audit sink hears of it. Off by default, so that a client
+        /// older than OpenSSH 9.6 can still sign in; strict KEX is used whenever the client signals it
+        /// either way.
+        /// </summary>
+        public Boolean                              RequireStrictKex  { get; init; }
+
+        /// <summary>
         /// The limits this server enforces: <see cref="SshServerLimits.MaxAuthTries"/>,
         /// <see cref="SshServerLimits.LoginGraceTime"/>, <see cref="SshServerLimits.MaxSessions"/>,
         /// <see cref="SshServerLimits.MaxConnections"/>, <see cref="SshServerLimits.MaxUnauthenticated"/>,
@@ -525,6 +534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                         transport = await SshTransport.ServerHandshakeAsync(Pipe,
                                                                             options.HostKeys,
                                                                             MaxPacketLength:    options.Limits.MaxPacketSize,
+                                                                            RequireStrictKex:   options.RequireStrictKex,
                                                                             CancellationToken:  grace.Token).ConfigureAwait(false);
 
                         if (transport.PeerIdentification is SshIdentificationString client)

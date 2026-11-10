@@ -109,6 +109,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         public TimeSpan?                          ConnectTimeout     { get; init; }
 
         /// <summary>
+        /// Refuse a server that does not signal strict KEX (<c>kex-strict-s-v00@openssh.com</c>), the
+        /// protection against Terrapin (CVE-2023-48795): connecting then fails with an
+        /// <see cref="SshStrictKexRequiredException"/> after the first key exchange, before anything is
+        /// authenticated. Off by default, so that a server older than OpenSSH 9.6 can still be reached;
+        /// strict KEX is used whenever the server signals it either way.
+        /// </summary>
+        public Boolean                            RequireStrictKex   { get; init; }
+
+        /// <summary>
         /// Ask the server whether it is still there, every interval - <c>keepalive@openssh.com</c>, as
         /// OpenSSH's <c>ServerAliveInterval</c> - or null (the default) never to ask. Without it, a server
         /// that died, or a network that dropped the connection without a word, is noticed only when TCP
@@ -326,7 +335,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                     pipe      = Through is null
                                     ? await SshTcp.ConnectAsync(host, IPPort.Parse(port), Options.DNSClient, connecting.Token).ConfigureAwait(false)
                                     : DuplexPipe.FromStream(await Through.OpenTcpStreamAsync(host, port, connecting.Token).ConfigureAwait(false));
-                    transport = await SshTransport.ClientHandshakeAsync(pipe, VerifyHostKey: Options.VerifyHostKey, CancellationToken: connecting.Token).ConfigureAwait(false);
+                    transport = await SshTransport.ClientHandshakeAsync(pipe,
+                                                                        VerifyHostKey:     Options.VerifyHostKey,
+                                                                        RequireStrictKex:  Options.RequireStrictKex,
+                                                                        CancellationToken: connecting.Token).ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {

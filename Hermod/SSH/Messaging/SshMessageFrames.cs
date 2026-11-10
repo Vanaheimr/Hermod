@@ -115,22 +115,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <summary>
     /// The server refused this client: it answered HELLO with REFUSED.
     /// </summary>
-    public sealed class SshMessageRefusedException(String   Code,
-                                                   String?  Description)
+    public sealed class SshMessageRefusedException(String     Code,
+                                                   String?    Description,
+                                                   TimeSpan?  RetryAfter   = null)
 
-        : Exception($"The server refused the connection: {Code}{(Description is null ? "" : $" ({Description})")}.")
+        : Exception($"The server refused the connection: {Code}{(Description is null ? "" : $" ({Description})")}{(RetryAfter is TimeSpan after ? $", try again in {after.TotalSeconds:0} s" : "")}.")
 
     {
 
         /// <summary>
         /// Why, as the server's code says it: "unsupported-subprotocol", "invalid-hello", or the application's own.
         /// </summary>
-        public String   Code         { get; } = Code;
+        public String     Code         { get; } = Code;
 
         /// <summary>
         /// Why, in words, where the server gave any.
         /// </summary>
-        public String?  Description  { get; } = Description;
+        public String?    Description  { get; } = Description;
+
+        /// <summary>
+        /// After how long the server would take the client again, where it said: a refusal that is not
+        /// final, such as <see cref="SshMessageRefusal.ConnectionExists"/>.
+        /// </summary>
+        public TimeSpan?  RetryAfter   { get; } = RetryAfter;
 
     }
 
@@ -156,9 +163,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public const Int32   MaxControlPayload      = 64 * 1024;
 
         /// <summary>
-        /// The largest message a side takes unless told otherwise: 16 MiB.
+        /// The largest message a side takes unless told otherwise: 64 MiB, as a WebSocket of Hermod takes
+        /// (<see cref="WebSocket.WebSocketFrame.DefaultMaxPayloadSize"/>), so that a message that can go one
+        /// way can go the other.
         /// </summary>
-        public const UInt64  DefaultMaxMessageSize  = 16 * 1024 * 1024;
+        public const UInt64  DefaultMaxMessageSize  = 64 * 1024 * 1024;
 
         /// <summary>
         /// The largest message a side can be told to take: what one array holds.
@@ -578,10 +587,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public const String HelloExpected           = "hello-expected";
 
         /// <summary>
+        /// The client's identity has a live connection this one may not take over; it may try again after
+        /// the refusal's "retryAfter" - the analogue of an HTTP 409 with Retry-After.
+        /// </summary>
+        public const String ConnectionExists        = "connection-exists";
+
+        /// <summary>
+        /// The longest wait a REFUSED may ask for: a day.
+        /// </summary>
+        public static readonly TimeSpan MaxRetryAfter = TimeSpan.FromDays(1);
+
+        /// <summary>
         /// The payload of a REFUSED frame.
         /// </summary>
-        public static Byte[] Encode(String   Code,
-                                    String?  Description)
+        /// <param name="Code">Why, as a code the client can act on.</param>
+        /// <param name="Description">Why, in words.</param>
+        /// <param name="RetryAfter">After how long the client may try again, in whole seconds; null for a
+        /// refusal that is final.</param>
+        public static Byte[] Encode(String     Code,
+                                    String?    Description,
+                                    TimeSpan?  RetryAfter   = null)
         {
 
             var json = new JObject { ["code"] = Code };
@@ -589,20 +614,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (Description is not null)
                 json["description"] = Description;
 
+            if (RetryAfter is TimeSpan after)
+                json["retryAfter"]  = (UInt64) Math.Ceiling(Math.Clamp(after.TotalSeconds, 0, MaxRetryAfter.TotalSeconds));
+
             return SshMessageFraming.ToBytes(json);
 
         }
 
         /// <summary>
-        /// The code and description of a REFUSED frame.
+        /// The code, description and wait of a REFUSED frame. A "retryAfter" that is not a whole number of
+        /// seconds from 0 to a day is read as none, and the refusal then counts as final.
         /// </summary>
-        public static (String Code, String? Description) Decode(Byte[] Payload)
+        public static (String Code, String? Description, TimeSpan? RetryAfter) Decode(Byte[] Payload)
         {
 
-            var json = SshMessageFraming.ParseJSON(Payload, "REFUSED");
+            var json        = SshMessageFraming.ParseJSON(Payload, "REFUSED");
+            var retryAfter  = json["retryAfter"] is JValue { Type: JTokenType.Integer } seconds &&
+                              seconds.Value<Int64>() is var value && value >= 0 && value <= (Int64) MaxRetryAfter.TotalSeconds
+                                  ? TimeSpan.FromSeconds(value)
+                                  : (TimeSpan?) null;
 
             return (json["code"]?.Type        == JTokenType.String ? json["code"]!.Value<String>()!       : "refused",
-                    json["description"]?.Type == JTokenType.String ? json["description"]!.Value<String>() : null);
+                    json["description"]?.Type == JTokenType.String ? json["description"]!.Value<String>() : null,
+                    retryAfter);
 
         }
 

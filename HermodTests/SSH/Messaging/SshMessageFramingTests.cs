@@ -245,7 +245,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(welcome.JSON["networkingNodeId"]?.Value<String>(),     Is.EqualTo("cs001"));
                 Assert.That(none.Subprotocol,                                      Is.Null);
                 Assert.That(none.MaxMessageSize,                                   Is.Null);
-                Assert.That(refusal,                                               Is.EqualTo(("unknown-station", (String?) "Who are you?")));
+                Assert.That(refusal,                                               Is.EqualTo(("unknown-station", (String?) "Who are you?", (TimeSpan?) null)));
+            });
+
+        }
+
+        #endregion
+
+        #region Refusal_RetryAfter_RoundTrip_AndOnlyWholeSecondsUpToADay
+
+        [Test]
+        public void Refusal_RetryAfter_RoundTrip_AndOnlyWholeSecondsUpToADay()
+        {
+
+            static TimeSpan? RetryAfterOf(String JSON)
+                => SshMessageRefusal.Decode(Encoding.UTF8.GetBytes(JSON)).RetryAfter;
+
+            var exists = SshMessageRefusal.Decode(SshMessageRefusal.Encode(SshMessageRefusal.ConnectionExists, null, TimeSpan.FromSeconds(29.2)));
+
+            Assert.Multiple(() => {
+                Assert.That(exists.Code,                                                                     Is.EqualTo("connection-exists"));
+                Assert.That(exists.RetryAfter,                                                               Is.EqualTo(TimeSpan.FromSeconds(30)), "a fraction is rounded up, never down");
+                Assert.That(Encoding.UTF8.GetString(SshMessageRefusal.Encode("x", null, TimeSpan.FromDays(9))), Does.Contain("\"retryAfter\":86400"), "a wait over a day is a day");
+                Assert.That(RetryAfterOf("""{"code":"x","retryAfter":0}"""),                                 Is.EqualTo(TimeSpan.Zero));
+                Assert.That(RetryAfterOf("""{"code":"x","retryAfter":86400}"""),                             Is.EqualTo(TimeSpan.FromDays(1)));
+                Assert.That(RetryAfterOf("""{"code":"x","retryAfter":86401}"""),                             Is.Null, "longer than a day");
+                Assert.That(RetryAfterOf("""{"code":"x","retryAfter":-1}"""),                                Is.Null, "negative");
+                Assert.That(RetryAfterOf("""{"code":"x","retryAfter":1.5}"""),                               Is.Null, "not whole seconds");
+                Assert.That(RetryAfterOf("""{"code":"x","retryAfter":"30"}"""),                              Is.Null, "a string");
+                Assert.That(RetryAfterOf("""{"code":"x"}"""),                                                Is.Null, "none at all: final");
             });
 
         }

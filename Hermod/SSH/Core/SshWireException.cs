@@ -81,4 +81,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     }
 
+
+    /// <summary>
+    /// The peer did not signal strict KEX in its first KEXINIT, and this side requires it.
+    /// </summary>
+    /// <remarks>
+    /// Strict KEX (<c>kex-strict-c-v00@openssh.com</c>, <c>kex-strict-s-v00@openssh.com</c>) is what
+    /// stops the prefix truncation attack Terrapin (CVE-2023-48795) on <c>chacha20-poly1305@openssh.com</c>
+    /// and on CBC with Encrypt-then-MAC. A side that requires it ends the connection after the first
+    /// key exchange, before anything is authenticated over it. A wire exception still, so that what
+    /// catches those goes on catching this; its own type, so that a caller can say what went wrong
+    /// rather than "the handshake failed".
+    /// </remarks>
+    public sealed class SshStrictKexRequiredException : SshWireException
+    {
+
+        /// <summary>
+        /// Whether this side is the server, so the peer that did not signal strict KEX is a client.
+        /// </summary>
+        public Boolean  WeAreServer  { get; }
+
+        /// <summary>
+        /// Create a new exception for a peer that did not signal strict KEX.
+        /// </summary>
+        /// <param name="WeAreServer">Whether this side is the server.</param>
+        public SshStrictKexRequiredException(Boolean WeAreServer)
+
+            : base($"The {(WeAreServer ? "client" : "server")} does not signal strict KEX, which this side requires against Terrapin (CVE-2023-48795).")
+
+        {
+            this.WeAreServer = WeAreServer;
+        }
+
+    }
+
 }

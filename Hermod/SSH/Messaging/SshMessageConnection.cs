@@ -547,6 +547,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
+        #region AbortAsync       (Reason = null)
+
+        /// <summary>
+        /// End the connection without a CLOSE frame: the channel is closed at once. For a peer that is
+        /// taken for dead - it would not read a CLOSE, and one waiting in a full window would hold this side
+        /// up. The connection ends with <see cref="CloseInfo"/> carrying no code, the reason given, and
+        /// "not by the peer"; the peer, should it be alive after all, finds its channel closed without a
+        /// CLOSE, as RFC 6455's 1006 would say.
+        /// </summary>
+        /// <param name="Reason">Why, for this side's own record.</param>
+        public async Task AbortAsync(String? Reason = null)
+        {
+
+            if (Volatile.Read(ref ended) != 0)
+                return;
+
+            closeInfo ??= new SshMessageCloseInfo(null, Reason ?? "The connection was ended without a CLOSE.", ByPeer: false);
+
+            await EndAsync().ConfigureAwait(false);
+
+        }
+
+        #endregion
+
 
         #region (internal) RunAsync(Stopped)
 

@@ -846,6 +846,245 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+
+        #region RoutedBySubprotocol_HandsEachClientToTheServerOfItsVersion
+
+        /// <summary>
+        /// One handler in front of two servers of one subsystem - OCPP 2.x and OCPP 1.6, as two nodes of a
+        /// charging station: each client is welcomed by the server that speaks its first choice, and one
+        /// that offers neither is refused with what both speak.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task RoutedBySubprotocol_HandsEachClientToTheServerOfItsVersion(CancellationToken CancellationToken)
+        {
+
+            var twoX     = new SshMessageServer(new SshMessageServerOptions { Subsystem = OCPP, Subprotocols = [ "ocpp2.1", "ocpp2.0.1" ] });
+            var oneSix   = new SshMessageServer(new SshMessageServerOptions { Subsystem = OCPP, Subprotocols = [ "ocpp1.6" ] });
+            var routed   = SshMessageServer.RoutedBySubprotocol(twoX, oneSix);
+
+            await using var server = new SshServer(new SshServerOptions {
+                                         HostKeys       = [ hostKey ],
+                                         Authenticator  = SshUserAuthenticator.ForAuthorizedKeys(stationKey.PublicKeyBlob),
+                                         Subsystems     = (session, name, ct) => ValueTask.FromResult<SshSubsystemHandler?>(name == OCPP ? routed : null)
+                                     });
+
+            await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
+
+            var running = new Running(server, (UInt16) server.LocalEndPoint.Port.ToInt32(), twoX, new CollectingAuditSink());
+
+            await using var old      = Client(running, o => o with { Subprotocols = [ "ocpp1.6" ] });
+            await using var current  = Client(running, o => o with { Subprotocols = [ "ocpp2.1", "ocpp1.6" ] });
+            await using var stranger = Client(running, o => o with { Subprotocols = [ "ocpp1.5" ] });
+
+            var oldConnection      = await old.    ConnectAsync(CancellationToken);
+            var currentConnection  = await current.ConnectAsync(CancellationToken);
+            var refused            = await Assert.ThrowsAsync<SshMessageRefusedException>(async () => await stranger.ConnectAsync(CancellationToken));
+
+            await Within(Task.Run(async () => { while (!oneSix.Connections.Any() || !twoX.Connections.Any()) await Task.Delay(10); }), "Both servers' connections");
+
+            Assert.Multiple(() => {
+                Assert.That(oldConnection.Subprotocol,      Is.EqualTo("ocpp1.6"));
+                Assert.That(currentConnection.Subprotocol,  Is.EqualTo("ocpp2.1"));
+                Assert.That(oneSix.Connections.Count(),     Is.EqualTo(1), "the 1.6 client was not served by the 1.6 server");
+                Assert.That(twoX.  Connections.Count(),     Is.EqualTo(1), "the 2.1 client was not served by the 2.x server");
+                Assert.That(refused!.Code,                  Is.EqualTo(SshMessageRefusal.UnsupportedSubprotocol));
+                Assert.That(refused.Description,            Does.Contain("'ocpp2.1'").And.Contain("'ocpp1.6'"));
+            });
+
+        }
+
+        #endregion
+
+        #region Refused_WithRetryAfter_TellsTheClientWhenToComeBack
+
+        [Test]
+        [CancelAfter(30000)]
+        public async Task Refused_WithRetryAfter_TellsTheClientWhenToComeBack(CancellationToken CancellationToken)
+        {
+
+            await using var running = await StartAsync(CancellationToken, Validate: (server, context, hello, subprotocol, ct) =>
+                                          ValueTask.FromResult(SshHelloVerdict.Refuse(SshMessageRefusal.ConnectionExists,
+                                                                                      "cs001 is connected, and answers.",
+                                                                                      TimeSpan.FromSeconds(30))));
+
+            await using var client  = Client(running);
+
+            var refused = await Assert.ThrowsAsync<SshMessageRefusedException>(async () => await client.ConnectAsync(CancellationToken));
+
+            Assert.Multiple(() => {
+                Assert.That(refused!.Code,       Is.EqualTo("connection-exists"));
+                Assert.That(refused.Description, Is.EqualTo("cs001 is connected, and answers."));
+                Assert.That(refused.RetryAfter,  Is.EqualTo(TimeSpan.FromSeconds(30)));
+                Assert.That(refused.Message,     Does.Contain("try again in 30 s"));
+            });
+
+        }
+
+        #endregion
+
+        #region Reconnect_WaitsForTheRetryAfterOfARefusal
+
+        /// <summary>
+        /// A reconnecting client that is refused with a "retryAfter" asks again no earlier than that,
+        /// although its own policy would have asked again after 50 ms.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task Reconnect_WaitsForTheRetryAfterOfARefusal(CancellationToken CancellationToken)
+        {
+
+            var hellos   = new ConcurrentQueue<DateTimeOffset>();
+
+            await using var running = await StartAsync(CancellationToken, Validate: (server, context, hello, subprotocol, ct) => {
+                                          hellos.Enqueue(DateTimeOffset.UtcNow);
+                                          // The first connection is served, the second refused for a second, the third served.
+                                          return ValueTask.FromResult(hellos.Count == 2
+                                                                          ? SshHelloVerdict.Refuse(SshMessageRefusal.ConnectionExists, null, TimeSpan.FromSeconds(1))
+                                                                          : SshHelloVerdict.Accept());
+                                      });
+
+            await using var client  = Client(running, o => o with { Reconnect = new WebSocketClientReconnectPolicy(InitialDelay: TimeSpan.FromMilliseconds(50), MaxDelay: TimeSpan.FromMilliseconds(50)) });
+
+            var failed = new TaskCompletionSource<(Exception Error, TimeSpan? Next)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var third  = new TaskCompletionSource<SshMessageConnection>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var count  = 0;
+
+            client.OnConnectFailed += (timestamp, sender, error, attempt, next, ct) => { failed.TrySetResult((error, next)); return Task.CompletedTask; };
+            client.OnNewConnection += (timestamp, sender, connection, ct) => {
+                if (Interlocked.Increment(ref count) == 2)
+                    third.TrySetResult(connection);
+                return Task.CompletedTask;
+            };
+
+            await client.ConnectAsync(CancellationToken);
+            var serverSide = await ServerSideOf(running);
+
+            await serverSide.Close(MessageCloseCode.GoingAway, "go and come back");
+
+            var (error, next) = await Within(failed.Task, "The refusal");
+            await Within(third.Task, "The connection after the refusal");
+
+            var times = hellos.ToArray();
+
+            Assert.Multiple(() => {
+                Assert.That(error,                Is.TypeOf<SshMessageRefusedException>());
+                Assert.That(next,                 Is.EqualTo(TimeSpan.FromSeconds(1)), "the next attempt is announced for when the server said");
+                Assert.That(times,                Has.Length.EqualTo(3));
+                Assert.That(times[2] - times[1],  Is.GreaterThanOrEqualTo(TimeSpan.FromMilliseconds(950)), "the client came back before the server's retryAfter");
+            });
+
+        }
+
+        #endregion
+
+        #region SilentClient_IsTakenForDead_AfterMaxOutstandingPings
+
+        /// <summary>
+        /// A client that says HELLO and then nothing - it does not even answer the PINGs - is taken for
+        /// dead after MaxOutstandingPings intervals: the server ends the connection without a CLOSE.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task SilentClient_IsTakenForDead_AfterMaxOutstandingPings(CancellationToken CancellationToken)
+        {
+
+            await using var running = await StartAsync(CancellationToken, o => o with { PingEvery = TimeSpan.FromMilliseconds(200), MaxOutstandingPings = 2 });
+
+            var closed = new TaskCompletionSource<SshMessageCloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+            running.Messages.OnConnectionClosed += (timestamp, sender, connection, close, ct) => { closed.TrySetResult(close); return Task.CompletedTask; };
+
+            var (ssh, channel) = await RawAsync(running, CancellationToken);
+            await using var _  = ssh;
+
+            await SendAsync(channel, SshMessageFrameType.Hello, Hello("ocpp2.1"));
+
+            var started = DateTimeOffset.UtcNow;
+            var close   = await Within(closed.Task, "The end of the silent client's connection");
+            var after   = DateTimeOffset.UtcNow - started;
+            var frames  = await FramesToTheEndAsync(channel);
+
+            Assert.Multiple(() => {
+                Assert.That(close.Code,    Is.Null,  "no CLOSE is sent to a peer taken for dead");
+                Assert.That(close.ByPeer,  Is.False);
+                Assert.That(close.Reason,  Does.Contain("Nothing came from the peer"));
+                Assert.That(after,         Is.GreaterThanOrEqualTo(TimeSpan.FromMilliseconds(400)), "ended before two intervals had passed");
+                Assert.That(frames[0].Type, Is.EqualTo(SshMessageFrameType.Welcome));
+                Assert.That(frames.Skip(1).Select(frame => frame.Type), Is.All.EqualTo(SshMessageFrameType.Ping));
+            });
+
+        }
+
+        #endregion
+
+        #region AnsweringClient_StaysConnected
+
+        /// <summary>
+        /// A client that answers the PINGs - Hermod's own, which does so by itself - stays connected,
+        /// however many intervals pass.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task AnsweringClient_StaysConnected(CancellationToken CancellationToken)
+        {
+
+            await using var running = await StartAsync(CancellationToken, o => o with { PingEvery = TimeSpan.FromMilliseconds(100), MaxOutstandingPings = 2 });
+            await using var client  = Client(running);
+
+            var connection = await client.ConnectAsync(CancellationToken);
+            var serverSide = await ServerSideOf(running);
+
+            await Task.Delay(TimeSpan.FromMilliseconds(1200), CancellationToken);
+
+            Assert.Multiple(() => {
+                Assert.That(serverSide.IsAlive, Is.True);
+                Assert.That(connection.IsAlive, Is.True);
+            });
+
+        }
+
+        #endregion
+
+        #region SilentServer_IsTakenForDead_ByAPingingClient
+
+        /// <summary>
+        /// The other way round: a client that PINGs a server that welcomed it and then says nothing ends
+        /// the connection after MaxOutstandingPings intervals, without a CLOSE.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task SilentServer_IsTakenForDead_ByAPingingClient(CancellationToken CancellationToken)
+        {
+
+            const String Mute = "mute@open.charging.cloud";
+
+            await using var running = await StartAsync(CancellationToken, Further: (Mute, async (context, ct) => {
+                                          await SshMessageFraming.ReadAsync(context.Channel.Input, 0, ct);
+                                          await context.Channel.SendDataAsync(SshMessageFraming.Encode(SshMessageFrameType.Welcome,
+                                                                                                       SshMessageWelcome.Create("ocpp2.1", null).ToBytes()), ct);
+                                          // ... and never a word more, not even a PONG, until the channel goes.
+                                          try { await Task.Delay(Timeout.Infinite, context.Closed); } catch (OperationCanceledException) { }
+                                      }));
+
+            await using var client  = Client(running, o => o with { Subsystem = Mute, PingEvery = TimeSpan.FromMilliseconds(200), MaxOutstandingPings = 2 });
+
+            var closed = new TaskCompletionSource<SshMessageCloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+            client.OnConnectionClosed += (timestamp, sender, connection, close, ct) => { closed.TrySetResult(close); return Task.CompletedTask; };
+
+            await client.ConnectAsync(CancellationToken);
+
+            var close = await Within(closed.Task, "The end of the connection to the silent server");
+
+            Assert.Multiple(() => {
+                Assert.That(close.Code,   Is.Null);
+                Assert.That(close.ByPeer, Is.False);
+                Assert.That(close.Reason, Does.Contain("Nothing came from the peer"));
+            });
+
+        }
+
+        #endregion
+
     }
 
 }
