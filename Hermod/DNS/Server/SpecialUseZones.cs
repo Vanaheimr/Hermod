@@ -25,9 +25,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
-    /// What an authoritative server answers for the special-use names of RFC 6761 §6.1 to §6.4 and RFC 7686:
-    /// the localhost, "invalid" and .onion names whatever it serves, and the test names and private-address
-    /// reverse names when it serves no zone for them.
+    /// What an authoritative server answers for the special-use names of RFC 6761 §6.1 to §6.4, RFC 6762 §22.1
+    /// and RFC 7686: the localhost, "invalid" and .onion names whatever it serves, the link-local names unless
+    /// told to serve them, and the test names and private-address reverse names when it serves no zone for
+    /// them.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -40,6 +41,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <para>
     /// RFC 7686 §2, item 5: "Authoritative servers MUST respond to queries for .onion with NXDOMAIN." Item 6
     /// forbids operators to configure an answer, so a .onion name is NXDOMAIN before the zone is asked, too.
+    /// </para>
+    /// <para>
+    /// RFC 6762 §22.1, item 5, has an authoritative server answer the link-local names of Multicast DNS with
+    /// NXDOMAIN and not be configurable to answer them by default, and lets server software "provide a
+    /// configuration option to override this default". That option is
+    /// <see cref="AuthoritativeDNSRequestHandler.ServeLinkLocalNames"/>; a query that arrived by multicast is
+    /// answered from the zone either way.
     /// </para>
     /// <para>
     /// §6.1 and §6.2, item 5, ask for "immediate negative responses" for the private-address reverse names and
@@ -73,11 +81,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region FixedBySpecification(Question)
 
         /// <summary>
-        /// The answer for a localhost, an "invalid" or a .onion name, which no zone changes; null for any other
-        /// name.
+        /// The answer for a localhost, an "invalid" or a .onion name, which no zone changes, and for a link-local
+        /// name when those are not served; null for any other name.
         /// </summary>
         /// <param name="Question">The question.</param>
-        internal static DNSZoneLookupResult? FixedBySpecification(DNSQuestion Question)
+        /// <param name="AnswerLinkLocalNames">Whether a link-local name is answered NXDOMAIN rather than from the zone (RFC 6762 §22.1, item 5).</param>
+        internal static DNSZoneLookupResult? FixedBySpecification(DNSQuestion  Question,
+                                                                  Boolean      AnswerLinkLocalNames   = true)
         {
 
             var name = Question.DomainName;
@@ -85,8 +95,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!IsInternetClass(Question))
                 return null;
 
-            if (SpecialUseNames.IsInvalid(name) || SpecialUseNames.IsOnion(name))
+            if (SpecialUseNames.IsInvalid(name) ||
+                SpecialUseNames.IsOnion  (name) ||
+                (AnswerLinkLocalNames && SpecialUseNames.IsLinkLocal(name)))
+            {
                 return DNSZoneLookupResult.NameError([ StartOfAuthority(SpecialUseNames.DomainOf(name)!) ]);
+            }
 
             if (SpecialUseNames.IsLocalhost(name))
             {

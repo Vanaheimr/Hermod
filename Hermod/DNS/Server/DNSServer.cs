@@ -629,6 +629,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                           new MemoryStream(dnsPacket.Buffer)
                                       );
 
+                    // A .local name asked by multicast is what link-local names are for; RFC 6762 §22.1,
+                    // item 5, is about the unicast queries an authoritative server receives.
+                    dnsRequest.ReceivedViaMulticast = true;
+
                     await LogEvent(
                         OnDNSRequestReceived,
                         async loggingDelegate => await loggingDelegate.Invoke(

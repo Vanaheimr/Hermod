@@ -89,6 +89,12 @@ the exception (`SpecialUseZones`):
 - `onion.` and every name below it are NXDOMAIN, whatever the zone holds:
   RFC 7686 §2, item 5, "Authoritative servers MUST respond to queries for
   .onion with NXDOMAIN".
+- The link-local names of Multicast DNS — `local.`, `254.169.in-addr.arpa.`
+  and `8.e.f.ip6.arpa.` to `b.e.f.ip6.arpa.`, each with every name below it —
+  are NXDOMAIN when asked by unicast, whatever the zone holds (RFC 6762 §22.1,
+  item 5). `ServeLinkLocalNames: true` answers them from the zone, for a
+  network that serves ".local" by unicast DNS; a query that arrives on the
+  multicast listener is answered from the zone either way.
 - `test.` and the private-address reverse domains (`10.in-addr.arpa.`,
   `16.172.in-addr.arpa.` to `31.172.in-addr.arpa.`, `168.192.in-addr.arpa.`)
   are answered from the zone where it serves them, and negatively where it does
@@ -144,6 +150,11 @@ concerns:
   any other type, and `invalid.` and `onion.`, each with every name below it,
   NXDOMAIN, answered by `SpecialUseNames` without a name server, with the cache
   or without it
+- **Link-local names** (RFC 6762 §22.1) — `local.` and the link-local reverse
+  domains are not sent to the configured unicast servers but answered NXDOMAIN;
+  `HybridDNSClient` resolves them with Multicast DNS.
+  `SendLinkLocalNamesToServers = true` sends them, for a network that serves
+  ".local" by unicast DNS, as Active Directory domains named so do
 
 
 ## NameResolution — Never the Operating System's Resolver

@@ -350,6 +350,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
 
         #endregion
 
+        #region ALinkLocalName_IsNXDomain(Name, Domain)
+
+        // RFC 6762 §22.1, item 5: "like caching DNS servers, SHOULD generate immediate NXDOMAIN responses".
+        [TestCase("local.",                     "local.")]
+        [TestCase("printer.Local.",             "local.")]
+        [TestCase("4.3.254.169.in-addr.arpa.",  "254.169.in-addr.arpa.")]
+        [TestCase("1.8.e.f.ip6.arpa.",          "8.e.f.ip6.arpa.")]
+        [TestCase("F.B.E.F.IP6.ARPA.",          "b.e.f.ip6.arpa.")]
+        public async Task ALinkLocalName_IsNXDomain(String Name, String Domain)
+        {
+
+            var response = await Ask(Zone(), Name, DNSResourceRecordTypes.A);
+
+            Assert.That(response.ResponseCode,        Is.EqualTo(DNSResponseCodes.NameError));
+            Assert.That(response.AuthoritativeAnswer, Is.True);
+            Assert.That(response.AnswerRRs,           Is.Empty);
+
+            AssertCitesTheSpecialUseDomain(response, Domain);
+
+        }
+
+        #endregion
+
+        #region ALinkLocalName_IsServed_WhenToldTo_OrWhenAskedByMulticast()
+
+        [Test]
+        public async Task ALinkLocalName_IsServed_WhenToldTo_OrWhenAskedByMulticast()
+        {
+
+            var zone       = Zone(new A(DomainName.Parse("printer.local."), DNSQueryClasses.IN, ttl, IPv4Address.Parse("192.0.2.100")));
+
+            // By default the record is not served (RFC 6762 §22.1, item 5).
+            var byDefault  = await Ask(zone, "printer.local.", DNSResourceRecordTypes.A);
+
+            Assert.That(byDefault.ResponseCode, Is.EqualTo(DNSResponseCodes.NameError));
+
+            // The option item 5 lets server software offer: the zone answers, and a name it does not hold is
+            // outside it, as any other name is.
+            var serving    = new AuthoritativeDNSRequestHandler(zone, ServeLinkLocalNames: true);
+
+            var served     = await serving.ProcessDNSRequest(DNSPacket.Query(DNSServiceName.Parse("printer.local."), 0, DNSResourceRecordTypes.A));
+            var elsewhere  = await serving.ProcessDNSRequest(DNSPacket.Query(DNSServiceName.Parse("scanner.local."), 0, DNSResourceRecordTypes.A));
+
+            Assert.That(served!.AnswerRRs.OfType<A>().Single().IPv4Address, Is.EqualTo(IPv4Address.Parse("192.0.2.100")));
+            Assert.That(elsewhere!.ResponseCode,                            Is.EqualTo(DNSResponseCodes.Refused));
+
+            // A query that arrived on the multicast listener is answered from the zone without the option.
+            var request    = DNSPacket.Query(DNSServiceName.Parse("printer.local."), 0, DNSResourceRecordTypes.A);
+            request.ReceivedViaMulticast = true;
+
+            var multicast  = await new AuthoritativeDNSRequestHandler(zone).ProcessDNSRequest(request);
+
+            Assert.That(multicast!.AnswerRRs.OfType<A>().Single().IPv4Address, Is.EqualTo(IPv4Address.Parse("192.0.2.100")));
+
+        }
+
+        #endregion
+
         #region AQuestionInAnotherClass_IsTheZones()
 
         [Test]
@@ -403,6 +461,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
         [TestCase("a.LOCALHOST.",             "localhost.")]
         [TestCase("x.invalid.",               "invalid.")]
         [TestCase("x.Onion.",                 "onion.")]
+        [TestCase("printer.local.",           "local.")]
+        [TestCase("4.3.254.169.in-addr.arpa.","254.169.in-addr.arpa.")]
+        [TestCase("1.9.E.F.ip6.arpa.",        "9.e.f.ip6.arpa.")]
+        [TestCase("1.1254.169.in-addr.arpa.", null)]
         [TestCase("x.Test.",                  "test.")]
         [TestCase("10.in-addr.arpa.",         "10.in-addr.arpa.")]
         [TestCase("9.9.9.10.in-addr.arpa.",   "10.in-addr.arpa.")]
@@ -426,7 +488,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
 
             Assert.That(SpecialUseNames.DomainOf(name), Is.EqualTo(Domain));
 
-            Assert.That(SpecialUseNames.IsPrivateAddressReverse(name), Is.EqualTo(Domain?.EndsWith("in-addr.arpa.") == true));
+            var linkLocal = Domain is "local." or "254.169.in-addr.arpa." || Domain?.EndsWith(".e.f.ip6.arpa.") == true;
+
+            Assert.That(SpecialUseNames.IsPrivateAddressReverse(name), Is.EqualTo(Domain?.EndsWith("in-addr.arpa.") == true && !linkLocal));
+            Assert.That(SpecialUseNames.IsLinkLocal(name),             Is.EqualTo(linkLocal));
             Assert.That(SpecialUseNames.IsTest(name),                  Is.EqualTo(Domain == "test."));
 
         }

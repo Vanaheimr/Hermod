@@ -25,10 +25,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
-    /// The special-use names of RFC 6761 §6.1 to §6.4 and RFC 7686: those a name resolution library answers
-    /// itself and never sends to a name server — "localhost.", "invalid." and "onion.", each with every name
-    /// below it — and those an authoritative server answers negatively when it serves no zone for them —
-    /// "test." and the private-address reverse-mapping domains, with every name below them.
+    /// The special-use names of RFC 6761 §6.1 to §6.4, RFC 6762 §22.1 and RFC 7686: those a name resolution
+    /// library answers itself and never sends to a name server — "localhost.", "invalid." and "onion.", each
+    /// with every name below it, and by default the link-local names of Multicast DNS — and those an
+    /// authoritative server answers negatively when it serves no zone for them — "test." and the
+    /// private-address reverse-mapping domains, with every name below them.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -42,6 +43,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// RFC 7686 §2, item 3, asks more of the .onion names of the Tor network: "Resolvers MUST either respond to
     /// requests for .onion names by resolving them according to [tor-rendezvous] or by responding with
     /// NXDOMAIN". Hermod speaks no Tor, so they are NXDOMAIN, and no name server is asked.
+    /// </para>
+    /// <para>
+    /// RFC 6762 §22.1, item 3, asks of the link-local names of Multicast DNS — ".local." and the link-local
+    /// reverse domains "254.169.in-addr.arpa." and "8.e.f.ip6.arpa." to "b.e.f.ip6.arpa." — that libraries
+    /// "SHOULD NOT send queries for these names to their configured (unicast) caching DNS server(s)". They are
+    /// resolved with Multicast DNS (see HybridDNSClient); a unicast client answers them NXDOMAIN, as item 4 has a
+    /// caching server do, unless it was told to send them anyway.
     /// </para>
     /// <para>
     /// "test." and the private-address reverse names are special too, but not to a resolver: item 3 of §6.1
@@ -96,6 +104,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region IsLinkLocal(Name)
+
+        /// <summary>
+        /// Whether the name is one of the link-local domains of Multicast DNS — "local.", "254.169.in-addr.arpa."
+        /// and "8.e.f.ip6.arpa." to "b.e.f.ip6.arpa." — or a name below one (RFC 6762 §22.1).
+        /// </summary>
+        /// <param name="Name">A name.</param>
+        public static Boolean IsLinkLocal(DNSServiceName Name)
+            => LinkLocalDomain(Name) is not null;
+
+        #endregion
+
         #region IsTest     (Name)
 
         /// <summary>
@@ -140,6 +160,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (IsOnion(Name))
                 return "onion.";
 
+            if (LinkLocalDomain(Name) is { } linkLocal)
+                return linkLocal;
+
             if (IsTest(Name))
                 return "test.";
 
@@ -158,6 +181,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => Name.Labels.Count > 0 &&
                DNSServiceName.ASCIICaseFold(Name.Labels[^1]).Equals(Label, StringComparison.Ordinal);
+
+        #endregion
+
+        #region (private) LinkLocalDomain(Name)
+
+        // fe80::/10, whose reverse names begin with the nibbles "f", "e" and one of "8" to "b".
+        private static readonly HashSet<String> linkLocalThirdNibbles = [ "8", "9", "a", "b" ];
+
+        // Label by label, as the names are compared: "1254.169.in-addr.arpa." does not end in the label
+        // "254", and "18.e.f.ip6.arpa." not in the nibble "8".
+        private static String? LinkLocalDomain(DNSServiceName Name)
+        {
+
+            if (EndsIn(Name, "local"))
+                return "local.";
+
+            var labels = Name.Labels;
+
+            if (labels.Count >= 4                                                                         &&
+                DNSServiceName.ASCIICaseFold(labels[^1]).Equals("arpa",    StringComparison.Ordinal) &&
+                DNSServiceName.ASCIICaseFold(labels[^2]).Equals("in-addr", StringComparison.Ordinal) &&
+                labels[^3] == "169" &&
+                labels[^4] == "254")
+            {
+                return "254.169.in-addr.arpa.";
+            }
+
+            if (labels.Count >= 5                                                                         &&
+                DNSServiceName.ASCIICaseFold(labels[^1]).Equals("arpa", StringComparison.Ordinal) &&
+                DNSServiceName.ASCIICaseFold(labels[^2]).Equals("ip6",  StringComparison.Ordinal) &&
+                DNSServiceName.ASCIICaseFold(labels[^3]).Equals("f",    StringComparison.Ordinal) &&
+                DNSServiceName.ASCIICaseFold(labels[^4]).Equals("e",    StringComparison.Ordinal) &&
+                linkLocalThirdNibbles.Contains(DNSServiceName.ASCIICaseFold(labels[^5])))
+            {
+                return $"{DNSServiceName.ASCIICaseFold(labels[^5])}.e.f.ip6.arpa.";
+            }
+
+            return null;
+
+        }
 
         #endregion
 
@@ -238,9 +301,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region TryAnswer(Name, Types, RecursionDesired, Timeout, Runtime, out Answer)
 
         /// <summary>
-        /// The answer RFC 6761 and RFC 7686 give for a query about a special-use name, which no name server is
-        /// asked for: for a localhost name the loopback addresses for A and AAAA, and NODATA for any other type;
-        /// for an "invalid" name and a .onion name NXDOMAIN.
+        /// The answer RFC 6761, RFC 6762 and RFC 7686 give for a query about a special-use name, which no name
+        /// server is asked for: for a localhost name the loopback addresses for A and AAAA, and NODATA for any
+        /// other type; for an "invalid", a .onion and a link-local name NXDOMAIN.
         /// </summary>
         /// <param name="Name">The name asked about.</param>
         /// <param name="Types">The types asked for; none is ANY.</param>
@@ -254,11 +317,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                         TimeSpan                               Timeout,
                                         TimeSpan                               Runtime,
                                         [NotNullWhen(true)] out DNSInfo?       Answer)
+
+            => TryAnswer(Name, Types, RecursionDesired, Timeout, Runtime, true, out Answer);
+
+        #endregion
+
+        #region TryAnswer(Name, Types, RecursionDesired, Timeout, Runtime, AnswerLinkLocalNames, out Answer)
+
+        /// <summary>
+        /// The answer RFC 6761, RFC 6762 and RFC 7686 give for a query about a special-use name, which no name
+        /// server is asked for: for a localhost name the loopback addresses for A and AAAA, and NODATA for any
+        /// other type; for an "invalid" and a .onion name NXDOMAIN, and for a link-local name NXDOMAIN unless
+        /// those are to go to the servers.
+        /// </summary>
+        /// <param name="Name">The name asked about.</param>
+        /// <param name="Types">The types asked for; none is ANY.</param>
+        /// <param name="RecursionDesired">Whether the query asked for recursion, which the answer copies back (RFC 1035 §4.1.1).</param>
+        /// <param name="Timeout">The timeout of the query.</param>
+        /// <param name="Runtime">How long the query ran.</param>
+        /// <param name="AnswerLinkLocalNames">Whether a link-local name is answered here (RFC 6762 §22.1, item 3), or left to the servers of a network that serves ".local" by unicast DNS.</param>
+        /// <param name="Answer">The answer, when the name is a special-use name.</param>
+        public static Boolean TryAnswer(DNSServiceName                         Name,
+                                        IEnumerable<DNSResourceRecordTypes>    Types,
+                                        Boolean                                RecursionDesired,
+                                        TimeSpan                               Timeout,
+                                        TimeSpan                               Runtime,
+                                        Boolean                                AnswerLinkLocalNames,
+                                        [NotNullWhen(true)] out DNSInfo?       Answer)
         {
 
             // RFC 7686 §2, item 3: a resolver that does not resolve a .onion name over Tor responds "with
-            // NXDOMAIN", as RFC 6761 §6.4 has it respond for an "invalid" name.
-            if (IsInvalid(Name) || IsOnion(Name))
+            // NXDOMAIN", as RFC 6761 §6.4 has it respond for an "invalid" name. RFC 6762 §22.1, item 3: a
+            // link-local name is not sent to a unicast server, and NXDOMAIN is what item 4 has a caching
+            // server answer for one.
+            if (IsInvalid(Name) || IsOnion(Name) || (AnswerLinkLocalNames && IsLinkLocal(Name)))
             {
                 Answer = Made(DNSResponseCodes.NameError, [], RecursionDesired, Timeout, Runtime);
                 return true;

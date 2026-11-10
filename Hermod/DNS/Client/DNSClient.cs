@@ -182,6 +182,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Byte                           MaxRetries          { get; set; } = 1;
 
         /// <summary>
+        /// Whether the link-local names of Multicast DNS - "local." and the link-local reverse domains
+        /// "254.169.in-addr.arpa." and "8.e.f.ip6.arpa." to "b.e.f.ip6.arpa.", with every name below them -
+        /// are sent to the DNS servers of this client. Default: false. RFC 6762 §22.1, item 3: libraries "SHOULD
+        /// NOT send queries for these names to their configured (unicast) caching DNS server(s)", so they are
+        /// NXDOMAIN here; HybridDNSClient resolves them with Multicast DNS. Set it for a network that serves
+        /// ".local" by unicast DNS, as Active Directory domains named so do - which RFC 6762 Appendix G
+        /// recommends against.
+        /// </summary>
+        public Boolean                        SendLinkLocalNamesToServers { get; set; }
+
+        /// <summary>
         /// What a name server reached over TLS or HTTPS is asked about its
         /// certificate at every handshake, with the server it is about - or
         /// null for the machine's own judgement: a certificate is believed
@@ -603,13 +614,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // RFC 6761 §6.3 and §6.4: a localhost name and an "invalid" name are answered here and sent
             // to no server - before the cache, whose entry for "localhost." covers neither the names below
             // it nor a type other than A and AAAA, and which a client may have none of, look past, or have
-            // emptied with SetDNSServers. Before the list of servers, too, because none is needed.
+            // emptied with SetDNSServers. Before the list of servers, too, because none is needed. So are a
+            // .onion name (RFC 7686 §2) and, unless they are to be sent, a link-local name (RFC 6762 §22.1).
             if (DNSServiceName.IsNotNullOrEmpty() &&
                 SpecialUseNames.TryAnswer(DNSServiceName,
                                           ResourceRecordTypes,
                                           recursionAsked,
                                           effectiveTimeout,
                                           stopWatch.Elapsed,
+                                          !SendLinkLocalNamesToServers,
                                           out var specialUseAnswer))
             {
                 return specialUseAnswer;

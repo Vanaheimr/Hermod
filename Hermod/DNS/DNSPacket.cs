@@ -147,6 +147,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public IPSocket                         LocalSocket            { get; }
         public IPSocket                         RemoteSocket           { get; }
 
+        /// <summary>
+        /// Whether the request arrived on a multicast listener rather than as a unicast query - where the
+        /// link-local names of Multicast DNS are what is asked about (RFC 6762 §22.1).
+        /// </summary>
+        public Boolean                          ReceivedViaMulticast   { get; internal set; }
+
 
         /// <summary>
         /// The transaction identifier of this DNS query.

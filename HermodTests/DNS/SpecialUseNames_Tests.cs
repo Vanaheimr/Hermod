@@ -147,6 +147,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
+        #region ALinkLocalName_IsNXDomain_UnlessItIsToBeSent(Name)
+
+        /// <summary>
+        /// RFC 6762 §22.1, item 3: libraries "SHOULD NOT send queries for these names to their configured
+        /// (unicast) caching DNS server(s)". A client without servers answers NXDOMAIN for them; told to send
+        /// them, it asks the servers it has none of.
+        /// </summary>
+        [TestCase("local.")]
+        [TestCase("printer.LOCAL.")]
+        [TestCase("_ipp._tcp.local.")]
+        [TestCase("4.3.254.169.in-addr.arpa.")]
+        [TestCase("1.8.e.f.ip6.arpa.")]
+        [TestCase("0.9.E.F.ip6.arpa.")]
+        [TestCase("a.e.f.ip6.arpa.")]
+        [TestCase("f.b.e.f.IP6.ARPA.")]
+        public async Task ALinkLocalName_IsNXDomain_UnlessItIsToBeSent(String Name)
+        {
+
+            using var client = WithoutServers();
+
+            var answer = await client.Query(DNSServiceName.Parse(Name), [ DNSResourceRecordTypes.A ]);
+
+            client.SendLinkLocalNamesToServers = true;
+
+            var sent   = await client.Query(DNSServiceName.Parse(Name), [ DNSResourceRecordTypes.A ]);
+
+            Assert.Multiple(() => {
+                Assert.That(SpecialUseNames.IsLinkLocal(DNSServiceName.Parse(Name)),  Is.True);
+                Assert.That(answer.ResponseCode,                                      Is.EqualTo(DNSResponseCodes.NameError));
+                Assert.That(answer.Answers,                                           Is.Empty);
+                Assert.That(sent.ResponseCode,                                        Is.EqualTo(DNSResponseCodes.ServerFailure), "asked of servers there are none of");
+            });
+
+        }
+
+        #endregion
+
+        #region ANameBesideTheLinkLocalOnes_IsNotLinkLocal(Name)
+
+        /// <summary>
+        /// Label by label: a longer label that ends in the same digits is another label.
+        /// </summary>
+        [TestCase("local.example.")]
+        [TestCase("notlocal.")]
+        [TestCase("254.169.in-addr.arpa.example.")]
+        [TestCase("169.in-addr.arpa.")]
+        [TestCase("255.169.in-addr.arpa.")]
+        [TestCase("1.1254.169.in-addr.arpa.")]
+        [TestCase("254.168.in-addr.arpa.")]
+        [TestCase("e.f.ip6.arpa.")]
+        [TestCase("7.e.f.ip6.arpa.")]
+        [TestCase("c.e.f.ip6.arpa.")]
+        [TestCase("18.e.f.ip6.arpa.")]
+        [TestCase("8.e.e.ip6.arpa.")]
+        public void ANameBesideTheLinkLocalOnes_IsNotLinkLocal(String Name)
+        {
+            Assert.That(SpecialUseNames.IsLinkLocal(DNSServiceName.Parse(Name)), Is.False);
+        }
+
+        #endregion
+
         #region ANameThatIsNotBelowEither_IsNotSpecial(Name)
 
         /// <summary>

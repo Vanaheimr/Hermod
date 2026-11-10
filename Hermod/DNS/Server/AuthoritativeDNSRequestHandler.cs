@@ -82,19 +82,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         public Boolean  RequireDNSCookies   { get; }
 
+        /// <summary>
+        /// Whether unicast queries for the link-local names of Multicast DNS - "local." and the link-local
+        /// reverse domains "254.169.in-addr.arpa." and "8.e.f.ip6.arpa." to "b.e.f.ip6.arpa.", with every name
+        /// below them - are answered from the zone.
+        /// </summary>
+        /// <remarks>
+        /// Off by default. RFC 6762 §22.1, item 5: "Authoritative DNS servers SHOULD NOT by default be
+        /// configurable to answer queries for these names, and, like caching DNS servers, SHOULD generate
+        /// immediate NXDOMAIN responses for all such queries they may receive. DNS server software MAY provide a
+        /// configuration option to override this default, for testing purposes or other specialized uses." This
+        /// is that option, for a network that serves ".local" by unicast DNS. A query that arrives on the
+        /// multicast listener is answered from the zone either way.
+        /// </remarks>
+        public Boolean  ServeLinkLocalNames { get; }
+
 
         public AuthoritativeDNSRequestHandler(IDNSZoneStore  ZoneStore,
                                               Boolean        RecursionAvailable   = false,
                                               UInt16         UDPPayloadSize       = 1232,
                                               Byte[]?        DNSCookieSecret      = null,
-                                              Boolean        RequireDNSCookies    = false)
+                                              Boolean        RequireDNSCookies    = false,
+                                              Boolean        ServeLinkLocalNames  = false)
         {
 
-            this.zoneStore           = ZoneStore;
-            this.RecursionAvailable  = RecursionAvailable;
-            this.UDPPayloadSize      = UDPPayloadSize;
-            this.DNSCookieSecret     = DNSCookieSecret;
-            this.RequireDNSCookies   = RequireDNSCookies;
+            this.zoneStore            = ZoneStore;
+            this.RecursionAvailable   = RecursionAvailable;
+            this.UDPPayloadSize       = UDPPayloadSize;
+            this.DNSCookieSecret      = DNSCookieSecret;
+            this.RequireDNSCookies    = RequireDNSCookies;
+            this.ServeLinkLocalNames  = ServeLinkLocalNames;
 
         }
 
@@ -396,8 +413,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     // RFC 6761 §6.3 and §6.4, items 5 and 6: a localhost name and
                     // an "invalid" name have the answers the specification gives
                     // them, whatever the zone holds at them, so the zone is not
-                    // asked.
-                    var lookupResult = SpecialUseZones.FixedBySpecification(currentQuestion);
+                    // asked. So has a .onion name (RFC 7686 §2, items 5 and 6),
+                    // and a link-local name asked by unicast unless this server
+                    // was told to serve those (RFC 6762 §22.1, item 5).
+                    var lookupResult = SpecialUseZones.FixedBySpecification(
+                                           currentQuestion,
+                                           AnswerLinkLocalNames: !ServeLinkLocalNames && !Request.ReceivedViaMulticast
+                                       );
                     var specialUse   = lookupResult is not null;
 
                     if (lookupResult is null)
