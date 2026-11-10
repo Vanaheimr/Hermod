@@ -25,10 +25,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
-    /// The special-use names of RFC 6761 §6.1 to §6.4: those a name resolution library answers itself and never
-    /// sends to a name server — "localhost." and every name below it, and "invalid." and every name below it —
-    /// and those an authoritative server answers negatively when it serves no zone for them — "test." and the
-    /// private-address reverse-mapping domains, with every name below them.
+    /// The special-use names of RFC 6761 §6.1 to §6.4 and RFC 7686: those a name resolution library answers
+    /// itself and never sends to a name server — "localhost.", "invalid." and "onion.", each with every name
+    /// below it — and those an authoritative server answers negatively when it serves no zone for them —
+    /// "test." and the private-address reverse-mapping domains, with every name below them.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -37,6 +37,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// other query types. Name resolution APIs SHOULD NOT send queries for localhost names to their configured
     /// caching DNS server(s)." §6.4, item 3, asks the same of "invalid" names, with "immediate negative
     /// responses", and item 1 lets users assume that these are NXDOMAIN.
+    /// </para>
+    /// <para>
+    /// RFC 7686 §2, item 3, asks more of the .onion names of the Tor network: "Resolvers MUST either respond to
+    /// requests for .onion names by resolving them according to [tor-rendezvous] or by responding with
+    /// NXDOMAIN". Hermod speaks no Tor, so they are NXDOMAIN, and no name server is asked.
     /// </para>
     /// <para>
     /// "test." and the private-address reverse names are special too, but not to a resolver: item 3 of §6.1
@@ -80,6 +85,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region IsOnion    (Name)
+
+        /// <summary>
+        /// Whether the name is "onion." or a name below it, a name of the Tor network (RFC 7686).
+        /// </summary>
+        /// <param name="Name">A name.</param>
+        public static Boolean IsOnion(DNSServiceName Name)
+            => EndsIn(Name, "onion");
+
+        #endregion
+
         #region IsTest     (Name)
 
         /// <summary>
@@ -107,8 +123,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region DomainOf(Name)
 
         /// <summary>
-        /// The special-use domain of RFC 6761 §6.1 to §6.4 the name is in, in lower case and with the root's
-        /// dot — "localhost.", "invalid.", "test.", "10.in-addr.arpa." and so on — or null when it is in none.
+        /// The special-use domain of RFC 6761 §6.1 to §6.4 or RFC 7686 the name is in, in lower case and with the
+        /// root's dot — "localhost.", "invalid.", "onion.", "test.", "10.in-addr.arpa." and so on — or null when
+        /// it is in none.
         /// </summary>
         /// <param name="Name">A name.</param>
         public static String? DomainOf(DNSServiceName Name)
@@ -119,6 +136,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (IsInvalid(Name))
                 return "invalid.";
+
+            if (IsOnion(Name))
+                return "onion.";
 
             if (IsTest(Name))
                 return "test.";
@@ -218,9 +238,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region TryAnswer(Name, Types, RecursionDesired, Timeout, Runtime, out Answer)
 
         /// <summary>
-        /// The answer RFC 6761 gives for a query about a special-use name, which no name server is asked for:
-        /// for a localhost name the loopback addresses for A and AAAA, and NODATA for any other type; for an
-        /// "invalid" name NXDOMAIN.
+        /// The answer RFC 6761 and RFC 7686 give for a query about a special-use name, which no name server is
+        /// asked for: for a localhost name the loopback addresses for A and AAAA, and NODATA for any other type;
+        /// for an "invalid" name and a .onion name NXDOMAIN.
         /// </summary>
         /// <param name="Name">The name asked about.</param>
         /// <param name="Types">The types asked for; none is ANY.</param>
@@ -236,7 +256,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                         [NotNullWhen(true)] out DNSInfo?       Answer)
         {
 
-            if (IsInvalid(Name))
+            // RFC 7686 §2, item 3: a resolver that does not resolve a .onion name over Tor responds "with
+            // NXDOMAIN", as RFC 6761 §6.4 has it respond for an "invalid" name.
+            if (IsInvalid(Name) || IsOnion(Name))
             {
                 Answer = Made(DNSResponseCodes.NameError, [], RecursionDesired, Timeout, Runtime);
                 return true;

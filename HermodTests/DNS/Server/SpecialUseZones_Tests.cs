@@ -181,18 +181,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
 
         #endregion
 
+        #region AnOnionName_IsNXDomain(Name, Type)
+
+        // RFC 7686 §2, item 5: "Authoritative servers MUST respond to queries for .onion with NXDOMAIN."
+        [TestCase("onion.",                DNSResourceRecordTypes.A)]
+        [TestCase("hiddenservice.ONION.",  DNSResourceRecordTypes.AAAA)]
+        [TestCase("a.b.onion.",            DNSResourceRecordTypes.TXT)]
+        public async Task AnOnionName_IsNXDomain(String Name, DNSResourceRecordTypes Type)
+        {
+
+            var response = await Ask(Zone(), Name, Type);
+
+            Assert.That(response.ResponseCode,        Is.EqualTo(DNSResponseCodes.NameError));
+            Assert.That(response.AuthoritativeAnswer, Is.True);
+            Assert.That(response.AnswerRRs,           Is.Empty);
+
+            AssertCitesTheSpecialUseDomain(response, "onion.");
+
+        }
+
+        #endregion
+
         #region TheZone_DoesNotChangeALocalhostOrAnInvalidName()
 
         [Test]
         public async Task TheZone_DoesNotChangeALocalhostOrAnInvalidName()
         {
 
-            // RFC 6761 §6.3 and §6.4, item 6: their answers "cannot be modified by local configuration".
+            // RFC 6761 §6.3 and §6.4, item 6: their answers "cannot be modified by local configuration". RFC 7686
+            // §2, item 6: operators "MUST NOT configure an authoritative DNS server to answer queries for .onion".
             var zone = Zone(
                            new A    (DomainName.Parse("localhost."),      DNSQueryClasses.IN, ttl, IPv4Address.Parse("192.0.2.97")),
                            new CNAME(DomainName.Parse("mail.localhost."), DNSQueryClasses.IN, ttl, DomainName.Parse("www.zone.test.")),
-                           new A    (DomainName.Parse("host.invalid."),   DNSQueryClasses.IN, ttl, IPv4Address.Parse("192.0.2.98"))
+                           new A    (DomainName.Parse("host.invalid."),   DNSQueryClasses.IN, ttl, IPv4Address.Parse("192.0.2.98")),
+                           new A    (DomainName.Parse("host.onion."),     DNSQueryClasses.IN, ttl, IPv4Address.Parse("192.0.2.99"))
                        );
+
+            var onion     = await Ask(zone, "host.onion.", DNSResourceRecordTypes.A);
+
+            Assert.That(onion.ResponseCode, Is.EqualTo(DNSResponseCodes.NameError));
+            Assert.That(onion.AnswerRRs,    Is.Empty);
 
             var localhost = await Ask(zone, "localhost.", DNSResourceRecordTypes.A);
 
@@ -306,6 +334,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
         [TestCase("32.172.in-addr.arpa.")]
         [TestCase("016.172.in-addr.arpa.")]
         [TestCase("192.168.in-addr.arpa.")]
+        [TestCase("onions.")]
+        [TestCase("onion.example.")]
+        [TestCase("name.alt.")]
         public async Task ANameThatIsNotSpecial_IsStillRefused(String Name)
         {
 
@@ -371,6 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
         [TestCase("localhost.",               "localhost.")]
         [TestCase("a.LOCALHOST.",             "localhost.")]
         [TestCase("x.invalid.",               "invalid.")]
+        [TestCase("x.Onion.",                 "onion.")]
         [TestCase("x.Test.",                  "test.")]
         [TestCase("10.in-addr.arpa.",         "10.in-addr.arpa.")]
         [TestCase("9.9.9.10.in-addr.arpa.",   "10.in-addr.arpa.")]

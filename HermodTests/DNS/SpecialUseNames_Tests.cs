@@ -120,16 +120,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
+        #region AnOnionName_IsNXDomain(Name)
+
+        /// <summary>
+        /// RFC 7686 §2, item 3: "Resolvers MUST either respond to requests for .onion names by resolving them
+        /// according to [tor-rendezvous] or by responding with NXDOMAIN".
+        /// </summary>
+        [TestCase("onion.",                    DNSResourceRecordTypes.A)]
+        [TestCase("hiddenservice.onion.",      DNSResourceRecordTypes.AAAA)]
+        [TestCase("www.HiddenService.ONION.",  DNSResourceRecordTypes.TXT)]
+        public async Task AnOnionName_IsNXDomain(String Name, DNSResourceRecordTypes Type)
+        {
+
+            using var client = WithoutServers();
+
+            var answer = await client.Query(DNSServiceName.Parse(Name), [ Type ]);
+
+            Assert.Multiple(() => {
+                Assert.That(SpecialUseNames.IsOnion(DNSServiceName.Parse(Name)),  Is.True);
+                Assert.That(answer.Answers,                                        Is.Empty);
+                Assert.That(answer.ResponseCode,                                   Is.EqualTo(DNSResponseCodes.NameError));
+                Assert.That(answer.IsValid,                                        Is.True);
+            });
+
+        }
+
+        #endregion
+
         #region ANameThatIsNotBelowEither_IsNotSpecial(Name)
 
         /// <summary>
         /// The last label decides, and the whole of it: a name that ends in the text, or holds the label
-        /// further up, is an ordinary name - which a client without servers cannot answer.
+        /// further up, is an ordinary name - which a client without servers cannot answer. And a .alt name is
+        /// an ordinary name to a DNS library (RFC 9476 §3.2, item 3).
         /// </summary>
         [TestCase("notlocalhost.")]
         [TestCase("localhost.example.")]
         [TestCase("notinvalid.")]
         [TestCase("invalid.example.")]
+        [TestCase("onions.")]
+        [TestCase("onion.example.")]
+        [TestCase("name.alt.")]
         public async Task ANameThatIsNotBelowEither_IsNotSpecial(String Name)
         {
 
@@ -140,6 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
             Assert.Multiple(() => {
                 Assert.That(SpecialUseNames.IsLocalhost(DNSServiceName.Parse(Name)),  Is.False);
                 Assert.That(SpecialUseNames.IsInvalid  (DNSServiceName.Parse(Name)),  Is.False);
+                Assert.That(SpecialUseNames.IsOnion    (DNSServiceName.Parse(Name)),  Is.False);
                 Assert.That(answer.ResponseCode,                                      Is.EqualTo(DNSResponseCodes.ServerFailure), "asked of servers there are none of");
             });
 

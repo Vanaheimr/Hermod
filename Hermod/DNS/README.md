@@ -79,13 +79,16 @@ QUIC, and RFC 9250 (DNS over QUIC) is a different transport rather than a third
 rendering of this one.
 
 `AuthoritativeDNSRequestHandler` refuses a name outside every zone it serves
-(RFC 1034 §4.3.2), with the **special-use names** of RFC 6761 as the exception
-(`SpecialUseZones`):
+(RFC 1034 §4.3.2), with the **special-use names** of RFC 6761 and RFC 7686 as
+the exception (`SpecialUseZones`):
 
 - `localhost.` and every name below it are the loopback addresses for A and
   AAAA and NODATA for any other type, and `invalid.` and every name below it
   NXDOMAIN — whatever the zone holds at them, since §6.3 and §6.4, item 6, say
   these answers "cannot be modified by local configuration".
+- `onion.` and every name below it are NXDOMAIN, whatever the zone holds:
+  RFC 7686 §2, item 5, "Authoritative servers MUST respond to queries for
+  .onion with NXDOMAIN".
 - `test.` and the private-address reverse domains (`10.in-addr.arpa.`,
   `16.172.in-addr.arpa.` to `31.172.in-addr.arpa.`, `168.192.in-addr.arpa.`)
   are answered from the zone where it serves them, and negatively where it does
@@ -94,7 +97,8 @@ rendering of this one.
 
 Each negative answer cites the SOA RFC 6303 §3 gives such a domain, so that it
 may be cached: `@ 10800 IN SOA @ nobody.invalid. 1 3600 1200 604800 10800`.
-Example names (§6.5) are not special to a server and are refused like any other.
+Example names (§6.5) and `.alt` names (RFC 9476 §3.2) are not special to a
+server and are refused like any other.
 
 
 ## DNSClient — The Orchestrator
@@ -135,10 +139,11 @@ concerns:
 - **EDNS Client Subnet auto-injection** — set `DNSClient.ClientSubnet` once,
   and the truncated client subnet is added to every outgoing query
   (RFC 7871)
-- **Special-use names** (RFC 6761 §6.3, §6.4) — `localhost.` and every name
-  below it are the loopback addresses for A and AAAA and NODATA for any other
-  type, and `invalid.` and every name below it NXDOMAIN, answered by
-  `SpecialUseNames` without a name server, with the cache or without it
+- **Special-use names** (RFC 6761 §6.3, §6.4, RFC 7686 §2) — `localhost.` and
+  every name below it are the loopback addresses for A and AAAA and NODATA for
+  any other type, and `invalid.` and `onion.`, each with every name below it,
+  NXDOMAIN, answered by `SpecialUseNames` without a name server, with the cache
+  or without it
 
 
 ## NameResolution — Never the Operating System's Resolver
@@ -148,7 +153,8 @@ Every client in Hermod that is given a host to connect to turns it into addresse
 brackets, or with its zone — `fe80::1%14` — too), `localhost` and every name below it the loopback
 addresses (RFC 6761 §6.3), and a host name what the given DNS client finds for it, IPv6 first
 (`Query_IPAddressesToConnect`, RFC 8305). A name below `invalid.` is refused without asking the
-DNS client (RFC 6761 §6.4), and so is a host name without a DNS client, each with a
+DNS client (RFC 6761 §6.4), and so are a name below `onion.`, which only Tor resolves (RFC 7686 §2),
+and a host name without a DNS client, each with a
 `NameResolutionException`; the resolver of the
 operating system is **never** asked. An application that resolves its names securely — its own
 name servers, DNS over TLS or HTTPS, DNSSEC — must not be dialled around them.

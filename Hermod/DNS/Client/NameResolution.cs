@@ -34,10 +34,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// DNSSEC - must not be dialled around them: a name resolved by the operating system is one an
     /// attacker on the local network, or a name server nobody chose, may have answered, and nothing
     /// would say so. So an IP address is itself, "localhost" and every name below it the loopback
-    /// addresses, an "invalid" name nothing, a host name what the DNS client given finds for it - and a
-    /// host name without a DNS client is refused rather than looked up some other way. The two special-use
-    /// names are answered here, without asking the DNS client, as RFC 6761 §6.3 and §6.4 ask of a name
-    /// resolution API: a DNS client may be one that carries every query to its server.
+    /// addresses, an "invalid" name and a .onion name nothing, a host name what the DNS client given finds
+    /// for it - and a host name without a DNS client is refused rather than looked up some other way. The
+    /// special-use names are answered here, without asking the DNS client, as RFC 6761 §6.3 and §6.4 ask of
+    /// a name resolution API, and as RFC 7686 §2 asks of a resolver and of an application that speaks no
+    /// Tor: a DNS client may be one that carries every query to its server.
     /// </remarks>
     public static class NameResolution
     {
@@ -123,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Host">A host name, an IP address (an IPv6 address in brackets, or with its zone, too), or "localhost".</param>
         /// <param name="DNSClient">The DNS client a host name is resolved with.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
-        /// <exception cref="NameResolutionException">A host name without a DNS client, no host name at all, an "invalid" name, or one it found no address for.</exception>
+        /// <exception cref="NameResolutionException">A host name without a DNS client, no host name at all, an "invalid" name, a .onion name, or one it found no address for.</exception>
         public static async Task<IReadOnlyList<System.Net.IPAddress>> ResolveAsync(String             Host,
                                                                                    IDNSClient?        DNSClient,
                                                                                    CancellationToken  CancellationToken = default)
@@ -135,9 +136,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var host = Host.Trim();
 
             // RFC 6761 §6.4: an "invalid" name has no address, and the DNS client is not asked for one.
-            if (DNSServiceName.TryParse(host, out var name, out _) &&
-                SpecialUseNames.IsInvalid(name))
-                throw new NameResolutionException(Host, $"'{Host}' is an \"invalid\" name, which resolves to no address (RFC 6761 §6.4); no DNS client is asked.");
+            // RFC 7686 §2: nor has a .onion name without Tor - item 3 has a resolver answer NXDOMAIN, and
+            // item 2 an application that speaks no Tor "generate an error upon the use of .onion" and
+            // not "perform a DNS lookup".
+            if (DNSServiceName.TryParse(host, out var name, out _))
+            {
+
+                if (SpecialUseNames.IsInvalid(name))
+                    throw new NameResolutionException(Host, $"'{Host}' is an \"invalid\" name, which resolves to no address (RFC 6761 §6.4); no DNS client is asked.");
+
+                if (SpecialUseNames.IsOnion(name))
+                    throw new NameResolutionException(Host, $"'{Host}' is a .onion name, which only the Tor network resolves (RFC 7686 §2); no DNS client is asked.");
+
+            }
 
             if (DNSClient is null)
                 throw new NameResolutionException(Host, $"'{Host}' is a host name, and no DNS client was given to resolve it; the resolver of the operating system is not asked.");

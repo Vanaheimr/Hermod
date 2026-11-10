@@ -230,6 +230,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
 
         }
 
+        /// <summary>
+        /// "onion." and every name below it are the Tor network's (RFC 7686 §2): a resolver without Tor answers
+        /// NXDOMAIN (item 3), and an application without it does not "perform a DNS lookup" (item 2). The DNS
+        /// client - which here would name an address - is not asked.
+        /// </summary>
+        [TestCase("hiddenservice.onion")]
+        [TestCase("www.hiddenservice.onion.")]
+        [TestCase("Onion")]
+        public async Task AnOnionNameIsRefusedWithoutAskingTheDNSClient(String Host)
+        {
+
+            var dnsClient = new FakeDNSClient();
+            dnsClient.IPv4Addresses.Add(IPv4Address.Parse("192.0.2.7"));
+
+            var refused = await Assert.ThrowsAsync<NameResolutionException>(async () => await NameResolution.ResolveAsync(Host, dnsClient));
+
+            Assert.That(refused!.Host,        Is.EqualTo(Host));
+            Assert.That(refused.Message,      Does.Contain(".onion"));
+            Assert.That(AskedFor(dnsClient),  Is.Empty);
+
+        }
+
         [Test]
         public async Task SSHsRefusalIsOneOfNameResolution()
         {

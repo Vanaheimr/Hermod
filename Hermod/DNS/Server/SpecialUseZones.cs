@@ -25,9 +25,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
-    /// What an authoritative server answers for the special-use names of RFC 6761 §6.1 to §6.4: the localhost
-    /// and "invalid" names whatever it serves, and the test names and private-address reverse names when it
-    /// serves no zone for them.
+    /// What an authoritative server answers for the special-use names of RFC 6761 §6.1 to §6.4 and RFC 7686:
+    /// the localhost, "invalid" and .onion names whatever it serves, and the test names and private-address
+    /// reverse names when it serves no zone for them.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -36,6 +36,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// negative response" for any other type. §6.4, item 5, says the same of "invalid" names, which are
     /// NXDOMAIN. Item 6 of both: the answers are "defined by protocol specification" and "cannot be modified by
     /// local configuration", so they are given before the zone is asked.
+    /// </para>
+    /// <para>
+    /// RFC 7686 §2, item 5: "Authoritative servers MUST respond to queries for .onion with NXDOMAIN." Item 6
+    /// forbids operators to configure an answer, so a .onion name is NXDOMAIN before the zone is asked, too.
     /// </para>
     /// <para>
     /// §6.1 and §6.2, item 5, ask for "immediate negative responses" for the private-address reverse names and
@@ -47,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// A negative answer is NXDOMAIN, unless the zone holds a name below the one asked: NXDOMAIN would deny that
     /// one too (RFC 8020 §2), and the answer is NODATA. Each negative answer cites the SOA of the special-use
     /// domain, as RFC 2308 §3 asks of every negative answer, so that it may be cached. The SOA is the one RFC
-    /// 6303 §3 gives the empty zones a resolver serves for these domains: the domain as its own primary server,
+    /// 6303 §3 gives the empty zones a resolver serves for such domains: the domain as its own primary server,
     /// "nobody.invalid." as the mailbox, and three hours for the record, for the negative answers and for the
     /// addresses of a localhost name.
     /// </para>
@@ -69,7 +73,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region FixedBySpecification(Question)
 
         /// <summary>
-        /// The answer for a localhost or an "invalid" name, which no zone changes; null for any other name.
+        /// The answer for a localhost, an "invalid" or a .onion name, which no zone changes; null for any other
+        /// name.
         /// </summary>
         /// <param name="Question">The question.</param>
         internal static DNSZoneLookupResult? FixedBySpecification(DNSQuestion Question)
@@ -80,8 +85,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (!IsInternetClass(Question))
                 return null;
 
-            if (SpecialUseNames.IsInvalid(name))
-                return DNSZoneLookupResult.NameError([ StartOfAuthority("invalid.") ]);
+            if (SpecialUseNames.IsInvalid(name) || SpecialUseNames.IsOnion(name))
+                return DNSZoneLookupResult.NameError([ StartOfAuthority(SpecialUseNames.DomainOf(name)!) ]);
 
             if (SpecialUseNames.IsLocalhost(name))
             {
