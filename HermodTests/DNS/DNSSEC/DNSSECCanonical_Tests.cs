@@ -82,6 +82,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
 
         #endregion
 
+        #region AnRRsetIsOrderedByItsRDataAlone()
+
+        /// <summary>
+        /// RFC 4034 §6.3 orders an RRset by "the RDATA portion of the canonical
+        /// form of each RR". x.y.example. sorts before aa.example. — 01 before 02 —
+        /// although its record is the longer, and RDLENGTH would say otherwise.
+        /// </summary>
+        [Test]
+        public void AnRRsetIsOrderedByItsRDataAlone()
+        {
+
+            var longer   = new MX(Owner, DNSQueryClasses.IN, TTL, 10, DomainName.Parse("x.y.example."));
+            var shorter  = new MX(Owner, DNSQueryClasses.IN, TTL, 10, DomainName.Parse("aa.example."));
+
+            var template = new RRSIG(Owner, DNSQueryClasses.IN, TTL, DNSResourceRecordTypes.MX, 13, 2, 3600,
+                                     1893456000, 1735689600, 12345, DomainName.Parse("example."), [ 0x00 ]);
+
+            foreach (var rrset in new[] { new IDNSResourceRecord[] { longer, shorter }, [ shorter, longer ] })
+            {
+
+                var signedData = Convert.ToHexString(DNSSECCanonical.SignedData(rrset, template));
+                var first      = signedData.IndexOf("000A01780179",   StringComparison.Ordinal);
+                var second     = signedData.IndexOf("000A0261610765", StringComparison.Ordinal);
+
+                Assert.That(first,  Is.GreaterThan(0));
+                Assert.That(second, Is.GreaterThan(first));
+
+            }
+
+        }
+
+        #endregion
+
         #region OnlyTheNamesAreLowercased()
 
         /// <summary>

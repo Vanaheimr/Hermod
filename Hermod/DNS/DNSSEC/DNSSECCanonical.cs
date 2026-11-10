@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var signerName = DNSTools.SerializeCanonicalName(Signature.SignerName.FullName);
             stream.Write(signerName, 0, signerName.Length);
 
-            var canonical = new List<Byte[]>();
+            var canonical = new List<(Byte[] RData, Byte[] Record)>();
 
             foreach (var resourceRecord in RRSet)
             {
@@ -103,15 +103,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 record.WriteUInt16BE((UInt16) rdata.Length);
                 record.Write        (rdata, 0, rdata.Length);
 
-                canonical.Add(record.ToArray());
+                canonical.Add((rdata, record.ToArray()));
 
             }
 
-            // RFC 4034 §6.3: the RRs are sorted by their canonical RDATA, which
-            // after the identical prefix above means sorting the octets.
-            canonical.Sort(Compare);
+            // RFC 4034 §6.3: the RRs are sorted "by treating the RDATA portion of
+            // the canonical form of each RR as a left-justified unsigned octet
+            // sequence" — the RDATA alone. The prefix above is the same for every
+            // record of the set except for one field, RDLENGTH, which stands in
+            // front of the RDATA: sorting whole records would put a shorter record
+            // first whatever its octets say, so x.y.example. (01 'x') would follow
+            // aa.example. (02 'a' 'a') rather than precede it.
+            canonical.Sort((left, right) => Compare(left.RData, right.RData));
 
-            foreach (var record in canonical)
+            foreach (var (_, record) in canonical)
                 stream.Write(record, 0, record.Length);
 
             return stream.ToArray();
