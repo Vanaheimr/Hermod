@@ -25,8 +25,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
-    /// The special-use names a name resolution library answers itself and never sends to a name server:
-    /// "localhost." and every name below it, and "invalid." and every name below it (RFC 6761 §6.3, §6.4).
+    /// The special-use names of RFC 6761 §6.1 to §6.4: those a name resolution library answers itself and never
+    /// sends to a name server — "localhost." and every name below it, and "invalid." and every name below it —
+    /// and those an authoritative server answers negatively when it serves no zone for them — "test." and the
+    /// private-address reverse-mapping domains, with every name below them.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -37,8 +39,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// responses", and item 1 lets users assume that these are NXDOMAIN.
     /// </para>
     /// <para>
-    /// "test." is special too, but not to a resolver: §6.2, item 3, asks resolution APIs to send test names to
-    /// their servers like any other name.
+    /// "test." and the private-address reverse names are special too, but not to a resolver: item 3 of §6.1
+    /// and §6.2 asks resolution APIs to send them to their servers like any other name. Item 5 asks
+    /// authoritative servers to answer them negatively "unless explicitly configured by the administrator to
+    /// give positive answers" (see <see cref="AuthoritativeDNSRequestHandler"/>).
     /// </para>
     /// </remarks>
     public static class SpecialUseNames
@@ -76,6 +80,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region IsTest     (Name)
+
+        /// <summary>
+        /// Whether the name is "test." or a name below it (RFC 6761 §6.2).
+        /// </summary>
+        /// <param name="Name">A name.</param>
+        public static Boolean IsTest(DNSServiceName Name)
+            => EndsIn(Name, "test");
+
+        #endregion
+
+        #region IsPrivateAddressReverse(Name)
+
+        /// <summary>
+        /// Whether the name is one of the reverse-mapping domains of the private address ranges of RFC 1918 —
+        /// "10.in-addr.arpa.", "16.172.in-addr.arpa." to "31.172.in-addr.arpa." and "168.192.in-addr.arpa." —
+        /// or a name below one (RFC 6761 §6.1).
+        /// </summary>
+        /// <param name="Name">A name.</param>
+        public static Boolean IsPrivateAddressReverse(DNSServiceName Name)
+            => PrivateAddressReverseDomain(Name) is not null;
+
+        #endregion
+
+        #region DomainOf(Name)
+
+        /// <summary>
+        /// The special-use domain of RFC 6761 §6.1 to §6.4 the name is in, in lower case and with the root's
+        /// dot — "localhost.", "invalid.", "test.", "10.in-addr.arpa." and so on — or null when it is in none.
+        /// </summary>
+        /// <param name="Name">A name.</param>
+        public static String? DomainOf(DNSServiceName Name)
+        {
+
+            if (IsLocalhost(Name))
+                return "localhost.";
+
+            if (IsInvalid(Name))
+                return "invalid.";
+
+            if (IsTest(Name))
+                return "test.";
+
+            return PrivateAddressReverseDomain(Name);
+
+        }
+
+        #endregion
+
         #region (private) EndsIn(Name, Label)
 
         // Names compare without case, and only A to Z have one (RFC 4343 §3): a label with a letter above
@@ -85,6 +138,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => Name.Labels.Count > 0 &&
                DNSServiceName.ASCIICaseFold(Name.Labels[^1]).Equals(Label, StringComparison.Ordinal);
+
+        #endregion
+
+        #region (private) PrivateAddressReverseDomain(Name)
+
+        private static readonly HashSet<String> privateSecondOctetsOf172 = [
+            "16", "17", "18", "19", "20", "21", "22", "23",
+            "24", "25", "26", "27", "28", "29", "30", "31"
+        ];
+
+        // A label is the octet only as the digits RFC 1035 §3.5 writes it: "016" is another label, and so
+        // another name.
+        private static String? PrivateAddressReverseDomain(DNSServiceName Name)
+        {
+
+            var labels = Name.Labels;
+
+            if (labels.Count < 3                                                                          ||
+                !DNSServiceName.ASCIICaseFold(labels[^1]).Equals("arpa",    StringComparison.Ordinal) ||
+                !DNSServiceName.ASCIICaseFold(labels[^2]).Equals("in-addr", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var first = labels[^3];
+
+            if (first == "10")
+                return "10.in-addr.arpa.";
+
+            if (labels.Count < 4)
+                return null;
+
+            var second = labels[^4];
+
+            if (first == "172" && privateSecondOctetsOf172.Contains(second))
+                return $"{second}.172.in-addr.arpa.";
+
+            if (first == "192" && second == "168")
+                return "168.192.in-addr.arpa.";
+
+            return null;
+
+        }
+
+        #endregion
+
+
+        #region LoopbackAddresses(Name, Types, TimeToLive)
+
+        /// <summary>
+        /// The records a localhost name has for the types asked: its A for A, its AAAA for AAAA, and both for ANY,
+        /// which asks for every RRset the name has. Any other type has none (RFC 6761 §6.3).
+        /// </summary>
+        /// <param name="Name">A localhost name, which every record is owned by.</param>
+        /// <param name="Types">The types asked for.</param>
+        /// <param name="TimeToLive">The time to live of the records.</param>
+        public static IReadOnlyList<IDNSResourceRecord> LoopbackAddresses(DNSServiceName                       Name,
+                                                                          IEnumerable<DNSResourceRecordTypes>  Types,
+                                                                          TimeSpan                             TimeToLive)
+        {
+
+            var types    = Types.ToHashSet();
+            var answers  = new List<IDNSResourceRecord>();
+
+            if (types.Contains(DNSResourceRecordTypes.A)    || types.Contains(DNSResourceRecordTypes.Any))
+                answers.Add(new A   (Name, DNSQueryClasses.IN, TimeToLive, IPv4Address.Localhost));
+
+            if (types.Contains(DNSResourceRecordTypes.AAAA) || types.Contains(DNSResourceRecordTypes.Any))
+                answers.Add(new AAAA(Name, DNSQueryClasses.IN, TimeToLive, IPv6Address.Localhost));
+
+            return answers;
+
+        }
 
         #endregion
 
@@ -119,20 +245,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (IsLocalhost(Name))
             {
 
-                var types    = Types.Distinct().ToList();
-                var answers  = new List<IDNSResourceRecord>();
+                var types = Types.ToList();
 
                 if (types.Count == 0)
                     types.Add(DNSResourceRecordTypes.Any);
 
-                // ANY asks for every RRset the name has, and a localhost name has the two.
-                if (types.Contains(DNSResourceRecordTypes.A) || types.Contains(DNSResourceRecordTypes.Any))
-                    answers.Add(new A   (Name, DNSQueryClasses.IN, TimeToLive, IPv4Address.Localhost));
-
-                if (types.Contains(DNSResourceRecordTypes.AAAA) || types.Contains(DNSResourceRecordTypes.Any))
-                    answers.Add(new AAAA(Name, DNSQueryClasses.IN, TimeToLive, IPv6Address.Localhost));
-
-                Answer = Made(DNSResponseCodes.NoError, answers, RecursionDesired, Timeout, Runtime);
+                Answer = Made(DNSResponseCodes.NoError, LoopbackAddresses(Name, types, TimeToLive), RecursionDesired, Timeout, Runtime);
                 return true;
 
             }

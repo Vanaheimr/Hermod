@@ -393,8 +393,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 for (var redirection = 0; ; redirection++)
                 {
 
-                    var lookupResult = await zoneStore.Lookup(currentQuestion, dnssecOK, CancellationToken).
+                    // RFC 6761 §6.3 and §6.4, items 5 and 6: a localhost name and
+                    // an "invalid" name have the answers the specification gives
+                    // them, whatever the zone holds at them, so the zone is not
+                    // asked.
+                    var lookupResult = SpecialUseZones.FixedBySpecification(currentQuestion);
+                    var specialUse   = lookupResult is not null;
+
+                    if (lookupResult is null)
+                    {
+
+                        lookupResult = await zoneStore.Lookup(currentQuestion, dnssecOK, CancellationToken).
                                                        ConfigureAwait(false);
+
+                        // §6.1 and §6.2, item 5: a test name or a private-address
+                        // reverse name is answered negatively "unless explicitly
+                        // configured by the administrator to give positive
+                        // answers". What the zone serves is that configuration;
+                        // what it is not authoritative for gets the negative
+                        // answer, and not the REFUSED any other such name gets.
+                        if (lookupResult.Status == DNSZoneLookupStatus.NotAuthoritative &&
+                            SpecialUseZones.NegativeUnlessServed(currentQuestion, lookupResult.HoldsNamesBelow) is { } negative)
+                        {
+                            lookupResult = negative;
+                            specialUse   = true;
+                        }
+
+                    }
 
                     authorities.      AddRange(lookupResult.AuthorityRRs);
                     additionalRecords.AddRange(lookupResult.AdditionalRRs);
@@ -469,13 +494,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         // The name exists but holds nothing of the requested type. That is
                         // NODATA — unless the node is an alias, in which case RFC 1034
-                        // §4.3.2 requires the CNAME to be returned instead.
-                        await FollowCanonicalNames(
-                                  currentQuestion,
-                                  answers,
-                                  dnssecOK,
-                                  CancellationToken
-                              ).ConfigureAwait(false);
+                        // §4.3.2 requires the CNAME to be returned instead. A special-use
+                        // answer is no node of the zone's, and an alias the zone holds at
+                        // a localhost name is configuration RFC 6761 sets aside.
+                        if (!specialUse)
+                            await FollowCanonicalNames(
+                                      currentQuestion,
+                                      answers,
+                                      dnssecOK,
+                                      CancellationToken
+                                  ).ConfigureAwait(false);
 
                     }
                     else if (lookupResult.Status == DNSZoneLookupStatus.Referral)

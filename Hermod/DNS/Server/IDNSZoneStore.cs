@@ -72,17 +72,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public IEnumerable<IDNSResourceRecord> AdditionalRRs      { get; }
 
+        /// <summary>
+        /// With <see cref="DNSZoneLookupStatus.NotAuthoritative"/>: whether the store nevertheless holds records
+        /// at a name below the one asked, so that the name exists as far as this store can tell. An answer
+        /// about the name that is to be negative must then be NODATA: NXDOMAIN would deny those names too
+        /// (RFC 8020 §2).
+        /// </summary>
+        public Boolean                         HoldsNamesBelow    { get; }
+
 
         private DNSZoneLookupResult(DNSZoneLookupStatus             Status,
                                     IEnumerable<IDNSResourceRecord> AnswerRRs,
                                     IEnumerable<IDNSResourceRecord> AuthorityRRs,
-                                    IEnumerable<IDNSResourceRecord> AdditionalRRs)
+                                    IEnumerable<IDNSResourceRecord> AdditionalRRs,
+                                    Boolean                         HoldsNamesBelow   = false)
         {
 
-            this.Status         = Status;
-            this.AnswerRRs      = AnswerRRs;
-            this.AuthorityRRs   = AuthorityRRs;
-            this.AdditionalRRs  = AdditionalRRs;
+            this.Status           = Status;
+            this.AnswerRRs        = AnswerRRs;
+            this.AuthorityRRs     = AuthorityRRs;
+            this.AdditionalRRs    = AdditionalRRs;
+            this.HoldsNamesBelow  = HoldsNamesBelow;
 
         }
 
@@ -124,13 +134,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The name lies outside every zone this store serves.
         /// </summary>
-        public static DNSZoneLookupResult NotAuthoritative()
+        /// <param name="HoldsNamesBelow">Whether the store holds records at a name below the one asked.</param>
+        public static DNSZoneLookupResult NotAuthoritative(Boolean HoldsNamesBelow = false)
 
             => new (
                    DNSZoneLookupStatus.NotAuthoritative,
                    [],
                    [],
-                   []
+                   [],
+                   HoldsNamesBelow
                );
 
 

@@ -109,6 +109,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             public required HashSet<String>         Names         { get; init; }
             public required ZoneDenialOfExistence?  Denial        { get; init; }
 
+            /// <summary>
+            /// Every name this store holds records at, inside the zone or
+            /// outside it, and every name above one of them up to the root.
+            /// </summary>
+            public required HashSet<String>         Held          { get; init; }
+
         }
 
         #endregion
@@ -546,8 +552,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 var outside = ExactMatchOnly(Question, DNSSECOK);
 
+                // Not authoritative, but not ignorant either: a name above the
+                // apex, or above a name held outside it, has those names below
+                // it, and a caller that answers for it has to know.
                 return outside.Status == DNSZoneLookupStatus.NameError
-                           ? DNSZoneLookupResult.NotAuthoritative()
+                           ? DNSZoneLookupResult.NotAuthoritative(HoldsNamesBelow: zone.Held.Contains(qname))
                            : outside;
 
             }
@@ -1110,10 +1119,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 }
 
+                // Every owner name and everything above it, zone or no zone.
+                var held             = new HashSet<String>(StringComparer.Ordinal);
+
+                foreach (var owner in records.Keys)
+                {
+
+                    var labels = ZoneDenialOfExistence.LabelsOf(ZoneDenialOfExistence.Normalize(owner.FullName));
+
+                    for (var skip = 0; skip <= labels.Length; skip++)
+                        held.Add(ZoneDenialOfExistence.Join(labels, skip));
+
+                }
+
                 index = new ZoneIndex {
                             Origin            = origin,
                             StartOfAuthority  = startOfAuthority,
                             Names             = names,
+                            Held              = held,
                             Denial            = origin is not null
                                                     ? new ZoneDenialOfExistence(
                                                           origin,

@@ -78,6 +78,24 @@ Both versions RFC 8484 §5.2 talks about are served. HTTP/3 is not: Hermod has n
 QUIC, and RFC 9250 (DNS over QUIC) is a different transport rather than a third
 rendering of this one.
 
+`AuthoritativeDNSRequestHandler` refuses a name outside every zone it serves
+(RFC 1034 §4.3.2), with the **special-use names** of RFC 6761 as the exception
+(`SpecialUseZones`):
+
+- `localhost.` and every name below it are the loopback addresses for A and
+  AAAA and NODATA for any other type, and `invalid.` and every name below it
+  NXDOMAIN — whatever the zone holds at them, since §6.3 and §6.4, item 6, say
+  these answers "cannot be modified by local configuration".
+- `test.` and the private-address reverse domains (`10.in-addr.arpa.`,
+  `16.172.in-addr.arpa.` to `31.172.in-addr.arpa.`, `168.192.in-addr.arpa.`)
+  are answered from the zone where it serves them, and negatively where it does
+  not (§6.1, §6.2, item 5): NXDOMAIN, or NODATA above a name the zone holds,
+  which NXDOMAIN would deny (RFC 8020 §2).
+
+Each negative answer cites the SOA RFC 6303 §3 gives such a domain, so that it
+may be cached: `@ 10800 IN SOA @ nobody.invalid. 1 3600 1200 604800 10800`.
+Example names (§6.5) are not special to a server and are refused like any other.
+
 
 ## DNSClient — The Orchestrator
 
