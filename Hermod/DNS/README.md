@@ -74,9 +74,11 @@ Two places where DoH is deliberately *not* like DoT:
 - The requestor's EDNS(0) payload size is ignored, as RFC 8484 §6 requires — so
   it neither truncates the answer nor shortens its padding.
 
-Both versions RFC 8484 §5.2 talks about are served. HTTP/3 is not: Hermod has no
-QUIC, and RFC 9250 (DNS over QUIC) is a different transport rather than a third
-rendering of this one.
+Both versions RFC 8484 §5.2 talks about are served. HTTP/3 is not. Hermod has
+QUIC and HTTP/3 (`Hermod/QUIC`, `Hermod/HTTP3`), but no DoH listener runs on
+them, and `DNSHTTPSClient` asks over HTTP/1.1. RFC 9250 (DNS over QUIC) is a
+different transport rather than a third rendering of this one, and Hermod has no
+client or listener for it either.
 
 `AuthoritativeDNSRequestHandler` refuses a name outside every zone it serves
 (RFC 1034 §4.3.2), with the **special-use names** of RFC 6761 and RFC 7686 as
