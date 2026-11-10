@@ -151,7 +151,8 @@ concerns:
   NXDOMAIN, answered by `SpecialUseNames` without a name server, with the cache
   or without it
 - **Link-local names** (RFC 6762 §22.1) — `local.` and the link-local reverse
-  domains are not sent to the configured unicast servers but answered NXDOMAIN;
+  domains are not sent to the configured unicast servers: what the cache holds
+  for them (`CacheA`, `CacheSRV`, …) is the answer, and anything else NXDOMAIN;
   `HybridDNSClient` resolves them with Multicast DNS.
   `SendLinkLocalNamesToServers = true` sends them, for a network that serves
   ".local" by unicast DNS, as Active Directory domains named so do

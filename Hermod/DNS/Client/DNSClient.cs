@@ -185,8 +185,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Whether the link-local names of Multicast DNS - "local." and the link-local reverse domains
         /// "254.169.in-addr.arpa." and "8.e.f.ip6.arpa." to "b.e.f.ip6.arpa.", with every name below them -
         /// are sent to the DNS servers of this client. Default: false. RFC 6762 §22.1, item 3: libraries "SHOULD
-        /// NOT send queries for these names to their configured (unicast) caching DNS server(s)", so they are
-        /// NXDOMAIN here; HybridDNSClient resolves them with Multicast DNS. Set it for a network that serves
+        /// NOT send queries for these names to their configured (unicast) caching DNS server(s)", so what the
+        /// cache does not hold for them - records an application put there with CacheA, CacheSRV and the like
+        /// - is NXDOMAIN here; HybridDNSClient resolves them with Multicast DNS. Set it for a network that serves
         /// ".local" by unicast DNS, as Active Directory domains named so do - which RFC 6762 Appendix G
         /// recommends against.
         /// </summary>
@@ -614,21 +615,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             // RFC 6761 §6.3 and §6.4: a localhost name and an "invalid" name are answered here and sent
             // to no server - before the cache, whose entry for "localhost." covers neither the names below
             // it nor a type other than A and AAAA, and which a client may have none of, look past, or have
-            // emptied with SetDNSServers. Before the list of servers, too, because none is needed. So are a
-            // .onion name (RFC 7686 §2) and, unless they are to be sent, a link-local name (RFC 6762 §22.1).
+            // emptied with SetDNSServers. Before the list of servers, too, because none is needed. So is a
+            // .onion name (RFC 7686 §2).
             if (DNSServiceName.IsNotNullOrEmpty() &&
                 SpecialUseNames.TryAnswer(DNSServiceName,
                                           ResourceRecordTypes,
                                           recursionAsked,
                                           effectiveTimeout,
                                           stopWatch.Elapsed,
-                                          !SendLinkLocalNamesToServers,
+                                          false,
                                           out var specialUseAnswer))
             {
                 return specialUseAnswer;
             }
 
-            if (DNSServiceName.IsNullOrEmpty() || dnsServers.Count == 0)
+            // RFC 6762 §22.1, item 3: a link-local name is not sent to the servers - but what the cache
+            // holds for one, an application put there, as it would into a hosts file, and the cache
+            // answers it below. Only what the cache does not answer is NXDOMAIN, and that needs no server.
+            var keepsLinkLocalName = DNSServiceName.IsNotNullOrEmpty() &&
+                                     !SendLinkLocalNamesToServers   &&
+                                     SpecialUseNames.IsLinkLocal(DNSServiceName);
+
+            if (DNSServiceName.IsNullOrEmpty() || (dnsServers.Count == 0 && !keepsLinkLocalName))
                 return new DNSInfo(
 
                            Origin:                 new DNSServerConfig(
@@ -779,6 +787,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
             #endregion
+
+            // RFC 6762 §22.1, item 3: what the cache did not answer for a link-local name is not sent to a
+            // unicast server, but answered NXDOMAIN, as item 4 has a caching server answer it.
+            if (keepsLinkLocalName &&
+                SpecialUseNames.TryAnswer(DNSServiceName,
+                                          resourceRecordTypes,
+                                          recursionAsked,
+                                          effectiveTimeout,
+                                          stopWatch.Elapsed,
+                                          true,
+                                          out var linkLocalAnswer))
+            {
+                return linkLocalAnswer;
+            }
 
             // RFC 8198: Aggressive NSEC caching — check if the queried name
             // falls within a known NSEC range, proving non-existence.

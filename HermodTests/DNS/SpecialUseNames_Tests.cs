@@ -184,6 +184,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
+        #region ALinkLocalName_IsAnsweredFromTheCache()
+
+        /// <summary>
+        /// Item 3 keeps link-local names off the servers, not out of the cache: records an application put
+        /// there for one, as it would into a hosts file, are the answer. A type the cache holds nothing of is
+        /// NXDOMAIN, and needs no server either.
+        /// </summary>
+        [Test]
+        public async Task ALinkLocalName_IsAnsweredFromTheCache()
+        {
+
+            using var client = new DNSClient(ManualDNSServers:         [],
+                                             SearchForIPv4DNSServers:  false,
+                                             SearchForIPv6DNSServers:  false,
+                                             UseQueryCache:            true);
+
+            client.CacheA  (DomainName.Parse("printer.local"), IPv4Address.Parse("192.0.2.100"));
+            client.CacheSRV(DNSServiceName.Parse("_ipp._tcp.printer.local"), 10, 20, IPPort.Parse(631), DomainName.Parse("printer.local"));
+
+            var a     = await client.Query(DNSServiceName.Parse("printer.local."),           [ DNSResourceRecordTypes.A ]);
+            var srv   = await client.Query(DNSServiceName.Parse("_ipp._tcp.printer.local."), [ DNSResourceRecordTypes.SRV ]);
+            var aaaa  = await client.Query(DNSServiceName.Parse("printer.local."),           [ DNSResourceRecordTypes.AAAA ]);
+            var other = await client.Query(DNSServiceName.Parse("scanner.local."),           [ DNSResourceRecordTypes.A ]);
+
+            Assert.Multiple(() => {
+                Assert.That(a.    Answers.OfType<A>().Select(record => record.IPv4Address), Is.EqualTo(new[] { IPv4Address.Parse("192.0.2.100") }));
+                Assert.That(srv.  Answers.OfType<SRV>().Count(),                            Is.EqualTo(1));
+                Assert.That(aaaa. ResponseCode,                                             Is.EqualTo(DNSResponseCodes.NameError), "nothing cached of that type, and no server asked");
+                Assert.That(other.ResponseCode,                                             Is.EqualTo(DNSResponseCodes.NameError), "nothing cached at that name, and no server asked");
+            });
+
+        }
+
+        #endregion
+
         #region ANameBesideTheLinkLocalOnes_IsNotLinkLocal(Name)
 
         /// <summary>
