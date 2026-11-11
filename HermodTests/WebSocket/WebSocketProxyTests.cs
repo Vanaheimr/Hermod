@@ -325,6 +325,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 "Timed out waiting for the proxied binary message."
             );
 
+            // The client having read the answer is not the end of it. The proxy and the server tell of a
+            // frame they sent only once it has gone out, and the proxy tells of a frame it received only
+            // once it has passed it on upstream: the client can read "DCBA" before the proxy has told of
+            // sending it.
+            Assert.That(
+                SpinWait.SpinUntil(() => proxy_messageRequests.        Count >= 2 &&
+                                         server_messageRequests.       Count >= 2 &&
+                                         proxy_messageResponses.       Count >= 2 &&
+                                         server_messageResponses.      Count >= 2 &&
+                                         proxy_textMessageResponses.   Count >= 1 &&
+                                         proxy_binaryMessageResponses. Count >= 1 &&
+                                         server_textMessageResponses.  Count >= 1 &&
+                                         server_binaryMessageResponses.Count >= 1,
+                                   TimeSpan.FromSeconds(5)),
+                Is.True,
+                $"Timed out waiting for the proxy and the server to tell of every frame. proxy requests={proxy_messageRequests.Count}, server requests={server_messageRequests.Count}, proxy responses={proxy_messageResponses.Count}, server responses={server_messageResponses.Count}"
+            );
+
             #endregion
 
             #region Validate message delivery
