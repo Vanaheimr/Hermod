@@ -160,6 +160,29 @@ var server = new QuicServerConnection(certificate, clientCertificate: new Client
 `bad_certificate`; `Request` completes the handshake and leaves the verdict to the
 application. Clients pass their own credential as `clientCertificate:`.
 
+### Key pins instead of a CA
+
+A peer without a certificate any CA vouches for — a Local Controller on a site
+network, a station with its own key — is authenticated by the SHA-256 over its
+SubjectPublicKeyInfo (TLSA `3 1 1`, RFC 7469 `pin-sha256`): its key, and nothing
+else. Chain, name and validity period are not checked, and a mismatch never falls
+back to them. The CertificateVerify signature is verified as always.
+
+```csharp
+var client = new QuicClientConnection("192.168.10.5",
+                 certificateValidation: CertificateValidationOptions.PinnedTo(
+                     KeyPinPolicy.PinnedTo(KeyPin.Parse("0db1410b06336e5418c604b97d027a260baf35667e1f6c418029dbf7bfc3ef7e"))));
+
+var server = new QuicServerConnection(certificate,
+                 clientCertificate: ClientCertificateOptions.RequirePinned(
+                     KeyPinPolicy.PinnedTo(stationPin)));
+```
+
+`ServerCertificate.KeyPin` gives a certificate's pin. The same `KeyPinPolicy` works
+for Hermod's `SslStream` clients and servers (HTTP/1.1, WebSockets, HTTP/2) through
+`KeyPinValidator.ForServerCertificates<T>`, `ForClientCertificates<T>` and
+`ForSslStream`.
+
 ## RFC compliance
 
 | RFC / draft | Title | Status |

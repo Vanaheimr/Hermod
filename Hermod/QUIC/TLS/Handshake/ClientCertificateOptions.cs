@@ -91,6 +91,19 @@ public sealed record ClientCertificateOptions
                 CustomTrustRoots = [.. trustRoots],
             },
         };
+
+    /// <summary>
+    /// Requires a client key whose key pin is one of <paramref name="keyPins"/>. Chain, subject and
+    /// validity period of a client certificate are not checked, and its subject names no identity.
+    /// </summary>
+    /// <param name="keyPins">The key pins of the keys clients may present.</param>
+    /// <param name="onKeyPinValidated">Told the result of every key pin check.</param>
+    public static ClientCertificateOptions RequirePinned(KeyPinPolicy keyPins, Action<KeyPinValidation>? onKeyPinValidated = null)
+        => new()
+        {
+            Mode = ClientCertificateMode.Require,
+            Validation = CertificateValidationOptions.PinnedTo(keyPins, onKeyPinValidated) with { VerifyHostname = false },
+        };
 }
 
 /// <summary>

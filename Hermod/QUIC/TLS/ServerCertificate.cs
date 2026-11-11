@@ -59,6 +59,13 @@ public sealed class ServerCertificate : IDisposable
         => Convert.ToBase64String(SHA256.HashData(Certificate.PublicKey.ExportSubjectPublicKeyInfo()));
 
     /// <summary>
+    /// The key pin of this certificate's key: the same hash as <see cref="SubjectPublicKeyInfoPin"/>,
+    /// as a <see cref="Hermod.KeyPin"/>, for a client's <see cref="Handshake.CertificateValidationOptions.KeyPins"/>.
+    /// </summary>
+    public KeyPin KeyPin
+        => KeyPin.FromCertificate(Certificate);
+
+    /// <summary>
     /// SHA-256 over the DER certificate, lowercase hex. Not the same identity as
     /// <see cref="SubjectPublicKeyInfoPin"/>: this one covers the whole certificate, which is what
     /// WebTransport's <c>serverCertificateHashes</c> compares against. That option only accepts an

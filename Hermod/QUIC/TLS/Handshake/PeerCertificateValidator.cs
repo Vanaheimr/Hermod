@@ -110,7 +110,32 @@ public static class PeerCertificateValidator
                 $"CertificateVerify signature invalid (scheme {scheme}).");
         }
 
-        // (2) Hostname — policy.
+        // (2) A key-pinned peer: its key, and nothing else. No hostname, no chain, no validity
+        //     period, and no way back to them when the key does not match.
+        if (options.KeyPins is not null)
+        {
+            var validation = KeyPinValidator.Validate(options.KeyPins, leaf);
+
+            try
+            {
+                options.OnKeyPinValidated?.Invoke(validation);
+            }
+            catch
+            {
+                leaf.Dispose();
+                throw;
+            }
+
+            if (!validation.IsAccepted)
+            {
+                leaf.Dispose();
+                throw new CertificateValidationException(validation.Reason ?? "The key was refused.");
+            }
+
+            return leaf;
+        }
+
+        // (3) Hostname — policy.
         if (options.VerifyHostname && !leaf.MatchesHostname(serverName))
         {
             leaf.Dispose();
@@ -118,7 +143,7 @@ public static class PeerCertificateValidator
                 $"Certificate is not valid for hostname '{serverName}'.");
         }
 
-        // (3) Chain + validity period — policy.
+        // (4) Chain + validity period — policy.
         if (options.VerifyCertificateChain && !VerifyChain(leaf, certificateChainDer, options, out string? error))
         {
             leaf.Dispose();

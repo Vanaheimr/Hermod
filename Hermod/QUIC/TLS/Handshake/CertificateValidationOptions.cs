@@ -49,6 +49,20 @@ public sealed record CertificateValidationOptions
     public X509Certificate2Collection? CustomTrustRoots { get; init; }
 
     /// <summary>
+    /// Key pins instead of a CA. When set, the peer's key is checked against these pins and nothing
+    /// else: <see cref="VerifyCertificateChain"/>, <see cref="VerifyHostname"/> and
+    /// <see cref="CustomTrustRoots"/> are not looked at, the validity period neither, and a mismatch
+    /// never falls back to them. The CertificateVerify signature is verified as always.
+    /// </summary>
+    public KeyPinPolicy? KeyPins { get; init; }
+
+    /// <summary>
+    /// Told the result of every key pin check, e.g. to keep a key pin learned on first use. An
+    /// exception thrown there ends the handshake.
+    /// </summary>
+    public Action<KeyPinValidation>? OnKeyPinValidated { get; init; }
+
+    /// <summary>
     /// Default: full validation against the system roots incl. hostname.
     /// </summary>
     public static CertificateValidationOptions Default { get; } = new();
@@ -62,4 +76,16 @@ public sealed record CertificateValidationOptions
         VerifyCertificateChain = false,
         VerifyHostname = false,
     };
+
+    /// <summary>
+    /// The peer is authenticated by the key pins of the given policy, and by nothing else.
+    /// </summary>
+    /// <param name="keyPins">The key pin policy of the endpoint.</param>
+    /// <param name="onKeyPinValidated">Told the result of every key pin check.</param>
+    public static CertificateValidationOptions PinnedTo(KeyPinPolicy keyPins, Action<KeyPinValidation>? onKeyPinValidated = null)
+        => new()
+        {
+            KeyPins = keyPins,
+            OnKeyPinValidated = onKeyPinValidated,
+        };
 }
