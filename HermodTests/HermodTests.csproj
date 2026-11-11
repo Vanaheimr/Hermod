@@ -20,8 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.14" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="11.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.1" />
     <!-- Test-only reference peer (the real gRPC client) for the HTTP/2 gRPC
          interop tests — does not count against the core stack's BCL-only rule. -->
     <PackageReference Include="Grpc.Net.Client" Version="2.85.0" />
