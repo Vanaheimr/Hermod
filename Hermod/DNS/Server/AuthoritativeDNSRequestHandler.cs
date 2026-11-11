@@ -320,6 +320,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (private) AddAddressesOfKeyExchangers(Answers, AdditionalRecords, DNSSECOK, CancellationToken)
+
+        /// <summary>
+        /// The additional section processing a KX answer causes: the A and AAAA
+        /// records of every exchanger it names, from the zones this server holds.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// RFC 2230 §3.1: "KX records MUST cause type A additional section
+        /// processing for the host specified by EXCHANGER. In the event that the
+        /// host processing the DNS transaction supports IPv6, KX records MUST also
+        /// cause type AAAA additional section processing." Hermod supports IPv6,
+        /// so both. Additional section processing is RFC 1034 §4.3.2 step 6,
+        /// "Using local data only": an exchanger outside the zones held here, below
+        /// a zone cut, or without addresses adds nothing.
+        /// </para>
+        /// <para>
+        /// With the DO bit the RRSIGs come along, because RFC 4035 §3.1.1 says
+        /// "When placing a signed RRset in the Additional section, the name server
+        /// MUST also place its RRSIG RRs in the Additional section" — and the
+        /// lookup returns them with the RRset when asked with DO. An RRset already
+        /// in the answer or the additional section is not added twice.
+        /// </para>
+        /// <para>
+        /// What is added here is optional in the sense of RFC 2181 §9: if it does
+        /// not fit, it is left out whole and TC stays clear, which is
+        /// <see cref="DNSMessagePipeline.SerializeDatagramResponse"/>'s part.
+        /// </para>
+        /// </remarks>
+        private async Task AddAddressesOfKeyExchangers(List<IDNSResourceRecord>  Answers,
+                                                       List<IDNSResourceRecord>  AdditionalRecords,
+                                                       Boolean                   DNSSECOK,
+                                                       CancellationToken         CancellationToken)
+        {
+
+            var exchangers = Answers.OfType<KX>().
+                                     Where   (kx => kx.UnparsedRData is null &&
+                                                    kx.Exchanger.FullName.TrimEnd('.').Length > 0).
+                                     Select  (kx => (Name: kx.Exchanger, kx.Class)).
+                                     DistinctBy(exchanger => exchanger.Name.FullName.ToLowerInvariant()).
+                                     ToArray ();
+
+            foreach (var (exchanger, queryClass) in exchangers)
+            {
+
+                // Additional data is never worth an answer: a name the lookup
+                // cannot be asked about is skipped rather than thrown over.
+                if (DNSServiceName.TryParse(exchanger.FullName) is not { } exchangerName)
+                    continue;
+
+                foreach (var type in new[] { DNSResourceRecordTypes.A, DNSResourceRecordTypes.AAAA })
+                {
+
+                    if (Answers.Concat(AdditionalRecords).Any(record => record.Type == type &&
+                                                                        String.Equals(record.DomainName.FullName.TrimEnd('.'),
+                                                                                      exchanger.FullName.TrimEnd('.'),
+                                                                                      StringComparison.OrdinalIgnoreCase)))
+                    {
+                        continue;
+                    }
+
+                    var lookupResult = await zoneStore.Lookup(
+                                                 new DNSQuestion(
+                                                     exchangerName,
+                                                     type,
+                                                     queryClass
+                                                 ),
+                                                 DNSSECOK,
+                                                 CancellationToken
+                                             ).ConfigureAwait(false);
+
+                    if (lookupResult.Status != DNSZoneLookupStatus.Found)
+                        continue;
+
+                    AdditionalRecords.AddRange(
+                        lookupResult.AnswerRRs.Where(record => record.Type == type ||
+                                                               record is RRSIG signature && signature.TypeCovered == type)
+                    );
+
+                }
+
+            }
+
+        }
+
+        #endregion
+
 
         public async Task<DNSResponse?> ProcessDNSRequest(DNSPacket          Request,
                                                           CancellationToken  CancellationToken = default)
@@ -560,6 +647,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             else if (!foundName)
                 responseCode = DNSResponseCodes.NameError;
+
+            // RFC 2230 §3.1: a KX answer causes A and AAAA additional section
+            // processing for its exchangers. A referral answers nothing itself,
+            // and its additional section is the glue.
+            if (!referred)
+                await AddAddressesOfKeyExchangers(
+                          answers,
+                          additionalRecords,
+                          dnssecOK,
+                          CancellationToken
+                      ).ConfigureAwait(false);
 
             // RFC 6891 §6.1.1: mirror EDNS by carrying an OPT in the response.
             var responseOPT = BuildResponseOPT(Request, responseCode);

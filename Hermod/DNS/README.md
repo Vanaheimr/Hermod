@@ -393,6 +393,12 @@ type it claims — a NID of nine octets, a HIP whose key runs past the end —
 is kept as the octets that arrived (`UnparsedRData`), written back
 unchanged and shown in RFC 3597 §5's generic form.
 
+The authoritative server answers a KX query with the A and AAAA records of
+each exchanger in the additional section, from its own zones (RFC 2230 §3.1),
+and with their RRSIGs when the query has the DO bit (RFC 4035 §3.1.1). What
+does not fit a datagram is left out RRset by RRset, and TC stays clear
+(RFC 2181 §9); a referral's glue is not trimmed that way.
+
 ### DNSSEC Records
 
 | Type       | RFC       | Description                                  |

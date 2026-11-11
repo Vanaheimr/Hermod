@@ -597,6 +597,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var answers      = Response.AnswerRRs.ToArray();
             var responseOPT  = Response.AdditionalRRs.OfType<OPT>().Cast<IDNSResourceRecord>().ToArray();
 
+            // RFC 2181 §9: "The TC bit should not be set merely because some extra
+            // information could have been included, but there was insufficient
+            // room. This includes the results of additional section processing. In
+            // such cases the entire RRSet that will not fit in the response should
+            // be omitted, and the reply sent as is, with the TC bit clear."
+            //
+            // An authoritative answer's additional data is that extra information:
+            // the addresses its KX records ask for, with their RRSIGs. A referral's
+            // is its glue, which a resolver cannot do without, so a referral keeps
+            // the rule below. Whole RRsets go, from the last, an RRSIG with the
+            // RRset it covers, until the answer and authority sections fit.
+            if (Response.AuthoritativeAnswer)
+            {
+
+                var additionalRRsets = AdditionalRRsets(Response.AdditionalRRs.Where(record => record is not OPT));
+
+                for (var count = additionalRRsets.Count - 1; count >= 0; count--)
+                {
+
+                    var trimmed = Serialize(
+                                      new DNSResponse(
+                                          Request:               Request,
+                                          TransactionId:         Response.TransactionId,
+                                          QueryOrResponse:       DNSQueryResponse.Response,
+                                          Opcode:                Response.Opcode,
+                                          AuthoritativeAnswer:   Response.AuthoritativeAnswer,
+                                          Truncation:            false,
+                                          RecursionDesired:      Response.RecursionDesired,
+                                          RecursionAvailable:    Response.RecursionAvailable,
+                                          ResponseCode:          Response.ResponseCode,
+                                          Questions:             Response.Questions,
+                                          AnswerRRs:             answers,
+                                          AuthorityRRs:          Response.AuthorityRRs.ToArray(),
+                                          AdditionalRRs:         [ .. additionalRRsets.Take(count).SelectMany(rrset => rrset), .. responseOPT ]
+                                      )
+                                  );
+
+                    if (trimmed.Length <= limit)
+                        return trimmed;
+
+                }
+
+            }
+
             // Drop answer records from the end until the message fits. Authority
             // and additional sections go entirely, except for the OPT record.
             for (var count = answers.Length - 1; count >= 0; count--)
@@ -657,6 +701,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            AdditionalRRs:         []
                        )
                    );
+
+        }
+
+        #endregion
+
+        #region (private static) AdditionalRRsets(Records)
+
+        /// <summary>
+        /// The given records grouped into RRsets in the order they first appear,
+        /// each RRSIG in the group of the RRset it covers.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2181 §9 omits "the entire RRSet", and RFC 4035 §3.1.1 keeps an RRset
+        /// and its signatures together — so the unit that is left out is the pair.
+        /// </remarks>
+        private static List<List<IDNSResourceRecord>> AdditionalRRsets(IEnumerable<IDNSResourceRecord> Records)
+        {
+
+            var rrsets = new List<List<IDNSResourceRecord>>();
+            var index  = new Dictionary<(String, DNSResourceRecordTypes, DNSQueryClasses), List<IDNSResourceRecord>>();
+
+            foreach (var record in Records)
+            {
+
+                var key = (record.DomainName.FullName.TrimEnd('.').ToLowerInvariant(),
+                           record is RRSIG signature ? signature.TypeCovered : record.Type,
+                           record.Class);
+
+                if (!index.TryGetValue(key, out var rrset))
+                {
+                    rrset       = [];
+                    index[key]  = rrset;
+                    rrsets.Add(rrset);
+                }
+
+                rrset.Add(record);
+
+            }
+
+            return rrsets;
 
         }
 
