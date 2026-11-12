@@ -236,6 +236,45 @@ await client.SendTextMessage("[2,\"19223201\",\"BootNotification\",{}]");
 ```
 
 
+## Over HTTP/2
+
+The client and the server open a WebSocket over HTTP/2 as well (RFC 8441): by
+an extended CONNECT with `:protocol = websocket` where the Upgrade of HTTP/1.1
+was, on the port the server takes WebSockets over HTTP/1.1 on.
+
+```csharp
+server.AcceptHTTP2   = true;                          // off by default
+client.WebSocketOver = WebSocketHTTPVersion.Auto;     // HTTP1_1 by default
+```
+
+| `WebSocketOver` | |
+|---|---|
+| `HTTP1_1` | the Upgrade of HTTP/1.1, as always |
+| `HTTP2`   | the extended CONNECT of HTTP/2 and nothing else: with TLS the server has to agree to `h2` (ALPN), without TLS it is spoken to in HTTP/2 from the first byte (prior knowledge) |
+| `Auto`    | `h2` and `http/1.1` are offered and the server chooses; a server that chooses `h2` and does not announce `SETTINGS_ENABLE_CONNECT_PROTOCOL` is dialled again with `http/1.1` alone; without TLS it is HTTP/1.1 |
+
+`client.HTTPVersionInUse` and `connection.HTTPVersion` (server) say which one
+it came to.
+
+**The handshake is translated, not written a second time.** What a client
+offers and a server accepts beside the upgrade itself - the subprotocol, the
+extensions, an Authorization, a one-time password - are the same header fields
+over both. So the client writes the upgrade request it always wrote into a
+stream that sends it as an extended CONNECT and reads the server's 200 back as
+the 101 it waits for (`WebSocketOverHTTP2ClientStream`), and the server is
+handed the upgrade request a CONNECT stands for and answers it as every other
+(`WebSocketOverHTTP2ServerStream`): every validation, every authentication and
+every refusal - a 401, a 503 with its Retry-After - is the code it was, once.
+`Upgrade`, `Connection`, `Sec-WebSocket-Key` and `Sec-WebSocket-Accept` do not
+go over HTTP/2 (RFC 8441, Section 5); a CONNECT that carries a header field of
+one connection of HTTP/1.1, or one with a line break in it, is refused with 400.
+
+One WebSocket at a time per HTTP/2 connection: this server knows a connection
+by its remote socket. The frames of RFC 6455 are the ones of this folder, not
+those of `../../HTTP2/WebSocket`, which is the WebSocket of the HTTP/2 stack by
+itself. Not built: a WebSocket over HTTP/3 (RFC 9220).
+
+
 ## Testing
 
 - Unit tests: `dotnet test --filter FullyQualifiedName~WebSocket` (HermodTests).

@@ -191,6 +191,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         internal TCPConnection?         TCPConnection                 { get; init; }
 
         /// <summary>
+        /// The version of HTTP this WebSocket was opened over: HTTP/1.1 and its
+        /// Upgrade, or HTTP/2 and its extended CONNECT (RFC 8441). The HTTP
+        /// request of the connection reads as an upgrade request either way:
+        /// see <see cref="WebSocketOverHTTP2"/>.
+        /// </summary>
+        public HTTPVersion              HTTPVersion                   { get; init; } = HTTPVersion.HTTP_1_1;
+
+        /// <summary>
         /// The local TCP socket.
         /// </summary>
         public IPSocket                 LocalSocket                   { get; }

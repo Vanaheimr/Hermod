@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The TLS application protocols to use for ALPN (Application-Layer Protocol Negotiation).
         /// If empty, ALPN will be disabled.
         /// </summary>
-        public IEnumerable<SslApplicationProtocol>                       ApplicationProtocols             { get; } = [];
+        public IEnumerable<SslApplicationProtocol>                       ApplicationProtocols             { get; protected set; } = [];
 
         /// <summary>
         /// Whether to enforce TLS. If true, the client will attempt to establish a TLS connection immediately after connecting,
