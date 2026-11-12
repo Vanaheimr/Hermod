@@ -110,26 +110,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         #region Idle_Timeout_Slides_Until_The_Maximum_Lifetime()
 
         [Test]
-        public async Task Idle_Timeout_Slides_Until_The_Maximum_Lifetime()
+        public void Idle_Timeout_Slides_Until_The_Maximum_Lifetime()
         {
 
-            var store    = new SessionStore(IdleTimeout: TimeSpan.FromMilliseconds(400), MaximumLifetime: TimeSpan.FromMilliseconds(1000));
+            // A clock of the test's own: on a busy machine a Task.Delay of 250 ms can take
+            // longer than the 400 ms the session lives without a use.
+            var clock    = new FakeTimeProvider();
+            var store    = new SessionStore(IdleTimeout: TimeSpan.FromMilliseconds(400), MaximumLifetime: TimeSpan.FromMilliseconds(1000), TimeProvider: clock);
             var session  = store.Create(alice);
 
             Assert.That(session.ExpiresAt - session.CreatedAt,  Is.EqualTo(TimeSpan.FromMilliseconds(400)));
 
-            await Task.Delay(250);
+            clock.Advance(TimeSpan.FromMilliseconds(250));
 
             Assert.That(store.TryGet(session.Token, out var used),  Is.True);
             Assert.That(used!.LastSeenAt,                            Is.GreaterThan(session.LastSeenAt));
             Assert.That(used.ExpiresAt,                              Is.GreaterThan(session.ExpiresAt),  "a use extends the session");
 
-            await Task.Delay(250);
+            // Used every 250 ms from here on, so that the idle timeout never ends it: at
+            // 750 ms a use would extend it to 1150 ms, beyond the maximum lifetime.
+            clock.Advance(TimeSpan.FromMilliseconds(250));
+            Assert.That(store.TryGet(session.Token, out _),  Is.True);
+
+            clock.Advance(TimeSpan.FromMilliseconds(250));
 
             Assert.That(store.TryGet(session.Token, out var usedAgain),  Is.True);
-            Assert.That(usedAgain!.ExpiresAt,                             Is.LessThanOrEqualTo(session.CreatedAt + TimeSpan.FromMilliseconds(1000)),  "but never beyond the maximum lifetime");
+            Assert.That(usedAgain!.ExpiresAt,                             Is.EqualTo(session.CreatedAt + TimeSpan.FromMilliseconds(1000)),  "but never beyond the maximum lifetime");
 
-            await Task.Delay(600);
+            clock.Advance(TimeSpan.FromMilliseconds(200));
+            Assert.That(store.TryGet(session.Token, out _),  Is.True,   "used 200 ms ago, and 50 ms short of its maximum lifetime");
+
+            clock.Advance(TimeSpan.FromMilliseconds(100));
 
             Assert.That(store.TryGet(session.Token, out _),  Is.False,  "the maximum lifetime ends the session no matter how busy it was");
 
@@ -140,13 +151,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         #region Idle_Sessions_Expire()
 
         [Test]
-        public async Task Idle_Sessions_Expire()
+        public void Idle_Sessions_Expire()
         {
 
-            var store    = new SessionStore(IdleTimeout: TimeSpan.FromMilliseconds(150));
+            var clock    = new FakeTimeProvider();
+            var store    = new SessionStore(IdleTimeout: TimeSpan.FromMilliseconds(150), TimeProvider: clock);
             var session  = store.Create(alice);
 
-            await Task.Delay(300);
+            clock.Advance(TimeSpan.FromMilliseconds(300));
 
             Assert.That(store.TryGet(session.Token, out _),  Is.False);
             Assert.That(store.Count,                         Is.EqualTo(0));
@@ -299,19 +311,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// Looked at, a session is not used: its idle timeout runs on, and it ends as if nobody had looked.
         /// </summary>
         [Test]
-        public async Task TryPeek_Does_Not_Extend_A_Session()
+        public void TryPeek_Does_Not_Extend_A_Session()
         {
 
-            var store    = new SessionStore(IdleTimeout: TimeSpan.FromMilliseconds(300));
+            // A clock of the test's own: on a busy machine a Task.Delay of 150 ms took longer
+            // than the 300 ms the session lives without a use (2026-11-12).
+            var clock    = new FakeTimeProvider();
+            var store    = new SessionStore(IdleTimeout: TimeSpan.FromMilliseconds(300), TimeProvider: clock);
             var session  = store.Create(alice);
 
-            await Task.Delay(150);
+            clock.Advance(TimeSpan.FromMilliseconds(150));
 
             Assert.That(store.TryPeek(session.Token, out var peeked),  Is.True);
             Assert.That(peeked!.LastSeenAt,                            Is.EqualTo(session.LastSeenAt), "a look counted as a use");
             Assert.That(store.TryPeek(session.TokenHash, out _),       Is.False, "the hash is no token");
 
-            await Task.Delay(250);
+            clock.Advance(TimeSpan.FromMilliseconds(250));
 
             Assert.That(store.TryPeek(session.Token, out _),           Is.False, "looked at, the session lived on");
 
