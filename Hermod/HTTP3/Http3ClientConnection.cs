@@ -953,6 +953,14 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     byte[] IWebTransportHost.ExportKeyingMaterial(string label, ReadOnlySpan<byte> context, int length)
         => _quic.ExportKeyingMaterial(label, context, length); // RFC 8446 §7.5 / draft §4.7
 
+    /// <summary>
+    /// Keying material of this connection's TLS session (RFC 8446 §7.5): the same on both ends for
+    /// the same label, context and length, and of no other connection - what a credential is bound
+    /// to this connection with. Available once the handshake is done.
+    /// </summary>
+    public byte[] ExportKeyingMaterial(string label, ReadOnlySpan<byte> context, int length)
+        => _quic.ExportKeyingMaterial(label, context, length);
+
     QuicStream IWebTransportHost.OpenWebTransportUniStream(ulong sessionId)
     {
         QuicStream stream = _quic.OpenUnidirectionalStream();

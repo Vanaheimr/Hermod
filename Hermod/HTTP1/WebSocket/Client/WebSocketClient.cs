@@ -1372,7 +1372,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (TOTPLogin is not null && HTTPAuthentication is not null)
                 return "Both an HTTP authentication and a TOTP login were given, and an upgrade request has one Authorization header.";
 
-            if (TOTPConfig?.UseTLSExporterMaterial == true)
+            // Bound to the connection where that is known to be one whose TLS
+            // exports what a token is bound with before it is made: HTTP/3, and
+            // not "whichever the server takes", which may come to an SslStream.
+            if (TOTPConfig?.UseTLSExporterMaterial == true && WebSocketOver != WebSocketHTTPVersion.HTTP3)
                 return TOTPConfig.TLSChannelBindingNotAvailable;
 
             return null;
@@ -1393,7 +1396,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// one-time password is current for one validity period, and the one
         /// the client started with would be refused by then.
         /// </remarks>
-        private IHTTPAuthentication? AuthorizationOfThisAttempt()
+        private async Task<IHTTPAuthentication?> AuthorizationOfThisAttempt()
         {
 
             if (TOTPLogin is null || TOTPConfig is null)
@@ -1404,36 +1407,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (WhyTheTOTPCannotBeSent() is String why)
                 throw new InvalidOperationException(why);
 
+            var (totp, type) = await TOTPOfThisAttempt(TOTPConfig).ConfigureAwait(false);
+
             return HTTPTOTPAuthentication.Create(
                        TOTPLogin.Trim(),
-                       CurrentTOTP(TOTPConfig),
-                       TOTPHTTPHeaderType.RAW
+                       totp,
+                       type
                    );
 
         }
 
         #endregion
 
-        #region (private static) CurrentTOTP(Config)
+        #region (private) TOTPOfThisAttempt(Config)
 
         /// <summary>
-        /// The one-time password of this moment, unbound: see TOTPConfig.
+        /// The one-time password of this moment, and whether it is bound to
+        /// the connection this attempt is made over: see TOTPConfig.
         /// </summary>
-        private static String CurrentTOTP(TOTPConfig Config)
+        /// <remarks>
+        /// Bound, it is made with keying material of the TLS session of this
+        /// very connection (RFC 8446, Section 7.5), which the server has too
+        /// and nobody else: read off this connection and shown on another, the
+        /// password is not one. The material is asked of the connection the
+        /// request is about to be sent over, so a reconnect binds to the
+        /// connection it made and not to the one before.
+        /// </remarks>
+        private async Task<(String TOTP, TOTPHTTPHeaderType Type)> TOTPOfThisAttempt(TOTPConfig Config)
         {
 
-            if (Config.UseTLSExporterMaterial == true)
-                throw new InvalidOperationException(TOTPConfig.TLSChannelBindingNotAvailable);
+            Byte[]? material = null;
 
-            return TOTPGenerator.GenerateTOTP(
-                       Config.SharedSecret,
-                       Config.ValidityTime,
-                       Config.Length,
-                       Config.Alphabet,
-                       null,
-                       null,
-                       Config.HashAlgorithm
-                   ).Current;
+            if (Config.UseTLSExporterMaterial == true)
+            {
+
+                // No connection whose TLS exports anything: Connect refuses
+                // that before it opens one, so this is a configuration changed
+                // since, or an attempt that came to something else.
+                if (http3Client is not { } overHTTP3)
+                    throw new InvalidOperationException(TOTPConfig.TLSChannelBindingNotAvailable);
+
+                material = await overHTTP3.QueryAsync(
+                                     connection => connection.ExportKeyingMaterial(
+                                                       TOTPGenerator.TLSExporterLabel,
+                                                       ReadOnlySpan<Byte>.Empty,
+                                                       TOTPGenerator.TLSExporterLength
+                                                   ),
+                                     networkingCancellationToken
+                                 ).ConfigureAwait(false);
+
+            }
+
+            return (TOTPGenerator.GenerateTOTP(
+                        Config.SharedSecret,
+                        Config.ValidityTime,
+                        Config.Length,
+                        Config.Alphabet,
+                        null,
+                        material,
+                        Config.HashAlgorithm
+                    ).Current,
+
+                    material is null
+                        ? TOTPHTTPHeaderType.RAW
+                        : TOTPHTTPHeaderType.TLSChannelBinding);
 
         }
 
@@ -1478,10 +1515,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             // header, as the HTTP client sends it; with one, it is the
             // Authorization above.
             if (TOTPConfig is not null && TOTPLogin is null)
-                httpRequestBuilder.TOTP = new TOTPHTTPHeader(
-                                              TOTPHTTPHeaderType.RAW,
-                                              CurrentTOTP(TOTPConfig)
-                                          );
+            {
+
+                var (totp, type) = await TOTPOfThisAttempt(TOTPConfig).ConfigureAwait(false);
+
+                httpRequestBuilder.TOTP = new TOTPHTTPHeader(type, totp);
+
+            }
 
             // Offer the 'permessage-deflate' extension (RFC 7692), if enabled.
             if (EnablePerMessageDeflate)
@@ -1673,7 +1713,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         var responseTuple     = await SendHTTPRequest(
                                                           HTTPRequestBuilder,
-                                                          AuthorizationOfThisAttempt(),
+                                                          await AuthorizationOfThisAttempt().ConfigureAwait(false),
                                                           CancellationToken
                                                       );
 

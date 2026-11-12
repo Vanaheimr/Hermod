@@ -39,25 +39,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         /// <summary>
         /// Why Hermod's HTTP and WebSocket clients send nothing for a
-        /// configuration that asks for TLS channel binding.
+        /// configuration that asks for TLS channel binding - unless it is a
+        /// WebSocket client told to open its WebSocket over HTTP/3.
         /// </summary>
         /// <remarks>
         /// Binding the token needs TLS exporter material (RFC 8446 §7.5), and
         /// SslStream, which these clients' TLS is over HTTP/1.1 and HTTP/2,
         /// exports none. Over HTTP/3 the TLS is that of Hermod's QUIC, which
-        /// does export it - and the clients do not take it from there yet, nor
-        /// would the WebSocket servers verify a token bound with it. A token
-        /// computed without it and sent as bound is refused by any verifier that
-        /// binds; sent as raw, it is weaker than what was configured. Neither is
-        /// what somebody who asked for the binding wants, so nothing is sent,
-        /// whichever version of HTTP the connection is, or would have been,
-        /// made over: the text is of all three, since a client that chooses
-        /// the version itself refuses before it has chosen.
+        /// does export it: a WebSocket client whose WebSocket is to be opened
+        /// over HTTP/3 and nothing else binds its token to that connection,
+        /// and the WebSocket server verifies it with its side of the same. A
+        /// token computed without the material and sent as bound is refused by
+        /// any verifier that binds; sent as raw, it is weaker than what was
+        /// configured. Neither is what somebody who asked for the binding
+        /// wants, so nothing is sent wherever the connection is not known to
+        /// be one over HTTP/3 before it is made - a client left the choice of
+        /// the version refuses before it has chosen.
         /// </remarks>
         public const String TLSChannelBindingNotAvailable =
-            "The TOTP configuration asks for TLS channel binding, and this client binds no token: over HTTP/1.1 and HTTP/2 " +
-            "its TLS (SslStream) exports no keying material to bind one with, and over HTTP/3 it does not use what QUIC " +
-            "exports; nothing is sent rather than a token weaker than configured.";
+            "The TOTP configuration asks for TLS channel binding, and a token is bound only by a WebSocket client told to " +
+            "open its WebSocket over HTTP/3 and nothing else: over HTTP/1.1 and HTTP/2 the TLS (SslStream) exports no " +
+            "keying material to bind one with; nothing is sent rather than a token weaker than configured.";
 
         #endregion
 

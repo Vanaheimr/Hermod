@@ -199,6 +199,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public HTTPVersion              HTTPVersion                   { get; init; } = HTTPVersion.HTTP_1_1;
 
         /// <summary>
+        /// Keying material of the TLS session this WebSocket was opened over,
+        /// under the label and of the length a one-time password is bound with
+        /// (TOTPGenerator.TLSExporterLabel, an empty context) - or null, where
+        /// the TLS of the connection exports none: an SslStream, which is what
+        /// a WebSocket over HTTP/1.1 and HTTP/2 comes over. With it a
+        /// password bound to this connection is verified; without it, such a
+        /// password is refused and never taken for an unbound one.
+        /// </summary>
+        public Byte[]?                  TOTPTLSExporterMaterial       { get; init; }
+
+        /// <summary>
         /// The local TCP socket.
         /// </summary>
         public IPSocket                 LocalSocket                   { get; }

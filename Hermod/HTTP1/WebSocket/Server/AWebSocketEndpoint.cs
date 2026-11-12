@@ -883,7 +883,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <remarks>
         /// What this knows by default: HTTP Basic credentials in ClientLogins, and a
-        /// raw TOTP in ClientTOTPConfig. A server that knows its clients by something
+        /// TOTP in ClientTOTPConfig - raw, or bound to the TLS session of the
+        /// connection where that exports keying material, which is a WebSocket
+        /// over HTTP/3 (TOTPIsTheOneOf). A server that knows its clients by something
         /// else - a client certificate, a store of its own, credentials in the query
         /// string - overrides it, and asks the base for whatever it keeps of these.
         /// What an override throws refuses the upgrade too, with 500 - or with 503
@@ -906,44 +908,95 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
 
             if (Request.Authorization is HTTPTOTPAuthentication totpAuthentication &&
-                ClientTOTPConfig.TryGetValue(totpAuthentication.Login, out var config))
+                ClientTOTPConfig.TryGetValue(totpAuthentication.Login, out var config) &&
+                TOTPIsTheOneOf(config, totpAuthentication.TOTP, totpAuthentication.Type, Connection.TOTPTLSExporterMaterial))
             {
-
-                // SslStream does not expose TLS exporter material here. Reject a
-                // channel-bound credential rather than verify an unbound token.
-                if (config.UseTLSExporterMaterial == true ||
-                    totpAuthentication.Type != TOTPHTTPHeaderType.RAW)
-                    return Task.FromResult<String?>(null);
-
-                try
-                {
-
-                    var (previous, current, next, _, _) = TOTPGenerator.GenerateTOTPs(
-                                                             config.SharedSecret,
-                                                             config.ValidityTime,
-                                                             config.Length,
-                                                             config.Alphabet,
-                                                             Timestamp.Now,
-                                                             null,
-                                                             config.HashAlgorithm
-                                                         );
-
-                    if (MatchesToken(totpAuthentication.TOTP, previous) ||
-                        MatchesToken(totpAuthentication.TOTP, current)  ||
-                        MatchesToken(totpAuthentication.TOTP, next))
-                    {
-                        return Task.FromResult<String?>(totpAuthentication.Login);
-                    }
-
-                }
-                catch (ArgumentException)
-                {
-                    // Invalid server-side TOTP configuration must fail closed.
-                }
-
+                return Task.FromResult<String?>(totpAuthentication.Login);
             }
 
             return Task.FromResult<String?>(null);
+
+        }
+
+        #endregion
+
+        #region (public static)     TOTPIsTheOneOf(Config, TOTP, Type, TLSExporterMaterial)
+
+        /// <summary>
+        /// Whether a one-time password a client sent is one this configuration
+        /// makes at this moment - the one before, the current one or the next -
+        /// raw, or bound to the TLS session it came over.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The client says which it sent, and is held to it: a password sent
+        /// as bound is verified with the keying material of the connection it
+        /// arrived on and never as a raw one, and where that connection
+        /// exports none - an SslStream - it is refused, not verified as
+        /// something weaker than it claims to be.
+        /// </para>
+        /// <para>
+        /// The configuration says what the server asks for: one that asks for
+        /// the binding takes no raw password. One that does not ask for it
+        /// takes a bound one all the same, where it can verify it: that is
+        /// more than it asked for.
+        /// </para>
+        /// </remarks>
+        /// <param name="Config">The TOTP configuration of the login.</param>
+        /// <param name="TOTP">The one-time password the client sent.</param>
+        /// <param name="Type">Whether the client sent it as raw or as bound to the TLS session.</param>
+        /// <param name="TLSExporterMaterial">The keying material of the connection the password arrived on, or null where its TLS exports none.</param>
+        public static Boolean TOTPIsTheOneOf(TOTPConfig          Config,
+                                             String              TOTP,
+                                             TOTPHTTPHeaderType  Type,
+                                             Byte[]?             TLSExporterMaterial)
+        {
+
+            Byte[]? material;
+
+            switch (Type)
+            {
+
+                case TOTPHTTPHeaderType.RAW:
+                    if (Config.UseTLSExporterMaterial == true)
+                        return false;
+                    material = null;
+                    break;
+
+                case TOTPHTTPHeaderType.TLSChannelBinding:
+                    if (TLSExporterMaterial is not { Length: > 0 })
+                        return false;
+                    material = TLSExporterMaterial;
+                    break;
+
+                default:
+                    return false;
+
+            }
+
+            try
+            {
+
+                var (previous, current, next, _, _) = TOTPGenerator.GenerateTOTPs(
+                                                         Config.SharedSecret,
+                                                         Config.ValidityTime,
+                                                         Config.Length,
+                                                         Config.Alphabet,
+                                                         Timestamp.Now,
+                                                         material,
+                                                         Config.HashAlgorithm
+                                                     );
+
+                return MatchesToken(TOTP, previous) |
+                       MatchesToken(TOTP, current)  |
+                       MatchesToken(TOTP, next);
+
+            }
+            catch (ArgumentException)
+            {
+                // Invalid server-side TOTP configuration must fail closed.
+                return false;
+            }
 
         }
 
