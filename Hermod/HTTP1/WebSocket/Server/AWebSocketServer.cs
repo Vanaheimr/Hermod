@@ -958,6 +958,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (Interlocked.CompareExchange(ref WebSockets.Value, 1, 0) != 0)
                 return new Http3ConnectResult { Status = 503 };
 
+            // What a one-time password bound to this connection is verified
+            // with: asked here, where the connection is being worked on, and
+            // before anything is awaited. QUIC's TLS exports it; without it a
+            // bound password is refused (AuthenticateAsync).
+            Byte[]? totpExporterMaterial = null;
+
+            try
+            {
+                totpExporterMaterial = Connection.ExportKeyingMaterial(
+                                           TOTPGenerator.TLSExporterLabel,
+                                           ReadOnlySpan<Byte>.Empty,
+                                           TOTPGenerator.TLSExporterLength
+                                       );
+            }
+            catch (Exception e)
+            {
+                Logger.LogDebug(e, "No TLS exporter material of the HTTP/3 connection of {RemoteSocket}: a one-time password bound to it will be refused.", RemoteSocket);
+            }
+
             var bridge = new WebSocketOverHTTP2ServerStream();
 
             // The handshake and the frame loop every WebSocket of this
@@ -987,7 +1006,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
 
                     ) {
-                        HTTPVersion = HTTPVersion.HTTP_3_0
+                        HTTPVersion              = HTTPVersion.HTTP_3_0,
+                        TOTPTLSExporterMaterial  = totpExporterMaterial
                     },
                     ServerToken
                 ).ContinueWith(task => {

@@ -71,6 +71,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public const String TLSExporterLabel = "EXPORTER-Time-Based-One-Time-Password-v1";
 
+        /// <summary>
+        /// How many bytes of TLS exporter material a token is bound with, under
+        /// <see cref="TLSExporterLabel"/> and an empty context: both ends of a
+        /// connection have to ask for the same, or they bind to different things.
+        /// </summary>
+        public const Int32  TLSExporterLength = 32;
+
 
         #region (private) CalcTOTPSlot(CurrentSlot, TOTPLength, Alphabet, HMAC, HashAlgorithm, TLSExporterMaterial = null)
 

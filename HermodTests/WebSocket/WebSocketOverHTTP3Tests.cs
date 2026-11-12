@@ -742,6 +742,264 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
+
+        #region A one-time password bound to the connection
+
+        private const String TOTPSecret = "a-shared-secret-of-some-length";
+
+        private static TOTPConfig Bound() => new (TOTPSecret, UseTLSExporterMaterial: true);
+        private static TOTPConfig Raw()   => new (TOTPSecret, UseTLSExporterMaterial: false);
+
+        /// <summary>
+        /// The server takes WebSockets over HTTP/3 from who it knows by a
+        /// one-time password, and tells of every request it was sent.
+        /// </summary>
+        private async Task<ConcurrentQueue<HTTPRequest>> TheServerKnowsItsStationBy(TOTPConfig Config)
+        {
+
+            await TheServerTakesHTTP3();
+
+            webSocketServer!.RequireAuthentication        = true;
+            webSocketServer. ClientTOTPConfig["station"]  = Config;
+
+            var requests = new ConcurrentQueue<HTTPRequest>();
+
+            webSocketServer.OnHTTPRequest += (timestamp, server, httpRequest, cancellationToken) => { requests.Enqueue(httpRequest); return Task.CompletedTask; };
+
+            return requests;
+
+        }
+
+
+        #region AOneTimePasswordBoundToTheConnectionLetsItsClientInOverHTTP3()
+
+        /// <summary>
+        /// Over HTTP/3 the TLS of the connection exports keying material, on
+        /// both ends the same: a client told to bind its one-time password
+        /// does, says so, and is let in by a server that asks for the binding.
+        /// What it sent is not the password it would have sent unbound.
+        /// </summary>
+        [Test]
+        public async Task AOneTimePasswordBoundToTheConnectionLetsItsClientInOverHTTP3()
+        {
+
+            var requests       = await TheServerKnowsItsStationBy(Bound());
+
+            var client         = ClientOver(WebSocketHTTPVersion.HTTP3);
+            client.TOTPConfig  = Bound();
+            client.TOTPLogin   = "station";
+
+            var (_, response)  = await client.Connect();
+
+            Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True,
+                        "The server took no WebSocket: " + response?.EntirePDU);
+
+            var sent = requests.First().Authorization as HTTPTOTPAuthentication;
+
+            var (before, now, next, _, _) = TOTPGenerator.GenerateTOTPs(TOTPSecret);
+
+            Assert.Multiple(() => {
+
+                Assert.That(response.HTTPStatusCode,       Is.EqualTo(HTTPStatusCode.SwitchingProtocols));
+                Assert.That(client.HTTPVersionInUse,       Is.EqualTo(HTTPVersion.HTTP_3_0));
+                Assert.That(accepted.First().Login,        Is.EqualTo("station"),                             "who the server says came");
+
+                Assert.That(sent,                          Is.Not.Null,                                       "no Authorization: TOTP was sent");
+                Assert.That(sent?.Login,                   Is.EqualTo("station"));
+                Assert.That(sent?.Type,                    Is.EqualTo(TOTPHTTPHeaderType.TLSChannelBinding),  "the password does not say it is bound");
+                Assert.That(sent?.ToString(),              Does.Not.Contain("tlscb"),                         "bound is what a password is unless it says otherwise");
+                Assert.That(new[] { before, now, next },   Has.None.EqualTo(sent?.TOTP),                      "the password sent as bound is the unbound one");
+
+                Assert.That(accepted.First().TOTPTLSExporterMaterial?.Length,
+                                                           Is.EqualTo(TOTPGenerator.TLSExporterLength),       "the server has no keying material of the connection");
+
+            });
+
+            await TheMirrorAnswers(client);
+
+        }
+
+        #endregion
+
+        #region AOneTimePasswordBoundToOneConnectionIsNoneOnAnother()
+
+        /// <summary>
+        /// What the binding is for: the password a client was let in with,
+        /// read off its connection and shown on another within its validity,
+        /// is refused there - and the same client, making its own for its new
+        /// connection, is let in again.
+        /// </summary>
+        [Test]
+        public async Task AOneTimePasswordBoundToOneConnectionIsNoneOnAnother()
+        {
+
+            var requests       = await TheServerKnowsItsStationBy(Bound());
+
+            var first          = ClientOver(WebSocketHTTPVersion.HTTP3);
+            first.TOTPConfig   = Bound();
+            first.TOTPLogin    = "station";
+
+            Assert.That((await first.Connect()).Item2.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.SwitchingProtocols));
+
+            var readOff        = (HTTPTOTPAuthentication) requests.First().Authorization!;
+
+            // Shown again, at once, by somebody else on a connection of their own.
+            var thief                 = ClientOver(WebSocketHTTPVersion.HTTP3);
+            thief.HTTPAuthentication  = HTTPTOTPAuthentication.Create("station", readOff.TOTP, TOTPHTTPHeaderType.TLSChannelBinding);
+
+            var (_, refused)   = await thief.Connect();
+
+            // And shown as an unbound one, it is none either.
+            var liar                  = ClientOver(WebSocketHTTPVersion.HTTP3);
+            liar.HTTPAuthentication   = HTTPTOTPAuthentication.Create("station", readOff.TOTP, TOTPHTTPHeaderType.RAW);
+
+            var (_, refusedRaw) = await liar.Connect();
+
+            await first.Close();
+
+            // The client itself, again: another connection, another password.
+            var again          = ClientOver(WebSocketHTTPVersion.HTTP3);
+            again.TOTPConfig   = Bound();
+            again.TOTPLogin    = "station";
+
+            var (_, letIn)     = await again.Connect();
+
+            var secondTime     = requests.Select(request => request.Authorization).OfType<HTTPTOTPAuthentication>().Last();
+
+            Assert.Multiple(() => {
+                Assert.That(refused.   HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),        "a password read off another connection was taken");
+                Assert.That(refusedRaw.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),        "a bound password was taken for a raw one");
+                Assert.That(letIn.     HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.SwitchingProtocols),  "the client was not let in on its next connection");
+                Assert.That(secondTime.TOTP,            Is.Not.EqualTo(readOff.TOTP),                   "two connections were shown the same password");
+            });
+
+        }
+
+        #endregion
+
+        #region AServerAskingForTheBindingTakesNoRawPasswordOverHTTP3()
+
+        [Test]
+        public async Task AServerAskingForTheBindingTakesNoRawPasswordOverHTTP3()
+        {
+
+            await TheServerKnowsItsStationBy(Bound());
+
+            var client         = ClientOver(WebSocketHTTPVersion.HTTP3);
+            client.TOTPConfig  = Raw();
+            client.TOTPLogin   = "station";
+
+            var (_, response)  = await client.Connect();
+
+            // Nor the raw password with "bound" written on it.
+            var labelled                 = ClientOver(WebSocketHTTPVersion.HTTP3);
+            labelled.HTTPAuthentication  = HTTPTOTPAuthentication.Create("station", TOTPGenerator.GenerateTOTP(TOTPSecret).Current, TOTPHTTPHeaderType.TLSChannelBinding);
+
+            var (_, alsoRefused) = await labelled.Connect();
+
+            Assert.Multiple(() => {
+                Assert.That(response.   HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),  "a raw password was taken where the binding is asked for");
+                Assert.That(alsoRefused.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),  "a raw password sent as bound was taken");
+                Assert.That(accepted,                    Is.Empty);
+            });
+
+        }
+
+        #endregion
+
+        #region AServerNotAskingForTheBindingTakesABoundPasswordWhereItCanVerifyIt()
+
+        /// <summary>
+        /// More than it asked for: a server whose configuration of a login
+        /// does not ask for the binding verifies a bound password with the
+        /// keying material of the connection all the same.
+        /// </summary>
+        [Test]
+        public async Task AServerNotAskingForTheBindingTakesABoundPasswordWhereItCanVerifyIt()
+        {
+
+            await TheServerKnowsItsStationBy(Raw());
+
+            var client         = ClientOver(WebSocketHTTPVersion.HTTP3);
+            client.TOTPConfig  = Bound();
+            client.TOTPLogin   = "station";
+
+            var (_, response)  = await client.Connect();
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.SwitchingProtocols));
+                Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True);
+            });
+
+        }
+
+        #endregion
+
+        #region ABoundPasswordWithoutALoginGoesInTheTOTPHeaderAsBound()
+
+        [Test]
+        public async Task ABoundPasswordWithoutALoginGoesInTheTOTPHeaderAsBound()
+        {
+
+            await TheServerTakesHTTP3();
+
+            var requests = new ConcurrentQueue<HTTPRequest>();
+            webSocketServer!.OnHTTPRequest += (timestamp, server, httpRequest, cancellationToken) => { requests.Enqueue(httpRequest); return Task.CompletedTask; };
+
+            var client         = ClientOver(WebSocketHTTPVersion.HTTP3);
+            client.TOTPConfig  = Bound();
+
+            var (_, response)  = await client.Connect();
+
+            var header         = requests.First().GetHeaderField("TOTP")?.ToString() ?? "";
+            var now            = TOTPGenerator.GenerateTOTPs(TOTPSecret);
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.SwitchingProtocols));
+                Assert.That(header,                   Does.StartWith("1 "),                              "the TOTP header does not say its password is bound");
+                Assert.That(new[] { "1 " + now.Previous, "1 " + now.Current, "1 " + now.Next },
+                                                      Has.None.EqualTo(header),                          "the password sent as bound is the unbound one");
+            });
+
+        }
+
+        #endregion
+
+        #region ABoundPasswordIsSentOverNothingButHTTP3(Version)
+
+        /// <summary>
+        /// Left the choice of the version, the client may come to an
+        /// SslStream, which exports nothing: it refuses before it has chosen,
+        /// as it does over HTTP/1.1 and HTTP/2, and nothing reaches the server.
+        /// </summary>
+        [Test]
+        public async Task ABoundPasswordIsSentOverNothingButHTTP3([Values(WebSocketHTTPVersion.Auto,
+                                                                          WebSocketHTTPVersion.HTTP1_1,
+                                                                          WebSocketHTTPVersion.HTTP2)] WebSocketHTTPVersion Version)
+        {
+
+            var requests       = await TheServerKnowsItsStationBy(Bound());
+
+            var client         = ClientOver(Version);
+            client.TOTPConfig  = Bound();
+            client.TOTPLogin   = "station";
+
+            var refused = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.Connect(),
+                                                                         "A client that may come to an SslStream connected with a password to be bound.");
+
+            await Task.Delay(200);
+
+            Assert.Multiple(() => {
+                Assert.That(refused?.Message,  Does.Contain("over HTTP/3 and nothing else"));
+                Assert.That(requests,          Is.Empty,   "the server was asked something");
+            });
+
+        }
+
+        #endregion
+
+        #endregion
+
     }
 
 }

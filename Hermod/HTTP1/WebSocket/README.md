@@ -113,9 +113,13 @@ Known limitations:
   values below 15 are not supported; `no_context_takeover` is always
   negotiated in both directions (permitted by RFC 7692). Offers requiring a
   smaller server window are declined.
-- TLS-channel-bound TOTP cannot be verified by this HTTP/1.1 WebSocket server
-  because its `SslStream` does not expose TLS exporter material; such credentials
-  are rejected rather than silently treated as raw TOTP.
+- TLS-channel-bound TOTP is sent and verified for a WebSocket opened over HTTP/3
+  only, where the TLS of QUIC exports the keying material: a client with
+  `WebSocketOver = HTTP3` binds its token to the connection, and the server
+  verifies it with its side of the same. Over HTTP/1.1 and HTTP/2 `SslStream`
+  does not expose TLS exporter material; there such credentials are rejected by
+  the server and not sent by the client, rather than silently treated as raw
+  TOTP.
 - WebSocket over HTTP/2 (RFC 8441) / HTTP/3 (RFC 9220) is out of scope for
   this HTTP/1.1 implementation.
 
