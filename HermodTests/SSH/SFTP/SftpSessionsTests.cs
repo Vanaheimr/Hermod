@@ -283,6 +283,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 Assert.Multiple(() => {
                     Assert.That(refused!.Message,      Does.Contain("refused the 'sftp' subsystem"));
+                    Assert.That(refused,               Is.TypeOf<SshSubsystemRefusedException>(), "an answer, told apart from a server not reached");
+                    Assert.That((refused as SshSubsystemRefusedException)?.Subsystem, Is.EqualTo("sftp"));
                     Assert.That(audited.OfType<PolicyDeniedEvent>().Select(denied => (denied.PolicyType, denied.Target, denied.Reason)),
                                 Does.Contain(("subsystem", "sftp", "not served")));
                     Assert.That(audited.OfType<SubsystemRequestedEvent>(), Is.Empty);

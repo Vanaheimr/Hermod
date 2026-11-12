@@ -584,7 +584,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// </summary>
         /// <param name="Name">The subsystem, e.g. "sftp" or "ocpp@open.charging.cloud".</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
-        /// <exception cref="SshWireException">The server refused the subsystem; the channel is closed again.</exception>
+        /// <exception cref="SshSubsystemRefusedException">The server refused the subsystem; the channel is closed again.</exception>
         public async ValueTask<SshMuxChannel> OpenSubsystemAsync(String             Name,
                                                                  CancellationToken  CancellationToken   = default)
         {
@@ -604,7 +604,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
             try { await channel.CloseAsync(CancellationToken.None).ConfigureAwait(false); } catch { }
 
-            throw new SshWireException($"The server refused the '{Name}' subsystem.");
+            throw new SshSubsystemRefusedException(Name);
 
         }
 
@@ -619,7 +619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         {
             var channel = await mux.OpenChannelAsync("session", CancellationToken: CancellationToken).ConfigureAwait(false);
             if (!await channel.SendRequestAsync("subsystem", true, SshSessionChannel.EncodeString("sftp"), CancellationToken).ConfigureAwait(false))
-                throw new SshWireException("The server refused the 'sftp' subsystem.");
+                throw new SshSubsystemRefusedException("sftp");
             return await SftpClient.OpenAsync(new StreamSftpDuplex(channel.AsStream()), CancellationToken).ConfigureAwait(false);
         }
 

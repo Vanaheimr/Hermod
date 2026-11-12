@@ -115,4 +115,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     }
 
+
+    /// <summary>
+    /// The peer let this side in and answered a subsystem request with SSH_MSG_CHANNEL_FAILURE: it does
+    /// not serve that subsystem, or not to this login.
+    /// </summary>
+    /// <remarks>
+    /// A wire exception still, so that what catches those goes on catching this; its own type, so that
+    /// a caller can tell an answer - asking again would not change it - from a server it could not
+    /// reach or a packet it could not read. The connection itself is still there for whatever else
+    /// the login may do.
+    /// </remarks>
+    public sealed class SshSubsystemRefusedException : SshWireException
+    {
+
+        /// <summary>
+        /// The subsystem that was asked for, e.g. "sftp" or "ocpp@open.charging.cloud".
+        /// </summary>
+        public String  Subsystem  { get; }
+
+        /// <summary>
+        /// Create a new exception for a subsystem the peer refused.
+        /// </summary>
+        /// <param name="Subsystem">The subsystem that was asked for.</param>
+        /// <param name="By">Who refused it: "server" or "peer".</param>
+        public SshSubsystemRefusedException(String  Subsystem,
+                                            String  By   = "server")
+
+            : base($"The {By} refused the '{Subsystem}' subsystem.")
+
+        {
+            this.Subsystem = Subsystem;
+        }
+
+    }
+
 }

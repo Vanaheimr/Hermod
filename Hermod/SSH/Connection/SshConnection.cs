@@ -393,7 +393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 if (message == SshMessageNumber.ChannelSuccess)
                     return new SshChannelDuplex(Transport, remoteChannel, remoteWindow);
                 if (message == SshMessageNumber.ChannelFailure)
-                    throw new SshWireException($"The peer refused the '{Subsystem}' subsystem.");
+                    throw new SshSubsystemRefusedException(Subsystem, "peer");
                 await HandleTransportTrafficAsync(Transport, payload, CancellationToken).ConfigureAwait(false);
             }
 

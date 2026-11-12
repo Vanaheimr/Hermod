@@ -277,13 +277,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var running = await StartAsync(null, CancellationToken);
             await using var client  = await ConnectAsync(running, CancellationToken);
 
-            var refused = await Assert.ThrowsAsync<SshWireException>(async () => await client.OpenSubsystemAsync("nothing@open.charging.cloud", CancellationToken));
+            var refused = await Assert.ThrowsAsync<SshSubsystemRefusedException>(async () => await client.OpenSubsystemAsync("nothing@open.charging.cloud", CancellationToken));
 
             await using var sftp = await client.OpenSftpClientAsync(CancellationToken);
             await sftp.UploadAsync("/served.txt", [ 1 ], CancellationToken);
 
             Assert.Multiple(() => {
                 Assert.That(refused!.Message,                                  Does.Contain("nothing@open.charging.cloud"));
+                Assert.That(refused.Subsystem,                                 Is.EqualTo("nothing@open.charging.cloud"));
+                Assert.That(refused,                                           Is.InstanceOf<SshWireException>(), "what caught a wire exception goes on catching it");
                 Assert.That(running.Asked.Select(a => a.Name),                 Is.EqualTo(new[] { "nothing@open.charging.cloud" }), "the factory was asked for sftp");
                 Assert.That(running.Audit.Events.OfType<PolicyDeniedEvent>().Where(e => e.PolicyType == "subsystem").Select(e => e.Target),
                             Is.EqualTo(new[] { "nothing@open.charging.cloud" }));
