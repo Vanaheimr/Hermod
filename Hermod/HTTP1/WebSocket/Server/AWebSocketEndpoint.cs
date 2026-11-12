@@ -2515,6 +2515,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                     // The client closed, and the server only answers.
                                                                     webSocketConnection.RecordClosedBy(ConnectionClosedBy.Client);
 
+                                                                    // Where it was the server that closed, this is the answer
+                                                                    // its close is waiting for: nothing is sent back.
+                                                                    webSocketConnection.ClientHasClosed();
+
                                                                     await webSocketConnection.Close(
                                                                               receivedCloseCode == WebSocketFrame.ClosingStatusCode.NoStatusReceived
                                                                                   ? WebSocketFrame.ClosingStatusCode.NormalClosure

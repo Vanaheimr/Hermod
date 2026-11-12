@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Net.Sockets;
+using System.Net.Security;
 using System.Collections.Concurrent;
 
 using Microsoft.Extensions.Logging;
@@ -55,6 +56,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public static readonly TimeSpan                          DefaultCloseTimeout    = TimeSpan.FromSeconds(5);
 
+        /// <summary>
+        /// The default maximum time to wait, after a close frame was sent,
+        /// for the server to close the connection.
+        /// </summary>
+        public static readonly TimeSpan                          DefaultCloseHandshakeTimeout  = TimeSpan.FromSeconds(2);
+
         private readonly  ConcurrentDictionary<String, Object?>  customData             = [];
 
         private readonly  Socket?                                tcpSocket;
@@ -78,6 +85,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private volatile  Boolean                                isClosing;
 
         private readonly  SemaphoreSlim                          socketWriteSemaphore   = new (1, 1);
+
+        /// <summary>
+        /// One read at a time: the client's loop reads, and a close that waits for
+        /// the server reads in its place while the loop is held - in the handler
+        /// of a message, when it is that handler that closes.
+        /// </summary>
+        private readonly  SemaphoreSlim                          socketReadSemaphore    = new (1, 1);
+
+        /// <summary>
+        /// Whether a close has begun: there is one close, and one close frame.
+        /// </summary>
+        private           Int32                                  closeStarted;
+
+        /// <summary>
+        /// Completed when the close is done, for those who close while it is being closed.
+        /// </summary>
+        private readonly  TaskCompletionSource                   closeEnded             = new (TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>
+        /// Completed when the server has closed: its close frame was read, or the
+        /// stream has ended or failed.
+        /// </summary>
+        private readonly  TaskCompletionSource                   serverClosed           = new (TaskCreationOptions.RunContinuationsAsynchronously);
 
         private           UInt64                                 messagesReceivedCounter;
         private           UInt64                                 messagesSentCounter;
@@ -196,6 +226,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public UInt64                   BufferedAmount
             => (UInt64) Interlocked.Read(ref pendingSendBytes);
 
+
+        /// <summary>
+        /// The maximum time a close waits, after its close frame was sent, for the
+        /// server to close the connection (RFC 6455, section 7.1.1). What was sent
+        /// before the close is only sure to arrive when the server is given this
+        /// time: a socket closed earlier may reset the connection, and a reset
+        /// discards what the server has received and not yet read.
+        /// TimeSpan.Zero closes at once.
+        /// </summary>
+        public TimeSpan                 CloseHandshakeTimeout         { get; set; } = DefaultCloseHandshakeTimeout;
 
         /// <summary>
         /// For debugging reasons data can be send really really slow...
@@ -676,10 +716,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Buffer">The buffer for storing the received data.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
         /// <returns>Number of bytes read; 0 indicates that the remote endpoint closed the connection.</returns>
-        public ValueTask<Int32> ReadAsync(Memory<Byte>       Buffer,
-                                          CancellationToken  CancellationToken   = default)
+        public async ValueTask<Int32> ReadAsync(Memory<Byte>       Buffer,
+                                                CancellationToken  CancellationToken   = default)
+        {
 
-            => httpStream.ReadAsync(Buffer, CancellationToken);
+            await socketReadSemaphore.WaitAsync(CancellationToken).ConfigureAwait(false);
+
+            try
+            {
+
+                var read = await httpStream.ReadAsync(Buffer, CancellationToken).ConfigureAwait(false);
+
+                if (read == 0)
+                    serverClosed.TrySetResult();
+
+                return read;
+
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                // Reset, or closed underneath: nothing more will come.
+                serverClosed.TrySetResult();
+                throw;
+            }
+            finally
+            {
+                socketReadSemaphore.Release();
+            }
+
+        }
+
+        #endregion
+
+        #region (internal) CloseInProgress / ServerHasClosed()
+
+        /// <summary>
+        /// Whether this connection is being closed, or closed already.
+        /// </summary>
+        internal Boolean CloseInProgress
+
+            => IsClosed || Volatile.Read(ref closeStarted) != 0;
+
+        /// <summary>
+        /// The server's close frame was read: it has read all that was sent
+        /// before, and a close that waits for it need not wait any longer.
+        /// </summary>
+        internal void ServerHasClosed()
+
+            => serverClosed.TrySetResult();
 
         #endregion
 
@@ -689,15 +773,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Close this web socket connection.
         /// When a status code or reason is given, a HTTP WebSocket close frame will be sent.
         /// </summary>
+        /// <remarks>
+        /// After its close frame the connection sends nothing more, says so to the
+        /// server by closing its sending half, and waits - for no longer than
+        /// <see cref="CloseHandshakeTimeout"/> - for the server to close, before
+        /// it closes the socket (RFC 6455, section 7.1.1). A socket closed at once
+        /// may reset the connection, and a reset discards what the server has
+        /// received and not yet read: the close frame, and the messages before it.
+        ///
+        /// Without a status code and a reason nothing is sent and nothing is
+        /// waited for: that is how a connection is closed that is gone already.
+        ///
+        /// There is one close: who closes a connection that is being closed
+        /// returns when that close is done, and sends no second close frame.
+        /// </remarks>
         /// <param name="StatusCode">An optional closing status code for the HTTP WebSocket close frame.</param>
         /// <param name="Reason">An optional closing reason for the HTTP WebSocket close frame.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public async Task Close(ClosingStatusCode? StatusCode          = null,
-                                String?            Reason              = null,
-                                CancellationToken  CancellationToken   = default)
+        public Task Close(ClosingStatusCode? StatusCode          = null,
+                          String?            Reason              = null,
+                          CancellationToken  CancellationToken   = default)
+
+            => Close(StatusCode,
+                     Reason,
+                     null,
+                     CancellationToken);
+
+
+        /// <summary>
+        /// Close this web socket connection.
+        /// When a status code or reason is given, a HTTP WebSocket close frame will be sent.
+        /// </summary>
+        /// <param name="StatusCode">An optional closing status code for the HTTP WebSocket close frame.</param>
+        /// <param name="Reason">An optional closing reason for the HTTP WebSocket close frame.</param>
+        /// <param name="SendCloseFrame">An optional way of sending the close frame, for a client that tells of the frames it sends.</param>
+        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
+        internal async Task Close(ClosingStatusCode?                                          StatusCode,
+                                  String?                                                     Reason,
+                                  Func<WebSocketFrame, CancellationToken, Task<SentStatus>>?  SendCloseFrame,
+                                  CancellationToken                                           CancellationToken)
         {
+
             if (IsClosed)
                 return;
+
+            if (Interlocked.Exchange(ref closeStarted, 1) != 0)
+            {
+
+                // Being closed already, and closed when that is done - which
+                // is bounded, as this is: a close from within what the first
+                // one is waiting for must not wait for it for ever.
+                try
+                {
+                    await closeEnded.Task.WaitAsync(DefaultCloseTimeout + CloseHandshakeTimeout, CancellationToken).ConfigureAwait(false);
+                }
+                catch
+                { }
+
+                return;
+
+            }
 
             // The closing handshake must never be blocked or dropped by the send
             // backpressure limit (and must not recurse when the close was itself
@@ -709,22 +844,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 if (StatusCode.HasValue || Reason is not null)
                 {
 
+                    SentStatus sentStatus;
+
                     // Closing must never block forever, even when a
                     // concurrent send operation is stuck!
-                    using var closeCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-                    closeCTS.CancelAfter(DefaultCloseTimeout);
+                    using (var closeCTS = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken))
+                    {
 
-                    // RFC 6455 Section 5.1: All client-to-server frames MUST be masked!
-                    await SendWebSocketFrame(
-                              WebSocketFrame.Close(
-                                  StatusCode ?? ClosingStatusCode.NormalClosure,
-                                  Reason,
-                                  Fin.Final,
-                                  MaskStatus.On,
-                                  RandomExtensions.SecureRandomBytes(4)
-                              ),
-                              closeCTS.Token
-                          );
+                        closeCTS.CancelAfter(DefaultCloseTimeout);
+
+                        // RFC 6455 Section 5.1: All client-to-server frames MUST be masked!
+                        var closeFrame = WebSocketFrame.Close(
+                                             StatusCode ?? ClosingStatusCode.NormalClosure,
+                                             Reason,
+                                             Fin.Final,
+                                             MaskStatus.On,
+                                             RandomExtensions.SecureRandomBytes(4)
+                                         );
+
+                        sentStatus = SendCloseFrame is not null
+                                         ? await SendCloseFrame    (closeFrame, closeCTS.Token)
+                                         : await SendWebSocketFrame(closeFrame, closeCTS.Token);
+
+                    }
+
+                    // A close frame that did not go out is not going to be answered.
+                    if (sentStatus == SentStatus.Success)
+                        await WaitForTheServerToClose(CancellationToken);
 
                 }
             }
@@ -758,7 +904,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 { }
 
                 IsClosed = true;
+
+                closeEnded.TrySetResult();
+
             }
+        }
+
+        #endregion
+
+        #region (private) WaitForTheServerToClose(CancellationToken)
+
+        /// <summary>
+        /// After the close frame: send nothing more, tell the server so, and wait
+        /// for it to close - for no longer than <see cref="CloseHandshakeTimeout"/>.
+        /// </summary>
+        /// <remarks>
+        /// Only where the WebSocket is on a TCP connection of its own. Over HTTP/2
+        /// it is one stream of a connection, and over HTTP/3 one of QUIC's: there
+        /// the socket is not this connection's to half-close, and they are closed
+        /// as before.
+        /// </remarks>
+        /// <param name="CancellationToken">An optional cancellation token to end the wait early.</param>
+        private async Task WaitForTheServerToClose(CancellationToken CancellationToken)
+        {
+
+            if (tcpSocket is null ||
+                CloseHandshakeTimeout <= TimeSpan.Zero ||
+                !(ReferenceEquals(httpStream, tcpStream) || httpStream is SslStream))
+            {
+                return;
+            }
+
+            try
+            {
+                // Nothing is sent after a close frame (RFC 6455, section 5.5.1).
+                // The end of the stream behind it is what a server that does not
+                // answer close frames still closes on - and while only this half
+                // is closed, what the server still sends is taken and not
+                // answered with a reset.
+                tcpSocket.Shutdown(SocketShutdown.Send);
+            }
+            catch
+            {
+                // Gone already.
+                return;
+            }
+
+            await WebSocketCloseHandshake.WaitForThePeerToClose(
+                      httpStream,
+                      socketReadSemaphore,
+                      serverClosed.Task,
+                      CloseHandshakeTimeout,
+                      CancellationToken
+                  ).ConfigureAwait(false);
+
         }
 
         #endregion

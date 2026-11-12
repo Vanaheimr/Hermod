@@ -2019,7 +2019,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                  (webSocketClientConnection.IsClosed || webSocketClientConnection.IsRemoteTCPConnectionClosed)))
                                             {
 
-                                                if (!webSocketClientConnection.IsClosed)
+                                                // A connection that is being closed from this end waits for
+                                                // just this, and nothing about it is unexpected.
+                                                if (!webSocketClientConnection.CloseInProgress)
                                                 {
 
                                                     // This synthetic close frame (status code 1006) is only
@@ -2044,7 +2046,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 }
                                                 else
+                                                {
+
+                                                    // Closed, or being closed: the transport is not
+                                                    // taken away from a close that is still under way.
+                                                    await webSocketClientConnection.Close();
+
                                                     ClientCloseMessage ??= "The HTTP WebSocket connection was closed!";
+
+                                                }
 
                                                 // Ended by the other side - a close frame answered, or a
                                                 // socket closed underneath - and so a loss to come back
@@ -2503,6 +2513,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     // The close handshake demands that we send a close frame back,
                                                     // echoing the received close status code (RFC 6455 Section 5.5.1)!
                                                     var receivedCloseCode = frame.GetClosingStatusCode();
+
+                                                    // Where it was this end that closed, this is the answer
+                                                    // its close is waiting for: nothing is sent back.
+                                                    webSocketClientConnection.ServerHasClosed();
 
                                                     await webSocketClientConnection.Close(
                                                               receivedCloseCode == WebSocketFrame.ClosingStatusCode.NoStatusReceived
@@ -3228,6 +3242,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 CancellationToken                 CancellationToken   = default)
         {
 
+            // The connection's close is begun before the networking is cancelled:
+            // the loop that reads it calls that the end of the connection and would
+            // close it without a word - before the close frame is out, or right
+            // behind it, when what was sent before may be lost with it. Begun
+            // first, it is the one close there is: it sends the close frame,
+            // waits for the server to close, and the loop waits for it.
+            Task? closing     = null;
+            var   connection  = webSocketClientConnection;
+
+            try
+            {
+                if (HTTPStream is not null &&
+                    connection is not null &&
+                   !connection.CloseInProgress)
+                {
+
+                    var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
+
+                    closing = connection.Close(
+                                  StatusCode,
+                                  Reason,
+                                  (closeFrame, cancellationToken) => SendWebSocketFrame(
+                                                                         closeFrame,
+                                                                         eventTrackingId,
+                                                                         cancellationToken
+                                                                     ),
+                                  CancellationToken
+                              );
+
+                }
+            }
+            catch
+            { }
+
             try
             {
                 networkingCancellationTokenSource.Cancel();
@@ -3245,7 +3293,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             try
             {
-                if (HTTPStream is not null)
+
+                if (closing is not null)
+                    await closing.ConfigureAwait(false);
+
+                else if (HTTPStream is not null)
                 {
 
                     await SendWebSocketFrame(
@@ -3261,6 +3313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                           );
 
                 }
+
             }
             catch
             { }
