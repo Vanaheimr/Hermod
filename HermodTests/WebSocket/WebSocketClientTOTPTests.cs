@@ -317,6 +317,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 Assert.That(refused?.Message, Does.Contain("TLS channel binding"),
                             "The refusal does not say what was asked for.");
 
+                // The client may have been going to open its WebSocket over
+                // HTTP/3, where there is no SslStream to blame.
+                Assert.That(refused?.Message, Does.Contain("HTTP/1.1 and HTTP/2").And.Contain("HTTP/3"),
+                            "The refusal speaks of one TLS only, and the client has two.");
+
                 Assert.That(accepted.IsCompleted, Is.False,
                             "The client opened a connection before refusing.");
 
