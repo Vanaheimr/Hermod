@@ -1756,8 +1756,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
 
             if (status is < 200 or >= 300)
-                throw new HTTP2StreamException(HTTP2ErrorCode.REFUSED_STREAM, exchange.Stream.StreamId,
-                    $"CONNECT to '{Authority}' rejected with status {status}");
+                throw new HTTP2TunnelRefusedException(exchange.Stream.StreamId,
+                                                      status,
+                                                      exchange.Headers ?? [],
+                                                      $"CONNECT to '{Authority}' rejected with status {status}");
 
             return new HTTP2ClientTunnel(this, exchange.Stream, exchange.Headers ?? []);
 
@@ -2373,6 +2375,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     case HTTP2SettingsParameter.MAX_HEADER_LIST_SIZE:
                         remoteSettings.MaxHeaderListSize = value;
+                        break;
+
+                    case HTTP2SettingsParameter.ENABLE_CONNECT_PROTOCOL:
+                        // RFC 8441, Section 3: 1 says the server takes an extended
+                        // CONNECT. A server that said so does not take it back.
+                        if (value == 1)
+                            remoteSettings.EnableConnectProtocol = true;
                         break;
 
                     default:
@@ -3503,6 +3512,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// announced empty set.
         /// </summary>
         public IReadOnlyList<String>? OriginSet { get; private set; }
+
+        /// <summary>
+        /// Whether the server announced that it takes an extended CONNECT
+        /// (SETTINGS_ENABLE_CONNECT_PROTOCOL, RFC 8441, Section 3) - what a
+        /// WebSocket over this connection is opened with. Known once
+        /// <see cref="StartAsync"/> has returned: a server says so in its
+        /// first SETTINGS. A client must not send <c>:protocol</c> to a server
+        /// that has not.
+        /// </summary>
+        public Boolean ServerEnablesConnectProtocol
+            => remoteSettings.EnableConnectProtocol;
 
         private void HandleOrigin(HTTP2Frame Frame)
         {

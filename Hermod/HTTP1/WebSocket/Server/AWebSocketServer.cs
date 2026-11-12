@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Net.Sockets;
 using System.Net.Security;
 using System.Collections.Concurrent;
 using System.Security.Authentication;
@@ -26,6 +27,8 @@ using Microsoft.Extensions.Logging;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
@@ -183,6 +186,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public IEnumerable<SslApplicationProtocol>                      TLSApplicationProtocols
             => listener.TLSApplicationProtocols;
+
+        /// <summary>
+        /// Whether this server takes WebSockets over HTTP/2 as well (RFC 8441),
+        /// on the port it takes them over HTTP/1.1 on. Off unless switched on.
+        /// </summary>
+        /// <remarks>
+        /// With TLS the server then offers "h2" and "http/1.1" for ALPN, and a
+        /// client that chooses "h2" is spoken to in HTTP/2; a client that
+        /// offers nothing, or "http/1.1", as before. Without TLS a connection
+        /// that starts with the connection preface of HTTP/2 is one (prior
+        /// knowledge, RFC 9113, Section 3.3). An extended CONNECT with
+        /// <c>:protocol = websocket</c> is then an upgrade request to this
+        /// server, validated, authenticated and answered as every other: see
+        /// <see cref="WebSocketOverHTTP2"/>. One WebSocket at a time per
+        /// HTTP/2 connection: a connection is known by its remote socket here.
+        /// Anything else asked over HTTP/2 is refused.
+        /// </remarks>
+        public Boolean                                                  AcceptHTTP2                   { get; set; }
 
         /// <summary>
         /// Whether clients must present a TLS certificate.
@@ -548,10 +569,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Speak WebSocket on a TCP/TLS connection the listener accepted.
         /// </summary>
-        private Task HandleConnection(TCPConnection      Connection,
-                                      CancellationToken  CancellationToken)
+        private async Task HandleConnection(TCPConnection      Connection,
+                                            CancellationToken  CancellationToken)
+        {
 
-            => RunConnectionAsync(
+            if (AcceptHTTP2)
+            {
+
+                if (Connection.SSLStream is SslStream tlsStream)
+                {
+                    if (tlsStream.NegotiatedApplicationProtocol == SslApplicationProtocol.Http2)
+                    {
+                        await HandleHTTP2Connection(Connection, tlsStream, CancellationToken).ConfigureAwait(false);
+                        return;
+                    }
+                }
+
+                else if (await StartsWithTheHTTP2Preface(Connection, CancellationToken).ConfigureAwait(false))
+                {
+                    await HandleHTTP2Connection(Connection, Connection.NetworkStream, CancellationToken).ConfigureAwait(false);
+                    return;
+                }
+
+            }
+
+            await RunConnectionAsync(
                    new WebSocketServerConnection(
 
                        WebSocketServer:              this,
@@ -578,7 +620,202 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                        TCPConnection = Connection
                    },
                    CancellationToken
-               );
+               ).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region (private) StartsWithTheHTTP2Preface(Connection, CancellationToken)
+
+        /// <summary>
+        /// Whether what a client sent first on a connection without TLS is the
+        /// beginning of the connection preface of HTTP/2, "PRI * HTTP/2.0"
+        /// (RFC 9113, Section 3.4), and not of a request of HTTP/1.1. Looked
+        /// at without taking it off the socket.
+        /// </summary>
+        private static async Task<Boolean> StartsWithTheHTTP2Preface(TCPConnection      Connection,
+                                                                     CancellationToken  CancellationToken)
+        {
+
+            var preface  = "PRI "u8.ToArray();
+            var seen     = new Byte[preface.Length];
+
+            // A client that says nothing is the handshake's to wait for and to
+            // give up on, as it always was.
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(5));
+
+            try
+            {
+
+                while (true)
+                {
+
+                    var read = await Connection.TCPClient.Client.ReceiveAsync(seen, SocketFlags.Peek, deadline.Token).ConfigureAwait(false);
+
+                    if (read == 0)
+                        return false;
+
+                    for (var i = 0; i < read; i++)
+                        if (seen[i] != preface[i])
+                            return false;
+
+                    if (read == preface.Length)
+                        return true;
+
+                    await Task.Delay(5, deadline.Token).ConfigureAwait(false);
+
+                }
+
+            }
+            catch
+            {
+                return false;
+            }
+
+        }
+
+        #endregion
+
+        #region (private) HandleHTTP2Connection(Connection, Transport, CancellationToken)
+
+        /// <summary>
+        /// Speak HTTP/2 on a connection the listener accepted: an extended
+        /// CONNECT for a WebSocket (RFC 8441) is an upgrade request to this
+        /// server, and nothing else is served.
+        /// </summary>
+        private async Task HandleHTTP2Connection(TCPConnection      Connection,
+                                                 Stream             Transport,
+                                                 CancellationToken  CancellationToken)
+        {
+
+            // One WebSocket at a time: see AcceptHTTP2.
+            var webSockets = 0;
+
+            var http2Connection = new HTTP2Connection(
+
+                                      Transport,
+
+                                      RequestHandler:     (streamId, requestHeaders, requestBody, cancellationToken) =>
+                                                              Task.FromResult<(List<(String Name, String Value)>, Byte[]?)>((
+                                                                  [ (":status",      "400"),
+                                                                    ("content-type", "text/plain; charset=utf-8") ],
+                                                                  "This is a WebSocket server: over HTTP/2 a WebSocket is opened by an extended CONNECT with ':protocol = websocket' (RFC 8441).".ToUTF8Bytes()
+                                                              )),
+
+                                      ConnectHandler:     async (streamId, connectHeaders, cancellationToken) => {
+
+                                          var protocol = connectHeaders.FirstOrDefault(field => field.Name == ":protocol").Value;
+
+                                          // A CONNECT to somewhere else: this is no proxy.
+                                          if (protocol is null)
+                                              return new HTTP2ConnectResult { StatusCode = 405 };
+
+                                          // RFC 8441, Section 4: a protocol the server does not know.
+                                          if (protocol != WebSocketOverHTTP2.Protocol)
+                                              return new HTTP2ConnectResult { StatusCode = 501 };
+
+                                          if (!WebSocketOverHTTP2.TryUpgradeRequestOf(connectHeaders, out var requestBytes, out var error))
+                                          {
+                                              Logger.LogDebug("Refusing the WebSocket over HTTP/2 of {RemoteSocket}: {Error}", Connection.RemoteSocket, error);
+                                              return new HTTP2ConnectResult { StatusCode = 400 };
+                                          }
+
+                                          if (Interlocked.CompareExchange(ref webSockets, 1, 0) != 0)
+                                              return new HTTP2ConnectResult { StatusCode = 503 };
+
+                                          var bridge = new WebSocketOverHTTP2ServerStream();
+
+                                          // The handshake and the frame loop every WebSocket of this
+                                          // server has, on the request the CONNECT stands for.
+                                          _ = RunConnectionAsync(
+                                                  new WebSocketServerConnection(
+
+                                                      WebSocketServer:              this,
+                                                      NetworkStream:                new PrefixedStream(requestBytes, bridge),
+                                                      LocalSocket:                  Connection.LocalSocket,
+                                                      RemoteSocket:                 Connection.RemoteSocket,
+                                                      ClientCertificate:            Connection.ClientCertificate,
+
+                                                      HTTPRequest:                  null,
+                                                      HTTPResponse:                 null,
+
+                                                      MaxTextMessageSizeIn:         MaxTextMessageSizeIn,
+                                                      MaxTextMessageSizeOut:        MaxTextMessageSizeOut,
+                                                      MaxTextFragmentLengthIn:      MaxTextFragmentLengthIn,
+                                                      MaxTextFragmentLengthOut:     MaxTextFragmentLengthOut,
+
+                                                      MaxBinaryMessageSizeIn:       MaxBinaryMessageSizeIn,
+                                                      MaxBinaryMessageSizeOut:      MaxBinaryMessageSizeOut,
+                                                      MaxBinaryFragmentLengthIn:    MaxBinaryFragmentLengthIn,
+                                                      MaxBinaryFragmentLengthOut:   MaxBinaryFragmentLengthOut,
+
+                                                      SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
+
+                                                  ) {
+                                                      HTTPVersion = HTTPVersion.HTTP_2_0
+                                                  },
+                                                  CancellationToken
+                                              ).ContinueWith(task => {
+                                                  _ = task.Exception;
+                                                  bridge.Dispose();
+                                                  Interlocked.Exchange(ref webSockets, 0);
+                                              }, TaskScheduler.Default);
+
+                                          try
+                                          {
+
+                                              var (status, answerHeaders) = await bridge.Answer.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                                              // RFC 8441, Section 5: accepted with a 2xx, where the Upgrade is with a 101.
+                                              if (status == 101)
+                                                  return new HTTP2ConnectResult {
+                                                             StatusCode    = 200,
+                                                             ExtraHeaders  = WebSocketOverHTTP2.FieldsOverHTTP2(answerHeaders),
+                                                             RunAsync      = bridge.RunAsync
+                                                         };
+
+                                              bridge.Dispose();
+
+                                              return new HTTP2ConnectResult {
+                                                         StatusCode    = status,
+                                                         ExtraHeaders  = WebSocketOverHTTP2.FieldsOverHTTP2(answerHeaders)
+                                                     };
+
+                                          }
+                                          catch (Exception e)
+                                          {
+                                              // Closed without an answer, or called off.
+                                              Logger.LogDebug(e, "The WebSocket over HTTP/2 of {RemoteSocket} was not answered.", Connection.RemoteSocket);
+                                              bridge.Dispose();
+                                              return new HTTP2ConnectResult { StatusCode = 503 };
+                                          }
+
+                                      },
+
+                                      CancellationToken:  CancellationToken,
+                                      ClientCertificate:  Connection.ClientCertificate
+
+                                  );
+
+            try
+            {
+                await http2Connection.RunAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                // The socket is the listener's connection, and done with once
+                // the HTTP/2 connection on it is.
+                try
+                {
+                    Connection.TCPClient.Close();
+                }
+                catch
+                { }
+            }
+
+        }
 
         #endregion
 
@@ -711,6 +948,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                      CancellationToken  CancellationToken)
 
                 => webSocketServer.HandleConnection(Connection, CancellationToken);
+
+            /// <summary>
+            /// "h2" before "http/1.1" where the server takes WebSockets over
+            /// HTTP/2, and nothing otherwise, as before.
+            /// </summary>
+            public override IEnumerable<SslApplicationProtocol> TLSApplicationProtocols
+                => webSocketServer.AcceptHTTP2
+                       ? [ SslApplicationProtocol.Http2, SslApplicationProtocol.Http11 ]
+                       : [];
 
         }
 

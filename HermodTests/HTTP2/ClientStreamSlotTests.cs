@@ -556,8 +556,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var connection = await peer.ConnectAsync();
 
+            // An HTTP2StreamException as before, and one that says what the server
+            // answered: the status, for whoever wants to know why.
             Assert.That(async () => await connection.OpenTunnelAsync("echo.internal").WaitAsync(StepTimeout),
-                        Throws.TypeOf<HTTP2StreamException>(),
+                        Throws.InstanceOf<HTTP2StreamException>().
+                               And.TypeOf<HTTP2TunnelRefusedException>().
+                               And.Property(nameof(HTTP2TunnelRefusedException.Status)).EqualTo(407),
                         "the CONNECT is rejected");
 
             var next = connection.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "localhost", "/next");

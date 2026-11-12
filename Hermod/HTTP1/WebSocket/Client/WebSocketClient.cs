@@ -39,6 +39,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 
 #endregion
@@ -92,6 +93,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         protected Stream?           HTTPStream;
+
+        /// <summary>
+        /// What this client was made to offer for ALPN, before the version of
+        /// HTTP its WebSocket is opened over had a say (WebSocketOver).
+        /// </summary>
+        private IEnumerable<SslApplicationProtocol>?  configuredApplicationProtocols;
+
+        /// <summary>
+        /// The server chose HTTP/2 and does not offer WebSockets over it: where
+        /// the server chooses (WebSocketHTTPVersion.Auto), it is offered
+        /// HTTP/1.1 alone from now on.
+        /// </summary>
+        private Boolean                               extendedConnectNotOffered;
 
         /// <summary>
         /// The default maintenance interval.
@@ -388,6 +402,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public IEnumerable<String>                  SecWebSocketProtocols                { get; }
 
         public Boolean                              CloseConnectionOnUnexpectedFrames    { get; set; } = false;
+
+        /// <summary>
+        /// The version of HTTP the WebSocket is opened over: HTTP/1.1 and its
+        /// Upgrade unless said otherwise. Read with every attempt to connect,
+        /// so a change is what the next attempt goes by.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="WebSocketHTTPVersion.HTTP2"/> opens it by an extended
+        /// CONNECT (RFC 8441) and connects to nothing that does not take one:
+        /// with TLS the server has to agree to "h2", without TLS it is spoken
+        /// to in HTTP/2 from the first byte (prior knowledge, RFC 9113,
+        /// Section 3.3). <see cref="WebSocketHTTPVersion.Auto"/> offers "h2"
+        /// and "http/1.1" and takes what the server chooses; a server that
+        /// chooses "h2" and then does not offer WebSockets over it is dialled
+        /// again with "http/1.1" alone, and from then on at once. What the
+        /// upgrade request says - the subprotocols, the extensions, the
+        /// Authorization, a one-time password - is said either way, and so is
+        /// what the server answers: see <see cref="WebSocketOverHTTP2"/>.
+        /// </remarks>
+        public WebSocketHTTPVersion                 WebSocketOver                        { get; set; } = WebSocketHTTPVersion.HTTP1_1;
+
+        /// <summary>
+        /// The version of HTTP the WebSocket of the last attempt to connect was
+        /// asked for over, or null: before the first, and where the attempt did
+        /// not get that far - nothing to connect to, or a server that does not
+        /// take the version asked for.
+        /// </summary>
+        public HTTPVersion?                         HTTPVersionInUse                     { get; private set; }
 
         /// <summary>
         /// The optional error message when this client closed the HTTP WebSocket connection.
@@ -985,8 +1027,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             RequestTimeout ??= TimeSpan.FromSeconds(60);
 
-            var connectionResult = await ReconnectAsync(CancellationToken.None).ConfigureAwait(false);
+            var over = WebSocketOver;
 
+            HTTPVersionInUse = null;
+
+            // An attempt that ends here leaves no connection behind: nothing
+            // was asked over it, and nothing will be.
+            void LetGo()
+            {
+                try
+                {
+                    tcpClient?.Close();
+                }
+                catch
+                { }
+            }
+
+            if (over == WebSocketHTTPVersion.HTTP3)
+                throw new NotSupportedException("This WebSocket client does not open a WebSocket over HTTP/3.");
+
+            // What is offered for ALPN is what this attempt may come to: "h2"
+            // alone where nothing else will do, both where the server chooses,
+            // and what the client was made with otherwise.
+            configuredApplicationProtocols ??= [.. ApplicationProtocols];
+
+            ApplicationProtocols = over switch {
+                                       WebSocketHTTPVersion.HTTP2  => [ SslApplicationProtocol.Http2 ],
+                                       WebSocketHTTPVersion.Auto   => extendedConnectNotOffered
+                                                                          ? [ SslApplicationProtocol.Http11 ]
+                                                                          : [ SslApplicationProtocol.Http2, SslApplicationProtocol.Http11 ],
+                                       _                           => configuredApplicationProtocols
+                                   };
+
+            var connectionResult = await ReconnectAsync(CancellationToken.None).ConfigureAwait(false);
             if (connectionResult.IsFailure)
                 throw new Exception(connectionResult.Errors.Select(error => error.ToString()).AggregateWith(", "));
 
@@ -994,6 +1067,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             if (HTTPStream is null)
                 throw new Exception("The HTTP/WebSocket stream could not be created!");
+
+            var agreedOnHTTP2  = tlsStream?.NegotiatedApplicationProtocol == SslApplicationProtocol.Http2;
+
+            if (over == WebSocketHTTPVersion.HTTP2 && tlsStream is not null && !agreedOnHTTP2)
+            {
+                LetGo();
+                throw new Exception("The server did not agree to HTTP/2 (ALPN \"h2\"), and this WebSocket is to be opened over nothing else.");
+            }
+
+            #region Over HTTP/2: an extended CONNECT in place of the Upgrade (RFC 8441)
+
+            // With TLS, where the server chose "h2"; without, where nothing but
+            // HTTP/2 will do: it is then spoken from the first byte.
+            if (agreedOnHTTP2 || (over == WebSocketHTTPVersion.HTTP2 && tlsStream is null))
+            {
+
+                var http2Connection = new HTTP2ClientConnection(
+                                          HTTPStream,
+                                          CancellationToken:  networkingCancellationToken,
+                                          OwnsTransport:      false
+                                      );
+
+                try
+                {
+                    // Returns once the server's first SETTINGS are in, which say
+                    // whether it takes an extended CONNECT.
+                    await http2Connection.StartAsync().WaitAsync(RequestTimeout.Value).ConfigureAwait(false);
+                }
+                catch (TimeoutException)
+                {
+                    LetGo();
+                    throw new Exception($"The server did not send its HTTP/2 SETTINGS within {RequestTimeout.Value.TotalSeconds:0.#} seconds.");
+                }
+
+                if (!http2Connection.ServerEnablesConnectProtocol)
+                {
+
+                    try
+                    {
+                        await http2Connection.CloseAsync().WaitAsync(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+                    }
+                    catch
+                    { }
+
+                    if (over != WebSocketHTTPVersion.Auto)
+                    {
+                        LetGo();
+                        throw new Exception("The server speaks HTTP/2 and does not offer WebSockets over it (SETTINGS_ENABLE_CONNECT_PROTOCOL, RFC 8441), and this WebSocket is to be opened over nothing else.");
+                    }
+
+                    // The server chose "h2" out of what was offered and cannot
+                    // open a WebSocket over it. It is dialled again with
+                    // "http/1.1" alone - now, and whenever this client comes back.
+                    extendedConnectNotOffered = true;
+
+                    await OpenTCPConnection(RequestTimeout).ConfigureAwait(false);
+                    return;
+
+                }
+
+                HTTPStream        = new WebSocketOverHTTP2ClientStream(
+                                        http2Connection,
+                                        tlsStream is not null
+                                            ? URIScheme.https
+                                            : URIScheme.http
+                                    );
+
+                HTTPVersionInUse  = HTTPVersion.HTTP_2_0;
+
+            }
+
+            #endregion
+
+            HTTPVersionInUse     ??= HTTPVersion.HTTP_1_1;
 
             HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 

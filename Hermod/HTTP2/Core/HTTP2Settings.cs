@@ -36,6 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     {
         public UInt32  HeaderTableSize      { get; set; } = 4096;
         public bool    EnablePush           { get; set; } = false;   // We don't push
+        public bool    EnableConnectProtocol { get; set; } = false;  // RFC 8441, Section 3: off until announced
         public UInt32  MaxConcurrentStreams { get; set; } = 100;
         // A larger-than-default receive window (RFC 9113 default is 65535). Combined
         // with batched WINDOW_UPDATEs, this lets a large transfer flow with only
