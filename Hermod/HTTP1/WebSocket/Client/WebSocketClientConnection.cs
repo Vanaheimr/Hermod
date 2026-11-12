@@ -57,9 +57,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly  ConcurrentDictionary<String, Object?>  customData             = [];
 
-        private readonly  Socket                                 tcpSocket;
+        private readonly  Socket?                                tcpSocket;
 
-        private readonly  NetworkStream                          tcpStream;
+        private readonly  NetworkStream?                         tcpStream;
+
+        /// <summary>
+        /// Whether the transport is gone, for a connection that is not on a TCP socket.
+        /// </summary>
+        private readonly  Func<Boolean>?                         isTransportClosed;
 
         private readonly  Stream                                 httpStream;
 
@@ -205,11 +210,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
             get
             {
-                return TimeSpan.FromMilliseconds(tcpStream.ReadTimeout);
+                return TimeSpan.FromMilliseconds((tcpStream ?? httpStream).ReadTimeout);
             }
             set
             {
-                tcpStream.ReadTimeout = (Int32) value.TotalMilliseconds;
+                (tcpStream ?? httpStream).ReadTimeout = (Int32) value.TotalMilliseconds;
             }
         }
 
@@ -220,11 +225,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
             get
             {
-                return TimeSpan.FromMilliseconds(tcpStream.WriteTimeout);
+                return TimeSpan.FromMilliseconds((tcpStream ?? httpStream).WriteTimeout);
             }
             set
             {
-                tcpStream.WriteTimeout = (Int32) value.TotalMilliseconds;
+                (tcpStream ?? httpStream).WriteTimeout = (Int32) value.TotalMilliseconds;
             }
         }
 
@@ -237,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
                 try
                 {
-                    return tcpStream.DataAvailable;
+                    return tcpStream?.DataAvailable ?? false;
                 }
                 catch
                 {
@@ -255,7 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
                 try
                 {
-                    return tcpSocket.Available;
+                    return tcpSocket?.Available ?? 0;
                 }
                 catch
                 {
@@ -276,6 +281,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
                 try
                 {
+
+                    // Not on a TCP socket: over HTTP/3 it is the QUIC connection that is gone, or not.
+                    if (tcpSocket is null)
+                        return isTransportClosed?.Invoke() ?? false;
+
                     return tcpSocket.Poll(0, SelectMode.SelectRead) &&
                            tcpSocket.Available == 0;
                 }
@@ -327,6 +337,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.httpStream                  = HTTPStream;
             this.LocalSocket                 = IPSocket.FromIPEndPoint(TCPSocket.LocalEndPoint)  ?? IPSocket.Zero;
             this.RemoteSocket                = IPSocket.FromIPEndPoint(TCPSocket.RemoteEndPoint) ?? IPSocket.Zero;
+            this.HTTPRequest                 = HTTPRequest;
+            this.HTTPResponse                = HTTPResponse;
+            this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
+
+            if (CustomData is not null)
+            {
+                foreach (var customData in CustomData)
+                {
+                    this.customData.TryAdd(
+                        customData.Key,
+                        customData.Value
+                    );
+                }
+            }
+
+        }
+
+        #endregion
+
+        #region WebSocketClientConnection(WebSocketClient, LocalSocket, RemoteSocket, HTTPStream, IsTransportClosed, ...)
+
+        /// <summary>
+        /// Create a new HTTP WebSocket connection that is not on a TCP socket:
+        /// its WebSocket was opened over HTTP/3 (RFC 9220), and so over QUIC.
+        /// </summary>
+        /// <param name="WebSocketClient">The WebSocket client.</param>
+        /// <param name="LocalSocket">The local end of the connection.</param>
+        /// <param name="RemoteSocket">The server's end of the connection.</param>
+        /// <param name="HTTPStream">What the frames are read from and written to. It is disposed when the connection is closed, and what was made for the WebSocket underneath it with it.</param>
+        /// <param name="IsTransportClosed">Whether the transport underneath is gone.</param>
+        /// <param name="HTTPRequest">The upgrade request.</param>
+        /// <param name="HTTPResponse">The answer to it.</param>
+        /// <param name="CustomData">Optional custom data to be stored within this connection.</param>
+        /// <param name="SlowNetworkSimulationDelay">An optional delay for simulating a slow network.</param>
+        public WebSocketClientConnection(WebSocketClient                              WebSocketClient,
+                                         IPSocket                                     LocalSocket,
+                                         IPSocket                                     RemoteSocket,
+                                         Stream                                       HTTPStream,
+                                         Func<Boolean>?                               IsTransportClosed            = null,
+                                         HTTPRequest?                                 HTTPRequest                  = null,
+                                         HTTPResponse?                                HTTPResponse                 = null,
+                                         IEnumerable<KeyValuePair<String, Object?>>?  CustomData                   = null,
+                                         TimeSpan?                                    SlowNetworkSimulationDelay   = null)
+        {
+
+            this.ConnectedSince              = Timestamp.Now;
+            this.CancellationTokenSource     = new CancellationTokenSource();
+            this.WebSocketClient             = WebSocketClient;
+            this.tcpSocket                   = null;
+            this.tcpStream                   = null;
+            this.isTransportClosed           = IsTransportClosed;
+            this.httpStream                  = HTTPStream;
+            this.LocalSocket                 = LocalSocket;
+            this.RemoteSocket                = RemoteSocket;
             this.HTTPRequest                 = HTTPRequest;
             this.HTTPResponse                = HTTPResponse;
             this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
@@ -402,8 +466,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 TimeSpan writeTimeout;
                 try
                 {
-                    writeTimeout = tcpStream.WriteTimeout > 0
-                                       ? TimeSpan.FromMilliseconds(tcpStream.WriteTimeout)
+                    writeTimeout = (tcpStream ?? httpStream).WriteTimeout > 0
+                                       ? TimeSpan.FromMilliseconds((tcpStream ?? httpStream).WriteTimeout)
                                        : DefaultSendTimeout;
                 }
                 catch
@@ -676,7 +740,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
                 try
                 {
-                    tcpSocket.Close();
+                    // Without a socket the stream is what there is to close: over HTTP/3 it
+                    // ends the tunnel and the QUIC connection made for this WebSocket.
+                    if (tcpSocket is not null)
+                        tcpSocket.Close();
+                    else
+                        httpStream.Dispose();
                 }
                 catch
                 { }

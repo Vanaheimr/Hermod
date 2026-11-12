@@ -158,6 +158,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static readonly HTTPVersion HTTP_2_0 = new (2, 0);
 
+        /// <summary>
+        /// HTTP/3.0
+        /// </summary>
+        public static readonly HTTPVersion HTTP_3_0 = new (3, 0);
+
         #endregion
 
 

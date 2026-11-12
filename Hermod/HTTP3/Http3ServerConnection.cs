@@ -249,6 +249,21 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
     private readonly ulong? _maxRequestBodySize; // RFC 9114 has no limit of its own — ours (413)
     private readonly ulong? _localMaxFieldSectionSize; // our announced limit (RFC 9114 §4.2.2)
     private readonly Func<Http3Request, Http3ConnectResult>? _connectHandler; // Extended CONNECT (RFC 8441/9220)
+
+    /// <summary>
+    /// Answers an Extended CONNECT (RFC 8441/9220) that is not WebTransport's, in its own time: the
+    /// pump does not wait for the task but polls it, as it polls a request handler's, and nothing
+    /// more of the stream is read until it is answered. Takes precedence over the
+    /// <c>connectHandler</c> of the constructor, and like it makes the connection announce
+    /// SETTINGS_ENABLE_CONNECT_PROTOCOL. The token is cancelled when the client resets the stream or
+    /// the connection ends before the answer; a handler that fails answers with a 500.
+    /// </summary>
+    public Func<Http3Request, CancellationToken, Task<Http3ConnectResult>>? ConnectHandlerAsync { get; init; }
+
+    /// <summary>
+    /// Whether an Extended CONNECT that is not WebTransport's is answered at all.
+    /// </summary>
+    private bool AnswersConnect => _connectHandler is not null || ConnectHandlerAsync is not null;
     private readonly bool _localDatagramsEnabled;      // HTTP datagrams enabled locally (RFC 9297)
 
     /// <summary>
@@ -607,6 +622,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
                 state.BodyCompleted = true;
                 cts.Cancel();
                 state.HandlerTask = null; // its response has nowhere to go — a timed-out connection still pumps
+                state.ConnectTask = null; // nor has the answer to its CONNECT
                 state.DisposeResponseResources();
                 state.ResponseComplete = true;
             }
@@ -692,6 +708,11 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             if (state.RequestBody is { IsSaturated: true } || (!draining && state.Tunnel is { IsSaturated: true }))
                 continue;
 
+            // A CONNECT whose answer is still being decided: what its client sends ahead of it stays
+            // on the QUIC stream, and is the tunnel's once there is one.
+            if (state.ConnectTask is not null)
+                continue;
+
             byte[] chunk = state.Stream.Read();
             if (chunk.Length > 0)
                 state.Buffer.Append(chunk);
@@ -737,7 +758,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             // Frame state machine of the request stream (RFC 9114 §4.1, §7.2): HEADERS, then content
             // as a series of DATA frames, optionally a trailer section; a blocked QPACK section
             // stalls the sequence (waiting for the encoder stream).
-            while (state.Pending.Count > 0 && !state.Responded)
+            while (state.Pending.Count > 0 && !state.Responded && state.ConnectTask is null)
             {
                 Http3Frame frame = state.Pending.Peek();
                 // Streaming body: while the handler has not consumed what it already has, the DATA
@@ -752,6 +773,10 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
                     break;
                 state.Pending.Dequeue();
             }
+
+            // A CONNECT waiting for its answer is neither a tunnel yet nor a request to dispatch.
+            if (state.ConnectTask is not null)
+                continue;
 
             // Tunnel streams (Extended CONNECT): a FIN from the client is the orderly tunnel end
             // (≙ TCP close, RFC 9220 §3) — not a normal end of message.
@@ -1130,7 +1155,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
         if (request.Protocol == "webtransport" && _wtMaxSessions > 0)
             return HandleWebTransportConnect(state);
 
-        if (request.Protocol is null || _connectHandler is null)
+        if (request.Protocol is null || !AnswersConnect)
         {
             if (request.Protocol is not null)
             {
@@ -1145,7 +1170,33 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             return true;
         }
 
-        Http3ConnectResult result = _connectHandler(request);
+        if (ConnectHandlerAsync is { } connectHandlerAsync)
+        {
+            // Answered later: the pump polls the task in PumpResponses, and reads nothing more of
+            // the stream until then.
+            state.Cancellation = new CancellationTokenSource();
+            try
+            {
+                state.ConnectTask = connectHandlerAsync(request, state.Cancellation.Token);
+            }
+            catch (Exception)
+            {
+                // A handler that throws synchronously must not kill the connection.
+                state.ConnectTask = Task.FromResult(new Http3ConnectResult { Status = 500 });
+            }
+            return true;
+        }
+
+        AnswerConnect(state, _connectHandler!(request));
+        return true;
+    }
+
+    /// <summary>
+    /// Answers an Extended CONNECT: accepted with a 2xx, its stream is the tunnel from then on;
+    /// refused, its response is complete.
+    /// </summary>
+    private void AnswerConnect(RequestState state, Http3ConnectResult result)
+    {
         var fields = new List<HeaderField> { new(":status", result.Status.ToString()) };
         fields.AddRange(result.Headers);
         state.Stream.Write(Http3Frames.Build(Http3FrameType.Headers,
@@ -1172,7 +1223,6 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
             state.Responded = true;
             state.ResponseComplete = true;
         }
-        return true;
     }
 
     /// <summary>
@@ -1416,8 +1466,23 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
                 state.RequestBody?.Fail(new OperationCanceledException("the request was aborted"));
                 state.BodyCompleted = true;
                 cts.Cancel();
+                state.ConnectTask = null;
                 state.DisposeResponseResources();
                 state.ResponseComplete = true;
+                continue;
+            }
+
+            if (state.ConnectTask is { IsCompleted: true } connect)
+            {
+                state.ConnectTask = null;
+                state.Cancellation?.Dispose();
+                state.Cancellation = null;
+                AnswerConnect(state, connect.Status switch
+                {
+                    TaskStatus.RanToCompletion => connect.Result,
+                    // A failed or cancelled handler becomes a 500 — never a connection error.
+                    _ => new Http3ConnectResult { Status = 500 },
+                });
                 continue;
             }
 
@@ -1571,7 +1636,7 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
                 writer.WriteVarInt(Http3Setting.MaxFieldSectionSize); // RFC 9114 §4.2.2
                 writer.WriteVarInt(maxFieldSection);
             }
-            if (_connectHandler is not null || _wtMaxSessions > 0)
+            if (AnswersConnect || _wtMaxSessions > 0)
             {
                 writer.WriteVarInt(Http3Setting.EnableConnectProtocol); // RFC 8441 §3 / RFC 9220 §3
                 writer.WriteVarInt(1);
@@ -1637,6 +1702,11 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
 
         // --- async handler ---
         public Task<Http3Response>? HandlerTask { get; set; }
+
+        /// <summary>
+        /// The answer to an Extended CONNECT while it is being decided (ConnectHandlerAsync).
+        /// </summary>
+        public Task<Http3ConnectResult>? ConnectTask { get; set; }
         public CancellationTokenSource? Cancellation { get; set; }
 
         /// <summary>

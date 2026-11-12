@@ -83,6 +83,11 @@ internal sealed class Http3Qpack
     public bool PeerEnableConnectProtocol { get; private set; }
 
     /// <summary>
+    /// The peer's SETTINGS are in (RFC 9114 §7.2.4): what it did not announce by now, it does not offer.
+    /// </summary>
+    public bool PeerSettingsSeen => _peerSettingsSeen;
+
+    /// <summary>
     /// The peer accepts HTTP/3 datagrams (SETTINGS_H3_DATAGRAM = 1, RFC 9297 §2.1.1).
     /// </summary>
     public bool PeerH3Datagram { get; private set; }

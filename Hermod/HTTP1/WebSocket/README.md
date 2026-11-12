@@ -272,7 +272,69 @@ one connection of HTTP/1.1, or one with a line break in it, is refused with 400.
 One WebSocket at a time per HTTP/2 connection: this server knows a connection
 by its remote socket. The frames of RFC 6455 are the ones of this folder, not
 those of `../../HTTP2/WebSocket`, which is the WebSocket of the HTTP/2 stack by
-itself. Not built: a WebSocket over HTTP/3 (RFC 9220).
+itself.
+
+
+## Over HTTP/3
+
+And over HTTP/3 (RFC 9220): the same extended CONNECT, over QUIC, on the UDP
+port of the number of the server's TCP port.
+
+```csharp
+server.AcceptHTTP3   = true;                          // off by default
+client.WebSocketOver = WebSocketHTTPVersion.HTTP3;    // or Auto
+```
+
+| `WebSocketOver` | |
+|---|---|
+| `HTTP3` | the extended CONNECT of HTTP/3 and nothing else. It needs TLS (`wss://`), as QUIC has nothing else; a server that is not reached over it, or does not announce `SETTINGS_ENABLE_CONNECT_PROTOCOL`, is not connected to |
+| `Auto`  | HTTP/3 where the server said before that it is reached over it, and as described above otherwise |
+
+**How `Auto` comes to HTTP/3.** A server that takes WebSockets over HTTP/3
+says so with every upgrade it accepts over HTTP/1.1 and HTTP/2:
+`Alt-Svc: h3=":port"` (RFC 7838). A client keeps that for the origin - host
+and port, over TLS - for as long as the server said, in memory, for every
+client of the process (`WebSocketAlternativeServices`), and `Auto` asks over
+HTTP/3 from then on. A server that is not found there within three seconds
+(`AlternativeServiceTimeout`) is asked the way it was when it said so, and
+not believed again for an hour - a firewall that lets no UDP through would
+otherwise cost every attempt those seconds. Only an
+alternative on the origin's own host is kept, and the server found there is
+judged by the client's certificate validator, as the origin is. A client that
+names its version is not moved by any of this.
+
+**The handshake is the same one again**: `WebSocketOverHTTP3ClientStream`
+stands on the base the HTTP/2 stream stands on
+(`AWebSocketOverHTTPClientStream`), and the server runs the bridge it runs
+over HTTP/2 on a tunnel of HTTP/3.
+
+**Who is who.** The client asks for the server by the name its TLS over TCP
+would ask for, and judges it by its `RemoteCertificateValidator`: told the
+certificate, the chain and what is wrong with them, as an `SslStream` tells it
+(`CertificateValidationOptions.Judge`). A certificate it refuses ends the
+attempt at once, and the reason says so. A client certificate with its private
+key is shown where the server asks for one. The server shows the certificate
+its `ServerCertificateSelector` gives for a client nothing is known of - QUIC
+shows one certificate to all - and asks for a client certificate where it has
+a `ClientCertificateValidator` or requires one, judged by that validator.
+
+What TLS over TCP has and this has not:
+
+- A certificate that is there already is shown with a key of **ECDSA P-256,
+  ECDSA P-384 or RSA** (`ServerCertificate.From`; RSA as RSA-PSS, with 2048
+  bits or more). A server with another key takes no WebSockets over HTTP/3
+  and runs as it would without `AcceptHTTP3`; so does one without TLS, and
+  one whose UDP port is taken. `server.HTTP3Port` says whether it does, and
+  why not is logged.
+- Where a client certificate is asked for and not required, a client whose
+  certificate is refused is a client without one. Over TCP its handshake
+  fails.
+- The client's `LocalCertificateSelector` is not asked, and its protocols,
+  cipher suites and revocation mode are those of QUIC's TLS 1.3.
+- A one-time password bound to the TLS channel is refused over every version,
+  so nothing is lost there.
+
+One WebSocket at a time per HTTP/3 connection, as over HTTP/2.
 
 
 ## Testing

@@ -75,13 +75,16 @@ public sealed class Http3Client : IAsyncDisposable
                        TimeProvider? timeProvider = null,
                        KeyLog? keyLog = null,
                        ServerCertificate? clientCertificate = null,
-                       IDNSClient? dnsClient = null)
+                       IDNSClient? dnsClient = null,
+                       string? serverName = null)
     {
         _host = host;
         _port = port;
         _dnsClient = dnsClient;
         _timeProvider = timeProvider ?? TimeProvider.System;
-        _connection = new Http3ClientConnection(host,
+        // The name the server is asked for (SNI) and its certificate is held to: the host, unless
+        // the host is only where the server is found.
+        _connection = new Http3ClientConnection(serverName ?? host,
             certificateValidation: certificateValidation,
             enableDatagrams: enableDatagrams,
             webTransportMaxSessions: webTransportMaxSessions,
@@ -96,6 +99,16 @@ public sealed class Http3Client : IAsyncDisposable
     /// (the pump and the API share the single-threaded core through a mutex).
     /// </summary>
     public Http3ClientConnection Connection => _connection;
+
+    /// <summary>
+    /// The local end of the socket, once <see cref="ConnectAsync"/> made it.
+    /// </summary>
+    public IPEndPoint? LocalEndPoint => _udp?.Client.LocalEndPoint as IPEndPoint;
+
+    /// <summary>
+    /// The server's end of the socket, once <see cref="ConnectAsync"/> made it.
+    /// </summary>
+    public IPEndPoint? RemoteEndPoint => _udp?.Client.RemoteEndPoint as IPEndPoint;
 
     /// <summary>
     /// Establishes the QUIC/TLS connection (socket, handshake, HTTP/3 initialisation) and starts the
@@ -129,8 +142,21 @@ public sealed class Http3Client : IAsyncDisposable
 
         _pumpTask = Task.Run(PumpLoopAsync, CancellationToken.None);
 
-        if (!await WaitUntilAsync(c => c.HandshakeConfirmed, timeout ?? TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false))
+        // A handshake that fails closes the connection: that is not waited out, and it says why.
+        if (!await WaitUntilAsync(c => c.HandshakeConfirmed || c.IsClosing || c.IsDraining || c.IsClosed,
+                                  timeout ?? TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false))
             throw new TimeoutException($"QUIC/TLS handshake with {_host}:{_port} not completed.");
+
+        if (!await QueryAsync(c => c.HandshakeConfirmed, cancellationToken).ConfigureAwait(false))
+        {
+            string why = await QueryAsync(c => c.LocalCloseReason is { Length: > 0 } local
+                                                   ? local
+                                                   : c.PeerCloseFrame is { } peer
+                                                         ? $"the server closed the connection: {peer.ReasonPhrase} (error {peer.ErrorCode})"
+                                                         : "the connection was closed",
+                                          cancellationToken).ConfigureAwait(false);
+            throw new IOException($"QUIC/TLS handshake with {_host}:{_port} failed: {why}");
+        }
         await PerformAsync(c => c.InitializeHttp3(), cancellationToken).ConfigureAwait(false);
     }
 

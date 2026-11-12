@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Net.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Crypto;
@@ -135,6 +136,30 @@ public static class PeerCertificateValidator
             return leaf;
         }
 
+        // (2a) A judge: told what is wrong, it decides.
+        if (options.Judge is not null)
+        {
+            bool believed;
+
+            try
+            {
+                believed = Judged(leaf, certificateChainDer, serverName, options);
+            }
+            catch
+            {
+                leaf.Dispose();
+                throw;
+            }
+
+            if (!believed)
+            {
+                leaf.Dispose();
+                throw new CertificateValidationException("The certificate was refused.");
+            }
+
+            return leaf;
+        }
+
         // (3) Hostname — policy.
         if (options.VerifyHostname && !leaf.MatchesHostname(serverName))
         {
@@ -242,6 +267,58 @@ public static class PeerCertificateValidator
     /// <summary>
     /// Builds the chain (with the intermediates sent along) and validates it.
     /// </summary>
+    /// <summary>
+    /// Asks the judge of <paramref name="options"/>: the chain is built as <see cref="VerifyChain"/>
+    /// builds it, and what is wrong with name and chain is told, not thrown.
+    /// </summary>
+    private static bool Judged(X509Certificate2 leaf, IReadOnlyList<byte[]> chainDer, string serverName, CertificateValidationOptions options)
+    {
+        var errors = SslPolicyErrors.None;
+
+        if (options.VerifyHostname && !leaf.MatchesHostname(serverName))
+            errors |= SslPolicyErrors.RemoteCertificateNameMismatch;
+
+        using var chain = new X509Chain();
+        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck; // offline-friendly; no OCSP/CRL
+        chain.ChainPolicy.VerificationFlags = X509VerificationFlags.NoFlag;
+
+        var intermediates = new List<X509Certificate2>();
+        for (int i = 1; i < chainDer.Count; i++)
+        {
+            var intermediate = X509CertificateLoader.LoadCertificate(chainDer[i]);
+            intermediates.Add(intermediate);
+            chain.ChainPolicy.ExtraStore.Add(intermediate);
+        }
+
+        if (options.CustomTrustRoots is { Count: > 0 } roots)
+        {
+            chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+            chain.ChainPolicy.CustomTrustStore.AddRange(roots);
+        }
+
+        try
+        {
+            try
+            {
+                if (!chain.Build(leaf))
+                    errors |= SslPolicyErrors.RemoteCertificateChainErrors;
+            }
+            catch (CryptographicException)
+            {
+                // Refused outright by the platform's chain builder, as Windows does for Ed25519 and
+                // Ed448: no chain, which is what the judge is told.
+                errors |= SslPolicyErrors.RemoteCertificateChainErrors;
+            }
+
+            return options.Judge!(leaf, chain, errors);
+        }
+        finally
+        {
+            foreach (X509Certificate2 intermediate in intermediates)
+                intermediate.Dispose();
+        }
+    }
+
     private static bool VerifyChain(X509Certificate2 leaf, IReadOnlyList<byte[]> chainDer, CertificateValidationOptions options, out string? error)
     {
         using var chain = new X509Chain();

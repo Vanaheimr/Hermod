@@ -1859,6 +1859,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 if (secWebSocketExtensions is not null)
                                                                     httpResponseBuilder.SetHeaderField("Sec-WebSocket-Extensions", secWebSocketExtensions);
 
+                                                                // RFC 7838: where else this server is reached - over HTTP/3, say.
+                                                                // Not told to a client that is there already.
+                                                                if (webSocketConnection.HTTPVersion != HTTPVersion.HTTP_3_0 &&
+                                                                    AlternativeServicesAnnounced is { } alternativeServices)
+                                                                    httpResponseBuilder.AltSvc = alternativeServices;
+
                                                                 httpResponse         = httpResponseBuilder.AsImmutable;
 
                                                             }
@@ -3106,6 +3112,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+
+        #region (protected virtual) AlternativeServicesAnnounced
+
+        /// <summary>
+        /// The alternative services (RFC 7838) announced with every accepted
+        /// upgrade - by an Alt-Svc header field, which over HTTP/2 goes with the
+        /// answer to the extended CONNECT - or null to announce none.
+        /// </summary>
+        protected virtual AlternativeServices? AlternativeServicesAnnounced
+            => null;
+
+        #endregion
 
         #region (protected virtual) StopAcceptingAsync()
 

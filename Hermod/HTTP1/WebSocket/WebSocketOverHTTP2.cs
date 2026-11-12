@@ -49,7 +49,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         HTTP2,
 
         /// <summary>
-        /// HTTP/3 and its extended CONNECT (RFC 9220), and nothing else.
+        /// HTTP/3 and its extended CONNECT (RFC 9220), and nothing else: over
+        /// QUIC, and so over TLS. A server that is not reached over it, or does
+        /// not offer WebSockets over it, is not connected to.
         /// </summary>
         HTTP3,
 
@@ -57,7 +59,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// What the server agrees to: "h2" and "http/1.1" are offered (ALPN,
         /// RFC 7301), and HTTP/2 is used where the server chooses it and offers
         /// WebSockets over it, HTTP/1.1 otherwise. Without TLS there is nothing
-        /// to agree with, and it is HTTP/1.1.
+        /// to agree with, and it is HTTP/1.1. HTTP/3 is used where the server
+        /// said before that it is reached over it (Alt-Svc, RFC 7838), for as
+        /// long as it said: see <see cref="WebSocketAlternativeServices"/>.
         /// </summary>
         Auto
 
@@ -303,12 +307,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     #endregion
 
 
-    #region WebSocketOverHTTP2ClientStream
+    #region AWebSocketOverHTTPClientStream
 
     /// <summary>
     /// What a WebSocket client writes its HTTP/1.1 upgrade request to and reads
     /// the answer and its WebSocket frames from, while the WebSocket is opened
-    /// by an extended CONNECT on an HTTP/2 connection (RFC 8441).
+    /// by an extended CONNECT: over HTTP/2 (RFC 8441) or over HTTP/3 (RFC 9220).
     /// </summary>
     /// <remarks>
     /// The request is taken apart once its empty line was written and sent as
@@ -318,16 +322,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// status, with its header fields - a challenge, a Retry-After - and
     /// without a body. After that what is written goes into the tunnel, and
     /// what the tunnel delivers is read.
+    ///
+    /// What is one version's alone is how the CONNECT is sent and what is let
+    /// go of in the end: <see cref="ConnectAsync"/> and <see cref="LetGo"/>.
     /// </remarks>
-    public sealed class WebSocketOverHTTP2ClientStream(HTTP2ClientConnection  Connection,
-                                                       URIScheme              Scheme) : Stream
+    public abstract class AWebSocketOverHTTPClientStream : Stream
     {
 
         #region Data
 
         private readonly MemoryStream          request      = new();
         private readonly TaskCompletionSource  answered     = new (TaskCreationOptions.RunContinuationsAsynchronously);
-        private          HTTP2ClientTunnel?    tunnel;
+        private          IHTTP2Tunnel?         tunnel;
         private          Byte[]                pending      = [];
         private          Int32                 pendingAt;
         private          Boolean               requestSent;
@@ -336,16 +342,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// The HTTP/2 connection the WebSocket is opened on.
-        /// </summary>
-        public HTTP2ClientConnection  HTTP2Connection   => Connection;
-
-        /// <summary>
-        /// The tunnel of the WebSocket, once the server accepted it.
-        /// </summary>
-        public HTTP2ClientTunnel?     Tunnel            => tunnel;
 
         public override Boolean  CanRead      => true;
         public override Boolean  CanWrite     => true;
@@ -361,6 +357,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         public override Int32    ReadTimeout    { get; set; } = Timeout.Infinite;
         public override Int32    WriteTimeout   { get; set; } = Timeout.Infinite;
+
+        #endregion
+
+
+        #region (protected abstract) ConnectAsync(Authority, Path, Fields, CancellationToken)
+
+        /// <summary>
+        /// Send the extended CONNECT with <c>:protocol = websocket</c> and say
+        /// what the server answered: its status, its header fields and, where
+        /// it accepted with a 2xx, the tunnel.
+        /// </summary>
+        /// <param name="Authority">The authority of the request: what its Host header field said.</param>
+        /// <param name="Path">The path and the query of the request.</param>
+        /// <param name="Fields">The header fields of the request that go with an extended CONNECT, their names in lower case.</param>
+        /// <param name="CancellationToken">A token to cancel this.</param>
+        protected abstract Task<(Int32 Status, IEnumerable<(String Name, String Value)> Headers, IHTTP2Tunnel? Tunnel)>
+
+            ConnectAsync(String                              Authority,
+                         String                              Path,
+                         List<(String Name, String Value)>   Fields,
+                         CancellationToken                   CancellationToken);
+
+        #endregion
+
+        #region (protected abstract) LetGo()
+
+        /// <summary>
+        /// Give up the tunnel and what was made for this WebSocket underneath
+        /// it. Called once, when the stream is disposed, and must not block.
+        /// </summary>
+        protected abstract void LetGo();
 
         #endregion
 
@@ -432,51 +459,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var answer     = new StringBuilder();
 
-            try
+            var (status, answerHeaders, accepted) = await ConnectAsync(
+                                                              authority,
+                                                              path,
+                                                              WebSocketOverHTTP2.FieldsOverHTTP2(headers),
+                                                              CancellationToken
+                                                          ).ConfigureAwait(false);
+
+            if (accepted is not null)
             {
 
-                tunnel = await Connection.OpenTunnelAsync(
-                                   authority,
-                                   WebSocketOverHTTP2.Protocol,
-                                   Scheme,
-                                   path,
-                                   WebSocketOverHTTP2.FieldsOverHTTP2(headers),
-                                   CancellationToken: CancellationToken
-                               ).ConfigureAwait(false);
+                tunnel = accepted;
 
                 answer.Append("HTTP/1.1 101 Switching Protocols\r\n");
                 answer.Append("Upgrade: websocket\r\n");
                 answer.Append("Connection: Upgrade\r\n");
                 answer.Append("Sec-WebSocket-Accept: ").Append(WebSocketOverHTTP2.AcceptOf(key)).Append("\r\n");
 
-                Append(answer, tunnel.ResponseHeaders);
-
             }
-            catch (HTTP2TunnelRefusedException refusal)
-            {
-
-                answer.Append("HTTP/1.1 ").Append(refusal.Status).Append(' ').
-                       Append(HTTPStatusCode.TryParseUInt16((UInt16) refusal.Status, out var statusCode)
+            else
+                answer.Append("HTTP/1.1 ").Append(status).Append(' ').
+                       Append(HTTPStatusCode.TryParseUInt16((UInt16) status, out var statusCode)
                                   ? statusCode.Name
                                   : "Refused").
                        Append("\r\n");
 
-                Append(answer, refusal.Headers);
-
-            }
+            foreach (var (name, value) in WebSocketOverHTTP2.FieldsOverHTTP2(answerHeaders))
+                if (WebSocketOverHTTP2.IsAFieldOfOneLine(name, value))
+                    answer.Append(name).Append(": ").Append(value).Append("\r\n");
 
             answer.Append("\r\n");
 
             pending    = Encoding.UTF8.GetBytes(answer.ToString());
             pendingAt  = 0;
 
-        }
-
-        private static void Append(StringBuilder Answer, IEnumerable<(String Name, String Value)> Headers)
-        {
-            foreach (var (name, value) in WebSocketOverHTTP2.FieldsOverHTTP2(Headers))
-                if (WebSocketOverHTTP2.IsAFieldOfOneLine(name, value))
-                    Answer.Append(name).Append(": ").Append(value).Append("\r\n");
         }
 
         #endregion
@@ -533,7 +549,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (OperationCanceledException)
             {
-                throw new IOException("Reading from the WebSocket over HTTP/2 timed out.");
+                throw new IOException("Reading from the WebSocket over its extended CONNECT timed out.");
             }
 
         }
@@ -552,32 +568,123 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Dispose(Disposing)
 
-        /// <summary>
-        /// Give the tunnel up and close the HTTP/2 connection: it was made for
-        /// this WebSocket. The transport underneath stays its owner's.
-        /// </summary>
         protected override void Dispose(Boolean Disposing)
         {
 
             if (Disposing && Interlocked.Exchange(ref disposed, 1) == 0)
             {
 
-                answered.TrySetException(new ObjectDisposedException(nameof(WebSocketOverHTTP2ClientStream)));
+                answered.TrySetException(new ObjectDisposedException(GetType().Name));
 
-                _ = Task.Run(async () => {
-                    try
-                    {
-                        if (tunnel is not null)
-                            await tunnel.DisposeAsync().ConfigureAwait(false);
-                        await Connection.CloseAsync().ConfigureAwait(false);
-                    }
-                    catch
-                    { }
-                });
+                // Nobody may wait for it, and a task that failed unobserved is reported.
+                _ = answered.Task.Exception;
+
+                try
+                {
+                    LetGo();
+                }
+                catch
+                { }
 
             }
 
             base.Dispose(Disposing);
+
+        }
+
+        #endregion
+
+    }
+
+    #endregion
+
+    #region WebSocketOverHTTP2ClientStream
+
+    /// <summary>
+    /// What a WebSocket client writes its HTTP/1.1 upgrade request to and reads
+    /// the answer and its WebSocket frames from, while the WebSocket is opened
+    /// by an extended CONNECT on an HTTP/2 connection (RFC 8441): see
+    /// <see cref="AWebSocketOverHTTPClientStream"/>.
+    /// </summary>
+    public sealed class WebSocketOverHTTP2ClientStream(HTTP2ClientConnection  Connection,
+                                                       URIScheme              Scheme) : AWebSocketOverHTTPClientStream
+    {
+
+        #region Data
+
+        private HTTP2ClientTunnel? tunnel;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The HTTP/2 connection the WebSocket is opened on.
+        /// </summary>
+        public HTTP2ClientConnection  HTTP2Connection   => Connection;
+
+        /// <summary>
+        /// The tunnel of the WebSocket, once the server accepted it.
+        /// </summary>
+        public HTTP2ClientTunnel?     Tunnel            => tunnel;
+
+        #endregion
+
+
+        #region (protected override) ConnectAsync(Authority, Path, Fields, CancellationToken)
+
+        protected override async Task<(Int32 Status, IEnumerable<(String Name, String Value)> Headers, IHTTP2Tunnel? Tunnel)>
+
+            ConnectAsync(String                              Authority,
+                         String                              Path,
+                         List<(String Name, String Value)>   Fields,
+                         CancellationToken                   CancellationToken)
+
+        {
+
+            try
+            {
+
+                tunnel = await Connection.OpenTunnelAsync(
+                                   Authority,
+                                   WebSocketOverHTTP2.Protocol,
+                                   Scheme,
+                                   Path,
+                                   Fields,
+                                   CancellationToken: CancellationToken
+                               ).ConfigureAwait(false);
+
+                return (200, tunnel.ResponseHeaders, tunnel);
+
+            }
+            catch (HTTP2TunnelRefusedException refusal)
+            {
+                return (refusal.Status, refusal.Headers, null);
+            }
+
+        }
+
+        #endregion
+
+        #region (protected override) LetGo()
+
+        /// <summary>
+        /// Give the tunnel up and close the HTTP/2 connection: it was made for
+        /// this WebSocket. The transport underneath stays its owner's.
+        /// </summary>
+        protected override void LetGo()
+        {
+
+            _ = Task.Run(async () => {
+                try
+                {
+                    if (tunnel is not null)
+                        await tunnel.DisposeAsync().ConfigureAwait(false);
+                    await Connection.CloseAsync().ConfigureAwait(false);
+                }
+                catch
+                { }
+            });
 
         }
 

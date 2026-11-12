@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 #endregion
@@ -61,6 +62,21 @@ public sealed record CertificateValidationOptions
     /// exception thrown there ends the handshake.
     /// </summary>
     public Action<KeyPinValidation>? OnKeyPinValidated { get; init; }
+
+    /// <summary>
+    /// Who decides, where set: told the peer's certificate, the chain as it was built - against
+    /// <see cref="CustomTrustRoots"/> where given, with the certificates the peer sent along - and
+    /// what is wrong with them, it says whether the peer is believed, as the validation callback of
+    /// an <see cref="SslStream"/> does. <see cref="SslPolicyErrors.RemoteCertificateNameMismatch"/>
+    /// is among the errors where <see cref="VerifyHostname"/> is on and the name does not match, and
+    /// <see cref="SslPolicyErrors.RemoteCertificateChainErrors"/> where the chain was not built - it
+    /// is always built for a judge, whatever <see cref="VerifyCertificateChain"/> says, as a judge
+    /// may want to look at it. Neither ends the handshake by itself: the judge's answer does, and an
+    /// exception it throws.
+    /// The certificate and the chain are the judge's for the call alone. Not asked where
+    /// <see cref="KeyPins"/> are set, as a key-pinned peer is its key and nothing else.
+    /// </summary>
+    public Func<X509Certificate2, X509Chain, SslPolicyErrors, bool>? Judge { get; init; }
 
     /// <summary>
     /// Default: full validation against the system roots incl. hostname.

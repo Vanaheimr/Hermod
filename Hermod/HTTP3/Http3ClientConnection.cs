@@ -359,6 +359,18 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     public bool ServerEnablesConnectProtocol => _qpack.PeerEnableConnectProtocol;
 
     /// <summary>
+    /// The server's SETTINGS are in (RFC 9114 §7.2.4). Until then
+    /// <see cref="ServerEnablesConnectProtocol"/> says nothing about the server.
+    /// </summary>
+    public bool ServerSettingsReceived => _qpack.PeerSettingsSeen;
+
+    /// <summary>
+    /// Why this side closed the connection, where it did: the reason of a handshake that failed
+    /// here - a certificate that was refused, say.
+    /// </summary>
+    public string? LocalCloseReason => _quic.LocalCloseReason;
+
+    /// <summary>
     /// Sends an Extended CONNECT (RFC 8441 §4 / RFC 9220), e.g. with <paramref name="protocol"/> =
     /// "websocket". The request stream stays open — after a 2xx response it becomes the tunnel
     /// (<see cref="TryGetConnectResponse"/>). Without the server setting no Extended CONNECT may be

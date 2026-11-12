@@ -2197,6 +2197,12 @@ public abstract class QuicEndpoint : IDisposable
     /// </summary>
     public ulong? LocalCloseErrorCode { get; private set; }
 
+    /// <summary>
+    /// The reason phrase of the CONNECTION_CLOSE we sent, if any: for a handshake that failed here,
+    /// why - a certificate that was refused, say.
+    /// </summary>
+    public string? LocalCloseReason => _closeFrame?.ReasonPhrase;
+
     private void HandleFrames(EncryptionLevel level, List<Frame> frames, ulong packetNumber = 0)
     {
         // RFC 9000 §13.2.1: only an ack-eliciting packet may start the acknowledgment clock — "An
