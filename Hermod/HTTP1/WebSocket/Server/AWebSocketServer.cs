@@ -20,6 +20,7 @@
 using System.Net.Sockets;
 using System.Net.Security;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 
 using Microsoft.Extensions.Logging;
@@ -29,6 +30,10 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP3;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP3.Qpack;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
@@ -61,6 +66,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private readonly Listener                                                  listener;
         private          ServerCertificateChainSelectorDelegate?                   serverCertificateChainSelector;
         private          RemoteTLSClientCertificateValidationHandler<ITCPServer>?  clientCertificateValidator;
+
+        /// <summary>
+        /// The HTTP/3 server beside the listener, the certificate it shows and
+        /// what ends its WebSockets: while this server takes WebSockets over
+        /// HTTP/3 (AcceptHTTP3) and is running.
+        /// </summary>
+        private          Http3Server?                                               http3Server;
+        private          ServerCertificate?                                         http3Certificate;
+        private          CancellationTokenSource?                                   http3Cancellation;
+        private          Boolean                                                    acceptHTTP3;
+
+        /// <summary>
+        /// Whether the listener was started, as far as this server knows:
+        /// IsRunning says so only once the listener is accepting.
+        /// </summary>
+        private volatile Boolean                                                    listenerStarted;
+
+        /// <summary>
+        /// The HTTP/3 servers beside the first: a listener on "localhost" is
+        /// one on both loopback addresses, and QUIC has a socket for each.
+        /// </summary>
+        private          List<Http3Server>                                          http3MoreServers   = [];
+        private readonly Lock                                                       http3Lock          = new();
         private          Int32                                                     disposed;
 
         #endregion
@@ -204,6 +232,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Anything else asked over HTTP/2 is refused.
         /// </remarks>
         public Boolean                                                  AcceptHTTP2                   { get; set; }
+
+        /// <summary>
+        /// Whether this server takes WebSockets over HTTP/3 as well (RFC 9220):
+        /// over QUIC, on the UDP port of the number of its TCP port. Off unless
+        /// switched on; a server that is running takes the change at once.
+        /// </summary>
+        /// <remarks>
+        /// HTTP/3 is HTTP over TLS and nothing else, so only a server that has
+        /// a certificate takes it; the certificate is asked for once, at the
+        /// start, as QUIC shows one certificate to every client, and it is
+        /// shown with a key of ECDSA P-256, ECDSA P-384 or RSA. A server
+        /// without TLS, with another key, or whose UDP port is taken, runs as
+        /// it would without this: <see cref="HTTP3Port"/> says so, and
+        /// <see cref="WhyNoHTTP3"/> why, which is logged as well. It listens
+        /// where its listener listens: a server on "localhost" on both
+        /// loopback addresses. An extended CONNECT with <c>:protocol = websocket</c> is
+        /// then an upgrade request to this server, validated, authenticated
+        /// and answered as every other: see <see cref="WebSocketOverHTTP2"/>,
+        /// whose translation is the same over HTTP/3. One WebSocket at a time
+        /// per HTTP/3 connection, as over HTTP/2; anything else asked over
+        /// HTTP/3 is refused.
+        ///
+        /// A client certificate is asked for, and one that is shown is judged
+        /// by the <see cref="ClientCertificateValidator"/> this server has
+        /// then - without one, by the roots of the operating system. A client
+        /// that has none shows none. Where it is not required, a client whose
+        /// certificate is refused is a client without one - over TCP its
+        /// handshake fails.
+        ///
+        /// While it takes them, the server says so with every upgrade it
+        /// accepts over HTTP/1.1 and HTTP/2: <c>Alt-Svc: h3=":port"</c>
+        /// (RFC 7838), which is what a client that leaves the version of HTTP
+        /// to the server goes by.
+        /// </remarks>
+        public Boolean                                                  AcceptHTTP3
+        {
+
+            get
+            {
+                return acceptHTTP3;
+            }
+
+            set
+            {
+
+                acceptHTTP3 = value;
+
+                if (!listenerStarted && !IsRunning)
+                    return;
+
+                if (value)
+                    StartHTTP3();
+                else
+                    _ = StopHTTP3();
+
+            }
+
+        }
+
+        /// <summary>
+        /// The UDP port this server takes WebSockets over HTTP/3 on, or null
+        /// while it takes none: see <see cref="AcceptHTTP3"/>.
+        /// </summary>
+        public IPPort?                                                  HTTP3Port
+            => http3Server is { } server
+                   ? IPPort.Parse((UInt16) server.Port)
+                   : null;
+
+        /// <summary>
+        /// Why this server takes no WebSockets over HTTP/3 although it was to
+        /// (<see cref="AcceptHTTP3"/>), or null: while it takes them, and while
+        /// it was not asked to or is not running.
+        /// </summary>
+        public String?                                                  WhyNoHTTP3                    { get; private set; }
 
         /// <summary>
         /// Whether clients must present a TLS certificate.
@@ -444,6 +546,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             listener.OnTCPServerStarted         += async (tcpServer, timestamp, eventTrackingId, message) => {
 
+                // However the listener was started: HTTP/3 beside it, where it is to be taken.
+                listenerStarted = true;
+
+                if (acceptHTTP3)
+                    StartHTTP3();
+
                 await LogEvent(
                           OnTCPServerStarted,
                           loggingDelegate => loggingDelegate.Invoke(
@@ -532,9 +640,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Start listening.
         /// </summary>
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
-        public Task Start(EventTracking_Id? EventTrackingId = null)
+        public async Task Start(EventTracking_Id? EventTrackingId = null)
+        {
 
-            => listener.Start(EventTrackingId);
+            await listener.Start(EventTrackingId).ConfigureAwait(false);
+
+            listenerStarted = true;
+
+            if (AcceptHTTP3)
+                StartHTTP3();
+
+        }
 
         #endregion
 
@@ -546,10 +662,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="Message">An optional message to include in the stopped events.</param>
-        public Task Stop(EventTracking_Id?  EventTrackingId   = null,
-                         String?            Message           = null)
+        public async Task Stop(EventTracking_Id?  EventTrackingId   = null,
+                               String?            Message           = null)
+        {
 
-            => listener.Stop(EventTrackingId, Message);
+            listenerStarted = false;
+
+            await StopHTTP3().ConfigureAwait(false);
+
+            await listener.Stop(EventTrackingId, Message).ConfigureAwait(false);
+
+        }
 
         #endregion
 
@@ -561,6 +684,364 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         protected override Task StopAcceptingAsync()
 
             => Stop();
+
+        #endregion
+
+        #region (protected override) AlternativeServicesAnnounced
+
+        /// <summary>
+        /// HTTP/3 on the UDP port of this server, while it takes WebSockets
+        /// over it: <c>h3=":port"</c>, for a day.
+        /// </summary>
+        protected override AlternativeServices? AlternativeServicesAnnounced
+
+            => http3Server is { } server
+                   ? AlternativeServices.Of(
+                         new HTTPAlternativeService(
+                             "h3",
+                             "",
+                             (UInt16) server.Port,
+                             HTTPAlternativeService.DefaultMaxAge,
+                             false
+                         )
+                     )
+                   : null;
+
+        #endregion
+
+        #region (private) StartHTTP3()
+
+        /// <summary>
+        /// Take WebSockets over HTTP/3 beside the listener: see AcceptHTTP3.
+        /// Whatever keeps this from happening is logged, and the server runs
+        /// without.
+        /// </summary>
+        private void StartHTTP3()
+        {
+            lock (http3Lock)
+            {
+                StartHTTP3Locked();
+            }
+        }
+
+        private void StartHTTP3Locked()
+        {
+
+            // Switched off since it was to be started: the listener tells of its
+            // start in its own time, and a server that was told meanwhile not to
+            // take HTTP/3 takes none.
+            if (http3Server is not null || !acceptHTTP3)
+                return;
+
+            WhyNoHTTP3 = null;
+
+            if (ServerCertificateSelector is null)
+            {
+                WhyNoHTTP3 = "The server has no TLS, and HTTP/3 is HTTP over TLS and nothing else.";
+                Logger.LogDebug("The WebSocket server on {IPSocket} has no TLS, and so takes no WebSockets over HTTP/3.", IPSocket);
+                return;
+            }
+
+            ServerCertificate certificate;
+
+            try
+            {
+
+                // QUIC shows one certificate to every client: the one this
+                // server would show to a client nothing is known of yet.
+                using var nobody = new TcpClient();
+
+                certificate = ServerCertificate.From(ServerCertificateSelector(this, nobody));
+
+            }
+            catch (Exception e)
+            {
+                WhyNoHTTP3 = $"The certificate of the server cannot be shown over QUIC: {e.Message}";
+                Logger.LogWarning(e, "The WebSocket server on {IPSocket} takes no WebSockets over HTTP/3: its certificate cannot be shown over QUIC.", IPSocket);
+                return;
+            }
+
+            // A client certificate is asked for, and judged by the validator this
+            // server has when it is shown: without one, by the roots of the
+            // operating system.
+            var clientCertificate  = new ClientCertificateOptions {
+                                         Mode        = ClientCertificateRequired
+                                                           ? ClientCertificateMode.Require
+                                                           : ClientCertificateMode.Request,
+                                         Validation  = new CertificateValidationOptions {
+                                                           VerifyHostname  = false,
+                                                           Judge           = (clientCert, chain, policyErrors) =>
+                                                                                 clientCertificateValidator is { } validator
+                                                                                     ? validator(this, clientCert, chain, this, policyErrors).IsValid
+                                                                                     : policyErrors == SslPolicyErrors.None
+                                                       }
+                                     };
+
+            var cancellation       = new CancellationTokenSource();
+            var port               = IPSocket.Port.ToUInt16();
+
+            // Where the listener listens: "localhost" is both loopback addresses, and
+            // any address of both families is one socket of both (Http3Server).
+            System.Net.IPAddress[] localAddresses = IPAddress.IsIPv4 && IPAddress.IsIPv6 && IPAddress.IsLocalhost
+                                                        ? [ System.Net.IPAddress.Loopback, System.Net.IPAddress.IPv6Loopback ]
+                                                        : [ IPAddress.ToDotNet() ];
+
+            Http3Server ServerOn(System.Net.IPAddress localAddress)
+
+                                => new Http3Server(
+                                         port,
+                                         (remoteEndPoint, validatedRetry) => {
+
+                                             // One WebSocket at a time: see AcceptHTTP3.
+                                             var webSockets = new StrongBox<Int32>(0);
+
+                                             Http3ServerConnection? connection = null;
+
+                                             connection = new Http3ServerConnection(
+
+                                                              certificate,
+
+                                                              request => new Http3Response {
+                                                                             Status   = 400,
+                                                                             Headers  = [ new HeaderField("content-type", "text/plain; charset=utf-8") ],
+                                                                             Body     = "This is a WebSocket server: over HTTP/3 a WebSocket is opened by an extended CONNECT with ':protocol = websocket' (RFC 9220).".ToUTF8Bytes()
+                                                                         },
+
+                                                              validatedRetry:     validatedRetry,
+                                                              clientCertificate:  clientCertificate
+
+                                                          ) {
+
+                                                              ConnectHandlerAsync = (request, cancellationToken) =>
+                                                                                        HandleHTTP3Connect(
+                                                                                            connection!,
+                                                                                            IPSocket,
+                                                                                            IPSocket.FromIPEndPoint(remoteEndPoint),
+                                                                                            webSockets,
+                                                                                            request,
+                                                                                            cancellation.Token,
+                                                                                            cancellationToken
+                                                                                        )
+
+                                                          };
+
+                                             return connection;
+
+                                         },
+                                         localAddress
+                                     );
+
+            var        started  = new List<Http3Server>();
+            Exception? failure  = null;
+
+            foreach (var localAddress in localAddresses)
+            {
+
+                var server = ServerOn(localAddress);
+
+                try
+                {
+                    server.Start();
+                    started.Add(server);
+                }
+                catch (Exception e)
+                {
+                    // One family the machine does not have, or a port that is taken there.
+                    failure = e;
+                    Logger.LogDebug(e, "The WebSocket server on {IPSocket} does not listen for HTTP/3 on {Address}, UDP port {Port}.", IPSocket, localAddress, port);
+                    _ = server.DisposeAsync();
+                }
+
+            }
+
+            if (started.Count == 0)
+            {
+                WhyNoHTTP3 = $"The UDP port {port} cannot be listened on: {failure?.Message}";
+                Logger.LogWarning(failure, "The WebSocket server on {IPSocket} takes no WebSockets over HTTP/3: its UDP port {Port} cannot be listened on.", IPSocket, port);
+                cancellation.Dispose();
+                certificate. Dispose();
+                return;
+            }
+
+            http3Certificate   = certificate;
+            http3Cancellation  = cancellation;
+            http3MoreServers   = started[1..];
+            http3Server        = started[0];
+
+        }
+
+        #endregion
+
+        #region (private) StopHTTP3()
+
+        private async Task StopHTTP3()
+        {
+
+            Http3Server?              server;
+            CancellationTokenSource?  cancellation;
+            ServerCertificate?        certificate;
+            List<Http3Server>         more;
+
+            lock (http3Lock)
+            {
+                server             = http3Server;
+                cancellation       = http3Cancellation;
+                certificate        = http3Certificate;
+                more               = http3MoreServers;
+                http3Server        = null;
+                http3Cancellation  = null;
+                http3Certificate   = null;
+                http3MoreServers   = [];
+                WhyNoHTTP3         = null;
+            }
+
+            if (server is null)
+                return;
+
+            try
+            {
+                cancellation?.Cancel();
+            }
+            catch
+            { }
+
+            foreach (var one in (Http3Server[]) [ server, .. more ])
+            {
+                try
+                {
+                    await one.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogDebug(e, "Stopping the HTTP/3 server of the WebSocket server on {IPSocket} failed.", IPSocket);
+                }
+            }
+
+            cancellation?.Dispose();
+            certificate?. Dispose();
+
+        }
+
+        #endregion
+
+        #region (private) HandleHTTP3Connect(Connection, LocalSocket, RemoteSocket, WebSockets, Request, ServerToken, RequestToken)
+
+        /// <summary>
+        /// Answer an extended CONNECT over HTTP/3: a WebSocket where it asks
+        /// for one, by the handshake every WebSocket of this server has.
+        /// </summary>
+        private async Task<Http3ConnectResult> HandleHTTP3Connect(Http3ServerConnection  Connection,
+                                                                  IPSocket               LocalSocket,
+                                                                  IPSocket               RemoteSocket,
+                                                                  StrongBox<Int32>       WebSockets,
+                                                                  Http3Request           Request,
+                                                                  CancellationToken      ServerToken,
+                                                                  CancellationToken      RequestToken)
+        {
+
+            // RFC 9220 with RFC 8441, Section 4: a protocol the server does not know.
+            if (Request.Protocol != WebSocketOverHTTP2.Protocol)
+                return new Http3ConnectResult { Status = 501 };
+
+            List<(String Name, String Value)> connectHeaders = [
+                                                                   (":authority", Request.Authority),
+                                                                   (":path",      Request.Path),
+                                                                   .. Request.AdditionalHeaders.Select(field => (field.Name, field.Value))
+                                                               ];
+
+            if (!WebSocketOverHTTP2.TryUpgradeRequestOf(connectHeaders, out var requestBytes, out var error))
+            {
+                Logger.LogDebug("Refusing the WebSocket over HTTP/3 of {RemoteSocket}: {Error}", RemoteSocket, error);
+                return new Http3ConnectResult { Status = 400 };
+            }
+
+            if (Interlocked.CompareExchange(ref WebSockets.Value, 1, 0) != 0)
+                return new Http3ConnectResult { Status = 503 };
+
+            var bridge = new WebSocketOverHTTP2ServerStream();
+
+            // The handshake and the frame loop every WebSocket of this
+            // server has, on the request the CONNECT stands for.
+            _ = RunConnectionAsync(
+                    new WebSocketServerConnection(
+
+                        WebSocketServer:              this,
+                        NetworkStream:                new PrefixedStream(requestBytes, bridge),
+                        LocalSocket:                  LocalSocket,
+                        RemoteSocket:                 RemoteSocket,
+                        ClientCertificate:            Connection.ClientAuthentication.Certificate,
+
+                        HTTPRequest:                  null,
+                        HTTPResponse:                 null,
+
+                        MaxTextMessageSizeIn:         MaxTextMessageSizeIn,
+                        MaxTextMessageSizeOut:        MaxTextMessageSizeOut,
+                        MaxTextFragmentLengthIn:      MaxTextFragmentLengthIn,
+                        MaxTextFragmentLengthOut:     MaxTextFragmentLengthOut,
+
+                        MaxBinaryMessageSizeIn:       MaxBinaryMessageSizeIn,
+                        MaxBinaryMessageSizeOut:      MaxBinaryMessageSizeOut,
+                        MaxBinaryFragmentLengthIn:    MaxBinaryFragmentLengthIn,
+                        MaxBinaryFragmentLengthOut:   MaxBinaryFragmentLengthOut,
+
+                        SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
+
+                    ) {
+                        HTTPVersion = HTTPVersion.HTTP_3_0
+                    },
+                    ServerToken
+                ).ContinueWith(task => {
+                    _ = task.Exception;
+                    bridge.Dispose();
+                    Interlocked.Exchange(ref WebSockets.Value, 0);
+                }, TaskScheduler.Default);
+
+            try
+            {
+
+                var (status, answerHeaders) = await bridge.Answer.WaitAsync(RequestToken).ConfigureAwait(false);
+
+                List<HeaderField> answerFields = [.. WebSocketOverHTTP2.FieldsOverHTTP2(answerHeaders).
+                                                         Select(field => new HeaderField(field.Name, field.Value))];
+
+                // RFC 9220 with RFC 8441, Section 5: accepted with a 2xx, where the Upgrade is with a 101.
+                if (status == 101)
+                    return new Http3ConnectResult {
+                               Status    = 200,
+                               Headers   = answerFields,
+                               OnTunnel  = tunnel => {
+                                               // Until the server closes the bridge, or stops: then the
+                                               // tunnel ends as a TCP connection is closed (RFC 9220, Section 3).
+                                               _ = bridge.RunAsync(new WebSocketOverHTTP3Tunnel(tunnel), ServerToken).
+                                                          ContinueWith(task => {
+                                                              _ = task.Exception;
+                                                              try
+                                                              {
+                                                                  tunnel.Complete();
+                                                              }
+                                                              catch
+                                                              { }
+                                                          }, TaskScheduler.Default);
+                                           }
+                           };
+
+                bridge.Dispose();
+
+                return new Http3ConnectResult {
+                           Status   = status,
+                           Headers  = answerFields
+                       };
+
+            }
+            catch (Exception e)
+            {
+                // Closed without an answer, or called off.
+                Logger.LogDebug(e, "The WebSocket over HTTP/3 of {RemoteSocket} was not answered.", RemoteSocket);
+                bridge.Dispose();
+                return new Http3ConnectResult { Status = 503 };
+            }
+
+        }
 
         #endregion
 

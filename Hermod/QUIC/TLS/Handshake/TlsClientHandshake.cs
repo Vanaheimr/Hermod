@@ -525,7 +525,9 @@ public sealed class TlsClientHandshake : ITlsHandshake
     private void SendClientAuthentication()
     {
         byte[] certificate = CertificateMessage.Build(
-            _clientCertificate?.Der ?? ReadOnlySpan<byte>.Empty, _certificateRequestContext);
+            _clientCertificate?.Der ?? ReadOnlySpan<byte>.Empty,
+            _clientCertificate?.IntermediatesDer ?? [],
+            _certificateRequestContext);
         _outgoing.Enqueue((EncryptionLevel.Handshake, certificate));
         _transcript!.Append(certificate);
 

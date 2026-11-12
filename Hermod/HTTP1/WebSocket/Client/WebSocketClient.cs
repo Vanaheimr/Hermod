@@ -40,6 +40,9 @@ using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP2;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP3;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
+using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 
 #endregion
@@ -106,6 +109,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// HTTP/1.1 alone from now on.
         /// </summary>
         private Boolean                               extendedConnectNotOffered;
+
+        /// <summary>
+        /// The HTTP/3 client the WebSocket of this attempt is opened with, its
+        /// stream and the credential it shows: all three made for the attempt,
+        /// and let go of with it (CloseTransport).
+        /// </summary>
+        private Http3Client?                          http3Client;
+        private Stream?                               http3Stream;
+        private ServerCertificate?                    http3Credential;
 
         /// <summary>
         /// The default maintenance interval.
@@ -252,7 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             => tcpClient?.Available;
 
         public Boolean Connected
-            => IsConnected;
+            => IsConnected || http3Client is not null;
 
         [DisallowNull]
         public LingerOption? LingerState
@@ -416,12 +428,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Section 3.3). <see cref="WebSocketHTTPVersion.Auto"/> offers "h2"
         /// and "http/1.1" and takes what the server chooses; a server that
         /// chooses "h2" and then does not offer WebSockets over it is dialled
-        /// again with "http/1.1" alone, and from then on at once. What the
+        /// again with "http/1.1" alone, and from then on at once.
+        /// <see cref="WebSocketHTTPVersion.HTTP3"/> opens it by an extended
+        /// CONNECT over QUIC (RFC 9220), on the UDP port of the number of the
+        /// TCP port, and connects to nothing else; it needs TLS, as QUIC has
+        /// nothing else. A server that said it is reached over HTTP/3
+        /// (<c>Alt-Svc: h3=":port"</c>, RFC 7838) with an upgrade it accepted
+        /// is asked over HTTP/3 by <see cref="WebSocketHTTPVersion.Auto"/> from
+        /// then on: see <see cref="WebSocketAlternativeServices"/>. One that is
+        /// not found there is asked as before, and its word forgotten. What the
         /// upgrade request says - the subprotocols, the extensions, the
         /// Authorization, a one-time password - is said either way, and so is
         /// what the server answers: see <see cref="WebSocketOverHTTP2"/>.
         /// </remarks>
         public WebSocketHTTPVersion                 WebSocketOver                        { get; set; } = WebSocketHTTPVersion.HTTP1_1;
+
+        /// <summary>
+        /// How long a server that said it is reached over HTTP/3 is given to
+        /// be found there, by a client that leaves the version of HTTP to it,
+        /// before it is asked the way it was: three seconds unless said
+        /// otherwise, and never longer than a connection is given.
+        /// </summary>
+        public TimeSpan                             AlternativeServiceTimeout            { get; set; } = TimeSpan.FromSeconds(3);
 
         /// <summary>
         /// The version of HTTP the WebSocket of the last attempt to connect was
@@ -1044,7 +1072,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
 
             if (over == WebSocketHTTPVersion.HTTP3)
-                throw new NotSupportedException("This WebSocket client does not open a WebSocket over HTTP/3.");
+            {
+                await OpenHTTP3Connection(RequestTimeout.Value).ConfigureAwait(false);
+                return;
+            }
+
+            #region Over HTTP/3, where the server is left the choice and said it is reached over it (Alt-Svc)
+
+            if (over == WebSocketHTTPVersion.Auto &&
+                WebSocketAlternativeServices.TryGetHTTP3(RemoteURL, out var http3Port))
+            {
+                try
+                {
+                    await OpenHTTP3Connection(RequestTimeout.Value, http3Port, AlternativeServiceTimeout).ConfigureAwait(false);
+                    return;
+                }
+                catch (Exception e)
+                {
+                    // Not found where it said: forgotten, and not believed again
+                    // for a while, and it is asked the way it was when it said so.
+                    WebSocketAlternativeServices.NotFound(RemoteURL);
+                    Logger.LogDebug(e, "The server of {RemoteURL} was not reached over HTTP/3 on the UDP port {Port} it announced.", RemoteURL, http3Port);
+                }
+            }
+
+            #endregion
 
             // What is offered for ALPN is what this attempt may come to: "h2"
             // alone where nothing else will do, both where the server chooses,
@@ -1143,6 +1195,153 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             HTTPVersionInUse     ??= HTTPVersion.HTTP_1_1;
 
             HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+
+        }
+
+        #endregion
+
+        #region (private) OpenHTTP3Connection(RequestTimeout)
+
+        /// <summary>
+        /// Connect over QUIC and HTTP/3, for a WebSocket that is opened by an
+        /// extended CONNECT there (RFC 9220) and by nothing else.
+        /// </summary>
+        /// <remarks>
+        /// The server is found by the DNS client of this client, asked for by
+        /// the name its TLS would ask for, and judged by the validator its TLS
+        /// would be judged by: told the certificate, the chain and what is
+        /// wrong with them. Without a validator it is held to the roots of the
+        /// operating system and to its name. A client certificate with its
+        /// private key is shown where the server asks for one - with a key of
+        /// ECDSA P-256, ECDSA P-384 or RSA, which is what a certificate that is
+        /// there already can sign with over QUIC. What TLS over TCP has and
+        /// this has not: a LocalCertificateSelector is not asked, and the
+        /// protocols, cipher suites and revocation mode of this client are
+        /// those of QUIC's TLS 1.3.
+        /// </remarks>
+        private async Task OpenHTTP3Connection(TimeSpan   RequestTimeout,
+                                               UInt16?    Port             = null,
+                                               TimeSpan?  ConnectWithin    = null)
+        {
+
+            await CloseTransport().ConfigureAwait(false);
+
+            if (RemoteURL.Scheme != URIScheme.wss &&
+                RemoteURL.Scheme != URIScheme.https)
+                throw new Exception($"A WebSocket over HTTP/3 is one over TLS: QUIC has no other way, and '{RemoteURL}' asks for none.");
+
+            var host        = RemoteURL.Host.ToString();
+            // The UDP port of the number of the TCP port, unless the server said another (Alt-Svc).
+            var port        = Port ?? (RemoteURL.Port ?? IPPort.HTTPS).ToUInt16();
+
+            var validator   = RemoteCertificateValidator;
+
+            var validation  = validator is not null
+                                  ? new CertificateValidationOptions {
+                                        Judge = (certificate, chain, policyErrors) =>
+                                                    validator(this, certificate, chain, this, policyErrors).IsValid
+                                    }
+                                  : CertificateValidationOptions.Default;
+
+            var own         = ClientCertificates.    FirstOrDefault(certificate => certificate.HasPrivateKey) ??
+                              ClientCertificateChain.FirstOrDefault(certificate => certificate.HasPrivateKey);
+
+            var credential  = own is not null
+                                  ? ServerCertificate.From(
+                                        own,
+                                        ClientCertificateChain.Where(certificate => !certificate.Equals(own) && !certificate.HasPrivateKey)
+                                    )
+                                  : null;
+
+            var client      = new Http3Client(
+                                  host,
+                                  port,
+                                  certificateValidation:  validation,
+                                  clientCertificate:      credential,
+                                  dnsClient:              DNSClient,
+                                  serverName:             TLSHostname
+                              );
+
+            async Task GiveUp()
+            {
+                try
+                {
+                    await client.DisposeAsync().ConfigureAwait(false);
+                }
+                catch
+                { }
+                credential?.Dispose();
+            }
+
+            try
+            {
+                // As long as a TLS handshake over TCP is given, where that is said.
+                var within = ConnectTimeout < RequestTimeout ? ConnectTimeout : RequestTimeout;
+
+                if (ConnectWithin.HasValue && ConnectWithin.Value < within)
+                    within = ConnectWithin.Value;
+
+                await client.ConnectAsync(within, networkingCancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                await GiveUp().ConfigureAwait(false);
+                throw new Exception($"No HTTP/3 connection to {host}:{port}: {e.Message}", e);
+            }
+
+            // What the server offers is in its SETTINGS, which follow the handshake.
+            await client.WaitUntilAsync(
+                      connection => connection.ServerSettingsReceived || connection.IsClosing || connection.IsDraining || connection.IsClosed,
+                      RequestTimeout,
+                      networkingCancellationToken
+                  ).ConfigureAwait(false);
+
+            if (!await client.QueryAsync(connection => connection.ServerEnablesConnectProtocol, networkingCancellationToken).ConfigureAwait(false))
+            {
+                await GiveUp().ConfigureAwait(false);
+                throw new Exception("The server speaks HTTP/3 and does not offer WebSockets over it (SETTINGS_ENABLE_CONNECT_PROTOCOL, RFC 9220), and this WebSocket is to be opened over nothing else.");
+            }
+
+            http3Client             = client;
+            http3Credential         = credential;
+            http3Stream             = new WebSocketOverHTTP3ClientStream(client, RequestTimeout);
+
+            HTTPStream              = http3Stream;
+            HTTPVersionInUse        = HTTPVersion.HTTP_3_0;
+            HTTPStream.ReadTimeout  = (Int32) RequestTimeout.TotalMilliseconds;
+
+        }
+
+        #endregion
+
+        #region (private) CloseTransport()
+
+        /// <summary>
+        /// Close what the WebSocket is on: the TCP connection, and over HTTP/3
+        /// the QUIC connection that was made for it.
+        /// </summary>
+        private async Task CloseTransport()
+        {
+
+            var stream      = Interlocked.Exchange(ref http3Stream,     null);
+            var credential  = Interlocked.Exchange(ref http3Credential, null);
+
+            if (Interlocked.Exchange(ref http3Client, null) is not null || stream is not null)
+            {
+
+                // Ends the tunnel, closes the HTTP/3 connection and its socket.
+                try
+                {
+                    stream?.Dispose();
+                }
+                catch
+                { }
+
+                credential?.Dispose();
+
+            }
+
+            await base.Close().ConfigureAwait(false);
 
         }
 
@@ -1326,7 +1525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                              CancellationToken  CancellationToken = default)
         {
 
-            if (HTTPStream is null || tcpClient is null)
+            if (HTTPStream is null || (tcpClient is null && http3Client is null))
                 return HTTPResponse.BadRequest(
                            HTTPRequest
                        );
@@ -1644,6 +1843,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         if (!webSocketUpgradeAccepted)
                             waitingForHTTPResponse = httpResponse;
 
+                        // RFC 7838: where else the server says it is reached. Kept for the
+                        // next attempt of a client that leaves the version of HTTP to it.
+                        else if (http3Client is null && httpResponse.AltSvc is { } alternativeServices)
+                            WebSocketAlternativeServices.Learn(RemoteURL, alternativeServices);
+
                         #endregion
 
 
@@ -1653,7 +1857,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         var pos     = 0U;
 
                         if (webSocketUpgradeAccepted &&
-                            tcpClient?.Client is not null &&
+                            (tcpClient?.Client is not null || http3Client is not null) &&
                             HTTPStream        is not null)
                         {
 
@@ -1661,18 +1865,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             // reset the reconnect backoff to start from InitialDelay again.
                             ReconnectAttempts = 0;
 
-                            var tcpStream = tcpClient.GetStream();
+                            if (http3Client is { } overHTTP3)
+                                // Over HTTP/3 there is no TCP socket: the ends are those of QUIC's.
+                                webSocketClientConnection = new WebSocketClientConnection(
+                                                                this,
+                                                                overHTTP3.LocalEndPoint  is { } localEnd  ? IPSocket.FromIPEndPoint(localEnd)  : IPSocket.Zero,
+                                                                overHTTP3.RemoteEndPoint is { } remoteEnd ? IPSocket.FromIPEndPoint(remoteEnd) : IPSocket.Zero,
+                                                                HTTPStream,
+                                                                () => overHTTP3.Connection.IsClosed || overHTTP3.Connection.IsDraining,
+                                                                httpRequest,
+                                                                httpResponse,
+                                                                CustomData:                  null,
+                                                                SlowNetworkSimulationDelay:  null
+                                                            );
 
-                            webSocketClientConnection = new WebSocketClientConnection(
-                                                            this,
-                                                            tcpClient.Client,
-                                                            tcpStream,
-                                                            HTTPStream,
-                                                            httpRequest,
-                                                            httpResponse,
-                                                            CustomData:                  null,
-                                                            SlowNetworkSimulationDelay:  null
-                                                        );
+                            else
+                                webSocketClientConnection = new WebSocketClientConnection(
+                                                                this,
+                                                                tcpClient!.Client,
+                                                                tcpClient.GetStream(),
+                                                                HTTPStream,
+                                                                httpRequest,
+                                                                httpResponse,
+                                                                CustomData:                  null,
+                                                                SlowNetworkSimulationDelay:  null
+                                                            );
 
                             webSocketClientConnection.MaxBackpressure         = MaxBackpressure;
                             webSocketClientConnection.BackpressureBehaviour   = BackpressureBehaviour;
@@ -2337,7 +2554,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             ClientCloseMessage is not null)
                         {
 
-                            await base.Close().ConfigureAwait(false);
+                            await CloseTransport().ConfigureAwait(false);
                             HTTPStream = null;
 
                         }
@@ -2368,7 +2585,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         lastFailureResponse = httpResponse;
 
-                        await base.Close().ConfigureAwait(false);
+                        await CloseTransport().ConfigureAwait(false);
                         HTTPStream = null;
 
                     }
@@ -2394,7 +2611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         lastFailureResponse = httpResponse;
 
-                        await base.Close().ConfigureAwait(false);
+                        await CloseTransport().ConfigureAwait(false);
                         HTTPStream = null;
 
                     }
@@ -3011,7 +3228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             try
             {
                 HTTPStream = null;
-                await base.Close().ConfigureAwait(false);
+                await CloseTransport().ConfigureAwait(false);
             }
             catch
             { }

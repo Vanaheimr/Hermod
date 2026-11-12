@@ -41,8 +41,16 @@ public static class CertificateMessage
     /// handshake, which is the only kind QUIC allows (RFC 9001 §4.4).
     /// </param>
     public static byte[] Build(ReadOnlySpan<byte> der, ReadOnlySpan<byte> context = default)
+        => Build(der, [], context);
+
+    /// <summary>
+    /// As <see cref="Build(ReadOnlySpan{byte}, ReadOnlySpan{byte})"/>, with the certificates that
+    /// lead from the end-entity certificate towards a root behind it, in that order (§4.4.2).
+    /// Without an end-entity certificate there are none.
+    /// </summary>
+    public static byte[] Build(ReadOnlySpan<byte> der, IReadOnlyList<byte[]> intermediates, ReadOnlySpan<byte> context = default)
     {
-        var w = new BufferWriter(der.Length + 32);
+        var w = new BufferWriter(der.Length + intermediates.Sum(intermediate => intermediate.Length + 5) + 32);
         try
         {
             w.WriteByte((byte)HandshakeType.Certificate);
@@ -58,6 +66,14 @@ public static class CertificateMessage
                 w.WriteBytes(der);
                 TlsWriter.EndVector(ref w, certLen, 3);
                 w.WriteUInt16(0); // no per-certificate extensions
+
+                foreach (byte[] intermediate in intermediates)
+                {
+                    int intermediateLen = TlsWriter.BeginVector(ref w, 3);
+                    w.WriteBytes(intermediate);
+                    TlsWriter.EndVector(ref w, intermediateLen, 3);
+                    w.WriteUInt16(0); // no per-certificate extensions
+                }
             }
             TlsWriter.EndVector(ref w, listLen, 3);
 

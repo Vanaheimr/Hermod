@@ -474,7 +474,7 @@ public sealed class TlsServerHandshake : ITlsHandshake
             }
 
             // Full authentication only without resumption – with a PSK the binder vouches for the identity.
-            byte[] certificate = BuildCertificate(_certificate.Der);
+            byte[] certificate = CertificateMessage.Build(_certificate.Der, _certificate.IntermediatesDer);
             _transcript.Append(certificate);
             _outgoing.Enqueue((EncryptionLevel.Handshake, certificate));
 
@@ -585,28 +585,6 @@ public sealed class TlsServerHandshake : ITlsHandshake
                 TlsWriter.WriteExtension(ref w, ExtensionType.EarlyData, ReadOnlySpan<byte>.Empty);
 
             TlsWriter.EndVector(ref w, extLen, 2);
-            TlsWriter.EndVector(ref w, bodyLen, 3);
-            return w.WrittenSpan.ToArray();
-        }
-        finally { w.Dispose(); }
-    }
-
-    private static byte[] BuildCertificate(byte[] der)
-    {
-        var w = new BufferWriter(der.Length + 32);
-        try
-        {
-            w.WriteByte((byte)HandshakeType.Certificate);
-            int bodyLen = TlsWriter.BeginVector(ref w, 3);
-            w.WriteByte(0); // certificate_request_context: empty
-            int listLen = TlsWriter.BeginVector(ref w, 3);
-            {
-                int certLen = TlsWriter.BeginVector(ref w, 3);
-                w.WriteBytes(der);
-                TlsWriter.EndVector(ref w, certLen, 3);
-                w.WriteUInt16(0); // this entry's extensions: empty
-            }
-            TlsWriter.EndVector(ref w, listLen, 3);
             TlsWriter.EndVector(ref w, bodyLen, 3);
             return w.WrittenSpan.ToArray();
         }

@@ -45,7 +45,22 @@ public sealed class ServerCertificate : IDisposable
     public byte[] Der => Certificate.RawData;
 
     /// <summary>
-    /// Signature scheme in use (ecdsa_secp256r1_sha256 or ed25519).
+    /// DER encodings of the certificates that lead from this one towards a root, in that order and
+    /// without the root's need to be among them (RFC 8446 §4.4.2). They follow the certificate in
+    /// the Certificate message, so a peer that knows the root alone can build the chain. Empty for a
+    /// self-signed certificate.
+    /// </summary>
+    public IReadOnlyList<byte[]> IntermediatesDer { get; } = [];
+
+    /// <summary>
+    /// Whether <see cref="Dispose"/> disposes the certificate too: not when it was handed in by
+    /// <see cref="From"/>, as it is its caller's then.
+    /// </summary>
+    private readonly bool _ownsCertificate = true;
+
+    /// <summary>
+    /// Signature scheme in use, which the key decides: ecdsa_secp256r1_sha256, ecdsa_secp384r1_sha384,
+    /// rsa_pss_rsae_sha256, ed25519, ed448 or one of ML-DSA.
     /// </summary>
     public SignatureScheme SignatureScheme => _signer.Scheme;
 
@@ -80,6 +95,72 @@ public sealed class ServerCertificate : IDisposable
     {
         Certificate = certificate;
         _signer = signer;
+    }
+
+    private ServerCertificate(X509Certificate2 certificate, ICertificateSigner signer,
+                              IReadOnlyList<byte[]> intermediatesDer)
+        : this(certificate, signer)
+    {
+        IntermediatesDer = intermediatesDer;
+        _ownsCertificate = false;
+    }
+
+    /// <summary>
+    /// A certificate that is there already, with its private key: what a server of TLS over TCP
+    /// shows, shown over QUIC as well. The key decides the signature scheme (RFC 8446 §4.2.3):
+    /// ECDSA P-256 signs as ecdsa_secp256r1_sha256, ECDSA P-384 as ecdsa_secp384r1_sha384 and RSA as
+    /// rsa_pss_rsae_sha256 - TLS 1.3 knows RSA with PSS alone, and so an RSA key of fewer than 2048
+    /// bits is refused here. Any other key, or a certificate without its private key, is refused
+    /// with a <see cref="NotSupportedException"/> that says which it is.
+    /// The certificate stays its caller's: <see cref="Dispose"/> lets go of the key handle taken
+    /// here and leaves the certificate alone.
+    /// </summary>
+    /// <param name="certificate">The certificate, with its private key.</param>
+    /// <param name="intermediates">The certificates that lead from it towards a root, in that order; see <see cref="IntermediatesDer"/>.</param>
+    public static ServerCertificate From(X509Certificate2 certificate,
+                                         IEnumerable<X509Certificate2>? intermediates = null)
+    {
+        ArgumentNullException.ThrowIfNull(certificate);
+
+        if (!certificate.HasPrivateKey)
+            throw new NotSupportedException(
+                $"'{certificate.Subject}' comes without its private key, and a certificate is shown by signing with it.");
+
+        byte[][] intermediatesDer = intermediates?.Select(intermediate => intermediate.RawData).ToArray() ?? [];
+
+        if (certificate.GetECDsaPrivateKey() is { } ecdsa)
+        {
+            string? curve = ecdsa.ExportParameters(includePrivateParameters: false).Curve.Oid.Value;
+
+            if (curve == ECCurve.NamedCurves.nistP256.Oid.Value)
+                return new ServerCertificate(certificate, new EcdsaSigner(ecdsa), intermediatesDer);
+
+            if (curve == ECCurve.NamedCurves.nistP384.Oid.Value)
+                return new ServerCertificate(certificate,
+                                             new EcdsaSigner(ecdsa, SignatureScheme.EcdsaSecp384r1Sha384, HashAlgorithmName.SHA384),
+                                             intermediatesDer);
+
+            ecdsa.Dispose();
+            throw new NotSupportedException(
+                $"'{certificate.Subject}' has an ECDSA key on the curve {curve}. TLS 1.3 over QUIC signs here with P-256 or P-384.");
+        }
+
+        if (certificate.GetRSAPrivateKey() is { } rsa)
+        {
+            if (rsa.KeySize < 2048)
+            {
+                int bits = rsa.KeySize;
+                rsa.Dispose();
+                throw new NotSupportedException(
+                    $"'{certificate.Subject}' has an RSA key of {bits} bits. TLS 1.3 signs with RSA-PSS, and with no key of fewer than 2048 bits here.");
+            }
+
+            return new ServerCertificate(certificate, new RsaPssSigner(rsa), intermediatesDer);
+        }
+
+        throw new NotSupportedException(
+            $"'{certificate.Subject}' has a key of the kind {certificate.PublicKey.Oid.FriendlyName ?? certificate.PublicKey.Oid.Value}. " +
+            "A certificate that is there already is shown over QUIC with ECDSA P-256, ECDSA P-384 or RSA.");
     }
 
     /// <summary>
@@ -251,7 +332,8 @@ public sealed class ServerCertificate : IDisposable
     public void Dispose()
     {
         _signer.Dispose();
-        Certificate.Dispose();
+        if (_ownsCertificate)
+            Certificate.Dispose();
     }
 
     // ---- Signer abstraction (ECDSA from the BCL, Ed25519 from BouncyCastle) ------------------
@@ -262,13 +344,34 @@ public sealed class ServerCertificate : IDisposable
         byte[] Sign(ReadOnlySpan<byte> content);
     }
 
-    private sealed class EcdsaSigner(ECDsa key) : ICertificateSigner
+    private sealed class EcdsaSigner(ECDsa key, SignatureScheme scheme, HashAlgorithmName hash) : ICertificateSigner
     {
-        public SignatureScheme Scheme => SignatureScheme.EcdsaSecp256r1Sha256;
+        /// <summary>
+        /// P-256, which signs over SHA-256.
+        /// </summary>
+        public EcdsaSigner(ECDsa key)
+            : this(key, SignatureScheme.EcdsaSecp256r1Sha256, HashAlgorithmName.SHA256)
+        { }
+
+        public SignatureScheme Scheme => scheme;
 
         // TLS transmits ECDSA signatures as a DER-encoded r/s sequence.
         public byte[] Sign(ReadOnlySpan<byte> content)
-            => key.SignData(content, HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence);
+            => key.SignData(content, hash, DSASignatureFormat.Rfc3279DerSequence);
+
+        public void Dispose() => key.Dispose();
+    }
+
+    /// <summary>
+    /// RSA as TLS 1.3 knows it (RFC 8446 §4.2.3): RSASSA-PSS over SHA-256 with a salt as long as the
+    /// digest, by a key whose certificate says rsaEncryption - rsa_pss_rsae_sha256.
+    /// </summary>
+    private sealed class RsaPssSigner(RSA key) : ICertificateSigner
+    {
+        public SignatureScheme Scheme => SignatureScheme.RsaPssRsaeSha256;
+
+        public byte[] Sign(ReadOnlySpan<byte> content)
+            => key.SignData(content, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
 
         public void Dispose() => key.Dispose();
     }

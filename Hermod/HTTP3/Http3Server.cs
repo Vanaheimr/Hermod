@@ -58,7 +58,8 @@ public sealed class Http3Server : IAsyncDisposable
         public List<byte[]> Inbound { get; } = [];
     }
 
-    private readonly Func<QuicServerConnection.ValidatedRetry?, Http3ServerConnection> _connectionFactory;
+    private readonly Func<IPEndPoint, QuicServerConnection.ValidatedRetry?, Http3ServerConnection> _connectionFactory;
+    private readonly System.Net.IPAddress _address = System.Net.IPAddress.Any;
     private readonly RetryTokenGenerator? _addressValidation;
     private readonly StatelessResetTokenGenerator? _statelessResetTokens;
     private readonly TimeProvider _timeProvider;
@@ -162,7 +163,34 @@ public sealed class Http3Server : IAsyncDisposable
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(maxConnections, 1);
         _requestedPort = port;
+        _connectionFactory = (_, retry) => connectionFactory(retry);
+        _statelessResetTokens = statelessResetTokens;
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _maxConnections = maxConnections;
+        _addressValidation = addressValidation;
+    }
+
+    /// <summary>
+    /// As above, for a server that wants to know who it is talking to and where it listens: the
+    /// factory is told the address the client's first packet came from - which is not yet proven
+    /// to be the client's without <paramref name="addressValidation"/> - and the socket is bound
+    /// to <paramref name="address"/>. The IPv6 any address listens on IPv4 as well, where the
+    /// operating system lets one socket do both; a client of IPv4 then comes from an IPv4-mapped
+    /// address.
+    /// </summary>
+    /// <param name="address">The address to listen on; the IPv4 any address where not given.</param>
+    public Http3Server(int port,
+                       Func<IPEndPoint, QuicServerConnection.ValidatedRetry?, Http3ServerConnection> connectionFactory,
+                       System.Net.IPAddress? address = null,
+                       StatelessResetTokenGenerator? statelessResetTokens = null,
+                       TimeProvider? timeProvider = null,
+                       int maxConnections = DefaultMaxConnections,
+                       RetryTokenGenerator? addressValidation = null)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxConnections, 1);
+        _requestedPort = port;
         _connectionFactory = connectionFactory;
+        _address = address ?? System.Net.IPAddress.Any;
         _statelessResetTokens = statelessResetTokens;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _maxConnections = maxConnections;
@@ -197,7 +225,20 @@ public sealed class Http3Server : IAsyncDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (_loopTask is not null)
             throw new InvalidOperationException("Start has already been called.");
-        _udp = new UdpClient(new IPEndPoint(System.Net.IPAddress.Any, _requestedPort));
+        if (_address.Equals(System.Net.IPAddress.IPv6Any))
+        {
+            // One socket for both families, where the operating system has it.
+            _udp = new UdpClient(AddressFamily.InterNetworkV6);
+            try
+            {
+                _udp.Client.DualMode = true;
+            }
+            catch (Exception e) when (e is SocketException or NotSupportedException)
+            { }
+            _udp.Client.Bind(new IPEndPoint(_address, _requestedPort));
+        }
+        else
+            _udp = new UdpClient(new IPEndPoint(_address, _requestedPort));
         DisableIcmpUnreachableException(_udp);
         Port = ((IPEndPoint)_udp.Client.LocalEndPoint!).Port;
         _loopTask = Task.Run(LoopAsync, CancellationToken.None);
@@ -356,7 +397,7 @@ public sealed class Http3Server : IAsyncDisposable
                 return;
             }
 
-            conn = new ServerConn(_connectionFactory(validatedRetry), from);
+            conn = new ServerConn(_connectionFactory(from, validatedRetry), from);
 
             // A token for this client's NEXT connection (§8.1.3). Prepared here because only the
             // listener knows the address; the connection holds it back until the handshake is
