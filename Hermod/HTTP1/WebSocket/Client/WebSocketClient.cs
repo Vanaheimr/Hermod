@@ -687,6 +687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.VirtualHostname                    = VirtualHostname;
             this.RemoteCertificateValidator         = RemoteCertificateValidator;
+            TakeKeyPinsOf(RemoteCertificateValidator);
             this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
             this.HTTPAuthentication                 = HTTPAuthentication;
             this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);
@@ -845,6 +846,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.VirtualHostname                    = VirtualHostname;
             this.RemoteCertificateValidator         = RemoteCertificateValidator;
+            TakeKeyPinsOf(RemoteCertificateValidator);
             this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
             this.HTTPAuthentication                 = HTTPAuthentication;
             this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);
@@ -1007,6 +1009,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.VirtualHostname                    = VirtualHostname;
             this.RemoteCertificateValidator         = RemoteCertificateValidator;
+            TakeKeyPinsOf(RemoteCertificateValidator);
             this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
             this.HTTPAuthentication                 = HTTPAuthentication;
             this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);

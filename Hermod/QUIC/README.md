@@ -264,6 +264,12 @@ var client = new WebSocketClient(URL.Parse("wss://192.168.10.5:8443"), ...) {
   those key pins and nothing else, and the `RemoteCertificateValidator` is not
   asked. Its own key, where it has one, is offered raw as well. Without
   `ServerKeyPins`, or with key pins at `Off`, the handshake is `SslStream`'s.
+- A client that is handed a key-pin validator and nothing else does the same: the
+  validators of `KeyPinValidator.ForServerCertificates<T>` say which key pins
+  stand behind them, and a validator of one's own around key pins says so with
+  `KeyPinValidator.WithKeyPins<T>(validator, policy, onValidated)`. It has to
+  reach the client as it is — wrapped into another delegate it says nothing, and
+  the handshake is `SslStream`'s.
 - `TLSSession` says what a handshake came to, whichever stack ran it: the stack,
   the application protocol (ALPN), both certificate types and the peer's key
   (`TLSPeerKey`). On BouncyCastle it also exports keying material (RFC 8446 §7.5).

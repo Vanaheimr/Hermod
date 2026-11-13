@@ -445,6 +445,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private TLSPeerKey? clientKey;
 
         /// <summary>
+        /// What the TLS handshake of this connection came to - the TLS stack,
+        /// the application protocol, and whether the keys came raw
+        /// (RFC 7250) or in certificates - where the WebSocket was opened
+        /// over HTTP/1.1 on a TLS connection of its own; else null.
+        /// </summary>
+        public TLSSession?              TLSSession
+            => TCPConnection?.TLSSession;
+
+        /// <summary>
         /// The negotiated "permessage-deflate" (RFC 7692) extension, or null if
         /// message compression was not negotiated for this connection.
         /// </summary>

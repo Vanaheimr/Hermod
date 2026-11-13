@@ -180,6 +180,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public TLSSession?                                               TLSSession                       { get; protected set; }
 
         /// <summary>
+        /// Take the key pins that stand behind the given validator of server
+        /// certificates, where it says them (KeyPinValidator.WithKeyPins) and
+        /// none were set: a client that is given such a validator and
+        /// nothing else speaks raw public keys where its key pins offer them.
+        /// </summary>
+        /// <param name="Validator">The validator this client was given, as it was given.</param>
+        protected void TakeKeyPinsOf(Delegate? Validator)
+        {
+
+            if (ServerKeyPins is null &&
+                KeyPinValidator.TryGetKeyPins(Validator, out var policy, out var onValidated))
+            {
+                ServerKeyPins              = policy;
+                OnServerKeyPinValidated  ??= onValidated;
+            }
+
+        }
+
+        /// <summary>
         /// The TLS stream, whichever TLS stack it runs on.
         /// </summary>
         protected Stream? TLSStream
@@ -249,6 +268,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             this.RemoteCertificateValidator      = RemoteCertificateValidator;
+            TakeKeyPinsOf(RemoteCertificateValidator);
             this.LocalCertificateSelector        = LocalCertificateSelector;
             this.TLSHostname                     = TLSHostname;
             this.ClientCertificates              = ClientCertificates               ?? [];
@@ -320,6 +340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.TLSHostname                     = TLSHostname;
             this.RemoteCertificateValidator      = RemoteCertificateValidator;
+            TakeKeyPinsOf(RemoteCertificateValidator);
             this.LocalCertificateSelector        = LocalCertificateSelector;
             this.ClientCertificates              = ClientCertificates               ?? [];
             this.ClientCertificateContext        = ClientCertificateContext;
@@ -392,6 +413,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.TLSHostname                     = TLSHostname;
             this.RemoteCertificateValidator      = RemoteCertificateValidator;
+            TakeKeyPinsOf(RemoteCertificateValidator);
             this.LocalCertificateSelector        = LocalCertificateSelector;
             this.ClientCertificates              = ClientCertificates               ?? [];
             this.ClientCertificateContext        = ClientCertificateContext;

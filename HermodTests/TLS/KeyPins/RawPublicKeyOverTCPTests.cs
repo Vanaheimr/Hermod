@@ -387,6 +387,130 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
 
         #endregion
 
+        #region A validator that says its key pins
+
+        [Test]
+        public async Task WebSocket_AClientThatIsGivenAKeyPinValidatorAlone_SpeaksRawPublicKeys_WhereItsKeyPinsOfferThem()
+        {
+
+            using var key         = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            using var certificate = Carrier(key);
+
+            await using var served = new Served(certificate, RawPublicKeyMode.Prefer);
+
+            // The validator a key-pinned endpoint was always given, and nothing else: it says the
+            // key pins it checks, and they say that the key may come raw.
+            {
+
+                var told = new Told();
+
+                await using var client = new WebSocketClient(
+                                             Hermod.HTTP.URL.Parse(served.URL),
+                                             RemoteCertificateValidator:  KeyPinValidator.ForServerCertificates<IWebSocketClient>(
+                                                                              new KeyPinPolicy([ KeyPin.FromKey(key) ], RawPublicKeys: RawPublicKeyMode.Require),
+                                                                              told.Add
+                                                                          ),
+                                             ConnectTimeout:              TimeSpan.FromSeconds(5)
+                                         );
+
+                var response = await Connect(client);
+
+                Assert.Multiple(() => {
+                    Assert.That(response.HTTPStatusCode,                    Is.EqualTo(HTTPStatusCode.SwitchingProtocols), response.EntirePDU);
+                    Assert.That(client.TLSSession?.Provider,                Is.EqualTo(TLSProvider.BouncyCastle));
+                    Assert.That(client.TLSSession?.RemoteCertificateType,   Is.EqualTo(TLSCertificateType.RawPublicKey));
+                    Assert.That(told.Outcomes,                              Is.EqualTo(new[] { KeyPinOutcome.Accepted }));
+                    Assert.That(told.Results.Single().CertificateType,      Is.EqualTo(TLSCertificateType.RawPublicKey));
+                });
+
+            }
+
+            // A validator of one's own around the key pins says them itself ...
+            {
+
+                var told    = new Told();
+                var policy  = new KeyPinPolicy([ KeyPin.FromKey(key) ], RawPublicKeys: RawPublicKeyMode.Require);
+                var asked   = 0;
+
+                await using var client = new WebSocketClient(
+                                             Hermod.HTTP.URL.Parse(served.URL),
+                                             RemoteCertificateValidator:  KeyPinValidator.WithKeyPins<IWebSocketClient>(
+                                                                              (sender, shown, chain, tlsClient, policyErrors) => {
+                                                                                  Interlocked.Increment(ref asked);
+                                                                                  return TLSValidationResult.Failed("This validator is not asked about a raw public key.");
+                                                                              },
+                                                                              () => policy,
+                                                                              told.Add
+                                                                          ),
+                                             ConnectTimeout:              TimeSpan.FromSeconds(5)
+                                         );
+
+                var response = await Connect(client);
+
+                Assert.Multiple(() => {
+                    Assert.That(response.HTTPStatusCode,                    Is.EqualTo(HTTPStatusCode.SwitchingProtocols), response.EntirePDU);
+                    Assert.That(client.TLSSession?.RemoteCertificateType,   Is.EqualTo(TLSCertificateType.RawPublicKey));
+                    Assert.That(told.Outcomes,                              Is.EqualTo(new[] { KeyPinOutcome.Accepted }));
+                    Assert.That(Volatile.Read(ref asked),                   Is.Zero);
+                });
+
+            }
+
+            // ... and one that is wrapped into another delegate says nothing any more: the
+            // handshake is SslStream's, and where raw public keys are required the certificate is refused.
+            {
+
+                var told      = new Told();
+                var validator = KeyPinValidator.ForServerCertificates<IWebSocketClient>(
+                                    new KeyPinPolicy([ KeyPin.FromKey(key) ], RawPublicKeys: RawPublicKeyMode.Require),
+                                    told.Add
+                                );
+
+                await using var client = new WebSocketClient(
+                                             Hermod.HTTP.URL.Parse(served.URL),
+                                             RemoteCertificateValidator:  (sender, shown, chain, tlsClient, policyErrors) => validator(sender, shown, chain, tlsClient, policyErrors),
+                                             ConnectTimeout:              TimeSpan.FromSeconds(5)
+                                         );
+
+                var response = await Connect(client);
+
+                Assert.Multiple(() => {
+                    Assert.That(response.HTTPStatusCode,                    Is.Not.EqualTo(HTTPStatusCode.SwitchingProtocols));
+                    Assert.That(told.Outcomes,                              Is.EqualTo(new[] { KeyPinOutcome.Refused }));
+                    Assert.That(told.Results.Single().CertificateType,      Is.EqualTo(TLSCertificateType.X509));
+                });
+
+            }
+
+            // Key pins that offer no raw public keys: the validator is asked, as it always was.
+            {
+
+                var told = new Told();
+
+                await using var client = new WebSocketClient(
+                                             Hermod.HTTP.URL.Parse(served.URL),
+                                             RemoteCertificateValidator:  KeyPinValidator.ForServerCertificates<IWebSocketClient>(
+                                                                              KeyPinPolicy.PinnedTo(KeyPin.FromKey(key)),
+                                                                              told.Add
+                                                                          ),
+                                             ConnectTimeout:              TimeSpan.FromSeconds(5)
+                                         );
+
+                var response = await Connect(client);
+
+                Assert.Multiple(() => {
+                    Assert.That(response.HTTPStatusCode,                    Is.EqualTo(HTTPStatusCode.SwitchingProtocols), response.EntirePDU);
+                    Assert.That(client.TLSSession?.Provider,                Is.EqualTo(TLSProvider.SslStream));
+                    Assert.That(told.Outcomes,                              Is.EqualTo(new[] { KeyPinOutcome.Accepted }));
+                    Assert.That(told.Results.Single().CertificateType,      Is.EqualTo(TLSCertificateType.X509));
+                });
+
+            }
+
+        }
+
+        #endregion
+
         #region WebSocket: the client's key alone
 
         [Test]

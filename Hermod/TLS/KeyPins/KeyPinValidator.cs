@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Net.Security;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 
 #endregion
@@ -193,12 +194,89 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                                                Action<KeyPinValidation>?  OnValidated   = null)
             where T : class
 
-            => (sender, certificate, certificateChain, tlsClient, policyErrors)
+            => WithKeyPins<T>(
 
-                   => ToTLSValidationResult(
-                          Validate(Policy(), certificate),
-                          OnValidated
-                      );
+                   (sender, certificate, certificateChain, tlsClient, policyErrors)
+
+                       => ToTLSValidationResult(
+                              Validate(Policy(), certificate),
+                              OnValidated
+                          ),
+
+                   Policy,
+                   OnValidated
+
+               );
+
+        #endregion
+
+        #region WithKeyPins<T>(Validator, Policy, OnValidated = null) / TryGetKeyPins(Validator, ...)
+
+        // What stands behind a validator, kept beside it and no longer than it lives.
+        private sealed record KeyPinsBehind(Func<KeyPinPolicy?> Policy, Action<KeyPinValidation>? OnValidated);
+
+        private static readonly ConditionalWeakTable<Delegate, KeyPinsBehind> keyPinsBehind = new();
+
+        /// <summary>
+        /// Say which key pins stand behind a validator of server certificates.
+        /// </summary>
+        /// <remarks>
+        /// A validator is asked about a certificate, and a raw public key
+        /// (RFC 7250) has none. A TLS client that is handed a validator
+        /// which says its key pins can do what the validator would have
+        /// done with a certificate: where the key pins offer raw public
+        /// keys, it offers them, checks the key its server shows against the
+        /// key pins, and tells the result - see ATLSClient.ServerKeyPins.
+        /// Where they offer none, the validator is asked, as before.
+        ///
+        /// The validators ForServerCertificates makes say their key pins
+        /// themselves. This is for a validator that does more around them.
+        /// The validator has to reach the client as it is: one wrapped into
+        /// another delegate on the way says nothing any more.
+        /// </remarks>
+        /// <typeparam name="T">The type of the TLS client.</typeparam>
+        /// <param name="Validator">A validator of server certificates that checks the key pins of the given policy.</param>
+        /// <param name="Policy">The key pin policy of the endpoint, asked for every handshake; null where it is no longer key-pinned.</param>
+        /// <param name="OnValidated">Told every result of a check the client made itself.</param>
+        /// <returns>The validator given.</returns>
+        public static RemoteTLSServerCertificateValidationHandler<T> WithKeyPins<T>(RemoteTLSServerCertificateValidationHandler<T>  Validator,
+                                                                                    Func<KeyPinPolicy?>                             Policy,
+                                                                                    Action<KeyPinValidation>?                       OnValidated   = null)
+            where T : class
+        {
+
+            keyPinsBehind.AddOrUpdate(Validator, new KeyPinsBehind(Policy, OnValidated));
+
+            return Validator;
+
+        }
+
+
+        /// <summary>
+        /// The key pins that stand behind a validator of server certificates,
+        /// where it says them.
+        /// </summary>
+        /// <param name="Validator">A validator of server certificates.</param>
+        /// <param name="Policy">The key pin policy of the endpoint, to be asked for every handshake.</param>
+        /// <param name="OnValidated">To be told every result of a check.</param>
+        public static Boolean TryGetKeyPins(Delegate?                       Validator,
+                                            out Func<KeyPinPolicy?>?        Policy,
+                                            out Action<KeyPinValidation>?   OnValidated)
+        {
+
+            if (Validator is not null &&
+                keyPinsBehind.TryGetValue(Validator, out var behind))
+            {
+                Policy       = behind.Policy;
+                OnValidated  = behind.OnValidated;
+                return true;
+            }
+
+            Policy       = null;
+            OnValidated  = null;
+            return false;
+
+        }
 
         #endregion
 

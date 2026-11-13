@@ -278,6 +278,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            // The validator as it was given: the base was handed a delegate around it.
+            TakeKeyPinsOf(RemoteCertificateValidator);
+
             this.HTTPUserAgent                        = HTTPUserAgent ?? DefaultHTTPUserAgent;
 
             this.Accept                               = Accept;
@@ -392,6 +395,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    LoggerFactory)
 
         {
+
+            // The validator as it was given: the base was handed a delegate around it.
+            TakeKeyPinsOf(RemoteCertificateValidator);
 
             this.HTTPUserAgent                        = HTTPUserAgent ?? DefaultHTTPUserAgent;
 
@@ -510,6 +516,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    LoggerFactory)
 
         {
+
+            // The validator as it was given: the base was handed a delegate around it.
+            TakeKeyPinsOf(RemoteCertificateValidator);
 
             this.HTTPUserAgent                        = HTTPUserAgent ?? DefaultHTTPUserAgent;
 
