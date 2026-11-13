@@ -371,6 +371,81 @@ public class SunSpecModbusTLSTests
 
     #endregion
 
+    #region Hermod_ModbusTLSFrontend_SaysWhoIsConnected_Test()
+
+    /// <summary>
+    /// A connection is said once its handshake held - before it asked
+    /// anything - with where it comes from, the SunSpec role and the
+    /// certificate of its client; and said again, the same, when it is over.
+    /// A request on it names the connection by the same number.
+    /// </summary>
+    [Test]
+    public async Task Hermod_ModbusTLSFrontend_SaysWhoIsConnected_Test()
+    {
+
+        using       var meter    = new SunSpecMeterDevice("meter-test-connections", SunSpecMeterMode.Net);
+        await using var sunSpec  = await SunSpecMeterServer.StartAsync(meter);
+
+        Assert.That(sunSpec.Opened, Is.Empty);
+
+        var client = await sunSpec.ConnectAsync(SunSpecRoles.GridService, StartingAddressOffset: 1);
+
+        try
+        {
+
+            // The client's handshake is done a moment before the frontend's.
+            for (var attempt = 0; attempt < 50 && sunSpec.Opened.IsEmpty; attempt++)
+                await Task.Delay(100);
+
+            var expected = X509CertificateLoader.LoadPkcs12FromFile(
+                               Path.Combine(sunSpec.PKIDirectory, $"client-{SunSpecRoles.GridService}.pfx"),
+                               "demo"
+                           );
+
+            var opened   = sunSpec.Opened.Single();
+
+            Assert.Multiple(() => {
+
+                Assert.That(sunSpec.Requests,          Is.Empty, "known before it asked anything");
+                Assert.That(sunSpec.Closed,            Is.Empty);
+
+                Assert.That(opened.Role,               Is.EqualTo(SunSpecRoles.GridService));
+                Assert.That(opened.Peer,               Does.StartWith("127.0.0.1:"));
+                Assert.That(opened.ClientSubject,      Is.EqualTo(expected.Subject));
+                Assert.That(opened.ClientFingerprint,  Is.EqualTo(expected.GetCertHashString(System.Security.Cryptography.HashAlgorithmName.SHA256)));
+                Assert.That(opened.Protocol,           Is.EqualTo(SslProtocols.Tls12).Or.EqualTo(SslProtocols.Tls13));
+                Assert.That(opened.Since,              Is.EqualTo(DateTimeOffset.UtcNow).Within(TimeSpan.FromSeconds(30)));
+
+            });
+
+            await client.ReadHoldingRegisters(SunSpecMeterMap.Addr(SunSpecMeterMap.OffMeterMeterMode), 1);
+
+            Assert.Multiple(() => {
+                Assert.That(sunSpec.Requests.Single().ConnectionId,  Is.EqualTo(opened.ConnectionId));
+                Assert.That(sunSpec.Requests.Single().Peer,          Is.EqualTo(opened.Peer));
+                Assert.That(sunSpec.Closed,                          Is.Empty);
+            });
+
+            client.Dispose();
+
+            for (var attempt = 0; attempt < 80 && sunSpec.Closed.IsEmpty; attempt++)
+                await Task.Delay(100);
+
+            Assert.Multiple(() => {
+                Assert.That(sunSpec.Closed.Single(),  Is.EqualTo(opened), "the connection that began is the one that ended");
+                Assert.That(sunSpec.Opened,           Has.Count.EqualTo(1));
+            });
+
+        }
+        finally
+        {
+            client.Dispose();
+        }
+
+    }
+
+    #endregion
+
     #region Hermod_ModbusTLSFrontend_SaysWhyItCouldNotBind_Test()
 
     /// <summary>
@@ -1020,6 +1095,12 @@ public class SunSpecModbusTLSTests
         /// </summary>
         public ConcurrentQueue<ModbusRequestInfo>  Requests        { get; } = new();
 
+        /// <summary>
+        /// Every connection the frontend said was open, and every one it said was over.
+        /// </summary>
+        public ConcurrentQueue<ModbusConnectionInfo>  Opened       { get; } = new();
+        public ConcurrentQueue<ModbusConnectionInfo>  Closed       { get; } = new();
+
         private SunSpecMeterServer(String                   PKIDirectory,
                                    ModbusTlsFrontend        Frontend,
                                    CancellationTokenSource  FrontendCts)
@@ -1029,7 +1110,9 @@ public class SunSpecModbusTLSTests
             this.frontend      = Frontend;
             this.frontendCts   = FrontendCts;
 
-            frontend.OnModbusRequest += Requests.Enqueue;
+            frontend.OnModbusRequest    += Requests.Enqueue;
+            frontend.OnConnectionOpened += Opened.  Enqueue;
+            frontend.OnConnectionClosed += Closed.  Enqueue;
 
             this.frontendTask  = frontend.RunAsync(frontendCts.Token);
 

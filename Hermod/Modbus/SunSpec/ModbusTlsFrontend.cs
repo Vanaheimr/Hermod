@@ -94,6 +94,23 @@ public sealed class ModbusTlsFrontend : IDisposable
     /// </remarks>
     public event Action<ModbusRequestInfo>?    OnModbusRequest;
 
+    /// <summary>
+    /// Raised once per connection, when its TLS handshake held and before its
+    /// first request is read.
+    /// </summary>
+    /// <remarks>
+    /// Synchronous, like <see cref="OnModbusRequest"/>, so that a host knows
+    /// a connection before it hears of a request on it. A handler that throws
+    /// is logged and otherwise ignored.
+    /// </remarks>
+    public event Action<ModbusConnectionInfo>? OnConnectionOpened;
+
+    /// <summary>
+    /// Raised once per connection that was said to be open, when it is over -
+    /// closed by the client, timed out, or ended with the frontend.
+    /// </summary>
+    public event Action<ModbusConnectionInfo>? OnConnectionClosed;
+
     public ModbusTlsFrontend(ModbusTlsFrontendOptions     opts,
                              IModbusBackendFactory        backendFactory,
                              AuthorizationPolicy          authz,
@@ -228,8 +245,9 @@ public sealed class ModbusTlsFrontend : IDisposable
         ServerMetrics.ActiveConnections.Add(1);
         _logger.LogInformation("accept tcp from {Peer}", remote);
 
-        IModbusBackend? backend = null;
-        String?         role    = null;
+        IModbusBackend?       backend = null;
+        String?               role    = null;
+        ModbusConnectionInfo? opened  = null;
 
         try
         {
@@ -344,6 +362,21 @@ public sealed class ModbusTlsFrontend : IDisposable
             _logger.LogInformation("TLS up: proto={Protocol} cipher={CipherSuite} client={ClientSubject} role={Role}",
                 ssl.SslProtocol, ssl.NegotiatedCipherSuite, clientCert.Subject, role ?? "(none)");
 
+            // Said before the backend is made and the first request read: a
+            // host that shows who is connected knows this client from here
+            // on, whether it ever asks anything or not.
+            opened = new ModbusConnectionInfo(
+                         connId,
+                         remote,
+                         role,
+                         clientCert.Subject,
+                         clientCert.GetCertHashString(System.Security.Cryptography.HashAlgorithmName.SHA256),
+                         ssl.SslProtocol,
+                         DateTimeOffset.UtcNow
+                     );
+
+            Tell(OnConnectionOpened, opened);
+
             backend = await _backendFactory.CreateAsync(connId, role, ct).ConfigureAwait(false);
 
             await PumpModbusAsync(ssl, role, backend, connId, remote, ct).ConfigureAwait(false);
@@ -363,6 +396,9 @@ public sealed class ModbusTlsFrontend : IDisposable
             try { tcp.Close(); } catch { }
             ServerMetrics.ActiveConnections.Add(-1);
             _logger.LogInformation("closed");
+
+            if (opened is not null)
+                Tell(OnConnectionClosed, opened);
         }
     }
 
@@ -625,6 +661,27 @@ public sealed class ModbusTlsFrontend : IDisposable
             ServerMetrics.Requests.Add(1, tags);
             ServerMetrics.RequestDuration.Record(sw.Elapsed.TotalSeconds, tags);
         }
+    }
+
+    /// <summary>
+    /// Tell whoever keeps track of the connections that one began or ended.
+    /// </summary>
+    private void Tell(Action<ModbusConnectionInfo>?  Handler,
+                      ModbusConnectionInfo           Connection)
+    {
+
+        if (Handler is null)
+            return;
+
+        try
+        {
+            Handler(Connection);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "a Modbus connection handler threw: {ExceptionType}", ex.GetType().Name);
+        }
+
     }
 
     /// <summary>
