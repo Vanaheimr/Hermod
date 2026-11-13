@@ -64,7 +64,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             X509Certificate2?                     ClientCertificate         = null,
             HTTP2ClientOptions?                   Options                   = null,
             bool                                  Cleartext                 = false,
-            CancellationToken                     CancellationToken         = default)
+            CancellationToken                     CancellationToken         = default,
+            KeyPinPolicy?                         ServerKeyPins             = null,
+            Action<KeyPinValidation>?             OnServerKeyPinValidated   = null)
         {
 
             var tcp = new TcpClient {
@@ -101,6 +103,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                     connection = new HTTP2ClientConnection(
                                      tcp.GetStream(),
+                                     Options,
+                                     CancellationToken,
+                                     OwnsTransport: true
+                                 );
+
+                    await connection.StartAsync();
+
+                    return connection;
+
+                }
+
+                // A key-pinned server whose key may come raw (RFC 7250): TLS 1.3
+                // by the stack that speaks raw public keys, as SslStream cannot.
+                // The server's key - raw, or in a certificate where the server
+                // knows no raw public keys - is checked against its key pins and
+                // nothing else; ValidateServerCertificate is not asked.
+                if (ServerKeyPins is { RawPublicKeys: not RawPublicKeyMode.Off })
+                {
+
+                    var session = await BouncyCastleTLS.AuthenticateAsClientAsync(
+
+                                            tcp.GetStream(),
+
+                                            new RawPublicKeyTLSClientParameters {
+                                                ServerKeyPins            = ServerKeyPins,
+                                                OnServerKeyPinValidated  = OnServerKeyPinValidated,
+                                                ServerName               = System.Net.IPAddress.TryParse(Host, out _)
+                                                                               ? null
+                                                                               : Host,
+                                                ApplicationProtocols     = [ "h2" ],
+                                                ClientCertificate        = ClientCertificate
+                                            },
+
+                                            CancellationToken: CancellationToken
+
+                                        );
+
+                    if (session.ApplicationProtocol != "h2")
+                    {
+                        await session.Stream.DisposeAsync();
+                        throw new HTTP2ConnectionException(HTTP2ErrorCode.PROTOCOL_ERROR,
+                            $"Server did not negotiate HTTP/2 over ALPN (got '{session.ApplicationProtocol}')");
+                    }
+
+                    connection = new HTTP2ClientConnection(
+                                     session.Stream,
                                      Options,
                                      CancellationToken,
                                      OwnsTransport: true

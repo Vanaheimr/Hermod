@@ -930,7 +930,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             if (tcpSocket is null ||
                 CloseHandshakeTimeout <= TimeSpan.Zero ||
-                !(ReferenceEquals(httpStream, tcpStream) || httpStream is SslStream))
+                !(ReferenceEquals(httpStream, tcpStream) || httpStream is SslStream or BouncyCastleTLSStream))
             {
                 return;
             }

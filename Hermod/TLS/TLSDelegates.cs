@@ -111,6 +111,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     //                                                                                      SslPolicyErrors     PolicyErrors);
 
     /// <summary>
+    /// Asked whether the raw public key (RFC 7250) a TLS client presented is
+    /// believed: a key without a certificate, so there is no chain, no name
+    /// and no validity period to look at - only the key, and its key pin.
+    /// </summary>
+    /// <remarks>
+    /// Asked during the handshake, before the client has proven to hold the
+    /// key: the handshake fails afterwards where it does not.
+    /// </remarks>
+    /// <typeparam name="T">The type of the TLS server.</typeparam>
+    /// <param name="Sender">An object that contains state information for this validation.</param>
+    /// <param name="ClientKey">The raw public key the client presented.</param>
+    /// <param name="TLSServer">The TLS server.</param>
+    public delegate TLSValidationResult RemoteTLSClientKeyValidationHandler<T>(Object      Sender,
+                                                                               TLSPeerKey  ClientKey,
+                                                                               T           TLSServer);
+
+    /// <summary>
     /// Selects the local Transport Layer Security (TLS) certificate used for authentication.
     /// </summary>
     /// <param name="Sender">An object that contains state information for this validation.</param>

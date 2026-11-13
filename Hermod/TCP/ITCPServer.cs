@@ -64,6 +64,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             => null;
 
         /// <summary>
+        /// Whether this server shows its key raw, without its certificate
+        /// (RFC 7250): never, to a client that takes raw public keys, or to
+        /// no other.
+        /// </summary>
+        /// <remarks>
+        /// A default implementation, as TLSApplicationProtocols is, and the
+        /// default is never: such a server speaks TLS by SslStream alone, as
+        /// before. Where it is not Off, a client that offers raw public keys
+        /// is answered by the TLS stack that speaks them
+        /// (<see cref="BouncyCastleTLS"/>), and every other client by
+        /// SslStream.
+        /// </remarks>
+        public RawPublicKeyMode                     RawPublicKeys
+            => RawPublicKeyMode.Off;
+
+        /// <summary>
+        /// Whether a client's key may come raw (RFC 7250): never, where the
+        /// client offers it, or in no other way. Only with a
+        /// <see cref="ClientKeyValidator"/>, which is asked about such a key.
+        /// </summary>
+        public RawPublicKeyMode                     ClientRawPublicKeys
+            => RawPublicKeyMode.Off;
+
+        /// <summary>
+        /// Asked whether the raw public key of a client is believed.
+        /// </summary>
+        public RemoteTLSClientKeyValidationHandler<ITCPServer>?  ClientKeyValidator
+            => null;
+
+        /// <summary>
         /// Gets the IPAddress on which the TCP server listens.
         /// </summary>
         public IIPAddress                        IPAddress                              { get; }

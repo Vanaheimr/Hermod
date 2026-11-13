@@ -203,6 +203,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         /// <summary>
+        /// Whether this server shows its key raw, without its certificate
+        /// (RFC 7250): never, to a client that takes raw public keys, or to
+        /// no other. Over TCP and over QUIC alike. Set before the server starts.
+        /// </summary>
+        public RawPublicKeyMode                                         RawPublicKeys
+        {
+            get => listener.RawPublicKeys;
+            set => listener.RawPublicKeys = value;
+        }
+
+        /// <summary>
+        /// Whether a client's key may come raw (RFC 7250): never, where the
+        /// client offers it, or in no other way. Only with a
+        /// <see cref="ClientKeyValidator"/>, and over TCP. Set before the
+        /// server starts.
+        /// </summary>
+        public RawPublicKeyMode                                         ClientRawPublicKeys
+        {
+            get => listener.ClientRawPublicKeys;
+            set => listener.ClientRawPublicKeys = value;
+        }
+
+        /// <summary>
+        /// Asked whether the raw public key of a client is believed: a key
+        /// without a certificate, to be judged by its key pin.
+        /// </summary>
+        public RemoteTLSClientKeyValidationHandler<ITCPServer>?         ClientKeyValidator
+        {
+
+            get => clientKeyValidator;
+
+            set
+            {
+
+                clientKeyValidator = value;
+
+                // As for the certificate validator: this server is the sender, not its listener.
+                listener.ClientKeyValidator = value is not null
+                                                  ? (sender, clientKey, tlsServer) => value(sender, clientKey, this)
+                                                  : null;
+
+            }
+
+        }
+
+        private RemoteTLSClientKeyValidationHandler<ITCPServer>? clientKeyValidator;
+
+        /// <summary>
         /// Selects the local TLS certificate.
         /// </summary>
         public LocalCertificateSelectionHandler?                        LocalCertificateSelector
@@ -774,6 +822,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 else
                     certificate = ServerCertificate.From(ServerCertificateSelector!(this, nobody));
 
+                // Shown raw over QUIC where it is shown raw over TCP.
+                certificate.RawPublicKeys = RawPublicKeys;
+
             }
             catch (Exception e)
             {
@@ -1057,7 +1108,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     ) {
                         HTTPVersion              = HTTPVersion.HTTP_3_0,
-                        TOTPTLSExporterMaterial  = totpExporterMaterial
+                        TOTPTLSExporterMaterial  = totpExporterMaterial,
+                        ClientKey                = Connection.ClientAuthentication.Key
                     },
                     ServerToken
                 ).ContinueWith(task => {
@@ -1127,9 +1179,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (AcceptHTTP2)
             {
 
-                if (Connection.SSLStream is SslStream tlsStream)
+                // Over TLS, whichever TLS stack runs it: what ALPN came to.
+                if (Connection.TLSStream is Stream tlsStream)
                 {
-                    if (tlsStream.NegotiatedApplicationProtocol == SslApplicationProtocol.Http2)
+                    if (Connection.TLSSession?.ApplicationProtocol == SslApplicationProtocol.Http2.ToString())
                     {
                         await HandleHTTP2Connection(Connection, tlsStream, CancellationToken).ConfigureAwait(false);
                         return;
@@ -1149,7 +1202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                        WebSocketServer:              this,
                        TcpClient:                    Connection.TCPClient,
-                       TLSStream:                    Connection.SSLStream,
+                       TLSStream:                    Connection.TLSStream,
                        ClientCertificate:            Connection.ClientCertificate,
 
                        HTTPRequest:                  null,
@@ -1168,7 +1221,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                        SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
 
                    ) {
-                       TCPConnection = Connection
+                       TCPConnection = Connection,
+                       ClientKey     = Connection.ClientKey
                    },
                    CancellationToken
                ).ConfigureAwait(false);
@@ -1305,7 +1359,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                       SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
 
                                                   ) {
-                                                      HTTPVersion = HTTPVersion.HTTP_2_0
+                                                      HTTPVersion = HTTPVersion.HTTP_2_0,
+                                                      ClientKey   = Connection.ClientKey
                                                   },
                                                   CancellationToken
                                               ).ContinueWith(task => {

@@ -462,7 +462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 var             networkstream  = connection.TCPClient.GetStream();
-                await using var stream         = (connection.SSLStream as Stream) ?? networkstream
+                await using var stream         = connection.TLSStream ?? networkstream
                                                      ?? throw new InvalidOperationException("Stream is not a NetworkStream.");
 
                 await HandleHTTPStreamAsync(

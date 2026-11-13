@@ -1120,9 +1120,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (HTTPStream is null)
                 throw new Exception("The HTTP/WebSocket stream could not be created!");
 
-            var agreedOnHTTP2  = tlsStream?.NegotiatedApplicationProtocol == SslApplicationProtocol.Http2;
+            // What ALPN came to, whichever TLS stack ran the handshake.
+            var agreedOnHTTP2  = TLSSession?.ApplicationProtocol == SslApplicationProtocol.Http2.ToString();
 
-            if (over == WebSocketHTTPVersion.HTTP2 && tlsStream is not null && !agreedOnHTTP2)
+            if (over == WebSocketHTTPVersion.HTTP2 && TLSStream is not null && !agreedOnHTTP2)
             {
                 LetGo();
                 throw new Exception("The server did not agree to HTTP/2 (ALPN \"h2\"), and this WebSocket is to be opened over nothing else.");
@@ -1132,7 +1133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             // With TLS, where the server chose "h2"; without, where nothing but
             // HTTP/2 will do: it is then spoken from the first byte.
-            if (agreedOnHTTP2 || (over == WebSocketHTTPVersion.HTTP2 && tlsStream is null))
+            if (agreedOnHTTP2 || (over == WebSocketHTTPVersion.HTTP2 && TLSStream is null))
             {
 
                 var http2Connection = new HTTP2ClientConnection(
@@ -1181,7 +1182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 HTTPStream        = new WebSocketOverHTTP2ClientStream(
                                         http2Connection,
-                                        tlsStream is not null
+                                        TLSStream is not null
                                             ? URIScheme.https
                                             : URIScheme.http
                                     );
@@ -1236,12 +1237,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var validator   = RemoteCertificateValidator;
 
-            var validation  = validator is not null
-                                  ? new CertificateValidationOptions {
-                                        Judge = (certificate, chain, policyErrors) =>
-                                                    validator(this, certificate, chain, this, policyErrors).IsValid
-                                    }
-                                  : CertificateValidationOptions.Default;
+            // A key-pinned server whose key may come raw (RFC 7250): its key pins
+            // themselves, as over TCP - a raw public key has no certificate a
+            // validator could be shown.
+            var rawKeyPins  = ServerKeyPins?.Invoke() is { RawPublicKeys: not RawPublicKeyMode.Off } serverKeyPins
+                                  ? serverKeyPins
+                                  : null;
+
+            var validation  = rawKeyPins is not null
+                                  ? CertificateValidationOptions.PinnedTo(rawKeyPins, OnServerKeyPinValidated)
+                                  : validator is not null
+                                        ? new CertificateValidationOptions {
+                                              Judge = (certificate, chain, policyErrors) =>
+                                                          validator(this, certificate, chain, this, policyErrors).IsValid
+                                          }
+                                        : CertificateValidationOptions.Default;
 
             var own         = ClientCertificates.    FirstOrDefault(certificate => certificate.HasPrivateKey) ??
                               ClientCertificateChain.FirstOrDefault(certificate => certificate.HasPrivateKey);
@@ -1252,6 +1262,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         ClientCertificateChain.Where(certificate => !certificate.Equals(own) && !certificate.HasPrivateKey)
                                     )
                                   : null;
+
+            // The client's own key is offered raw where the endpoint speaks raw public keys at all, as over TCP.
+            if (credential is not null && rawKeyPins is not null)
+                credential.RawPublicKeys = RawPublicKeyMode.Prefer;
 
             var client      = new Http3Client(
                                   host,

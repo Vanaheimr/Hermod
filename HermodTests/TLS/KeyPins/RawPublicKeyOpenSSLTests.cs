@@ -118,6 +118,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
         }
 
         /// <summary>
+        /// Start a program that stays, e.g. "openssl s_server": what it
+        /// says is collected, and it is killed when disposed.
+        /// </summary>
+        public sealed class Running : IDisposable
+        {
+
+            private readonly Process        process;
+            private readonly StringBuilder  output = new();
+
+            public String Output
+            {
+                get
+                {
+                    lock (output)
+                        return output.ToString();
+                }
+            }
+
+            public Running(String FileName, IEnumerable<String> Arguments)
+            {
+
+                var startInfo = new ProcessStartInfo(FileName) {
+                                    RedirectStandardInput   = true,
+                                    RedirectStandardOutput  = true,
+                                    RedirectStandardError   = true,
+                                    UseShellExecute         = false,
+                                    CreateNoWindow          = true
+                                };
+
+                foreach (var argument in Arguments)
+                    startInfo.ArgumentList.Add(argument);
+
+                process = Process.Start(startInfo)!;
+
+                process.OutputDataReceived += (_, line) => { if (line.Data is not null) lock (output) output.AppendLine(line.Data); };
+                process.ErrorDataReceived  += (_, line) => { if (line.Data is not null) lock (output) output.AppendLine(line.Data); };
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+            }
+
+            /// <summary>
+            /// Wait until the program has said the given text.
+            /// </summary>
+            public async Task<Boolean> Says(String Text, TimeSpan Within)
+            {
+
+                var until = DateTime.UtcNow + Within;
+
+                while (DateTime.UtcNow < until)
+                {
+
+                    if (Output.Contains(Text, StringComparison.OrdinalIgnoreCase))
+                        return true;
+
+                    if (process.HasExited)
+                        break;
+
+                    await Task.Delay(50);
+
+                }
+
+                return Output.Contains(Text, StringComparison.OrdinalIgnoreCase);
+
+            }
+
+            public void Dispose()
+            {
+
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill(entireProcessTree: true);
+                        process.WaitForExit(5000);
+                    }
+                }
+                catch
+                { }
+
+                process.Dispose();
+
+            }
+
+        }
+
+        /// <summary>
         /// Run a program to its end with nothing on its standard input.
         /// </summary>
         public static (Int32 ExitCode, String Output) Run(String FileName, IEnumerable<String> Arguments, TimeSpan Timeout)
@@ -193,7 +280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
         /// <summary>
         /// A P-256 key in a self-signed certificate, as files OpenSSL reads.
         /// </summary>
-        private sealed class KeyFiles : IDisposable
+        internal sealed class KeyFiles : IDisposable
         {
 
             public String  Directory      { get; }

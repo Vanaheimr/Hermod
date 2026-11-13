@@ -225,6 +225,54 @@ A session ticket remembers the key pin it was issued under and is not used once
 that pin is gone from the pins. The mixed cases work: a raw server key with a
 client certificate, and the reverse.
 
+### Raw public keys over TCP (HTTP/1.1, HTTP/2, WebSockets)
+
+`SslStream` knows certificates alone. So a connection over TCP that is to speak
+raw public keys runs on a second TLS stack, BouncyCastle's TLS 1.3
+(`BouncyCastleTLS`), chosen per connection; every other connection stays on
+`SslStream`, on the same port.
+
+```csharp
+// A server: its own key, and the keys of its clients.
+var server = new WebSocketMirrorServer(..., ServerCertificateSelector: (s, c) => carrier) {
+                 RawPublicKeys        = RawPublicKeyMode.Prefer,   // shown raw to a client that takes it
+                 ClientRawPublicKeys  = RawPublicKeyMode.Prefer,   // a client's key may come raw ...
+                 ClientKeyValidator   = (sender, clientKey, tlsServer) =>          // ... and is judged here,
+                                            IsAStation(clientKey.KeyPin)           //     by its key pin
+                                                ? TLSValidationResult.Success()
+                                                : TLSValidationResult.Failed("unknown key")
+             };
+
+// A client: the key pins of its server say whether its key may come raw.
+var client = new WebSocketClient(URL.Parse("wss://192.168.10.5:8443"), ...) {
+                 ServerKeyPins            = () => new KeyPinPolicy([ serverPin ], RawPublicKeys: RawPublicKeyMode.Require),
+                 OnServerKeyPinValidated  = validation => { /* e.g. keep a key pin learned on first use */ }
+             };
+
+// afterwards: client.TLSSession, connection.TLSSession / .ClientKey
+```
+
+- **A server** reads the ClientHello before any TLS stack does. A client that
+  offers raw public keys where the server speaks them is answered by
+  BouncyCastle, and so is every client of a server whose key is shown raw alone
+  (`Require`); every other client is answered by `SslStream`, as before. A server
+  with `RawPublicKeys` and `ClientRawPublicKeys` at `Off`, the default, reads
+  nothing ahead and is `SslStream`'s alone.
+- **A client** whose `ServerKeyPins` offer raw public keys (`Prefer`, `Require`)
+  runs its handshake on BouncyCastle, TLS 1.3 only: the server's key — raw, or in
+  a certificate where the server knows no raw public keys — is checked against
+  those key pins and nothing else, and the `RemoteCertificateValidator` is not
+  asked. Its own key, where it has one, is offered raw as well. Without
+  `ServerKeyPins`, or with key pins at `Off`, the handshake is `SslStream`'s.
+- `TLSSession` says what a handshake came to, whichever stack ran it: the stack,
+  the application protocol (ALPN), both certificate types and the peer's key
+  (`TLSPeerKey`). On BouncyCastle it also exports keying material (RFC 8446 §7.5).
+- The private keys stay where they are: CertificateVerify is signed by the key of
+  the `X509Certificate2`, which need not be exportable.
+
+Verified against `openssl s_server` and `openssl s_client` of OpenSSL 3.5 with
+`-enable_server_rpk` and `-enable_client_rpk`, in both roles.
+
 ## RFC compliance
 
 | RFC / draft | Title | Status |

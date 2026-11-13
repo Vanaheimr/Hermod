@@ -44,9 +44,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Data
 
         /// <summary>
-        /// The TLS stream.
+        /// The TLS stream, where the connection speaks TLS by SslStream:
+        /// see <see cref="TLSStream"/> for whichever it is.
         /// </summary>
         protected SslStream? tlsStream;
+
+        /// <summary>
+        /// The TLS stream of a connection that speaks raw public keys
+        /// (RFC 7250), which SslStream cannot.
+        /// </summary>
+        protected Stream?    rawPublicKeyTLSStream;
 
         #endregion
 
@@ -137,15 +144,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected virtual TimeSpan?                                      TLSHandshakeTimeout
             => null;
 
+        /// <summary>
+        /// The key pins of the server, where this endpoint is key-pinned and
+        /// its server's key may come raw, without a certificate (RFC 7250).
+        /// Asked for every TLS handshake.
+        /// </summary>
+        /// <remarks>
+        /// Where the key pins it gives say that raw public keys are offered
+        /// (<see cref="KeyPinPolicy.RawPublicKeys"/> is Prefer or Require),
+        /// the handshake is run by the TLS stack that speaks them
+        /// (<see cref="BouncyCastleTLS"/>, TLS 1.3 only): the server's key -
+        /// raw, or in a certificate where the server knows no raw public
+        /// keys - is checked against these key pins and against nothing
+        /// else, and the RemoteCertificateValidator is not asked. The
+        /// client's own key, where it has one, is offered raw as well.
+        ///
+        /// Where this is not set, gives nothing, or gives key pins without
+        /// raw public keys, the handshake is SslStream's and the
+        /// RemoteCertificateValidator decides, as before.
+        /// </remarks>
+        public Func<KeyPinPolicy?>?                                      ServerKeyPins                    { get; set; }
+
+        /// <summary>
+        /// Told the result of the key pin check of a handshake that offered
+        /// raw public keys: a refusal at once, and an accepted or learned
+        /// key once the server has proven to hold it.
+        /// </summary>
+        public Action<KeyPinValidation>?                                 OnServerKeyPinValidated          { get; set; }
+
+        /// <summary>
+        /// What the TLS handshake of the current connection came to: the TLS
+        /// stack, the application protocol, the certificate types and the
+        /// key of the server.
+        /// </summary>
+        public TLSSession?                                               TLSSession                       { get; protected set; }
+
+        /// <summary>
+        /// The TLS stream, whichever TLS stack it runs on.
+        /// </summary>
+        protected Stream? TLSStream
+
+            => rawPublicKeyTLSStream ?? tlsStream;
+
         protected Stream? ActiveStream
 
-            => tlsStream is not null
-                   ? tlsStream
-                   : tcpClient?.GetStream();
+            => TLSStream ?? tcpClient?.GetStream();
 
         public Boolean IsTLSActive
 
-            => tlsStream is not null;
+            => TLSStream is not null;
 
         #endregion
 
@@ -379,6 +426,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 try { tlsStream?.Dispose(); } catch { }
                 tlsStream = null;
 
+                try { rawPublicKeyTLSStream?.Dispose(); } catch { }
+                rawPublicKeyTLSStream = null;
+
+                TLSSession = null;
+
                 var tcpConnectionResult = await base.ReconnectAsync(CancellationToken);
 
                 // recreates _cts and tcpClient
@@ -443,6 +495,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 if (tcpStream is null)
                     return TCPConnectionResult.Failed($"{nameof(ATLSClient)}.{nameof(StartTLS)}.{nameof(tcpStream)} is null!");
+
+                // A key-pinned server whose key may come raw (RFC 7250): the
+                // TLS stack that speaks raw public keys, as SslStream cannot.
+                if (ServerKeyPins?.Invoke() is { RawPublicKeys: not RawPublicKeyMode.Off } serverKeyPins)
+                    return await StartTLSWithRawPublicKeys(tcpStream, serverKeyPins, CancellationToken);
 
                 tlsStream = new SslStream(
                                 tcpStream,
@@ -569,7 +626,105 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             }
 
+            TLSSession = TLSSession.Of(tlsStream);
+
             return TCPConnectionResult.Success();
+
+        }
+
+        #endregion
+
+        #region (private)   StartTLSWithRawPublicKeys(TCPStream, ServerKeyPins, CancellationToken)
+
+        /// <summary>
+        /// The TLS handshake with a key-pinned server whose key may come raw
+        /// (RFC 7250): TLS 1.3 by the stack that speaks raw public keys.
+        /// </summary>
+        private async Task<TCPConnectionResult> StartTLSWithRawPublicKeys(Stream             TCPStream,
+                                                                          KeyPinPolicy       ServerKeyPins,
+                                                                          CancellationToken  CancellationToken)
+        {
+
+            // RFC 7250 works with TLS 1.2 as well, but there the Certificate
+            // messages travel in the clear: a passive observer would see both keys.
+            if (TLSProtocols != SslProtocols.None && !TLSProtocols.HasFlag(SslProtocols.Tls13))
+                return TCPConnectionResult.Failed(
+                           $"{nameof(ATLSClient)}.{nameof(StartTLS)}: raw public keys are offered over TLS 1.3 alone, and this client is told to speak {TLSProtocols}."
+                       );
+
+            var host        = TLSHostname ??
+                              (!RemoteURL.IsNullOrEmpty
+                                   ? RemoteURL.Host.ToString()
+                                   : DomainName?.ToString());
+
+            // The client's own key: its certificate with the private key, and what leads from it towards a root.
+            var ownKey      = ClientCertificates.    FirstOrDefault(certificate => certificate.HasPrivateKey) ??
+                              ClientCertificateChain.FirstOrDefault(certificate => certificate.HasPrivateKey);
+
+            using var handshakeDeadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
+            if (TLSHandshakeTimeout.HasValue)
+                handshakeDeadline.CancelAfter(TLSHandshakeTimeout.Value);
+
+            try
+            {
+
+                var session = await BouncyCastleTLS.AuthenticateAsClientAsync(
+
+                                        TCPStream,
+
+                                        new RawPublicKeyTLSClientParameters {
+
+                                            ServerKeyPins            = ServerKeyPins,
+                                            OnServerKeyPinValidated  = OnServerKeyPinValidated,
+
+                                            // A name is indicated, an address is not (RFC 6066, section 3).
+                                            ServerName               = host is not null && !System.Net.IPAddress.TryParse(host, out _)
+                                                                           ? host
+                                                                           : null,
+
+                                            ApplicationProtocols     = [ .. ApplicationProtocols.Select(protocol => protocol.ToString()) ],
+
+                                            ClientCertificate        = ownKey,
+                                            ClientCertificateChain   = ownKey is not null
+                                                                           ? [ .. ClientCertificateChain.Where(certificate => !certificate.Equals(ownKey) && !certificate.HasPrivateKey) ]
+                                                                           : []
+
+                                        },
+
+                                        LeaveInnerStreamOpen:  false,
+                                        CancellationToken:     handshakeDeadline.Token
+
+                                    );
+
+                rawPublicKeyTLSStream  = session.Stream;
+                TLSSession             = session;
+
+                return TCPConnectionResult.Success();
+
+            }
+            catch (OperationCanceledException) when (handshakeDeadline.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
+            {
+                return TCPConnectionResult.Failed(
+                           $"{nameof(ATLSClient)}.{nameof(StartTLS)}: the TLS handshake did not complete within {TLSHandshakeTimeout!.Value.TotalSeconds} seconds"
+                       );
+            }
+            catch (Exception e)
+            {
+
+                var errors  = new List<String>() {
+                                  $"{nameof(ATLSClient)}.{nameof(StartTLS)}: {e.Message}"
+                              };
+
+                while (e.InnerException is not null)
+                {
+                    e = e.InnerException;
+                    errors.Add($"-- Inner Exception: {e.Message}");
+                }
+
+                return TCPConnectionResult.Failed(errors);
+
+            }
 
         }
 

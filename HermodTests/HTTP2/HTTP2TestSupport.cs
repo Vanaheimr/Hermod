@@ -175,6 +175,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public Int32 Port { get; }
 
         /// <summary>
+        /// The server itself, for what is set on it after its construction.
+        /// </summary>
+        public HTTP2Server Server => server;
+
+        /// <summary>
         /// The server's accept loop task — completes once the listener stops.
         /// </summary>
         public Task Running => runTask;

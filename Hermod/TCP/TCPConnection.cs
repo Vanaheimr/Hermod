@@ -84,6 +84,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
         #region Data
 
+        /// <summary>
+        /// The TLS stream of a connection that speaks raw public keys (RFC 7250), which SslStream cannot.
+        /// </summary>
+        private          Stream?   rawPublicKeyTLSStream;
+
+        /// <summary>
+        /// Whether the server of this connection speaks raw public keys, so that
+        /// the TLS stack is chosen once the ClientHello was looked at.
+        /// </summary>
+        private readonly Boolean   rawPublicKeysPossible;
+
         // For method 'ReadLine(...)'...
         private            Boolean    SkipNextN   = false;
         private readonly   ILogger<TCPConnection> logger;
@@ -131,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                 readTimeoutMS               = (Int32) value.TotalMilliseconds;
 
                 NetworkStream?.ReadTimeout  = readTimeoutMS;
-                SSLStream?.    ReadTimeout  = readTimeoutMS;
+                TLSStream?.    ReadTimeout  = readTimeoutMS;
 
             }
 
@@ -161,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                 writeTimeoutMS               = (Int32) value.TotalMilliseconds;
 
                 NetworkStream?.WriteTimeout  = writeTimeoutMS;
-                SSLStream?.    WriteTimeout  = writeTimeoutMS;
+                TLSStream?.    WriteTimeout  = writeTimeoutMS;
 
             }
 
@@ -198,9 +209,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         public SslProtocols       TLSProtocols         { get; }
 
         /// <summary>
-        /// The underlying TLS stream.
+        /// The underlying TLS stream, where the connection speaks TLS by
+        /// SslStream: see <see cref="TLSStream"/> for whichever it is.
         /// </summary>
-        public SslStream?         SSLStream            { get; }
+        public SslStream?         SSLStream            { get; private set; }
+
+        /// <summary>
+        /// The underlying TLS stream, whichever TLS stack it runs on:
+        /// SslStream, or the one that speaks raw public keys (RFC 7250).
+        /// Null for a connection without TLS.
+        /// </summary>
+        public Stream?            TLSStream
+            => rawPublicKeyTLSStream ?? SSLStream;
+
+        /// <summary>
+        /// What the TLS handshake came to, once it is done: the TLS stack,
+        /// the application protocol, the certificate types and the key of
+        /// the client.
+        /// </summary>
+        public TLSSession?        TLSSession           { get; private set; }
+
+        /// <summary>
+        /// The key the client proved to hold: the key of its certificate, or
+        /// its raw public key (RFC 7250), which comes without a certificate.
+        /// </summary>
+        public TLSPeerKey?        ClientKey            { get; private set; }
 
         /// <summary>
         /// The timestamp when the TCP connection has been created.
@@ -413,50 +446,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                                                    ?? ServerCertificateSelector?.Invoke(TCPServer, TCPClient);
 
 
-            if (this.SSLStream         is null &&
-                this.ServerCertificate is not null)
+            // A server that speaks raw public keys (RFC 7250) decides per
+            // connection which TLS stack takes it, by what the client offers:
+            // its TLS stream is made once the ClientHello was looked at
+            // (AuthenticateAsServer). Every other server speaks TLS by
+            // SslStream, made here as it always was.
+            this.rawPublicKeysPossible       = this.SSLStream         is null     &&
+                                               this.ServerCertificate is not null &&
+                                               (TCPServer.RawPublicKeys != RawPublicKeyMode.Off ||
+                                                (TCPServer.ClientRawPublicKeys != RawPublicKeyMode.Off && TCPServer.ClientKeyValidator is not null));
+
+            if (this.SSLStream         is null     &&
+                this.ServerCertificate is not null &&
+                !rawPublicKeysPossible)
+            {
+                this.SSLStream  = CreateSslStream(NetworkStream);
+            }
+
+        }
+
+        #endregion
+
+        #region (private) CreateSslStream(InnerStream)
+
+        private SslStream CreateSslStream(Stream InnerStream)
+        {
+
+            try
             {
 
-                try
-                {
+                return new SslStream(
+                           innerStream:                        InnerStream,
+                           leaveInnerStreamOpen:               true,
+                           userCertificateValidationCallback:  null,
+                           userCertificateSelectionCallback:   LocalCertificateSelector is null
+                                                                   ? null
+                                                                   : (sender,
+                                                                      targetHost,
+                                                                      localCertificates,
+                                                                      remoteCertificate,
+                                                                      acceptableIssuers) => LocalCertificateSelector(
+                                                                                                sender,
+                                                                                                targetHost,
+                                                                                                localCertificates.
+                                                                                                    Cast<X509Certificate>().
+                                                                                                    Select(certificate => new X509Certificate2(certificate)),
+                                                                                                remoteCertificate is not null
+                                                                                                    ? new X509Certificate2(remoteCertificate)
+                                                                                                    : null,
+                                                                                                acceptableIssuers
+                                                                                            ),
+                           encryptionPolicy:                   EncryptionPolicy.RequireEncryption
+                       );
 
-                    //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using server certificate: " + this.ServerCertificate.Subject);
-
-                    this.SSLStream  = new SslStream(
-                                          innerStream:                        NetworkStream,
-                                          leaveInnerStreamOpen:               true,
-                                          userCertificateValidationCallback:  null,
-                                          userCertificateSelectionCallback:   LocalCertificateSelector is null
-                                                                                  ? null
-                                                                                  : (sender,
-                                                                                     targetHost,
-                                                                                     localCertificates,
-                                                                                     remoteCertificate,
-                                                                                     acceptableIssuers) => LocalCertificateSelector(
-                                                                                                               sender,
-                                                                                                               targetHost,
-                                                                                                               localCertificates.
-                                                                                                                   Cast<X509Certificate>().
-                                                                                                                   Select(certificate => new X509Certificate2(certificate)),
-                                                                                                               remoteCertificate is not null
-                                                                                                                   ? new X509Certificate2(remoteCertificate)
-                                                                                                                   : null,
-                                                                                                               acceptableIssuers
-                                                                                                           ),
-                                          encryptionPolicy:                   EncryptionPolicy.RequireEncryption
-                                      );
-
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(e,
-                                    "TLS stream setup failed for server port {LocalPort} {Description} and client port {RemotePort}.",
-                                    LocalPort,
-                                    TCPServer.Description.IsNotNullOrEmpty() ? TCPServer.Description : String.Empty,
-                                    RemotePort);
-                    throw;
-                }
-
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e,
+                                "TLS stream setup failed for server port {LocalPort} {Description} and client port {RemotePort}.",
+                                LocalPort,
+                                TCPServer.Description.IsNotNullOrEmpty() ? TCPServer.Description : String.Empty,
+                                RemotePort);
+                throw;
             }
 
         }
@@ -502,6 +553,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
             this.NetworkStream               = Connection.NetworkStream;
             this.SSLStream                   = Connection.SSLStream;
+            this.rawPublicKeyTLSStream       = Connection.rawPublicKeyTLSStream;
+            this.rawPublicKeysPossible       = Connection.rawPublicKeysPossible;
+            this.TLSSession                  = Connection.TLSSession;
+            this.ClientKey                   = Connection.ClientKey;
             this.TLSProtocols                = Connection.TLSProtocols;
             this.ServerCertificateChain      = Connection.ServerCertificateChain;
             this.ServerCertificate           = Connection.ServerCertificate;
@@ -840,6 +895,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                                                CancellationToken  CancellationToken   = default)
         {
 
+            // A server that speaks raw public keys: the TLS stack that takes
+            // this connection is chosen now, by what its ClientHello offers.
+            if (rawPublicKeysPossible         &&
+                SSLStream             is null &&
+                rawPublicKeyTLSStream is null &&
+                await AuthenticateWithRawPublicKeys(TCPServer, Timeout, CancellationToken).ConfigureAwait(false))
+            {
+                return;
+            }
+
             if (SSLStream         is null ||
                 ServerCertificate is null ||
                 SSLStream.IsAuthenticated)
@@ -959,6 +1024,118 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             if (SSLStream.RemoteCertificate is not null)
                 ClientCertificate = new X509Certificate2(SSLStream.RemoteCertificate);
 
+            TLSSession  = new TLSSession(
+                              TLSProvider.SslStream,
+                              SSLStream,
+                              SSLStream.NegotiatedApplicationProtocol.Protocol.IsEmpty
+                                  ? null
+                                  : SSLStream.NegotiatedApplicationProtocol.ToString(),
+                              RemoteKey: ClientCertificate is not null
+                                             ? TLSPeerKey.FromCertificate(ClientCertificate)
+                                             : null
+                          );
+
+            ClientKey   = TLSSession.RemoteKey;
+
+        }
+
+        #endregion
+
+        #region (private) AuthenticateWithRawPublicKeys(TCPServer, Timeout, CancellationToken)
+
+        /// <summary>
+        /// The TLS handshake of a server that speaks raw public keys
+        /// (RFC 7250). The ClientHello is read first, and says which TLS
+        /// stack takes the connection: a client that offers raw public keys
+        /// where this server speaks them is answered by the stack that
+        /// does, and so is every client of a server that shows its key raw
+        /// alone. Every other client is left to SslStream, as before - for
+        /// it this returns false, with the SslStream made over what was read.
+        /// </summary>
+        private async Task<Boolean> AuthenticateWithRawPublicKeys(ITCPServer         TCPServer,
+                                                                  TimeSpan?          Timeout,
+                                                                  CancellationToken  CancellationToken)
+        {
+
+            var timeout = Timeout ?? ReadTimeout;
+
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
+            if (timeout > TimeSpan.Zero)
+                deadline.CancelAfter(timeout);
+
+            try
+            {
+
+                var clientHello       = await TLSClientHelloPeek.ReadAsync(NetworkStream, deadline.Token).ConfigureAwait(false);
+                var transport         = new PrefixedStream(clientHello.Bytes, NetworkStream, LeaveOpen: true);
+
+                var keyValidator      = TCPServer.ClientKeyValidator;
+                var clientKeysRaw     = keyValidator is not null
+                                            ? TCPServer.ClientRawPublicKeys
+                                            : RawPublicKeyMode.Off;
+
+                var rawPublicKeys     = TCPServer.RawPublicKeys == RawPublicKeyMode.Require ||
+                                        (TCPServer.RawPublicKeys != RawPublicKeyMode.Off && clientHello.TakesARawServerKey) ||
+                                        (clientKeysRaw           != RawPublicKeyMode.Off && clientHello.OffersARawClientKey);
+
+                if (!rawPublicKeys)
+                {
+                    SSLStream = CreateSslStream(transport);
+                    return false;
+                }
+
+                var certificateValidator  = ClientCertificateValidator;
+
+                var session = await BouncyCastleTLS.AuthenticateAsServerAsync(
+
+                                        transport,
+
+                                        new RawPublicKeyTLSServerParameters {
+
+                                            ServerCertificate           = ServerCertificate!,
+                                            ServerCertificateChain      = [ .. ServerCertificateChain?.Intermediates ?? [] ],
+                                            ServerRawPublicKeys         = TCPServer.RawPublicKeys,
+                                            ApplicationProtocols        = [ .. TCPServer.TLSApplicationProtocols.Select(protocol => protocol.ToString()) ],
+
+                                            RequestClientCertificate    = certificateValidator is not null || clientKeysRaw != RawPublicKeyMode.Off,
+                                            ClientRawPublicKeys         = clientKeysRaw,
+
+                                            ClientKeyValidator          = keyValidator is not null
+                                                                              ? clientKey => keyValidator(this, clientKey, TCPServer)
+                                                                              : null,
+
+                                            ClientCertificateValidator  = certificateValidator is not null
+                                                                              ? (sender, certificate, chain, policyErrors) =>
+                                                                                    certificateValidator(
+                                                                                        sender,
+                                                                                        certificate as X509Certificate2,
+                                                                                        chain,
+                                                                                        TCPServer,
+                                                                                        policyErrors
+                                                                                    ).IsValid
+                                                                              : null
+
+                                        },
+
+                                        LeaveInnerStreamOpen:  true,
+                                        CancellationToken:     deadline.Token
+
+                                    ).ConfigureAwait(false);
+
+                rawPublicKeyTLSStream  = session.Stream;
+                TLSSession             = session;
+                ClientKey              = session.RemoteKey;
+                ClientCertificate      = session.RemoteCertificate;
+
+                return true;
+
+            }
+            catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException($"TLS server authentication timed out after {timeout.TotalMilliseconds:N0} ms for client {RemoteSocket}!");
+            }
+
         }
 
         #endregion
@@ -1031,8 +1208,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
             if (NetworkStream.DataAvailable)
             {
-                Value = SSLStream is not null
-                            ? SSLStream.    ReadByte()
+                Value = TLSStream is not null
+                            ? TLSStream.    ReadByte()
                             : NetworkStream.ReadByte();
             }
 
@@ -1062,10 +1239,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             if (!NetworkStream.CanRead)
                 return TCPClientResponse.CanNotRead;
 
-            if (SSLStream is not null)
+            if (TLSStream is not null)
             {
 
-                var value = SSLStream.ReadByte();
+                var value = TLSStream.ReadByte();
 
                 if (value == -1)
                     return TCPClientResponse.CanNotRead;
@@ -1094,8 +1271,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
             if (NetworkStream.DataAvailable)
             {
-                Value = SSLStream is not null
-                            ? SSLStream.    ReadByte()
+                Value = TLSStream is not null
+                            ? TLSStream.    ReadByte()
                             : NetworkStream.ReadByte();
             }
             else
@@ -1145,8 +1322,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
             if (NetworkStream.DataAvailable)
             {
-                return SSLStream is not null
-                           ? SSLStream.    Read(Buffer, 0, Buffer.Length)
+                return TLSStream is not null
+                           ? TLSStream.    Read(Buffer, 0, Buffer.Length)
                            : NetworkStream.Read(Buffer, 0, Buffer.Length);
             }
 
@@ -1189,8 +1366,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                 while (NetworkStream.DataAvailable)
                 {
 
-                    ByteValue = SSLStream is not null
-                                    ? (Byte) SSLStream.    ReadByte()
+                    ByteValue = TLSStream is not null
+                                    ? (Byte) TLSStream.    ReadByte()
                                     : (Byte) NetworkStream.ReadByte();
 
                     ByteArray[Position++] = ByteValue;
@@ -1248,7 +1425,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             if (__ReadTimeout.HasValue)
             {
                 NetworkStream.ReadTimeout  = (Int32) __ReadTimeout.Value.TotalMilliseconds;
-                SSLStream?.   ReadTimeout  = (Int32) __ReadTimeout.Value.TotalMilliseconds;
+                TLSStream?.   ReadTimeout  = (Int32) __ReadTimeout.Value.TotalMilliseconds;
             }
 
             var sleepingTimeMS           = (Int32) SleepingTime.Value.TotalMilliseconds;
@@ -1278,8 +1455,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                     do
                     {
 
-                        ByteValue = SSLStream is not null
-                                        ? SSLStream.ReadByte()
+                        ByteValue = TLSStream is not null
+                                        ? TLSStream.ReadByte()
                                         : NetworkStream.ReadByte();
 
                         #region Nothing or a '\r' or a '\n' was read!
@@ -1380,8 +1557,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             if (IsConnected)
             {
 
-                if (SSLStream is not null)
-                    SSLStream.    WriteByte(Byte);
+                if (TLSStream is not null)
+                    TLSStream.    WriteByte(Byte);
 
                 else
                     NetworkStream.WriteByte(Byte);
@@ -1403,8 +1580,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
             if (ByteArray is not null && IsConnected)
             {
 
-                if (SSLStream is not null)
-                    SSLStream.    Write(ByteArray, 0, ByteArray.Length);
+                if (TLSStream is not null)
+                    TLSStream.    Write(ByteArray, 0, ByteArray.Length);
 
                 else if (NetworkStream is not null)
                     NetworkStream.Write(ByteArray, 0, ByteArray.Length);
@@ -1451,8 +1628,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
                         bytesRead = InputStream.Read(buffer, 0, buffer.Length);
 
-                        if (SSLStream is not null)
-                            SSLStream.    Write(buffer, 0, bytesRead);
+                        if (TLSStream is not null)
+                            TLSStream.    Write(buffer, 0, bytesRead);
 
                         else
                             NetworkStream.Write(buffer, 0, bytesRead);
@@ -1477,7 +1654,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                              new JProperty("isConnected",             IsConnected),
                              new JProperty("created",                 Created.ToISO8601()),
                              new JProperty("runtime",        (UInt64) Runtime.TotalSeconds),
-                             new JProperty("isTLS",                   SSLStream is not null),
+                             new JProperty("isTLS",                   TLSStream is not null),
 
                        ClientCertificate is not null
                            ? new JProperty("clientCertificate",       ClientCertificate.Subject)
@@ -1495,7 +1672,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         /// </summary>
         public void Flush()
         {
-            SSLStream?.    Flush();
+            TLSStream?.    Flush();
             NetworkStream?.Flush();
         }
 
@@ -1608,10 +1785,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
 
                     }
 
-                    if (SSLStream is not null)
+                    if (TLSStream is not null)
                     {
-                        SSLStream.Close();
-                        SSLStream.Dispose();
+                        TLSStream.Close();
+                        TLSStream.Dispose();
                     }
 
                     if (TCPClient?.Client?.Connected == true)
@@ -1649,10 +1826,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
                 try
                 {
 
-                    if (SSLStream     is not null)
+                    if (TLSStream     is not null)
                     {
-                        SSLStream.Close();
-                        SSLStream.Dispose();
+                        TLSStream.Close();
+                        TLSStream.Dispose();
                     }
 
                     if (NetworkStream is not null)

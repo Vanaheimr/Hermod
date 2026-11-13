@@ -273,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             this.transportStream        = TransportStream;
             this.frameWriter            = new HTTP2FrameWriter(TransportStream);
             this.ownsTransport          = OwnsTransport;
-            this.isSecure               = TransportStream is SslStream { IsAuthenticated: true };
+            this.isSecure               = TransportStream is SslStream { IsAuthenticated: true } or BouncyCastleTLSStream { IsAuthenticated: true };
             this.options                = Options ?? HTTP2ClientOptions.Default;
             this.connectionCts          = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
             this.cancellationToken      = connectionCts.Token;

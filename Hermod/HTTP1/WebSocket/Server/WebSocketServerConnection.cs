@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly  NetworkStream?                         tcpStream;
 
-        private readonly  SslStream?                             tlsStream;
+        private readonly  Stream?                                tlsStream;
 
         public  volatile  Boolean                                IsClosed;
 
@@ -426,6 +426,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public X509Certificate2?        ClientCertificate             { get; private set; }
 
         /// <summary>
+        /// The key the client proved to hold in the TLS handshake: the key of
+        /// its <see cref="ClientCertificate"/>, or its raw public key
+        /// (RFC 7250), which comes without a certificate - and so without a
+        /// subject that could be taken for an identity.
+        /// </summary>
+        public TLSPeerKey?              ClientKey
+        {
+
+            get => clientKey ??= ClientCertificate is not null
+                                     ? TLSPeerKey.FromCertificate(ClientCertificate)
+                                     : null;
+
+            init => clientKey = value;
+
+        }
+
+        private TLSPeerKey? clientKey;
+
+        /// <summary>
         /// The negotiated "permessage-deflate" (RFC 7692) extension, or null if
         /// message compression was not negotiated for this connection.
         /// </summary>
@@ -450,7 +469,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="CustomData">Optional custom data to be stored within this web socket connection.</param>
         public WebSocketServerConnection(AWebSocketEndpoint                           WebSocketServer,
                                          TcpClient                                    TcpClient,
-                                         SslStream?                                   TLSStream,
+                                         Stream?                                      TLSStream,
                                          X509Certificate2?                            ClientCertificate            = null,
                                          HTTPRequest?                                 HTTPRequest                  = null,
                                          HTTPResponse?                                HTTPResponse                 = null,
@@ -476,7 +495,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.tcpClient                   = TcpClient;
             this.tcpStream                   = TcpClient.GetStream();
             this.tlsStream                   = TLSStream;
-            this.networkStream               = (Stream?) tlsStream ?? tcpStream;
+            this.networkStream               = tlsStream ?? tcpStream;
             this.LocalSocket                 = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint)  ?? IPSocket.Zero;
             this.RemoteSocket                = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint) ?? IPSocket.Zero;
             this.ClientCertificate           = ClientCertificate;
@@ -553,7 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.WebSocketServer             = WebSocketServer;
             this.tcpClient                   = null;
             this.tcpStream                   = NetworkStream as NetworkStream;
-            this.tlsStream                   = NetworkStream as SslStream;
+            this.tlsStream                   = NetworkStream is SslStream or BouncyCastleTLSStream ? NetworkStream : null;
             this.networkStream               = NetworkStream;
             this.LocalSocket                 = LocalSocket;
             this.RemoteSocket                = RemoteSocket;

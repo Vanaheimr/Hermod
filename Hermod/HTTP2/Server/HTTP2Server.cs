@@ -119,6 +119,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </summary>
         private readonly ConcurrentDictionary<HTTP2Connection, byte> activeConnections = new();
 
+        /// <summary>
+        /// Whether this server shows its key raw, without its certificate
+        /// (RFC 7250): never, to a client that takes raw public keys, or to
+        /// no other. Set before the server starts.
+        /// </summary>
+        /// <remarks>
+        /// SslStream knows certificates alone. Where this is not Off, a client
+        /// that offers raw public keys is answered by the TLS stack that
+        /// speaks them (<see cref="BouncyCastleTLS"/>, TLS 1.3), and every
+        /// other client by SslStream, as before.
+        /// </remarks>
+        public RawPublicKeyMode RawPublicKeys { get; set; } = RawPublicKeyMode.Off;
+
+        /// <summary>
+        /// Whether a client's key may come raw (RFC 7250): never, where the
+        /// client offers it, or in no other way. Only with a
+        /// <see cref="ClientKeyValidator"/>. Set before the server starts.
+        /// </summary>
+        public RawPublicKeyMode ClientRawPublicKeys { get; set; } = RawPublicKeyMode.Off;
+
+        /// <summary>
+        /// Asked whether the raw public key of a client is believed: a key
+        /// without a certificate, to be judged by its key pin. A client whose
+        /// key is refused gets no connection. The request handlers are not
+        /// told the key: there is no certificate subject to surface.
+        /// </summary>
+        public Func<TLSPeerKey, TLSValidationResult>? ClientKeyValidator { get; set; }
+
 
         /// <param name="RequireClientCertificate">
         /// Enable mutual TLS: require the client to present an X.509 certificate
@@ -382,7 +410,103 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         return;
                     }
 
-                    var sslStream = new SslStream(networkStream, leaveInnerStreamOpen: false);
+                    // A server that speaks raw public keys (RFC 7250) reads the
+                    // ClientHello first: a client that offers them is answered
+                    // by the TLS stack that speaks them, every other client by
+                    // SslStream - which is then given what was read.
+                    Stream tlsTransport = networkStream;
+
+                    var clientKeysRaw   = ClientKeyValidator is not null
+                                              ? ClientRawPublicKeys
+                                              : RawPublicKeyMode.Off;
+
+                    if (RawPublicKeys != RawPublicKeyMode.Off ||
+                        clientKeysRaw != RawPublicKeyMode.Off)
+                    {
+
+                        using var handshakeCts   = CancellationTokenSource.CreateLinkedTokenSource(Token);
+                        using var handshakeTimer = timeouts.TimeProvider.CreateTimer(
+                                                       static state => ((CancellationTokenSource) state!).Cancel(),
+                                                       handshakeCts,
+                                                       timeouts.Handshake,
+                                                       Timeout.InfiniteTimeSpan);
+
+                        try
+                        {
+
+                            var clientHello = await TLSClientHelloPeek.ReadAsync(networkStream, handshakeCts.Token);
+
+                            tlsTransport    = new org.GraphDefined.Vanaheimr.Hermod.Sockets.PrefixedStream(clientHello.Bytes, networkStream);
+
+                            if (RawPublicKeys == RawPublicKeyMode.Require ||
+                                (RawPublicKeys != RawPublicKeyMode.Off && clientHello.TakesARawServerKey) ||
+                                (clientKeysRaw != RawPublicKeyMode.Off && clientHello.OffersARawClientKey))
+                            {
+
+                                var session = await BouncyCastleTLS.AuthenticateAsServerAsync(
+
+                                                        tlsTransport,
+
+                                                        new RawPublicKeyTLSServerParameters {
+                                                            ServerCertificate           = certificate!,
+                                                            ServerRawPublicKeys         = RawPublicKeys,
+                                                            ApplicationProtocols        = http11Fallback is null
+                                                                                              ? [ "h2" ]
+                                                                                              : [ "h2", "http/1.1" ],
+                                                            RequestClientCertificate    = requireClientCertificate || clientKeysRaw != RawPublicKeyMode.Off,
+                                                            ClientRawPublicKeys         = clientKeysRaw,
+                                                            ClientKeyValidator          = ClientKeyValidator,
+                                                            ClientCertificateValidator  = validateClientCertificate ??
+                                                                                          (requireClientCertificate
+                                                                                               ? (sender, clientCertificate, chain, policyErrors) => policyErrors == SslPolicyErrors.None
+                                                                                               : null)
+                                                        },
+
+                                                        CancellationToken: handshakeCts.Token
+
+                                                    );
+
+                                await using (session.Stream)
+                                {
+
+                                    if (session.ApplicationProtocol == "h2")
+                                    {
+
+                                        HTTP2EventSource.Log.ConnectionEstablished(remoteEP?.ToString() ?? "?",
+                                                                                   "h2",
+                                                                                   SslProtocols.Tls13.ToString(),
+                                                                                   $"raw public keys: server {session.LocalCertificateType}, client {session.RemoteCertificateType}");
+
+                                        await RunConnectionAsync(session.Stream, session.RemoteCertificate, Token);
+
+                                    }
+
+                                    else if (http11Fallback is not null)
+                                    {
+                                        HTTP2EventSource.Log.AlpnNegotiated(remoteEP?.ToString() ?? "?", session.ApplicationProtocol ?? "(none)");
+                                        await http11Fallback(session.Stream, Token);
+                                    }
+
+                                    else
+                                        HTTP2EventSource.Log.ConnectionRejected(remoteEP?.ToString() ?? "?",
+                                                                                "no ALPN protocol offered; this endpoint serves h2 only");
+
+                                }
+
+                                return;
+
+                            }
+
+                        }
+                        catch (OperationCanceledException) when (!Token.IsCancellationRequested)
+                        {
+                            HTTP2EventSource.Log.ConnectionRejected(remoteEP?.ToString() ?? "?", "TLS handshake timed out");
+                            return;
+                        }
+
+                    }
+
+                    var sslStream = new SslStream(tlsTransport, leaveInnerStreamOpen: false);
 
                     await using (sslStream)
                     {

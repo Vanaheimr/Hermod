@@ -580,10 +580,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     RemoteURL.Scheme?.EnforcesTLS == true)
                 {
 
-                    if (tlsStream is null || tlsStream.IsAuthenticated == false)
+                    if (TLSStream is null || TLSSession is null)
                         return TCPConnectionResult.Failed("TLS Authentication failed!");
 
-                    httpStream = tlsStream;
+                    httpStream = TLSStream;
 
                 }
 
@@ -629,10 +629,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 RemoteURL.Scheme?.EnforcesTLS == true)
             {
 
-                if (tlsStream is null || tlsStream.IsAuthenticated == false)
+                if (TLSStream is null || TLSSession is null)
                     return TCPConnectionResult.Failed("TLS Authentication failed!");
 
-                httpStream = tlsStream;
+                httpStream = TLSStream;
 
             }
 
@@ -1892,13 +1892,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try { httpStream?.Dispose(); } catch { }
 
-            if (!ReferenceEquals(httpStream, tlsStream))
+            if (!ReferenceEquals(httpStream, TLSStream))
             {
-                try { tlsStream?.Dispose(); } catch { }
+                try { TLSStream?.Dispose(); } catch { }
             }
 
-            httpStream = null;
-            tlsStream  = null;
+            httpStream             = null;
+            tlsStream              = null;
+            rawPublicKeyTLSStream  = null;
+            TLSSession             = null;
 
             try
             {
@@ -2042,8 +2044,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try { httpStream?.Dispose(); } catch { }
             httpStream = null;
 
-            try { tlsStream?.Dispose(); } catch { }
-            tlsStream = null;
+            try { TLSStream?.Dispose(); } catch { }
+            tlsStream              = null;
+            rawPublicKeyTLSStream  = null;
+            TLSSession             = null;
 
             await base.DisposeAsync().ConfigureAwait(false);
 

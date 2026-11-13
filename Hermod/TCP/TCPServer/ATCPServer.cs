@@ -215,6 +215,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public ServerCertificateChainSelectorDelegate?                   ServerCertificateChainSelector { get; set; }
 
         public RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator    { get; set; }
+
+        /// <summary>
+        /// Whether this server shows its key raw, without its certificate
+        /// (RFC 7250). Set before the server starts.
+        /// </summary>
+        public RawPublicKeyMode                                          RawPublicKeys                 { get; set; } = RawPublicKeyMode.Off;
+
+        /// <summary>
+        /// Whether a client's key may come raw (RFC 7250). Only with a
+        /// ClientKeyValidator. Set before the server starts.
+        /// </summary>
+        public RawPublicKeyMode                                          ClientRawPublicKeys           { get; set; } = RawPublicKeyMode.Off;
+
+        /// <summary>
+        /// Asked whether the raw public key of a client is believed.
+        /// </summary>
+        public RemoteTLSClientKeyValidationHandler<ITCPServer>?          ClientKeyValidator            { get; set; }
         public LocalCertificateSelectionHandler?                         LocalCertificateSelector      { get; }
         public SslProtocols?                                             AllowedTLSProtocols           { get; }
 
