@@ -1093,7 +1093,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 // OpenSSH retries "with plain key". The signature above was made by that very key.
                 if (!verifyHostKey(kS) &&
                     !(SshCertificate.TryParse(kS, out var certificate) && verifyHostKey(certificate!.SubjectPublicKey)))
-                    throw new SshWireException("The server's host key was rejected by the host-key policy.");
+                    throw new SshHostKeyRejectedException(kS);
 
             }
 

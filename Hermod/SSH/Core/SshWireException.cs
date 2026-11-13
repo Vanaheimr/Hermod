@@ -83,6 +83,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
 
     /// <summary>
+    /// The server proved it holds a host key, and the host-key policy of this side does not take
+    /// that key for the host it meant to reach.
+    /// </summary>
+    /// <remarks>
+    /// A wire exception still, so that what catches those goes on catching this; its own type, so that
+    /// a caller can tell a server it must not believe - asking again would only ask the same server
+    /// again - from a server it could not reach or a packet it could not read. Nothing of this side
+    /// was sent to that server but its key exchange: no login name, no key, no password.
+    /// </remarks>
+    public sealed class SshHostKeyRejectedException : SshWireException
+    {
+
+        /// <summary>
+        /// The host key the server showed, as its public key blob - or the certificate it showed.
+        /// </summary>
+        public Byte[]  HostKey  { get; }
+
+        /// <summary>
+        /// Create a new exception for a host key the host-key policy did not take.
+        /// </summary>
+        /// <param name="HostKey">The host key the server showed.</param>
+        public SshHostKeyRejectedException(Byte[] HostKey)
+
+            : base("The server's host key was rejected by the host-key policy.")
+
+        {
+            this.HostKey = HostKey;
+        }
+
+    }
+
+
+    /// <summary>
     /// The peer did not signal strict KEX in its first KEXINIT, and this side requires it.
     /// </summary>
     /// <remarks>
