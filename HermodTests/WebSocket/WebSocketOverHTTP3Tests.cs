@@ -319,6 +319,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
+        #region AClientWithoutACertificateIsTheValidatorsToJudgeOverHTTP3AsOverTCP(ItLetsThemIn)
+
+        /// <summary>
+        /// A server that requires a client certificate and has a validator
+        /// asks it about a client that shows none, as it does over TCP: one
+        /// that lets such a client in - a station that comes with a password
+        /// instead - lets it in over HTTP/3 too, and one that does not,
+        /// does not.
+        /// </summary>
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task AClientWithoutACertificateIsTheValidatorsToJudgeOverHTTP3AsOverTCP(Boolean ItLetsThemIn)
+        {
+
+            var asked = new ConcurrentQueue<System.Net.Security.SslPolicyErrors>();
+
+            for (var attempt = 0; attempt < 20; attempt++)
+            {
+
+                await Shutdown_WebSocketTLSServer();
+
+                var port = APortFreeForBoth();
+
+                try
+                {
+
+                    webSocketServer = new WebSocketMirrorServer(
+                                          HTTPPort:                    IPPort.Parse(port),
+                                          RequireAuthentication:       false,
+                                          ServerCertificateSelector:   (tcpServer, tcpClient) => serverCertificate!,
+                                          ClientCertificateValidator:  (sender, certificate, chain, server, policyErrors) => {
+                                                                           asked.Enqueue(policyErrors);
+                                                                           return certificate is null && ItLetsThemIn
+                                                                                      ? TLSValidationResult.Success()
+                                                                                      : TLSValidationResult.Failed("No client certificate.");
+                                                                       },
+                                          ClientCertificateRequired:   true,
+                                          SecWebSocketProtocols:       SecWebSocketProtocols,
+                                          AutoStart:                   true
+                                      ) {
+                                          AcceptHTTP3 = true
+                                      };
+
+                }
+                catch
+                {
+                    // Not free for TCP.
+                    continue;
+                }
+
+                HTTPPort = webSocketServer.IPPort;
+
+                TheServerSaysWhoCame();
+
+                SpinWait.SpinUntil(() => webSocketServer.HTTP3Port is not null || webSocketServer.WhyNoHTTP3 is not null, TimeSpan.FromSeconds(10));
+
+                if (webSocketServer.HTTP3Port is not null)
+                    break;
+
+            }
+
+            Assert.That(webSocketServer!.HTTP3Port, Is.EqualTo(HTTPPort),
+                        "The server takes no WebSockets over HTTP/3: " + webSocketServer.WhyNoHTTP3);
+
+            var client         = ClientOver(WebSocketHTTPVersion.HTTP3);
+            var (_, response)  = await client.Connect();
+
+            if (ItLetsThemIn)
+                Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True,
+                            "The server took no WebSocket: " + response?.EntirePDU);
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,  Is.EqualTo(ItLetsThemIn ? HTTPStatusCode.SwitchingProtocols : HTTPStatusCode.Forbidden));
+                Assert.That(asked,                    Has.Some.EqualTo(System.Net.Security.SslPolicyErrors.RemoteCertificateNotAvailable),
+                            "The validator was not asked about a client without a certificate.");
+                Assert.That(accepted.IsEmpty,         Is.EqualTo(!ItLetsThemIn));
+            });
+
+        }
+
+        #endregion
+
         #region AWebSocketIsOpenedOverHTTP3WhereNothingElseWillDo()
 
         [Test]

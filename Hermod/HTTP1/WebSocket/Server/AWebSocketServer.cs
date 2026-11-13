@@ -785,8 +785,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             // A client certificate is asked for, and judged by the validator this
             // server has when it is shown: without one, by the roots of the
             // operating system.
+            //
+            // As over TCP, where "required" asks for a certificate and leaves
+            // a client that shows none to the validator: a server of OCPP lets
+            // a station in with a password and no certificate on the port it
+            // lets another in with its certificate alone. So the handshake of
+            // QUIC insists only where there is no validator to ask, and what
+            // a validator says of a client without a certificate is asked
+            // where its WebSocket is: HandleHTTP3Connect.
             var clientCertificate  = new ClientCertificateOptions {
-                                         Mode        = ClientCertificateRequired
+                                         Mode        = ClientCertificateRequired && clientCertificateValidator is null
                                                            ? ClientCertificateMode.Require
                                                            : ClientCertificateMode.Request,
                                          Validation  = new CertificateValidationOptions {
@@ -974,6 +982,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
                 Logger.LogDebug("Refusing the WebSocket over HTTP/3 of {RemoteSocket}: {Error}", RemoteSocket, error);
                 return new Http3ConnectResult { Status = 400 };
+            }
+
+            // A client certificate that was required: one that was shown and
+            // not believed opens nothing, as a handshake over TCP would have
+            // failed with it; and whether a client that showed none may come
+            // is the validator's to say, as it is over TCP.
+            if (ClientCertificateRequired && Connection.ClientAuthentication.Certificate is null)
+            {
+
+                var believed = Connection.ClientAuthentication.FailureReason is null &&
+                               clientCertificateValidator is { } validator &&
+                               validator(this, null, null, this, SslPolicyErrors.RemoteCertificateNotAvailable).IsValid;
+
+                if (!believed)
+                {
+                    Logger.LogDebug("Refusing the WebSocket over HTTP/3 of {RemoteSocket}: {Reason}",
+                                    RemoteSocket,
+                                    Connection.ClientAuthentication.FailureReason ?? "it showed no client certificate, and one is required.");
+                    return new Http3ConnectResult { Status = 403 };
+                }
+
             }
 
             if (Interlocked.CompareExchange(ref WebSockets.Value, 1, 0) != 0)
