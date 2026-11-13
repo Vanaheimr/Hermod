@@ -214,6 +214,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         public Byte[] ServerHostKey => transport.ServerHostKey;
 
         /// <summary>
+        /// The user name this client signed in under.
+        /// </summary>
+        public String Username { get; }
+
+        /// <summary>
         /// The keying material exporter of the connection: the keys the server gets from
         /// <see cref="SshSessionInfo.Exporter"/> for the same nonce, label and context, and no other connection.
         /// </summary>
@@ -233,8 +238,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region Constructor(s)
 
-        private SshClient(IDuplexPipe Pipe, SshTransport Transport, SshChannelMultiplexer Mux, SshClient? Through, IDNSClient? DNSClient)
+        private SshClient(IDuplexPipe Pipe, SshTransport Transport, SshChannelMultiplexer Mux, SshClient? Through, IDNSClient? DNSClient, String Username)
         {
+            this.Username  = Username;
             this.pipe      = Pipe;
             this.transport = Transport;
             this.mux       = Mux;
@@ -392,7 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                                        : transport.ServerHostKey,
                                    Options.HostKeysReceived);
 
-            var client = new SshClient(pipe, transport, mux.Start(), Through, Options.DNSClient);
+            var client = new SshClient(pipe, transport, mux.Start(), Through, Options.DNSClient, Options.Username);
 
             if (Options.KeepAliveInterval is TimeSpan interval)
                 client.keepAlive = client.KeepAliveAsync(interval, Math.Max(1, Options.KeepAliveCountMax));

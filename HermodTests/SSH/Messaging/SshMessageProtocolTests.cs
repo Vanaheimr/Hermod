@@ -1085,6 +1085,299 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+
+        #region SharedConnection_IsMadeByWhoeverAsksFirst_AndOutlivesTheMessages
+
+        /// <summary>
+        /// An SSH connection that is nobody's in particular: another subsystem asks for it first and makes
+        /// it, the messages go over it as one more channel, and it lasts after they ended - for the next
+        /// channel of whoever else is on it.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task SharedConnection_IsMadeByWhoeverAsksFirst_AndOutlivesTheMessages(CancellationToken CancellationToken)
+        {
+
+            const String Time = "time@test";
+
+            await using var running = await StartAsync(CancellationToken,
+                                                       Further: (Time, async (context, ct) => await context.Channel.SendDataAsync("tick"u8.ToArray(), ct)));
+            await using var shared  = new SshSharedConnection("127.0.0.1", running.Port, Login());
+
+            async Task<String> Tick()
+            {
+                var channel    = await (await shared.GetAsync(CancellationToken)).OpenSubsystemAsync(Time, CancellationToken);
+                using var read = new MemoryStream();
+                await channel.Input.CopyToAsync(read, CancellationToken);
+                return Encoding.UTF8.GetString(read.ToArray());
+            }
+
+            // The time, before there are any messages: it is the one that dials.
+            var before      = shared.Current;
+            var firstTick   = await Tick();
+            var dialled     = shared.Current;
+
+            var client      = new SshMessageClient(new SshMessageClientOptions {
+                                  Host          = "nowhere.invalid",
+                                  Connection    = shared.GetAsync,
+                                  Subsystem     = OCPP,
+                                  Subprotocols  = [ "ocpp2.1" ]
+                              });
+
+            var serverGotText = new TaskCompletionSource<String>(TaskCreationOptions.RunContinuationsAsynchronously);
+            running.Messages.OnTextMessageReceived += (timestamp, sender, connection, text, ct) => { serverGotText.TrySetResult(text); return Task.CompletedTask; };
+
+            var connection  = await client.ConnectAsync(CancellationToken);
+            var serverSide  = await ServerSideOf(running);
+
+            Assert.That(await connection.SendTextMessage("[2,\"19223203\",\"Heartbeat\",{}]"), Is.EqualTo(SentStatus.Success));
+
+            var text        = await Within(serverGotText.Task, "The server's receipt");
+            var overIt      = client.Ssh;
+
+            await client.DisposeAsync();
+
+            // And the time again, after the messages ended.
+            var secondTick  = await Tick();
+
+            Assert.Multiple(() => {
+                Assert.That(before,                 Is.Null,              "A connection before anybody asked for one.");
+                Assert.That(firstTick,              Is.EqualTo("tick"));
+                Assert.That(text,                   Does.Contain("Heartbeat"));
+                Assert.That(overIt,                 Is.SameAs(dialled),   "The messages went over another connection than the one that was shared.");
+                Assert.That(serverSide.Username,      Is.EqualTo("cs001"),  "The login of the connection, which the options of the client did not name.");
+                Assert.That(connection.Username,      Is.EqualTo("cs001"));
+                Assert.That(secondTick,             Is.EqualTo("tick"),   "The shared connection ended with the messages.");
+                Assert.That(shared.Current,         Is.SameAs(dialled));
+                Assert.That(shared.Made,            Is.EqualTo(1),        "More than one connection was made.");
+                Assert.That(client.Ssh,             Is.Null,              "An SSH connection handed out after the messages ended.");
+            });
+
+        }
+
+        #endregion
+
+        #region SharedConnection_AReconnectIsANewChannelOfTheSameConnection
+
+        /// <summary>
+        /// The server ends the messages, not the SSH connection: the client comes back as a new channel of
+        /// the connection it shares, without another key exchange or sign-in.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task SharedConnection_AReconnectIsANewChannelOfTheSameConnection(CancellationToken CancellationToken)
+        {
+
+            await using var running = await StartAsync(CancellationToken);
+            await using var shared  = new SshSharedConnection("127.0.0.1", running.Port, Login());
+            await using var client  = new SshMessageClient(new SshMessageClientOptions {
+                                          Host          = "nowhere.invalid",
+                                          Connection    = shared.GetAsync,
+                                          Subsystem     = OCPP,
+                                          Subprotocols  = [ "ocpp2.1" ],
+                                          Reconnect     = new WebSocketClientReconnectPolicy(InitialDelay: TimeSpan.FromMilliseconds(50), MaxDelay: TimeSpan.FromMilliseconds(200))
+                                      });
+
+            var connected = new ConcurrentQueue<SshMessageConnection>();
+            var second    = new TaskCompletionSource<SshMessageConnection>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            client.OnNewConnection += (timestamp, sender, connection, ct) => {
+                connected.Enqueue(connection);
+                if (connected.Count == 2)
+                    second.TrySetResult(connection);
+                return Task.CompletedTask;
+            };
+
+            var first      = await client.ConnectAsync(CancellationToken);
+            var overFirst  = client.Ssh;
+            var serverSide = await ServerSideOf(running);
+
+            await serverSide.Close(MessageCloseCode.GoingAway, "go and come back");
+
+            var again      = await Within(second.Task, "The second connection");
+
+            Assert.Multiple(() => {
+                Assert.That(again,          Is.Not.SameAs(first));
+                Assert.That(again.IsAlive,  Is.True);
+                Assert.That(first.IsAlive,  Is.False);
+                Assert.That(client.Ssh,     Is.SameAs(overFirst),  "The client came back over another SSH connection.");
+                Assert.That(shared.Made,    Is.EqualTo(1),         "A connection was made again although the first one lasted.");
+            });
+
+        }
+
+        #endregion
+
+        #region SharedConnection_ThatEnded_IsMadeAgainForTheReconnect
+
+        /// <summary>
+        /// The SSH connection itself ends: the messages end with it, and the reconnect asks for the
+        /// connection again, which is then made anew.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task SharedConnection_ThatEnded_IsMadeAgainForTheReconnect(CancellationToken CancellationToken)
+        {
+
+            await using var running = await StartAsync(CancellationToken);
+            await using var shared  = new SshSharedConnection("127.0.0.1", running.Port, Login());
+            await using var client  = new SshMessageClient(new SshMessageClientOptions {
+                                          Host          = "nowhere.invalid",
+                                          Connection    = shared.GetAsync,
+                                          Subsystem     = OCPP,
+                                          Subprotocols  = [ "ocpp2.1" ],
+                                          Reconnect     = new WebSocketClientReconnectPolicy(InitialDelay: TimeSpan.FromMilliseconds(50), MaxDelay: TimeSpan.FromMilliseconds(200))
+                                      });
+
+            var connected = new ConcurrentQueue<SshMessageConnection>();
+            var second    = new TaskCompletionSource<SshMessageConnection>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            client.OnNewConnection += (timestamp, sender, connection, ct) => {
+                connected.Enqueue(connection);
+                if (connected.Count == 2)
+                    second.TrySetResult(connection);
+                return Task.CompletedTask;
+            };
+
+            var first      = await client.ConnectAsync(CancellationToken);
+            var overFirst  = client.Ssh;
+
+            // The connection is lost under everybody on it.
+            await overFirst!.DisposeAsync();
+
+            var again      = await Within(second.Task, "The second connection");
+
+            Assert.Multiple(() => {
+                Assert.That(again.IsAlive,  Is.True);
+                Assert.That(first.IsAlive,  Is.False);
+                Assert.That(client.Ssh,     Is.Not.Null.And.Not.SameAs(overFirst));
+                Assert.That(client.Ssh,     Is.SameAs(shared.Current));
+                Assert.That(shared.Made,    Is.EqualTo(2));
+            });
+
+        }
+
+        #endregion
+
+        #region SharedConnection_ARefusalLeavesItToTheOthers
+
+        /// <summary>
+        /// A client that is refused closes what it opened, its channel, and not the connection it was given.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task SharedConnection_ARefusalLeavesItToTheOthers(CancellationToken CancellationToken)
+        {
+
+            await using var running = await StartAsync(CancellationToken);
+            await using var shared  = new SshSharedConnection("127.0.0.1", running.Port, Login());
+            await using var refused = new SshMessageClient(new SshMessageClientOptions {
+                                          Host          = "nowhere.invalid",
+                                          Connection    = shared.GetAsync,
+                                          Subsystem     = OCPP,
+                                          Subprotocols  = [ "ocpp1.6" ]
+                                      });
+            await using var welcome = new SshMessageClient(new SshMessageClientOptions {
+                                          Host          = "nowhere.invalid",
+                                          Connection    = shared.GetAsync,
+                                          Subsystem     = OCPP,
+                                          Subprotocols  = [ "ocpp2.1" ]
+                                      });
+
+            await Assert.ThrowsAsync<SshMessageRefusedException>(async () => await refused.ConnectAsync(CancellationToken));
+
+            var after      = shared.Current;
+            var connection = await welcome.ConnectAsync(CancellationToken);
+
+            Assert.Multiple(() => {
+                Assert.That(after,               Is.Not.Null,         "The refusal closed the connection it was given.");
+                Assert.That(welcome.Ssh,         Is.SameAs(after));
+                Assert.That(connection.IsAlive,  Is.True);
+                Assert.That(shared.Made,         Is.EqualTo(1));
+            });
+
+        }
+
+        #endregion
+
+        #region SharedConnection_TwoThatAskAtOnceDialOnce
+
+        /// <summary>
+        /// Two users ask for the connection at the same moment: one connection is made, and both get it.
+        /// One that could not be made is the failure of whoever asked, and the next one asks again.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task SharedConnection_TwoThatAskAtOnceDialOnce(CancellationToken CancellationToken)
+        {
+
+            await using var running = await StartAsync(CancellationToken);
+
+            var dials   = 0;
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var fail    = true;
+
+            await using var shared = new SshSharedConnection(async ct => {
+
+                                         Interlocked.Increment(ref dials);
+
+                                         if (fail)
+                                             throw new IOException("The server is not there yet.");
+
+                                         await release.Task.WaitAsync(ct);
+
+                                         return await SshClient.ConnectAsync("127.0.0.1", running.Port, Login(), ct);
+
+                                     });
+
+            await Assert.ThrowsAsync<IOException>(async () => await shared.GetAsync(CancellationToken));
+
+            var afterTheFailure = shared.Current;
+            fail = false;
+
+            var one = shared.GetAsync(CancellationToken).AsTask();
+            var two = shared.GetAsync(CancellationToken).AsTask();
+
+            release.SetResult();
+
+            var first  = await Within(one, "The first one's connection");
+            var second = await Within(two, "The second one's connection");
+
+            Assert.Multiple(() => {
+                Assert.That(afterTheFailure,  Is.Null);
+                Assert.That(second,           Is.SameAs(first));
+                Assert.That(dials,            Is.EqualTo(2),  "One dial that failed and one that did not.");
+                Assert.That(shared.Made,      Is.EqualTo(1));
+            });
+
+            await shared.DisposeAsync();
+
+            Assert.Multiple(() => {
+                Assert.That(first.Closed.IsCompleted,  Is.True,  "Disposing of the shared connection left it open.");
+                Assert.That(shared.Current,            Is.Null);
+            });
+
+            await Assert.ThrowsAsync<ObjectDisposedException>(async () => await shared.GetAsync(CancellationToken));
+
+        }
+
+        #endregion
+
+        #region AClientWithNeitherALoginNorAConnection_IsNotMade
+
+        [Test]
+        public void AClientWithNeitherALoginNorAConnection_IsNotMade()
+        {
+
+            Assert.Throws<ArgumentException>(() => new SshMessageClient(new SshMessageClientOptions {
+                                                       Host       = "127.0.0.1",
+                                                       Subsystem  = OCPP
+                                                   }));
+
+        }
+
+        #endregion
+
     }
 
 }
