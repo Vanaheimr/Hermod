@@ -102,7 +102,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var clientTask = SshHandshake.ClientHandshakeAsync(clientPipe, VerifyHostKey: _ => false, CancellationToken: CancellationToken);
             _ = SshHandshake.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
 
-            Assert.That(async () => await clientTask, Throws.TypeOf<SshWireException>());
+            // Its own type, and a wire exception still: what catches those goes on catching this.
+            Assert.That(async () => await clientTask, Throws.TypeOf<SshHostKeyRejectedException>().And.InstanceOf<SshWireException>());
 
         }
 

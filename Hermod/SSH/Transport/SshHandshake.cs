@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                            + "Pass a verifier (e.g. HostKeyPolicy.ForHost(host, port)), or SshHostKeyVerification.AcceptAnyUnsafe to skip it deliberately.");
 
             if (!VerifyHostKey(kS))
-                throw new SshWireException("The server's host key was rejected by the host-key policy.");
+                throw new SshHostKeyRejectedException(kS);
 
             // 6. NEWKEYS + key derivation.
             var sessionId = h;

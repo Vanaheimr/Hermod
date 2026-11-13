@@ -45,6 +45,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
 
     /// <summary>
+    /// A remote file is larger than the caller is willing to take: nothing of it was read.
+    /// </summary>
+    public sealed class SftpFileTooLargeException : SftpException
+    {
+
+        /// <summary>
+        /// The size of the remote file, in bytes.
+        /// </summary>
+        public Int64  Size   { get; }
+
+        /// <summary>
+        /// The most the caller would take, in bytes.
+        /// </summary>
+        public Int64  Limit  { get; }
+
+        /// <summary>
+        /// Create a new exception for a remote file over the caller's limit.
+        /// </summary>
+        public SftpFileTooLargeException(String Path, Int64 Size, Int64 Limit)
+
+            : base(SftpStatusCode.Failure,
+                   FormattableString.Invariant($"'{Path}' has {Size} bytes, more than the {Limit} bytes allowed."))
+
+        {
+            this.Size   = Size;
+            this.Limit  = Limit;
+        }
+
+    }
+
+
+    /// <summary>
     /// The backing store an SFTP server exposes. Handles are opaque strings the file system manages;
     /// operations throw <see cref="SftpException"/> to map to an SFTP status. A concrete implementation
     /// (local directory with a root jail, in-memory, …) plugs in behind this seam.

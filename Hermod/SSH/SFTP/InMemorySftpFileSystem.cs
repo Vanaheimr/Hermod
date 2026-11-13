@@ -67,6 +67,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                         throw new SftpException(SftpStatusCode.NoSuchFile, $"No such file: {path}");
                     files[path] = [];
                 }
+                // O_CREAT | O_EXCL: the file must not be there yet.
+                else if (Flags.HasFlag(SftpOpenFlags.Create) && Flags.HasFlag(SftpOpenFlags.Exclusive))
+                    throw new SftpException(SftpStatusCode.Failure, $"The file exists: {path}");
                 else if (Flags.HasFlag(SftpOpenFlags.Truncate))
                     files[path].Clear();
 

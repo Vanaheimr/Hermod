@@ -238,6 +238,235 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         }
 
+        #endregion
+
+        #region UploadAsync(RemotePath, Content, ...) / DownloadAsync(RemotePath, Destination, ...) (streams)
+
+        /// <summary>
+        /// Upload a stream to a remote path without holding it in memory, pipelining the WRITE requests.
+        /// </summary>
+        /// <param name="RemotePath">The remote file.</param>
+        /// <param name="Content">What to upload, read from its current position to its end.</param>
+        /// <param name="Exclusive">
+        /// Create the file, and fail when it is there already (<c>SSH_FXF_CREAT | SSH_FXF_EXCL</c>):
+        /// nothing on the server is ever written over. Otherwise the file is created or truncated.
+        /// </param>
+        /// <param name="Progress">Told the number of bytes the server acknowledged so far.</param>
+        /// <param name="SyncToDisk">Ask the server to flush the file to stable storage before the handle is closed (<c>fsync@openssh.com</c>); throws when the server does not offer it.</param>
+        /// <returns>The number of bytes uploaded.</returns>
+        public async ValueTask<Int64> UploadAsync(String             RemotePath,
+                                                  Stream             Content,
+                                                  Boolean            Exclusive          = false,
+                                                  IProgress<Int64>?  Progress           = null,
+                                                  Boolean            SyncToDisk         = false,
+                                                  CancellationToken  CancellationToken  = default)
+        {
+
+            ArgumentNullException.ThrowIfNull(Content);
+
+            if (SyncToDisk && !Supports("fsync@openssh.com"))
+                throw new SftpException(SftpStatusCode.OpUnsupported,
+                                        "SyncToDisk was requested, but the server does not offer 'fsync@openssh.com'.");
+
+            var flags    = SftpOpenFlags.Create | SftpOpenFlags.Write | (Exclusive ? SftpOpenFlags.Exclusive : SftpOpenFlags.Truncate);
+            var handle   = await OpenFileAsync(RemotePath, flags, CancellationToken).ConfigureAwait(false);
+            var inflight = new Queue<(Task Task, Int64 End)>();
+            var buffer   = ArrayPool<Byte>.Shared.Rent(TransferChunk);
+            var offset   = 0L;
+
+            try
+            {
+
+                while (true)
+                {
+
+                    // Fill a whole chunk where the stream has one: a stream that hands out a few
+                    // bytes at a time would otherwise cost a round trip per few bytes.
+                    var filled = 0;
+                    while (filled < TransferChunk)
+                    {
+                        var read = await Content.ReadAsync(buffer.AsMemory(filled, TransferChunk - filled), CancellationToken).ConfigureAwait(false);
+                        if (read == 0)
+                            break;
+                        filled += read;
+                    }
+
+                    if (filled == 0)
+                        break;
+
+                    // WriteAsync copies the chunk into its packet before its first await, so the one
+                    // buffer serves every request in flight.
+                    inflight.Enqueue((WriteAsync(handle, offset, buffer.AsMemory(0, filled), CancellationToken).AsTask(), offset + filled));
+                    offset += filled;
+
+                    if (inflight.Count >= MaxOutstanding)
+                    {
+                        var (task, end) = inflight.Dequeue();
+                        await task.ConfigureAwait(false);
+                        Progress?.Report(end);
+                    }
+
+                    if (filled < TransferChunk)
+                        break;
+
+                }
+
+                while (inflight.Count > 0)
+                {
+                    var (task, end) = inflight.Dequeue();
+                    await task.ConfigureAwait(false);
+                    Progress?.Report(end);
+                }
+
+                if (SyncToDisk)
+                    await FsyncAsync(handle, CancellationToken).ConfigureAwait(false);
+
+            }
+            catch
+            {
+                while (inflight.Count > 0)
+                    try { await inflight.Dequeue().Task.ConfigureAwait(false); } catch { }
+                throw;
+            }
+            finally
+            {
+                ArrayPool<Byte>.Shared.Return(buffer);
+                // The handle is closed whatever happened; an upload that failed is reported by what
+                // made it fail, not by a close that fails after it.
+                try   { await CloseAsync(handle, CancellationToken.None).ConfigureAwait(false); }
+                catch { }
+            }
+
+            return offset;
+
+        }
+
+        /// <summary>
+        /// Download a remote file into a stream without holding it in memory, pipelining the READ
+        /// requests, from an offset on: an interrupted download is taken up where it stopped.
+        /// </summary>
+        /// <param name="RemotePath">The remote file.</param>
+        /// <param name="Destination">Where its bytes go, in order, from the stream's current position on.</param>
+        /// <param name="Offset">The first byte of the remote file to read.</param>
+        /// <param name="MaxSize">
+        /// The most the whole remote file may have. A larger one is refused before a byte of it is
+        /// read (<see cref="SftpFileTooLargeException"/>), and so is one that turns out larger while
+        /// it is read.
+        /// </param>
+        /// <param name="Progress">Told the position in the remote file reached so far.</param>
+        /// <returns>The number of bytes written to the destination.</returns>
+        /// <exception cref="SftpException">The file ended before the size the server said it has, or the offset lies behind its end: what arrived is not the file.</exception>
+        public async ValueTask<Int64> DownloadAsync(String             RemotePath,
+                                                    Stream             Destination,
+                                                    Int64              Offset             = 0,
+                                                    Int64?             MaxSize            = null,
+                                                    IProgress<Int64>?  Progress           = null,
+                                                    CancellationToken  CancellationToken  = default)
+        {
+
+            ArgumentNullException.ThrowIfNull(Destination);
+            ArgumentOutOfRangeException.ThrowIfNegative(Offset);
+
+            var size = (await StatAsync(RemotePath, CancellationToken).ConfigureAwait(false)).Size ?? -1;
+
+            if (size >= 0 && MaxSize is { } limit && size > limit)
+                throw new SftpFileTooLargeException(RemotePath, size, limit);
+
+            if (size >= 0 && Offset > size)
+                throw new SftpException(SftpStatusCode.Failure,
+                                        FormattableString.Invariant($"'{RemotePath}' has {size} bytes, less than the offset {Offset} to continue from."));
+
+            var handle   = await OpenFileAsync(RemotePath, SftpOpenFlags.Read, CancellationToken).ConfigureAwait(false);
+            var inflight = new Queue<(Int64 Offset, Int32 Length, Task<Byte[]> Task)>();
+            var position = Offset;
+
+            try
+            {
+
+                // A server that does not say the size is read until it says EOF.
+                if (size < 0)
+                {
+                    while (true)
+                    {
+                        var data = await ReadAsync(handle, position, TransferChunk, CancellationToken).ConfigureAwait(false);
+                        if (data.Length == 0)
+                            break;
+                        if (MaxSize is { } most && position + data.Length > most)
+                            throw new SftpFileTooLargeException(RemotePath, position + data.Length, most);
+                        await Destination.WriteAsync(data, CancellationToken).ConfigureAwait(false);
+                        position += data.Length;
+                        Progress?.Report(position);
+                    }
+                    return position - Offset;
+                }
+
+                var nextIssue = Offset;
+
+                void IssueMore()
+                {
+                    while (inflight.Count < MaxOutstanding && nextIssue < size)
+                    {
+                        var len = (Int32) Math.Min(TransferChunk, size - nextIssue);
+                        inflight.Enqueue((nextIssue, len, ReadAsync(handle, nextIssue, len, CancellationToken).AsTask()));
+                        nextIssue += len;
+                    }
+                }
+
+                IssueMore();
+
+                while (inflight.Count > 0)
+                {
+
+                    var (offset, length, task) = inflight.Dequeue();
+                    var data = await task.ConfigureAwait(false);
+                    var got  = 0;
+
+                    // The destination is written in order, so a short read is filled before the
+                    // chunk after it is written.
+                    while (true)
+                    {
+
+                        if (data.Length == 0)
+                            throw new SftpException(SftpStatusCode.Failure,
+                                                    FormattableString.Invariant($"'{RemotePath}' ended at byte {offset + got}, before the {size} bytes the server said it has."));
+
+                        await Destination.WriteAsync(data, CancellationToken).ConfigureAwait(false);
+                        got      += data.Length;
+                        position += data.Length;
+                        Progress?.Report(position);
+
+                        if (got >= length)
+                            break;
+
+                        data = await ReadAsync(handle, offset + got, length - got, CancellationToken).ConfigureAwait(false);
+
+                    }
+
+                    IssueMore();
+
+                }
+
+                return position - Offset;
+
+            }
+            catch
+            {
+                while (inflight.Count > 0)
+                    try { await inflight.Dequeue().Task.ConfigureAwait(false); } catch { }
+                throw;
+            }
+            finally
+            {
+                try   { await CloseAsync(handle, CancellationToken.None).ConfigureAwait(false); }
+                catch { }
+            }
+
+        }
+
+        #endregion
+
+        #region (private) SequentialDownloadAsync(Handle) / ObserveAsync(Inflight)
+
         private async ValueTask<Byte[]> SequentialDownloadAsync(String Handle, CancellationToken CancellationToken)
         {
             var output = new ArrayBufferWriter<Byte>();
@@ -556,7 +785,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         {
             var response = await RoundtripAsync(SftpPacketType.Read, (ref SshPacketWriter w) => { w.WriteString(Handle); w.WriteUInt64((UInt64) Offset); w.WriteUInt32((UInt32) Length); }, CancellationToken).ConfigureAwait(false);
             if ((SftpPacketType) response[0] == SftpPacketType.Status)
-                return [];   // EOF (or an error surfaced as empty here)
+            {
+                // Only SSH_FX_EOF is the end of the file. Anything else - permission withdrawn, a
+                // failing disk - is an error: taken for the end, it would hand the caller a file cut
+                // short as if it were whole.
+                var status = new SshPacketReader(response); status.ReadByte(); status.ReadUInt32();
+                var code   = (SftpStatusCode) status.ReadUInt32();
+                if (code is SftpStatusCode.Eof or SftpStatusCode.Ok)
+                    return [];
+                throw new SftpException(code, status.ReadString());
+            }
             var reader = new SshPacketReader(response); reader.ReadByte(); reader.ReadUInt32();
             return reader.ReadBinaryString();
         }
