@@ -227,13 +227,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             await webSocketClient.SendTextMessage("1234");
 
-            while (textMessageLog.Count == 0)
-                Thread.Sleep(10);
+            Assert.That(
+                SpinWait.SpinUntil(() => textMessageLog.Count > 0, TimeSpan.FromSeconds(5)),
+                Is.True,
+                $"Timed out waiting for the text response. requests={messageRequests.Count}, responses={messageResponses.Count}"
+            );
 
             await webSocketClient.SendBinaryMessage("ABCD".ToUTF8Bytes());
 
-            while (binaryMessageLog.Count == 0)
-                Thread.Sleep(10);
+            Assert.That(
+                SpinWait.SpinUntil(() => binaryMessageLog.Count > 0, TimeSpan.FromSeconds(5)),
+                Is.True,
+                $"Timed out waiting for the binary response. requests={messageRequests.Count}, responses={messageResponses.Count}"
+            );
+
+            // The client having read the answer is not the end of it. The server tells of a frame it
+            // sent only once it has gone out - OnWebSocketFrameSent first, OnTextMessageSent or
+            // OnBinaryMessageSent after it: the client can read "DCBA" before the server has told
+            // of sending it.
+            Assert.That(
+                SpinWait.SpinUntil(() => messageRequests.       Count >= 2 &&
+                                         messageResponses.      Count >= 2 &&
+                                         textMessageRequests.   Count >= 1 &&
+                                         binaryMessageRequests. Count >= 1 &&
+                                         textMessageResponses.  Count >= 1 &&
+                                         binaryMessageResponses.Count >= 1,
+                                   TimeSpan.FromSeconds(5)),
+                Is.True,
+                $"Timed out waiting for the server to tell of every frame. requests={messageRequests.Count}, responses={messageResponses.Count}, text responses={textMessageResponses.Count}, binary responses={binaryMessageResponses.Count}"
+            );
 
             #endregion
 

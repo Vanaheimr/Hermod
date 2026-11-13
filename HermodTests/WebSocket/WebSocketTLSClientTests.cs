@@ -262,6 +262,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 $"Timed out waiting for the TLS binary response. requests={messageRequests.Count}, responses={messageResponses.Count}"
             );
 
+            // The client having read the answer is not the end of it. The server tells of a frame it
+            // sent only once it has gone out - OnWebSocketFrameSent first, OnTextMessageSent or
+            // OnBinaryMessageSent after it: the client can read "DCBA" before the server has told
+            // of sending it.
+            Assert.That(
+                SpinWait.SpinUntil(() => messageRequests.       Count >= 2 &&
+                                         messageResponses.      Count >= 2 &&
+                                         textMessageResponses.  Count >= 1 &&
+                                         binaryMessageResponses.Count >= 1,
+                                   TimeSpan.FromSeconds(5)),
+                Is.True,
+                $"Timed out waiting for the server to tell of every frame. requests={messageRequests.Count}, responses={messageResponses.Count}, text responses={textMessageResponses.Count}, binary responses={binaryMessageResponses.Count}"
+            );
+
             #endregion
 
             #region Validate message delivery
