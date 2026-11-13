@@ -77,6 +77,10 @@ Implemented (both server and client, unless noted):
   account with `AddOrUpdateHTTPBasicAuth` or `ClientTOTPConfig`, or explicitly
   set `RequireAuthentication: false` for public endpoints. Optional handshake
   validators can impose additional restrictions but do not replace this check.
+  A one-time password in the `TOTP` request header, which names no login, is
+  verified only where the server says who the connection is known as already:
+  `TOTPLoginOfAConnection`, from the path or the client certificate, say. It
+  is unset by default, and then such a header lets nobody in.
   A server that knows its clients otherwise (a client certificate, a store of
   its own, credentials in the query string) overrides `AuthenticateAsync` and
   calls the base for the defaults; an exception thrown there refuses with 500.

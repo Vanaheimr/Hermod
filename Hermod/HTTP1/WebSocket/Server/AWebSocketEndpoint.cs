@@ -366,6 +366,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public ConcurrentDictionary<String , TOTPConfig>                       ClientTOTPConfig              { get; } = [];
 
+        /// <summary>
+        /// Who a connection is known as before it has shown any credentials,
+        /// or null: the login a one-time password in the "TOTP" request
+        /// header is verified for, which names none itself.
+        /// </summary>
+        /// <remarks>
+        /// Nobody by default, and then a "TOTP" request header lets nobody
+        /// in: a server has to say what it knows its clients by - the path
+        /// they ask for, the client certificate of the connection - before a
+        /// password without a login can be anybody's.
+        /// </remarks>
+        public Func<WebSocketServerConnection, HTTPRequest, String?>?          TOTPLoginOfAConnection        { get; set; }
+
 
         public Boolean                                                         RequireAuthentication         { get; set; }
 
@@ -885,7 +898,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// What this knows by default: HTTP Basic credentials in ClientLogins, and a
         /// TOTP in ClientTOTPConfig - raw, or bound to the TLS session of the
         /// connection where that exports keying material, which is a WebSocket
-        /// over HTTP/3 (TOTPIsTheOneOf). A server that knows its clients by something
+        /// over HTTP/3 (TOTPIsTheOneOf). The TOTP is taken from "Authorization: TOTP",
+        /// which names its login, or - where there is no Authorization at all - from
+        /// the "TOTP" request header, for the login TOTPLoginOfAConnection knows the
+        /// connection as. A server that knows its clients by something
         /// else - a client certificate, a store of its own, credentials in the query
         /// string - overrides it, and asks the base for whatever it keeps of these.
         /// What an override throws refuses the upgrade too, with 500 - or with 503
@@ -912,6 +928,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 TOTPIsTheOneOf(config, totpAuthentication.TOTP, totpAuthentication.Type, Connection.TOTPTLSExporterMaterial))
             {
                 return Task.FromResult<String?>(totpAuthentication.Login);
+            }
+
+            // A one-time password in the "TOTP" request header names no login:
+            // it is the one of whoever the connection is known as already.
+            // Never beside an Authorization, which says who is asking and was
+            // refused above.
+            if (Request.Authorization is null &&
+                Request.TOTP is TOTPHTTPHeader totpHeader &&
+                TOTPLoginOfAConnection?.Invoke(Connection, Request) is String knownAs &&
+                ClientTOTPConfig.TryGetValue(knownAs, out var itsConfig) &&
+                TOTPIsTheOneOf(itsConfig, totpHeader.Value, totpHeader.Type, Connection.TOTPTLSExporterMaterial))
+            {
+                return Task.FromResult<String?>(knownAs);
             }
 
             return Task.FromResult<String?>(null);

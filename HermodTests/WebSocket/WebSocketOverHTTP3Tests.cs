@@ -965,6 +965,125 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
+        #region APasswordInTheTOTPHeaderLetsInWhoTheConnectionIsKnownAs(Version)
+
+        /// <summary>
+        /// A one-time password without a login travels in the "TOTP" request
+        /// header and names nobody: a server that says who its connections
+        /// are known as verifies it for that login, and lets it in as that.
+        /// </summary>
+        [Test]
+        public async Task APasswordInTheTOTPHeaderLetsInWhoTheConnectionIsKnownAs([Values(WebSocketHTTPVersion.HTTP1_1,
+                                                                                          WebSocketHTTPVersion.HTTP2,
+                                                                                          WebSocketHTTPVersion.HTTP3)] WebSocketHTTPVersion Version)
+        {
+
+            var requests       = await TheServerKnowsItsStationBy(Raw());
+
+            webSocketServer!.TOTPLoginOfAConnection = (connection, request) => "station";
+            webSocketServer. AcceptHTTP2            = true;
+
+            var client         = ClientOver(Version);
+            client.TOTPConfig  = Raw();
+
+            var (_, response)  = await client.Connect();
+
+            Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True,
+                        "The server took no WebSocket: " + response?.EntirePDU);
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,              Is.EqualTo(HTTPStatusCode.SwitchingProtocols));
+                Assert.That(requests.First().Authorization,       Is.Null,               "an Authorization was sent beside the TOTP header");
+                Assert.That(requests.First().TOTP?.Type,          Is.EqualTo(TOTPHTTPHeaderType.RAW));
+                Assert.That(accepted.First().Login,               Is.EqualTo("station"), "who the server says came");
+            });
+
+        }
+
+        #endregion
+
+        #region ABoundPasswordInTheTOTPHeaderIsVerifiedWithTheConnectionOverHTTP3()
+
+        [Test]
+        public async Task ABoundPasswordInTheTOTPHeaderIsVerifiedWithTheConnectionOverHTTP3()
+        {
+
+            var requests       = await TheServerKnowsItsStationBy(Bound());
+
+            webSocketServer!.TOTPLoginOfAConnection = (connection, request) => "station";
+
+            var client         = ClientOver(WebSocketHTTPVersion.HTTP3);
+            client.TOTPConfig  = Bound();
+
+            var (_, response)  = await client.Connect();
+
+            // Read off, and shown again on a connection of somebody else's.
+            var readOff        = requests.First().TOTP!;
+
+            var thief          = ClientOver(WebSocketHTTPVersion.HTTP3);
+            var (_, refused)   = await thief.Connect(HTTPRequestBuilder: request => request.TOTP = readOff);
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.SwitchingProtocols));
+                Assert.That(readOff.Type,             Is.EqualTo(TOTPHTTPHeaderType.TLSChannelBinding));
+                Assert.That(accepted.First().Login,   Is.EqualTo("station"));
+                Assert.That(refused.HTTPStatusCode,   Is.EqualTo(HTTPStatusCode.Unauthorized),  "a password read off another connection was taken");
+            });
+
+        }
+
+        #endregion
+
+        #region APasswordInTheTOTPHeaderIsNobodysWhereTheServerKnowsNobody()
+
+        /// <summary>
+        /// Left as it is made, a server knows no connection as anybody: the
+        /// right password in the "TOTP" request header lets nobody in. Nor
+        /// does a wrong one where the connection is known, nor a raw one
+        /// where the binding is asked for.
+        /// </summary>
+        [Test]
+        public async Task APasswordInTheTOTPHeaderIsNobodysWhereTheServerKnowsNobody()
+        {
+
+            await TheServerKnowsItsStationBy(Bound());
+
+            var unknown         = ClientOver(WebSocketHTTPVersion.HTTP3);
+            unknown.TOTPConfig  = Bound();
+
+            var (_, asNobody)   = await unknown.Connect();
+
+            webSocketServer!.TOTPLoginOfAConnection = (connection, request) => "station";
+
+            var wrong           = ClientOver(WebSocketHTTPVersion.HTTP3);
+            wrong.TOTPConfig    = new TOTPConfig("another-secret-of-some-length", UseTLSExporterMaterial: true);
+
+            var (_, asWrong)    = await wrong.Connect();
+
+            var raw             = ClientOver(WebSocketHTTPVersion.HTTP3);
+            raw.TOTPConfig      = Raw();
+
+            var (_, asRaw)      = await raw.Connect();
+
+            webSocketServer.TOTPLoginOfAConnection = (connection, request) => "somebody else";
+
+            var other           = ClientOver(WebSocketHTTPVersion.HTTP3);
+            other.TOTPConfig    = Bound();
+
+            var (_, asOther)    = await other.Connect();
+
+            Assert.Multiple(() => {
+                Assert.That(asNobody.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),  "let in though the server knows no connection as anybody");
+                Assert.That(asWrong. HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),  "let in with a password of another secret");
+                Assert.That(asRaw.   HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),  "let in with a raw password where the binding is asked for");
+                Assert.That(asOther. HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),  "let in as a login the server has no secret of");
+                Assert.That(accepted,                 Is.Empty);
+            });
+
+        }
+
+        #endregion
+
         #region ABoundPasswordIsSentOverNothingButHTTP3(Version)
 
         /// <summary>
