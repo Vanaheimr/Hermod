@@ -153,6 +153,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public Boolean                          ReceivedViaMulticast   { get; internal set; }
 
+        /// <summary>
+        /// Who asked, where the transport the request arrived over knows its client by more than an
+        /// address: the login of the SSH connection of DNS over SSH. Null over every other transport.
+        /// </summary>
+        /// <remarks>
+        /// Authenticated by the transport, not claimed in the message: a request handler may answer
+        /// per identity - a view per charging station, say - where it would otherwise have only the
+        /// source address to go by.
+        /// </remarks>
+        public String?                          ClientIdentity         { get; internal set; }
+
 
         /// <summary>
         /// The transaction identifier of this DNS query.

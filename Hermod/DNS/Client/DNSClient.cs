@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Pooled transport clients for connection-oriented transports (TCP, TLS, HTTPS).
         /// UDP clients are stateless and created per-query, so they are not pooled here.
         /// </summary>
-        private readonly        ConcurrentDictionary<DNSServerConfig, IDNSClientWithTransport>  transportClients = new();
+        private readonly        ConcurrentDictionary<DNSServerConfig, IDNSClientWithEDNS>       transportClients = new();
 
         /// <summary>
         /// The DNS servers this client asks, exchanged as a whole by
@@ -337,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.DNSCache          = new DNSCache(LoggerFactory: this.loggerFactory);
             this.RecursionDesired  = true;
 
-            var dnsServers         = new HashSet<DNSServerConfig>(ManualDNSServers);
+            var dnsServers         = new HashSet<DNSServerConfig>(WithTheirSSH(ManualDNSServers));
 
             #region Search for IPv4/IPv6 DNS Servers...
 
@@ -402,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public void SetDNSServers(IEnumerable<DNSServerConfig> DNSServers)
         {
 
-            var newServers  = new HashSet<DNSServerConfig>(DNSServers);
+            var newServers  = new HashSet<DNSServerConfig>(WithTheirSSH(DNSServers));
             var oldServers  = currentDNSServers;
 
             currentDNSServers = newServers;
@@ -1252,6 +1252,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
 
+        #region (private static) WithTheirSSH(DNSServers)
+
+        /// <summary>
+        /// The given DNS servers, or a refusal naming the first one that is to be
+        /// asked over SSH without saying how its SSH connection is had.
+        /// </summary>
+        /// <remarks>
+        /// An address and a port do not make an SSH connection: it takes a login,
+        /// credentials and a rule for the server's host key, or a connection that
+        /// exists already - what <see cref="DNSServerConfig.OverSSH(IIPAddress, SSH.Client.SshClientOptions, IPPort?, TimeSpan?, String?)"/>
+        /// and its siblings put into a configuration. Said when the servers are
+        /// named, not when the first query finds out: there a failure of one
+        /// server is a line in the log and the others are asked, so a server
+        /// meant to be asked over an authenticated channel would silently be no
+        /// server at all.
+        /// </remarks>
+        /// <exception cref="NotSupportedException">One of the servers has the transport <see cref="DNSTransport.SSH"/> and no <see cref="DNSServerConfig.SSH"/>.</exception>
+        private static IEnumerable<DNSServerConfig> WithTheirSSH(IEnumerable<DNSServerConfig> DNSServers)
+        {
+
+            var dnsServers = DNSServers.ToArray();
+
+            if (dnsServers.FirstOrDefault(dnsServer => dnsServer.Transport == DNSTransport.SSH && !HasSSH(dnsServer)) is DNSServerConfig overSSH)
+                throw new NotSupportedException(NoSSH(overSSH));
+
+            return dnsServers;
+
+        }
+
+        private static Boolean HasSSH(DNSServerConfig DNSServer)
+
+            => DNSServer.SSH is { Options: not null } or { Connection: not null };
+
+        private static String NoSSH(DNSServerConfig DNSServer)
+
+            => $"The DNS server '{DNSServer}' is to be asked over SSH, but does not say how its SSH connection is had: make it with {nameof(DNSServerConfig)}.{nameof(DNSServerConfig.OverSSH)}(...)!";
+
+        #endregion
+
         #region (private static) AddressOf(DNSServer)
 
         /// <summary>
@@ -1333,6 +1372,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region (private static) CookieIdentityOf(DNSServer)
+
+        /// <summary>
+        /// What a DNS server is to the cookies of RFC 7873: the key its server
+        /// cookie is kept under, and the address the client cookie for it is
+        /// derived from (§4.1) - its IP address.
+        /// </summary>
+        /// <remarks>
+        /// A server asked over SSH on a connection somebody else keeps may be
+        /// known by the name of its host alone: nothing is dialled, so nothing
+        /// was resolved. It has an address made of its name then, which is all
+        /// §4.1 needs - the same for every query to that server, and another
+        /// for another server.
+        /// </remarks>
+        private static (String Key, System.Net.IPAddress CookieAddress) CookieIdentityOf(DNSServerConfig DNSServer)
+        {
+
+            if (DNSServer.IPAddress is IIPAddress ipAddress)
+                return (ipAddress.ToString()!, System.Net.IPAddress.Parse(ipAddress.ToString()!));
+
+            if (DNSServer.Transport == DNSTransport.SSH && DNSServer.DomainName is DomainName domainName)
+            {
+
+                var name = domainName.ToString().ToLowerInvariant();
+
+                return (name,
+                        new System.Net.IPAddress(
+                            System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(name)).AsSpan(0, 16)
+                        ));
+
+            }
+
+            return (AddressOf(DNSServer).ToString()!, System.Net.IPAddress.None);
+
+        }
+
+        #endregion
+
+        #region (private) SSHClientFor(DNSServer, Timeout)
+
+        /// <summary>
+        /// The client of a DNS server asked over SSH: on the connection it is
+        /// handed, or on one of its own, dialled at the server's IP address
+        /// where the configuration has one and at its name otherwise.
+        /// </summary>
+        private DNSSSHClient SSHClientFor(DNSServerConfig  DNSServer,
+                                          TimeSpan         Timeout)
+        {
+
+            if (DNSServer.SSH?.Connection is { } connection)
+                return new DNSSSHClient(
+                           connection,
+                           DNSServer.SSH.Subsystem,
+                           QueryTimeout:   Timeout,
+                           LoggerFactory:  loggerFactory
+                       );
+
+            if (DNSServer.SSH?.Options is { } options)
+                return new DNSSSHClient(
+                           DNSServer.IPAddress?.ToString()
+                               ?? DNSServer.DomainName?.ToString()
+                               ?? throw new ArgumentException($"The DNS server configuration '{DNSServer}' has neither an IP address nor a name to connect to!", nameof(DNSServer)),
+                           options,
+                           DNSServer.Port,
+                           DNSServer.SSH.Subsystem,
+                           QueryTimeout:   Timeout,
+                           LoggerFactory:  loggerFactory
+                       );
+
+            throw new NotSupportedException(NoSSH(DNSServer));
+
+        }
+
+        #endregion
+
         #region (private) GetOrCreateTransportClient(DNSServer, Timeout)
 
         /// <summary>
@@ -1340,9 +1454,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// UDP clients are stateless and created per-query (caller is responsible for disposal).
         /// TCP, TLS, and HTTPS clients are connection-oriented and pooled for reuse.
         /// </summary>
-        private IDNSClientWithTransport GetOrCreateTransportClient(DNSServerConfig  DNSServer,
-                                                                   TimeSpan         Timeout)
+        private IDNSClientWithEDNS GetOrCreateTransportClient(DNSServerConfig  DNSServer,
+                                                              TimeSpan         Timeout)
         {
+
+            // Over SSH a server on somebody else's connection may be known by its
+            // name alone: there is nothing to dial.
+            if (DNSServer.Transport == DNSTransport.SSH)
+                return transportClients.GetOrAdd(DNSServer, _ => SSHClientFor(DNSServer, Timeout));
 
             var ipAddress = AddressOf(DNSServer);
 
@@ -1436,6 +1555,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         )
                     ),
 
+                // One client per server, kept: its channel stays open for the next
+                // query, as a connection over TCP or TLS does.
+                DNSTransport.SSH =>
+                    transportClients.GetOrAdd(DNSServer, _ => SSHClientFor(DNSServer, Timeout)),
+
                 _ => new DNSUDPClient(
                           ipAddress,
                           DNSServer.Port,
@@ -1513,8 +1637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             // RFC 7873: Inject stored per-server COOKIE into the query.
-            var serverIPAddress = AddressOf(DNSServer);
-            var serverKey       = serverIPAddress.ToString();
+            var (serverKey, cookieAddress) = CookieIdentityOf(DNSServer);
             var effectiveQuery  = DNSQuery;
 
             // RFC 7873 §5.1: always offer a cookie. The client half is derived
@@ -1525,7 +1648,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             cookieStore.TryGetValue(serverKey, out var storedServerCookie);
 
             var storedCookie = clientCookies.OptionFor(
-                                   System.Net.IPAddress.Parse(AddressOf(DNSServer).ToString()),
+                                   cookieAddress,
                                    storedServerCookie
                                );
 
@@ -1649,7 +1772,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         // over, which changes nothing — it is the same eight
                         // octets — and keeps one rule about where it comes from.
                         storedCookie   = clientCookies.OptionFor(
-                                             System.Net.IPAddress.Parse(AddressOf(DNSServer).ToString()),
+                                             cookieAddress,
                                              refreshedCookie
                                          );
 

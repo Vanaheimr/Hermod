@@ -66,6 +66,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public TimeSpan?     QueryTimeout    { get; set; }
 
+        /// <summary>
+        /// How the SSH connection of a server asked over <see cref="DNSTransport.SSH"/>
+        /// is had: see <see cref="OverSSH(IIPAddress, SSH.Client.SshClientOptions, IPPort?, TimeSpan?, String?)"/>.
+        /// Null for every other transport.
+        /// </summary>
+        public DNSServerSSH? SSH             { get; private init; }
+
         #endregion
 
         #region Constructor(s)
@@ -163,13 +170,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region (static) OverSSH(...)
+
+        /// <summary>
+        /// A DNS server asked over SSH - the subsystem "dns@open.charging.cloud" of the white paper
+        /// "DNS over SSH" - on an SSH connection of its own: a server among the others of a
+        /// <see cref="DNSClient"/>, as one over UDP, TCP or TLS is.
+        /// </summary>
+        /// <param name="IPAddress">The IP address of the SSH server.</param>
+        /// <param name="SSHOptions">Who signs in, with what, and what the server's host key is held to.</param>
+        /// <param name="Port">The SSH port; 22 by default.</param>
+        /// <param name="QueryTimeout">An optional timeout of a query to this server.</param>
+        /// <param name="Subsystem">The subsystem, where it is not "dns@open.charging.cloud".</param>
+        public static DNSServerConfig OverSSH(IIPAddress                    IPAddress,
+                                              SSH.Client.SshClientOptions   SSHOptions,
+                                              IPPort?                       Port           = null,
+                                              TimeSpan?                     QueryTimeout   = null,
+                                              String?                       Subsystem      = null)
+
+            => new (IPAddress, Port, DNSTransport.SSH, QueryTimeout) {
+                   SSH = new DNSServerSSH(SSHOptions, null, Subsystem)
+               };
+
+        /// <summary>
+        /// A DNS server asked over SSH on an SSH connection of its own, dialled by its name.
+        /// </summary>
+        /// <param name="DomainName">The name of the SSH server - which another server has to resolve.</param>
+        /// <param name="SSHOptions">Who signs in, with what, and what the server's host key is held to.</param>
+        /// <param name="Port">The SSH port; 22 by default.</param>
+        /// <param name="QueryTimeout">An optional timeout of a query to this server.</param>
+        /// <param name="Subsystem">The subsystem, where it is not "dns@open.charging.cloud".</param>
+        public static DNSServerConfig OverSSH(DomainName                    DomainName,
+                                              SSH.Client.SshClientOptions   SSHOptions,
+                                              IPPort?                       Port           = null,
+                                              TimeSpan?                     QueryTimeout   = null,
+                                              String?                       Subsystem      = null)
+
+            => new (DomainName, Port, DNSTransport.SSH, QueryTimeout) {
+                   SSH = new DNSServerSSH(SSHOptions, null, Subsystem)
+               };
+
+        /// <summary>
+        /// A DNS server asked over SSH on a connection somebody else keeps: the queries are one more
+        /// channel of it, and it is never closed for them. What
+        /// <see cref="SSH.Client.SshSharedConnection.GetAsync"/> hands out, say.
+        /// </summary>
+        /// <param name="IPAddress">The IP address of the SSH server, which names the server among the others.</param>
+        /// <param name="Connection">Hands out the connection: asked at the first query, and again once the connection it handed out has ended.</param>
+        /// <param name="Port">The SSH port of that connection; 22 by default.</param>
+        /// <param name="QueryTimeout">An optional timeout of a query to this server.</param>
+        /// <param name="Subsystem">The subsystem, where it is not "dns@open.charging.cloud".</param>
+        public static DNSServerConfig OverSSH(IIPAddress                                                IPAddress,
+                                              Func<CancellationToken, ValueTask<SSH.Client.SshClient>>  Connection,
+                                              IPPort?                                                   Port           = null,
+                                              TimeSpan?                                                 QueryTimeout   = null,
+                                              String?                                                   Subsystem      = null)
+
+            => new (IPAddress, Port, DNSTransport.SSH, QueryTimeout) {
+                   SSH = new DNSServerSSH(null, Connection, Subsystem)
+               };
+
+        /// <summary>
+        /// A DNS server asked over SSH on a connection somebody else keeps, named by the name of its host.
+        /// </summary>
+        /// <param name="DomainName">The name of the SSH server, which names the server among the others. It is not resolved: the connection is there, or is made by whoever keeps it.</param>
+        /// <param name="Connection">Hands out the connection: asked at the first query, and again once the connection it handed out has ended.</param>
+        /// <param name="Port">The SSH port of that connection; 22 by default.</param>
+        /// <param name="QueryTimeout">An optional timeout of a query to this server.</param>
+        /// <param name="Subsystem">The subsystem, where it is not "dns@open.charging.cloud".</param>
+        public static DNSServerConfig OverSSH(DomainName                                                DomainName,
+                                              Func<CancellationToken, ValueTask<SSH.Client.SshClient>>  Connection,
+                                              IPPort?                                                   Port           = null,
+                                              TimeSpan?                                                 QueryTimeout   = null,
+                                              String?                                                   Subsystem      = null)
+
+            => new (DomainName, Port, DNSTransport.SSH, QueryTimeout) {
+                   SSH = new DNSServerSSH(null, Connection, Subsystem)
+               };
+
+        #endregion
+
         #region (private static) DefaultPortFor(Transport)
 
         /// <summary>
         /// The port a transport uses when none was given.
         /// </summary>
         /// <remarks>
-        /// All ten of them. The constructors used to spell this out twice and
+        /// All eleven of them. The constructors used to spell this out twice and
         /// each time covered six, so HTTP, HTTP_Binary, HTTP_JSON and HTTPS_GET
         /// fell through with Port left at its default - port 0 - and HTTPS_GET is
         /// one DNSClient.GetOrCreateTransportClient dispatches on.
@@ -191,6 +278,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    DNSTransport.HTTPS_Binary  => IPPort.HTTPS,
                    DNSTransport.HTTPS_JSON    => IPPort.HTTPS,
                    DNSTransport.HTTPS_GET     => IPPort.HTTPS,
+
+                   DNSTransport.SSH           => IPPort.SSH,
 
                    _                          => IPPort.DNS
 
@@ -293,5 +382,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
     }
+
+
+    /// <summary>
+    /// How the SSH connection of a DNS server asked over SSH is had: dialled with the given options,
+    /// or handed out by whoever keeps it.
+    /// </summary>
+    /// <param name="Options">Who signs in, with what, and what the server's host key is held to - for a connection of the server's own.</param>
+    /// <param name="Connection">Hands out a connection somebody else keeps, which is never closed for DNS.</param>
+    /// <param name="Subsystem">The subsystem, where it is not "dns@open.charging.cloud".</param>
+    public sealed record DNSServerSSH(SSH.Client.SshClientOptions?                               Options,
+                                      Func<CancellationToken, ValueTask<SSH.Client.SshClient>>?  Connection,
+                                      String?                                                    Subsystem = null);
 
 }

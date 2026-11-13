@@ -72,7 +72,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// DNS-over-HTTPS (DoH) using HTTP GET with base64url-encoded query (RFC 8484 Section 4.1).
         /// </summary>
-        HTTPS_GET
+        HTTPS_GET,
+
+
+        /// <summary>
+        /// DNS over SSH: the byte stream of DNS over TCP in a channel of an SSH connection, as the
+        /// subsystem "dns@open.charging.cloud" (the white paper "DNS over SSH"). Encrypted, and the
+        /// server knows the client by its SSH login.
+        /// </summary>
+        /// <remarks>
+        /// The last value, so that the numbers of the others stay what they were. An address and a
+        /// port do not make a client for it: it needs a login, credentials and a rule for the
+        /// server's host key - or an SSH connection that exists already. See <see cref="DNSSSHClient"/>.
+        /// </remarks>
+        SSH
 
     }
 

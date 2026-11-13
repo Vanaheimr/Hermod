@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// The interface for all DNS clients that also provide
     /// transport information about the current connection.
     /// </summary>
-    public interface IDNSClientWithTransport : IDNSClientWithDNSSEC
+    public interface IDNSClientWithTransport : IDNSClientWithEDNS
     {
 
         /// <summary>
@@ -76,11 +76,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         UInt32       InternalBufferSize        { get; }
 
 
-        /// <summary>
-        /// Optional EDNS0 options to include in every DNS query
-        /// (e.g. Cookie, Client Subnet, Padding, Keepalive, Extended DNS Error).
-        /// </summary>
-        List<EDNSOption>  EDNSOptions           { get; }
 
 
     }

@@ -29,6 +29,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
 
@@ -1026,13 +1027,128 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private) HandleFramedDNSStreamAsync(Stream, LocalSocket, RemoteSocket, ServerType, CancellationToken)
+        #region ServeFramedStreamAsync(Stream, LocalSocket, RemoteSocket, Transport, ClientIdentity = null, ...)
+
+        /// <summary>
+        /// Serve DNS on a byte stream somebody else made: a two-octet length and a DNS message, in both
+        /// directions, as over TCP (RFC 1035 §4.2.2, RFC 7766) and inside TLS (RFC 7858) - through the
+        /// one handler that serves this server's own TCP and TLS listeners, with its zones, its request
+        /// handlers, TSIG, SIG(0) and padding.
+        /// </summary>
+        /// <remarks>
+        /// For a transport this server has no listener for: a channel of an SSH connection, say, see
+        /// <see cref="ServeSSHSubsystemAsync"/>. It returns when the other side ends the stream, when
+        /// nothing was read for <see cref="DNSServerOptions.TCPReadTimeout"/> (an
+        /// <see cref="OperationCanceledException"/>), or when the token fires. The stream stays the
+        /// caller's to close.
+        /// </remarks>
+        /// <param name="Stream">The stream.</param>
+        /// <param name="LocalSocket">Where the client connected to.</param>
+        /// <param name="RemoteSocket">Where it connected from.</param>
+        /// <param name="Transport">What the transport is called in the log and in the events of this server: "SSH".</param>
+        /// <param name="ClientIdentity">Who the transport knows the client as, where it does: <see cref="DNSPacket.ClientIdentity"/> of every request.</param>
+        /// <param name="EndOnProtocolError">Whether a length of 0 and a message too short for a DNS header end the stream with an <see cref="InvalidDataException"/>, instead of being skipped as over TCP.</param>
+        /// <param name="CancellationToken">Ends it.</param>
+        public Task ServeFramedStreamAsync(Stream             Stream,
+                                           IPSocket           LocalSocket,
+                                           IPSocket           RemoteSocket,
+                                           String             Transport,
+                                           String?            ClientIdentity       = null,
+                                           Boolean            EndOnProtocolError   = false,
+                                           CancellationToken  CancellationToken    = default)
+
+            => HandleFramedDNSStreamAsync(Stream, LocalSocket, RemoteSocket, Transport, CancellationToken, ClientIdentity, EndOnProtocolError);
+
+        #endregion
+
+        #region ServeSSHSubsystemAsync(Context, CancellationToken)
+
+        /// <summary>
+        /// The name of the SSH subsystem of DNS over SSH.
+        /// </summary>
+        public const String SSHSubsystemName = "dns@open.charging.cloud";
+
+        /// <summary>
+        /// What the events of this server call a request that came over SSH.
+        /// </summary>
+        public const String SSHServerType    = "SSH";
+
+        /// <summary>
+        /// Serve DNS over SSH on a channel of somebody's SSH server: the subsystem
+        /// <see cref="SSHSubsystemName"/> of the white paper "DNS over SSH", which carries the byte
+        /// stream of DNS over TCP unchanged. An <see cref="SshSubsystemHandler"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The SSH server authenticated the client and decided that it may have the subsystem; this
+        /// server answers, and knows the client by its login: <see cref="DNSPacket.ClientIdentity"/>.
+        /// </para>
+        /// <para>
+        /// The end of the channel (section 3.5 of the white paper): the exit status 0 after the
+        /// client's EOF, an idle timeout or a server that stops, 1 after a protocol error - a length
+        /// of 0, a message too short for a DNS header, a stream that ends within a message. The
+        /// channel ends, never the connection, which may carry OCPP and other channels.
+        /// </para>
+        /// </remarks>
+        /// <param name="Context">Who asked, and on which channel.</param>
+        /// <param name="CancellationToken">Fires when the channel is closed, the server stops, or the connection ends.</param>
+        public async ValueTask ServeSSHSubsystemAsync(SshSubsystemContext  Context,
+                                                      CancellationToken    CancellationToken)
+        {
+
+            var exitStatus = 0U;
+
+            try
+            {
+
+                await HandleFramedDNSStreamAsync(
+                          Context.Channel.AsStream(),
+                          Context.Session.Local ?? IPSocket.Zero,
+                          Context.Session.Peer  ?? IPSocket.Zero,
+                          SSHServerType,
+                          CancellationToken,
+                          Context.Session.Username,
+                          EndOnProtocolError: true
+                      ).ConfigureAwait(false);
+
+            }
+            catch (OperationCanceledException)
+            {
+                // Idle for too long, or the server stops, or the channel went.
+            }
+            catch (Exception e) when (e is InvalidDataException or EndOfStreamException)
+            {
+                exitStatus = 1;
+                logger.LogDebug("DNS over SSH for '{Login}' ended after a protocol error: {Message}", Context.Session.Username, e.Message);
+            }
+            catch (Exception e)
+            {
+                exitStatus = 1;
+                logger.LogError(e, "Error handling DNS over SSH for '{Login}'", Context.Session.Username);
+            }
+
+            try
+            {
+                await Context.Channel.SendExitStatusAsync(exitStatus, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // The channel is gone, and so is whoever would have read it.
+            }
+
+        }
+
+        #endregion
+
+        #region (private) HandleFramedDNSStreamAsync(Stream, LocalSocket, RemoteSocket, ServerType, CancellationToken, ...)
 
         private async Task HandleFramedDNSStreamAsync(Stream             Stream,
                                                       IPSocket          LocalSocket,
                                                       IPSocket          RemoteSocket,
                                                       String            ServerType,
-                                                      CancellationToken CancellationToken)
+                                                      CancellationToken CancellationToken,
+                                                      String?           ClientIdentity       = null,
+                                                      Boolean           EndOnProtocolError   = false)
         {
 
             var sharedBuffer = ArrayPool<Byte>.Shared.Rent(UInt16.MaxValue);
@@ -1061,7 +1177,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     );
 
                     if (length == 0)
+                    {
+
+                        if (EndOnProtocolError)
+                            throw new InvalidDataException("A DNS stream length of 0.");
+
                         continue;
+
+                    }
+
+                    if (EndOnProtocolError && length < 12)
+                        throw new InvalidDataException($"A DNS message of {length} octets cannot hold a DNS header.");
 
                     if (length > sharedBuffer.Length)
                         throw new InvalidDataException($"DNS request length {length} exceeds the maximum message size.");
@@ -1077,8 +1203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         if (tsigError is not null)
                         {
-                            await Stream.WriteAsync(new Byte[] { (Byte) (tsigError.Length >> 8), (Byte) tsigError.Length }, CancellationToken).ConfigureAwait(false);
-                            await Stream.WriteAsync(tsigError, CancellationToken).ConfigureAwait(false);
+                            await Stream.WriteAsync(FramedDNSMessage(tsigError), CancellationToken).ConfigureAwait(false);
                             await Stream.FlushAsync(CancellationToken).ConfigureAwait(false);
                         }
 
@@ -1086,11 +1211,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     }
 
-                    var dnsRequest = DNSPacket.Parse(
+                    DNSPacket dnsRequest;
+
+                    try
+                    {
+                        dnsRequest = DNSPacket.Parse(
                                          LocalSocket,
                                          RemoteSocket,
                                          new MemoryStream(streamBody)
                                      );
+                    }
+                    catch (Exception parseException)
+                    {
+
+                        // As the datagram path answers it. The length said where the
+                        // message ends, so the stream is still aligned and the next
+                        // query can follow: an unreadable message is no reason to end a
+                        // connection - or a channel - that may hold queries of others
+                        // (the white paper "DNS over SSH", §3.5: "A message whose header
+                        // can be read but whose rest cannot is answered with FORMERR").
+                        logger.LogDebug(
+                            parseException,
+                            "Could not parse a {ServerType} DNS request from {RemoteSocket}; answering FORMERR",
+                            ServerType,
+                            RemoteSocket
+                        );
+
+                        var formatError = DNSMessagePipeline.BuildFormatErrorResponse(streamBody);
+
+                        if (formatError is not null)
+                        {
+                            await Stream.WriteAsync(FramedDNSMessage(formatError), CancellationToken).ConfigureAwait(false);
+                            await Stream.FlushAsync(CancellationToken).ConfigureAwait(false);
+                        }
+
+                        continue;
+
+                    }
+
+                    dnsRequest.ClientIdentity = ClientIdentity;
 
                     await LogEvent(
                         OnDNSRequestReceived,
@@ -1112,9 +1271,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         var responseBytes  = pipeline.SerializeMessageResponse(dnsResponse, dnsRequest, tsigContext);
 
-                        Stream.WriteUInt16BE((UInt16) responseBytes.Length);
-
-                        await Stream.WriteAsync(responseBytes, 0, responseBytes.Length, CancellationToken).ConfigureAwait(false);
+                        // Length and message in one write. RFC 7766 §8 asks for it over TCP,
+                        // where two writes may leave as two segments; and on a channel of an
+                        // SSH connection one write is what keeps a message whole between
+                        // those of another writer (the white paper "DNS over SSH", §3.2).
+                        await Stream.WriteAsync(FramedDNSMessage(responseBytes), CancellationToken).ConfigureAwait(false);
                         await Stream.FlushAsync(CancellationToken).ConfigureAwait(false);
 
                         await LogEvent(
@@ -1138,6 +1299,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
                 ArrayPool<Byte>.Shared.Return(sharedBuffer);
             }
+
+        }
+
+        #endregion
+
+        #region (private static) FramedDNSMessage(Message)
+
+        /// <summary>
+        /// A DNS message as a stream carries it: its two-octet length and the message, as one array
+        /// for one write (RFC 1035 §4.2.2, RFC 7766 §8).
+        /// </summary>
+        private static Byte[] FramedDNSMessage(Byte[] Message)
+        {
+
+            var framed = new Byte[Message.Length + 2];
+
+            framed[0] = (Byte) (Message.Length >> 8);
+            framed[1] = (Byte)  Message.Length;
+
+            Buffer.BlockCopy(Message, 0, framed, 2, Message.Length);
+
+            return framed;
 
         }
 
