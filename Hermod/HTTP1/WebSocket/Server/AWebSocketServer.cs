@@ -169,6 +169,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                               ? (tcpServer, tcpClient) => value(this, tcpClient)
                                                               : null;
 
+                // A server that was running without TLS, and so without
+                // HTTP/3, has what HTTP/3 needs now.
+                if (value is not null && acceptHTTP3 && (listenerStarted || IsRunning))
+                    StartHTTP3();
+
             }
 
         }
@@ -735,7 +740,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             WhyNoHTTP3 = null;
 
-            if (ServerCertificateSelector is null)
+            // A server has TLS by either of the two: a certificate, or a
+            // certificate with the chain that leads from it towards its root.
+            if (ServerCertificateSelector is null && serverCertificateChainSelector is null)
             {
                 WhyNoHTTP3 = "The server has no TLS, and HTTP/3 is HTTP over TLS and nothing else.";
                 Logger.LogDebug("The WebSocket server on {IPSocket} has no TLS, and so takes no WebSockets over HTTP/3.", IPSocket);
@@ -751,7 +758,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 // server would show to a client nothing is known of yet.
                 using var nobody = new TcpClient();
 
-                certificate = ServerCertificate.From(ServerCertificateSelector(this, nobody));
+                // The chain where the server has one, as its listener does: a
+                // client that knows the root alone needs the intermediates
+                // over QUIC as it needs them over TCP.
+                if (serverCertificateChainSelector is { } chainSelector)
+                {
+
+                    var chain   = chainSelector(this, nobody)
+                                      ?? throw new InvalidOperationException("The server has no certificate chain to show.");
+
+                    certificate = ServerCertificate.From(chain.Certificate, chain.Intermediates);
+
+                }
+
+                else
+                    certificate = ServerCertificate.From(ServerCertificateSelector!(this, nobody));
 
             }
             catch (Exception e)

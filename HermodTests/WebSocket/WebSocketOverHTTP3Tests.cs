@@ -247,6 +247,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         #endregion
 
 
+        #region AServerThatShowsAChainTakesWebSocketsOverHTTP3AsWell()
+
+        /// <summary>
+        /// A server has TLS by a certificate or by a certificate chain: one
+        /// that was given a chain and no single certificate takes WebSockets
+        /// over HTTP/3 as it takes them over TCP. It was told to have no TLS.
+        /// </summary>
+        [Test]
+        public async Task AServerThatShowsAChainTakesWebSocketsOverHTTP3AsWell()
+        {
+
+            for (var attempt = 0; attempt < 20; attempt++)
+            {
+
+                await Shutdown_WebSocketTLSServer();
+
+                var port = APortFreeForBoth();
+
+                try
+                {
+
+                    webSocketServer = new WebSocketMirrorServer(
+                                          HTTPPort:                IPPort.Parse(port),
+                                          RequireAuthentication:   false,
+                                          SecWebSocketProtocols:   SecWebSocketProtocols,
+                                          AutoStart:               false
+                                      ) {
+                                          ServerCertificateChainSelector = (tcpServer, tcpClient) => new ServerCertificateChain(serverCertificate!),
+                                          AcceptHTTP3                    = true
+                                      };
+
+                    await webSocketServer.Start();
+
+                }
+                catch
+                {
+                    // Not free for TCP.
+                    continue;
+                }
+
+                HTTPPort = webSocketServer.IPPort;
+
+                TheServerSaysWhoCame();
+
+                SpinWait.SpinUntil(() => webSocketServer.HTTP3Port is not null || webSocketServer.WhyNoHTTP3 is not null, TimeSpan.FromSeconds(10));
+
+                if (webSocketServer.HTTP3Port is not null || webSocketServer.WhyNoHTTP3?.Contains("no TLS") == true)
+                    break;
+
+            }
+
+            Assert.That(webSocketServer!.HTTP3Port, Is.EqualTo(HTTPPort),
+                        "The server takes no WebSockets over HTTP/3: " + webSocketServer.WhyNoHTTP3);
+
+            var client         = ClientOver(WebSocketHTTPVersion.HTTP3);
+            var (_, response)  = await client.Connect();
+
+            Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True,
+                        "The server took no WebSocket: " + response?.EntirePDU);
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,       Is.EqualTo(HTTPStatusCode.SwitchingProtocols));
+                Assert.That(client.HTTPVersionInUse,       Is.EqualTo(HTTPVersion.HTTP_3_0));
+                Assert.That(accepted.First().HTTPVersion,  Is.EqualTo(HTTPVersion.HTTP_3_0));
+            });
+
+            await TheMirrorAnswers(client);
+
+        }
+
+        #endregion
+
         #region AWebSocketIsOpenedOverHTTP3WhereNothingElseWillDo()
 
         [Test]
