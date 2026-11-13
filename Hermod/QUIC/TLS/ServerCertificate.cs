@@ -65,6 +65,32 @@ public sealed class ServerCertificate : IDisposable
     public SignatureScheme SignatureScheme => _signer.Scheme;
 
     /// <summary>
+    /// DER encoding of the SubjectPublicKeyInfo of the key: what is sent where a raw public key was
+    /// negotiated (RFC 7250), in place of the certificate. It is the key of the certificate, so
+    /// its key pin is <see cref="KeyPin"/> either way.
+    /// </summary>
+    public byte[] SubjectPublicKeyInfo
+        => _subjectPublicKeyInfo ??= Certificate.PublicKey.ExportSubjectPublicKeyInfo();
+
+    private byte[]? _subjectPublicKeyInfo;
+
+    /// <summary>
+    /// Whether this key is shown raw, without its certificate (RFC 7250). Set before the first
+    /// handshake that uses it.
+    /// <list type="bullet">
+    /// <item><see cref="RawPublicKeyMode.Off"/>, the default: never. The certificate is shown, and
+    /// a peer that takes raw public keys alone is refused.</item>
+    /// <item><see cref="RawPublicKeyMode.Prefer"/>: raw to a peer that takes raw public keys, in
+    /// its certificate to every other.</item>
+    /// <item><see cref="RawPublicKeyMode.Require"/>: raw alone. A server ends the handshake with a
+    /// client that does not take raw public keys; a client asked for a certificate shows none.</item>
+    /// </list>
+    /// This is about the key shown here. Whether the key of the PEER may come raw is said by the
+    /// <see cref="KeyPinPolicy.RawPublicKeys"/> of the key pins it is checked against.
+    /// </summary>
+    public RawPublicKeyMode RawPublicKeys { get; set; } = RawPublicKeyMode.Off;
+
+    /// <summary>
     /// The SPKI pin: base64 of the SHA-256 hash over the DER-encoded SubjectPublicKeyInfo. This is
     /// the identity a pinning client checks instead of the chain, so it is what Chrome's
     /// <c>--ignore-certificate-errors-spki-list</c> expects — and why the key has to survive a

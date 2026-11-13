@@ -41,6 +41,8 @@ public enum ExtensionType : ushort
     SupportedGroups = 10,
     SignatureAlgorithms = 13,
     Alpn = 16,
+    ClientCertificateType = 19, // RFC 7250 §3 – how the client authenticates: X.509 or a raw public key
+    ServerCertificateType = 20, // RFC 7250 §3 – how the server authenticates
     PreSharedKey = 41,          // RFC 8446 §4.2.11 – must be the LAST extension in the ClientHello
     EarlyData = 42,             // RFC 8446 §4.2.10 – 0-RTT
     SupportedVersions = 43,

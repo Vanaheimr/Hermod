@@ -2680,7 +2680,12 @@ public abstract class QuicEndpoint : IDisposable
             // A failed handshake must CLOSE the connection, not escape into the I/O loop above —
             // one client with a bad certificate would otherwise take down every other connection
             // sharing that loop. RFC 9001 §4.8 carries the TLS alert as CRYPTO_ERROR + alert code.
-            TlsAlert alert = e is TlsHandshakeException typed ? typed.Alert : TlsAlert.HandshakeFailure;
+            TlsAlert alert = e switch
+            {
+                TlsHandshakeException typed => typed.Alert,
+                CertificateValidationException { Alert: { } named } => named,
+                _ => TlsAlert.HandshakeFailure,
+            };
             CloseWithCryptoError(alert, e.Message);
             return;
         }

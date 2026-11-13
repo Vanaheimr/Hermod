@@ -186,6 +186,30 @@ public sealed class Http3ClientConnection : IDisposable, IWebTransportHost
     public bool ResumptionAccepted => _quic.ResumptionAccepted;
 
     /// <summary>
+    /// The key the server proved to hold, validated: the key of its certificate, or its raw public
+    /// key (RFC 7250), which comes without a certificate. <c>null</c> before the server
+    /// authenticated, and for a resumed connection - see <see cref="ServerKeyPin"/>.
+    /// </summary>
+    public TLSPeerKey? ServerKey => _quic.ServerKey;
+
+    /// <summary>
+    /// The key pin of the server's key; for a resumed connection, of the key the server showed
+    /// when the ticket was issued.
+    /// </summary>
+    public KeyPin? ServerKeyPin => _quic.ServerKeyPin;
+
+    /// <summary>
+    /// The certificate type the server authenticates with, as negotiated (RFC 7250).
+    /// </summary>
+    public TLSCertificateType ServerCertificateType => _quic.ServerCertificateType;
+
+    /// <summary>
+    /// The certificate type this client authenticates with where it is asked to, as negotiated
+    /// (RFC 7250).
+    /// </summary>
+    public TLSCertificateType ClientCertificateType => _quic.ClientCertificateType;
+
+    /// <summary>
     /// <c>true</c> when 0-RTT (early_data) was accepted by the server.
     /// </summary>
     public bool EarlyDataAccepted => _quic.EarlyDataAccepted;

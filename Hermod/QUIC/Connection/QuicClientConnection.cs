@@ -203,6 +203,30 @@ public sealed class QuicClientConnection : QuicEndpoint
     /// </summary>
     public System.Security.Cryptography.X509Certificates.X509Certificate2? ServerCertificate => _tls.ServerCertificate;
 
+    /// <summary>
+    /// The key the server proved to hold, validated: the key of <see cref="ServerCertificate"/>, or
+    /// its raw public key (RFC 7250), which comes without a certificate. <c>null</c> before
+    /// CertificateVerify, and for a resumed handshake - see <see cref="ServerKeyPin"/>.
+    /// </summary>
+    public TLSPeerKey? ServerKey => _tls.ServerKey;
+
+    /// <summary>
+    /// The key pin of the server's key; for a resumed handshake, of the key the server showed when
+    /// the ticket was issued.
+    /// </summary>
+    public KeyPin? ServerKeyPin => _tls.ServerKeyPin;
+
+    /// <summary>
+    /// The certificate type the server authenticates with, as negotiated (RFC 7250).
+    /// </summary>
+    public TLSCertificateType ServerCertificateType => _tls.ServerCertificateType;
+
+    /// <summary>
+    /// The certificate type this client authenticates with where it is asked to, as negotiated
+    /// (RFC 7250).
+    /// </summary>
+    public TLSCertificateType ClientCertificateType => _tls.ClientCertificateType;
+
     public CipherSuite? NegotiatedCipherSuite => _tls.NegotiatedCipherSuite;
 
     /// <summary>

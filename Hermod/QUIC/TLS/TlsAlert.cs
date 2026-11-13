@@ -40,6 +40,24 @@ public enum TlsAlert : byte
     HandshakeFailure = 40,
 
     /// <summary>
+    /// A certificate was of a type that is not supported (§6.2): with RFC 7250, the two sides have
+    /// no certificate type in common (RFC 7250 §4.2).
+    /// </summary>
+    UnsupportedCertificate = 43,
+
+    /// <summary>
+    /// A field was out of range or inconsistent with other fields (§6.2) — e.g. a certificate type
+    /// the peer chose although it was not among those offered.
+    /// </summary>
+    IllegalParameter = 47,
+
+    /// <summary>
+    /// A valid credential was received, and access is not granted to it (§6.2): the key of a client
+    /// that is not among the key pins of the server.
+    /// </summary>
+    AccessDenied = 49,
+
+    /// <summary>
     /// A message could not be decoded (§6.2).
     /// </summary>
     DecodeError = 50,
@@ -48,6 +66,11 @@ public enum TlsAlert : byte
     /// A handshake cryptographic operation failed (§6.2) — a Finished that does not verify.
     /// </summary>
     DecryptError = 51,
+
+    /// <summary>
+    /// An extension was sent that the peer was not asked for (§4.2, §6.2).
+    /// </summary>
+    UnsupportedExtension = 110,
 
     /// <summary>
     /// The server requires a client certificate and did not get an acceptable one

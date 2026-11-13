@@ -75,19 +75,52 @@ public sealed class TlsServerHandshake : ITlsHandshake
     private bool _certificateRequestSent;
     private List<byte[]>? _clientCertChain;
     private string? _clientCertFailure;
+    private TlsAlert _clientCertFailureAlert = TlsAlert.BadCertificate;
+
+    // Raw public keys (RFC 7250): the certificate types chosen from what the ClientHello offers,
+    // and whether the choice is said in EncryptedExtensions - it is not where the client did not
+    // offer the extension, and not where X.509 is shown to a client as it always was.
+    private bool _sendServerCertificateType;
+    private bool _sendClientCertificateType;
+
+    /// <summary>
+    /// The certificate type this server authenticates with, as negotiated (RFC 7250):
+    /// <see cref="TLSCertificateType.X509"/> unless its key is shown raw
+    /// (<see cref="ServerCertificate.RawPublicKeys"/>) and the client takes raw public keys.
+    /// </summary>
+    public TLSCertificateType ServerCertificateType { get; private set; } = TLSCertificateType.X509;
+
+    /// <summary>
+    /// The certificate type the client is to authenticate with, as negotiated (RFC 7250):
+    /// <see cref="TLSCertificateType.X509"/> unless the key pins its key is checked against take
+    /// raw public keys and the client offers one.
+    /// </summary>
+    public TLSCertificateType ClientCertificateType { get; private set; } = TLSCertificateType.X509;
 
     /// <summary>
     /// The validated client certificate (mutual TLS), or <c>null</c> if none was asked for, none was
-    /// presented, or validation failed under <see cref="ClientCertificateMode.Request"/>.
+    /// presented, validation failed under <see cref="ClientCertificateMode.Request"/> - or the
+    /// client authenticated with a raw public key, which has no certificate: see
+    /// <see cref="ClientKey"/>.
     /// </summary>
     public X509Certificate2? ClientCertificate { get; private set; }
+
+    /// <summary>
+    /// The key the client proved to hold, validated: the key of <see cref="ClientCertificate"/>, or
+    /// its raw public key. In a resumed handshake, in which a client shows no key, the key it
+    /// showed when the ticket was issued, where that was checked against key pins. <c>null</c> if
+    /// none was asked for, none was presented, or validation failed.
+    /// </summary>
+    public TLSPeerKey? ClientKey { get; private set; }
 
     /// <summary>
     /// The outcome of client authentication, for the application above.
     /// </summary>
     public ClientAuthenticationResult ClientAuthentication => _certificateRequestSent
-        ? new ClientAuthenticationResult(true, ClientCertificate, _clientCertFailure)
-        : ClientAuthenticationResult.NotRequested;
+        ? new ClientAuthenticationResult(true, ClientCertificate, _clientCertFailure) { Key = ClientKey }
+        : ClientKey is not null
+              ? new ClientAuthenticationResult(false, null, null) { Key = ClientKey }
+              : ClientAuthenticationResult.NotRequested;
 
     /// <summary>
     /// The random of the ClientHello the handshake is running on — the connection identifier of the
@@ -247,6 +280,12 @@ public sealed class TlsServerHandshake : ITlsHandshake
         if (context.Length != 0)
             throw new TlsHandshakeException(TlsAlert.DecodeError, "Client echoed an unknown certificate_request_context.");
 
+        // RFC 8446 §4.4.2: a raw public key is one entry at most. Whether the entries are what was
+        // negotiated - certificates or a key - shows when they are read (ProcessClientCertificateVerify).
+        if (ClientCertificateType == TLSCertificateType.RawPublicKey && chain.Count > 1)
+            throw new TlsHandshakeException(TlsAlert.BadCertificate,
+                                            $"Client sent {chain.Count} entries where a raw public key is a single one.");
+
         _clientCertChain = chain;
         // The hash BEFORE this message is not what CertificateVerify signs — that one covers the
         // Certificate too, so append first and take the hash when the CertificateVerify arrives.
@@ -263,19 +302,39 @@ public sealed class TlsServerHandshake : ITlsHandshake
         if (!CertificateVerify.TryParse(message.Body.Span, out SignatureScheme scheme, out byte[] signature))
             throw new TlsHandshakeException(TlsAlert.DecodeError, "Invalid client CertificateVerify message.");
 
+        // RFC 8446 §4.4.3: the signature algorithm "MUST be one of those present in the
+        // supported_signature_algorithms field of the signature_algorithms extension in the
+        // CertificateRequest message".
+        if (!_clientCertificate!.SignatureSchemes.Contains(scheme))
+            throw new TlsHandshakeException(TlsAlert.IllegalParameter,
+                                            $"Client signed its CertificateVerify with {scheme}, which was not offered.");
+
         try
         {
             // Signed over the transcript up to and including the client's Certificate, with the
             // CLIENT context string — that is what keeps a server signature from being replayed here.
-            ClientCertificate = PeerCertificateValidator.ValidateClient(
-                _clientCertChain, scheme, signature, _transcript!.CurrentHash(),
-                _clientCertificate!.Validation);
+            if (ClientCertificateType == TLSCertificateType.RawPublicKey)
+            {
+                // RFC 7250: the one entry is the client's SubjectPublicKeyInfo. A certificate sent
+                // in its place is no SubjectPublicKeyInfo, and refused as a malformed key.
+                ClientKey = PeerCertificateValidator.ValidateRawPublicKey(
+                    _clientCertChain, scheme, signature, _transcript!.CurrentHash(),
+                    CertificateVerify.ClientContext, _clientCertificate.Validation);
+            }
+            else
+            {
+                ClientCertificate = PeerCertificateValidator.ValidateClient(
+                    _clientCertChain, scheme, signature, _transcript!.CurrentHash(),
+                    _clientCertificate.Validation);
+                ClientKey = TLSPeerKey.FromCertificate(ClientCertificate);
+            }
         }
         catch (CertificateValidationException e)
         {
             // Under Request the application decides what an untrusted client is worth; under Require
             // the handshake ends here (see RequireClientCertificateIfDemanded).
             _clientCertFailure = e.Message;
+            _clientCertFailureAlert = e.Alert ?? TlsAlert.BadCertificate;
         }
 
         _transcript!.Append(message.Full.Span);
@@ -290,12 +349,14 @@ public sealed class TlsServerHandshake : ITlsHandshake
     {
         if (_clientCertificate is not { Mode: ClientCertificateMode.Require })
             return;
-        if (ClientCertificate is not null)
+        // In a resumed handshake no certificate is asked for, and the key is the one the ticket
+        // was issued to (TryAcceptResumption).
+        if (ClientKey is not null)
             return;
         throw _clientCertFailure is null
             ? new TlsHandshakeException(TlsAlert.CertificateRequired,
                                         "Client presented no certificate although one is required.")
-            : new TlsHandshakeException(TlsAlert.BadCertificate,
+            : new TlsHandshakeException(_clientCertFailureAlert,
                                         $"Client certificate rejected: {_clientCertFailure}");
     }
 
@@ -316,8 +377,11 @@ public sealed class TlsServerHandshake : ITlsHandshake
         uint ageAdd = BitConverter.ToUInt32(RandomNumberGenerator.GetBytes(4));
         // ageAdd and lifetime are stored with the ticket — the server needs both later for the
         // §8.3 freshness check and for expiry.
+        // The ticket remembers the key the client showed, where it was checked against key pins:
+        // a resumption shows no key, and is taken while that key's pin is still among the pins.
         byte[] identity = _resumptionCache.Issue(psk, _cipherSuite, _maxEarlyDataSize, _quicTransportParameters,
-                                                 ageAdd, _ticketLifetimeSeconds);
+                                                 ageAdd, _ticketLifetimeSeconds,
+                                                 clientKey: _clientCertificate?.Validation.KeyPins is not null ? ClientKey : null);
 
         byte[] ticket = Messages.NewSessionTicket.Build(
             _ticketLifetimeSeconds, ageAdd, nonce, identity, _maxEarlyDataSize);
@@ -345,6 +409,7 @@ public sealed class TlsServerHandshake : ITlsHandshake
             if (!ch.KeyShares.TryGetValue((ushort)_requestedGroup, out byte[]? clientKeyShare2))
                 throw new InvalidOperationException("ClientHello2 does not contain the requested group.");
             _transcript!.Append(message.Full.Span);
+            NegotiateCertificateTypes(ch);
             EmitServerFlight(_requestedGroup, clientKeyShare2);
             return;
         }
@@ -358,6 +423,7 @@ public sealed class TlsServerHandshake : ITlsHandshake
             _transcript = new Transcript(_ks.Hash);
             _transcript.Append(_clientHello1);
             TryAcceptResumption(ch);
+            NegotiateCertificateTypes(ch);
             EmitServerFlight(group, clientKeyShare!);
             return;
         }
@@ -370,6 +436,80 @@ public sealed class TlsServerHandshake : ITlsHandshake
         }
 
         throw new InvalidOperationException("No common named group (handshake_failure).");
+    }
+
+    /// <summary>
+    /// Chooses the certificate types (RFC 7250 §4.2) from what the ClientHello offers. A handshake
+    /// that is resumed shows no certificates, and chooses none.
+    /// <para>
+    /// <b>The server's own key</b>, by <see cref="ServerCertificate.RawPublicKeys"/>: raw where the
+    /// key may be shown raw and the client takes a raw public key, in its certificate where the
+    /// client takes one - a client that sends no <c>server_certificate_type</c> does. Where
+    /// neither fits - the key is shown raw alone and the client does not take it, or the client
+    /// takes a raw public key alone and the key is not shown raw - the handshake ends with
+    /// unsupported_certificate.
+    /// </para>
+    /// <para>
+    /// <b>The client's key</b>, where one is asked for, by the
+    /// <see cref="KeyPinPolicy.RawPublicKeys"/> of the key pins it is checked against: raw where
+    /// they take raw public keys and the client offers one, else X.509. Where they take raw
+    /// public keys alone and the client offers none, a client that has to authenticate
+    /// (<see cref="ClientCertificateMode.Require"/>) ends here with unsupported_certificate; one
+    /// that only may is asked all the same, and its certificate is refused by the key pins.
+    /// </para>
+    /// </summary>
+    private void NegotiateCertificateTypes(ClientHelloInfo ch)
+    {
+        if (_pskAccepted)
+            return;
+
+        const byte rawPublicKey = (byte)TLSCertificateType.RawPublicKey;
+        const byte x509 = (byte)TLSCertificateType.X509;
+
+        // --- server_certificate_type -----------------------------------------------------------
+        RawPublicKeyMode own = _certificate.RawPublicKeys;
+        IReadOnlyList<byte>? taken = ch.ServerCertificateTypes; // null: X.509 alone
+
+        if (own != RawPublicKeyMode.Off && taken is not null && taken.Contains(rawPublicKey))
+        {
+            ServerCertificateType = TLSCertificateType.RawPublicKey;
+            _sendServerCertificateType = true;
+        }
+        else if (own == RawPublicKeyMode.Require)
+            throw new TlsHandshakeException(TlsAlert.UnsupportedCertificate,
+                                            "This server shows its key as a raw public key alone, and the client does not take one.");
+        else if (taken is not null && !taken.Contains(x509))
+            throw new TlsHandshakeException(TlsAlert.UnsupportedCertificate,
+                                            "The client takes none of the certificate types this server can show.");
+        else
+            // X.509. Said in EncryptedExtensions where the key could have been shown raw; a
+            // server that never shows it raw answers as it always did, without the extension.
+            _sendServerCertificateType = taken is not null && own != RawPublicKeyMode.Off;
+
+        // --- client_certificate_type -----------------------------------------------------------
+        if (_clientCertificate is not { } clientAuth)
+            return;
+
+        RawPublicKeyMode theirs = clientAuth.Validation.KeyPins?.RawPublicKeys ?? RawPublicKeyMode.Off;
+        IReadOnlyList<byte>? offered = ch.ClientCertificateTypes; // null: X.509 alone
+
+        if (theirs != RawPublicKeyMode.Off && offered is not null && offered.Contains(rawPublicKey))
+        {
+            ClientCertificateType = TLSCertificateType.RawPublicKey;
+            _sendClientCertificateType = true;
+        }
+        else if (theirs == RawPublicKeyMode.Require || (offered is not null && !offered.Contains(x509)))
+        {
+            // No type in common. A client that has to authenticate cannot.
+            if (clientAuth.Mode == ClientCertificateMode.Require)
+                throw new TlsHandshakeException(
+                    TlsAlert.UnsupportedCertificate,
+                    theirs == RawPublicKeyMode.Require
+                        ? "This server takes a client's key as a raw public key alone, and the client offers none."
+                        : "The client offers none of the certificate types this server takes from a client.");
+        }
+        else
+            _sendClientCertificateType = offered is not null && theirs != RawPublicKeyMode.Off;
     }
 
     private void SendHelloRetryRequest(NamedGroup group)
@@ -405,6 +545,15 @@ public sealed class TlsServerHandshake : ITlsHandshake
             found is null)
             return;
 
+        // A resumption shows no key. Where a client's key is checked against key pins, a ticket
+        // is taken only from a client whose key was checked against them when the ticket was
+        // issued, and only while that key's pin is still among them - else a resumption would go
+        // on admitting a key whose pin was removed. Without it: a full handshake, in which the
+        // key is asked for again.
+        if (_clientCertificate?.Validation.KeyPins is { } clientPins &&
+            (found.ClientKey is not { } ticketKey || !clientPins.Contains(ticketKey.KeyPin)))
+            return;
+
         // Binder = HMAC(finished_key(binder_key), transcript hash(ClientHello up to just before the binder list)).
         // A hash mismatch (wrong suite) automatically fails here on the length difference.
         byte[] psk = found.Psk;
@@ -422,6 +571,8 @@ public sealed class TlsServerHandshake : ITlsHandshake
 
         _pskAccepted = true;
         _selectedPsk = psk;
+        if (_clientCertificate?.Validation.KeyPins is not null)
+            ClientKey = found.ClientKey; // the key this client showed when the ticket was issued
 
         // Accept 0-RTT when the client offers early_data, we permit it (max_early_data_size > 0) AND
         // the ticket age claimed by the client is plausible (freshness check, RFC 8446 §8.3).
@@ -474,7 +625,11 @@ public sealed class TlsServerHandshake : ITlsHandshake
             }
 
             // Full authentication only without resumption – with a PSK the binder vouches for the identity.
-            byte[] certificate = CertificateMessage.Build(_certificate.Der, _certificate.IntermediatesDer);
+            // As negotiated: the bare SubjectPublicKeyInfo (RFC 7250), or the certificate and what
+            // leads from it towards a root. CertificateVerify signs with the same key either way.
+            byte[] certificate = ServerCertificateType == TLSCertificateType.RawPublicKey
+                ? CertificateMessage.BuildRawPublicKey(_certificate.SubjectPublicKeyInfo)
+                : CertificateMessage.Build(_certificate.Der, _certificate.IntermediatesDer);
             _transcript.Append(certificate);
             _outgoing.Enqueue((EncryptionLevel.Handshake, certificate));
 
@@ -583,6 +738,12 @@ public sealed class TlsServerHandshake : ITlsHandshake
             // With accepted 0-RTT, confirm the (empty) early_data extension (RFC 8446 §4.2.10).
             if (EarlyDataAccepted)
                 TlsWriter.WriteExtension(ref w, ExtensionType.EarlyData, ReadOnlySpan<byte>.Empty);
+
+            // The certificate types chosen (RFC 7250 §4.2): a single CertificateType each.
+            if (_sendClientCertificateType)
+                TlsWriter.WriteExtension(ref w, ExtensionType.ClientCertificateType, [(byte)ClientCertificateType]);
+            if (_sendServerCertificateType)
+                TlsWriter.WriteExtension(ref w, ExtensionType.ServerCertificateType, [(byte)ServerCertificateType]);
 
             TlsWriter.EndVector(ref w, extLen, 2);
             TlsWriter.EndVector(ref w, bodyLen, 3);

@@ -183,6 +183,48 @@ for Hermod's `SslStream` clients and servers (HTTP/1.1, WebSockets, HTTP/2) thro
 `KeyPinValidator.ForServerCertificates<T>`, `ForClientCertificates<T>` and
 `ForSslStream`.
 
+### Raw public keys (RFC 7250)
+
+A key-pinned peer needs no certificate at all. Where both sides say so, the
+Certificate message carries the bare SubjectPublicKeyInfo, CertificateVerify proves
+the key as always, and the key is checked against the key pins: no chain, no name,
+no validity period, because there is nothing left that could have one.
+
+```csharp
+// The peer's key may come raw: said by the key pins it is checked against.
+var client = new QuicClientConnection("192.168.10.5",
+                 certificateValidation: CertificateValidationOptions.PinnedTo(
+                     new KeyPinPolicy([ serverPin ], RawPublicKeys: RawPublicKeyMode.Require)),
+                 clientCertificate: stationKey);
+
+// The own key is shown raw: said by the key itself.
+serverKey .RawPublicKeys = RawPublicKeyMode.Prefer;
+stationKey.RawPublicKeys = RawPublicKeyMode.Prefer;
+
+var server = new QuicServerConnection(serverKey,
+                 clientCertificate: ClientCertificateOptions.RequirePinned(
+                     new KeyPinPolicy([ stationPin ], RawPublicKeys: RawPublicKeyMode.Prefer)));
+
+// afterwards: client.ServerKey / .ServerCertificateType,
+//             server.ClientAuthentication.Key / server.ClientCertificateType
+```
+
+| Mode | The peer's key (`KeyPinPolicy.RawPublicKeys`) | The own key (`ServerCertificate.RawPublicKeys`) |
+|---|---|---|
+| `Off` (default) | comes in a certificate; no extension is sent | is shown in its certificate; a client that takes raw keys alone is refused |
+| `Prefer` | raw, or in a certificate | raw to a peer that takes raw keys, in its certificate to every other |
+| `Require` | raw alone; a certificate is refused | raw alone: a server ends the handshake with `unsupported_certificate`, a client asked for a certificate shows none |
+
+A key that is shown raw still has its certificate, the carrier that is shown to a
+peer without RFC 7250: one key, and the same key pin either way. A raw public key
+is taken from a key-pinned peer alone — a CA-checked endpoint never offers the
+extension, and refuses a server that answers with it (`unsupported_extension`) or
+chooses a type that was not offered (`illegal_parameter`). A key the pins refuse
+ends the handshake with `bad_certificate` (client) or `access_denied` (server).
+A session ticket remembers the key pin it was issued under and is not used once
+that pin is gone from the pins. The mixed cases work: a raw server key with a
+client certificate, and the reverse.
+
 ## RFC compliance
 
 | RFC / draft | Title | Status |
@@ -191,6 +233,7 @@ for Hermod's `SslStream` clients and servers (HTTP/1.1, WebSockets, HTTP/2) thro
 | **9001** | Using TLS to Secure QUIC | ✅ Initial/handshake/1-RTT keys, header protection, key update, key discard, 0-RTT, Retry integrity. Appendix A vectors byte-exact |
 | **9002** | QUIC Loss Detection and Congestion Control | ✅ RTT estimation, ACK-based + PTO loss detection, NewReno, pacing, persistent congestion |
 | **8446** | TLS 1.3 | ✅ Full handshake engine: HelloRetryRequest, session resumption/PSK, 0-RTT, client certificates. Key schedule verified against RFC 8448 |
+| **7250** | Raw Public Keys in TLS | ✅ `server_certificate_type` and `client_certificate_type` in ClientHello and EncryptedExtensions, as server and as client; for key-pinned peers |
 | **8448** | Example Handshake Traces for TLS 1.3 | ✅ Used as test vectors for the key schedule and exporter |
 | **7748 / 8032 / 8410** | X25519, X448, Ed25519, Ed448 | ✅ Key exchange + signatures (via BouncyCastle) |
 | **FIPS 204 / draft-ietf-tls-mldsa** | ML-DSA certificates | ✅ BCL-native; a fully post-quantum handshake runs end-to-end |

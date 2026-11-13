@@ -138,6 +138,16 @@ public sealed class QuicServerConnection : QuicEndpoint
         _serverTls?.ClientAuthentication ?? ClientAuthenticationResult.NotRequested;
 
     /// <summary>
+    /// The certificate type this server authenticates with, as negotiated (RFC 7250).
+    /// </summary>
+    public TLSCertificateType ServerCertificateType => _serverTls?.ServerCertificateType ?? TLSCertificateType.X509;
+
+    /// <summary>
+    /// The certificate type the client is to authenticate with, as negotiated (RFC 7250).
+    /// </summary>
+    public TLSCertificateType ClientCertificateType => _serverTls?.ClientCertificateType ?? TLSCertificateType.X509;
+
+    /// <summary>
     /// <c>true</c> when the handshake ran via session resumption (PSK).
     /// </summary>
     public bool ResumptionAccepted => _serverTls?.ResumptionAccepted ?? false;

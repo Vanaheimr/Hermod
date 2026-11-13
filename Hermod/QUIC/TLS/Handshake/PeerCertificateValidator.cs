@@ -30,7 +30,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Quic.Tls.Handshake;
 /// <summary>
 /// Thrown when validation of the server certificate fails (fatal handshake error).
 /// </summary>
-public sealed class CertificateValidationException(string message) : Exception(message);
+public sealed class CertificateValidationException(string message, TlsAlert? alert = null) : Exception(message)
+{
+    /// <summary>
+    /// The alert a TLS-over-TCP endpoint would have sent here, where the failure names one; else
+    /// <c>null</c>, which the QUIC layer reports as <see cref="TlsAlert.HandshakeFailure"/>.
+    /// </summary>
+    public TlsAlert? Alert { get; } = alert;
+}
 
 /// <summary>
 /// Validates a peer's certificate: (1) the CertificateVerify signature over the transcript hash with
@@ -91,6 +98,94 @@ public static class PeerCertificateValidator
                             options with { VerifyHostname = false });
     }
 
+    /// <summary>
+    /// Validates a RAW PUBLIC KEY (RFC 7250), in either direction: the Certificate message holds
+    /// one entry, and that entry is a DER encoded SubjectPublicKeyInfo. There is no certificate, so
+    /// there is no chain, no name and no validity period to look at, and no judge to ask: the key
+    /// is checked against the key pins of <paramref name="options"/>, and an endpoint without key
+    /// pins never takes one. Throws a <see cref="CertificateValidationException"/> on failure;
+    /// returns the key.
+    /// </summary>
+    /// <param name="entries">The entries of the Certificate message.</param>
+    /// <param name="scheme">Signature scheme from the CertificateVerify message.</param>
+    /// <param name="signature">Signature from the CertificateVerify message.</param>
+    /// <param name="transcriptHash">Transcript hash up to and including Certificate.</param>
+    /// <param name="signatureContext"><see cref="CertificateVerify.ServerContext"/> for a server's key, <see cref="CertificateVerify.ClientContext"/> for a client's.</param>
+    /// <param name="options">Trust policy: its key pins.</param>
+    public static TLSPeerKey ValidateRawPublicKey(
+        IReadOnlyList<byte[]> entries,
+        SignatureScheme scheme,
+        ReadOnlySpan<byte> signature,
+        byte[] transcriptHash,
+        string signatureContext,
+        CertificateValidationOptions options)
+    {
+        // Negotiation offers raw public keys for a key-pinned endpoint alone, so this is not
+        // reached without key pins. Should it ever be: nothing vouches for a raw key but its pin.
+        if (options.KeyPins is not { } policy)
+            throw new CertificateValidationException(
+                "The peer presented a raw public key, and this endpoint has no key pins to check it against.",
+                TlsAlert.UnsupportedCertificate);
+
+        // RFC 8446 §4.4.2: "If the RawPublicKey certificate type was negotiated, then the
+        // certificate_list MUST contain no more than one CertificateEntry".
+        if (entries.Count != 1)
+            throw new CertificateValidationException(
+                entries.Count == 0
+                    ? "The peer sent no raw public key."
+                    : $"The peer sent {entries.Count} entries where a raw public key is a single one.",
+                TlsAlert.BadCertificate);
+
+        byte[] subjectPublicKeyInfo = entries[0];
+
+        // (1) What the key pins say about this key - which includes whether it is a key at all:
+        //     a known algorithm, a point on its curve, and nothing after it. Parsed strictly
+        //     BEFORE anything is done with it.
+        KeyPinValidation validation = KeyPinValidator.Validate(policy, subjectPublicKeyInfo, TLSCertificateType.RawPublicKey);
+
+        if (!validation.IsAccepted)
+        {
+            options.OnKeyPinValidated?.Invoke(validation);
+            throw new CertificateValidationException(validation.Reason ?? "The key was refused.",
+                                                     KeyPinRefusalAlert(policy, validation, signatureContext));
+        }
+
+        // (2) CertificateVerify: the proof that the peer holds the private key. Nothing is
+        //     accepted, and nothing is learned on first use, of a key the peer did not sign with.
+        PublicKey key;
+
+        try
+        {
+            key = PublicKey.CreateFromSubjectPublicKeyInfo(subjectPublicKeyInfo, out _);
+        }
+        catch (CryptographicException e)
+        {
+            throw new CertificateValidationException($"The raw public key cannot be read: {e.Message}", TlsAlert.BadCertificate);
+        }
+
+        byte[] content = CertificateVerify.BuildSignatureContent(signatureContext, transcriptHash);
+        if (!VerifySignature(key, scheme, signature, content))
+            throw new CertificateValidationException(
+                $"CertificateVerify signature invalid (scheme {scheme}).");
+
+        options.OnKeyPinValidated?.Invoke(validation);
+
+        return TLSPeerKey.Raw(subjectPublicKeyInfo);
+    }
+
+    /// <summary>
+    /// The alert for a key the key pins refused, at an endpoint that takes raw public keys: a
+    /// client's key that is a key, and not among the pins, is a valid credential access is not
+    /// granted to (access_denied); every other refusal is a bad certificate.
+    /// An endpoint whose keys come in certificates alone names no alert here, as before.
+    /// </summary>
+    private static TlsAlert? KeyPinRefusalAlert(KeyPinPolicy policy, KeyPinValidation validation, string signatureContext)
+        => policy.RawPublicKeys == RawPublicKeyMode.Off
+               ? null
+               : signatureContext == CertificateVerify.ClientContext && validation.Pin is not null
+                     ? TlsAlert.AccessDenied
+                     : TlsAlert.BadCertificate;
+
     private static X509Certificate2 ValidateCore(
         IReadOnlyList<byte[]> certificateChainDer,
         SignatureScheme scheme,
@@ -100,11 +195,23 @@ public static class PeerCertificateValidator
         string serverName,
         CertificateValidationOptions options)
     {
-        var leaf = X509CertificateLoader.LoadCertificate(certificateChainDer[0]);
+        X509Certificate2 leaf;
+
+        try
+        {
+            leaf = X509CertificateLoader.LoadCertificate(certificateChainDer[0]);
+        }
+        catch (CryptographicException e)
+        {
+            // Not a certificate at all - a raw public key where a certificate was negotiated, or
+            // anything else. That is a failed validation: a peer must never be able to throw an
+            // arbitrary type through the validator.
+            throw new CertificateValidationException($"The peer's certificate cannot be read: {e.Message}", TlsAlert.BadCertificate);
+        }
 
         // (1) CertificateVerify signature — always, regardless of policy.
         byte[] content = CertificateVerify.BuildSignatureContent(signatureContext, transcriptHash);
-        if (!VerifySignature(leaf, scheme, signature, content))
+        if (!VerifySignature(leaf.PublicKey, scheme, signature, content))
         {
             leaf.Dispose();
             throw new CertificateValidationException(
@@ -130,7 +237,8 @@ public static class PeerCertificateValidator
             if (!validation.IsAccepted)
             {
                 leaf.Dispose();
-                throw new CertificateValidationException(validation.Reason ?? "The key was refused.");
+                throw new CertificateValidationException(validation.Reason ?? "The key was refused.",
+                                                         KeyPinRefusalAlert(options.KeyPins, validation, signatureContext));
             }
 
             return leaf;
@@ -179,9 +287,10 @@ public static class PeerCertificateValidator
     }
 
     /// <summary>
-    /// Verifies the CertificateVerify signature with the algorithm matching the leaf key.
+    /// Verifies the CertificateVerify signature with the algorithm matching the peer's key - the
+    /// key of its leaf certificate, or its raw public key.
     /// </summary>
-    private static bool VerifySignature(X509Certificate2 leaf, SignatureScheme scheme, ReadOnlySpan<byte> signature, byte[] content)
+    private static bool VerifySignature(PublicKey leaf, SignatureScheme scheme, ReadOnlySpan<byte> signature, byte[] content)
     {
         switch (scheme)
         {
@@ -218,20 +327,20 @@ public static class PeerCertificateValidator
                 // Ed25519 signs the content directly (PureEdDSA, no pre-hash). The public key comes
                 // as a SubjectPublicKeyInfo (id-Ed25519, 1.3.101.112) from the leaf certificate; the
                 // BCL cannot verify Ed25519, hence via the BouncyCastle primitive.
-                if (leaf.PublicKey.Oid.Value != "1.3.101.112")
+                if (leaf.Oid.Value != "1.3.101.112")
                     return false;
                 return Ed25519Signature.VerifyWithSubjectPublicKeyInfo(
-                    leaf.PublicKey.ExportSubjectPublicKeyInfo(), content, signature);
+                    leaf.ExportSubjectPublicKeyInfo(), content, signature);
             }
 
             case SignatureScheme.Ed448:
             {
                 // Ed448 signs the content directly (PureEdDSA, empty context). Public key from the
                 // leaf SPKI (id-Ed448, 1.3.101.113); the BCL cannot verify Ed448.
-                if (leaf.PublicKey.Oid.Value != "1.3.101.113")
+                if (leaf.Oid.Value != "1.3.101.113")
                     return false;
                 return Ed448Signature.VerifyWithSubjectPublicKeyInfo(
-                    leaf.PublicKey.ExportSubjectPublicKeyInfo(), content, signature);
+                    leaf.ExportSubjectPublicKeyInfo(), content, signature);
             }
 
             case SignatureScheme.MLDsa44:

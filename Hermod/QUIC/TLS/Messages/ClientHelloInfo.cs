@@ -71,6 +71,20 @@ public sealed class ClientHelloInfo
     /// The client offered a PSK and (for 0-RTT) additionally early_data.
     /// </summary>
     public bool OffersEarlyData { get; init; }
+
+    /// <summary>
+    /// The certificate types the client accepts from the server, by preference
+    /// (<c>server_certificate_type</c>, RFC 7250 §3); <c>null</c> when the extension is absent,
+    /// which means X.509 alone.
+    /// </summary>
+    public IReadOnlyList<byte>? ServerCertificateTypes { get; init; }
+
+    /// <summary>
+    /// The certificate types the client can present, by preference
+    /// (<c>client_certificate_type</c>, RFC 7250 §3); <c>null</c> when the extension is absent,
+    /// which means X.509 alone.
+    /// </summary>
+    public IReadOnlyList<byte>? ClientCertificateTypes { get; init; }
 }
 
 /// <summary>
@@ -131,8 +145,11 @@ public static class ClientHelloParser
         bool offersPskDheKe = false;
         bool offersEarlyData = false;
         int binderListOffset = -1;
+        byte[]? serverCertificateTypes = null;
+        byte[]? clientCertificateTypes = null;
         if (!ParseExtensions(extensions, extensionsAbsoluteStart, keyShares, supportedGroups, offeredPsks,
-                ref quicTransportParameters, ref offersPskDheKe, ref offersEarlyData, ref binderListOffset))
+                ref quicTransportParameters, ref offersPskDheKe, ref offersEarlyData, ref binderListOffset,
+                ref serverCertificateTypes, ref clientCertificateTypes))
             return false;
 
         info = new ClientHelloInfo
@@ -145,6 +162,8 @@ public static class ClientHelloParser
             OffersPskDheKe = offersPskDheKe,
             OffersEarlyData = offersEarlyData,
             PskBinderListOffset = binderListOffset,
+            ServerCertificateTypes = serverCertificateTypes,
+            ClientCertificateTypes = clientCertificateTypes,
         };
         return true;
     }
@@ -158,7 +177,9 @@ public static class ClientHelloParser
         ref byte[]? quicTransportParameters,
         ref bool offersPskDheKe,
         ref bool offersEarlyData,
-        ref int binderListOffset)
+        ref int binderListOffset,
+        ref byte[]? serverCertificateTypes,
+        ref byte[]? clientCertificateTypes)
     {
         var reader = new BufferReader(extensions);
         while (!reader.IsEmpty)
@@ -186,6 +207,14 @@ public static class ClientHelloParser
                 case ExtensionType.EarlyData:
                     offersEarlyData = true;
                     break;
+                case ExtensionType.ServerCertificateType:
+                    if (!TryParseCertificateTypes(data, out serverCertificateTypes))
+                        return false;
+                    break;
+                case ExtensionType.ClientCertificateType:
+                    if (!TryParseCertificateTypes(data, out clientCertificateTypes))
+                        return false;
+                    break;
                 case ExtensionType.PreSharedKey:
                     // Absolute offset of the extension data (after the 4-byte extension header).
                     int dataAbsolute = extensionsAbsoluteStart + extHeaderStart + 4;
@@ -193,6 +222,22 @@ public static class ClientHelloParser
                     break;
             }
         }
+        return true;
+    }
+
+    /// <summary>
+    /// The list of a <c>client_certificate_type</c> or <c>server_certificate_type</c> extension
+    /// (RFC 7250 §3): <c>CertificateType certificate_types&lt;1..2^8-1&gt;</c> and nothing after it.
+    /// An empty list or one that does not fill the extension is malformed.
+    /// </summary>
+    private static bool TryParseCertificateTypes(ReadOnlySpan<byte> data, out byte[]? types)
+    {
+        types = null;
+        var r = new BufferReader(data);
+        if (!r.TryReadByte(out byte listLength) || listLength == 0 || listLength != r.Remaining ||
+            !r.TryReadBytes(listLength, out ReadOnlySpan<byte> list))
+            return false;
+        types = list.ToArray();
         return true;
     }
 

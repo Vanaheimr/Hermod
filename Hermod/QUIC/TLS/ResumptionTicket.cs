@@ -36,6 +36,15 @@ public sealed class ResumptionTicket
     public uint MaxEarlyDataSize { get; }
     public byte[] PeerTransportParameters { get; }
 
+    /// <summary>
+    /// The key pin of the key the server showed in the handshake this ticket comes from - or, for
+    /// a ticket of a resumed handshake, the pin of the ticket before it. A key-pinned endpoint
+    /// offers a ticket only while this pin is among its pins: a resumption shows no key, and
+    /// would otherwise go on trusting one that was removed. <c>null</c> for a ticket of unknown
+    /// origin, which a key-pinned endpoint does not offer.
+    /// </summary>
+    public KeyPin? ServerKeyPin { get; }
+
     public ResumptionTicket(
         byte[] psk,
         byte[] identity,
@@ -45,8 +54,10 @@ public sealed class ResumptionTicket
         uint lifetimeSeconds,
         uint maxEarlyDataSize,
         byte[] peerTransportParameters,
-        DateTimeOffset? receivedAt = null)
+        DateTimeOffset? receivedAt = null,
+        KeyPin? serverKeyPin = null)
     {
+        ServerKeyPin = serverKeyPin;
         Psk = psk;
         Identity = identity;
         AgeAdd = ageAdd;

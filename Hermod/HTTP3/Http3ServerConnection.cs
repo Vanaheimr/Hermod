@@ -452,6 +452,16 @@ public sealed class Http3ServerConnection : IDisposable, IWebTransportHost
     public Quic.Tls.Handshake.ClientAuthenticationResult ClientAuthentication => _quic.ClientAuthentication;
 
     /// <summary>
+    /// The certificate type this server authenticates with, as negotiated (RFC 7250).
+    /// </summary>
+    public TLSCertificateType ServerCertificateType => _quic.ServerCertificateType;
+
+    /// <summary>
+    /// The certificate type the client is to authenticate with, as negotiated (RFC 7250).
+    /// </summary>
+    public TLSCertificateType ClientCertificateType => _quic.ClientCertificateType;
+
+    /// <summary>
     /// <c>true</c> once the server has sent a Retry for address validation.
     /// </summary>
     public bool SentRetry => _quic.SentRetry;

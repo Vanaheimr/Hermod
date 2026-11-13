@@ -84,6 +84,16 @@ public static class CertificateMessage
     }
 
     /// <summary>
+    /// Builds the message for a raw public key (RFC 7250 §3, RFC 8446 §4.4.2): one entry, which
+    /// holds the DER encoded SubjectPublicKeyInfo where a certificate would be, and no extensions.
+    /// An empty <paramref name="subjectPublicKeyInfo"/> is a client's "I have no key for you".
+    /// The layout is that of a certificate's entry: which of the two an entry is, the handshake
+    /// knows by the certificate type it negotiated and by nothing in the message.
+    /// </summary>
+    public static byte[] BuildRawPublicKey(ReadOnlySpan<byte> subjectPublicKeyInfo, ReadOnlySpan<byte> context = default)
+        => Build(subjectPublicKeyInfo, [], context);
+
+    /// <summary>
     /// Parses the body. An empty certificate list is <b>well-formed</b> — see
     /// <see cref="TryParseWithContext"/> if the distinction between "empty" and "malformed" matters,
     /// as it does when a server receives a client's Certificate.

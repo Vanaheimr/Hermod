@@ -122,9 +122,19 @@ public sealed record ClientAuthenticationResult(
     string? FailureReason)
 {
     /// <summary>
-    /// <c>true</c> when the client proved possession of a certificate we accepted.
+    /// The key the client proved to hold and that was accepted: the key of
+    /// <see cref="Certificate"/>, or a raw public key (RFC 7250), which comes without a
+    /// certificate. In a resumed handshake - where nothing is asked for, and
+    /// <see cref="Requested"/> is <c>false</c> - the key the client showed when its ticket was
+    /// issued, where a client's key is checked against key pins.
     /// </summary>
-    public bool IsAuthenticated => Certificate is not null;
+    public TLSPeerKey? Key { get; init; }
+
+    /// <summary>
+    /// <c>true</c> when the client proved possession of a certificate or of a raw public key we
+    /// accepted.
+    /// </summary>
+    public bool IsAuthenticated => Certificate is not null || Key is not null;
 
     /// <summary>
     /// Nothing was asked for.

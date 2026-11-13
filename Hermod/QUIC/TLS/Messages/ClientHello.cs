@@ -99,6 +99,20 @@ public sealed class ClientHelloOptions
     /// Adds (for 0-RTT, phase B) the empty early_data extension. Only meaningful with a PSK set.
     /// </summary>
     public bool OfferEarlyData { get; init; }
+
+    /// <summary>
+    /// The certificate types the client accepts from the server, by preference
+    /// (<c>server_certificate_type</c>, RFC 7250 §3). Empty: the extension is not sent, and the
+    /// server presents an X.509 certificate.
+    /// </summary>
+    public IReadOnlyList<TLSCertificateType> ServerCertificateTypes { get; init; } = [];
+
+    /// <summary>
+    /// The certificate types the client can present itself, by preference
+    /// (<c>client_certificate_type</c>, RFC 7250 §3). Empty: the extension is not sent, and the
+    /// client presents an X.509 certificate where it is asked for one.
+    /// </summary>
+    public IReadOnlyList<TLSCertificateType> ClientCertificateTypes { get; init; } = [];
 }
 
 /// <summary>
@@ -195,6 +209,10 @@ public static class ClientHello
         WriteAlpn(ref w, options.AlpnProtocols);
         TlsWriter.WriteExtension(ref w, ExtensionType.QuicTransportParameters, options.QuicTransportParameters.Span);
 
+        // RFC 7250 §4.1: sent only where there is something else to offer than the default, X.509.
+        WriteCertificateTypes(ref w, ExtensionType.ClientCertificateType, options.ClientCertificateTypes);
+        WriteCertificateTypes(ref w, ExtensionType.ServerCertificateType, options.ServerCertificateTypes);
+
         // ALWAYS send psk_key_exchange_modes: signals resumption capability so the server issues a
         // NewSessionTicket even without a current PSK offer (RFC 8446 §4.2.9).
         WritePskKeyExchangeModes(ref w);
@@ -206,6 +224,26 @@ public static class ClientHello
                 TlsWriter.WriteExtension(ref w, ExtensionType.EarlyData, ReadOnlySpan<byte>.Empty);
             WritePreSharedKey(ref w, identity, options.PskBinderLength, out binderListOffset, out binderValueOffset);
         }
+    }
+
+    /// <summary>
+    /// <c>client_certificate_type</c> or <c>server_certificate_type</c> of a ClientHello
+    /// (RFC 7250 §3): <c>CertificateType certificate_types&lt;1..2^8-1&gt;</c>, by preference.
+    /// </summary>
+    private static void WriteCertificateTypes(ref BufferWriter w, ExtensionType extension, IReadOnlyList<TLSCertificateType> types)
+    {
+        if (types.Count == 0)
+            return;
+
+        w.WriteUInt16((ushort)extension);
+        int extLen = TlsWriter.BeginVector(ref w, 2);
+        {
+            int listLen = TlsWriter.BeginVector(ref w, 1);
+            foreach (TLSCertificateType type in types)
+                w.WriteByte((byte)type);
+            TlsWriter.EndVector(ref w, listLen, 1);
+        }
+        TlsWriter.EndVector(ref w, extLen, 2);
     }
 
     private static void WritePskKeyExchangeModes(ref BufferWriter w)

@@ -81,6 +81,38 @@ public sealed class TlsClientHandshake : ITlsHandshake
     private bool _certificateRequested;
     private byte[] _certificateRequestContext = [];
 
+    // Raw public keys (RFC 7250): what this client offers in its ClientHello - the types it takes
+    // from the server, which the key pins of the endpoint say, and the types it can show itself,
+    // which its own credential says. Empty: the extension is not sent, and the type is X.509.
+    private readonly IReadOnlyList<TLSCertificateType> _offeredServerCertificateTypes;
+    private readonly IReadOnlyList<TLSCertificateType> _offeredClientCertificateTypes;
+    private bool _encryptedExtensionsSeen;
+
+    /// <summary>
+    /// The certificate type the server authenticates with, as negotiated (RFC 7250):
+    /// <see cref="TLSCertificateType.X509"/> unless the server chose a raw public key.
+    /// </summary>
+    public TLSCertificateType ServerCertificateType { get; private set; } = TLSCertificateType.X509;
+
+    /// <summary>
+    /// The certificate type this client authenticates with where it is asked to, as negotiated
+    /// (RFC 7250): <see cref="TLSCertificateType.X509"/> unless the server chose a raw public key.
+    /// </summary>
+    public TLSCertificateType ClientCertificateType { get; private set; } = TLSCertificateType.X509;
+
+    /// <summary>
+    /// The key the server proved to hold, validated: the key of its certificate, or its raw public
+    /// key. Only available after CertificateVerify, and <c>null</c> for a resumed handshake, in
+    /// which the server shows no key - see <see cref="ServerKeyPin"/>.
+    /// </summary>
+    public TLSPeerKey? ServerKey { get; private set; }
+
+    /// <summary>
+    /// The key pin of the server's key: of <see cref="ServerKey"/>, or for a resumed handshake of
+    /// the key the server showed when the ticket was issued.
+    /// </summary>
+    public KeyPin? ServerKeyPin => ServerKey?.KeyPin ?? (_pskAccepted ? _resumptionTicket?.ServerKeyPin : null);
+
     /// <summary>
     /// <c>true</c> when the server asked us to authenticate (RFC 8446 §4.3.2).
     /// </summary>
@@ -139,9 +171,36 @@ public sealed class TlsClientHandshake : ITlsHandshake
         _supportedGroups = supportedGroups ?? [NamedGroup.X25519, NamedGroup.Secp256r1, NamedGroup.Secp384r1];
         _cipherSuites = cipherSuites ?? [CipherSuite.Aes128GcmSha256, CipherSuite.Aes256GcmSha384];
         _validation = certificateValidation ?? CertificateValidationOptions.Default;
-        _resumptionTicket = resumptionTicket;
         _timeProvider = timeProvider ?? TimeProvider.System;
+
+        // A ticket remembers the key pin it was issued under. At a key-pinned endpoint a ticket of
+        // a server whose pin is no longer among the pins - or of one that was never checked
+        // against any - is not offered: the handshake is a full one, and the key is checked.
+        _resumptionTicket = _validation.KeyPins is { } pins &&
+                            resumptionTicket is not null &&
+                            (resumptionTicket.ServerKeyPin is not { } ticketPin || !pins.Contains(ticketPin))
+                                ? null
+                                : resumptionTicket;
+
+        // server_certificate_type: raw public keys are taken from a key-pinned server alone.
+        _offeredServerCertificateTypes = OfferedTypes(_validation.KeyPins?.RawPublicKeys);
+
+        // client_certificate_type: what our own key may be shown as.
+        _offeredClientCertificateTypes = OfferedTypes(_clientCertificate?.RawPublicKeys);
     }
+
+    /// <summary>
+    /// The certificate types offered for a mode, by preference: none for <c>Off</c> (X.509, and no
+    /// extension), a raw public key before X.509 for <c>Prefer</c>, a raw public key alone for
+    /// <c>Require</c>.
+    /// </summary>
+    private static IReadOnlyList<TLSCertificateType> OfferedTypes(RawPublicKeyMode? mode)
+        => mode switch
+        {
+            RawPublicKeyMode.Prefer => [TLSCertificateType.RawPublicKey, TLSCertificateType.X509],
+            RawPublicKeyMode.Require => [TLSCertificateType.RawPublicKey],
+            _ => [],
+        };
 
     /// <summary>
     /// <c>true</c> when the server accepted our PSK offer (handshake via resumption instead of certificate).
@@ -275,7 +334,7 @@ public sealed class TlsClientHandshake : ITlsHandshake
                 GenerateClientFinishedAndAppKeys();
                 break;
             case HandshakeType.EncryptedExtensions:
-                ExtractTransportParameters(message.Body.Span);
+                ProcessEncryptedExtensions(message.Body.Span);
                 _transcript?.Append(message.Full.Span);
                 break;
             case HandshakeType.Certificate:
@@ -325,6 +384,8 @@ public sealed class TlsClientHandshake : ITlsHandshake
     {
         if (!CertificateMessage.TryParse(message.Body.Span, out List<byte[]> chain))
             throw new InvalidOperationException("Invalid Certificate message.");
+        // What the entries are - certificates or a raw public key - is said by the certificate
+        // type negotiated in EncryptedExtensions, which came before, and by nothing in here.
         _serverCertChain = chain;
         _transcript?.Append(message.Full.Span);
     }
@@ -355,8 +416,20 @@ public sealed class TlsClientHandshake : ITlsHandshake
 
         // The signed transcript hash extends up to and including Certificate – i.e. BEFORE appending this message.
         byte[] transcriptHash = _transcript!.CurrentHash();
-        ServerCertificate = PeerCertificateValidator.Validate(
-            _serverCertChain, scheme, signature, transcriptHash, _serverName, _validation);
+
+        if (ServerCertificateType == TLSCertificateType.RawPublicKey)
+        {
+            // RFC 7250: the one entry is the server's SubjectPublicKeyInfo. No certificate, no name.
+            ServerKey = PeerCertificateValidator.ValidateRawPublicKey(
+                _serverCertChain, scheme, signature, transcriptHash, CertificateVerify.ServerContext, _validation);
+        }
+        else
+        {
+            ServerCertificate = PeerCertificateValidator.Validate(
+                _serverCertChain, scheme, signature, transcriptHash, _serverName, _validation);
+            ServerKey = TLSPeerKey.FromCertificate(ServerCertificate);
+        }
+
         ServerCertificateValid = true;
 
         _transcript.Append(message.Full.Span);
@@ -467,6 +540,8 @@ public sealed class TlsClientHandshake : ITlsHandshake
             PskBinderLength = binderLength,
             ComputeBinder = computeBinder,
             OfferEarlyData = _earlyDataOffered,
+            ServerCertificateTypes = _offeredServerCertificateTypes,
+            ClientCertificateTypes = _offeredClientCertificateTypes,
         });
         return _currentClientHello;
     }
@@ -483,8 +558,18 @@ public sealed class TlsClientHandshake : ITlsHandshake
         return message;
     }
 
-    private void ExtractTransportParameters(ReadOnlySpan<byte> encryptedExtensionsBody)
+    /// <summary>
+    /// EncryptedExtensions: the server's transport parameters, its word on 0-RTT, and the
+    /// certificate types it chose (RFC 7250 §4.2) - which have to be among those offered.
+    /// </summary>
+    private void ProcessEncryptedExtensions(ReadOnlySpan<byte> encryptedExtensionsBody)
     {
+        // The certificate types are negotiated once. A second EncryptedExtensions could otherwise
+        // change what the entries of a Certificate already received are taken for.
+        if (_encryptedExtensionsSeen)
+            throw new TlsHandshakeException(TlsAlert.UnexpectedMessage, "A second EncryptedExtensions.");
+        _encryptedExtensionsSeen = true;
+
         var reader = new BufferReader(encryptedExtensionsBody);
         if (!reader.TryReadUInt16(out ushort extensionsLength) || extensionsLength > reader.Remaining)
             return;
@@ -498,7 +583,32 @@ public sealed class TlsClientHandshake : ITlsHandshake
                 PeerQuicTransportParameters = data.ToArray();
             else if (type == (ushort)ExtensionType.EarlyData)
                 EarlyDataAccepted = true; // server confirms 0-RTT (RFC 8446 §4.2.10)
+            else if (type == (ushort)ExtensionType.ServerCertificateType)
+                ServerCertificateType = ChosenCertificateType(data, _offeredServerCertificateTypes, "server_certificate_type");
+            else if (type == (ushort)ExtensionType.ClientCertificateType)
+                ClientCertificateType = ChosenCertificateType(data, _offeredClientCertificateTypes, "client_certificate_type");
         }
+    }
+
+    /// <summary>
+    /// The certificate type the server chose (RFC 7250 §4.2: a single <c>CertificateType</c>).
+    /// An extension that was not offered is answered with unsupported_extension (RFC 8446 §4.2), a
+    /// type that was not among those offered with illegal_parameter: without this, a server could
+    /// have a raw public key taken by a client that never asked for one.
+    /// </summary>
+    private static TLSCertificateType ChosenCertificateType(ReadOnlySpan<byte> data, IReadOnlyList<TLSCertificateType> offered, string extension)
+    {
+        if (offered.Count == 0)
+            throw new TlsHandshakeException(TlsAlert.UnsupportedExtension,
+                                            $"The server sent {extension}, which was not offered.");
+        if (data.Length != 1)
+            throw new TlsHandshakeException(TlsAlert.DecodeError, $"Invalid {extension} extension.");
+
+        var chosen = (TLSCertificateType)data[0];
+        if (!offered.Contains(chosen))
+            throw new TlsHandshakeException(TlsAlert.IllegalParameter,
+                                            $"The server chose the certificate type {data[0]} in {extension}, which was not offered.");
+        return chosen;
     }
 
     private void VerifyServerFinished(HandshakeMessage finished)
@@ -542,14 +652,27 @@ public sealed class TlsClientHandshake : ITlsHandshake
     /// </summary>
     private void SendClientAuthentication()
     {
-        byte[] certificate = CertificateMessage.Build(
-            _clientCertificate?.Der ?? ReadOnlySpan<byte>.Empty,
-            _clientCertificate?.IntermediatesDer ?? [],
-            _certificateRequestContext);
+        // Our key as it was negotiated: raw (RFC 7250), or in its certificate. A key that is shown
+        // raw alone is not shown to a server that chose X.509: the answer is the empty Certificate
+        // then, as without a key.
+        ServerCertificate? credential =
+            _clientCertificate is { RawPublicKeys: RawPublicKeyMode.Require } &&
+            ClientCertificateType != TLSCertificateType.RawPublicKey
+                ? null
+                : _clientCertificate;
+
+        byte[] certificate = ClientCertificateType == TLSCertificateType.RawPublicKey
+            ? CertificateMessage.BuildRawPublicKey(
+                  credential is null ? ReadOnlySpan<byte>.Empty : credential.SubjectPublicKeyInfo,
+                  _certificateRequestContext)
+            : CertificateMessage.Build(
+                  credential is null ? ReadOnlySpan<byte>.Empty : credential.Der,
+                  credential?.IntermediatesDer ?? [],
+                  _certificateRequestContext);
         _outgoing.Enqueue((EncryptionLevel.Handshake, certificate));
         _transcript!.Append(certificate);
 
-        if (_clientCertificate is not { } credential)
+        if (credential is null)
             return;
 
         // Signed over the transcript INCLUDING our Certificate, with the client context string —
@@ -590,7 +713,8 @@ public sealed class TlsClientHandshake : ITlsHandshake
         _newSessionTickets.Add(new ResumptionTicket(
             psk, info.Ticket, info.AgeAdd, suite, _serverName,
             info.LifetimeSeconds, info.MaxEarlyDataSize, PeerQuicTransportParameters ?? [],
-            receivedAt: _timeProvider.GetUtcNow()));
+            receivedAt: _timeProvider.GetUtcNow(),
+            serverKeyPin: ServerKeyPin));
     }
 
     public void Dispose()

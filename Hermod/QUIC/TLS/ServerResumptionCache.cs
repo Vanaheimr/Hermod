@@ -32,7 +32,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
 /// Whether the ticket age claimed by the client is plausible (RFC 8446 §8.3 freshness check).
 /// <c>false</c> ⇒ resumption may still proceed, but 0-RTT MUST be rejected.
 /// </param>
-public sealed record ResumptionLookup(byte[] Psk, CipherSuite CipherSuite, bool EarlyDataFresh);
+public sealed record ResumptionLookup(byte[] Psk, CipherSuite CipherSuite, bool EarlyDataFresh)
+{
+    /// <summary>
+    /// The key the client showed in the handshake the ticket was issued in, where it was checked
+    /// against key pins; else <c>null</c>.
+    /// </summary>
+    public TLSPeerKey? ClientKey { get; init; }
+}
 
 /// <summary>
 /// Server-side ticket store for session resumption (RFC 8446 §4.6.1) — and with it the anti-replay
@@ -73,7 +80,8 @@ public sealed class ServerResumptionCache
         byte[] TransportParameters,
         uint AgeAdd,
         DateTimeOffset IssuedAt,
-        uint LifetimeSeconds);
+        uint LifetimeSeconds,
+        TLSPeerKey? ClientKey);
 
     // Insertion-ordered ⇒ the oldest entry is the first one, which makes eviction O(1) amortised.
     private readonly Dictionary<string, Entry> _entries = [];
@@ -109,12 +117,17 @@ public sealed class ServerResumptionCache
     /// <paramref name="ageAdd"/> and <paramref name="lifetimeSeconds"/> are the values that go into
     /// the NewSessionTicket — they are needed later for the freshness check and expiry.
     /// </summary>
+    /// <param name="clientKey">
+    /// The key the client showed in this handshake, where it was checked against key pins: a
+    /// resumption shows no key, and the server takes the ticket only while this key's pin is
+    /// still among its pins.
+    /// </param>
     public byte[] Issue(byte[] psk, CipherSuite cipherSuite, uint maxEarlyDataSize, byte[] transportParameters,
-                        uint ageAdd, uint lifetimeSeconds)
+                        uint ageAdd, uint lifetimeSeconds, TLSPeerKey? clientKey = null)
     {
         byte[] identity = RandomNumberGenerator.GetBytes(32);
         var entry = new Entry(psk, cipherSuite, maxEarlyDataSize, transportParameters,
-                              ageAdd, _timeProvider.GetUtcNow(), lifetimeSeconds);
+                              ageAdd, _timeProvider.GetUtcNow(), lifetimeSeconds, clientKey);
 
         lock (_lock)
         {
@@ -154,7 +167,8 @@ public sealed class ServerResumptionCache
             }
 
             lookup = new ResumptionLookup(entry.Psk, entry.CipherSuite,
-                                          IsFresh(entry, obfuscatedTicketAge, now));
+                                          IsFresh(entry, obfuscatedTicketAge, now))
+                     { ClientKey = entry.ClientKey };
             return true;
         }
     }
