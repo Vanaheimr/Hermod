@@ -77,6 +77,9 @@ Implemented (both server and client, unless noted):
   account with `AddOrUpdateHTTPBasicAuth` or `ClientTOTPConfig`, or explicitly
   set `RequireAuthentication: false` for public endpoints. Optional handshake
   validators can impose additional restrictions but do not replace this check.
+  A client that is refused is told what it may come with: `WWW-Authenticate`
+  names `Basic` where the server has passwords, `TOTP` where it has one-time
+  passwords, and both, in one field, where it has both.
   A one-time password in the `TOTP` request header, which names no login, is
   verified only where the server says who the connection is known as already:
   `TOTPLoginOfAConnection`, from the path or the client certificate, say. It
