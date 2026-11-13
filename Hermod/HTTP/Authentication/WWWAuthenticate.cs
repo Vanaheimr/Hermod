@@ -39,6 +39,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private        readonly Dictionary<String, String>  parameters;
 
+        private        readonly List<WWWAuthenticate>       further     = [];
+
         #endregion
 
         #region Properties
@@ -47,6 +49,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The WWW-Authenticate method.
         /// </summary>
         public String  Method    { get; }
+
+        /// <summary>
+        /// This challenge and the ones that follow it in the same header
+        /// field: a server that takes more than one scheme offers them all
+        /// (RFC 9110, section 11.6.1), and a client answers the one it can.
+        /// </summary>
+        public IEnumerable<WWWAuthenticate> Challenges
+            => new[] { this }.Concat(further);
 
         #endregion
 
@@ -129,21 +139,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var keyValuePairs = Text[(firstSpaceIndex + 1)..].Split(splitter1,
                                                                                StringSplitOptions.RemoveEmptyEntries);
 
-                    foreach (var keyValuePair in keyValuePairs)
-                    {
-
-                        var keyValue = keyValuePair.Split(splitter2,
-                                                          StringSplitOptions.RemoveEmptyEntries);
-
-                        if (keyValue.Length == 2)
-                            parameters[keyValue[0].Trim()] = keyValue[1].Trim().Trim('"');
-
-                    }
-
                     WWWAuthenticate = new(
                                           method,
                                           parameters
                                       );
+
+                    foreach (var keyValuePair in keyValuePairs)
+                    {
+
+                        var keyValue = keyValuePair.Split(splitter2,
+                                                          2,
+                                                          StringSplitOptions.RemoveEmptyEntries);
+
+                        var key      = keyValue[0].Trim();
+
+                        // Another challenge begins where a scheme stands before
+                        // a parameter - "TOTP realm=..." - or by itself.
+                        var space    = key.IndexOf(' ');
+
+                        if (space > 0 || (keyValue.Length == 1 && key.Length > 0))
+                        {
+
+                            parameters = [];
+
+                            WWWAuthenticate.further.Add(new (space > 0 ? key[..space] : key, parameters));
+
+                            key        = space > 0 ? key[(space + 1)..].Trim() : "";
+
+                        }
+
+                        if (keyValue.Length == 2 && key.Length > 0)
+                            parameters[key] = keyValue[1].Trim().Trim('"');
+
+                    }
 
                     return true;
 
@@ -199,13 +227,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
+        #region (static) TOTP(Realm = null)
+
+        /// <summary>
+        /// TOTP realm="OCPP": the challenge of the HTTP TOTP authentication,
+        /// a time-based one-time password in "Authorization: TOTP".
+        /// </summary>
+        /// <param name="Realm">The optional realm.</param>
+        public static WWWAuthenticate TOTP(String? Realm = null)
+
+            => new ("TOTP",
+                    Realm is not null
+                        ? new Dictionary<String, String> { { "realm", Realm } }
+                        : []);
+
+        #endregion
+
+        #region And(Another)
+
+        /// <summary>
+        /// This challenge, followed by another one in the same header field.
+        /// </summary>
+        /// <param name="Another">A challenge of another scheme.</param>
+        public WWWAuthenticate And(WWWAuthenticate Another)
+        {
+
+            var both = new WWWAuthenticate(Method, parameters);
+
+            both.further.AddRange(further);
+            both.further.AddRange(Another.Challenges.Select(challenge => new WWWAuthenticate(challenge.Method, challenge.parameters)));
+
+            return both;
+
+        }
+
+        #endregion
+
+
         #region (override) ToString()
 
         /// <summary>
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => $"{Method} {parameters.Select(parameter => $"{parameter.Key}=\"{parameter.Value}\"").AggregateCSV()}";
+
+            => Challenges.Select(challenge => challenge.parameters.Count > 0
+                                                  ? $"{challenge.Method} {challenge.parameters.Select(parameter => $"{parameter.Key}=\"{parameter.Value}\"").AggregateCSV()}"
+                                                  : challenge.Method).
+                          AggregateCSV();
 
         #endregion
 

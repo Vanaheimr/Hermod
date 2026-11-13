@@ -965,6 +965,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
+        #region AClientThatIsRefusedIsToldWhatItMayComeWith(Version)
+
+        /// <summary>
+        /// The 401 says which schemes the server takes: "TOTP" where it has
+        /// one-time passwords, "Basic" beside it where it has passwords too,
+        /// in one header field that reads back as both.
+        /// </summary>
+        [Test]
+        public async Task AClientThatIsRefusedIsToldWhatItMayComeWith([Values(WebSocketHTTPVersion.HTTP1_1,
+                                                                              WebSocketHTTPVersion.HTTP2,
+                                                                              WebSocketHTTPVersion.HTTP3)] WebSocketHTTPVersion Version)
+        {
+
+            await TheServerKnowsItsStationBy(Raw());
+
+            webSocketServer!.AcceptHTTP2 = true;
+
+            var (_, withTokensOnly)  = await ClientOver(Version).Connect();
+
+            webSocketServer.AddOrUpdateHTTPBasicAuth("somebody", "a-password-of-some-length");
+
+            var (_, withBoth)        = await ClientOver(Version).Connect();
+
+            var both                 = withBoth.WWWAuthenticate;
+
+            Assert.Multiple(() => {
+
+                Assert.That(withTokensOnly.HTTPStatusCode,                Is.EqualTo(HTTPStatusCode.Unauthorized));
+                Assert.That(withTokensOnly.WWWAuthenticate?.ToString(),   Is.EqualTo("TOTP realm=\"WebSocket\""));
+
+                Assert.That(withBoth.HTTPStatusCode,                      Is.EqualTo(HTTPStatusCode.Unauthorized));
+                Assert.That(both?.ToString(),                             Is.EqualTo("Basic realm=\"WebSocket\", charset=\"UTF-8\", TOTP realm=\"WebSocket\""));
+                Assert.That(both?.Challenges.Select(one => one.Method),   Is.EqualTo(new[] { "Basic", "TOTP" }));
+                Assert.That(both?.GetParameter("realm"),                  Is.EqualTo("WebSocket"));
+                Assert.That(both?.GetParameter("charset"),                Is.EqualTo("UTF-8"));
+                Assert.That(both?.Challenges.Last().GetParameter("realm"),    Is.EqualTo("WebSocket"));
+                Assert.That(both?.Challenges.Last().GetParameter("charset"),  Is.Null,  "a parameter of one challenge was read as the other's");
+
+            });
+
+        }
+
+        #endregion
+
         #region APasswordInTheTOTPHeaderLetsInWhoTheConnectionIsKnownAs(Version)
 
         /// <summary>

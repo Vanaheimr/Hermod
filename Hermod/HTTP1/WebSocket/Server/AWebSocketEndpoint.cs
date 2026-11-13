@@ -884,6 +884,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #region (protected) ChallengeFor(Realm)
+
+        /// <summary>
+        /// What a client that was refused is told it may come with: "Basic"
+        /// where this server has passwords, "TOTP" where it has one-time
+        /// passwords, both where it has both - and null where it has
+        /// neither, and whoever lets its clients in says so itself.
+        /// </summary>
+        /// <param name="Realm">The realm of the challenges.</param>
+        protected WWWAuthenticate? ChallengeFor(String Realm)
+        {
+
+            var basic  = ClientLogins.    IsEmpty ? null : WWWAuthenticate.Basic(Realm);
+            var totp   = ClientTOTPConfig.IsEmpty ? null : WWWAuthenticate.TOTP (Realm);
+
+            return basic is not null && totp is not null
+                       ? basic.And(totp)
+                       : basic ?? totp;
+
+        }
+
+        #endregion
+
         #region (protected virtual) AuthenticateAsync(Connection, Request, CancellationToken)
 
         /// <summary>
@@ -1876,8 +1899,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                             : "WebSocket authentication required.").ToUTF8Bytes()
                                                                                   };
 
-                                                                    if (!authenticationFailed && !ClientLogins.IsEmpty)
-                                                                        refusal.WWWAuthenticate = WWWAuthenticate.Basic("WebSocket");
+                                                                    if (!authenticationFailed && ChallengeFor("WebSocket") is WWWAuthenticate challenge)
+                                                                        refusal.WWWAuthenticate = challenge;
 
                                                                     httpResponse = refusal.AsImmutable;
 
