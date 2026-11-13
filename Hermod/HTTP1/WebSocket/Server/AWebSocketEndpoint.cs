@@ -892,11 +892,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// passwords, both where it has both - and null where it has
         /// neither, and whoever lets its clients in says so itself.
         /// </summary>
+        /// <remarks>
+        /// "Basic" is named as well where a login has a one-time password
+        /// that is taken unbound: it may come as the password of HTTP Basic
+        /// Authentication (BasicCredentialsAreKnown), and a client that
+        /// knows nothing else is told so.
+        /// </remarks>
         /// <param name="Realm">The realm of the challenges.</param>
         protected WWWAuthenticate? ChallengeFor(String Realm)
         {
 
-            var basic  = ClientLogins.    IsEmpty ? null : WWWAuthenticate.Basic(Realm);
+            var basic  = ClientLogins.IsEmpty &&
+                         !ClientTOTPConfig.Values.Any(config => config.UseTLSExporterMaterial != true)
+                             ? null
+                             : WWWAuthenticate.Basic(Realm);
             var totp   = ClientTOTPConfig.IsEmpty ? null : WWWAuthenticate.TOTP (Realm);
 
             return basic is not null && totp is not null
@@ -918,7 +927,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// 401 Unauthorized.
         /// </summary>
         /// <remarks>
-        /// What this knows by default: HTTP Basic credentials in ClientLogins, and a
+        /// What this knows by default: HTTP Basic credentials in ClientLogins - or
+        /// with a raw TOTP of ClientTOTPConfig as their password, see
+        /// BasicCredentialsAreKnown - and a
         /// TOTP in ClientTOTPConfig - raw, or bound to the TLS session of the
         /// connection where that exports keying material, which is a WebSocket
         /// over HTTP/3 (TOTPIsTheOneOf). The TOTP is taken from "Authorization: TOTP",
@@ -940,8 +951,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             if (Request.Authorization is HTTPBasicAuthentication basicAuthentication &&
-                ClientLogins.TryGetValue(basicAuthentication.Username, out var storedPassword) &&
-                storedPassword.Verify(basicAuthentication.Password))
+                BasicCredentialsAreKnown(basicAuthentication))
             {
                 return Task.FromResult<String?>(basicAuthentication.Username);
             }
@@ -967,6 +977,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
 
             return Task.FromResult<String?>(null);
+
+        }
+
+        #endregion
+
+        #region (protected)         BasicCredentialsAreKnown(BasicAuthentication)
+
+        /// <summary>
+        /// Whether the credentials of an HTTP Basic Authentication are ones
+        /// this server knows: the password of the login in ClientLogins, or
+        /// a one-time password of the login in ClientTOTPConfig, sent in the
+        /// place of a password.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The second is what lets in a client that knows nothing but HTTP
+        /// Basic Authentication and can be given a password that changes:
+        /// the previous, the current and the next one-time password of its
+        /// login are taken, as they are from "Authorization: TOTP".
+        /// </para>
+        /// <para>
+        /// HTTP Basic Authentication has no place to say that a password is
+        /// bound to the TLS session, so what comes this way is a raw one: a
+        /// login whose configuration asks for the binding is not let in by
+        /// it, as it is not let in by a raw password anywhere else.
+        /// </para>
+        /// </remarks>
+        /// <param name="BasicAuthentication">The credentials of an HTTP Basic Authentication.</param>
+        protected Boolean BasicCredentialsAreKnown(HTTPBasicAuthentication BasicAuthentication)
+        {
+
+            if (ClientLogins.TryGetValue(BasicAuthentication.Username, out var storedPassword) &&
+                storedPassword.Verify(BasicAuthentication.Password))
+            {
+                return true;
+            }
+
+            return ClientTOTPConfig.TryGetValue(BasicAuthentication.Username, out var config) &&
+                   TOTPIsTheOneOf(config, BasicAuthentication.Password, TOTPHTTPHeaderType.RAW, null);
 
         }
 

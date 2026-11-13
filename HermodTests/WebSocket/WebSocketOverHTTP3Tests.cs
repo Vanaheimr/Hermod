@@ -1126,13 +1126,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// one-time passwords, "Basic" beside it where it has passwords too,
         /// in one header field that reads back as both.
         /// </summary>
+        /// <remarks>
+        /// The one-time passwords of this server are bound to the TLS
+        /// session: raw ones may come as the password of HTTP Basic
+        /// Authentication, and then "Basic" is named for them already.
+        /// </remarks>
         [Test]
         public async Task AClientThatIsRefusedIsToldWhatItMayComeWith([Values(WebSocketHTTPVersion.HTTP1_1,
                                                                               WebSocketHTTPVersion.HTTP2,
                                                                               WebSocketHTTPVersion.HTTP3)] WebSocketHTTPVersion Version)
         {
 
-            await TheServerKnowsItsStationBy(Raw());
+            await TheServerKnowsItsStationBy(Bound());
 
             webSocketServer!.AcceptHTTP2 = true;
 

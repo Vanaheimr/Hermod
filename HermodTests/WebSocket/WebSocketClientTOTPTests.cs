@@ -380,6 +380,159 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         #endregion
 
 
+        #region AOneTimePasswordAsABasicPasswordIsLetIn()
+
+        /// <summary>
+        /// A client that knows nothing but HTTP Basic Authentication, with a
+        /// one-time password of its login in the place of the password: let
+        /// in under its login - with the previous, the current and the next
+        /// one, and with none further.
+        /// </summary>
+        [Test]
+        public async Task AOneTimePasswordAsABasicPasswordIsLetIn()
+        {
+
+            server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            var validity = TimeSpan.FromSeconds(30);
+
+            server.ClientTOTPConfig["station"] = Raw(validity);
+
+            var logins = AcceptedLogins(server);
+
+            async Task<HTTPResponse> ComesWith(String Login, String Password)
+            {
+
+                await using var basicClient = new WebSocketClient(
+                                                  URL.Parse($"ws://127.0.0.1:{server.IPPort}"),
+                                                  HTTPAuthentication: HTTPBasicAuthentication.Create(Login, Password)
+                                              );
+
+                var (_, response) = await basicClient.Connect();
+
+                return response;
+
+            }
+
+            // Of the middle of a slot, so that none of the three is left behind
+            // by the time the server looks at it.
+            while (true)
+            {
+                var (_, _, _, remaining, _) = TOTPGenerator.GenerateTOTPs(Secret, validity);
+                if (remaining > TimeSpan.FromSeconds(5))
+                    break;
+                await Task.Delay(500);
+            }
+
+            var now             = Timestamp.Now;
+            var (previous, current, next, _, _) = TOTPGenerator.GenerateTOTPs(Secret, validity, TOTPTimestamp: now);
+            var twoSlotsAgo     = TOTPGenerator.GenerateTOTPs(Secret, validity, TOTPTimestamp: now - 2 * validity).Current;
+            var inTwoSlots      = TOTPGenerator.GenerateTOTPs(Secret, validity, TOTPTimestamp: now + 2 * validity).Current;
+
+            var withCurrent     = await ComesWith("station", current);
+            var withPrevious    = await ComesWith("station", previous);
+            var withNext        = await ComesWith("station", next);
+            var tooOld          = await ComesWith("station", twoSlotsAgo);
+            var tooEarly        = await ComesWith("station", inTwoSlots);
+            var wrong           = await ComesWith("station", "not-a-one-time-password");
+            var somebodyElse    = await ComesWith("another", current);
+
+            Assert.Multiple(() => {
+
+                Assert.That(withCurrent. HTTPStatusCode.Code, Is.EqualTo(101), "The current one-time password as a Basic password was not let in.");
+                Assert.That(withPrevious.HTTPStatusCode.Code, Is.EqualTo(101), "The previous one-time password as a Basic password was not let in.");
+                Assert.That(withNext.    HTTPStatusCode.Code, Is.EqualTo(101), "The next one-time password as a Basic password was not let in.");
+
+                Assert.That(tooOld.      HTTPStatusCode.Code, Is.EqualTo(401), "A one-time password of two slots ago was let in.");
+                Assert.That(tooEarly.    HTTPStatusCode.Code, Is.EqualTo(401), "A one-time password of two slots ahead was let in.");
+                Assert.That(wrong.       HTTPStatusCode.Code, Is.EqualTo(401), "A wrong password was let in.");
+                Assert.That(somebodyElse.HTTPStatusCode.Code, Is.EqualTo(401), "A login the server does not know was let in.");
+
+                Assert.That(logins, Is.EqualTo(new String?[] { "station", "station", "station" }),
+                            "The server did not take the client for the login it named.");
+
+                // A client that knows nothing but Basic is told that it may come with it.
+                Assert.That(wrong.WWWAuthenticate?.Challenges.Select(one => one.Method), Is.EqualTo(new[] { "Basic", "TOTP" }),
+                            "The refusal does not name Basic beside TOTP.");
+
+            });
+
+        }
+
+        #endregion
+
+        #region ABasicPasswordIsNeverAOneTimePasswordBoundToTLS()
+
+        /// <summary>
+        /// HTTP Basic Authentication cannot say that its password is bound
+        /// to the TLS session: a login whose configuration asks for the
+        /// binding is not let in by a raw one-time password this way either,
+        /// and is not told that it might.
+        /// </summary>
+        [Test]
+        public async Task ABasicPasswordIsNeverAOneTimePasswordBoundToTLS()
+        {
+
+            server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            server.ClientTOTPConfig["station"] = BoundToTLS;
+
+            client = new WebSocketClient(
+                         URL.Parse($"ws://127.0.0.1:{server.IPPort}"),
+                         HTTPAuthentication: HTTPBasicAuthentication.Create("station", TOTPGenerator.GenerateTOTPs(Secret).Current)
+                     );
+
+            var (_, response) = await client.Connect();
+
+            Assert.Multiple(() => {
+
+                Assert.That(response.HTTPStatusCode.Code, Is.EqualTo(401),
+                            "A raw one-time password as a Basic password let in a login that asks for the binding.");
+
+                Assert.That(response.WWWAuthenticate?.Challenges.Select(one => one.Method), Is.EqualTo(new[] { "TOTP" }),
+                            "The refusal names Basic, which this server takes from nobody.");
+
+            });
+
+        }
+
+        #endregion
+
+        #region ALoginWithAPasswordAndAOneTimePasswordIsLetInByEither()
+
+        /// <summary>
+        /// A login in transition has both: its password still lets it in,
+        /// and so does its one-time password in the place of it.
+        /// </summary>
+        [Test]
+        public async Task ALoginWithAPasswordAndAOneTimePasswordIsLetInByEither()
+        {
+
+            server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
+            server.AddOrUpdateHTTPBasicAuth("station", "a-password-of-some-length");
+            server.ClientTOTPConfig["station"] = Raw();
+
+            await using var withPassword = new WebSocketClient(
+                                               URL.Parse($"ws://127.0.0.1:{server.IPPort}"),
+                                               HTTPAuthentication: HTTPBasicAuthentication.Create("station", "a-password-of-some-length")
+                                           );
+
+            await using var withTOTP     = new WebSocketClient(
+                                               URL.Parse($"ws://127.0.0.1:{server.IPPort}"),
+                                               HTTPAuthentication: HTTPBasicAuthentication.Create("station", TOTPGenerator.GenerateTOTPs(Secret).Current)
+                                           );
+
+            var (_, byPassword) = await withPassword.Connect();
+            var (_, byTOTP)     = await withTOTP.    Connect();
+
+            Assert.Multiple(() => {
+                Assert.That(byPassword.HTTPStatusCode.Code, Is.EqualTo(101), "The password of the login no longer lets it in.");
+                Assert.That(byTOTP.    HTTPStatusCode.Code, Is.EqualTo(101), "The one-time password of the login as its Basic password was not let in.");
+            });
+
+        }
+
+        #endregion
+
+
         #region AnHTTPClientRefusesATOTPBoundToTLS()
 
         /// <summary>
