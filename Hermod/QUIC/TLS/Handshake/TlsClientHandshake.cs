@@ -270,6 +270,7 @@ public sealed class TlsClientHandshake : ITlsHandshake
                 break;
             case HandshakeType.Finished when _state == State.WaitServerFinished:
                 VerifyServerFinished(message);
+                RequireAuthenticatedServer();
                 _transcript!.Append(message.Full.Span);
                 GenerateClientFinishedAndAppKeys();
                 break;
@@ -326,6 +327,23 @@ public sealed class TlsClientHandshake : ITlsHandshake
             throw new InvalidOperationException("Invalid Certificate message.");
         _serverCertChain = chain;
         _transcript?.Append(message.Full.Span);
+    }
+
+    /// <summary>
+    /// The server's Finished ends its flight, and by then it has to be authenticated: by a
+    /// Certificate and a CertificateVerify that were validated, or by the PSK of a resumption.
+    /// A server that leaves both out has proven a key exchange and nothing about who it is - with
+    /// it, no certificate would have been checked, and no key pin either.
+    /// </summary>
+    private void RequireAuthenticatedServer()
+    {
+        if (!ServerFinishedValid)
+            throw new TlsHandshakeException(TlsAlert.DecryptError, "The server's Finished does not verify.");
+
+        if (!_pskAccepted && !ServerCertificateValid)
+            throw new TlsHandshakeException(
+                TlsAlert.UnexpectedMessage,
+                "The server sent its Finished without a Certificate and a CertificateVerify: it did not authenticate.");
     }
 
     private void ProcessCertificateVerify(HandshakeMessage message)

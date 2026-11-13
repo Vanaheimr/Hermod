@@ -45,6 +45,11 @@ public enum TlsAlert : byte
     DecodeError = 50,
 
     /// <summary>
+    /// A handshake cryptographic operation failed (§6.2) — a Finished that does not verify.
+    /// </summary>
+    DecryptError = 51,
+
+    /// <summary>
     /// The server requires a client certificate and did not get an acceptable one
     /// (RFC 8446 §4.4.2.4).
     /// </summary>
