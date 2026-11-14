@@ -152,6 +152,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
         public Boolean CanEncipher
             => Id.StartsWith("rsa-");
 
+        /// <summary>
+        /// Whether a key of this kind can agree on a secret, which decides
+        /// whether "keyAgreement" may be asked for in a certificate request
+        /// made with it.
+        /// </summary>
+        /// <remarks>
+        /// Only a key on one of the NIST curves can, by ECDH. RSA enciphers
+        /// instead, and an Ed25519, an Ed448 and every post-quantum key here
+        /// signs and does nothing else.
+        /// </remarks>
+        public Boolean CanAgree
+            => Id.StartsWith("ecdsa-");
+
         #endregion
 
 

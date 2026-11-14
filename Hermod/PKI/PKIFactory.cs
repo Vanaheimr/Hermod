@@ -704,7 +704,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
 
         #endregion
 
-        #region (static) GenerateCertificateSigningRequest (KeyPair, Subject, Algorithm, ReachableAs = null, For = null)
+        #region (static) GenerateCertificateSigningRequest (KeyPair, Subject, Algorithm, ReachableAs = null, For = null, KeyUsages = null, AlsoFor = null, AdditionalExtensions = null)
 
         /// <summary>
         /// A PKCS#10 certificate signing request, signed by the key it names.
@@ -721,17 +721,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
         /// hoped for in the answer: a certificate authority handed a request
         /// without those extensions frequently issues something that is not
         /// the kind of certificate that was wanted.
+        ///
+        /// What a key may be used for is the key's to say where nothing else
+        /// is said: a signature, and enciphering where it can encipher. A
+        /// profile that wants more - non-repudiation, key agreement - says so
+        /// in <paramref name="KeyUsages"/>, which is then taken as it is; and
+        /// whatever no parameter here knows, a role under a private arc as in
+        /// SunSpec's Modbus/TLS, is brought already encoded.
         /// </remarks>
         /// <param name="KeyPair">The key the request is about, and is signed with.</param>
         /// <param name="Subject">Who is asking.</param>
         /// <param name="Algorithm">The kind of key, which decides the signature and what may be claimed for it.</param>
         /// <param name="ReachableAs">The names and addresses the certificate is to cover; a host name or an IP address, told apart here.</param>
         /// <param name="For">What the certificate is to be used for; server authentication unless something else is said.</param>
-        public static Pkcs10CertificationRequest GenerateCertificateSigningRequest(AsymmetricCipherKeyPair  KeyPair,
-                                                                                   X509Name                 Subject,
-                                                                                   KeyAlgorithm             Algorithm,
-                                                                                   IEnumerable<String>?     ReachableAs   = null,
-                                                                                   KeyPurposeID?            For           = null)
+        /// <param name="KeyUsages">The key usage bits asked for, as <see cref="KeyUsage"/> has them; what the kind of key can do where nothing is said.</param>
+        /// <param name="AlsoFor">What else the certificate is to be used for, beside <paramref name="For"/>.</param>
+        /// <param name="AdditionalExtensions">Extensions asked for that this factory knows nothing about, already encoded.</param>
+        public static Pkcs10CertificationRequest GenerateCertificateSigningRequest(AsymmetricCipherKeyPair            KeyPair,
+                                                                                   X509Name                           Subject,
+                                                                                   KeyAlgorithm                       Algorithm,
+                                                                                   IEnumerable<String>?               ReachableAs            = null,
+                                                                                   KeyPurposeID?                      For                    = null,
+                                                                                   Int32?                             KeyUsages              = null,
+                                                                                   IEnumerable<DerObjectIdentifier>?  AlsoFor                = null,
+                                                                                   IEnumerable<AdditionalExtension>?  AdditionalExtensions   = null)
         {
 
             var extensions = new X509ExtensionsGenerator();
@@ -774,17 +787,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
                 X509Extensions.KeyUsage,
                 true,
                 new KeyUsage(
-                    Algorithm.CanEncipher
-                        ? KeyUsage.DigitalSignature | KeyUsage.KeyEncipherment
-                        : KeyUsage.DigitalSignature
+                    KeyUsages ?? (Algorithm.CanEncipher
+                                      ? KeyUsage.DigitalSignature | KeyUsage.KeyEncipherment
+                                      : KeyUsage.DigitalSignature)
                 )
             );
+
+            // Each purpose once, the first one first: a purpose named twice
+            // is a sequence a strict reader may refuse.
+            var purposes = new List<DerObjectIdentifier> { For ?? KeyPurposeID.id_kp_serverAuth };
+
+            foreach (var purpose in AlsoFor ?? [])
+                if (!purposes.Any(known => known.Id == purpose.Id))
+                    purposes.Add(purpose);
 
             extensions.AddExtension(
                 X509Extensions.ExtendedKeyUsage,
                 false,
-                new ExtendedKeyUsage(For ?? KeyPurposeID.id_kp_serverAuth)
+                new ExtendedKeyUsage(purposes)
             );
+
+            #endregion
+
+            #region What only its profile knows
+
+            foreach (var extension in AdditionalExtensions ?? [])
+                extensions.AddExtension(
+                    extension.OID,
+                    extension.Critical,
+                    extension.Value
+                );
 
             #endregion
 
