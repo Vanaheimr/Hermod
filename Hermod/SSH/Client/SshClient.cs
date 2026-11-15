@@ -32,9 +32,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
     /// <summary>
     /// Options for a high-level <see cref="SshClient"/> connection: who to log in as, how to trust the host
-    /// key, and which credentials to try - keys (<see cref="Credentials"/>), answers to
-    /// <see cref="KeyboardInteractive"/> prompts and a <see cref="Password"/>, in that order and each only
-    /// where the server takes it. Several of them together also complete a multi-factor chain such as OpenSSH's
+    /// key, and which credentials to try - keys (<see cref="Credentials"/>), a one-time password bound to
+    /// the session (<see cref="SessionBoundTotp"/>), answers to <see cref="KeyboardInteractive"/> prompts
+    /// and a <see cref="Password"/>, in that order and each only where the server takes it. Several of them together also complete a multi-factor chain such as OpenSSH's
     /// <c>AuthenticationMethods publickey,password</c>.
     /// </summary>
     public sealed record SshClientOptions
@@ -84,6 +84,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// the questions of a PAM stack: one answer per prompt, in order. Null to leave the method out.
         /// </summary>
         public Func<SshKeyboardInteractiveChallenge, CancellationToken, ValueTask<String[]>>?  KeyboardInteractive  { get; init; }
+
+        /// <summary>
+        /// Works out the one-time password of <c>totp@open.charging.cloud</c> from the session identifier it
+        /// is handed - with <see cref="SshSessionBoundTotp.Generate"/>, typically - or null to leave the
+        /// method out. Asked only where the server lists the method, and at the moment the request is
+        /// sent: what it returns opens this session and no other.
+        /// </summary>
+        public Func<Byte[], String>?              SessionBoundTotp   { get; init; }
 
         /// <summary>
         /// Called when the server advertises its full host-key set via <c>hostkeys-00@openssh.com</c>
@@ -151,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// Null (the default) lets every jump host borrow these options, with the user it names, if any.
         /// It borrows the <see cref="Credentials"/>, since a key login shows a jump host nothing it could use
         /// elsewhere, but not the <see cref="Password"/> or the <see cref="KeyboardInteractive"/> answers,
-        /// which it would read in the clear; nor <see cref="HostKeysReceived"/>, which would take its keys
+        /// which it would read in the clear, nor the <see cref="SessionBoundTotp"/>, which is the server's; nor <see cref="HostKeysReceived"/>, which would take its keys
         /// for the server's. Borrowing includes <see cref="VerifyHostKey"/>, which then has to accept the
         /// jump host's key too: a check that knows only the server's key turns the jump host away.
         /// </para>
@@ -306,6 +314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                                      Username             = JumpHost.Username ?? Server.Username,
                                      Password             = null,
                                      KeyboardInteractive  = null,
+                                     SessionBoundTotp     = null,
                                      HostKeysReceived     = null
                                  };
 
@@ -372,7 +381,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                                                                                  Options.Credentials,
                                                                                  Options.Password,
                                                                                  Options.KeyboardInteractive,
-                                                                                 CancellationToken: CancellationToken).ConfigureAwait(false);
+                                                                                 CancellationToken: CancellationToken,
+                                                                                 SessionBoundTotp:  Options.SessionBoundTotp).ConfigureAwait(false);
             }
             catch
             {

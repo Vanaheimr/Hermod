@@ -120,6 +120,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The keyboard-interactive factor for the user (e.g. a TOTP prompt), or null. Default: none.
         /// </summary>
+        /// <summary>
+        /// Whether the given one-time password authenticates the user in the session with the given
+        /// identifier (<c>totp@open.charging.cloud</c>, <see cref="SshSessionBoundTotp"/>). Default: no.
+        /// </summary>
+        /// <param name="Username">The login name.</param>
+        /// <param name="Totp">The one-time password as it was sent.</param>
+        /// <param name="SessionId">The session identifier it has to be bound to: the exchange hash of the first key exchange (RFC 4253 §7.2).</param>
+        /// <param name="Client">The address of the client, or null where it can not be told.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        ValueTask<Boolean> AuthorizeSessionBoundTotpAsync(String                 Username,
+                                                          String                 Totp,
+                                                          ReadOnlyMemory<Byte>   SessionId,
+                                                          System.Net.IPAddress?  Client,
+                                                          CancellationToken      CancellationToken = default)
+            => ValueTask.FromResult(false);
+
         ISshKeyboardInteractiveFactor? GetKeyboardInteractive(String Username)
             => null;
 

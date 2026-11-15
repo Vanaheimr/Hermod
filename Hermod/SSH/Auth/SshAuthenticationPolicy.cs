@@ -31,6 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private Func<SshPublicKeyAuthRequest, CancellationToken, ValueTask<Boolean>>?  publicKey;
         private Func<String, String, CancellationToken, ValueTask<Boolean>>?           password;
         private Func<String, ISshKeyboardInteractiveFactor?>?                          keyboardInteractive;
+        private Func<String, String, ReadOnlyMemory<Byte>, CancellationToken, ValueTask<Boolean>>?  sessionBoundTotp;
         private Func<String, IReadOnlyList<String>>?                                   requiredMethods;
 
         #endregion
@@ -47,6 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 var methods = new List<String>();
                 if (publicKey           is not null) methods.Add(UserAuthentication.PublicKeyMethod);
                 if (password            is not null) methods.Add(UserAuthentication.PasswordMethod);
+                if (sessionBoundTotp    is not null) methods.Add(UserAuthentication.SessionBoundTotpMethod);
                 if (keyboardInteractive is not null) methods.Add(UserAuthentication.KeyboardInteractiveMethod);
                 return methods;
             }
@@ -130,6 +132,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
+        #region WithSessionBoundTotp
+
+        /// <summary>
+        /// Enable <c>totp@open.charging.cloud</c>: a one-time password bound to the session, checked by the
+        /// callback against the login name, the password as sent and the session identifier - with
+        /// <see cref="SshSessionBoundTotp.Verify"/>, typically.
+        /// </summary>
+        public SshAuthenticationPolicy WithSessionBoundTotp(Func<String, String, ReadOnlyMemory<Byte>, CancellationToken, ValueTask<Boolean>> CheckTotp)
+        {
+            sessionBoundTotp = CheckTotp;
+            return this;
+        }
+
+        #endregion
+
         #region WithKeyboardInteractive / WithSecondFactor
 
         /// <summary>
@@ -167,6 +184,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         public ValueTask<Boolean> AuthorizePasswordAsync(String Username, String Password, CancellationToken CancellationToken = default)
             => password?.Invoke(Username, Password, CancellationToken) ?? ValueTask.FromResult(false);
+
+        public ValueTask<Boolean> AuthorizeSessionBoundTotpAsync(String Username, String Totp, ReadOnlyMemory<Byte> SessionId, System.Net.IPAddress? Client, CancellationToken CancellationToken = default)
+            => sessionBoundTotp?.Invoke(Username, Totp, SessionId, CancellationToken) ?? ValueTask.FromResult(false);
 
         public ISshKeyboardInteractiveFactor? GetKeyboardInteractive(String Username)
             => keyboardInteractive?.Invoke(Username);

@@ -60,6 +60,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public const String KeyboardInteractiveMethod = "keyboard-interactive";
 
         /// <summary>
+        /// The <c>totp@open.charging.cloud</c> method: a time-based one-time password bound to the session
+        /// identifier, so that one read on the way - or by a server that is not the one meant - opens no
+        /// other session. See <see cref="SshSessionBoundTotp"/>.
+        /// </summary>
+        public const String SessionBoundTotpMethod = "totp@open.charging.cloud";
+
+        /// <summary>
         /// The <c>none</c> method — used only to probe which methods the server will accept.
         /// </summary>
         public const String NoneMethod          = "none";
@@ -122,6 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 var (succeeded, isQueryOnly) = request.Method switch {
                     PublicKeyMethod            => await EvaluatePublicKeyAsync(Transport, Authenticator, request, CancellationToken).ConfigureAwait(false),
                     PasswordMethod             => (await Authenticator.AuthorizePasswordAsync(request.Username, request.Password, Client, CancellationToken).ConfigureAwait(false), false),
+                    SessionBoundTotpMethod     => (await Authenticator.AuthorizeSessionBoundTotpAsync(request.Username, request.Password, Transport.SessionId, Client, CancellationToken).ConfigureAwait(false), false),
                     KeyboardInteractiveMethod  => (await EvaluateKeyboardInteractiveAsync(Transport, Authenticator, request.Username, CancellationToken).ConfigureAwait(false), false),
                     _                          => (false, false)
                 };
@@ -309,9 +317,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #region ClientAuthenticateAsync(Transport, Username, Keys?, Password?, KeyboardInteractive?, …)
 
         /// <summary>
-        /// Drive client authentication across methods: public keys first (query-then-sign), then
+        /// Drive client authentication across methods: public keys first (query-then-sign), then a
+        /// one-time password bound to the session (<see cref="SessionBoundTotpMethod"/>), then
         /// keyboard-interactive, then the password - each only while the server still lists the method
-        /// among those that can continue (RFC 4252 §5.1).
+        /// among those that can continue (RFC 4252 §5.1). What cannot be replayed goes before what can.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -333,7 +342,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                                        String?                                                                       Password             = null,
                                                                        Func<SshKeyboardInteractiveChallenge, CancellationToken, ValueTask<String[]>>?  KeyboardInteractive  = null,
                                                                        Action<String, String>?                                                       BannerCallback       = null,
-                                                                       CancellationToken                                                             CancellationToken     = default)
+                                                                       CancellationToken                                                             CancellationToken     = default,
+                                                                       Func<Byte[], String>?                                                         SessionBoundTotp     = null)
         {
 
             await EnsureAuthServiceAsync(Transport, BannerCallback, CancellationToken).ConfigureAwait(false);
@@ -346,6 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var keys                 = new Queue<ISshHostKey>(Keys ?? []);
             var keyboardInteractive  = KeyboardInteractive;
             var password             = Password;
+            var sessionBoundTotp     = SessionBoundTotp;
 
             while (true)
             {
@@ -354,6 +365,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                 if (keys.Count > 0 && canContinue.Contains(PublicKeyMethod))
                     attempt = await TryPublicKeyAsync(Transport, Username, keys.Dequeue(), null, BannerCallback, CancellationToken).ConfigureAwait(false);
+
+                else if (sessionBoundTotp is not null && canContinue.Contains(SessionBoundTotpMethod))
+                {
+                    // Worked out now, from the session this request is sent in.
+                    attempt              = await TrySessionBoundTotpAsync(Transport, Username, sessionBoundTotp(Transport.SessionId), BannerCallback, CancellationToken).ConfigureAwait(false);
+                    sessionBoundTotp     = null;
+                }
 
                 else if (keyboardInteractive is not null && canContinue.Contains(KeyboardInteractiveMethod))
                 {
@@ -507,6 +525,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
+        private static async ValueTask<Attempt> TrySessionBoundTotpAsync(SshTransport Transport, String Username, String Totp, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
+        {
+            await Transport.SendPacketAsync(BuildSessionBoundTotpRequest(Username, Totp), CancellationToken).ConfigureAwait(false);
+            return await ReadOutcomeAsync(Transport, BannerCallback, CancellationToken).ConfigureAwait(false);
+        }
+
         private static async ValueTask<Attempt> TryKeyboardInteractiveAsync(SshTransport Transport, String Username, Func<SshKeyboardInteractiveChallenge, CancellationToken, ValueTask<String[]>> Responder, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
         {
 
@@ -639,6 +663,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 var pw        = reader.ReadString();
                 return new AuthRequest(username, method, false, "", [], [], pw);
             }
+
+            // string totp - and nothing else: there is no password to change.
+            if (method == SessionBoundTotpMethod)
+                return new AuthRequest(username, method, false, "", [], [], reader.ReadString());
 
             return new AuthRequest(username, method, false, "", [], [], "");
 
@@ -780,6 +808,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             writer.WriteString(PasswordMethod);
             writer.WriteBoolean(false);        // not a password change
             writer.WriteString(Password);
+            return abw.WrittenSpan.ToArray();
+        }
+
+        private static Byte[] BuildSessionBoundTotpRequest(String Username, String Totp)
+        {
+            var abw     = new ArrayBufferWriter<Byte>();
+            var writer  = new SshPacketWriter(abw);
+            writer.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
+            writer.WriteString(Username);
+            writer.WriteString(ConnectionService);
+            writer.WriteString(SessionBoundTotpMethod);
+            writer.WriteString(Totp);
             return abw.WrittenSpan.ToArray();
         }
 
