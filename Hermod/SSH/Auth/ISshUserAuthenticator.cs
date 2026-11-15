@@ -118,9 +118,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             => AuthorizePasswordAsync(Username, Password, CancellationToken);
 
         /// <summary>
-        /// The keyboard-interactive factor for the user (e.g. a TOTP prompt), or null. Default: none.
-        /// </summary>
-        /// <summary>
         /// Whether the given one-time password authenticates the user in the session with the given
         /// identifier (<c>totp@open.charging.cloud</c>, <see cref="SshSessionBoundTotp"/>). Default: no.
         /// </summary>
@@ -136,8 +133,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                           CancellationToken      CancellationToken = default)
             => ValueTask.FromResult(false);
 
+        /// <summary>
+        /// The keyboard-interactive factor for the user (e.g. a TOTP prompt), or null. Default: none.
+        /// </summary>
         ISshKeyboardInteractiveFactor? GetKeyboardInteractive(String Username)
             => null;
+
+        /// <summary>
+        /// The restrictions on a session that something other than a key let in - a password, a
+        /// one-time password, a keyboard-interactive factor: what
+        /// <see cref="GetRestrictionsAsync(SshPublicKeyAuthRequest, CancellationToken)"/> is for a
+        /// key. Called only after the method has authenticated. Defaults to unrestricted.
+        /// </summary>
+        /// <param name="Username">The login name.</param>
+        /// <param name="Method">The method that authenticated: "password", "keyboard-interactive", "totp@open.charging.cloud".</param>
+        /// <param name="CancellationToken">An optional token to cancel this request.</param>
+        ValueTask<SshSessionRestrictions> GetRestrictionsAsync(String             Username,
+                                                               String             Method,
+                                                               CancellationToken  CancellationToken = default)
+            => ValueTask.FromResult(SshSessionRestrictions.None);
 
         /// <summary>
         /// The methods still required for <paramref name="Username"/> given the methods already completed —

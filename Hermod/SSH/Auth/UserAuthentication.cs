@@ -165,6 +165,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                     }
 
+                    // What a login is confined to does not depend on a key having let it in: a
+                    // password or a one-time password narrows the session as an entry does.
+                    else
+                        restrictions = restrictions.And(await Authenticator.GetRestrictionsAsync(request.Username, request.Method, CancellationToken).ConfigureAwait(false));
+
                     var remaining = Authenticator.RemainingMethods(request.Username, completedMethods);
 
                     if (remaining.Count == 0)
