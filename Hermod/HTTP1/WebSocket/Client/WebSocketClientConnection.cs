@@ -915,39 +915,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region (private) WaitForTheServerToClose(CancellationToken)
 
         /// <summary>
-        /// After the close frame: send nothing more, tell the server so, and wait
-        /// for it to close - for no longer than <see cref="CloseHandshakeTimeout"/>.
+        /// After the close frame: send nothing more, tell the server so where the
+        /// socket is this connection's own, and wait for it to close - for no
+        /// longer than <see cref="CloseHandshakeTimeout"/>.
         /// </summary>
         /// <remarks>
-        /// Only where the WebSocket is on a TCP connection of its own. Over HTTP/2
-        /// it is one stream of a connection, and over HTTP/3 one of QUIC's: there
-        /// the socket is not this connection's to half-close, and they are closed
-        /// as before.
+        /// <para>
+        /// Only a WebSocket on a TCP connection of its own half-closes it. Over
+        /// HTTP/2 it is one stream of a connection, and over HTTP/3 one of QUIC's:
+        /// there the socket is not this connection's to half-close.
+        /// </para>
+        /// <para>
+        /// But it waits all the same, as a server that was handed a stream does.
+        /// What ends a tunnel - the socket closed under it, its stream disposed -
+        /// is a reset to the server as much as on a socket of its own, and the
+        /// server loses with it what it received and had not read yet: the close
+        /// frame, and the messages before it. A local controller over HTTP/2 that
+        /// answered a signed pin set and hung up lost its answer that way, about
+        /// one time in five.
+        /// </para>
         /// </remarks>
         /// <param name="CancellationToken">An optional cancellation token to end the wait early.</param>
         private async Task WaitForTheServerToClose(CancellationToken CancellationToken)
         {
 
-            if (tcpSocket is null ||
-                CloseHandshakeTimeout <= TimeSpan.Zero ||
-                !(ReferenceEquals(httpStream, tcpStream) || httpStream is SslStream or BouncyCastleTLSStream))
-            {
+            if (CloseHandshakeTimeout <= TimeSpan.Zero)
                 return;
-            }
 
-            try
+            if (tcpSocket is not null &&
+                (ReferenceEquals(httpStream, tcpStream) || httpStream is SslStream or BouncyCastleTLSStream))
             {
-                // Nothing is sent after a close frame (RFC 6455, section 5.5.1).
-                // The end of the stream behind it is what a server that does not
-                // answer close frames still closes on - and while only this half
-                // is closed, what the server still sends is taken and not
-                // answered with a reset.
-                tcpSocket.Shutdown(SocketShutdown.Send);
-            }
-            catch
-            {
-                // Gone already.
-                return;
+                try
+                {
+                    // Nothing is sent after a close frame (RFC 6455, section 5.5.1).
+                    // The end of the stream behind it is what a server that does not
+                    // answer close frames still closes on - and while only this half
+                    // is closed, what the server still sends is taken and not
+                    // answered with a reset.
+                    tcpSocket.Shutdown(SocketShutdown.Send);
+                }
+                catch
+                {
+                    // Gone already.
+                    return;
+                }
             }
 
             await WebSocketCloseHandshake.WaitForThePeerToClose(
