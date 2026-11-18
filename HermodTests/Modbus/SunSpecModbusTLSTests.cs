@@ -21,6 +21,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Collections.Concurrent;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 using Microsoft.Extensions.Logging;
@@ -723,6 +724,240 @@ public class SunSpecModbusTLSTests
 
     #endregion
 
+    #region Hermod_ModbusTLSFrontend_LetsGoOfItsPortWhenItsTLSContextFails_Test()
+
+    /// <summary>
+    /// A frontend that fails while it builds its TLS contexts at start lets go
+    /// of the port it bound and says why through BoundEndPoint, rather than
+    /// leaving the port open with nobody accepting on it. A context that
+    /// cannot be built is no such failure - it is left to the handshake, with
+    /// a warning - so what fails here is the logger that is told so.
+    /// </summary>
+    [Test]
+    public async Task Hermod_ModbusTLSFrontend_LetsGoOfItsPortWhenItsTLSContextFails_Test()
+    {
+
+        using var key          = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var certificate        = new CertificateRequest("CN=meter-test-disposed", key, HashAlgorithmName.SHA256).
+                                     CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        var chain              = new ServerCertificateChain(certificate);
+
+        // A port that was free a moment ago: the frontend cannot say which it
+        // bound when it fails.
+        var probe              = new TcpListener(NetIPAddress.Loopback, 0);
+        probe.Start();
+        var port               = ((System.Net.IPEndPoint) probe.LocalEndpoint).Port;
+        probe.Stop();
+
+        using var meter        = new SunSpecMeterDevice("meter-test-disposed", SunSpecMeterMode.ImportOnly);
+        using var frontend     = new ModbusTlsFrontend(
+                                     new ModbusTlsFrontendOptions(
+                                         NetIPAddress.Loopback,
+                                         port,
+                                         null,
+                                         null,
+                                         null,
+                                         TimeSpan.FromSeconds(5),
+                                         TimeSpan.FromSeconds(5),
+                                         TimeSpan.FromSeconds(5),
+                                         ServerCertificateSelector:  serverName => chain,
+                                         // Asked once at start, after the certificate was
+                                         // logged and before its TLS context is built: the
+                                         // certificate is gone by then, and its context
+                                         // cannot be built.
+                                         ClientTrustAnchors:         () => {
+                                                                         certificate.Dispose();
+                                                                         return [];
+                                                                     }
+                                     ),
+                                     new SunSpecBackendFactory(meter),
+                                     new AuthorizationPolicy(meter),
+                                     new FailingAtWarningsLogger<ModbusTlsFrontend>()
+                                 );
+
+        var frontendTask       = frontend.RunAsync();
+
+        Assert.That(async () => await frontend.BoundEndPoint.WaitAsync(TimeSpan.FromSeconds(10)),
+                    Throws.InstanceOf<FailingAtWarningsLogger<ModbusTlsFrontend>.Failure>(),
+                    "BoundEndPoint did not say why the frontend will not listen");
+
+        Assert.That(async () => await frontendTask.WaitAsync(TimeSpan.FromSeconds(10)),
+                    Throws.InstanceOf<FailingAtWarningsLogger<ModbusTlsFrontend>.Failure>(),
+                    "RunAsync() did not fail");
+
+        // The port is free again: nobody answers on it, and another listener
+        // can have it.
+        using (var client = new TcpClient())
+            Assert.That(async () => await client.ConnectAsync(NetIPAddress.Loopback, port),
+                        Throws.InstanceOf<SocketException>(),
+                        "something still accepts on the port of the frontend that failed");
+
+        var again = new TcpListener(NetIPAddress.Loopback, port);
+
+        Assert.That(() => again.Start(), Throws.Nothing, "the port of the frontend that failed is still taken");
+
+        again.Stop();
+
+    }
+
+    #endregion
+
+    #region (private) StartServeAndStop(Chain, PKIDirectory, MeterName)
+
+    /// <summary>
+    /// A frontend that shows the given chain is started, read from once by a
+    /// client that pins the server certificate of the given PKI, and stopped.
+    /// </summary>
+    private static async Task StartServeAndStop(ServerCertificateChain  Chain,
+                                                String                  PKIDirectory,
+                                                String                  MeterName)
+    {
+
+        using var anchor       = X509CertificateLoader.LoadCertificateFromFile(Path.Combine(PKIDirectory, "issuing-clients-ca.crt"));
+        using var meter        = new SunSpecMeterDevice(MeterName, SunSpecMeterMode.ImportOnly);
+        using var frontendCts  = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        using var frontend     = new ModbusTlsFrontend(
+                                     new ModbusTlsFrontendOptions(
+                                         NetIPAddress.Loopback,
+                                         0,  // any free port - the frontend says which
+                                         null,
+                                         null,
+                                         null,
+                                         TimeSpan.FromSeconds(5),
+                                         TimeSpan.FromSeconds(5),
+                                         TimeSpan.FromSeconds(5),
+                                         ServerCertificateSelector:  serverName => Chain,
+                                         ClientTrustAnchors:         () => [ anchor ]
+                                     ),
+                                     new SunSpecBackendFactory(meter),
+                                     new AuthorizationPolicy(meter),
+                                     new NUnitLogger<ModbusTlsFrontend>()
+                                 );
+
+        var frontendTask = frontend.RunAsync(frontendCts.Token);
+        var listenPort   = await ListenPortOf(frontend);
+
+        await ReadAndAssertEnergyMeterAsync(
+                  listenPort,
+                  null,
+                  PKIDirectory,
+                  frontendCts.Token
+              );
+
+        await frontendCts.CancelAsync();
+        await frontendTask.WaitAsync(TimeSpan.FromSeconds(2));
+
+    }
+
+    #endregion
+
+    #region Hermod_ModbusTLSFrontend_StartsAgainWithTheSameCertificateLoadedAnew_Test()
+
+    /// <summary>
+    /// A frontend that was stopped, and whose certificate was disposed with
+    /// it, is started again with the same certificate loaded anew - as a host
+    /// does that reads its certificate again at every start: the TLS contexts
+    /// of all frontends are kept by the thumbprints of the chain, and the one
+    /// kept for the disposed certificate is not handed to the new start.
+    /// </summary>
+    [Test]
+    public async Task Hermod_ModbusTLSFrontend_StartsAgainWithTheSameCertificateLoadedAnew_Test()
+    {
+
+        var pkiDirectory = Path.Combine(
+                               TestContext.CurrentContext.WorkDirectory,
+                               "SunSpecModbusTLS",
+                               Guid.NewGuid().ToString("N")
+                           );
+
+        await new ModbusPKI().BuildPKI(pkiDirectory);
+
+        try
+        {
+
+            var first   = LoadServerChain(Path.Combine(pkiDirectory, "server.pfx"));
+
+            await StartServeAndStop(first,  pkiDirectory, "meter-test-restart-first");
+
+            DisposeChain(first);
+
+            var again   = LoadServerChain(Path.Combine(pkiDirectory, "server.pfx"));
+
+            Assert.That(again.CacheKey, Is.EqualTo(first.CacheKey), "the certificate loaded anew is not the same certificate");
+
+            try
+            {
+                await StartServeAndStop(again, pkiDirectory, "meter-test-restart-again");
+            }
+            finally
+            {
+                DisposeChain(again);
+            }
+
+        }
+        finally
+        {
+            RemoveInstalledAuthorities(pkiDirectory);
+        }
+
+    }
+
+    #endregion
+
+    #region Hermod_ModbusTLSFrontend_StartsAgainWithAnotherCertificate_Test()
+
+    /// <summary>
+    /// A frontend that was stopped, and whose certificate was disposed with
+    /// it, is started again with another certificate - of another PKI here -
+    /// and shows that one.
+    /// </summary>
+    [Test]
+    public async Task Hermod_ModbusTLSFrontend_StartsAgainWithAnotherCertificate_Test()
+    {
+
+        var pkiDirectory = Path.Combine(
+                               TestContext.CurrentContext.WorkDirectory,
+                               "SunSpecModbusTLS",
+                               Guid.NewGuid().ToString("N")
+                           );
+
+        var rootA = Path.Combine(pkiDirectory, "root-a");
+        var rootB = Path.Combine(pkiDirectory, "root-b");
+
+        await new ModbusPKI().BuildPKI(rootA);
+        await new ModbusPKI().BuildPKI(rootB);
+
+        try
+        {
+
+            var first   = LoadServerChain(Path.Combine(rootA, "server.pfx"));
+
+            await StartServeAndStop(first,  rootA, "meter-test-other-first");
+
+            DisposeChain(first);
+
+            var other   = LoadServerChain(Path.Combine(rootB, "server.pfx"));
+
+            try
+            {
+                await StartServeAndStop(other, rootB, "meter-test-other-again");
+            }
+            finally
+            {
+                DisposeChain(other);
+            }
+
+        }
+        finally
+        {
+            RemoveInstalledAuthorities(rootA);
+            RemoveInstalledAuthorities(rootB);
+        }
+
+    }
+
+    #endregion
+
     #region Hermod_ModbusTLSFrontend_ResumesNoSession_Test()
 
     /// <summary>
@@ -1251,6 +1486,39 @@ public class SunSpecModbusTLSTests
                 RemoveInstalledAuthorities(PKIDirectory);
 
             }
+
+        }
+
+    }
+
+    /// <summary>
+    /// A logger that fails where it is told a warning: what a frontend does
+    /// when something it calls fails at start.
+    /// </summary>
+    private sealed class FailingAtWarningsLogger<T> : ILogger<T>
+    {
+
+        public sealed class Failure(String Message) : Exception(Message);
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+            => null;
+
+        public Boolean IsEnabled(LogLevel logLevel)
+            => true;
+
+        public void Log<TState>(LogLevel                         logLevel,
+                                EventId                          eventId,
+                                TState                           state,
+                                Exception?                       exception,
+                                Func<TState, Exception?, String> formatter)
+        {
+
+            var message = formatter(state, exception);
+
+            TestContext.Out.WriteLine($"{logLevel}: {message}");
+
+            if (logLevel >= LogLevel.Warning)
+                throw new Failure(message);
 
         }
 

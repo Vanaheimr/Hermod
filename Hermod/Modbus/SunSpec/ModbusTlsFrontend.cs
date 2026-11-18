@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -202,7 +203,20 @@ public sealed class ModbusTlsFrontend : IDisposable
         // of it on the handshake clock of whichever client came first. Nor could
         // the handshake timeout cut it short: the build is synchronous, so it ran
         // to its end, and then the client was dropped for having taken too long.
-        await Task.Run(() => PrepareCertificateContexts(startupChain), CancellationToken.None).ConfigureAwait(false);
+        //
+        // Whatever fails here is failed alike: the listener was started above,
+        // and left open it would take connections nobody accepts, while whoever
+        // waits for BoundEndPoint would wait in vain.
+        try
+        {
+            await Task.Run(() => PrepareCertificateContexts(startupChain), CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _listener.Stop();
+            _boundEndPoint.TrySetException(e);
+            throw;
+        }
 
         _boundEndPoint.TrySetResult(boundEndPoint);
 
@@ -831,17 +845,75 @@ public sealed class ModbusTlsFrontend : IDisposable
     /// AIA fetch, no CRL, no OCSP. A server that pauses a handshake to
     /// download something is a server somebody can hold still by not
     /// answering.
+    ///
+    /// A context kept is checked before it is handed out again. The contexts
+    /// are kept for every frontend of the process, by the thumbprints of the
+    /// chain, while the certificates in them are their callers': one that was
+    /// disposed since - its frontend stopped, the certificate replaced or
+    /// loaded anew from the same file - leaves a context whose certificate has
+    /// no handle any more, and every handshake with it fails with "invalid
+    /// handle". Such a context is built again, from the chain asked for now.
+    /// Two builds of the same chain at once are alike, so whichever is kept
+    /// last does.
     /// </remarks>
     private static SslStreamCertificateContext ContextFor(ServerCertificateChain chain)
+    {
 
-        => _certificateContexts.GetOrAdd(
-               chain.CacheKey,
-               _ => SslStreamCertificateContext.Create(
+        if (_certificateContexts.TryGetValue(chain.CacheKey, out var kept) && IsUsable(kept, chain))
+            return kept;
+
+        var built = SslStreamCertificateContext.Create(
                         target:                  chain.Certificate,
                         additionalCertificates:  chain.HasIntermediates ? chain.Intermediates : null,
                         offline:                 true
-                    )
-           );
+                    );
+
+        _certificateContexts[chain.CacheKey] = built;
+
+        return built;
+
+    }
+
+    /// <summary>
+    /// Whether a context kept can still be shown: its certificate not
+    /// disposed, and the one of the chain asked for.
+    /// </summary>
+    private static Boolean IsUsable(SslStreamCertificateContext  context,
+                                    ServerCertificateChain       chain)
+    {
+        try
+        {
+
+            var certificate = context.TargetCertificate;
+
+            return certificate.Handle != IntPtr.Zero &&
+                   certificate.HasPrivateKey         &&
+                   certificate.Thumbprint == chain.Certificate.Thumbprint;
+
+        }
+        catch (CryptographicException)
+        {
+            // A disposed certificate says so when it is asked anything.
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// What a chain is called in a message: the subject of its certificate,
+    /// or, where that cannot be read any more - the certificate was disposed -
+    /// the thumbprints it is kept by, which are read once, when it is made.
+    /// </summary>
+    private static String NameOf(ServerCertificateChain chain)
+    {
+        try
+        {
+            return chain.Certificate.Subject;
+        }
+        catch (CryptographicException)
+        {
+            return chain.CacheKey;
+        }
+    }
 
     /// <summary>
     /// Build the TLS contexts of the certificates this frontend knows at start:
@@ -871,7 +943,9 @@ public sealed class ModbusTlsFrontend : IDisposable
             }
             catch (Exception e)
             {
-                _logger.LogWarning(e, "the TLS context of {Certificate} could not be built in advance: {ExceptionType}", chain.Certificate.Subject, e.GetType().Name);
+                // Named safely: the certificate that failed may be a disposed one,
+                // which throws when it is asked for its subject as well.
+                _logger.LogWarning(e, "the TLS context of {Certificate} could not be built in advance: {ExceptionType}", NameOf(chain), e.GetType().Name);
             }
         }
 

@@ -89,6 +89,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         private          List<Http3Server>                                          http3MoreServers   = [];
         private readonly Lock                                                       http3Lock          = new();
+
+        /// <summary>
+        /// Done once the HTTP/3 servers stopped last have let go of their UDP
+        /// ports: a stop asked for while another is under way waits for that
+        /// one, so that nobody takes the port to be free before it is.
+        /// </summary>
+        private          Task                                                       http3Stopped       = Task.CompletedTask;
         private          Int32                                                     disposed;
 
         #endregion
@@ -729,6 +736,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #region RestartHTTP3Async(CancellationToken = default)
+
+        /// <summary>
+        /// Stop taking WebSockets over HTTP/3 and start again, with the
+        /// certificate the selector of this server answers with now.
+        /// </summary>
+        /// <remarks>
+        /// QUIC is handed its certificate when it starts and shows that one
+        /// until it stops, while TCP asks the selector at every handshake: a
+        /// server whose certificate was replaced is restarted here to show the
+        /// new one over HTTP/3 as well.
+        ///
+        /// The new QUIC listener binds the UDP port only after the old one has
+        /// let go of it. Switching <see cref="AcceptHTTP3"/> off and on does
+        /// not wait for that, as a property cannot, and the start right after
+        /// it may find the port still taken.
+        ///
+        /// The connections over HTTP/3 are dropped, and their clients connect
+        /// again; the connections over TCP are not touched. Nothing is started
+        /// where the server is not running or is not to take HTTP/3.
+        /// </remarks>
+        /// <param name="CancellationToken">Gives up waiting for the old listener to let go of its port: HTTP/3 is not started again then.</param>
+        /// <returns>Whether the server takes WebSockets over HTTP/3 afterwards; where it does not, <see cref="WhyNoHTTP3"/> says why.</returns>
+        public async Task<Boolean> RestartHTTP3Async(CancellationToken CancellationToken = default)
+        {
+
+            await StopHTTP3().WaitAsync(CancellationToken).ConfigureAwait(false);
+
+            if (listenerStarted || IsRunning)
+                StartHTTP3();
+
+            return http3Server is not null;
+
+        }
+
+        #endregion
+
         #region (protected override) StopAcceptingAsync()
 
         /// <summary>
@@ -954,16 +998,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region (private) StopHTTP3()
 
-        private async Task StopHTTP3()
+        /// <summary>
+        /// Stop taking WebSockets over HTTP/3: done once the UDP ports are let
+        /// go of - also where another stop let go of them, and is still at it.
+        /// </summary>
+        private Task StopHTTP3()
         {
 
             Http3Server?              server;
             CancellationTokenSource?  cancellation;
             ServerCertificate?        certificate;
             List<Http3Server>         more;
+            TaskCompletionSource      stopped;
 
             lock (http3Lock)
             {
+
                 server             = http3Server;
                 cancellation       = http3Cancellation;
                 certificate        = http3Certificate;
@@ -973,10 +1023,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 http3Certificate   = null;
                 http3MoreServers   = [];
                 WhyNoHTTP3         = null;
+
+                if (server is null)
+                    return http3Stopped;
+
+                stopped            = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                http3Stopped       = stopped.Task;
+
             }
 
-            if (server is null)
-                return;
+            return LetGoOfHTTP3(server, more, cancellation, certificate, stopped);
+
+        }
+
+        /// <summary>
+        /// Stop the HTTP/3 servers taken from this one, outside of the lock:
+        /// what their cancellation ends runs at once, on this thread.
+        /// </summary>
+        private async Task LetGoOfHTTP3(Http3Server               server,
+                                        List<Http3Server>         more,
+                                        CancellationTokenSource?  cancellation,
+                                        ServerCertificate?        certificate,
+                                        TaskCompletionSource      stopped)
+        {
+
+            try
+            {
+                await StopHTTP3Servers(server, more, cancellation, certificate).ConfigureAwait(false);
+            }
+            finally
+            {
+                stopped.TrySetResult();
+            }
+
+        }
+
+        private async Task StopHTTP3Servers(Http3Server               server,
+                                            List<Http3Server>         more,
+                                            CancellationTokenSource?  cancellation,
+                                            ServerCertificate?        certificate)
+        {
 
             try
             {

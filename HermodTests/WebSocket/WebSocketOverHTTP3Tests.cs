@@ -25,6 +25,7 @@ using System.Security.Cryptography.X509Certificates;
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.PKI;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
@@ -314,6 +315,227 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             });
 
             await TheMirrorAnswers(client);
+
+        }
+
+        #endregion
+
+        #region (private) AServerShowing(Shown)
+
+        /// <summary>
+        /// A server that takes WebSockets over HTTP/3 and shows whatever the
+        /// given function answers with at the time it is asked - on a port
+        /// free for both, see TheServerTakesHTTP3.
+        /// </summary>
+        private async Task AServerShowing(Func<X509Certificate2> Shown)
+        {
+
+            for (var attempt = 0; attempt < 20; attempt++)
+            {
+
+                await Shutdown_WebSocketTLSServer();
+
+                var port = APortFreeForBoth();
+
+                try
+                {
+
+                    webSocketServer = new WebSocketMirrorServer(
+                                          HTTPPort:                    IPPort.Parse(port),
+                                          RequireAuthentication:       false,
+                                          ServerCertificateSelector:   (tcpServer, tcpClient) => Shown(),
+                                          SecWebSocketProtocols:       SecWebSocketProtocols,
+                                          AutoStart:                   false
+                                      ) {
+                                          AcceptHTTP3 = true
+                                      };
+
+                    await webSocketServer.Start();
+
+                }
+                catch
+                {
+                    // Not free for TCP.
+                    continue;
+                }
+
+                HTTPPort = webSocketServer.IPPort;
+
+                TheServerSaysWhoCame();
+
+                SpinWait.SpinUntil(() => webSocketServer.HTTP3Port is not null || webSocketServer.WhyNoHTTP3 is not null, TimeSpan.FromSeconds(10));
+
+                if (webSocketServer.HTTP3Port is not null)
+                    break;
+
+            }
+
+            Assert.That(webSocketServer!.HTTP3Port, Is.EqualTo(HTTPPort),
+                        "The server takes no WebSockets over HTTP/3: " + webSocketServer.WhyNoHTTP3);
+
+        }
+
+        #endregion
+
+        #region (private) ShownOverHTTP3()
+
+        /// <summary>
+        /// The thumbprint of the certificate a new WebSocket over HTTP/3 is
+        /// shown, and whether it was opened.
+        /// </summary>
+        private async Task<(String? Thumbprint, Boolean Opened)> ShownOverHTTP3()
+        {
+
+            String? shown = null;
+
+            var client = new WebSocketClient(
+                             URL.Parse($"wss://127.0.0.1:{HTTPPort}/"),
+                             SecWebSocketProtocols:       [ "ocpp2.1" ],
+                             RemoteCertificateValidator:  (sender, certificate, certificateChain, tlsClient, policyErrors) => {
+                                                              shown = certificate?.Thumbprint;
+                                                              return TLSValidationResult.Success();
+                                                          },
+                             ConnectTimeout:              TimeSpan.FromSeconds(5)
+                         ) {
+                             WebSocketOver = WebSocketHTTPVersion.HTTP3
+                         };
+
+            toDispose.Add(client);
+
+            var (_, response) = await client.Connect();
+
+            return (shown, response.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols && client.HTTPVersionInUse == HTTPVersion.HTTP_3_0);
+
+        }
+
+        #endregion
+
+
+        #region ARestartOfHTTP3ShowsWhatTheSelectorAnswersWithNow()
+
+        /// <summary>
+        /// QUIC is handed its certificate when it starts: a server whose
+        /// selector answers with another certificate goes on showing the old
+        /// one over HTTP/3 - over TCP every handshake asks - until HTTP/3 is
+        /// started again, on the same UDP port, and shows the new one.
+        /// </summary>
+        [Test]
+        public async Task ARestartOfHTTP3ShowsWhatTheSelectorAnswersWithNow()
+        {
+
+            var otherKeyPair      = PKIFactory.GenerateRSAKeyPair(2048);
+
+            using var other       = PKIFactory.SignServerCertificate(
+                                        "WebSocketOverHTTP3Tests Other Server Certificate",
+                                        [],
+                                        otherKeyPair.Public,
+                                        serverCA_RSAKeyPair.Private,
+                                        serverCA_X509v3
+                                    ).ToDotNet(otherKeyPair.Private)!;
+
+            var shown             = serverCertificate!;
+
+            await AServerShowing(() => shown);
+
+            var before            = await ShownOverHTTP3();
+
+            shown                 = other;
+
+            var notRestartedYet   = await ShownOverHTTP3();
+
+            var server            = webSocketServer!;
+
+            var restarted         = await server.RestartHTTP3Async();
+
+            var after             = await ShownOverHTTP3();
+
+            Assert.Multiple(() => {
+
+                Assert.That(before,                    Is.EqualTo((serverCertificate!.Thumbprint, true)),  "before the selector answered with another");
+                Assert.That(notRestartedYet,           Is.EqualTo((serverCertificate!.Thumbprint, true)),  "after it did, before the restart");
+
+                Assert.That(restarted,                 Is.True,                                            "the restart says it failed: " + server.WhyNoHTTP3);
+                Assert.That(server.HTTP3Port,          Is.EqualTo(HTTPPort),                               "HTTP/3 is not taken on its port after the restart: " + server.WhyNoHTTP3);
+                Assert.That(after,                     Is.EqualTo((other.Thumbprint, true)),               "after the restart");
+
+            });
+
+        }
+
+        #endregion
+
+        #region RestartsOfHTTP3OneAfterAnotherEachFindThePortFree()
+
+        /// <summary>
+        /// A restart waits until the old QUIC listener let go of its UDP port
+        /// before it binds it again: switching AcceptHTTP3 off and on does not,
+        /// and the start right after it may find the port still taken. So one
+        /// restart right after another takes HTTP/3 on its port every time.
+        /// </summary>
+        [Test]
+        public async Task RestartsOfHTTP3OneAfterAnotherEachFindThePortFree()
+        {
+
+            await AServerShowing(() => serverCertificate!);
+
+            var server = webSocketServer!;
+
+            for (var round = 0; round < 10; round++)
+            {
+
+                var restarted = await server.RestartHTTP3Async();
+
+                Assert.Multiple(() => {
+                    Assert.That(restarted,         Is.True,               $"round {round}: " + server.WhyNoHTTP3);
+                    Assert.That(server.HTTP3Port,  Is.EqualTo(HTTPPort),  $"round {round}: " + server.WhyNoHTTP3);
+                });
+
+            }
+
+            var (_, opened) = await ShownOverHTTP3();
+
+            Assert.That(opened, Is.True, "no WebSocket over HTTP/3 after the restarts");
+
+        }
+
+        #endregion
+
+        #region ARestartOfAServerThatTakesNoHTTP3StartsNone()
+
+        /// <summary>
+        /// A restart starts HTTP/3 again where the server takes it, and nowhere
+        /// else: a server that was told to take none, or is not running, takes
+        /// none after it either.
+        /// </summary>
+        [Test]
+        public async Task ARestartOfAServerThatTakesNoHTTP3StartsNone()
+        {
+
+            var server        = webSocketServer!;
+            var withoutHTTP3  = await server.RestartHTTP3Async();
+
+            Assert.Multiple(() => {
+                Assert.That(server.AcceptHTTP3,  Is.False);
+                Assert.That(withoutHTTP3,        Is.False, "a server that takes no HTTP/3");
+                Assert.That(server.HTTP3Port,    Is.Null);
+            });
+
+            await using var stopped = new WebSocketMirrorServer(
+                                          HTTPPort:                    IPPort.Zero,
+                                          RequireAuthentication:       false,
+                                          ServerCertificateSelector:   (tcpServer, tcpClient) => serverCertificate!,
+                                          SecWebSocketProtocols:       [ "ocpp2.1" ],
+                                          AutoStart:                   false
+                                      ) {
+                                          AcceptHTTP3 = true
+                                      };
+
+            var notRunning = await stopped.RestartHTTP3Async();
+
+            Assert.Multiple(() => {
+                Assert.That(notRunning,         Is.False, "a server that is not running");
+                Assert.That(stopped.HTTP3Port,  Is.Null);
+            });
 
         }
 
