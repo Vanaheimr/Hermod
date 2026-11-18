@@ -192,6 +192,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         #endregion
 
+        #region A_NODATA_Kept_On_Its_Own_Answers_From_The_Cache()
+
+        /// <summary>
+        /// A NODATA put into the cache for a name the cache holds nothing else
+        /// for answers a query for its type, and no server is asked.
+        /// </summary>
+        /// <remarks>
+        /// It used to be looked at only where the cache held an entry for the
+        /// name as well, which a NODATA this client was answered with brings
+        /// along, and one an application put there does not.
+        /// </remarks>
+        [Test]
+        public async Task A_NODATA_Kept_On_Its_Own_Answers_From_The_Cache()
+        {
+
+            using var       server = new ZoneApexServer();
+            await using var client = new DNSClient(
+                                         ManualDNSServers:  [ new DNSServerConfig(IPv4Address.Localhost, server.Port) ],
+                                         QueryTimeout:      TimeSpan.FromSeconds(2),
+                                         UseQueryCache:     true
+                                     );
+
+            var name = DNSServiceName.Parse("nowhere.island.example.test");
+
+            client.DNSCache.AddNoData(name, DNSResourceRecordTypes.A, TimeSpan.FromHours(1));
+
+            var answer = await client.Query(name, [ DNSResourceRecordTypes.A ]);
+
+            Assert.Multiple(() => {
+                Assert.That(server.Queried,       Is.Empty, "a server was asked what the cache had the answer to");
+                Assert.That(answer.ResponseCode,  Is.EqualTo(DNSResponseCodes.NoError));
+                Assert.That(answer.Answers,       Is.Empty);
+            });
+
+        }
+
+        #endregion
+
+        #region A_Name_Kept_Without_Addresses_Is_Resolved_To_None_At_Once()
+
+        /// <summary>
+        /// A name the cache holds a NODATA for both A and AAAA for, and nothing
+        /// else, resolves to no address to connect to - without asking a server,
+        /// and whether it was put there as a service name or comes as a domain
+        /// name.
+        /// </summary>
+        [Test]
+        public async Task A_Name_Kept_Without_Addresses_Is_Resolved_To_None_At_Once()
+        {
+
+            using var       server = new ZoneApexServer();
+            await using var client = new DNSClient(
+                                         ManualDNSServers:  [ new DNSServerConfig(IPv4Address.Localhost, server.Port) ],
+                                         QueryTimeout:      TimeSpan.FromSeconds(2),
+                                         UseQueryCache:     true
+                                     );
+
+            var name = DNSServiceName.Parse("nowhere.island.example.test");
+
+            client.DNSCache.AddNoData(name, DNSResourceRecordTypes.A,    TimeSpan.FromHours(1));
+            client.DNSCache.AddNoData(name, DNSResourceRecordTypes.AAAA, TimeSpan.FromHours(1));
+
+            var addresses = await client.Query_IPAddressesToConnect(DomainName.Parse("nowhere.island.example.test"));
+
+            Assert.Multiple(() => {
+                Assert.That(addresses,       Is.Empty);
+                Assert.That(server.Queried,  Is.Empty, "a server was asked what the cache had the answer to");
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

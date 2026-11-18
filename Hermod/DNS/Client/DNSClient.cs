@@ -786,6 +786,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
+            // A NODATA kept for every type asked, and nothing else for the name:
+            // the NODATA cache is keyed by name and type, and an entry for the
+            // name is not what makes it true. It was only looked at above, where
+            // the cache held an entry for the name as well - which a NODATA this
+            // client was answered with brings along, and one put into the cache
+            // by an application does not. The servers were asked instead, and a
+            // name whose addresses the cache said there were none of waited for
+            // them - 20 s for one with none to answer.
+            else if (UseCache && !(ForceUpdate ?? false) &&
+                     resourceRecordTypes.All(type => DNSCache.IsNoData(DNSServiceName, type)))
+            {
+
+                logger.LogDebug(
+                    "DNS cache hit for '{DNSServiceName}' with NODATA for record types '{RecordTypes}', and no entry for the name",
+                    DNSServiceName,
+                    resourceRecordTypes.AggregateWith(", ")
+                );
+
+                if (resourceRecordTypes.Count == 1 &&
+                    DNSCache.TryGetNoData(DNSServiceName, resourceRecordTypes[0], out var keptNoData) &&
+                    keptNoData is not null)
+                {
+                    return keptNoData;
+                }
+
+                return new DNSInfo(
+
+                           Origin:                 dnsServers.Count > 0
+                                                       ? dnsServers.First()
+                                                       : new DNSServerConfig(
+                                                             IPv4Address.Localhost,
+                                                             IPPort.DNS
+                                                         ),
+                           QueryId:                0,
+                           IsAuthoritativeAnswer:  false,
+                           IsTruncated:            false,
+                           RecursionDesired:       recursionAsked,
+                           RecursionAvailable:     false,
+                           ResponseCode:           DNSResponseCodes.NoError,
+                           Answers:                [],
+                           Authorities:            [],
+                           AdditionalRecords:      [],
+                           IsValid:                true,
+                           IsTimeout:              false,
+                           Timeout:                effectiveTimeout,
+
+                           Runtime:                stopWatch.Elapsed
+
+                       );
+
+            }
+
             #endregion
 
             // RFC 6762 §22.1, item 3: what the cache did not answer for a link-local name is not sent to a
