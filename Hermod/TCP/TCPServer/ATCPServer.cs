@@ -1024,6 +1024,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                                 #endregion
 
+                                // Nagle's algorithm off: HTTP writes a header and then a
+                                // body, a WebSocket frame its header and then its payload,
+                                // and with Nagle on the second write waited until the first
+                                // was acknowledged - which the other end, waiting for the
+                                // rest of the message with nothing to say, delays by 40 ms
+                                // on Linux. Every response with a body took that long more
+                                // there; Windows acknowledges at once on loopback and did
+                                // not show it.
+                                client.NoDelay = true;
+
                                 // Everything this connection needs doing goes to the thread
                                 // pool, and this loop goes straight back to accepting. An
                                 // async method runs on its caller's thread until its first

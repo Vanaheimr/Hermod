@@ -907,7 +907,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                   ReceiveTimeout  = (Int32) ReceiveTimeout.TotalMilliseconds, // Only relevant for sync I/O!
                                                   SendTimeout     = (Int32) SendTimeout.   TotalMilliseconds, // Only relevant for sync I/O!
                                                   LingerState     = new LingerOption(true, 5),
-                                                  NoDelay         = false
+
+                                                  // Nagle's algorithm off: a request's header and its
+                                                  // body are two writes, and with Nagle on the body
+                                                  // waited for the header's acknowledgement - which a
+                                                  // server waiting for the body delays by 40 ms on
+                                                  // Linux. So did every WebSocket frame's payload.
+                                                  NoDelay         = true
                                               };
 
                     tcpClient               = client;
