@@ -82,7 +82,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             Mux.GlobalRequestResponder = info => info.Name switch {
                 "tcpip-forward"         => ValueTask.FromResult<SshGlobalRequestReply?>(Listen(Mux, Policy, forwards, info.Data, CancellationToken)),
-                "cancel-tcpip-forward"  => ValueTask.FromResult<SshGlobalRequestReply?>(Cancel(forwards, info.Data)),
+                "cancel-tcpip-forward"  => CancelAsync(forwards, info.Data),
                 _                       => previous?.Invoke(info) ?? ValueTask.FromResult<SshGlobalRequestReply?>(null)
             };
 
@@ -148,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
 
             foreach (var listener in listeners)
-                _ = AcceptLoopAsync(Mux, listener, bindAddress, port, forward.Token);
+                forward.Runs(AcceptLoopAsync(Mux, listener, bindAddress, port, forward.Token));
 
             if (requestedPort != 0)
                 return SshGlobalRequestReply.Ok;
@@ -159,18 +159,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        private static SshGlobalRequestReply Cancel(ConcurrentDictionary<(String Address, UInt16 Port), RemoteForwardListener>  Forwards,
-                                                    Byte[]                                                                  Data)
+        private static async ValueTask<SshGlobalRequestReply?> CancelAsync(ConcurrentDictionary<(String Address, UInt16 Port), RemoteForwardListener>  Forwards,
+                                                                           Byte[]                                                                  Data)
         {
 
             if (!TryReadAddressAndPort(Data, out var bindAddress, out var port) ||
                 !Forwards.TryRemove((bindAddress, port), out var forward))
                 return SshGlobalRequestReply.Failed;
 
+            // The answer says the port is free again, and a client may ask for it at once. A listener
+            // stopped while it waits for a connection lets go of its port only when that wait has ended:
+            // on Linux, later, on another thread. So answer once the accept loops are over.
             forward.Stop();
+            await forward.StoppedAsync(StopWait).ConfigureAwait(false);
+
             return SshGlobalRequestReply.Ok;
 
         }
+
+        /// <summary>
+        /// How long a cancel waits for the listeners of a forward to let go of their port before it
+        /// answers anyway.
+        /// </summary>
+        private static readonly TimeSpan StopWait = TimeSpan.FromSeconds(5);
 
         private static Boolean TryReadAddressAndPort(Byte[] Data, out String Address, out UInt16 Port)
         {
@@ -429,6 +440,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             private readonly IReadOnlyList<TcpListener>  listeners;
             private readonly CancellationTokenSource     cts;
+            private readonly List<Task>                  loops = [];
 
             public RemoteForwardListener(IReadOnlyList<TcpListener> Listeners, CancellationToken Connection)
             {
@@ -437,6 +449,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
 
             public CancellationToken Token => cts.Token;
+
+            /// <summary>
+            /// Keep an accept loop of this forward, to wait for it when the forward is stopped.
+            /// </summary>
+            public void Runs(Task Loop)
+            {
+                lock (loops)
+                    loops.Add(Loop);
+            }
+
+            /// <summary>
+            /// Wait until every accept loop of this forward has ended and stopped its listener, so that
+            /// the port is free, but no longer than the given time.
+            /// </summary>
+            public async ValueTask StoppedAsync(TimeSpan Timeout)
+            {
+
+                Task[] running;
+
+                lock (loops)
+                    running = [.. loops];
+
+                try
+                {
+                    await Task.WhenAll(running).WaitAsync(Timeout).ConfigureAwait(false);
+                }
+                catch (TimeoutException)
+                { }
+
+            }
 
             public void Stop()
             {

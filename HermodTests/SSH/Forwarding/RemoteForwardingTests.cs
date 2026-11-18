@@ -553,6 +553,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region ACancelledRemoteForward_HasFreedItsPortWhenTheServerAnswers
+
+        /// <summary>
+        /// The server's answer to <c>cancel-tcpip-forward</c> means the port is free: it can be bound at
+        /// once - before, the server answered when it had stopped its listener, and on Linux a listener
+        /// stopped while it waits for a connection lets go of its port only later, on another thread.
+        /// A client asking for the same port again right away was refused now and then (seen in a
+        /// nightly on Debian). Two hundred rounds, so that one of them meets that window: fifty met it
+        /// in about one run of four.
+        /// </summary>
+        [Test]
+        [CancelAfter(60000)]
+        public async Task ACancelledRemoteForward_HasFreedItsPortWhenTheServerAnswers(CancellationToken CancellationToken)
+        {
+
+            var (target, targetPort) = StartNamedServer("the target", CancellationToken);
+            var (server, client)     = await ConnectRawAsync(CancellationToken);
+
+            try
+            {
+
+                var stillBound = new List<Int32>();
+
+                for (var round = 1; round <= 200; round++)
+                {
+
+                    var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", targetPort, CancellationToken);
+                    var port    = forward.BoundPort;
+
+                    Assert.That(await forward.CancelAsync(CancellationToken), Is.True, "the server stopped listening");
+
+                    var probe = new TcpListener(IPAddress.Loopback, port);
+
+                    try
+                    {
+                        probe.Start();
+                    }
+                    catch (SocketException)
+                    {
+                        stillBound.Add(round);
+                    }
+                    finally
+                    {
+                        probe.Stop();
+                    }
+
+                }
+
+                Assert.That(stillBound, Is.Empty, "rounds whose port was still bound after the server's answer");
+
+            }
+            finally
+            {
+                target.Stop();
+                await client.DisposeAsync();
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
         #region TwoRemoteForwards_EachRelayToTheirOwnTarget
 
         /// <summary>
