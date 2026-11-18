@@ -493,28 +493,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", targetPort, CancellationToken);
-                var port    = forward.BoundPort;
-
-                Assert.That(await ReadAllFromAsync(port, CancellationToken), Is.EqualTo("the target"));
-
-                Assert.That(await forward.CancelAsync(CancellationToken), Is.True,  "the server stopped listening");
-                Assert.That(await forward.CancelAsync(CancellationToken), Is.False, "a forward is cancelled once");
-
-                using var external = new TcpClient();
-                await Assert.CatchAsync<SocketException>(async () => await external.ConnectAsync(IPAddress.Loopback, port, CancellationToken),
-                                                         "nothing listens on a disposed forward");
-
-                // The same port, asked for again, is free on the server's side. Disposing does not wait for
-                // the server's answer, but the server takes requests in order: once the next one is
-                // answered, the disposed forward is gone, and its port can be asked for once more.
-                var again = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", port, "127.0.0.1", targetPort, CancellationToken);
-                Assert.That(again.BoundPort, Is.EqualTo(port));
-
-                await again.DisposeAsync();
-
-                await using var thrice = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", port, "127.0.0.1", targetPort, CancellationToken);
-                Assert.That(await ReadAllFromAsync(port, CancellationToken), Is.EqualTo("the target"), "a disposed forward is cancelled, too");
+                // The port the server chose is free on this machine only for as long as nothing else takes
+                // it: on Linux, any other test's next outgoing connection may be given that very port as its
+                // own, between the cancel and the next request, and the server is then refused it by the
+                // system, not by its own book. A server that kept the port would refuse it every time, so a
+                // refusal is tried again, on a port newly chosen, a few times.
+                for (var attempt = 1; ; attempt++)
+                {
+                    try
+                    {
+                        await CancelAndAskAgain(client, targetPort, CancellationToken);
+                        break;
+                    }
+                    catch (SshForwardingException) when (attempt < 5)
+                    { }
+                }
 
             }
             finally
@@ -523,6 +516,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 await client.DisposeAsync();
                 await server.DisposeAsync();
             }
+
+        }
+
+        /// <summary>
+        /// One round: a forward on a port the server chooses, cancelled, asked for again on that port,
+        /// disposed, and asked for once more.
+        /// </summary>
+        private static async Task CancelAndAskAgain(SshChannelMultiplexer Client, UInt16 TargetPort, CancellationToken CancellationToken)
+        {
+
+            var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(Client, "127.0.0.1", 0, "127.0.0.1", TargetPort, CancellationToken);
+            var port    = forward.BoundPort;
+
+            Assert.That(await ReadAllFromAsync(port, CancellationToken), Is.EqualTo("the target"));
+
+            Assert.That(await forward.CancelAsync(CancellationToken), Is.True,  "the server stopped listening");
+            Assert.That(await forward.CancelAsync(CancellationToken), Is.False, "a forward is cancelled once");
+
+            using var external = new TcpClient();
+            await Assert.CatchAsync<SocketException>(async () => await external.ConnectAsync(IPAddress.Loopback, port, CancellationToken),
+                                                     "nothing listens on a disposed forward");
+
+            // The same port, asked for again, is free on the server's side. Disposing does not wait for
+            // the server's answer, but the server takes requests in order: once the next one is
+            // answered, the disposed forward is gone, and its port can be asked for once more.
+            var again = await SshRemoteForwarding.RequestRemoteForwardAsync(Client, "127.0.0.1", port, "127.0.0.1", TargetPort, CancellationToken);
+            Assert.That(again.BoundPort, Is.EqualTo(port));
+
+            await again.DisposeAsync();
+
+            await using var thrice = await SshRemoteForwarding.RequestRemoteForwardAsync(Client, "127.0.0.1", port, "127.0.0.1", TargetPort, CancellationToken);
+            Assert.That(await ReadAllFromAsync(port, CancellationToken), Is.EqualTo("the target"), "a disposed forward is cancelled, too");
 
         }
 
