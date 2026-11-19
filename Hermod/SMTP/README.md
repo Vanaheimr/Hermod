@@ -233,7 +233,8 @@ TLS state). See the [core transport](#core-smtp--esmtp-transport) and
 - `MaxMessagesPerSession`: the next `MAIL` is answered `421 4.7.0` and the
   connection closed, so the client reconnects and meets the per-address limits.
 - A failed `AUTH` is answered only after `AuthFailDelayMs` and counts towards
-  `MaxAuthAttemptsPerIpPerHour`; past that, `AUTH` is answered `421 4.7.0`.
+  `MaxAuthAttemptsPerIpPerHour`; past that, `AUTH` is answered `421 4.7.0` and
+  the connection closed - a `421` always closes it (RFC 5321 §4.2.2).
 - `MaxConnectionsPerIp`, `MaxConnectionsPerIpPerMinute`, `MaxTotalConnections`
   and `MaxMessagesPerIpPerHour` (unauthenticated only) apply per address.
 

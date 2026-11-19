@@ -277,9 +277,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     break;
 
                 case "AUTH":
+                    // RFC 5321 §4.2.2: 421 is "Service not available, closing transmission
+                    // channel" - the server says it closes the connection, so it does.
                     if (connectionTracker is not null && !connectionTracker.CanAttemptAuth(_clientIp))
                     {
-                        await SendResponseAsync(421, "4.7.0 Too many authentication attempts, try again later");
+                        logger.Log(LogLevel.Warning, $"Too many authentication attempts from {_clientIp}, disconnecting");
+                        await SendResponseAsync(421, "4.7.0 Too many authentication attempts, closing connection");
+                        _state = SMTPSessionState.Quit;
                         return;
                     }
                     await HandleAuthAsync(args, ct);

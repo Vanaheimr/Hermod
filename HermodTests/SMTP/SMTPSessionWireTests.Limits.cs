@@ -166,6 +166,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+
+        [Test(Description = "RFC 5321 §4.2.2: 421 is \"Service not available, closing transmission channel\" - after a 421 to AUTH the server closes the connection")]
+        public async Task After_421_to_AUTH_the_connection_is_closed()
+        {
+
+            await using var server = new Server(RateLimits: new RateLimitConfig {
+                                                                AuthFailDelayMs              = 0,
+                                                                MaxAuthAttemptsPerIpPerHour  = 1,
+                                                                WhitelistedIps               = []
+                                                            });
+            using var wire         = await server.ConnectAsync();
+
+            Assert.That(await wire.CommandAsync("EHLO client.example"), Is.EqualTo(250));
+            Assert.That(await wire.CommandAsync(FailingAuth),           Is.EqualTo(535));
+            Assert.That(await wire.CommandAsync(FailingAuth),           Is.EqualTo(421));
+            Assert.That(await ClosedAsync(wire),                        Is.True, "421 closes the connection");
+
+        }
+
     }
 
 }
