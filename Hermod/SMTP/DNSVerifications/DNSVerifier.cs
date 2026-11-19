@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                 : Task.FromResult<(SPFResult Result, String? Record)>((SPFResult.None, null));
             var dkimTask  = checkDkim || checkDmarc
                                 ? VerifyDkimSignaturesAsync(message, ct)
-                                : Task.FromResult<(DkimResult Result, String? Details, String? Domain, IReadOnlyList<String> Passing)>((DkimResult.None, null, null, []));
+                                : Task.FromResult<(DkimResult Result, String? Details, String? Domain, IReadOnlyList<String> Passing, IReadOnlyList<DkimSignatureOutcome> Signatures)>((DkimResult.None, null, null, [], []));
             var mxTask    = !String.IsNullOrEmpty(senderDomain)
                                 ? GetMxRecordsAsync(senderDomain, ct)
                                 : Task.FromResult<String[]>([]);
@@ -85,6 +85,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                              dkim.Passing,             // d= of every signature that holds
                                              DomainOf(mailFrom),       // the RFC5321.MailFrom domain - none for a null reverse-path,
                                                                        // whose SPF result is the HELO identity's (RFC 7208 §2.4)
+                                             spfTask.Result.Record,    // the SPF record evaluated, and every DKIM signature tried:
+                                             dkim.Signatures,          // what a failure report names (RFC 7489 §7.3.1)
                                              ct
                                          )
                                  : (DmarcResult.None, null, null);
@@ -525,7 +527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public async Task<(DkimResult Result, string? Details, string? Domain)> VerifyDkimAsync(Byte[]             RawMessage,
                                                                                                 CancellationToken  CancellationToken = default)
         {
-            var (result, details, domain, _) = await VerifyDkimSignaturesAsync(EMailMessage.Parse(RawMessage), CancellationToken);
+            var (result, details, domain, _, _) = await VerifyDkimSignaturesAsync(EMailMessage.Parse(RawMessage), CancellationToken);
             return (result, details, domain);
         }
 
@@ -538,8 +540,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// of a mail service often comes before the author's own.
         /// </summary>
         /// <returns>The first that holds - or, when none does, the last tried and why it
-        /// failed - and the d= of every one that holds.</returns>
-        private async Task<(DkimResult Result, string? Details, string? Domain, IReadOnlyList<String> Passing)> VerifyDkimSignaturesAsync(
+        /// failed - the d= of every one that holds, and every signature tried with its d=, i=,
+        /// s= and result, for a failure report (RFC 6591 §3.2.3).</returns>
+        private async Task<(DkimResult Result, string? Details, string? Domain, IReadOnlyList<String> Passing, IReadOnlyList<DkimSignatureOutcome> Signatures)> VerifyDkimSignaturesAsync(
             EMailMessage      message,
             CancellationToken ct)
         {
@@ -554,19 +557,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var dkimFields          = fields.Where(f => f.Name.Equals("DKIM-Signature", StringComparison.OrdinalIgnoreCase)).ToList();
 
                 if (dkimFields.Count == 0)
-                    return (DkimResult.None, "No DKIM signature found", null, []);
+                    return (DkimResult.None, "No DKIM signature found", null, [], []);
 
                 (DkimResult Result, string? Details, string? Domain)? first = null;
                 (DkimResult Result, string? Details) last = (DkimResult.Fail, "All DKIM signatures failed verification");
                 string? lastDomain = null;
-                var passing = new List<String>();
+                var passing    = new List<String>();
+                var signatures = new List<DkimSignatureOutcome>();
 
                 foreach (var dkimField in dkimFields.Take(MaxDkimSignatures))
                 {
 
                     // d= of the signature being evaluated (for Authentication-Results header.d).
-                    var domain = ParseDkimHeader(dkimField.RawValue).GetValueOrDefault("d");
+                    var tags   = ParseDkimHeader(dkimField.RawValue);
+                    var domain = tags.GetValueOrDefault("d");
                     var result = await VerifySingleDkimSignature(dkimField, fields, body, ct);
+
+                    if (!String.IsNullOrEmpty(domain))
+                        signatures.Add(new DkimSignatureOutcome(domain, tags.GetValueOrDefault("i"), tags.GetValueOrDefault("s"), result.Result));
 
                     if (result.Result == DkimResult.Pass)
                     {
@@ -583,13 +591,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
 
                 return first is { } pass
-                           ? (pass.Result, pass.Details, pass.Domain, passing)
-                           : (last.Result, last.Details, lastDomain,  passing);
+                           ? (pass.Result, pass.Details, pass.Domain, passing, signatures)
+                           : (last.Result, last.Details, lastDomain,  passing, signatures);
             }
             catch (Exception ex)
             {
                 Logger.Log(LogLevel.Warning, $"DKIM verification error: {ex.Message}");
-                return (DkimResult.TempError, ex.Message, null, []);
+                return (DkimResult.TempError, ex.Message, null, [], []);
             }
         }
 
@@ -746,14 +754,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="dkimResult">The DKIM result.</param>
         /// <param name="dkimPassing">The d= domain of every DKIM signature that holds.</param>
         /// <param name="envelopeFromDomain">The RFC5321.MailFrom domain; empty for a null reverse-path, when SPF checked the HELO identity.</param>
+        /// <param name="spfRecord">The SPF record evaluated, if there was one.</param>
+        /// <param name="dkimSignatures">Every DKIM signature tried, with its d=, i=, s= and result.</param>
         private async Task<(DmarcResult Result, string? Policy, DmarcEvaluation? Detail)> VerifyDmarcAsync(
-            string                 fromDomain,
-            string                 spfAuthDomain,
-            SPFResult              spfResult,
-            DkimResult             dkimResult,
-            IReadOnlyList<String>  dkimPassing,
-            string                 envelopeFromDomain,
-            CancellationToken      ct)
+            string                               fromDomain,
+            string                               spfAuthDomain,
+            SPFResult                            spfResult,
+            DkimResult                           dkimResult,
+            IReadOnlyList<String>                dkimPassing,
+            string                               envelopeFromDomain,
+            string?                              spfRecord,
+            IReadOnlyList<DkimSignatureOutcome>  dkimSignatures,
+            CancellationToken                    ct)
         {
             try
             {
@@ -824,7 +836,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     Result:           pass ? DmarcResult.Pass : DmarcResult.Fail,
                     Disposition:      disposition,
                     EnvelopeFromDomain: envelopeFromDomain,
-                    SpfOnHelo:          envelopeFromDomain.Length == 0
+                    SpfOnHelo:          envelopeFromDomain.Length == 0,
+                    SpfRecord:          spfRecord,
+                    DkimSignatures:     dkimSignatures
                 );
 
                 return (detail.Result, effectivePolicy, detail);

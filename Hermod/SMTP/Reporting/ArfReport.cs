@@ -82,7 +82,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             sb.Append("Source-IP: ").Append(sourceIp).Append("\r\n");
             sb.Append("Reported-Domain: ").Append(eval.HeaderFromDomain).Append("\r\n");
             sb.Append("Auth-Failure: dmarc\r\n");
-            sb.Append("Delivered-To: ").Append(toAddress).Append("\r\n");
+
+            // RFC 7489 §7.3.1: "Identity-Alignment (REQUIRED ...)" - "a comma-separated list of
+            // authentication mechanism names that produced an aligned identity, or the keyword
+            // "none" if none did".
+            var aligned = new List<String>();
+            if (eval.DkimAligned) aligned.Add("dkim");
+            if (eval.SpfAligned)  aligned.Add("spf");
+            sb.Append("Identity-Alignment: ").Append(aligned.Count > 0 ? String.Join(", ", aligned) : "none").Append("\r\n");
+
+            // "DKIM-Domain, DKIM-Identity, DKIM-Selector (REQUIRED if the message was signed by
+            // DKIM)" - of the signature DMARC evaluated: the one that holds, else the first tried.
+            var signature = eval.DkimSignatures?.FirstOrDefault(signature => signature.Result == DkimResult.Pass &&
+                                                                             signature.Domain.Equals(eval.DkimDomain, StringComparison.OrdinalIgnoreCase)) ??
+                            eval.DkimSignatures?.FirstOrDefault();
+            if (signature is not null)
+                AppendDkimFields(sb, signature);
+
+            // "SPF-DNS (REQUIRED)"; RFC 6591 §4: "SPF-DNS:" ( "txt" / "spf" ) ":" domain ":"
+            // quoted-string - the record SPF evaluated for the domain it checked, or "" where
+            // that domain has none.
+            if (!String.IsNullOrEmpty(eval.SpfDomain))
+                AppendSpfDns(sb, eval);
+
+            // RFC 5965 defines no Delivered-To: field - and the report's own recipient, written
+            // there, is no fact about the reported message.
             if (!string.IsNullOrEmpty(authenticationResults))
                 sb.Append("Authentication-Results: ").Append(authenticationResults).Append("\r\n");
             sb.Append("\r\n");
@@ -99,6 +123,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             return sb.ToString();
 
+        }
+
+        // RFC 6591 §3.2.3, §4: the d=, i= and s= of a signature. DKIM-Identity is
+        // [ local-part ] "@" domain-name: the i= tag, or "@" d= by default (RFC 6376 §3.5).
+        private static void AppendDkimFields(StringBuilder sb, DkimSignatureOutcome signature)
+        {
+            sb.Append("DKIM-Domain: ").  Append(signature.Domain).Append("\r\n");
+            sb.Append("DKIM-Identity: ").Append(signature.AgentOrUserIdentifier).Append("\r\n");
+            if (!String.IsNullOrEmpty(signature.Selector))
+                sb.Append("DKIM-Selector: ").Append(signature.Selector).Append("\r\n");
+        }
+
+        // RFC 6591 §4: spf-dns = "SPF-DNS:" [CFWS] ( "txt" / "spf" ) [CFWS] ":" [CFWS] domain
+        // [CFWS] ":" [CFWS] quoted-string [CFWS] CRLF.
+        private static void AppendSpfDns(StringBuilder sb, DmarcEvaluation eval)
+        {
+            sb.Append("SPF-DNS: txt : ").Append(eval.SpfDomain).Append(" : \"")
+              .Append((eval.SpfRecord ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"")).Append("\"\r\n");
         }
 
         // Ensure the embedded header block uses CRLF line endings.

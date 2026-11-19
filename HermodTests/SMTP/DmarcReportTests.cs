@@ -205,6 +205,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                "\r\n" +
                "body\r\n";
 
+        /// <summary>
+        /// A DKIM key of client.example, selector "test" - its signer and its record in DNS.
+        /// </summary>
+        private sealed record DkimKey(DkimSigner Signer, (String Name, String Text) Record)
+        {
+
+            public static DkimKey Make()
+            {
+
+                using var rsa = System.Security.Cryptography.RSA.Create(2048);
+
+                var config = new DkimConfig {
+                                 Domain         = "client.example",
+                                 Selector       = "test",
+                                 PrivateKeyPem  = rsa.ExportPkcs8PrivateKeyPem(),
+                                 SignedHeaders  = "from:to:subject:date:message-id"
+                             };
+
+                return new DkimKey(new DkimSigner(config, new QuietLogger()),
+                                   ("test._domainkey.client.example", $"v=DKIM1; k=rsa; p={Convert.ToBase64String(rsa.ExportSubjectPublicKeyInfo())}"));
+
+            }
+
+            /// <summary>
+            /// The letter, signed - and, if so asked, its body changed after: the signature fails.
+            /// </summary>
+            public String Sign(String Letter, Boolean Broken = false)
+            {
+                var signed = Signer.SignMessage(Letter);
+                return Broken ? signed.Replace("\r\n\r\nbody\r\n", "\r\n\r\nanother body\r\n") : signed;
+            }
+
+        }
+
+        private static readonly System.Net.IPAddress elsewhere = System.Net.IPAddress.Parse("198.51.100.7");   // not in client.example's SPF record
+
         #endregion
 
         #region Reading the reports
@@ -484,6 +520,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(Int64.Parse(report.GetValueOrDefault("Report-Size") ?? "0"), Is.GreaterThan(2048));
                 Assert.That(report.GetValueOrDefault("Submitting-URI"),        Is.EqualTo("mailto:dmarc@client.example"));
             });
+
+        }
+
+        #endregion
+
+        #region The failure report
+
+        /// <summary>
+        /// The fields of the message/feedback-report part of a failure report.
+        /// </summary>
+        private static Dictionary<String, String> Feedback(QueuedMail Mail)
+            => Headers(Part(Mail.MessageContent, "message/feedback-report") + "\r\n\r\n");
+
+
+        [Test(Description = "RFC 7489 §7.3.1: \"Identity-Alignment (REQUIRED ...)\", \"DKIM-Domain, DKIM-Identity, DKIM-Selector (REQUIRED if the message was signed by DKIM)\", \"SPF-DNS (REQUIRED)\" - RFC 6591 §4: \"SPF-DNS:\" ( \"txt\" / \"spf\" ) \":\" domain \":\" quoted-string")]
+        public async Task The_failure_report_has_the_fields_RFC_7489_requires()
+        {
+
+            var key            = DkimKey.Make();
+            using var reporter = new Reporter("v=DMARC1; p=reject; ruf=mailto:ruf@client.example", key.Record);
+
+            // From an address SPF does not allow, its signature broken: DMARC fails.
+            var message    = key.Sign(Letter(), Broken: true);
+            var evaluation = await reporter.Evaluate(message, Client: elsewhere);
+            var feedback   = Feedback((await reporter.FailureReport(evaluation, message)).Single());
+
+            Assert.Multiple(() => {
+                Assert.That(feedback.GetValueOrDefault("Auth-Failure"),        Is.EqualTo("dmarc"));
+                Assert.That(feedback.GetValueOrDefault("Identity-Alignment"),  Is.EqualTo("none"));
+                Assert.That(feedback.GetValueOrDefault("DKIM-Domain"),         Is.EqualTo("client.example"));
+                Assert.That(feedback.GetValueOrDefault("DKIM-Identity"),       Is.EqualTo("@client.example"), "i= by default");
+                Assert.That(feedback.GetValueOrDefault("DKIM-Selector"),       Is.EqualTo("test"));
+                Assert.That(feedback.GetValueOrDefault("SPF-DNS"),             Is.EqualTo($"txt : client.example : \"{SpfPass}\""));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7489 §7.3.1: the DKIM fields are \"REQUIRED if the message was signed by DKIM\" - an unsigned message has none, and SPF-DNS still")]
+        public async Task The_failure_report_of_an_unsigned_message_has_SPF_DNS_and_no_DKIM_fields()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; ruf=mailto:ruf@client.example");
+
+            var evaluation = await reporter.Evaluate(Letter(), Client: elsewhere);
+            var feedback   = Feedback((await reporter.FailureReport(evaluation, Letter())).Single());
+
+            Assert.Multiple(() => {
+                Assert.That(feedback.GetValueOrDefault("SPF-DNS"),  Is.EqualTo($"txt : client.example : \"{SpfPass}\""));
+                Assert.That(feedback.Keys,                          Has.None.StartWith("DKIM-"));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 5965: the recipient of the reported message is Original-Rcpt-To (§3.3); its fields (§3.5) have no Delivered-To")]
+        public async Task The_failure_report_has_no_Delivered_To_field()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; ruf=mailto:ruf@client.example");
+
+            var evaluation = await reporter.Evaluate(Letter(), Client: elsewhere);
+            var feedback   = Feedback((await reporter.FailureReport(evaluation, Letter())).Single());
+
+            Assert.That(feedback.Keys, Has.No.Member("Delivered-To"));
 
         }
 
