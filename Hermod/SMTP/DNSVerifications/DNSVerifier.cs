@@ -607,6 +607,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 return (DkimResult.Fail, "Missing required DKIM parameters");
             }
 
+            // rsa-sha256, and ed25519-sha256 (RFC 8463) - nothing else is verified. RFC 8301
+            // §3.1: "rsa-sha1 MUST NOT be used for signing or verifying", its signatures "have
+            // permanently failed evaluation"; an algorithm not known is not SHA-1 either.
+            var algorithm = dkimParams.GetValueOrDefault("a", "rsa-sha256");
+
+            if (!algorithm.Equals("rsa-sha256",     StringComparison.OrdinalIgnoreCase) &&
+                !algorithm.Equals("ed25519-sha256", StringComparison.OrdinalIgnoreCase))
+                return (DkimResult.Fail, $"The signature algorithm {algorithm} is not verified (RFC 8301 §3.1)");
+
             // Get public key from DNS
             var dkimDomain = $"{selector}._domainkey.{domain}";
             var dkimRecord = await GetDkimKeyRecordAsync(dkimDomain, ct);
@@ -619,17 +628,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (!dkimRecordParams.TryGetValue("p", out var publicKeyBase64))
                 return (DkimResult.Fail, "No public key in DKIM record");
 
-            var algorithm = dkimParams.GetValueOrDefault("a", "rsa-sha256");
             var (headerCanon, bodyCanon) = ParseCanonicalization(dkimParams.GetValueOrDefault("c", "simple/simple"));
 
             // Body hash over the wire octets, via the shared canonicalizer.
             var canonicalizedBody = DkimCanonicalization.CanonicalizeBody(body, bodyCanon);
             var bodyBytes         = MessageOctets.ToOctets(canonicalizedBody);
-            var computedBodyHash  = Convert.ToBase64String(
-                                        algorithm.Contains("sha256")
-                                            ? SHA256.HashData(bodyBytes)
-                                            : SHA1.HashData(bodyBytes)
-                                    );
+            var computedBodyHash  = Convert.ToBase64String(SHA256.HashData(bodyBytes));
 
             if (computedBodyHash != bodyHash)
                 return (DkimResult.Fail, $"Body hash mismatch: expected {bodyHash}, got {computedBodyHash}");
@@ -669,8 +673,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     using var rsa = RSA.Create();
                     rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
 
-                    var hashAlgorithm = algorithm.Contains("sha256") ? HashAlgorithmName.SHA256 : HashAlgorithmName.SHA1;
-                    isValid           = rsa.VerifyData(MessageOctets.ToOctets(signingInput), signatureBytes, hashAlgorithm, RSASignaturePadding.Pkcs1);
+                    isValid = rsa.VerifyData(MessageOctets.ToOctets(signingInput), signatureBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
                 }
 

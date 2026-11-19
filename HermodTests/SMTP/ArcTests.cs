@@ -131,7 +131,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             var (head, body) = DkimCanonicalization.Split(Message);
             var fields       = DkimCanonicalization.ParseFields(head);
-            var hash         = Algorithm == "rsa-sha1" ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256;
+            // SHA-256 for an a= that names it, SHA-1 for any other.
+            var hash         = Algorithm.Contains("sha256") ? HashAlgorithmName.SHA256 : HashAlgorithmName.SHA1;
 
             // §4.1.1
             var aar          = $"i={Instance}; forwarder.example; spf=pass smtp.mailfrom=origin.example";
@@ -323,6 +324,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         [Test(Description = "RFC 6376 §3.2: \"if a tag name does occur more than once, the entire tag-list is invalid\" - an ARC header field whose i= occurs twice - i=1, then i=0 - has no instance, and the chain it is in is malformed (RFC 8617 §5.2 step 3)")]
         public async Task An_ARC_header_field_naming_its_instance_twice_fails_the_chain()
             => Assert.That(await Validate("ARC-Authentication-Results: i=1; i=0; forwarder.example; spf=pass\r\n" + Sealed(2)), Is.EqualTo(ArcResult.Fail));
+
+        #endregion
+
+        #region Algorithms
+
+        [Test(Description = "RFC 8617 §5.2 imports the signature methods of RFC 6376, and RFC 8301 §3.1: \"rsa-sha1 MUST NOT be used for signing or verifying\" - a chain sealed with rsa-sha1 fails")]
+        public async Task A_chain_sealed_with_rsa_sha1_fails()
+        {
+
+            var first  = await Validate(HandSeal(Message(), 1, "none", Algorithm: "rsa-sha1"));
+            var second = await Validate(HandSeal(Sealed(1), 2, "pass", Algorithm: "rsa-sha1"));
+
+            Assert.Multiple(() => {
+                Assert.That(first,  Is.EqualTo(ArcResult.Fail), "rsa-sha1 in the first set");
+                Assert.That(second, Is.EqualTo(ArcResult.Fail), "rsa-sha1 in the second set");
+            });
+
+        }
+
+        [Test(Description = "RFC 8301 §3.1: \"rsa-sha1 MUST NOT be used for signing or verifying\" - nor is an algorithm that is not known verified with SHA-1")]
+        public async Task A_chain_sealed_with_an_unknown_algorithm_fails()
+            => Assert.That(await Validate(HandSeal(Message(), 1, "none", Algorithm: "rsa-sha0")), Is.EqualTo(ArcResult.Fail));
 
         #endregion
 

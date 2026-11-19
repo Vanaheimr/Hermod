@@ -115,27 +115,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 !p.TryGetValue("b", out var signature) || !p.TryGetValue("bh", out var bodyHash))
                 return false;
 
+            if (!IsRsaSha256(p))
+                return false;
+
             var publicKey = await publicKeyResolver(domain, selector, ct);
             if (publicKey is null)
                 return false;
 
-            var algorithm = p.GetValueOrDefault("a", "rsa-sha256");
             var canon     = p.GetValueOrDefault("c", "relaxed/relaxed").Split('/');
             var bodyCanon = canon.Length > 1 ? canon[1].ToLowerInvariant() : canon[0].ToLowerInvariant();
             var hdrCanon  = canon[0].ToLowerInvariant();
 
-            var sha256    = algorithm.Contains("sha256");
             var canonBody = DkimCanonicalization.CanonicalizeBody(body, bodyCanon);
-            var computed  = Convert.ToBase64String(sha256
-                                ? SHA256.HashData(octets.GetBytes(canonBody))
-                                : SHA1.HashData(octets.GetBytes(canonBody)));
+            var computed  = Convert.ToBase64String(SHA256.HashData(octets.GetBytes(canonBody)));
             if (computed != bodyHash)
                 return false;
 
             var signingInput = DkimCanonicalization.BuildHeaderHashInput(
                                    fields, p.GetValueOrDefault("h", "").Split(':'), sigField, hdrCanon);
 
-            return RsaVerify(publicKey, signingInput, signature, sha256 ? HashAlgorithmName.SHA256 : HashAlgorithmName.SHA1);
+            return RsaVerify(publicKey, signingInput, signature, HashAlgorithmName.SHA256);
         }
 
         #endregion
@@ -155,14 +154,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 !tags.TryGetValue("b", out var signature))
                 return false;
 
+            if (!IsRsaSha256(tags))
+                return false;
+
             var publicKey = await publicKeyResolver(domain, selector, ct);
             if (publicKey is null)
                 return false;
 
-            var sha256 = tags.GetValueOrDefault("a", "rsa-sha256").Contains("sha256");
-            return RsaVerify(publicKey, chain.BuildSealSigningInput(set.Instance), signature,
-                             sha256 ? HashAlgorithmName.SHA256 : HashAlgorithmName.SHA1);
+            return RsaVerify(publicKey, chain.BuildSealSigningInput(set.Instance), signature, HashAlgorithmName.SHA256);
         }
+
+        #endregion
+
+        #region (private) IsRsaSha256(tags)
+
+        /// <summary>
+        /// Whether the a= of an AMS or AS is rsa-sha256 - the one algorithm verified here
+        /// (rsa-sha256 if a= is missing). ARC signs as DKIM does, and RFC 8301 §3.1: "rsa-sha1
+        /// MUST NOT be used for signing or verifying" - its signatures "have permanently
+        /// failed evaluation"; an algorithm not known is not verified with another either.
+        /// </summary>
+        private static Boolean IsRsaSha256(Dictionary<String, String> tags)
+            => tags.GetValueOrDefault("a", "rsa-sha256").Equals("rsa-sha256", StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
