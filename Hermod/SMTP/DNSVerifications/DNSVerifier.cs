@@ -609,7 +609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             // Get public key from DNS
             var dkimDomain = $"{selector}._domainkey.{domain}";
-            var dkimRecord = await GetTxtRecordAsync(dkimDomain, "v=DKIM1", ct);
+            var dkimRecord = await GetDkimKeyRecordAsync(dkimDomain, ct);
 
             if (dkimRecord is null)
                 return (DkimResult.Fail, $"No DKIM record found at {dkimDomain}");
@@ -954,6 +954,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 Logger.Log(LogLevel.Debug, $"TXT lookup failed for {domain}: {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// The DKIM key record at selector._domainkey.domain (RFC 6376 §3.6.1): its v= tag is
+        /// "RECOMMENDED, default is "DKIM1"", so a record without one is a key record too; one
+        /// that begins with v= and another value "MUST be discarded". Of several records, the
+        /// first with a p= tag (§6.1.2 lets the verifier choose).
+        /// </summary>
+        private async Task<String?> GetDkimKeyRecordAsync(String domain, CancellationToken ct)
+        {
+            try
+            {
+                var response = await DNSClient.Query(
+                                         DNSServiceName.Parse(domain),
+                                         [ DNSResourceRecordTypes.TXT ],
+                                         CancellationToken: ct
+                                     );
+
+                var records  = response.Answers.
+                                   OfType<TXT>().
+                                   Select(txt => txt.Text).
+                                   Where (IsDkimKeyRecord).
+                                   ToArray();
+
+                return records.FirstOrDefault(record => ParseDkimRecord(record).ContainsKey("p")) ??
+                       records.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Debug, $"TXT lookup failed for {domain}: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Whether a TXT record may be a DKIM key record: it does not begin with a v= tag, or
+        /// that tag is "DKIM1" - compared as a string, "DKIM1.0" is not it (RFC 6376 §3.6.1).
+        /// </summary>
+        internal static Boolean IsDkimKeyRecord(String Record)
+        {
+
+            var first   = Record.Split(';', StringSplitOptions.RemoveEmptyEntries).
+                                 Select(tag => tag.Trim()).
+                                 FirstOrDefault(tag => tag.Length > 0);
+
+            if (first is null)
+                return false;
+
+            var equals  = first.IndexOf('=');
+
+            return equals <= 0 ||
+                   !first[..equals].Trim().Equals("v", StringComparison.Ordinal) ||
+                   first[(equals + 1)..].Trim() == "DKIM1";
+
         }
 
         public async Task<String[]> GetMxRecordsAsync(String domain, CancellationToken ct)
