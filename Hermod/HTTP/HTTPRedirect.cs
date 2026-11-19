@@ -15,37 +15,8 @@
  * limitations under the License.
  */
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
-
-    /// <summary>
-    /// Where a redirect response points, and what the follow-up request should look
-    /// like once the RFC 9110, Section 15.4 rewriting rules have been applied.
-    /// </summary>
-    /// <param name="Scheme">Scheme of the target.</param>
-    /// <param name="Authority">Authority of the target, written as it would appear in <c>:authority</c> (a default port omitted).</param>
-    /// <param name="Path">Path and query of the target; any fragment is dropped, as fragments never travel on the wire.</param>
-    /// <param name="Method">Method for the follow-up request — possibly rewritten to GET.</param>
-    /// <param name="KeepBody">Whether the original request body is replayed (307/308) or dropped (301/302/303).</param>
-    /// <param name="SameOrigin">Whether the target is the same scheme + authority as the request that was redirected.</param>
-    public sealed record HTTPRedirectTarget(URIScheme   Scheme,
-                                            String      Authority,
-                                            String      Path,
-                                            HTTPMethod  Method,
-                                            Boolean     KeepBody,
-                                            Boolean     SameOrigin)
-    {
-
-        /// <summary>
-        /// The target as an absolute URI string, for logging or handing onwards.
-        /// </summary>
-        public override String ToString()
-            => $"{Scheme}://{Authority}{Path}";
-
-    }
-
 
     /// <summary>
     /// Redirect handling (RFC 9110, Section 15.4): resolving <c>Location</c> against
