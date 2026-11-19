@@ -40,6 +40,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private readonly RSA       _privateKey;
         private readonly ILogger   _logger;
 
+        /// <summary>
+        /// The header fields of an ARC set, which no AMS signs (RFC 8617 §4.1.2).
+        /// </summary>
+        private static readonly HashSet<String> arcHeaderFields = new (StringComparer.OrdinalIgnoreCase) {
+                                                                      "ARC-Authentication-Results",
+                                                                      "ARC-Message-Signature",
+                                                                      "ARC-Seal"
+                                                                  };
+
         public ArcSealer(ArcConfig config, ILogger logger)
         {
             _config     = config;
@@ -65,6 +74,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var fields              = DkimCanonicalization.ParseFields(headerBlock);
 
                 var priorChain = ArcChain.Parse(fields);
+
+                // "If the message already contains an Authenticated Received Chain with the most
+                // recent AS reporting "cv=fail", then there is no need to proceed and the
+                // algorithm stops here" (RFC 8617 §5.1 step 2).
+                if (priorChain?.MaxInstance >= 1 &&
+                    fields.Any(field => field.Name.Equals("ARC-Seal", StringComparison.OrdinalIgnoreCase) &&
+                                        ArcChain.InstanceOf(field.RawValue) == priorChain.MaxInstance &&
+                                        ArcChain.ParseTags(field.RawValue).GetValueOrDefault("cv", "").Equals("fail", StringComparison.OrdinalIgnoreCase)))
+                {
+                    _logger.Log(LogLevel.Info, $"ARC sealing skipped: the seal of instance {priorChain.MaxInstance} already says cv=fail");
+                    return message;
+                }
+
+                // "Instance tag values can range from 1-50 (inclusive)" (RFC 8617 §4.2.1): a
+                // chain that already reaches instance 50 gets no further set.
+                if (priorChain?.MaxInstance >= ArcChain.MaxSets)
+                {
+                    _logger.Log(LogLevel.Info, $"ARC sealing skipped: the chain already has instance {priorChain.MaxInstance}, the highest is {ArcChain.MaxSets}");
+                    return message;
+                }
+
+                // "1 more than the highest instance number found" (RFC 8617 §5.1 step 3).
                 var instance   = (priorChain?.MaxInstance ?? 0) + 1;
 
                 // cv: first hop -> none; otherwise the validation result of the received chain.
@@ -83,9 +114,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var canonBody = DkimCanonicalization.CanonicalizeBody(body, "relaxed");
                 var bodyHash  = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(canonBody)));
 
+                // "ARC-related header fields (ARC-Authentication-Results, ARC-Message-Signature,
+                // and ARC-Seal) MUST NOT be included" (RFC 8617 §4.1.2) - whatever the
+                // configuration names.
                 var signedNames = _config.SignedHeaders.Split(':')
                                       .Select(h => h.Trim())
-                                      .Where(h => h.Length > 0 && fields.Any(f => f.Name.Equals(h, StringComparison.OrdinalIgnoreCase)))
+                                      .Where(h => h.Length > 0 && !arcHeaderFields.Contains(h) && fields.Any(f => f.Name.Equals(h, StringComparison.OrdinalIgnoreCase)))
                                       .ToList();
 
                 var amsValue = $"i={instance}; a=rsa-sha256; c=relaxed/relaxed; d={_config.Domain}; s={_config.Selector}; " +
@@ -107,8 +141,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var asValue = $"i={instance}; a=rsa-sha256; d={_config.Domain}; s={_config.Selector}; t={timestamp}; cv={cv}; b=";
                 var asField = Field("ARC-Seal", asValue);
 
-                var sets = new List<ArcSet>(priorChain?.Sets ?? []) { new (instance, asField, amsSignedField, aarField) };
-                var asInput = ArcChain.BuildSealSigningInput(sets, instance);
+                // A failed chain is signed "as if this newest ARC Set was the only set present"
+                // (RFC 8617 §5.1.2) - a malformed one has no deterministic order to sign.
+                var newSet  = new ArcSet(instance, asField, amsSignedField, aarField);
+                var sets    = cv == "fail"
+                                  ? new List<ArcSet> { newSet }
+                                  : new List<ArcSet>(priorChain?.Sets ?? []) { newSet };
+                var asInput = ArcChain.BuildSealSigningInput(sets, sets.Count);
                 var asSig   = Sign(asInput);
                 var asFull  = $"ARC-Seal: {asValue}{Fold(asSig)}";
 

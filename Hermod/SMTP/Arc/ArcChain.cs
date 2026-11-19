@@ -42,12 +42,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public Boolean               WellFormed  { get; }
 
-        public Int32 MaxInstance => Sets.Count;
+        /// <summary>
+        /// The highest instance number found in the chain (RFC 8617 §5.1 step 3: the next
+        /// set's instance "is 1 more than the highest instance number found").
+        /// </summary>
+        public Int32                 MaxInstance { get; }
 
-        private ArcChain(IReadOnlyList<ArcSet> sets, Boolean wellFormed)
+        /// <summary>
+        /// The maximum number of ARC sets (RFC 8617 §5.2 step 1: "The maximum number of ARC
+        /// Sets that can be attached to a message is 50"; §4.2.1: "Instance tag values can
+        /// range from 1-50 (inclusive)").
+        /// </summary>
+        public const Int32 MaxSets = 50;
+
+        private ArcChain(IReadOnlyList<ArcSet> sets, Boolean wellFormed, Int32 maxInstance)
         {
-            Sets       = sets;
-            WellFormed = wellFormed;
+            Sets        = sets;
+            WellFormed  = wellFormed;
+            MaxInstance = maxInstance;
         }
 
         #region Parse(fields)
@@ -69,8 +81,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var n = new[] { MaxKey(seals), MaxKey(sigs), MaxKey(aars) }.Max();
 
+            // More than 50 sets: the chain fails at once (RFC 8617 §5.2 step 1) - and no loop
+            // below ever counts up to an instance number the sender chose.
+            if (n > MaxSets)
+                return new ArcChain([], false, n);
+
             var sets       = new List<ArcSet>();
-            var wellFormed = n >= 1;
+
+            // An ARC header field without a valid instance - a tag-list that is invalid, as
+            // with a tag twice (RFC 6376 §3.2) - belongs to no set: the chain is malformed.
+            var wellFormed = n >= 1 && !seals.ContainsKey(0) && !sigs.ContainsKey(0) && !aars.ContainsKey(0);
 
             for (var i = 1; i <= n; i++)
             {
@@ -87,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
             }
 
-            return new ArcChain(sets, wellFormed && sets.Count == n);
+            return new ArcChain(sets, wellFormed && sets.Count == n, n);
 
         }
 
@@ -137,6 +157,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <summary>
         /// Parse a header value's "k=v; k=v" tag list (shared shape with DKIM/DMARC).
         /// </summary>
+        /// <exception cref="FormatException">A tag occurs twice: "Tags with duplicate names
+        /// MUST NOT occur within a single tag-list; if a tag name does occur more than once,
+        /// the entire tag-list is invalid" (RFC 6376 §3.2, whose tag-lists ARC uses).</exception>
         public static Dictionary<String, String> ParseTags(String value)
         {
             var tags = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
@@ -144,17 +167,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             foreach (var part in normalized.Split(';', StringSplitOptions.RemoveEmptyEntries))
             {
                 var eq = part.IndexOf('=');
-                if (eq > 0)
-                    tags[part[..eq].Trim()] = part[(eq + 1)..].Trim();
+                if (eq > 0 && !tags.TryAdd(part[..eq].Trim(), part[(eq + 1)..].Trim()))
+                    throw new FormatException($"The tag {part[..eq].Trim()} occurs twice: the tag-list is invalid");
             }
             return tags;
         }
 
         /// <summary>
-        /// The i= instance number of an ARC header value, or 0 if absent/invalid.
+        /// The i= instance number of an ARC header value, or 0 if absent/invalid - also when
+        /// the tag-list itself is invalid.
         /// </summary>
         public static Int32 InstanceOf(String value)
-            => ParseTags(value).TryGetValue("i", out var s) && Int32.TryParse(s, out var i) ? i : 0;
+        {
+            try
+            {
+                return ParseTags(value).TryGetValue("i", out var s) && Int32.TryParse(s, out var i) ? i : 0;
+            }
+            catch (FormatException)
+            {
+                return 0;
+            }
+        }
 
         #endregion
 
@@ -165,9 +198,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var map = new Dictionary<Int32, List<DkimHeaderField>>();
             foreach (var f in fields.Where(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
             {
-                var i = InstanceOf(f.RawValue);
-                if (i < 1)
-                    continue;
+                // Without a valid instance - none, or a tag-list that is invalid - under 0.
+                var i = Math.Max(InstanceOf(f.RawValue), 0);
                 if (!map.TryGetValue(i, out var list))
                     map[i] = list = [];
                 list.Add(f);

@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Security.Cryptography;
+using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.SMTP;
@@ -530,6 +531,127 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         public void Which_TXT_records_are_DKIM_key_records(String Record, Boolean IsKeyRecord)
         {
             Assert.That(DNSVerifier.IsDkimKeyRecord(Record), Is.EqualTo(IsKeyRecord));
+        }
+
+        #endregion
+
+
+        #region The signature algorithm (RFC 8301 §3.1)
+
+        /// <summary>
+        /// A DKIM signature of client.example made by hand, relaxed/relaxed over From, To and
+        /// Subject - with any a=, hashed with SHA-256 where a= names it and SHA-1 otherwise, and
+        /// b= first or last. And the key record of its key.
+        /// </summary>
+        private static (String Message, (String Name, String Text) Record) SignByHand(String   Message,
+                                                                                    String   Algorithm,
+                                                                                    Boolean  SignatureFirst = false)
+        {
+
+            using var rsa    = RSA.Create(2048);
+
+            var (head, body) = DkimCanonicalization.Split(Message);
+            var fields       = DkimCanonicalization.ParseFields(head);
+            var hash         = Algorithm.Contains("sha256") ? HashAlgorithmName.SHA256 : HashAlgorithmName.SHA1;
+            var bodyOctets   = Encoding.UTF8.GetBytes(DkimCanonicalization.CanonicalizeBody(body, "relaxed"));
+            var bh           = Convert.ToBase64String(hash == HashAlgorithmName.SHA1 ? SHA1.HashData(bodyOctets) : SHA256.HashData(bodyOctets));
+            var tags         = $"v=1; a={Algorithm}; c=relaxed/relaxed; d=client.example; s=test; h=from:to:subject; bh={bh}";
+
+            String Place(String Signature)
+                => SignatureFirst ? $"b={Signature}; {tags}" : $"{tags}; b={Signature}";
+
+            // RFC 6376 §3.7: the signed header fields, then the DKIM-Signature with b= empty
+            // and without its final CRLF.
+            var input        = new StringBuilder();
+
+            foreach (var name in new[] { "from", "to", "subject" })
+                input.Append(DkimCanonicalization.CanonicalizeHeader(fields.Last(field => field.Name.Equals(name, StringComparison.OrdinalIgnoreCase)), "relaxed")).Append("\r\n");
+
+            input.Append(DkimCanonicalization.CanonicalizeHeader(new DkimHeaderField("DKIM-Signature", " " + Place(""), "DKIM-Signature: " + Place("")), "relaxed"));
+
+            var signature    = Convert.ToBase64String(rsa.SignData(Encoding.UTF8.GetBytes(input.ToString()), hash, RSASignaturePadding.Pkcs1));
+
+            return ($"DKIM-Signature: {Place(signature)}\r\n{Message}",
+                    ("test._domainkey.client.example", $"v=DKIM1; k=rsa; p={Convert.ToBase64String(rsa.ExportSubjectPublicKeyInfo())}"));
+
+        }
+
+        private static readonly (String, String) DmarcNone = ("_dmarc.client.example", "v=DMARC1; p=none");
+
+
+        [Test(Description = "RFC 8301 §3.1: \"Verifiers MUST be able to verify using rsa-sha256\" - a guard for the signature made by hand")]
+        public async Task A_signature_with_rsa_sha256_made_by_hand_passes()
+        {
+
+            var (message, record) = SignByHand(Letter(), "rsa-sha256");
+            await using var server = new Server(DNS: new TxtDNS(DmarcNone, record));
+
+            var reply              = await SendAsIs(server, message);
+
+            Assert.Multiple(() => {
+                Assert.That(reply.Code,                     Is.EqualTo(250), reply.Text);
+                Assert.That(AuthenticationResults(server),  Does.Contain("dkim=pass header.d=client.example").And.Contain("dmarc=pass"));
+            });
+
+        }
+
+        [Test(Description = "RFC 8301 §3.1: \"rsa-sha1 MUST NOT be used for signing or verifying\" - signatures with it \"have permanently failed evaluation\"; and an algorithm not known is not verified with SHA-1 either")]
+        [TestCase("rsa-sha1")]
+        [TestCase("rsa-sha0")]
+        public async Task A_signature_with_rsa_sha1_or_an_unknown_algorithm_does_not_pass(String Algorithm)
+        {
+
+            var (message, record) = SignByHand(Letter(), Algorithm);
+            await using var server = new Server(DNS: new TxtDNS(DmarcNone, record));
+
+            var reply              = await SendAsIs(server, message);
+
+            Assert.Multiple(() => {
+                Assert.That(reply.Code,                     Is.EqualTo(250), reply.Text);
+                Assert.That(AuthenticationResults(server),  Does.Not.Contain("dkim=pass").And.Not.Contain("dmarc=pass"));
+            });
+
+        }
+
+        #endregion
+
+
+        #region The b= tag wherever it stands (RFC 6376 §3.2, §3.7)
+
+        [Test(Description = "RFC 6376 §3.2: the tags of a tag-list come in any order; §3.7: the signature is computed \"with the value of the \"b=\" tag (including all surrounding whitespace) deleted\" - b= as the first tag verifies")]
+        public async Task A_signature_whose_b_tag_comes_first_verifies()
+        {
+
+            var (message, record) = SignByHand(Letter(), "rsa-sha256", SignatureFirst: true);
+            await using var server = new Server(DNS: new TxtDNS(DmarcNone, record));
+
+            Assert.That(message, Does.StartWith("DKIM-Signature: b="));
+
+            var reply              = await SendAsIs(server, message);
+
+            Assert.Multiple(() => {
+                Assert.That(reply.Code,                     Is.EqualTo(250), reply.Text);
+                Assert.That(AuthenticationResults(server),  Does.Contain("dkim=pass header.d=client.example").And.Contain("dmarc=pass"));
+            });
+
+        }
+
+        [Test(Description = "RFC 6376 §3.7: the b= value is deleted wherever b= stands - first, last, folded - and bh= is left as it is")]
+        [TestCase("DKIM-Signature: b=c2ln; bh=Ym9keQ==; d=client.example",           "DKIM-Signature: b=; bh=Ym9keQ==; d=client.example")]
+        [TestCase("DKIM-Signature:b=c2ln;bh=Ym9keQ==",                               "DKIM-Signature:b=;bh=Ym9keQ==")]
+        [TestCase("DKIM-Signature: bh=Ym9keQ==; d=client.example; b=c2ln",           "DKIM-Signature: bh=Ym9keQ==; d=client.example; b=")]
+        [TestCase("DKIM-Signature: d=client.example; b = c2\r\n\tln ; bh=Ym9keQ==",  "DKIM-Signature: d=client.example; b =; bh=Ym9keQ==")]
+        [TestCase("DKIM-Signature:\r\n\tb=c2\r\n\tln; bh=Ym9keQ==",                  "DKIM-Signature:\r\n\tb=; bh=Ym9keQ==")]
+        public void The_b_value_is_removed_wherever_b_stands(String Field, String Expected)
+        {
+
+            var removed = DkimCanonicalization.RemoveSignatureValue(DkimCanonicalization.ParseFields(Field).Single());
+
+            Assert.Multiple(() => {
+                Assert.That(removed.RawField,  Is.EqualTo(Expected));
+                Assert.That(removed.RawValue,  Is.EqualTo(Expected[(Expected.IndexOf(':') + 1)..]));
+            });
+
         }
 
         #endregion

@@ -226,14 +226,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         /// <summary>
         /// Return the DKIM-Signature field with the value of its b= tag removed (tag-boundary
-        /// aware, so a "b=" substring inside e.g. the bh= base64 is never touched).
+        /// aware, so a "b=" substring inside e.g. the bh= base64 is never touched). The tags
+        /// of a tag-list come in any order (RFC 6376 §3.2), and the signature is computed
+        /// "with the value of the "b=" tag (including all surrounding whitespace) deleted"
+        /// (§3.7) - wherever b= stands, also as the first tag of the value.
         /// </summary>
         public static DkimHeaderField RemoveSignatureValue(DkimHeaderField field)
         {
 
-            var rawField = BValueRegex().Replace(field.RawField, "$1$2");
-            var colon    = rawField.IndexOf(':');
-            var rawValue = colon >= 0 ? rawField[(colon + 1)..] : "";
+            // On the value alone: there "^" is the start of the first tag, not of the name.
+            var colon    = field.RawField.IndexOf(':');
+            var rawValue = BValueRegex().Replace(colon >= 0 ? field.RawField[(colon + 1)..] : field.RawValue, "$1$2");
+            var rawField = colon >= 0 ? field.RawField[..(colon + 1)] + rawValue : rawValue;
 
             return new DkimHeaderField(field.Name, rawValue, rawField);
 
@@ -248,7 +252,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         [GeneratedRegex(@"[ \t]+")]
         private static partial Regex WhitespaceRegex();
 
-        // The b= tag only at a tag boundary (start of value or after ';'); keeps "b=", drops its value.
+        // The b= tag only at a tag boundary (start of the value or after ';'); keeps "b=", drops its value.
         [GeneratedRegex(@"(^|;)(\s*b\s*=)[^;]*")]
         private static partial Regex BValueRegex();
 
