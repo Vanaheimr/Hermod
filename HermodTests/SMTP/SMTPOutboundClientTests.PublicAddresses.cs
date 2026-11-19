@@ -139,6 +139,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         [TestCase("100::1",                false, Description = "discard-only")]
         [TestCase("192.0.0.8",             false)]
         [TestCase("198.18.0.1",            false, Description = "benchmarking")]
+        [TestCase("192.0.2.25",            false, Description = "documentation, TEST-NET-1")]
+        [TestCase("198.51.100.25",         false, Description = "documentation, TEST-NET-2")]
+        [TestCase("203.0.113.25",          false, Description = "documentation, TEST-NET-3")]
+        [TestCase("192.0.3.1",             true,  Description = "beside TEST-NET-1")]
+        [TestCase("198.51.101.1",          true,  Description = "beside TEST-NET-2")]
+        [TestCase("203.0.112.1",           true,  Description = "beside TEST-NET-3")]
+        [TestCase("::ffff:203.0.113.25",   false, Description = "TEST-NET-3, mapped")]
+        [TestCase("2002:c633:6419::1",     false, Description = "6to4 of 198.51.100.25")]
         public void Which_addresses_are_the_internets(String Address, Boolean Public)
         {
             Assert.That(PublicAddresses.IsPublic(System.Net.IPAddress.Parse(Address)), Is.EqualTo(Public));
@@ -170,6 +178,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         [TestCase("localhost")]
         [TestCase("10.0.0.25")]
         [TestCase("169.254.169.254")]
+        [TestCase("192.0.2.25",    Description = "documentation (RFC 5737): nobody's network, which no internet route leads to")]
+        [TestCase("203.0.113.25",  Description = "documentation (RFC 5737)")]
         public async Task An_MX_into_the_own_network_is_not_connected_to_and_bounces(String MxHost)
         {
 

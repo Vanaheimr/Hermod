@@ -39,8 +39,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         /// <summary>
         /// Whether an address is one of the internet's: not loopback, private,
-        /// shared (100.64/10), link-local, multicast, unspecified, benchmarking or
-        /// otherwise reserved - also not when it is an IPv4 address of that kind
+        /// shared (100.64/10), link-local, multicast, unspecified, benchmarking,
+        /// documentation (RFC 5737, RFC 3849) or otherwise reserved - also not when it is an IPv4 address of that kind
         /// inside an IPv6 one: mapped (::ffff:0:0/96), compatible (::/96), NAT64
         /// (64:ff9b::/96, 64:ff9b:1::/48), 6to4 (2002::/16) or Teredo (2001::/32),
         /// which a host with such a way out would reach as that IPv4 address.
@@ -96,8 +96,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                      octets[0] == 169 && octets[1] == 254                    ||
                      octets[0] == 172 && octets[1] >= 16 && octets[1] <= 31  ||
                      octets[0] == 192 && octets[1] == 0   && octets[2] == 0  ||
+                     octets[0] == 192 && octets[1] == 0   && octets[2] == 2  ||   // TEST-NET-1 (RFC 5737)
                      octets[0] == 192 && octets[1] == 168                    ||
                      octets[0] == 198 && octets[1] >= 18  && octets[1] <= 19 ||
+                     octets[0] == 198 && octets[1] == 51  && octets[2] == 100 ||  // TEST-NET-2
+                     octets[0] == 203 && octets[1] == 0   && octets[2] == 113 ||  // TEST-NET-3
                      octets[0] >= 224);
 
         }
