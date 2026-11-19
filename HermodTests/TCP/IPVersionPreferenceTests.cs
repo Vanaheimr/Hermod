@@ -295,6 +295,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
         #endregion
 
+        #region AnAddressThatDoesNotAnswer_IsNotWaitedForBeyondTheConnectionAttemptDelay()
+
+        /// <summary>
+        /// The preferred address is 2001:db8::1, from the documentation prefix
+        /// (RFC 3849), which nobody answers; the other one is 127.0.0.1, with a
+        /// listener. RFC 8305 §5: the next attempt starts after the Connection
+        /// Attempt Delay, "Starting a new connection attempt does not affect
+        /// previous attempts" - so the client is through on 127.0.0.1 long before
+        /// the connect to 2001:db8::1 would time out.
+        /// </summary>
+        /// <remarks>
+        /// Where the host has a route for 2001:db8::1, its SYN goes unanswered
+        /// and the attempt hangs: that is the case for the delay. Where it has
+        /// none, as on the GitHub runners, the attempt fails at once and the next
+        /// one starts then. Either way the bound holds, and it would not without
+        /// the second attempt: one connect, to 2001:db8::1 alone, ends in the
+        /// ConnectTimeout at the earliest.
+        /// </remarks>
+        [Test]
+        public async Task AnAddressThatDoesNotAnswer_IsNotWaitedForBeyondTheConnectionAttemptDelay()
+        {
+
+            using var listeners = Listeners.On(System.Net.IPAddress.Loopback);
+
+            using var client    = new TCPClient(
+                                      URL.Parse($"tcp://dual.example:{listeners.Port}"),
+                                      PreferIPv4:      IPVersionPreference.PreferIPv6,
+                                      ConnectTimeout:  TimeSpan.FromSeconds(10)
+                                  );
+
+            client.ResolvedIPAddresses.Add(IPv6Address.Parse("2001:db8::1"));
+            client.ResolvedIPAddresses.Add(IPv4Address.Parse("127.0.0.1"));
+
+            var clock           = Stopwatch.StartNew();
+            var result          = await client.ConnectAsync();
+            clock.Stop();
+
+            Assert.That(clock.Elapsed, Is.LessThan(TimeSpan.FromSeconds(3)), "connected long before the ConnectTimeout of 10 s");
+
+            await AssertReached(client, listeners, "127.0.0.1", result.Errors.Select(error => error.ToString()).AggregateWith(" | "));
+
+        }
+
+        #endregion
+
 
         #region (private) AssertReached(Client, Listeners, Expected, Errors = null)
 
