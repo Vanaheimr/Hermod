@@ -42,12 +42,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public Boolean               WellFormed  { get; }
 
-        public Int32 MaxInstance => Sets.Count;
+        /// <summary>
+        /// The highest instance number found in the chain (RFC 8617 §5.1 step 3: the next
+        /// set's instance "is 1 more than the highest instance number found").
+        /// </summary>
+        public Int32                 MaxInstance { get; }
 
-        private ArcChain(IReadOnlyList<ArcSet> sets, Boolean wellFormed)
+        /// <summary>
+        /// The maximum number of ARC sets (RFC 8617 §5.2 step 1: "The maximum number of ARC
+        /// Sets that can be attached to a message is 50"; §4.2.1: "Instance tag values can
+        /// range from 1-50 (inclusive)").
+        /// </summary>
+        public const Int32 MaxSets = 50;
+
+        private ArcChain(IReadOnlyList<ArcSet> sets, Boolean wellFormed, Int32 maxInstance)
         {
-            Sets       = sets;
-            WellFormed = wellFormed;
+            Sets        = sets;
+            WellFormed  = wellFormed;
+            MaxInstance = maxInstance;
         }
 
         #region Parse(fields)
@@ -69,6 +81,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var n = new[] { MaxKey(seals), MaxKey(sigs), MaxKey(aars) }.Max();
 
+            // More than 50 sets: the chain fails at once (RFC 8617 §5.2 step 1) - and no loop
+            // below ever counts up to an instance number the sender chose.
+            if (n > MaxSets)
+                return new ArcChain([], false, n);
+
             var sets       = new List<ArcSet>();
             var wellFormed = n >= 1;
 
@@ -87,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
             }
 
-            return new ArcChain(sets, wellFormed && sets.Count == n);
+            return new ArcChain(sets, wellFormed && sets.Count == n, n);
 
         }
 
