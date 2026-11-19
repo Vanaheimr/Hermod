@@ -349,6 +349,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region The b= tag wherever it stands
+
+        [Test(Description = "RFC 6376 §3.2: the tags of a tag-list may come in any order; §3.7: the b= value is removed wherever b= stands - b= first in the AMS and the AS of one set, of two, and under a set sealed by ArcSealer")]
+        public async Task A_chain_whose_signatures_come_first_passes()
+        {
+
+            var one    = HandSeal(Message(), 1, "none", SignatureFirst: true);
+            var two    = HandSeal(one,       2, "pass", SignatureFirst: true);
+            var three  = Seal(two);
+
+            Assert.That(Fields(one, AS).Single().RawValue, Does.StartWith(" b="));
+
+            var results = new[] { await Validate(one), await Validate(two), await Validate(three) };
+
+            Assert.That(results, Is.EqualTo(new[] { ArcResult.Pass, ArcResult.Pass, ArcResult.Pass }), "one set, two sets, and a third sealed by ArcSealer");
+
+        }
+
+        #endregion
+
         #region What the sealer seals
 
         [Test(Description = "RFC 8617 §5.1 step 2: \"If the message already contains an Authenticated Received Chain with the most recent AS reporting \"cv=fail\", then there is no need to proceed and the algorithm stops here\" - sealed cv=fail by hand, and by ArcSealer")]

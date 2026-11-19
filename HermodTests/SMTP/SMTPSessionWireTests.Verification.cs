@@ -549,6 +549,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+
+        #region The b= tag wherever it stands (RFC 6376 §3.2, §3.7)
+
+        [Test(Description = "RFC 6376 §3.2: the tags of a tag-list come in any order; §3.7: the signature is computed \"with the value of the \"b=\" tag (including all surrounding whitespace) deleted\" - b= as the first tag verifies")]
+        public async Task A_signature_whose_b_tag_comes_first_verifies()
+        {
+
+            var (message, record) = SignByHand(Letter(), "rsa-sha256", SignatureFirst: true);
+            await using var server = new Server(DNS: new TxtDNS(DmarcNone, record));
+
+            Assert.That(message, Does.StartWith("DKIM-Signature: b="));
+
+            var reply              = await SendAsIs(server, message);
+
+            Assert.Multiple(() => {
+                Assert.That(reply.Code,                     Is.EqualTo(250), reply.Text);
+                Assert.That(AuthenticationResults(server),  Does.Contain("dkim=pass header.d=client.example").And.Contain("dmarc=pass"));
+            });
+
+        }
+
+        [Test(Description = "RFC 6376 §3.7: the b= value is deleted wherever b= stands - first, last, folded - and bh= is left as it is")]
+        [TestCase("DKIM-Signature: b=c2ln; bh=Ym9keQ==; d=client.example",           "DKIM-Signature: b=; bh=Ym9keQ==; d=client.example")]
+        [TestCase("DKIM-Signature:b=c2ln;bh=Ym9keQ==",                               "DKIM-Signature:b=;bh=Ym9keQ==")]
+        [TestCase("DKIM-Signature: bh=Ym9keQ==; d=client.example; b=c2ln",           "DKIM-Signature: bh=Ym9keQ==; d=client.example; b=")]
+        [TestCase("DKIM-Signature: d=client.example; b = c2\r\n\tln ; bh=Ym9keQ==",  "DKIM-Signature: d=client.example; b =; bh=Ym9keQ==")]
+        [TestCase("DKIM-Signature:\r\n\tb=c2\r\n\tln; bh=Ym9keQ==",                  "DKIM-Signature:\r\n\tb=; bh=Ym9keQ==")]
+        public void The_b_value_is_removed_wherever_b_stands(String Field, String Expected)
+        {
+
+            var removed = DkimCanonicalization.RemoveSignatureValue(DkimCanonicalization.ParseFields(Field).Single());
+
+            Assert.Multiple(() => {
+                Assert.That(removed.RawField,  Is.EqualTo(Expected));
+                Assert.That(removed.RawValue,  Is.EqualTo(Expected[(Expected.IndexOf(':') + 1)..]));
+            });
+
+        }
+
+        #endregion
+
     }
 
 }
