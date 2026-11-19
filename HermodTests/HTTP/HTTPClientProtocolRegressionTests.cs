@@ -510,6 +510,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
+        #region A request without content states no length unless its method anticipates content
+
+        /// <summary>
+        /// RFC 9110, Section 8.6: a user agent SHOULD NOT send Content-Length
+        /// when the request has no content and the method anticipates none, and
+        /// SHOULD send it when the method defines a meaning for content, 0
+        /// included. Until H-41 every one of these went out with
+        /// "Content-Length: 0", because the builder's Content setter writes 0
+        /// for null.
+        /// </summary>
+        [TestCase("GET",     false)]
+        [TestCase("HEAD",    false)]
+        [TestCase("DELETE",  false)]
+        [TestCase("OPTIONS", false)]
+        [TestCase("TRACE",   false)]
+        [TestCase("POST",    true)]
+        [TestCase("PUT",     true)]
+        [TestCase("PATCH",   true)]
+        public async Task ARequestWithoutContentStatesNoLengthUnlessItsMethodAnticipatesContent(String   Method,
+                                                                                               Boolean  ExpectLength)
+        {
+
+            using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+
+            var served = Task.Run(async () => {
+
+                using var tcp    = await listener.AcceptTcpClientAsync();
+                var       stream = tcp.GetStream();
+                var       head   = new StringBuilder();
+                var       one    = new Byte[1];
+
+                while (!head.ToString().EndsWith("\r\n\r\n") &&
+                       await stream.ReadAsync(one) == 1)
+                {
+                    head.Append((Char) one[0]);
+                }
+
+                await stream.WriteAsync(Encoding.ASCII.GetBytes("HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n"));
+                await stream.FlushAsync();
+
+                return head.ToString();
+
+            });
+
+            using var httpClient = new HTTPClient(
+                                       URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
+                                       MaxNumberOfRetries: 1
+                                   );
+
+            var response = await httpClient.RunRequest(HTTPMethod.Parse(Method),
+                                                       HTTPPath.Root + "x",
+                                                       RequestTimeout: TimeSpan.FromSeconds(5));
+
+            var request  = await served.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.NoContent));
+                Assert.That(request,                 Does.StartWith($"{Method} /x HTTP/1.1\r\n"));
+                if (ExpectLength)
+                    Assert.That(request, Does.Contain("\r\nContent-Length: 0\r\n"), request);
+                else
+                    Assert.That(request, Does.Not.Contain("Content-Length"),        request);
+            });
+
+        }
+
+        #endregion
+
         #region ARefusedConnection_IsReportedAsSuchOverTLSToo()
 
         /// <summary>
