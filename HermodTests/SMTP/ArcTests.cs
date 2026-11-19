@@ -326,6 +326,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region What the sealer seals
+
+        [Test(Description = "RFC 8617 §5.1 step 2: \"If the message already contains an Authenticated Received Chain with the most recent AS reporting \"cv=fail\", then there is no need to proceed and the algorithm stops here\" - sealed cv=fail by hand, and by ArcSealer")]
+        public void A_chain_that_failed_is_not_sealed_again()
+        {
+
+            var byHand   = HandSeal(Sealed(1), 2, "fail");
+            var bySealer = Sealer().Seal(Sealed(1).Replace("Hello through a list.", "Hello from somebody else."), "relay.example", "arc=fail", ArcResult.Fail);
+
+            Assert.Multiple(() => {
+                Assert.That(Fields(bySealer, AS), Has.Count.EqualTo(2), "a guard: the broken chain got its cv=fail set");
+                Assert.That(Sealer().Seal(byHand,   "relay.example", "arc=fail", ArcResult.Fail), Is.EqualTo(byHand),   "cv=fail sealed by hand");
+                Assert.That(Sealer().Seal(bySealer, "relay.example", "arc=fail", ArcResult.Fail), Is.EqualTo(bySealer), "cv=fail sealed by ArcSealer");
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

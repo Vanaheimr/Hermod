@@ -66,6 +66,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 var priorChain = ArcChain.Parse(fields);
 
+                // "If the message already contains an Authenticated Received Chain with the most
+                // recent AS reporting "cv=fail", then there is no need to proceed and the
+                // algorithm stops here" (RFC 8617 §5.1 step 2).
+                if (priorChain?.MaxInstance >= 1 &&
+                    fields.Any(field => field.Name.Equals("ARC-Seal", StringComparison.OrdinalIgnoreCase) &&
+                                        ArcChain.InstanceOf(field.RawValue) == priorChain.MaxInstance &&
+                                        ArcChain.ParseTags(field.RawValue).GetValueOrDefault("cv", "").Equals("fail", StringComparison.OrdinalIgnoreCase)))
+                {
+                    _logger.Log(LogLevel.Info, $"ARC sealing skipped: the seal of instance {priorChain.MaxInstance} already says cv=fail");
+                    return message;
+                }
+
                 // "Instance tag values can range from 1-50 (inclusive)" (RFC 8617 §4.2.1): a
                 // chain that already reaches instance 50 gets no further set.
                 if (priorChain?.MaxInstance >= ArcChain.MaxSets)
