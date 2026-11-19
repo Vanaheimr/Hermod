@@ -72,8 +72,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private DsnRet?                        _dsnRet;
         private readonly List<RecipientDsn>    _recipientDsns   = [];
 
-        // MT-PRIORITY (RFC 6710)
-        private SByte                          _mtPriority;
+        // MT-PRIORITY (RFC 6710): the priority this server determined (§4.1) - null when MAIL had none
+        private SByte?                         _mtPriority;
 
         // REQUIRETLS support (RFC 8689)
         private bool                           _requireTls;
@@ -737,8 +737,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             _dsnEnvId = envId;
             _dsnRet   = ret;
 
-            // Parse MT-PRIORITY (RFC 6710)
-            _mtPriority = MtPriority.ParseFromMailParams(parameters);
+            // MT-PRIORITY (RFC 6710 §4.1): the server "MUST NOT allow "upgraded" (positive)
+            // priorities from untrusted (e.g., unauthenticated) or unauthorized sources", but MAY
+            // let them lower their own. Trusted is a client that signed in; any other is held at 0.
+            // A priority the server changes it "SHOULD use the X.3.6 Enhanced Status Code" for,
+            // the text beginning with "the new priority, followed by SP".
+            var mailReply = "2.1.0 OK";
+            _mtPriority   = null;
+            if (mailParameters.TryGetValue(MtPriority.Keyword, out var requestedPriority))
+            {
+
+                var priority = MtPriority.Parse(requestedPriority);
+
+                // §4.1: "The received MT-PRIORITY parameter value SHOULD be logged"
+                logger.Log(LogLevel.Info, $"MT-PRIORITY={requestedPriority} from {_clientIp}");
+
+                if (priority > MtPriority.Default && !_authManager.IsAuthenticated)
+                {
+                    priority  = MtPriority.Default;
+                    mailReply = $"2.3.6 {priority} Priority lowered: only a client that signed in may raise it";
+                }
+
+                _mtPriority = priority;
+
+            }
 
             // Parse REQUIRETLS (RFC 8689)
             _requireTls = mailParameters.ContainsKey("REQUIRETLS");
@@ -757,7 +779,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             _bdatBuffer.SetLength(0);
             _state = SMTPSessionState.MailFrom;
 
-            await SendResponseAsync(250, "2.1.0 OK");
+            await SendResponseAsync(250, mailReply);
 
         }
 
@@ -1453,7 +1475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                         TargetDomain = domainGroup.Key,
                         QueuedAt = Timestamp.Now,
                         NextRetry = Timestamp.Now,
-                        Priority = _mtPriority,  // carry MT-PRIORITY (RFC 6710) onto the relay
+                        Priority = _mtPriority ?? MtPriority.Default,  // carry MT-PRIORITY (RFC 6710 §4.2) onto the relay
 
                         // REQUIRETLS (RFC 8689 §5) travels with the message, or the next hop is
                         // free to deliver it without TLS.
@@ -1593,8 +1615,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // for-clause only for a single recipient (RFC 5321 §4.4: omit to avoid disclosing the list)
             var forClause    = _rcptTo.Count == 1 ? $"\r\n\tfor <{_rcptTo[0]}>" : "";
 
+            // RFC 6710 §4.1: the MTA "SHOULD include the "PRIORITY" clause" - Pri = CFWS "PRIORITY"
+            // FWS priority-value (§7), one of the Additional-Registered-Clauses after For (RFC 5321
+            // §4.4). It records the MT-PRIORITY of MAIL (§10), so only when MAIL had one - as this
+            // server determined it, which is the priority it relays with (§4.2).
+            var priorityClause = _mtPriority is { } priority ? $"\r\n\tPRIORITY {priority}" : "";
+
             return $"Received: {fromClause}\r\n" +
-                   $"\tby {config.Hostname} (AchimSMTP) with {protocol} id {id}{forClause};\r\n" +
+                   $"\tby {config.Hostname} (AchimSMTP) with {protocol} id {id}{forClause}{priorityClause};\r\n" +
                    $"\t{timestamp}\r\n";
 
         }
@@ -1680,7 +1708,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             _mailFrom        = null;
             _dsnEnvId        = null;
             _dsnRet          = null;
-            _mtPriority      = 0;
+            _mtPriority      = null;
             _requireTls      = false;
             _smtpUtf8        = false;
             _inBdatSequence  = false;

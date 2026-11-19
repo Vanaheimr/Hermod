@@ -49,7 +49,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
     /// Grammar: <c>esmtp-param = esmtp-keyword ["=" esmtp-value]</c>,
     /// <c>esmtp-keyword = (ALPHA / DIGIT) *(ALPHA / DIGIT / "-")</c>,
     /// <c>esmtp-value = 1*(%d33-60 / %d62-126)</c> - extended to UTF-8 by RFC 6531 §3.3.
-    /// Keywords are case-insensitive; a keyword given twice with different values is an error.
+    /// Keywords are case-insensitive; a keyword given twice with different values is an error,
+    /// and MT-PRIORITY given twice is one whatever the values (RFC 6710 §4.1).
     /// </para>
     /// </remarks>
     public static partial class ESMTPParameters
@@ -65,6 +66,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         // ORCPT (RFC 3461 §4.2): addr-type ";" xtext, with addr-type an atom.
         [GeneratedRegex(@"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+;(.+)$")]
         private static partial Regex OriginalRecipient();
+
+        // MT-PRIORITY (RFC 6710 §7): priority-value = (["-"] NZDIGIT) / "0" - no "+", no "-0", no leading zero.
+        [GeneratedRegex(@"^(?:-?[1-9]|0)$")]
+        private static partial Regex PriorityValue();
 
 
         /// <summary>
@@ -92,9 +97,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 // The same parameter twice with the same value is redundant, not contradictory -
                 // and real: CPython's smtplib adds SMTPUTF8 on its own when an address needs it,
                 // next to the one its caller passed. Two different values are a contradiction.
-                if (!parameters.TryAdd(keyword, value) &&
-                    !String.Equals(parameters[keyword], value, StringComparison.OrdinalIgnoreCase))
-                    return (parameters, new (501, $"5.5.4 Parameter {keyword} given twice with different values"));
+                if (!parameters.TryAdd(keyword, value))
+                {
+
+                    // RFC 6710 §4.1: "if there is more than one MT-PRIORITY parameter in a particular
+                    // MAIL FROM command, the server MUST return an error" - the same value twice too.
+                    if (keyword == "MT-PRIORITY")
+                        return (parameters, new (501, "5.5.4 MT-PRIORITY given more than once"));
+
+                    if (!String.Equals(parameters[keyword], value, StringComparison.OrdinalIgnoreCase))
+                        return (parameters, new (501, $"5.5.4 Parameter {keyword} given twice with different values"));
+
+                }
 
             }
 
@@ -145,8 +159,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                          ? null
                                          : "5.5.4 Invalid ENVID value",
 
-                    // RFC 6710 §3: priority-value = [ "+" / "-" ] 1DIGIT
-                    "MT-PRIORITY" => value is not null && Int32.TryParse(value, out var priority) && priority is >= -9 and <= 9 && value.Length <= 2
+                    // RFC 6710 §7: priority-value = (["-"] NZDIGIT) / "0"; §4.1: a value that is
+                    // not syntactically valid MUST be refused.
+                    "MT-PRIORITY" => value is not null && PriorityValue().IsMatch(value)
                                          ? null
                                          : "5.5.4 Invalid MT-PRIORITY value",
 
