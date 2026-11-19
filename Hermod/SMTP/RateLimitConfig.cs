@@ -48,10 +48,15 @@ public sealed record RateLimitConfig
     public int      MaxAuthAttemptsPerIpPerHour { get; init; } = 10;
 
     /// <summary>
-    /// Maximum recipients accepted in one session, over all its transactions; beyond it
-    /// RCPT is answered 452 4.5.3. Applies to every client, whitelisted or not.
+    /// Maximum recipients accepted in one session, over all its transactions. Once they are
+    /// reached, the next MAIL is answered 421 and the connection closed - like
+    /// <see cref="MaxMessagesPerSession"/>, never in the middle of a message: RFC 5321
+    /// §4.5.3.1.8 wants 100 recipients buffered for each message, and a client to send a
+    /// larger one "in 100-recipient chunks", one transaction after another. The recipients
+    /// of one message are limited by <see cref="SMTPServerConfig.MaxRecipients"/>.
+    /// Applies to every client, whitelisted or not.
     /// </summary>
-    public int      MaxRcptPerSession           { get; init; } = 100;
+    public int      MaxRcptPerSession           { get; init; } = 1000;
 
     /// <summary>
     /// Maximum messages accepted in one session; the next MAIL is answered 421 and the

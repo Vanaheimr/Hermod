@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
@@ -283,20 +284,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                             continue;
                         }
 
-                        // Send rejection message and close
+                        // A 554 instead of the greeting is held open until the client's QUIT
+                        // (RFC 5321 §3.1) - away from this loop, which goes on accepting.
+                        if (rateLimitResult == RateLimitResult.Blacklisted)
+                        {
+                            _sessionTasks.Add(RefuseAsync(client, ct));
+                            continue;
+                        }
+
+                        // A 421 is "closing transmission channel" (RFC 5321 §4.2.2): send it and close.
                         try
                         {
 
-                            var writer = new StreamWriter(client.GetStream()) { AutoFlush = true };
                             var message = rateLimitResult switch {
-                                RateLimitResult.Blacklisted              => "554 5.7.1 Connection refused - blacklisted",
                                 RateLimitResult.TooManyConnections       => "421 4.7.0 Too many connections, try again later",
                                 RateLimitResult.TooManyConnectionsPerIp  => "421 4.7.0 Too many connections from your IP",
                                 RateLimitResult.ConnectionRateExceeded   => "421 4.7.0 Connection rate exceeded, slow down",
                                 _                                        => "421 4.7.0 Connection rejected"
                             };
 
-                            await writer.WriteLineAsync(message);
+                            await WriteReplyAsync(client.GetStream(), message, ct);
 
                         }
                         catch { /* ignore */ }
@@ -343,6 +350,96 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 }
             }
         }
+
+        /// <summary>
+        /// One reply line, ended by CR LF whatever the platform's newline is: RFC 5321 §2.3.8,
+        /// lines are "terminated by the sequence ASCII character "CR" (hex 0D) followed
+        /// immediately by ASCII character "LF" (hex 0A)". A StreamWriter's WriteLine ends
+        /// them in Environment.NewLine - a bare LF on Linux.
+        /// </summary>
+        private static Task WriteReplyAsync(Stream Stream, String Reply, CancellationToken CancellationToken)
+
+            => Stream.WriteAsync(Encoding.ASCII.GetBytes(Reply + "\r\n"), CancellationToken).AsTask();
+
+
+        #region Refusing a client with 554 (RFC 5321 §3.1)
+
+        /// <summary>
+        /// How long a client refused with 554 is waited for, in all: it has nothing to do but
+        /// QUIT. RFC 5321 §4.5.3.2 gives a session minutes; a refused one holds a socket for
+        /// nothing, and a sending MTA says QUIT at once.
+        /// </summary>
+        private static readonly TimeSpan RefusalTimeout   = TimeSpan.FromSeconds(30);
+
+        /// <summary>
+        /// How many commands other than QUIT a client refused with 554 is answered (503)
+        /// before the connection is closed.
+        /// </summary>
+        private const           Int32    RefusalCommands  = 10;
+
+        /// <summary>
+        /// The 554 refusals held open right now; more than <see cref="RateLimitConfig.MaxTotalConnections"/>
+        /// and the next one is closed after its 554, as a session over the limit would be.
+        /// </summary>
+        private                 Int32    _refusalsHeld;
+
+        /// <summary>
+        /// Refuse a client with 554 instead of the greeting. RFC 5321 §3.1: "A server taking
+        /// this approach MUST still wait for the client to send a QUIT (see Section 4.1.1.10)
+        /// before closing the connection and SHOULD respond to any intervening commands with
+        /// "503 bad sequence of commands"." So QUIT is answered 221 and the connection closed,
+        /// every other line 503 5.5.1 - within bounds, so that a refused client holds nothing
+        /// for long: <see cref="RefusalTimeout"/> in all, <see cref="RefusalCommands"/> commands,
+        /// lines of <see cref="SMTPServerConfig.MaxCommandLineLength"/>, and no more refusals
+        /// held at once than <see cref="RateLimitConfig.MaxTotalConnections"/>.
+        /// </summary>
+        private async Task RefuseAsync(TcpClient Client, CancellationToken CancellationToken)
+        {
+
+            var held = Interlocked.Increment(ref _refusalsHeld) <= _rateLimitConfig.MaxTotalConnections;
+
+            try
+            {
+
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                cts.CancelAfter(RefusalTimeout);
+
+                var stream    = Client.GetStream();
+                var reader    = new SMTPLineReader(stream);
+
+                await WriteReplyAsync(stream, "554 5.7.1 Connection refused - blacklisted", cts.Token);
+
+                for (var commands = 0; held && commands < RefusalCommands; commands++)
+                {
+
+                    if (await reader.ReadLineAsync(serverConfig.MaxCommandLineLength, cts.Token) is not { } line)
+                        return;
+
+                    if (line.Status == SMTPLineStatus.Ok &&
+                        line.Text.TrimEnd(' ').Equals("QUIT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await WriteReplyAsync(stream, $"221 2.0.0 {serverConfig.Hostname} closing connection", cts.Token);
+                        return;
+                    }
+
+                    await WriteReplyAsync(stream, "503 5.5.1 Bad sequence of commands", cts.Token);
+
+                }
+
+            }
+            catch
+            {
+                // the client is gone, or its time is up
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _refusalsHeld);
+                Client.Close();
+            }
+
+        }
+
+        #endregion
 
         public async Task Stop()
         {

@@ -277,9 +277,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     break;
 
                 case "AUTH":
+                    // RFC 5321 §4.2.2: 421 is "Service not available, closing transmission
+                    // channel" - the server says it closes the connection, so it does.
                     if (connectionTracker is not null && !connectionTracker.CanAttemptAuth(_clientIp))
                     {
-                        await SendResponseAsync(421, "4.7.0 Too many authentication attempts, try again later");
+                        logger.Log(LogLevel.Warning, $"Too many authentication attempts from {_clientIp}, disconnecting");
+                        await SendResponseAsync(421, "4.7.0 Too many authentication attempts, closing connection");
+                        _state = SMTPSessionState.Quit;
                         return;
                     }
                     await HandleAuthAsync(args, ct);
@@ -662,6 +666,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // The same for recipients. Counted over the session but refused only here, before a
+            // transaction: RFC 5321 §4.5.3.1.8 - "The minimum total number of recipients that
+            // MUST be buffered is 100 recipients" - holds for every message, the second in a
+            // session included, and a client sends a larger one "in 100-recipient chunks".
+            if (_counters.Recipients >= rateLimitConfig.MaxRcptPerSession)
+            {
+                logger.Log(LogLevel.Warning, $"Too many recipients in one session from {_clientIp}, disconnecting");
+                await SendResponseAsync(421, "4.7.0 Too many recipients in this session, closing connection");
+                _state = SMTPSessionState.Quit;
+                return;
+            }
+
             var match = Regex.Match(args, @"FROM:\s*<([^>]*)>", RegexOptions.IgnoreCase);
             if (!match.Success)
             {
@@ -761,15 +777,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // Recipients of this message (RFC 5321 §4.5.3.1.10); those of the whole session are
+            // limited at MAIL, see HandleMailFromAsync.
             if (_rcptTo.Count >= config.MaxRecipients)
             {
                 await SendResponseAsync(452, "4.5.3 Too many recipients");
-                return;
-            }
-
-            if (_counters.Recipients >= rateLimitConfig.MaxRcptPerSession)
-            {
-                await SendResponseAsync(452, "4.5.3 Too many recipients in this session");
                 return;
             }
 
