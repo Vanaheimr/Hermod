@@ -38,7 +38,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         String            Aspf,           // r|s
         DateTimeOffset    WindowBegin,
         DateTimeOffset    WindowEnd,
-        IReadOnlyList<DmarcReportRow> Rows
+        IReadOnlyList<DmarcReportRow> Rows,
+        String            FailureOptions  = "0"   // fo= as published; "0" by default (RFC 7489 §6.3)
     );
 
 }

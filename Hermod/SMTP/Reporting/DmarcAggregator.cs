@@ -46,6 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             public Int32                        Pct          { get; set; } = 100;
             public String                       Adkim        { get; set; } = "r";
             public String                       Aspf         { get; set; } = "r";
+            public String                       Fo           { get; set; } = "0";
             public DateTimeOffset               WindowBegin  { get; set; } = DateTimeOffset.UtcNow;
             public Dictionary<String, RowState> Rows         { get; set; } = [];
         }
@@ -61,6 +62,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             public String   DkimAuthResult { get; set; } = "none";
             public String?  SpfAuthDomain  { get; set; }
             public String   SpfAuthResult  { get; set; } = "none";
+            public String   EnvelopeFrom   { get; set; } = "";
+            public String   SpfAuthScope   { get; set; } = "mfrom";
             public Int64    Count          { get; set; }
         }
 
@@ -113,6 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 window.Pct   = eval.Percent;
                 window.Adkim = eval.StrictDkim ? "s" : "r";
                 window.Aspf  = eval.StrictSpf  ? "s" : "r";
+                window.Fo    = String.IsNullOrWhiteSpace(eval.FailureOptions) ? "0" : eval.FailureOptions.Trim();
 
                 var row = new RowState
                 {
@@ -125,12 +129,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     DkimAuthResult = DkimStr(eval.DkimResult),
                     SpfAuthDomain  = eval.SpfDomain,
                     SpfAuthResult  = SpfStr(eval.SpfResult),
+                    // RFC 7489 Appendix C: <envelope_from> the RFC5321.MailFrom domain, and the
+                    // <scope> of the SPF result - "mfrom", or "helo" for a null reverse-path.
+                    EnvelopeFrom   = eval.EnvelopeFromDomain ?? (eval.SpfOnHelo ? "" : eval.SpfDomain ?? ""),
+                    SpfAuthScope   = eval.SpfOnHelo ? "helo" : "mfrom",
                     Count          = 1
                 };
 
+                // Messages alike in all a record reports are one record; another envelope sender
+                // or another SPF scope is another one.
                 var key = string.Join('|', row.SourceIp, row.Disposition, row.DkimAligned, row.SpfAligned,
                                             row.HeaderFrom, row.DkimAuthDomain, row.DkimAuthResult,
-                                            row.SpfAuthDomain, row.SpfAuthResult);
+                                            row.SpfAuthDomain, row.SpfAuthResult,
+                                            row.EnvelopeFrom, row.SpfAuthScope);
 
                 if (window.Rows.TryGetValue(key, out var existing))
                     existing.Count++;
@@ -180,7 +191,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         Rows:            window.Rows.Values.Select(r => new DmarcReportRow(
                                              r.SourceIp, r.Count, r.Disposition, r.DkimAligned, r.SpfAligned,
                                              r.HeaderFrom, r.DkimAuthDomain, r.DkimAuthResult,
-                                             r.SpfAuthDomain, r.SpfAuthResult)).ToList()
+                                             r.SpfAuthDomain, r.SpfAuthResult,
+                                             r.EnvelopeFrom, r.SpfAuthScope)).ToList(),
+                        FailureOptions:  window.Fo
                     ));
 
                     // Reset this domain's window.

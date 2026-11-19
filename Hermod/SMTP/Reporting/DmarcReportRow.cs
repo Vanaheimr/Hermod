@@ -38,7 +38,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         String?  DkimAuthDomain,
         String   DkimAuthResult,
         String?  SpfAuthDomain,
-        String   SpfAuthResult
+        String   SpfAuthResult,
+        String   EnvelopeFrom   = "",       // RFC5321.MailFrom domain; empty for a null reverse-path
+        String   SpfAuthScope   = "mfrom"   // mfrom|helo  (the identity SPF checked)
     );
 
 }

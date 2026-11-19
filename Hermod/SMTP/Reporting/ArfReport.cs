@@ -35,6 +35,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     public static class ArfReport
     {
 
+        /// <param name="authFailure">The Auth-Failure type (RFC 7489 §7.3.1, RFC 6591 §3.3) - what fo= asked for
+        /// (RFC 7489 §6.3): "dmarc" for a DMARC failure report, "signature" for a DKIM one, "spf" for an SPF one.</param>
         public static String Build(DmarcEvaluation      eval,
                                    System.Net.IPAddress sourceIp,
                                    String          reportedHeaders,
@@ -42,20 +44,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                    String          fromDisplayAddress,
                                    String          toAddress,
                                    String          reportingDomain,
-                                   String          authenticationResults)
+                                   String          authenticationResults,
+                                   String          authFailure = "dmarc")
         {
 
             var boundary  = "arf-" + UUIDv7.Generate().ToString("N");
             var messageId = $"<{UUIDv7.Generate():N}@{reportingDomain}>";
             var date      = DateTimeOffset.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss +0000",
                                                            System.Globalization.CultureInfo.InvariantCulture);
+            var kind      = authFailure switch {
+                                "signature" => "DKIM",
+                                "spf"       => "SPF",
+                                _           => "DMARC"
+                            };
 
             var sb = new StringBuilder();
 
             // Outer message headers
             sb.Append("From: ").Append(fromDisplayAddress).Append("\r\n");
             sb.Append("To: ").Append(toAddress).Append("\r\n");
-            sb.Append("Subject: DMARC failure report for ").Append(eval.HeaderFromDomain).Append("\r\n");
+            sb.Append("Subject: ").Append(kind).Append(" failure report for ").Append(eval.HeaderFromDomain).Append("\r\n");
             sb.Append("Date: ").Append(date).Append("\r\n");
             sb.Append("Message-ID: ").Append(messageId).Append("\r\n");
             sb.Append("Auto-Submitted: auto-generated\r\n");
@@ -67,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // Part 1: human-readable
             sb.Append("--").Append(boundary).Append("\r\n");
             sb.Append("Content-Type: text/plain; charset=utf-8\r\n\r\n");
-            sb.Append("This is a DMARC failure report for a message received from ")
+            sb.Append("This is a ").Append(kind).Append(" failure report for a message received from ")
               .Append(sourceIp).Append("\r\n")
               .Append("claiming to be from the domain ").Append(eval.HeaderFromDomain).Append(".\r\n\r\n");
 
@@ -81,8 +89,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             sb.Append("Arrival-Date: ").Append(date).Append("\r\n");
             sb.Append("Source-IP: ").Append(sourceIp).Append("\r\n");
             sb.Append("Reported-Domain: ").Append(eval.HeaderFromDomain).Append("\r\n");
-            sb.Append("Auth-Failure: dmarc\r\n");
-            sb.Append("Delivered-To: ").Append(toAddress).Append("\r\n");
+            sb.Append("Auth-Failure: ").Append(authFailure).Append("\r\n");
+
+            switch (authFailure)
+            {
+
+                // RFC 6591 §3.2.3: "Required for DKIM Reports" - DKIM-Domain, DKIM-Identity and
+                // DKIM-Selector of "the signature that failed verification".
+                case "signature":
+                    if (FailedSignature(eval) is { } failed)
+                        AppendDkimFields(sb, failed);
+                    break;
+
+                // RFC 6591 §3.2.6: "Required for SPF Reports" - SPF-DNS.
+                case "spf":
+                    if (!String.IsNullOrEmpty(eval.SpfDomain))
+                        AppendSpfDns(sb, eval);
+                    break;
+
+                // A DMARC failure report.
+                default:
+
+                    // RFC 7489 §7.3.1: "Identity-Alignment (REQUIRED ...)" - "a comma-separated list of
+                    // authentication mechanism names that produced an aligned identity, or the keyword
+                    // "none" if none did".
+                    var aligned = new List<String>();
+                    if (eval.DkimAligned) aligned.Add("dkim");
+                    if (eval.SpfAligned)  aligned.Add("spf");
+                    sb.Append("Identity-Alignment: ").Append(aligned.Count > 0 ? String.Join(", ", aligned) : "none").Append("\r\n");
+
+                    // "DKIM-Domain, DKIM-Identity, DKIM-Selector (REQUIRED if the message was signed by
+                    // DKIM)" - of the signature DMARC evaluated: the one that holds, else the first tried.
+                    var signature = eval.DkimSignatures?.FirstOrDefault(signature => signature.Result == DkimResult.Pass &&
+                                                                                     signature.Domain.Equals(eval.DkimDomain, StringComparison.OrdinalIgnoreCase)) ??
+                                    eval.DkimSignatures?.FirstOrDefault();
+                    if (signature is not null)
+                        AppendDkimFields(sb, signature);
+
+                    // "SPF-DNS (REQUIRED)"; RFC 6591 §4: "SPF-DNS:" ( "txt" / "spf" ) ":" domain ":"
+                    // quoted-string - the record SPF evaluated for the domain it checked, or "" where
+                    // that domain has none.
+                    if (!String.IsNullOrEmpty(eval.SpfDomain))
+                        AppendSpfDns(sb, eval);
+                    break;
+
+            }
+
+            // RFC 5965 defines no Delivered-To: field - and the report's own recipient, written
+            // there, is no fact about the reported message.
             if (!string.IsNullOrEmpty(authenticationResults))
                 sb.Append("Authentication-Results: ").Append(authenticationResults).Append("\r\n");
             sb.Append("\r\n");
@@ -99,6 +153,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             return sb.ToString();
 
+        }
+
+        /// <summary>
+        /// The first DKIM signature of the message that failed evaluation - "fail" or
+        /// "permerror" - if the evaluation knows its signatures (RFC 7489 §6.3, fo=d).
+        /// </summary>
+        public static DkimSignatureOutcome? FailedSignature(DmarcEvaluation eval)
+            => eval.DkimSignatures?.FirstOrDefault(signature => signature.Result is DkimResult.Fail or DkimResult.PermError);
+
+        // RFC 6591 §3.2.3, §4: the d=, i= and s= of a signature. DKIM-Identity is
+        // [ local-part ] "@" domain-name: the i= tag, or "@" d= by default (RFC 6376 §3.5).
+        private static void AppendDkimFields(StringBuilder sb, DkimSignatureOutcome signature)
+        {
+            sb.Append("DKIM-Domain: ").  Append(signature.Domain).Append("\r\n");
+            sb.Append("DKIM-Identity: ").Append(signature.AgentOrUserIdentifier).Append("\r\n");
+            if (!String.IsNullOrEmpty(signature.Selector))
+                sb.Append("DKIM-Selector: ").Append(signature.Selector).Append("\r\n");
+        }
+
+        // RFC 6591 §4: spf-dns = "SPF-DNS:" [CFWS] ( "txt" / "spf" ) [CFWS] ":" [CFWS] domain
+        // [CFWS] ":" [CFWS] quoted-string [CFWS] CRLF.
+        private static void AppendSpfDns(StringBuilder sb, DmarcEvaluation eval)
+        {
+            sb.Append("SPF-DNS: txt : ").Append(eval.SpfDomain).Append(" : \"")
+              .Append((eval.SpfRecord ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"")).Append("\"\r\n");
         }
 
         // Ensure the embedded header block uses CRLF line endings.

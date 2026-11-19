@@ -1244,17 +1244,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
                 // === DMARC REPORTING (RFC 7489 §7) ===
                 // Record every DMARC-evaluated message (pass or fail) for aggregate reports;
-                // fire a forensic report for failures. Done here so it runs on all paths,
-                // including the reject/quarantine early-returns below. The disposition is
-                // already baked into the evaluation by the verifier.
+                // hand every one whose policy asks for failure reports (ruf=) to the reporter,
+                // which decides by fo= (RFC 7489 §6.3) - fo=1, d and s report messages that
+                // passed DMARC too. Done here so it runs on all paths, including the
+                // reject/quarantine early-returns below. The disposition is already baked into
+                // the evaluation by the verifier.
                 if (verification.DmarcDetail is { } dmarcEval)
                 {
                     dmarcReportService?.RecordInbound(dmarcEval, _clientIp);
 
-                    if (dmarcEval.Failed && dmarcReportService is not null)
+                    if (!String.IsNullOrEmpty(dmarcEval.Ruf) && dmarcReportService is not null)
                     {
                         var headerBlock = ExtractHeaderBlock(rawMessage);
-                        var authResults = $"{config.Hostname}; dmarc=fail header.from={dmarcEval.HeaderFromDomain}";
+                        var authResults = $"{config.Hostname}; dmarc={(dmarcEval.Failed ? "fail" : "pass")} header.from={dmarcEval.HeaderFromDomain}";
                         // Fire-and-forget: forensic sending does a DNS consent lookup we don't
                         // want to block the inbound DATA acknowledgement on.
                         _ = dmarcReportService.SendForensicAsync(dmarcEval, _clientIp, headerBlock, _mailFrom ?? "", authResults, ct);
