@@ -376,6 +376,119 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region Who receives it
+
+        private const String Consent = "client.example._report._dmarc.reports.example";
+
+        [Test(Description = "RFC 7489 §7.1: a destination outside the policy domain's organization receives reports only if it publishes <policy-domain>._report._dmarc.<destination>")]
+        public async Task An_outside_destination_receives_reports_only_with_its_consent()
+        {
+
+            using var without  = new Reporter("v=DMARC1; p=reject; rua=mailto:dmarc@reports.example");
+            using var with     = new Reporter("v=DMARC1; p=reject; rua=mailto:dmarc@reports.example", (Consent, "v=DMARC1"));
+
+            var refused        = await without.Aggregate(await without.Evaluate(Letter()));
+            var accepted       = await with.   Aggregate(await with.   Evaluate(Letter()));
+
+            Assert.Multiple(() => {
+                Assert.That(refused,                                    Is.Empty);
+                Assert.That(accepted.SelectMany(mail => mail.EnvelopeTo), Is.EqualTo(new[] { "dmarc@reports.example" }));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7489 §7.1: \"If a \"rua\" or \"ruf\" tag is thus discovered, replace the corresponding value extracted from the domain's DMARC policy record with the one found in this record\"")]
+        public async Task The_destinations_own_rua_replaces_the_policy_domains()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; rua=mailto:dmarc@reports.example",
+                                              (Consent, "v=DMARC1; rua=mailto:client-example@reports.example"));
+
+            var queued = await reporter.Aggregate(await reporter.Evaluate(Letter()));
+
+            Assert.That(queued.SelectMany(mail => mail.EnvelopeTo), Is.EqualTo(new[] { "client-example@reports.example" }));
+
+        }
+
+
+        [Test(Description = "RFC 7489 §7.1: the destination's ruf replaces the policy domain's for failure reports")]
+        public async Task The_destinations_own_ruf_replaces_the_policy_domains()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; ruf=mailto:dmarc@reports.example",
+                                              (Consent, "v=DMARC1; ruf=mailto:failures@reports.example"));
+
+            // From an address client.example's SPF record does not name: DMARC fails.
+            var evaluation = await reporter.Evaluate(Letter(), Client: System.Net.IPAddress.Parse("198.51.100.7"));
+            var queued     = await reporter.FailureReport(evaluation, Letter());
+
+            Assert.That(queued.SelectMany(mail => mail.EnvelopeTo), Is.EqualTo(new[] { "failures@reports.example" }));
+
+        }
+
+
+        [Test(Description = "RFC 7489 §7.1: \"if the confirming record includes a URI whose host is again different than the domain publishing that override, the Mail Receiver generating the report MUST NOT generate a report to either the original or the override URI\"")]
+        public async Task A_replacement_on_another_host_is_used_as_little_as_the_original()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; rua=mailto:dmarc@reports.example",
+                                              (Consent, "v=DMARC1; rua=mailto:dmarc@elsewhere.example"));
+
+            Assert.That(await reporter.Aggregate(await reporter.Evaluate(Letter())), Is.Empty);
+
+        }
+
+
+        [Test(Description = "RFC 7489 §7.2.1: \"Any reporting URI that includes a size limitation exceeded by the generated report ... MUST NOT be used\" - !10 is ten octets, and no error report fits either")]
+        public async Task A_destination_whose_size_limit_the_report_exceeds_receives_none()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; rua=mailto:dmarc@client.example!10");
+
+            Assert.That(await reporter.Aggregate(await reporter.Evaluate(Letter())), Is.Empty);
+
+        }
+
+
+        [Test(Description = "RFC 7489 §7.2.1: \"An attempt MUST be made to deliver an aggregate report to every remaining URI\" - the one whose limit, 10m, the report keeps to")]
+        public async Task Only_the_destination_whose_size_limit_the_report_keeps_to_receives_it()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; rua=mailto:small@client.example!10,mailto:large@client.example!10m");
+
+            var queued = await reporter.Aggregate(await reporter.Evaluate(Letter()));
+
+            Assert.That(queued.SelectMany(mail => mail.EnvelopeTo), Is.EqualTo(new[] { "large@client.example" }));
+
+        }
+
+
+        [Test(Description = "RFC 7489 §7.2.1: where \"all provided URIs specify size limits exceeded by the generated record, the Mail Receiver SHOULD send a short report (see Section 7.2.2)\" - with Report-Date, Report-Domain, Report-ID, Report-Size, Submitter and Submitting-URI")]
+        public async Task A_report_too_large_for_every_destination_is_announced_by_a_short_report()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; rua=mailto:dmarc@client.example!2k");
+
+            // Four hundred sources: a report of some kilobytes, even gzipped.
+            var evaluation = await reporter.Evaluate(Letter());
+            var queued     = await reporter.Aggregate([.. Enumerable.Range(0, 400).Select(i => (evaluation, System.Net.IPAddress.Parse($"10.0.{i / 256}.{i % 256}")))]);
+            var mail       = queued.Single();
+            var report     = Headers(mail.MessageContent.Split("\r\n\r\n", 2)[1] + "\r\n");   // its body: fields as of a DSN
+
+            Assert.Multiple(() => {
+                Assert.That(mail.EnvelopeTo,                                   Is.EqualTo(new[] { "dmarc@client.example" }));
+                Assert.That(Headers(mail.MessageContent)["Content-Type"],      Does.StartWith("text/plain"));
+                Assert.That(report.Keys,                                       Is.SupersetOf(new[] { "Report-Date", "Report-Domain", "Report-ID", "Report-Size", "Submitter", "Submitting-URI" }));
+                Assert.That(report.GetValueOrDefault("Report-Domain"),         Is.EqualTo("client.example"));
+                Assert.That(Int64.Parse(report.GetValueOrDefault("Report-Size") ?? "0"), Is.GreaterThan(2048));
+                Assert.That(report.GetValueOrDefault("Submitting-URI"),        Is.EqualTo("mailto:dmarc@client.example"));
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

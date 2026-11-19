@@ -116,43 +116,100 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var reportId = $"{report.PolicyDomain}!{report.WindowBegin.ToUnixTimeSeconds()}!{Guid.NewGuid():N}@{options.ReportingDomain}";
             var xml      = DmarcReportXml.Build(report, options.OrgName, options.ReportFromAddress, reportId);
 
-            foreach (var uri in ParseReportUris(report.Rua))
+            // RFC 7489 §7.2.1: "Any reporting URI that includes a size limitation exceeded by the
+            // generated report (after compression and after any encoding required by the
+            // particular transport mechanism) MUST NOT be used" - the gzipped report in base64.
+            var b64          = WrapBase64(Convert.ToBase64String(Gzip(xml)));
+            var size         = (UInt64) b64.Length;
+            var destinations = await DestinationsAsync(report.PolicyDomain, report.Rua, Aggregate: true, ct);
+            var tooLarge     = new List<String>();
+
+            foreach (var (uri, limit) in destinations)
             {
 
-                var destDomain = AddressDomain(uri);
-                if (destDomain.Length == 0)
-                    continue;
-
-                // RFC 7489 §7.1 external-destination consent.
-                if (!await dnsVerifier.IsExternalReportingAuthorizedAsync(report.PolicyDomain, destDomain, ct))
+                if (size > limit)
                 {
-                    logger.Log(LogLevel.Info, $"DMARC report for {report.PolicyDomain} to {uri} not authorized (no _report._dmarc consent) — skipped");
+                    logger.Log(LogLevel.Info, $"DMARC aggregate report for {report.PolicyDomain} ({size} octets) exceeds the size limit of {uri} ({limit} octets) — skipped");
+                    tooLarge.Add(uri);
                     continue;
                 }
 
-                var message = BuildAggregateMime(report, uri, reportId, xml);
-
-                await mailQueue.EnqueueAsync(new QueuedMail
-                {
-                    Id             = UUIDv7.Generate().ToString("N"),
-                    EnvelopeFrom   = options.ReportFromAddress,
-                    EnvelopeTo     = [uri],
-                    MessageContent = message,
-                    TargetDomain   = destDomain
-                }, ct);
+                await EnqueueAsync(uri, BuildAggregateMime(report, uri, reportId, b64), ct);
 
                 logger.Log(LogLevel.Info, $"DMARC aggregate report for {report.PolicyDomain} ({report.Rows.Count} rows) queued to {uri}");
 
             }
 
+            // RFC 7489 §7.2.1: when "all provided URIs specify size limits exceeded by the generated
+            // record", the Mail Receiver "SHOULD send a short report (see Section 7.2.2) indicating
+            // that a report is available but could not be sent".
+            if (tooLarge.Count > 0 && tooLarge.Count == destinations.Count)
+                await SendErrorReportAsync(report, reportId, size, destinations, ct);
+
         }
 
-        private String BuildAggregateMime(DmarcDomainReport report, String toAddress, String reportId, String xml)
+        /// <summary>
+        /// RFC 7489 §7.2.2: the error report - a text/plain part with Report-Date, Report-Domain,
+        /// Report-ID, Report-Size, Submitter and Submitting-URI - to every mailto destination
+        /// whose own size limit it keeps to.
+        /// </summary>
+        private async Task SendErrorReportAsync(DmarcDomainReport                                  report,
+                                                String                                             reportId,
+                                                UInt64                                             size,
+                                                IReadOnlyList<(String Address, UInt64? SizeLimit)>  destinations,
+                                                CancellationToken                                  ct)
         {
 
-            var gz        = Gzip(xml);
-            var b64       = WrapBase64(Convert.ToBase64String(gz));
-            var filename  = $"{options.ReportingDomain}!{report.PolicyDomain}!{report.WindowBegin.ToUnixTimeSeconds()}!{report.WindowEnd.ToUnixTimeSeconds()}.xml.gz";
+            var date = DateTimeOffset.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss +0000", System.Globalization.CultureInfo.InvariantCulture);
+
+            foreach (var (uri, limit) in destinations)
+            {
+
+                var message = new StringBuilder().
+                                  Append("From: ").Append(options.ReportFromDisplay).Append("\r\n").
+                                  Append("To: ").Append(uri).Append("\r\n").
+                                  Append("Subject: DMARC aggregate report not sent: Report Domain: ").Append(report.PolicyDomain).
+                                      Append(" Submitter: ").Append(options.ReportingDomain).Append(" Report-ID: <").Append(reportId).Append(">\r\n").
+                                  Append("Date: ").Append(date).Append("\r\n").
+                                  Append("Message-ID: <").Append(UUIDv7.Generate().ToString("N")).Append('@').Append(options.ReportingDomain).Append(">\r\n").
+                                  Append("Auto-Submitted: auto-generated\r\n").
+                                  Append("MIME-Version: 1.0\r\n").
+                                  Append("Content-Type: text/plain; charset=us-ascii\r\n").
+                                  Append("\r\n").
+                                  Append("Report-Date: ").Append(date).Append("\r\n").
+                                  Append("Report-Domain: ").Append(report.PolicyDomain).Append("\r\n").
+                                  Append("Report-ID: <").Append(reportId).Append(">\r\n").
+                                  Append("Report-Size: ").Append(size).Append("\r\n").
+                                  Append("Submitter: ").Append(options.ReportingDomain).Append("\r\n").
+                                  Append("Submitting-URI: ").Append(String.Join(", ", destinations.Select(destination => "mailto:" + destination.Address))).Append("\r\n").
+                                  ToString();
+
+                if ((UInt64) message.Length > limit)
+                    continue;
+
+                await EnqueueAsync(uri, message, ct);
+
+                logger.Log(LogLevel.Info, $"DMARC aggregate report for {report.PolicyDomain} too large for every destination; error report queued to {uri}");
+
+            }
+
+        }
+
+        private Task EnqueueAsync(String To, String Message, CancellationToken ct)
+
+            => mailQueue.EnqueueAsync(new QueuedMail {
+                                          Id              = UUIDv7.Generate().ToString("N"),
+                                          EnvelopeFrom    = options.ReportFromAddress,
+                                          EnvelopeTo      = [To],
+                                          MessageContent  = Message,
+                                          TargetDomain    = AddressDomain(To)
+                                      },
+                                      ct);
+
+        private String BuildAggregateMime(DmarcDomainReport report, String toAddress, String reportId, String b64)
+        {
+
+            var filename  =$"{options.ReportingDomain}!{report.PolicyDomain}!{report.WindowBegin.ToUnixTimeSeconds()}!{report.WindowEnd.ToUnixTimeSeconds()}.xml.gz";
             var boundary  = "dmarc-" + UUIDv7.Generate().ToString("N");
             var date      = DateTimeOffset.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss +0000",
                                                            System.Globalization.CultureInfo.InvariantCulture);
@@ -221,34 +278,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 return;
             }
 
-            foreach (var uri in ParseReportUris(eval.Ruf!))
+            foreach (var (uri, limit) in await DestinationsAsync(eval.PolicyDomain, eval.Ruf!, Aggregate: false, ct))
             {
-                var destDomain = AddressDomain(uri);
-                if (destDomain.Length == 0)
-                    continue;
-
-                if (!await dnsVerifier.IsExternalReportingAuthorizedAsync(eval.PolicyDomain, destDomain, ct))
-                {
-                    logger.Log(LogLevel.Info, $"DMARC forensic report to {uri} not authorized — skipped");
-                    continue;
-                }
 
                 var message = ArfReport.Build(eval, sourceIp, reportedHeaders, envelopeFrom,
                                               options.ReportFromDisplay, uri, options.ReportingDomain,
                                               authenticationResults);
 
-                await mailQueue.EnqueueAsync(
-                          new QueuedMail {
-                              Id              = UUIDv7.Generate().ToString("N"),
-                              EnvelopeFrom    = options.ReportFromAddress,
-                              EnvelopeTo      = [uri],
-                              MessageContent  = message,
-                              TargetDomain    = destDomain
-                          },
-                          ct
-                      );
+                // RFC 7489 §6.2: "Each URI can have associated with it a maximum report size that may
+                // be sent to it" - a ruf URI as a rua one.
+                if ((UInt64) Encoding.UTF8.GetByteCount(message) > limit)
+                {
+                    logger.Log(LogLevel.Info, $"DMARC forensic report for {eval.HeaderFromDomain} exceeds the size limit of {uri} — skipped");
+                    continue;
+                }
+
+                await EnqueueAsync(uri, message, ct);
 
                 logger.Log(LogLevel.Info, $"DMARC forensic report for {eval.HeaderFromDomain} queued to {uri}");
+
             }
 
         }
@@ -273,18 +321,102 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         // RFC 7489 §6.2: rua/ruf are comma-separated URIs, each "mailto:addr" with an optional
         // "!size" limit suffix. Only mailto is supported here.
         public static IEnumerable<String> ParseReportUris(String value)
+            => ParseReportDestinations(value).Select(destination => destination.Address);
+
+        /// <summary>
+        /// The mailto addresses of a rua or ruf value, in the order given, each with its size
+        /// limit in octets, or null where it has none. RFC 7489 §6.4: dmarc-uri = URI [ "!"
+        /// 1*DIGIT [ "k" / "m" / "g" / "t" ] ], and §6.4 on the units: "a kilobyte is 2^10, a
+        /// megabyte is 2^20, etc."
+        /// </summary>
+        public static IEnumerable<(String Address, UInt64? SizeLimit)> ParseReportDestinations(String value)
         {
             foreach (var raw in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                var u   = raw;
-                var bang = u.IndexOf('!');
-                if (bang >= 0) u = u[..bang];                      // drop the size limit
-                if (u.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
+
+                var     uri    = raw;
+                UInt64? limit  = null;
+                var     size   = SizeLimit.Match(uri);
+
+                if (size.Success)
                 {
-                    var addr = u[7..].Trim();
-                    if (addr.Contains('@')) yield return addr;
+
+                    uri        = uri[..size.Index];
+                    var shift  = 10 * "kmgt".IndexOf(Char.ToLowerInvariant(size.Groups[2].Value.FirstOrDefault('b'))) + 10;
+                    limit      = UInt64.TryParse(size.Groups[1].Value, out var count) && count <= UInt64.MaxValue >> shift
+                                     ? count << shift
+                                     : UInt64.MaxValue;   // more than anything this reporter writes
+
                 }
+
+                if (uri.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var addr = uri[7..].Trim();
+                    if (addr.Contains('@')) yield return (addr, limit);
+                }
+
             }
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex SizeLimit = new (@"!([0-9]+)([kmgtKMGT]?)$");
+
+        /// <summary>
+        /// The destinations of a report for a policy domain - of its rua or its ruf - in the
+        /// order given, each with its size limit (RFC 7489 §7.2.1). RFC 7489 §7.1: a destination
+        /// outside the policy domain's organizational domain only with its consent; and where
+        /// its own record has a rua or ruf, that replaces the policy domain's: "However, to
+        /// prevent loops or indirect abuse, the overriding URI MUST use the same destination
+        /// host", and "if the confirming record includes a URI whose host is again different
+        /// than the domain publishing that override, the Mail Receiver generating the report
+        /// MUST NOT generate a report to either the original or the override URI".
+        /// </summary>
+        private async Task<IReadOnlyList<(String Address, UInt64? SizeLimit)>> DestinationsAsync(String             PolicyDomain,
+                                                                                                 String             Uris,
+                                                                                                 Boolean            Aggregate,
+                                                                                                 CancellationToken  ct)
+        {
+
+            var destinations = new List<(String Address, UInt64? SizeLimit)>();
+
+            foreach (var destination in ParseReportDestinations(Uris))
+            {
+
+                var host = AddressDomain(destination.Address);
+                if (host.Length == 0)
+                    continue;
+
+                var (authorized, rua, ruf) = await dnsVerifier.CheckExternalReportingAsync(PolicyDomain, host, ct);
+
+                if (!authorized)
+                {
+                    logger.Log(LogLevel.Info, $"DMARC report for {PolicyDomain} to {destination.Address} not authorized (no _report._dmarc consent) — skipped");
+                    continue;
+                }
+
+                var replacement = Aggregate ? rua : ruf;
+
+                if (replacement is null)
+                    destinations.Add(destination);
+
+                else
+                {
+
+                    var overrides = ParseReportDestinations(replacement).ToList();
+
+                    if (overrides.Any(@override => !AddressDomain(@override.Address).Equals(host, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        logger.Log(LogLevel.Info, $"DMARC report for {PolicyDomain}: {host} replaces {destination.Address} with a destination on another host — none used");
+                        continue;
+                    }
+
+                    destinations.AddRange(overrides);
+
+                }
+
+            }
+
+            return [.. destinations.DistinctBy(destination => destination.Address, StringComparer.OrdinalIgnoreCase)];
+
         }
 
         public static String AddressDomain(String address)

@@ -891,14 +891,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             string            policyDomain,
             string            destinationDomain,
             CancellationToken ct = default)
+
+            => (await CheckExternalReportingAsync(policyDomain, destinationDomain, ct)).Authorized;
+
+        /// <summary>
+        /// RFC 7489 §7.1: whether a destination outside the policy domain's organizational
+        /// domain consented to its reports (see <see cref="IsExternalReportingAuthorizedAsync"/>),
+        /// and the rua and ruf its own record carries: "If a "rua" or "ruf" tag is thus
+        /// discovered, replace the corresponding value extracted from the domain's DMARC policy
+        /// record with the one found in this record". A destination within the organizational
+        /// domain consents implicitly and replaces nothing.
+        /// </summary>
+        public async Task<(Boolean Authorized, String? Rua, String? Ruf)> CheckExternalReportingAsync(
+            string            policyDomain,
+            string            destinationDomain,
+            CancellationToken ct = default)
         {
             if (PublicSuffixList.GetOrganizationalDomain(policyDomain)
                     .Equals(PublicSuffixList.GetOrganizationalDomain(destinationDomain), StringComparison.OrdinalIgnoreCase))
-                return true;
+                return (true, null, null);
 
             var authName = $"{policyDomain}._report._dmarc.{destinationDomain}";
             var record   = await GetTxtRecordAsync(authName, "v=DMARC1", ct);
-            return record is not null;
+            if (record is null)
+                return (false, null, null);
+
+            var tags = ParseDmarcRecord(record);
+            return (true, tags.Rua, tags.Ruf);
         }
 
         private static DmarcRecord ParseDmarcRecord(string record)
