@@ -58,6 +58,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             public  DomainName                        Apex     { get; } = DomainName.Parse("island.example.test");
 
+            /// <summary>A name below the apex that is delegated: asked about, it is a referral.</summary>
+            public  DomainName                        Delegated  { get; } = DomainName.Parse("delegated.island.example.test");
+
             public  ConcurrentQueue<DNSResourceRecordTypes>  Queried  { get; } = new ();
 
             public  IPPort                            Port     { get; }
@@ -96,11 +99,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
                         Queried.Enqueue(type);
 
-                        IDNSResourceRecord[] answers     = type == DNSResourceRecordTypes.DNSKEY
+                        // A referral: NoError, nothing in the answer, and the
+                        // delegation's NS records in the authority section, without
+                        // an SOA (RFC 2308 §2.2).
+                        var referral = String.Equals(questions[0].DomainName.FullName.TrimEnd('.'),
+                                                     Delegated.FullName.TrimEnd('.'),
+                                                     StringComparison.OrdinalIgnoreCase);
+
+                        IDNSResourceRecord[] answers     = type == DNSResourceRecordTypes.DNSKEY && !referral
                                                                ? [ key.DNSKEY ]
                                                                : [];
 
-                        IDNSResourceRecord[] authorities = type == DNSResourceRecordTypes.DNSKEY
+                        IDNSResourceRecord[] authorities = referral
+                                                               ? [ new NS(Delegated, DNSQueryClasses.IN, TimeSpan.FromHours(1),
+                                                                          DomainName.Parse("ns.delegated.island.example.test")) ]
+                                                               : type == DNSResourceRecordTypes.DNSKEY
                                                                ? []
                                                                : [
                                                                      new SOA (Apex, DNSQueryClasses.IN, TimeSpan.FromHours(1),
@@ -114,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                                             TransactionId:        request.TransactionId,
                                             QueryOrResponse:      DNSQueryResponse.Response,
                                             Opcode:               0x00,
-                                            AuthoritativeAnswer:  true,
+                                            AuthoritativeAnswer:  !referral,
                                             Truncation:           false,
                                             RecursionDesired:     request.RecursionDesired,
                                             RecursionAvailable:   true,
@@ -224,6 +237,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                 Assert.That(server.Queried,       Is.Empty, "a server was asked what the cache had the answer to");
                 Assert.That(answer.ResponseCode,  Is.EqualTo(DNSResponseCodes.NoError));
                 Assert.That(answer.Answers,       Is.Empty);
+            });
+
+        }
+
+        #endregion
+
+        #region A_Referral_Is_Not_Kept_As_A_NODATA()
+
+        /// <summary>
+        /// A referral is NoError with nothing in the answer section, as a NODATA
+        /// is, and carries the delegation's NS records where a NODATA carries an
+        /// SOA (RFC 2308 §2.2). It is no negative answer, and a second query for
+        /// the name is asked again rather than answered from the cache.
+        /// </summary>
+        /// <remarks>
+        /// The client used to keep it in the NODATA cache all the same, for the
+        /// default negative TTL. That was harmless only while the NODATA cache
+        /// was looked at behind an entry for the name, which the cache never
+        /// made of a response without an SOA; since a NODATA answers on its own,
+        /// the referral was handed out as "no such data".
+        /// </remarks>
+        [Test]
+        public async Task A_Referral_Is_Not_Kept_As_A_NODATA()
+        {
+
+            using var       server = new ZoneApexServer();
+            await using var client = new DNSClient(
+                                         ManualDNSServers:  [ new DNSServerConfig(IPv4Address.Localhost, server.Port) ],
+                                         QueryTimeout:      TimeSpan.FromSeconds(2),
+                                         UseQueryCache:     true
+                                     );
+
+            var name = DNSServiceName.Parse(server.Delegated.FullName);
+
+            var first  = await client.Query(name, [ DNSResourceRecordTypes.A ]);
+            var second = await client.Query(name, [ DNSResourceRecordTypes.A ]);
+
+            Assert.Multiple(() => {
+                Assert.That(first. Authorities.OfType<NS>().Count(), Is.EqualTo(1), "the server answered with a referral");
+                Assert.That(client.DNSCache.IsNoData(name, DNSResourceRecordTypes.A), Is.False,
+                            "a referral is no NODATA, and the cache must not say it is one");
+                Assert.That(server.Queried.Count(type => type == DNSResourceRecordTypes.A), Is.EqualTo(2),
+                            "the second query was answered from the cache, as if the referral had been a NODATA");
+                Assert.That(second.Authorities.OfType<NS>().Count(), Is.EqualTo(1), "and was a referral again");
             });
 
         }

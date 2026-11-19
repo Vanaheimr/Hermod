@@ -1014,14 +1014,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 }
 
                             }
-                            else
+                            // NODATA: NoError but zero answers, and an SOA in the authority
+                            // section. RFC 2308 §2.2: "It is possible to distinguish between
+                            // a NODATA and a referral response by the presence of a SOA record
+                            // in the authority section", and §5: "Negative responses without
+                            // SOA records SHOULD NOT be cached". A referral is NoError with
+                            // zero answers too, and kept as NODATA it would answer for a name
+                            // whose data is merely served elsewhere - since the NODATA cache
+                            // answers on its own, without the entry for the name the cache
+                            // never made of a response without an SOA.
+                            else if (firstResponse.Authorities.OfType<SOA>().Any())
                             {
 
-                                // NODATA: NoError but zero answers — cache per (domain, type)
-                                // so that a NODATA for AAAA does not suppress valid A records.
-                                // RFC 2308 §4 sets the lifetime from min(SOA MINIMUM, SOA TTL);
-                                // reading only the record's TTL ignores the MINIMUM field that
-                                // RFC 2308 repurposed for precisely this.
+                                // Cached per (domain, type), so that a NODATA for AAAA does not
+                                // suppress valid A records. RFC 2308 §4 sets the lifetime from
+                                // min(SOA MINIMUM, SOA TTL); reading only the record's TTL
+                                // ignores the MINIMUM field that RFC 2308 repurposed for
+                                // precisely this.
                                 var noDataTTL = DNSCache.ComputeNegativeCacheTTL(firstResponse);
 
                                 foreach (var recordType in resourceRecordTypes)
