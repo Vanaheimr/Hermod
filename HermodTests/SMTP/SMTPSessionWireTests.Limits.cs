@@ -239,6 +239,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+
+        private static Server BlacklistingServer()
+
+            => new (RateLimits: new RateLimitConfig {
+                                    AuthFailDelayMs  = 0,
+                                    WhitelistedIps   = [],
+                                    BlacklistedIps   = [ "127.0.0.1" ]
+                                });
+
+
+        [Test(Description = "RFC 5321 §3.1: after a 554 greeting the server \"MUST still wait for the client to send a QUIT ... before closing the connection and SHOULD respond to any intervening commands with \"503 bad sequence of commands\"\"")]
+        public async Task After_554_the_server_waits_for_QUIT()
+        {
+
+            await using var server = BlacklistingServer();
+            using var wire         = new Wire(new TcpClient("127.0.0.1", server.Port));
+
+            var greeting           = await wire.ReplyAsync();
+            Assert.That(greeting.Code,                                  Is.EqualTo(554));
+
+            await wire.SendAsync("EHLO client.example\r\n");
+            var ehlo               = await wire.ReplyAsync();
+            Assert.That(ehlo.Code,                                      Is.EqualTo(503));
+            Assert.That(ehlo.Text,                                      Does.StartWith("5.5.1 "));
+
+            Assert.That(await wire.CommandAsync("MAIL FROM:<sender@client.example>"), Is.EqualTo(503));
+            Assert.That(await wire.CommandAsync("QUIT"),                Is.EqualTo(221));
+            Assert.That(await ClosedAsync(wire),                        Is.True, "QUIT closes the connection");
+
+        }
+
+
+        [Test(Description = "RFC 5321 §3.1: a client refused with 554 is waited for - but not forever: ten commands other than QUIT, then the connection is closed")]
+        public async Task A_client_refused_with_554_is_answered_ten_commands_only()
+        {
+
+            await using var server = BlacklistingServer();
+            using var wire         = new Wire(new TcpClient("127.0.0.1", server.Port));
+
+            Assert.That((await wire.ReplyAsync()).Code, Is.EqualTo(554));
+
+            for (var i = 1; i <= 10; i++)
+                Assert.That(await wire.CommandAsync("NOOP"), Is.EqualTo(503), $"command {i}");
+
+            Assert.That(await ClosedAsync(wire), Is.True, "closed after the tenth");
+
+        }
+
+
+        [Test(Description = "RFC 5321 §4.2.2: 421 is \"closing transmission channel\" - a connection refused at accept with 421 is closed at once, not held like one refused with 554")]
+        public async Task A_connection_refused_with_421_is_closed_at_once()
+        {
+
+            await using var server = new Server(RateLimits: new RateLimitConfig {
+                                                                AuthFailDelayMs              = 0,
+                                                                MaxConnectionsPerIp          = 1,
+                                                                WhitelistedIps               = []
+                                                            });
+            using var first        = await server.ConnectAsync();
+            using var wire         = new Wire(new TcpClient("127.0.0.1", server.Port));
+
+            Assert.That((await wire.ReplyAsync()).Code, Is.EqualTo(421));
+            Assert.That(await ClosedAsync(wire),        Is.True, "421 closes the connection");
+
+        }
+
         #endregion
 
     }

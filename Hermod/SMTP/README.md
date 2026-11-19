@@ -237,6 +237,12 @@ TLS state). See the [core transport](#core-smtp--esmtp-transport) and
   the connection closed - a `421` always closes it (RFC 5321 §4.2.2).
 - `MaxConnectionsPerIp`, `MaxConnectionsPerIpPerMinute`, `MaxTotalConnections`
   and `MaxMessagesPerIpPerHour` (unauthenticated only) apply per address.
+  A connection over the first three is answered `421 4.7.0` and closed.
+- A client in `BlacklistedIps` is answered `554 5.7.1` instead of the greeting
+  and, as RFC 5321 §3.1 wants, the connection is held for its `QUIT` (`221`);
+  every other command is `503 5.5.1`. Bounded: 30 s and 10 commands, then the
+  connection is closed; past `MaxTotalConnections` refusals held at once, the
+  next is closed right after its `554`.
 
 `WhitelistedIps` (default: the loopback addresses) skips the per-address limits;
 the per-session limits and the `AUTH` delay apply to every client.
