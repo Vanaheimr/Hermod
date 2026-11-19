@@ -443,6 +443,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         #endregion
 
 
+        #region Failure reports (RFC 7489 §6.3, §7.3)
+
+        [Test(Description = "RFC 7489 §6.3: fo=1 - \"Generate a DMARC failure report if any underlying authentication mechanism produced something other than an aligned \"pass\" result\" - DMARC passed on DKIM, SPF did not")]
+        public async Task With_fo_1_the_server_reports_a_message_that_passed_DMARC_on_DKIM_alone()
+        {
+
+            var key = DkimKey.Make("client.example");
+
+            // client.example has no SPF record: SPF says none, DMARC passes on the signature.
+            await using var server = new Server(DNS:       new TxtDNS(("_dmarc.client.example", "v=DMARC1; p=reject; ruf=mailto:ruf@client.example; fo=1"), key.Record),
+                                                WithQueue: true,
+                                                Configure: config => config with { EnableDmarcReporting = true, EnableDmarcForensic = true });
+
+            var reply = await SendAsIs(server, key.Signer.SignMessage(Letter()));
+
+            // The report is queued in the background.
+            IReadOnlyList<QueuedMail> queued = [];
+            for (var attempt = 0; attempt < 50 && queued.Count == 0; attempt++)
+            {
+                await Task.Delay(100);
+                queued = await server.Queue!.GetWaitingAsync();
+            }
+
+            Assert.Multiple(() => {
+                Assert.That(reply.Code,                                  Is.EqualTo(250), reply.Text);
+                Assert.That(queued.SelectMany(mail => mail.EnvelopeTo),  Is.EqualTo(new[] { "ruf@client.example" }), "a failure report");
+                Assert.That(queued.FirstOrDefault()?.MessageContent,     Does.Contain("Auth-Failure: dmarc").And.Contain("Identity-Alignment: dkim"));
+            });
+
+        }
+
+        #endregion
+
+
         #region The DKIM key record (RFC 6376 §3.6.1)
 
         [Test]

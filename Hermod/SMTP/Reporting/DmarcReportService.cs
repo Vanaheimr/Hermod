@@ -251,10 +251,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #region SendForensicAsync(eval, ...)  — RUF
 
         /// <summary>
-        /// Emit a forensic (failure) report for one DMARC-failing message, if forensic
-        /// reporting is enabled, the policy requests <c>ruf</c>, <c>fo</c> is not disabled, the
+        /// Emit the failure reports the policy's <c>fo</c> asks for one evaluated message - passed
+        /// or failed - if forensic reporting is enabled, the policy requests <c>ruf</c>, the
         /// destination consents, and the per-domain hourly budget is not exhausted.
         /// </summary>
+        /// <param name="authenticationResults">The Authentication-Results of the DMARC result;
+        /// its authserv-id is that of a DKIM or SPF failure report too.</param>
         public async Task SendForensicAsync(DmarcEvaluation      eval,
                                             System.Net.IPAddress sourceIp,
                                             String            reportedHeaders,
@@ -263,14 +265,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             CancellationToken ct = default)
         {
 
-            if (!options.EnableForensic || !eval.Failed || string.IsNullOrEmpty(eval.Ruf))
+            if (!options.EnableForensic || string.IsNullOrEmpty(eval.Ruf))
                 return;
 
-            // fo=none-equivalent? The default "0" reports when all mechanisms fail (which is the
-            // case for a DMARC failure); we send unless fo explicitly requests nothing usable.
-            var fo = eval.FailureOptions?.Trim();
-            if (fo is not null && fo.Length == 0)
-                fo = null;
+            var failures = RequestedFailureReports(eval);
+            if (failures.Count == 0)
+                return;
 
             if (!ClaimForensicBudget(eval.PolicyDomain))
             {
@@ -278,28 +278,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 return;
             }
 
+            var authservId = authenticationResults.Split(';')[0].Trim();
+            if (authservId.Length == 0)
+                authservId = options.ReportingDomain;
+
             foreach (var (uri, limit) in await DestinationsAsync(eval.PolicyDomain, eval.Ruf!, Aggregate: false, ct))
             {
-
-                var message = ArfReport.Build(eval, sourceIp, reportedHeaders, envelopeFrom,
-                                              options.ReportFromDisplay, uri, options.ReportingDomain,
-                                              authenticationResults);
-
-                // RFC 7489 §6.2: "Each URI can have associated with it a maximum report size that may
-                // be sent to it" - a ruf URI as a rua one.
-                if ((UInt64) Encoding.UTF8.GetByteCount(message) > limit)
+                foreach (var failure in failures)
                 {
-                    logger.Log(LogLevel.Info, $"DMARC forensic report for {eval.HeaderFromDomain} exceeds the size limit of {uri} — skipped");
-                    continue;
+
+                    // RFC 6591 §3.1: the Authentication-Results "MUST reflect only a single
+                    // authentication method's result" - the one the report is about.
+                    var results = failure switch {
+                                      "signature" => $"{authservId}; dkim={DkimResultText(eval)}" +
+                                                         (ArfReport.FailedSignature(eval)?.Domain is { } d ? $" header.d={d}" : ""),
+                                      "spf"       => $"{authservId}; spf={SpfResultText(eval.SpfResult)} smtp.{(eval.SpfOnHelo ? "helo" : "mailfrom")}={(eval.SpfOnHelo ? eval.SpfDomain : envelopeFrom)}",
+                                      _           => authenticationResults
+                                  };
+
+                    var message = ArfReport.Build(eval, sourceIp, reportedHeaders, envelopeFrom,
+                                                  options.ReportFromDisplay, uri, options.ReportingDomain,
+                                                  results, failure);
+
+                    // RFC 7489 §6.2: "Each URI can have associated with it a maximum report size that may
+                    // be sent to it" - a ruf URI as a rua one.
+                    if ((UInt64) Encoding.UTF8.GetByteCount(message) > limit)
+                    {
+                        logger.Log(LogLevel.Info, $"DMARC forensic report for {eval.HeaderFromDomain} exceeds the size limit of {uri} — skipped");
+                        continue;
+                    }
+
+                    await EnqueueAsync(uri, message, ct);
+
+                    logger.Log(LogLevel.Info, $"DMARC forensic report ({failure}) for {eval.HeaderFromDomain} queued to {uri}");
+
                 }
-
-                await EnqueueAsync(uri, message, ct);
-
-                logger.Log(LogLevel.Info, $"DMARC forensic report for {eval.HeaderFromDomain} queued to {uri}");
-
             }
 
         }
+
+        /// <summary>
+        /// The failure reports fo= asks for (RFC 7489 §6.3), a colon-separated list, "0" by
+        /// default - each an Auth-Failure type (RFC 7489 §7.3.1, RFC 6591 §3.3):
+        /// "0: Generate a DMARC failure report if all underlying authentication mechanisms fail
+        /// to produce an aligned "pass" result"; "1: ... if any underlying authentication
+        /// mechanism produced something other than an aligned "pass" result"; "d: Generate a DKIM
+        /// failure report if the message had a signature that failed evaluation, regardless of
+        /// its alignment"; "s: Generate an SPF failure report if the message failed SPF
+        /// evaluation, regardless of its alignment".
+        /// </summary>
+        public static IReadOnlyList<String> RequestedFailureReports(DmarcEvaluation eval)
+        {
+
+            var fo = (eval.FailureOptions ?? "").Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).
+                                                 Select(option => option.ToLowerInvariant()).
+                                                 ToHashSet();
+            if (fo.Count == 0)
+                fo.Add("0");
+
+            var reports = new List<String>();
+
+            if ((fo.Contains("0") && !eval.SpfAligned && !eval.DkimAligned) ||
+                (fo.Contains("1") && (!eval.SpfAligned || !eval.DkimAligned)))
+                reports.Add("dmarc");
+
+            if (fo.Contains("d") && (ArfReport.FailedSignature(eval) is not null ||
+                                     (eval.DkimSignatures is null && eval.DkimResult is DkimResult.Fail or DkimResult.PermError)))
+                reports.Add("signature");
+
+            if (fo.Contains("s") && eval.SpfResult is SPFResult.Fail or SPFResult.SoftFail or SPFResult.PermError)
+                reports.Add("spf");
+
+            return reports;
+
+        }
+
+        private static String DkimResultText(DmarcEvaluation eval)
+            => (ArfReport.FailedSignature(eval)?.Result ?? eval.DkimResult) == DkimResult.PermError ? "permerror" : "fail";
+
+        private static String SpfResultText(SPFResult result) => result switch {
+            SPFResult.Fail      => "fail",
+            SPFResult.SoftFail  => "softfail",
+            SPFResult.PermError => "permerror",
+            SPFResult.TempError => "temperror",
+            SPFResult.Neutral   => "neutral",
+            SPFResult.Pass      => "pass",
+            _                   => "none"
+        };
 
         private bool ClaimForensicBudget(string domain)
         {

@@ -590,6 +590,124 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region What fo= asks for (RFC 7489 §6.3)
+
+        [Test(Description = "RFC 7489 §6.3: fo=0, the default - \"Generate a DMARC failure report if all underlying authentication mechanisms fail to produce an aligned \"pass\" result\": DMARC passed, so none")]
+        public async Task With_fo_0_a_message_that_passed_DMARC_is_not_reported()
+        {
+
+            var key            = DkimKey.Make();
+            using var reporter = new Reporter("v=DMARC1; p=reject; ruf=mailto:ruf@client.example", key.Record);
+
+            // SPF fails, the signature holds.
+            var message    = key.Sign(Letter());
+            var evaluation = await reporter.Evaluate(message, Client: elsewhere);
+
+            Assert.That(await reporter.FailureReport(evaluation, message), Is.Empty);
+
+        }
+
+
+        [Test(Description = "RFC 7489 §6.3: fo=1 - \"Generate a DMARC failure report if any underlying authentication mechanism produced something other than an aligned \"pass\" result\" - DMARC passed on DKIM, SPF failed")]
+        public async Task With_fo_1_a_failing_SPF_is_reported_although_DMARC_passed()
+        {
+
+            var key            = DkimKey.Make();
+            using var reporter = new Reporter("v=DMARC1; p=reject; ruf=mailto:ruf@client.example; fo=1", key.Record);
+
+            var message    = key.Sign(Letter());
+            var evaluation = await reporter.Evaluate(message, Client: elsewhere);
+            var queued     = await reporter.FailureReport(evaluation, message);
+
+            Assert.Multiple(() => {
+                Assert.That(evaluation.Failed,                                                   Is.False, "DMARC passed");
+                Assert.That(queued,                                                              Has.Count.EqualTo(1));
+                Assert.That(queued.Select(Feedback).FirstOrDefault()?.GetValueOrDefault("Auth-Failure"),       Is.EqualTo("dmarc"));
+                Assert.That(queued.Select(Feedback).FirstOrDefault()?.GetValueOrDefault("Identity-Alignment"), Is.EqualTo("dkim"));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7489 §6.3: fo=d - \"Generate a DKIM failure report if the message had a signature that failed evaluation, regardless of its alignment\" - RFC 6591 §3.2.3: with DKIM-Domain, DKIM-Identity, DKIM-Selector")]
+        public async Task With_fo_d_a_failed_signature_is_reported_in_a_DKIM_failure_report()
+        {
+
+            var key            = DkimKey.Make();
+            using var reporter = new Reporter("v=DMARC1; p=reject; ruf=mailto:ruf@client.example; fo=d", key.Record);
+
+            // SPF passes, DMARC with it; the signature is broken.
+            var message    = key.Sign(Letter(), Broken: true);
+            var evaluation = await reporter.Evaluate(message);
+            var queued     = await reporter.FailureReport(evaluation, message);
+            var feedback   = queued.Select(Feedback).FirstOrDefault() ?? new Dictionary<String, String>();
+
+            Assert.Multiple(() => {
+                Assert.That(evaluation.Failed,                                    Is.False, "DMARC passed");
+                Assert.That(queued,                                               Has.Count.EqualTo(1));
+                Assert.That(feedback.GetValueOrDefault("Auth-Failure"),           Is.EqualTo("signature"));
+                Assert.That(feedback.GetValueOrDefault("DKIM-Domain"),            Is.EqualTo("client.example"));
+                Assert.That(feedback.GetValueOrDefault("DKIM-Selector"),          Is.EqualTo("test"));
+                Assert.That(feedback.GetValueOrDefault("Authentication-Results"), Is.EqualTo("mx.hermod.test; dkim=fail header.d=client.example"),
+                                                                                  "RFC 6591 §3.1: \"it MUST reflect only a single authentication method's result\"");
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7489 §6.3: fo=s - \"Generate an SPF failure report if the message failed SPF evaluation, regardless of its alignment\" - RFC 6591 §3.2.6: with SPF-DNS")]
+        public async Task With_fo_s_a_failed_SPF_is_reported_in_an_SPF_failure_report()
+        {
+
+            var key            = DkimKey.Make();
+            using var reporter = new Reporter("v=DMARC1; p=reject; ruf=mailto:ruf@client.example; fo=s", key.Record);
+
+            // SPF fails; DMARC passes on the signature.
+            var message    = key.Sign(Letter());
+            var evaluation = await reporter.Evaluate(message, Client: elsewhere);
+            var queued     = await reporter.FailureReport(evaluation, message);
+            var feedback   = queued.Select(Feedback).FirstOrDefault() ?? new Dictionary<String, String>();
+
+            Assert.Multiple(() => {
+                Assert.That(queued,                                               Has.Count.EqualTo(1));
+                Assert.That(feedback.GetValueOrDefault("Auth-Failure"),           Is.EqualTo("spf"));
+                Assert.That(feedback.GetValueOrDefault("SPF-DNS"),                Is.EqualTo($"txt : client.example : \"{SpfPass}\""));
+                Assert.That(feedback.GetValueOrDefault("Authentication-Results"), Is.EqualTo("mx.hermod.test; spf=fail smtp.mailfrom=sender@client.example"));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7489 §6.3: \"The value of this tag is a colon-separated list\" - fo=d:s asks for a DKIM and an SPF failure report, and no DMARC one")]
+        public async Task With_fo_d_s_a_message_failing_both_gets_a_DKIM_and_an_SPF_failure_report()
+        {
+
+            var key            = DkimKey.Make();
+            using var reporter = new Reporter("v=DMARC1; p=reject; ruf=mailto:ruf@client.example; fo=d:s", key.Record);
+
+            var message    = key.Sign(Letter(), Broken: true);
+            var evaluation = await reporter.Evaluate(message, Client: elsewhere);
+            var queued     = await reporter.FailureReport(evaluation, message);
+
+            Assert.That(queued.Select(mail => Feedback(mail).GetValueOrDefault("Auth-Failure")), Is.EquivalentTo(new[] { "signature", "spf" }));
+
+        }
+
+
+        [Test(Description = "RFC 7489 §6.3: fo=d reports a signature that failed - an unsigned message that passed DMARC has none")]
+        public async Task With_fo_d_an_unsigned_message_is_not_reported()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; ruf=mailto:ruf@client.example; fo=d");
+
+            var evaluation = await reporter.Evaluate(Letter());
+
+            Assert.That(await reporter.FailureReport(evaluation, Letter()), Is.Empty);
+
+        }
+
+        #endregion
+
     }
 
 }

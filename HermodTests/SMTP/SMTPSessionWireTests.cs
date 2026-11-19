@@ -114,6 +114,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public readonly UInt16         Port;
             public readonly UInt16         SubmissionPort;
 
+            /// <summary>
+            /// The queue of relayed mail - and of the reports the server sends - if it has one.
+            /// </summary>
+            public readonly FileMailQueue? Queue;
+
             private readonly SMTPServer    server;
             private readonly Task          running;
             private readonly String        directory;
@@ -157,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                                  new QuietLogger(),
                                                  userStore:           UserStore,
                                                  // Relayed mail waits there; nothing takes it out.
-                                                 mailQueue:           WithQueue ? new FileMailQueue(directory, new QuietLogger()) : null,
+                                                 mailQueue:           Queue = WithQueue ? new FileMailQueue(directory, new QuietLogger()) : null,
                                                  rateLimitConfig:     RateLimits ?? new RateLimitConfig { AuthFailDelayMs = 0 },
                                                  mailStorage:         Storage,
                                                  recipientValidator:  RecipientValidator,
