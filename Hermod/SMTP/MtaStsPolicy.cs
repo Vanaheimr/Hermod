@@ -34,6 +34,12 @@ public sealed partial record MtaStsPolicy
     public TimeSpan        MaxAge      { get; init; } = TimeSpan.Zero;
     public DateTimeOffset  FetchedAt   { get; init; } = Timestamp.Now;
     public String?         PolicyId    { get; init; }
+
+    /// <summary>
+    /// The policy as its Policy Host served it, one entry per non-empty line: the
+    /// "policy-string" of a TLS-RPT report (RFC 8460 §4.5).
+    /// </summary>
+    public IReadOnlyList<String> Lines { get; init; } = [];
     public Boolean         IsValid
         => Mode != MtaStsMode.None && IsFresh;
 

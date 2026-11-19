@@ -210,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                     (Byte) Usage, (Byte) TLSA_Selector.SubjectPublicKeyInfo, (Byte) TLSA_MatchingType.SHA256,
                     SHA256.HashData(Certificate.PublicKey.ExportSubjectPublicKeyInfo()));
 
-        private static async Task<SendResult> SendWithDane(NextHop NextHop, SignedDns Dns)
+        private static async Task<SendResult> SendWithDane(NextHop NextHop, SignedDns Dns, Action<TlsRptEvent>? TlsRptRecorder = null)
         {
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
@@ -227,7 +227,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                                 },
                                                 null,
                                                 Dns,
-                                                new QuietLogger());
+                                                new QuietLogger(),
+                                                TlsRptRecorder);
 
             var result = await client.SendAsync("next.example", "sender@client.example", [ "you@next.example" ], "Subject: dane\r\n\r\nhello\r\n", ct: cts.Token);
 

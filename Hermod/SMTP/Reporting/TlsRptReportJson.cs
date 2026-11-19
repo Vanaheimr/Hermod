@@ -64,6 +64,12 @@ public static class TlsRptReportJson
 
                 w.WriteStartObject("policy");
                 w.WriteString("policy-type", policy.PolicyType);
+                // RFC 8460 §4.4: "An encoding of the applied policy as a JSON array of strings" -
+                // an empty one when no policy was found, or the applied one is not known.
+                w.WriteStartArray("policy-string");
+                foreach (var line in policy.PolicyString ?? [])
+                    w.WriteStringValue(line);
+                w.WriteEndArray();
                 if (policy.MxHosts.Count > 0)
                 {
                     w.WriteStartArray("mx-host");

@@ -21,6 +21,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Illias;
@@ -33,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 /// Resolves and caches the TLS-RPT policy (<c>_smtp._tls.&lt;domain&gt;</c> TXT record,
 /// <c>v=TLSRPTv1; rua=...</c>) of a domain (RFC 8460 §3).
 /// </summary>
-public sealed class TlsRptResolver(IDNSClient dnsClient, ILogger logger)
+public sealed partial class TlsRptResolver(IDNSClient dnsClient, ILogger logger)
 {
 
     private readonly Dictionary<String, (TlsRptPolicy Policy, DateTimeOffset Expires)> cache = new (StringComparer.OrdinalIgnoreCase);
@@ -71,15 +72,19 @@ public sealed class TlsRptResolver(IDNSClient dnsClient, ILogger logger)
                                      CancellationToken: ct
                                  ).ConfigureAwait(false);
 
-            var record = response.Answers
-                                 .OfType<TXT>()
-                                 .Select(txt => txt.Text)
-                                 .FirstOrDefault(t => t.Contains("v=TLSRPTv1", StringComparison.OrdinalIgnoreCase));
+            // RFC 8460 §3: "records that do not begin with "v=TLSRPTv1;" are discarded. If the
+            // number of resulting records is not one, senders MUST assume the recipient domain does
+            // not implement TLSRPT." TXT.Text is the record's strings concatenated without spaces,
+            // as the RFC asks.
+            var records = response.Answers
+                                  .OfType<TXT>()
+                                  .Select(txt => txt.Text)
+                                  .Where (text => TlsRptVersion().IsMatch(text))
+                                  .ToList();
 
-            if (record is null)
-                return TlsRptPolicy.None;
-
-            return Parse(record);
+            return records.Count == 1
+                       ? Parse(records[0])
+                       : TlsRptPolicy.None;
         }
         catch (Exception ex)
         {
@@ -89,28 +94,30 @@ public sealed class TlsRptResolver(IDNSClient dnsClient, ILogger logger)
     }
 
     /// <summary>
-    /// Parse a TLS-RPT record: "v=TLSRPTv1; rua=mailto:a@b,https://c/d" (RFC 8460 §3).
+    /// Parse a TLS-RPT record: "v=TLSRPTv1; rua=mailto:a@b,https://c/d" (RFC 8460 §3). The
+    /// version comes first, and it and the "rua=" key are case-sensitive (%s); a field of
+    /// another name is an extension, and ignored.
     /// </summary>
     public static TlsRptPolicy Parse(String record)
     {
 
-        String? rua = null;
-        var version = false;
+        if (!TlsRptVersion().IsMatch(record))
+            return TlsRptPolicy.None;
 
-        foreach (var part in record.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        String? rua = null;
+
+        foreach (var part in record.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Skip(1))
         {
             var eq = part.IndexOf('=');
             if (eq < 0) continue;
             var key = part[..eq].Trim();
             var val = part[(eq + 1)..].Trim();
 
-            if (key.Equals("v", StringComparison.OrdinalIgnoreCase))
-                version = val.Equals("TLSRPTv1", StringComparison.OrdinalIgnoreCase);
-            else if (key.Equals("rua", StringComparison.OrdinalIgnoreCase))
+            if (key == "rua")
                 rua = val;
         }
 
-        if (!version || rua is null)
+        if (rua is null)
             return TlsRptPolicy.None;
 
         var mailto = new List<String>();
@@ -130,5 +137,9 @@ public sealed class TlsRptResolver(IDNSClient dnsClient, ILogger logger)
         return new TlsRptPolicy(mailto, https);
 
     }
+
+    // tlsrpt-version, then a field-delim: %s"v=TLSRPTv1" *WSP ";"
+    [GeneratedRegex(@"^v=TLSRPTv1[ 	]*;")]
+    private static partial Regex TlsRptVersion();
 
 }
