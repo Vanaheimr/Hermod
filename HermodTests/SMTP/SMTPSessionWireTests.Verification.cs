@@ -160,6 +160,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
+        [Test(Description = "RFC 7489 §6.6.4: \"If the email is not subject to the \"reject\" policy (due to the \"pct\" tag), the Mail Receiver SHOULD treat the email as though the \"quarantine\" policy applies\" - pct=0 selects no message")]
+        public async Task Under_p_reject_with_pct_0_a_failing_message_is_quarantined()
+        {
+
+            await using var server = new Server(DNS: new TxtDNS(("_dmarc.client.example", "v=DMARC1; p=reject; pct=0")));
+
+            var reply = await SendFromClientExample(server);
+
+            Assert.Multiple(() => {
+                Assert.That(reply.Code,                        Is.EqualTo(250), reply.Text);
+                Assert.That(server.Storage.Messages.Single(),  Does.Contain("X-DMARC-Quarantine: true"), "not quarantined, as if p=none");
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7489 §6.6.4: \"If the email is not subject to the \"quarantine\" policy (due to the \"pct\" tag), the Mail Receiver SHOULD apply local message classification as normal\"")]
+        public async Task Under_p_quarantine_with_pct_0_a_failing_message_is_not_quarantined()
+        {
+
+            await using var server = new Server(DNS: new TxtDNS(("_dmarc.client.example", "v=DMARC1; p=quarantine; pct=0")));
+
+            var reply = await SendFromClientExample(server);
+
+            Assert.Multiple(() => {
+                Assert.That(reply.Code,                        Is.EqualTo(250), reply.Text);
+                Assert.That(server.Storage.Messages.Single(),  Does.Not.Contain("X-DMARC-Quarantine"));
+            });
+
+        }
+
+
         /// <summary>
         /// Send one message with the given envelope sender and header; the reply to its end of data.
         /// </summary>

@@ -848,12 +848,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         }
 
         // pct% of failing messages get the published policy; the remainder are demoted one
-        // step: reject -> quarantine, quarantine -> none (RFC 7489 §6.6.4).
+        // step: reject -> quarantine, quarantine -> none (RFC 7489 §6.6.4: "If the email is not
+        // subject to the "reject" policy (due to the "pct" tag), the Mail Receiver SHOULD treat
+        // the email as though the "quarantine" policy applies"). pct=0 selects no message, so
+        // under p=reject every one is quarantined - not let through as under p=none.
         private static string ApplyPct(string policy, int percent)
         {
             if (percent >= 100) return policy;
-            if (percent <= 0)   return "none";
-            if (Random.Shared.Next(100) < percent) return policy;
+            if (percent >  0 && Random.Shared.Next(100) < percent) return policy;
 
             return policy switch {
                 "reject"     => "quarantine",
