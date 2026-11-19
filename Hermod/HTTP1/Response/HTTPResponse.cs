@@ -715,6 +715,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </remarks>
         public IReadOnlyList<HTTPResponse>  InformationalResponses    { get; internal set; } = [];
 
+        /// <summary>
+        /// The targets the client followed to arrive at this response, in order,
+        /// when its MaxRedirects let it follow any (RFC 9110, Section 15.4). Empty
+        /// for a response that was not reached through a redirect.
+        /// </summary>
+        public IReadOnlyList<String>        RedirectChain             { get; internal set; } = [];
+
         #endregion
 
         #region Constructor(s)

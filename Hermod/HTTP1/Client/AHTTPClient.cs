@@ -22,6 +22,7 @@ using System.Buffers;
 using System.Net.Sockets;
 using System.Net.Security;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -65,6 +66,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         private readonly  SemaphoreSlim  sendRequestSemaphore = new (1, 1);
+
+        private readonly  Object                    authenticatorLock = new ();
+        private           HTTPClientAuthenticator?  authenticator;
+        private           HTTPClientCredentials?    authenticatorCredentials;
         private           CancellationTokenSource?  backgroundConnectionRenewalCTS;
         private           Task?                     backgroundConnectionRenewalTask;
         private           Int32                     backgroundConnectionRenewalGeneration;
@@ -174,6 +179,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// and can turn a delivered response into an error.
         /// </summary>
         public Boolean        VerifyDigests             { get; set; }
+
+        /// <summary>
+        /// Credentials to answer a 401 (Unauthorized) with (RFC 9110, Section 11):
+        /// the request is sent once more, carrying an Authorization field built
+        /// from the server's WWW-Authenticate challenge, Digest preferred, then
+        /// Bearer, then Token, then Basic. Null, the default, leaves the 401 to the
+        /// caller, as the HTTP/2 client does with its option of the same name.
+        ///
+        /// Nothing is sent preemptively: credentials go out in answer to a
+        /// challenge, once, and to the origin that issued it. A request that
+        /// already carries an Authorization field is not answered for, since the
+        /// caller has chosen its credentials, and neither is one whose body a
+        /// chunk worker writes, since that body cannot be sent a second time.
+        /// </summary>
+        public HTTPClientCredentials?  Credentials      { get; set; }
+
+        /// <summary>
+        /// How many redirections to follow (RFC 9110, Section 15.4). Zero, the
+        /// default, hands the 3xx to the caller.
+        ///
+        /// 301, 302, 303, 307 and 308 are followed, with the method and the body
+        /// rewritten as HTTPRedirect says. Only while the target stays on this
+        /// client's origin: an AHTTPClient is one connection to one origin, and
+        /// a Location elsewhere is handed back unfollowed, with the 3xx intact,
+        /// as the HTTP/2 client does. That boundary is also what keeps
+        /// <see cref="Credentials"/> safe, since no hop can carry an
+        /// Authorization field to an origin that did not ask for it. The targets
+        /// followed are on HTTPResponse.RedirectChain.
+        /// </summary>
+        public Byte                    MaxRedirects     { get; set; }
 
         public Boolean        Connected
             => IsHTTPConnected;
@@ -907,6 +942,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         /// <summary>
         /// Send the given HTTP Request to the server and receive the HTTP Response.
+        ///
+        /// With <see cref="Credentials"/> a 401 is answered once, and with
+        /// <see cref="MaxRedirects"/> a redirection on this origin is followed;
+        /// each hop is answered by the same 401 logic, so a redirect into an
+        /// authenticated area still works. Without either this is one request.
         /// </summary>
         /// <param name="Request">The HTTP Request to send.</param>
         public async Task<HTTPResponse>
@@ -920,6 +960,277 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         TimeSpan?                  RequestTimeout                        = null,
                         UInt16?                    MaxNumberOfRetries                    = null,
                         CancellationToken          CancellationToken                     = default)
+
+        {
+
+            Task<HTTPResponse> Send(HTTPRequest OneRequest)
+
+                => SendOneRequest(
+                       OneRequest,
+                       ConsumeResponseChunkedTEImmediately,
+                       RequestLogDelegate,
+                       ResponseLogDelegate,
+                       MaxSemaphoreWaitTime,
+                       RequestTimeout,
+                       MaxNumberOfRetries,
+                       CancellationToken
+                   );
+
+            var maxRedirects  = MaxRedirects;
+            var request       = Request;
+            var response      = await SendAnsweringChallenge(request, Send, CancellationToken).ConfigureAwait(false);
+
+            List<String>? chain = null;
+
+            for (var hop = 0; hop < maxRedirects; hop++)
+            {
+
+                // The request that was redirected, not the one that answered a
+                // challenge on the way: Digest signs the request-target, so an
+                // Authorization field computed for this hop is wrong for the next,
+                // and a request carrying one is not answered for again.
+                if (!TryFollowRedirect(request, response, out var next, out var target))
+                {
+                    break;
+                }
+
+                (chain ??= []).Add(target.ToString());
+
+                request  = next;
+                response = await SendAnsweringChallenge(request, Send, CancellationToken).ConfigureAwait(false);
+
+                response.RedirectChain = [.. chain];
+
+            }
+
+            return response;
+
+        }
+
+        #endregion
+
+        #region (private) SendAnsweringChallenge (Request, Send, CancellationToken)
+
+        /// <summary>
+        /// One request, sent once more with an Authorization field when it is
+        /// answered with a 401 whose challenge <see cref="Credentials"/> can meet
+        /// (RFC 9110, Section 11.6.1). Once: a second 401 says the credentials are
+        /// wrong, and sending them again would only earn a third. The request sent
+        /// again is the same one, so the authority cannot change between the
+        /// challenge and the answer.
+        /// </summary>
+        private async Task<HTTPResponse> SendAnsweringChallenge(HTTPRequest                            Request,
+                                                                Func<HTTPRequest, Task<HTTPResponse>>  Send,
+                                                                CancellationToken                      CancellationToken)
+        {
+
+            var response     = await Send(Request).ConfigureAwait(false);
+            var credentials  = Credentials;
+
+            if (response.HTTPStatusCode.Code != 401 ||
+                credentials is null                 ||
+                HasBodyOnTheConnection(response)    ||
+                FieldLines(Request, HTTPRequestHeaderField.Authorization.Name).Length > 0 ||
+                !HasReplayableBody(Request))
+            {
+                return response;
+            }
+
+            var challenges = FieldLines(response, HTTPResponseHeaderField.WWWAuthenticate.Name);
+
+            if (challenges.Length == 0)
+                return response;
+
+            var authorization = AuthenticatorFor(credentials).Answer(
+                                    challenges,
+                                    Request.HTTPMethod,
+                                    Request.RequestTarget
+                                );
+
+            if (authorization is null)
+                return response;
+
+            var answered = new HTTPRequest.Builder(Request);
+            answered.SetHeaderField(HTTPRequestHeaderField.Authorization.Name, authorization);
+
+            return await Send(answered.AsImmutable).ConfigureAwait(false);
+
+        }
+
+        /// <summary>
+        /// The authenticator for these credentials. It keeps the Digest nonce
+        /// count, which RFC 7616 requires to increase with every request made
+        /// with one nonce, so it lives as long as the credentials it was built
+        /// for rather than as long as one request.
+        /// </summary>
+        private HTTPClientAuthenticator AuthenticatorFor(HTTPClientCredentials Credentials)
+        {
+            lock (authenticatorLock)
+            {
+
+                if (authenticator is null || !ReferenceEquals(authenticatorCredentials, Credentials))
+                {
+                    authenticator             = new HTTPClientAuthenticator(Credentials);
+                    authenticatorCredentials  = Credentials;
+                }
+
+                return authenticator;
+
+            }
+        }
+
+        #endregion
+
+        #region (private) TryFollowRedirect      (Request, Response, out Next, out Target)
+
+        /// <summary>
+        /// The request that follows a redirection (RFC 9110, Section 15.4), or
+        /// false when there is none to follow: a status that is not a redirect,
+        /// a body still on the connection, no Location or more than one, a target
+        /// on another origin, or a 307 or 308 asking to send again a body that a
+        /// chunk worker wrote.
+        /// </summary>
+        private Boolean TryFollowRedirect(HTTPRequest                                   Request,
+                                          HTTPResponse                                  Response,
+                                          [NotNullWhen(true)] out HTTPRequest?          Next,
+                                          [NotNullWhen(true)] out HTTPRedirectTarget?   Target)
+        {
+
+            Next    = null;
+            Target  = null;
+
+            var status = (Int32) Response.HTTPStatusCode.Code;
+
+            if (!HTTPRedirect.IsRedirect(status) ||
+                HasBodyOnTheConnection(Response))
+            {
+                return false;
+            }
+
+            // Two Location lines name two targets, and following either would be a
+            // guess (RFC 9110, Section 10.2.2 defines the field as one URI).
+            var locations  = FieldLines(Response, HTTPResponseHeaderField.Location.Name);
+            var hosts      = FieldLines(Request,  HTTPRequestHeaderField.Host.Name);
+
+            if (locations.Length != 1 || hosts.Length != 1)
+                return false;
+
+            // The base a relative Location resolves against is the request as it
+            // was addressed: this client's scheme and the Host it sent.
+            if (!HTTPRedirect.TryResolve(
+                     status,
+                     locations[0],
+                     RemoteURL.Scheme?.EnforcesTLS == true ? URIScheme.https : URIScheme.http,
+                     hosts[0],
+                     Request.RequestTarget,
+                     Request.HTTPMethod,
+                     out var target
+                 ) ||
+                !target.SameOrigin ||
+                (target.KeepBody && !HasReplayableBody(Request)))
+            {
+                return false;
+            }
+
+            var query    = target.Path.IndexOf('?');
+            var builder  = new HTTPRequest.Builder(Request) {
+                               HTTPMethod   = target.Method,
+                               Path         = HTTPPath.Parse(query < 0 ? target.Path : target.Path[..query]),
+                               QueryString  = query < 0 ? QueryString.Empty : QueryString.Parse(target.Path[(query + 1)..])
+                           };
+
+            // A follow-up without the body must not go on describing one: a GET
+            // still carrying the POST's Content-Length would be malformed, and
+            // RFC 9110, Section 15.4 has the fields about the content go with it.
+            if (!target.KeepBody)
+            {
+
+                builder.Content        = null;
+                builder.ContentStream  = null;
+
+                foreach (var fieldName in ContentFieldNames)
+                    builder.RemoveHeaderField(fieldName);
+
+            }
+
+            Next    = builder.AsImmutable;
+            Target  = target;
+
+            return true;
+
+        }
+
+        /// <summary>
+        /// The request fields that describe the content, which a follow-up that
+        /// drops it drops with it.
+        /// </summary>
+        private static readonly String[] ContentFieldNames = [
+                                                                 "Content-Length",
+                                                                 "Content-Type",
+                                                                 "Content-Encoding",
+                                                                 "Content-Language",
+                                                                 "Content-Location",
+                                                                 "Content-Digest",
+                                                                 "Repr-Digest",
+                                                                 "Transfer-Encoding",
+                                                                 "Expect"
+                                                             ];
+
+        #endregion
+
+        #region (private) Helpers
+
+        /// <summary>
+        /// Whether the request's body, if it has one, can be sent a second time:
+        /// an array can, what a chunk worker writes cannot.
+        /// </summary>
+        private static Boolean HasReplayableBody(HTTPRequest Request)
+
+            => !(Request.IsChunkedTransferEncoding && Request.UseChunkWorker);
+
+        /// <summary>
+        /// The field lines of one field, as they arrived. The header section keeps
+        /// a repeated field as an array.
+        /// </summary>
+        private static String[] FieldLines(AHTTPPDU PDU, String FieldName)
+
+            => PDU.TryGetHeaderField(FieldName, out var value)
+                   ? value switch {
+                         String    line   => [ line ],
+                         String[]  lines  => lines,
+                         _                => [ value.ToString() ?? "" ]
+                     }
+                   : [];
+
+        /// <summary>
+        /// Whether the response's body is still on the connection rather than
+        /// read. This client reads every body but an event stream's, and an event
+        /// stream need never end: the connection is the stream's now, and the
+        /// response is handed back as it is, neither followed nor answered.
+        /// </summary>
+        private static Boolean HasBodyOnTheConnection(HTTPResponse Response)
+
+            => Response.HTTPBodyStream is not null;
+
+        #endregion
+
+        #region (private) SendOneRequest         (Request, ...)
+
+        /// <summary>
+        /// Send the given HTTP Request to the server and receive the HTTP Response,
+        /// once, as it is: no challenge answered and no redirect followed.
+        /// </summary>
+        /// <param name="Request">The HTTP Request to send.</param>
+        private async Task<HTTPResponse>
+
+            SendOneRequest(HTTPRequest                Request,
+                           Boolean?                   ConsumeResponseChunkedTEImmediately   = null,
+                           ClientRequestLogHandler?   RequestLogDelegate                    = null,
+                           ClientResponseLogHandler?  ResponseLogDelegate                   = null,
+                           TimeSpan?                  MaxSemaphoreWaitTime                  = null,
+                           TimeSpan?                  RequestTimeout                        = null,
+                           UInt16?                    MaxNumberOfRetries                    = null,
+                           CancellationToken          CancellationToken                     = default)
 
         {
 
