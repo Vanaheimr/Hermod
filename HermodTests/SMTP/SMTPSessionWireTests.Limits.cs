@@ -36,8 +36,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         private const String FailingAuth = "AUTH SCRAM-SHA-256 bm90IGEgc2NyYW0gbWVzc2FnZQ==";
 
 
-        [Test]
-        public async Task MaxRcptPerSession_counts_the_recipients_of_every_transaction()
+        /// <summary>
+        /// True when the server closes the connection within the window, without another
+        /// reply - a read that times out is a connection still open.
+        /// </summary>
+        private static async Task<Boolean> ClosedAsync(Wire Wire, TimeSpan? Window = null)
+        {
+
+            var window    = Window ?? TimeSpan.FromSeconds(5);
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                return await Wire.TryReplyAsync(window) is null && stopwatch.Elapsed < window;
+            }
+            catch (IOException)
+            {
+                return true;    // reset by the server
+            }
+
+        }
+
+
+        [Test(Description = "RFC 5321 §4.5.3.1.8: \"The minimum total number of recipients that MUST be buffered is 100 recipients\" - for every message, the second in a session too")]
+        public async Task A_second_message_in_the_session_takes_its_own_recipients()
+        {
+
+            // The server's default limits.
+            await using var server = new Server();
+            using var wire         = await server.ConnectAsync();
+
+            Assert.That(await wire.CommandAsync("EHLO client.example"), Is.EqualTo(250));
+
+            foreach (var message in new[] { "b", "c" })
+            {
+
+                Assert.That(await wire.CommandAsync("MAIL FROM:<sender@client.example>"), Is.EqualTo(250), $"MAIL of message {message}");
+
+                for (var i = 1; i <= 60; i++)
+                    Assert.That(await wire.CommandAsync($"RCPT TO:<alice+{message}{i}@hermod.test>"), Is.EqualTo(250), $"recipient {i} of message {message}");
+
+                Assert.That(await wire.CommandAsync("RSET"), Is.EqualTo(250));
+
+            }
+
+        }
+
+
+        [Test(Description = "RFC 5321 §4.5.3.1.8: a client sends a larger message \"in 100-recipient chunks\" - the session's recipient limit ends the session at the next MAIL with 421, it never cuts a message short")]
+        public async Task MaxRcptPerSession_ends_the_session_at_the_next_MAIL()
         {
 
             await using var server = new Server(RateLimits: new RateLimitConfig { AuthFailDelayMs = 0, MaxRcptPerSession = 2 });
@@ -45,12 +92,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             await OpenTransaction(wire);                                                  // one recipient
             Assert.That(await wire.CommandAsync("RCPT TO:<bob@hermod.test>"),   Is.EqualTo(250));
-            Assert.That(await wire.CommandAsync("RCPT TO:<carol@hermod.test>"), Is.EqualTo(452));
 
-            // A new transaction does not start the count again.
-            Assert.That(await wire.CommandAsync("RSET"),                                    Is.EqualTo(250));
-            Assert.That(await wire.CommandAsync("MAIL FROM:<sender@client.example>"),       Is.EqualTo(250));
-            Assert.That(await wire.CommandAsync("RCPT TO:<carol@hermod.test>"),             Is.EqualTo(452));
+            // Past the session's limit - but this message is not cut short.
+            Assert.That(await wire.CommandAsync("RCPT TO:<carol@hermod.test>"), Is.EqualTo(250));
+            Assert.That(await wire.CommandAsync("DATA"),                         Is.EqualTo(354));
+            Assert.That(await wire.CommandAsync("Subject: one\r\n\r\nbody\r\n."), Is.EqualTo(250));
+
+            // The next transaction is not started.
+            Assert.That(await wire.CommandAsync("MAIL FROM:<sender@client.example>"), Is.EqualTo(421));
+            Assert.That(await ClosedAsync(wire),                                      Is.True, "421 closes the connection");
+            Assert.That(server.Storage.Envelopes.Single().To,                        Has.Count.EqualTo(3));
 
         }
 
