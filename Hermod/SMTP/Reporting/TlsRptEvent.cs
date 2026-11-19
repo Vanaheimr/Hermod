@@ -32,7 +32,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 /// <summary>
 /// One outbound TLS session outcome, fed to the TLS-RPT aggregator (RFC 8460).
 /// </summary>
-/// <param name="PolicyDomain">The recipient (next-hop) domain whose TLS-RPT policy this belongs to.</param>
+/// <param name="PolicyDomain">The Policy Domain against which the MTA-STS or DANE policy is defined (RFC 8460 §4.4):
+/// the recipient domain, or the smart host's (RFC 8461 §3.4) - whose TLS-RPT policy this belongs to.</param>
 /// <param name="PolicyType">The governing policy type.</param>
 /// <param name="MxHost">The receiving MX host name.</param>
 /// <param name="ReceivingIp">The receiving MX IP address (if known).</param>

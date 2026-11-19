@@ -57,19 +57,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             private static readonly DNSServerConfig origin = new (IPv4Address.Localhost, IPPort.Parse(53));
 
-            public volatile String[]  Txt = [ "v=STSv1; id=20261004;" ];
-            public          String[]  Mx  = [];
+            public volatile String[]  Txt     = [ "v=STSv1; id=20261004;" ];
+            public          String[]  Mx      = [];
+            public          String    Domain  = PolicyDomain;
 
             private Task<DNSInfo> Answer(String Name, IEnumerable<DNSResourceRecordTypes> Types)
             {
 
                 var answers = new List<IDNSResourceRecord>();
 
-                if (Types.Contains(DNSResourceRecordTypes.TXT) && Name.TrimEnd('.') == $"_mta-sts.{PolicyDomain}")
+                if (Types.Contains(DNSResourceRecordTypes.TXT) && Name.TrimEnd('.') == $"_mta-sts.{Domain}")
                     answers.AddRange(Txt.Select(text => new TXT(DomainName.ParseLenient(Name), DNSQueryClasses.IN, TimeSpan.FromHours(1), text)));
 
-                if (Types.Contains(DNSResourceRecordTypes.MX) && Name.TrimEnd('.') == PolicyDomain)
-                    answers.AddRange(Mx.Select(host => new MX(DomainName.Parse(PolicyDomain), DNSQueryClasses.IN, TimeSpan.FromHours(1), 10, DomainName.Parse(host))));
+                if (Types.Contains(DNSResourceRecordTypes.MX) && Name.TrimEnd('.') == Domain)
+                    answers.AddRange(Mx.Select(host => new MX(DomainName.Parse(Domain), DNSQueryClasses.IN, TimeSpan.FromHours(1), 10, DomainName.Parse(host))));
 
                 return Task.FromResult(new DNSInfo(origin, 0, true, false, true, false, DNSResponseCodes.NoError,
                                                    answers, [], [], true, false, TimeSpan.FromSeconds(1), TimeSpan.Zero));
@@ -92,11 +93,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
         /// <summary>
-        /// The Policy Host: answers https://mta-sts.next.example/.well-known/mta-sts.txt as told.
+        /// The Policy Host: answers https://mta-sts.next.example/.well-known/mta-sts.txt (or that
+        /// of another <see cref="Domain"/>) as told.
         /// </summary>
         private sealed class PolicyHost : HttpMessageHandler
         {
 
+            public          String          Domain        = PolicyDomain;
             public volatile String          Policy        = EnforcePolicy;
             public volatile String          ContentType   = "text/plain";
             public          HttpStatusCode  Status        = HttpStatusCode.OK;
@@ -108,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
                 Interlocked.Increment(ref Requests);
 
-                Assert.That(Request.RequestUri, Is.EqualTo(new Uri($"https://mta-sts.{PolicyDomain}/.well-known/mta-sts.txt")));
+                Assert.That(Request.RequestUri, Is.EqualTo(new Uri($"https://mta-sts.{Domain}/.well-known/mta-sts.txt")));
 
                 var response = new HttpResponseMessage(Status) { Content = new StringContent(Policy, Encoding.UTF8, ContentType) };
 

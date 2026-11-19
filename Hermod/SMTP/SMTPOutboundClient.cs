@@ -221,6 +221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                enforceTls,
                                                requireTls,
                                                targetDomain,
+                                               policyDomain,
                                                mtaStsPolicy.Mode,
                                                dsn ?? DsnParameters.None,
                                                priority,
@@ -273,6 +274,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
         }
 
+        /// <param name="nextHopDomain">The recipient domain: with an MX host, a reference identifier of DANE (RFC 7672 §3.2.3).</param>
+        /// <param name="policyDomain">The Policy Domain of MTA-STS (RFC 8461 §3.4) - the smart host's through one - and so
+        /// the "policy-domain" of the session's TLS-RPT event (RFC 8460 §4.4).</param>
         private async Task<SendResult> TrySendToMxAsync(String              mxHost,
                                                         SmartHostRoute      route,
                                                         UInt16              port,
@@ -282,6 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         Byte[]?             messageOctets,
                                                         Boolean             enforceTls,
                                                         Boolean             requireTls,
+                                                        String              nextHopDomain,
                                                         String              policyDomain,
                                                         MtaStsMode          stsMode,
                                                         DsnParameters       dsn,
@@ -356,7 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // RFC 7672 §3.2.3: the reference identifiers of a DANE-TA(2) name check - the host, and
             // for an MX host the next-hop domain.
             IReadOnlyCollection<String> referenceIdentifiers = route.Host is null
-                                                                   ? [ mxHost, policyDomain ]
+                                                                   ? [ mxHost, nextHopDomain ]
                                                                    : [ mxHost ];
 
             using var client = new TcpClient();
