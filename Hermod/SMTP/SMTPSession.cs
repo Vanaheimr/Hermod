@@ -1300,7 +1300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // Authentication-Results (RFC 8601) goes above the Received header of this hop.
             var traceHeaders = "";
             if (verification is not null)
-                traceHeaders += BuildAuthenticationResultsHeader(verification, senderDomain, ExtractDomain(message.From ?? ""));
+                traceHeaders += BuildAuthenticationResultsHeader(verification, senderDomain, mailFromDomain.Length > 0, ExtractDomain(message.From ?? ""));
             traceHeaders += await BuildReceivedHeaderAsync(ct);
             if (dmarcQuarantine)
                 traceHeaders += "X-DMARC-Quarantine: true\r\n";
@@ -1478,7 +1478,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         /// Build an "Authentication-Results:" header for this hop (RFC 8601) from the
         /// SPF/DKIM/DMARC verification results. Returned terminated with CRLF.
         /// </summary>
-        private String BuildAuthenticationResultsHeader(DnsVerificationResult v, String senderDomain, String? fromDomain)
+        /// <param name="senderDomain">The domain SPF checked: the reverse-path's, or the HELO identity's.</param>
+        /// <param name="spfOnMailFrom">Whether SPF checked the reverse-path - or, as for a null one, the HELO identity.</param>
+        private String BuildAuthenticationResultsHeader(DnsVerificationResult v, String senderDomain, Boolean spfOnMailFrom, String? fromDomain)
         {
 
             static String Spf(SPFResult r) => r switch {
@@ -1513,7 +1515,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 _              => "none"
             };
 
-            var mailFrom     = String.IsNullOrEmpty(_mailFrom) ? "<>" : _mailFrom;
+            // The identity SPF checked (RFC 8601 §2.7.2: "either "mailfrom" or "helo""): the
+            // reverse-path, or for a null one the HELO identity (RFC 7208 §2.4) - "<>" names
+            // nothing a filter could align, and is no pvalue. A HELO that is no domain name,
+            // an address literal, gave SPF nothing to check, and the result names nothing.
+            var spfIdentity  = spfOnMailFrom                 ? $" smtp.mailfrom={_mailFrom}"
+                             : senderDomain.Length > 0       ? $" smtp.helo={senderDomain}"
+                             : "";
             var dmarcComment = v.DmarcPolicy is not null ? $" (p={v.DmarcPolicy})" : "";
             var fromDom      = String.IsNullOrEmpty(fromDomain) ? senderDomain : fromDomain;
 
@@ -1527,7 +1535,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var clauses = new List<String>();
 
             if (config.VerifySpf)
-                clauses.Add($"spf={Spf(v.Spf)} smtp.mailfrom={mailFrom}");
+                clauses.Add($"spf={Spf(v.Spf)}{spfIdentity}");
 
             if (config.VerifyDkim)
                 clauses.Add(dkimClause);

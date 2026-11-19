@@ -232,6 +232,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
 
         [Test]
+        public async Task The_SPF_result_names_the_identity_SPF_checked()
+        {
+
+            // RFC 7208 §2.4: for a null reverse-path, the "MAIL FROM" identity is "postmaster"
+            // at the HELO identity; RFC 8601 §2.7.2: the property of an SPF result "is either
+            // "mailfrom" or "helo", since those values are the ones SPF can evaluate".
+            await using var server = new Server(DNS: new TxtDNS(("client.example", "v=spf1 ip4:127.0.0.1 ip6:::1 -all")));
+
+            var bounce   = await Send(server, "",                      "From: mailer-daemon@client.example\r\n");
+            var letter   = await Send(server, "sender@client.example", "From: sender@client.example\r\n");
+            var literal  = await Send(server, "",                      "From: mailer-daemon@client.example\r\n", Helo: "[127.0.0.1]");
+
+            String Results(Int32 Index)
+            {
+                var message = server.Storage.Messages.ElementAt(Index);
+                return message[..message.IndexOf("Received:", StringComparison.Ordinal)];
+            }
+
+            Assert.Multiple(() => {
+
+                Assert.That(bounce.Code,   Is.EqualTo(250), bounce.Text);
+                Assert.That(Results(0),    Does.Contain("spf=pass smtp.helo=client.example").And.Not.Contain("<>"));
+
+                Assert.That(letter.Code,   Is.EqualTo(250), letter.Text);
+                Assert.That(Results(1),    Does.Contain("spf=pass smtp.mailfrom=sender@client.example"));
+
+                Assert.That(literal.Code,  Is.EqualTo(250), literal.Text);
+                Assert.That(Results(2),    Does.Contain("spf=none;").And.Not.Contain("smtp.mailfrom").And.Not.Contain("smtp.helo"),
+                                           "no domain to check, and none named");
+
+            });
+
+        }
+
+
+        [Test]
         public async Task With_every_check_off_Authentication_Results_says_none()
         {
 
