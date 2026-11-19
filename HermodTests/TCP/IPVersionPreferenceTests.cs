@@ -253,6 +253,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
         #endregion
 
 
+        #region ARefusedAddress_IsFollowedByOneOfTheOtherFamily(Preference, Expected)
+
+        /// <summary>
+        /// A host name with an address of each family, and a listener on one of
+        /// them alone. The address of the preferred family is tried first and
+        /// refused, and the client goes on to the other one, as RFC 8305 §5 has
+        /// it: "one connection attempt to a single address is started first,
+        /// followed by the others in the list, one at a time."
+        /// </summary>
+        /// <remarks>
+        /// The client dialled one address and gave up when it failed. On a host
+        /// without an IPv6 route that was every connection to a server with an
+        /// AAAA record - DoH to dns.google and to cloudflare-dns.com failed in a
+        /// few milliseconds on every GitHub runner, "Network is unreachable".
+        /// </remarks>
+        [TestCase(null,                            "127.0.0.1")]
+        [TestCase(IPVersionPreference.PreferIPv6,  "127.0.0.1")]
+        [TestCase(IPVersionPreference.PreferIPv4,  "::1")]
+        public async Task ARefusedAddress_IsFollowedByOneOfTheOtherFamily(IPVersionPreference?  Preference,
+                                                                          String                Expected)
+        {
+
+            using var listeners = Listeners.On(System.Net.IPAddress.Parse(Expected));
+
+            using var client    = new TCPClient(
+                                      URL.Parse($"tcp://dual.example:{listeners.Port}"),
+                                      PreferIPv4:      Preference,
+                                      ConnectTimeout:  TimeSpan.FromSeconds(5)
+                                  );
+
+            // Seeded rather than resolved, as in IPv4Only_IsNotACoinToss.
+            client.ResolvedIPAddresses.Add(IPv4Address.Parse("127.0.0.1"));
+            client.ResolvedIPAddresses.Add(IPv6Address.Parse("::1"));
+
+            var result          = await client.ConnectAsync();
+
+            await AssertReached(client, listeners, Expected, result.Errors.Select(error => error.ToString()).AggregateWith(" | "));
+
+        }
+
+        #endregion
+
+
         #region (private) AssertReached(Client, Listeners, Expected, Errors = null)
 
         /// <summary>

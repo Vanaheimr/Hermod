@@ -56,6 +56,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static readonly    TimeSpan                 DefaultSendTimeout               = TimeSpan.FromSeconds(5);
 
         /// <summary>
+        /// How long one connection attempt is given before the next address is
+        /// tried beside it: RFC 8305 §5's "Connection Attempt Delay", 250 ms
+        /// as it recommends.
+        /// </summary>
+        public static readonly    TimeSpan                 DefaultConnectionAttemptDelay    = TimeSpan.FromMilliseconds(250);
+
+        /// <summary>
+        /// RFC 8305 §5: "a subsequent connection MUST NOT be started within 10
+        /// milliseconds of the previous attempt" - also when the previous one
+        /// failed sooner than that.
+        /// </summary>
+        public static readonly    TimeSpan                 MinimumConnectionAttemptSpacing  = TimeSpan.FromMilliseconds(10);
+
+        /// <summary>
         /// The default maximum number of transmission retries for HTTP request.
         /// </summary>
         public const              UInt16                   DefaultMaxNumberOfRetries        = 3;
@@ -228,6 +242,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public  IPVersionPreference             IPVersionPreference       { get; }
         public  TimeSpan                        ConnectTimeout            { get; }
+
+        /// <summary>
+        /// How long a connection attempt to one address is given before the
+        /// next address is tried beside it (RFC 8305 §5), within the bounds the
+        /// RFC sets: no less than 10 ms, and its "Maximum Connection Attempt
+        /// Delay" of 2 seconds at most.
+        /// </summary>
+        public  TimeSpan                        ConnectionAttemptDelay
+        {
+            get => connectionAttemptDelay;
+            set => connectionAttemptDelay = value < MinimumConnectionAttemptSpacing
+                                                ? MinimumConnectionAttemptSpacing
+                                                : value > TimeSpan.FromSeconds(2)
+                                                      ? TimeSpan.FromSeconds(2)
+                                                      : value;
+        }
+
+        private TimeSpan                        connectionAttemptDelay    = DefaultConnectionAttemptDelay;
         public  TimeSpan                        ReceiveTimeout            { get; }
         public  TimeSpan                        SendTimeout               { get; }
         public  TransmissionRetryDelayDelegate  TransmissionRetryDelay    { get; }
@@ -869,12 +901,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     RemotePort     ??= remotePort;
 
-                    // Every address, not the one picked below: which one is picked is chance.
+                    // Every address, not only the first: any of them may be dialled below.
                     if (RemoteNetworkAcl is SSH.NetworkAcl remoteNetworkAcl &&
                         !remoteNetworkAcl.AllowsAll(ResolvedIPAddresses, remotePort.Value.ToUInt16()))
                     {
                         ResolvedIPAddresses.Clear();
                         return TCPConnectionResult.Failed($"{nameof(ATCPClient)}: the remote address is none this client may connect to!");
+                    }
+
+                    // RFC 8305 §4: the addresses in the order they are tried. The
+                    // preferred family first, then interleaved with the other,
+                    // one of each in turn ("Whichever address family is first in
+                    // the list should be followed by an address of the other
+                    // address family"); within a family in no particular order,
+                    // as the pick at random before spread the load.
+                    //
+                    // This used to be one address, and one connect to it. The
+                    // preference picked it - for PreferIPv6, the default, an
+                    // IPv6 address whenever there was one - and when that connect
+                    // failed, so did the connection, the addresses of the other
+                    // family unused. On a host without an IPv6 route that was
+                    // every connection to a server with an AAAA record: the DoH
+                    // public resolvers of the nightly, dns.google and
+                    // cloudflare-dns.com, answered SERVFAIL in a few milliseconds
+                    // on every GitHub runner, "Network is unreachable" each time.
+                    //
+                    // IPv4Only and IPv6Only stay what their names say: the other
+                    // family is no address to go on to.
+                    var candidates          = ConnectionCandidates();
+
+                    if (candidates.Count == 0)
+                    {
+                        ResolvedIPAddresses.Clear();
+                        return TCPConnectionResult.Failed($"{nameof(ATCPClient)}: {IPVersionPreference} was asked for, and none of the resolved addresses is of that family!");
                     }
 
                     // Both disposed of as this block is left, however it is left.
@@ -891,149 +950,209 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                         connectTokenSource.               Token
                                                     );
 
-                    // This connect's TcpClient, which it works on from here on,
-                    // looking at the field only to see whether a close has taken
-                    // it away. Close() and CloseConnection() do that - set the
-                    // field to null, then close the socket - and may do so while
-                    // the connect is pending. The finally below used to read the
-                    // field to dispose of what was in it. Where that was null,
-                    // its NullReferenceException took the place of whatever the
-                    // connect had failed with, and "Error connecting ATCPClient:
-                    // Object reference not set to an instance of an object." was
-                    // all a caller got to read. Where a connect started right
-                    // after the close had put a client of its own there, that
-                    // one was disposed, and the new connect failed with it.
-                    var client              = new TcpClient {
-                                                  ReceiveTimeout  = (Int32) ReceiveTimeout.TotalMilliseconds, // Only relevant for sync I/O!
-                                                  SendTimeout     = (Int32) SendTimeout.   TotalMilliseconds, // Only relevant for sync I/O!
-                                                  LingerState     = new LingerOption(true, 5),
+                    // The delays get a token of their own, cancelled as soon as
+                    // the race is decided. A connect that went through, or
+                    // failed, used to leave the delay pending, and its timer
+                    // with it, for the whole ConnectTimeout. The token is
+                    // linked to no other, just as the delay took none before.
+                    using var waitCancellation    = new CancellationTokenSource();
 
-                                                  // Nagle's algorithm off: a request's header and its
-                                                  // body are two writes, and with Nagle on the body
-                                                  // waited for the header's acknowledgement - which a
-                                                  // server waiting for the body delays by 40 ms on
-                                                  // Linux. So did every WebSocket frame's payload.
-                                                  NoDelay         = true
-                                              };
+                    var deadline                  = Task.Delay(ConnectTimeout, waitCancellation.Token);
+                    var clock                     = System.Diagnostics.Stopwatch.StartNew();
+                    var lastStart                 = TimeSpan.Zero;
+                    var nextCandidate             = 0;
+                    var startNext                 = true;
 
-                    tcpClient               = client;
+                    // RFC 8305 §5: "one connection attempt to a single address is
+                    // started first, followed by the others in the list, one at a
+                    // time. Starting a new connection attempt does not affect
+                    // previous attempts". The next one starts when the last one
+                    // failed, or when it has had the Connection Attempt Delay
+                    // without getting through.
+                    var attempts                  = new List<(TcpClient Client, IIPAddress Address, Task Connect)>();
+                    var pending                   = new List<(TcpClient Client, IIPAddress Address, Task Connect)>();
+                    (TcpClient Client, IIPAddress Address)? connected = null;
+                    Exception?                    lastError       = null;
+                    var                           closed          = false;
+                    var                           timedOut        = false;
 
-                    client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive,              true);
-                    client.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveInterval,     10);
-                    client.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveRetryCount,    3);
-                    client.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveTime,        600);
+                    // The newest attempt's TcpClient is the one in the field.
+                    // Close() and CloseConnection() take it away from there - set
+                    // the field to null, then close the socket - and may do so
+                    // while a connect is pending. Each attempt therefore moves the
+                    // field on from the attempt before it, and only if that one is
+                    // still there: if it is not, the connect was closed, and that
+                    // is what happened to it, no timeout, no refusal. The finally
+                    // below used to read the field to dispose of what was in it.
+                    // Where that was null, its NullReferenceException took the
+                    // place of whatever the connect had failed with, and "Error
+                    // connecting ATCPClient: Object reference not set to an
+                    // instance of an object." was all a caller got to read. Where
+                    // a connect started right after the close had put a client of
+                    // its own there, that one was disposed, and the new connect
+                    // failed with it.
+                    TcpClient?                    newest          = null;
 
                     try
                     {
 
-                        // IPv4Only and IPv6Only used to have no arm of their own
-                        // and fell through to the default one, which picks from
-                        // both families at random - the exact opposite of what
-                        // their names and their documentation promise. The
-                        // trailing "?? GetRandomElement()" then finished the job:
-                        // it applied to every arm, so even a matched preference
-                        // could end up on the other family.
-                        //
-                        // That is why the DoH fixtures stayed flaky after being
-                        // set to IPv4Only. On a host with no IPv6 route the pick
-                        // was a coin toss, three times per query, and a query
-                        // failed when all three came up AAAA - "Error connecting
-                        // ATCPClient: Network is unreachable".
-                        //
-                        // Only means only: these two may find nothing, and then
-                        // the connection fails saying so, rather than quietly
-                        // using the family the caller ruled out.
-                        ResolvedIPAddress  = IPVersionPreference switch {
-
-                                                 IPVersionPreference.IPv4Only    =>  ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv4Address).TryGetRandomElement(),
-                                                 IPVersionPreference.IPv6Only    =>  ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv6Address).TryGetRandomElement(),
-
-                                                 IPVersionPreference.PreferIPv4  =>  ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv4Address).TryGetRandomElement()
-                                                                                         ?? ResolvedIPAddresses.GetRandomElement(),
-
-                                                 IPVersionPreference.PreferIPv6  =>  ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv6Address).TryGetRandomElement()
-                                                                                         ?? ResolvedIPAddresses.GetRandomElement(),
-
-                                                 _                               =>  ResolvedIPAddresses.GetRandomElement()
-
-                                             };
-
-                        if (ResolvedIPAddress is null)
+                        while (true)
                         {
-                            ResolvedIPAddresses.Clear();
-                            return TCPConnectionResult.Failed($"{nameof(ATCPClient)}: {IPVersionPreference} was asked for, and none of the resolved addresses is of that family!");
+
+                            if (startNext && nextCandidate < candidates.Count)
+                            {
+
+                                if (nextCandidate > 0)
+                                {
+                                    var spacing = MinimumConnectionAttemptSpacing - (clock.Elapsed - lastStart);
+                                    if (spacing > TimeSpan.Zero)
+                                        await Task.Delay(spacing, CancellationToken.None).ConfigureAwait(false);
+                                }
+
+                                var address = candidates[nextCandidate++];
+                                var attemptClient = NewTcpClient();
+
+                                if (newest is null)
+                                    tcpClient = attemptClient;
+
+                                else if (!ReferenceEquals(Interlocked.CompareExchange(ref tcpClient, attemptClient, newest), newest))
+                                {
+                                    attemptClient.Dispose();
+                                    closed = true;
+                                    break;
+                                }
+
+                                newest             = attemptClient;
+                                ResolvedIPAddress  = address;
+                                lastStart          = clock.Elapsed;
+                                startNext          = false;
+
+                                var attempt        = (attemptClient, address, (Task) attemptClient.ConnectAsync(
+                                                                                  address.ToDotNet(),
+                                                                                  remotePort.Value.ToUInt16(),
+                                                                                  linkedTokenSource.Token
+                                                                              ).AsTask());
+
+                                attempts.Add(attempt);
+                                pending. Add(attempt);
+
+                            }
+
+                            // Every address tried, and every attempt failed.
+                            if (pending.Count == 0)
+                                break;
+
+                            var waitFor  = new List<Task>(pending.Count + 2) { deadline };
+                            waitFor.AddRange(pending.Select(attempt => attempt.Connect));
+
+                            Task? nextDue = null;
+                            if (nextCandidate < candidates.Count)
+                            {
+                                var remaining = ConnectionAttemptDelay - (clock.Elapsed - lastStart);
+                                nextDue       = Task.Delay(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero, waitCancellation.Token);
+                                waitFor.Add(nextDue);
+                            }
+
+                            var done = await Task.WhenAny(waitFor).ConfigureAwait(false);
+
+                            if (!ReferenceEquals(tcpClient, newest))
+                            {
+                                closed = true;
+                                break;
+                            }
+
+                            if (done == deadline)
+                            {
+                                timedOut = true;
+                                break;
+                            }
+
+                            if (done == nextDue)
+                            {
+                                startNext = true;
+                                continue;
+                            }
+
+                            var finished = pending.First(attempt => attempt.Connect == done);
+                            pending.Remove(finished);
+
+                            if (finished.Connect.IsCompletedSuccessfully && finished.Client.Connected)
+                            {
+                                connected = (finished.Client, finished.Address);
+                                break;
+                            }
+
+                            // The client's own token cancelled under the connect -
+                            // by Close(), or anything else that cancels it - ends
+                            // every attempt, and the next ones would start on a
+                            // token that is cancelled already.
+                            if (linkedTokenSource.IsCancellationRequested)
+                            {
+                                timedOut = true;
+                                break;
+                            }
+
+                            lastError = finished.Connect.Exception?.InnerException ?? finished.Connect.Exception ?? lastError;
+                            startNext = true;
+
                         }
 
-                        var connectTask    = client.ConnectAsync(
-                                                 ResolvedIPAddress.ToDotNet(),
-                                                 remotePort.Value. ToUInt16(),
-                                                 linkedTokenSource.Token
-                                             ).AsTask();
-
-                        // The delay gets a token of its own, cancelled as soon as
-                        // the race is decided. A connect that went through, or
-                        // failed, used to leave the delay pending, and its timer
-                        // with it, for the whole ConnectTimeout. The token is
-                        // linked to no other, just as the delay took none before.
-                        using var waitCancellation = new CancellationTokenSource();
-
-                        var waitTask       = Task.Delay(
-                                                 ConnectTimeout,
-                                                 waitCancellation.Token
-                                             );
-
-                        var timedOut       = await Task.WhenAny(connectTask, waitTask) == waitTask;
+                    }
+                    finally
+                    {
 
                         waitCancellation.Cancel();
 
-                        if (timedOut)
-                            connectTokenSource.Cancel();
+                        // Every attempt but the one that got through is done
+                        // with: cancelled if still pending, and disposed of.
+                        if (attempts.Any(attempt => !ReferenceEquals(attempt.Client, connected?.Client)))
+                            try { connectTokenSource.Cancel(); } catch { }
 
-                        // Await to throw if failed
-                        await connectTask;
+                        foreach (var attempt in attempts)
+                        {
+                            if (ReferenceEquals(attempt.Client, connected?.Client))
+                                continue;
+                            _ = attempt.Connect.ContinueWith(task => task.Exception, TaskContinuationOptions.OnlyOnFaulted);
+                            try { attempt.Client.Dispose(); } catch { }
+                        }
 
                     }
-                    catch (Exception) when (!ReferenceEquals(tcpClient, client))
+
+                    // The connection that got through takes the newest attempt's
+                    // place in the field, if a close has not taken that away.
+                    if (connected is not null &&
+                        !closed &&
+                        !ReferenceEquals(Interlocked.CompareExchange(ref tcpClient, connected.Value.Client, newest), newest))
                     {
-
-                        // Closed while the connect was pending. A close takes the
-                        // client out of the field before it closes the socket, so
-                        // by the time the connect fails, the field holds no client
-                        // or another connect's. Whatever the connect failed with -
-                        // the socket closed under it, or the client's token that
-                        // Close() cancels, depending on which comes first - the
-                        // close is what happened to it: no timeout, no refusal.
-                        //
-                        // Nothing the close has reset is touched again here, the
-                        // resolved addresses least of all: a connect started right
-                        // after the close may be using them by now. Cleared under
-                        // it, they failed that one with "The given enumeration must
-                        // not be null or empty!".
-                        return TCPConnectionResult.Failed("Closed while connecting!");
-
+                        closed = true;
                     }
-                    catch (OperationCanceledException)
+
+                    // Closed while connecting. Nothing the close has reset is
+                    // touched again here, the resolved addresses least of all: a
+                    // connect started right after the close may be using them by
+                    // now. Cleared under it, they failed that one with "The given
+                    // enumeration must not be null or empty!".
+                    if (closed)
+                    {
+                        if (connected is not null)
+                            try { connected.Value.Client.Dispose(); } catch { }
+                        return TCPConnectionResult.Failed("Closed while connecting!");
+                    }
+
+                    if (timedOut)
                     {
                         ResolvedIPAddresses.Clear();
                         return TCPConnectionResult.Failed("Connection timeout!");
                     }
-                    finally
-                    {
-                        // Clean up on failure
-                        if (!client.Connected)
-                            client.Dispose();
-                    }
 
-                    // Or closed right after the connect went through: a disposed
-                    // client hands out no socket to read the end points from.
-                    if (!ReferenceEquals(tcpClient, client))
-                        return TCPConnectionResult.Failed("Closed while connecting!");
-
-                    if (!client.Connected)
+                    if (connected is null)
                     {
                         ResolvedIPAddresses.Clear();
-                        return TCPConnectionResult.Failed($"Error connecting {nameof(ATCPClient)}");
+                        return TCPConnectionResult.Failed($"Error connecting {nameof(ATCPClient)}" + (lastError is not null ? $": {lastError.Message}" : ""));
                     }
+
+                    var client                    = connected.Value.Client;
+                    ResolvedIPAddress             = connected.Value.Address;
 
                     var localEndpoint = client.Client.LocalEndPoint;
                     if (localEndpoint is not null)
@@ -1065,6 +1184,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
 
             return TCPConnectionResult.Success();
+
+        }
+
+        #endregion
+
+
+        #region (private) ConnectionCandidates()
+
+        /// <summary>
+        /// The resolved addresses in the order they are tried (RFC 8305 §4): the
+        /// preferred family first and the families interleaved, or the one
+        /// family alone that IPv4Only or IPv6Only allow.
+        /// </summary>
+        private List<IIPAddress> ConnectionCandidates()
+        {
+
+            var ipv6    = ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv6Address).OrderBy(_ => Random.Shared.Next()).ToList();
+            var ipv4    = ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv4Address).OrderBy(_ => Random.Shared.Next()).ToList();
+            var others  = ResolvedIPAddresses.Where(ipAddress => ipAddress is not IPv6Address and not IPv4Address).ToList();
+
+            if (IPVersionPreference == IPVersionPreference.IPv4Only)
+                return ipv4;
+
+            if (IPVersionPreference == IPVersionPreference.IPv6Only)
+                return ipv6;
+
+            var (first, second) = IPVersionPreference == IPVersionPreference.PreferIPv4
+                                      ? (ipv4, ipv6)
+                                      : (ipv6, ipv4);
+
+            var ordered = new List<IIPAddress>(ResolvedIPAddresses.Count);
+
+            for (var i = 0; i < Math.Max(first.Count, second.Count); i++)
+            {
+                if (i < first. Count) ordered.Add(first [i]);
+                if (i < second.Count) ordered.Add(second[i]);
+            }
+
+            ordered.AddRange(others);
+
+            return ordered;
+
+        }
+
+        #endregion
+
+        #region (private) NewTcpClient()
+
+        /// <summary>
+        /// The TcpClient of one connection attempt.
+        /// </summary>
+        private TcpClient NewTcpClient()
+        {
+
+            var client = new TcpClient {
+                             ReceiveTimeout  = (Int32) ReceiveTimeout.TotalMilliseconds, // Only relevant for sync I/O!
+                             SendTimeout     = (Int32) SendTimeout.   TotalMilliseconds, // Only relevant for sync I/O!
+                             LingerState     = new LingerOption(true, 5),
+
+                             // Nagle's algorithm off: a request's header and its
+                             // body are two writes, and with Nagle on the body
+                             // waited for the header's acknowledgement - which a
+                             // server waiting for the body delays by 40 ms on
+                             // Linux. So did every WebSocket frame's payload.
+                             NoDelay         = true
+                         };
+
+            client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive,              true);
+            client.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveInterval,     10);
+            client.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveRetryCount,    3);
+            client.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveTime,        600);
+
+            return client;
 
         }
 
