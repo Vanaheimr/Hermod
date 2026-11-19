@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
@@ -287,7 +288,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                         try
                         {
 
-                            var writer = new StreamWriter(client.GetStream()) { AutoFlush = true };
                             var message = rateLimitResult switch {
                                 RateLimitResult.Blacklisted              => "554 5.7.1 Connection refused - blacklisted",
                                 RateLimitResult.TooManyConnections       => "421 4.7.0 Too many connections, try again later",
@@ -296,7 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                 _                                        => "421 4.7.0 Connection rejected"
                             };
 
-                            await writer.WriteLineAsync(message);
+                            await WriteReplyAsync(client.GetStream(), message, ct);
 
                         }
                         catch { /* ignore */ }
@@ -343,6 +343,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 }
             }
         }
+
+        /// <summary>
+        /// One reply line, ended by CR LF whatever the platform's newline is: RFC 5321 §2.3.8,
+        /// lines are "terminated by the sequence ASCII character "CR" (hex 0D) followed
+        /// immediately by ASCII character "LF" (hex 0A)". A StreamWriter's WriteLine ends
+        /// them in Environment.NewLine - a bare LF on Linux.
+        /// </summary>
+        private static Task WriteReplyAsync(Stream Stream, String Reply, CancellationToken CancellationToken)
+
+            => Stream.WriteAsync(Encoding.ASCII.GetBytes(Reply + "\r\n"), CancellationToken).AsTask();
 
         public async Task Stop()
         {

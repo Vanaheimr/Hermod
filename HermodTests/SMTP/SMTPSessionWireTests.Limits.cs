@@ -18,6 +18,8 @@
 #region Usings
 
 using System.Diagnostics;
+using System.Net.Sockets;
+using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.SMTP.Server;
 
@@ -184,6 +186,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(await ClosedAsync(wire),                        Is.True, "421 closes the connection");
 
         }
+
+
+        #region Connections refused at accept
+
+        /// <summary>
+        /// Every octet a fresh connection to the server receives until the server closes it,
+        /// or 5 s pass.
+        /// </summary>
+        private static async Task<Byte[]> RefusalAsync(Server Server)
+        {
+
+            using var tcp  = new TcpClient();
+            await tcp.ConnectAsync("127.0.0.1", Server.Port);
+
+            var stream     = tcp.GetStream();
+            var received   = new MemoryStream();
+            var buffer     = new Byte[1024];
+            using var cts  = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+            try
+            {
+                Int32 read;
+                while ((read = await stream.ReadAsync(buffer, cts.Token)) > 0)
+                    received.Write(buffer, 0, read);
+            }
+            catch (Exception e) when (e is OperationCanceledException or IOException)
+            { }
+
+            return received.ToArray();
+
+        }
+
+
+        [Test(Description = "RFC 5321 §2.3.8: lines are \"terminated by the sequence ASCII character \"CR\" (hex 0D) followed immediately by ASCII character \"LF\" (hex 0A)\" - the 421 of a connection refused at accept too, on every platform")]
+        public async Task The_421_of_a_refused_connection_ends_in_CRLF()
+        {
+
+            await using var server = new Server(RateLimits: new RateLimitConfig {
+                                                                AuthFailDelayMs              = 0,
+                                                                MaxConnectionsPerIp          = 1,
+                                                                WhitelistedIps               = []
+                                                            });
+            using var first        = await server.ConnectAsync();
+
+            var refusal            = await RefusalAsync(server);
+            var text               = Encoding.ASCII.GetString(refusal);
+
+            Assert.That(text,                                    Does.StartWith("421 4.7.0 "));
+            Assert.That(refusal[^2..],                           Is.EqualTo("\r\n"u8.ToArray()), text.Replace("\r", "<CR>").Replace("\n", "<LF>"));
+            Assert.That(text.Replace("\r\n", "").Contains('\n'), Is.False,                       "a bare LF");
+
+        }
+
+        #endregion
 
     }
 
