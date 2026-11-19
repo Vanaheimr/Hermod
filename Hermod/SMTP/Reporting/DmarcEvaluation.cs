@@ -49,7 +49,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         // Result + applied disposition
         DmarcResult       Result,             // Pass / Fail
-        DmarcDisposition  Disposition
+        DmarcDisposition  Disposition,
+
+        // The envelope (for <identifiers> and the SPF <scope>, RFC 7489 Appendix C)
+        String?           EnvelopeFromDomain  = null,    // RFC5321.MailFrom domain; "" for a null reverse-path
+        Boolean           SpfOnHelo           = false    // SPF checked the HELO identity (RFC 7208 §2.4): scope "helo", not "mfrom"
 
     )
     {

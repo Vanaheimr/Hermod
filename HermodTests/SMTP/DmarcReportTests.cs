@@ -289,6 +289,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+
+        [Test(Description = "RFC 7489 Appendix C: in PolicyPublishedType sp and fo have no minOccurs, so one each; without sp=, p= applies to subdomains (§6.3); fo= is \"0\" by default")]
+        public async Task The_published_policy_has_sp_and_fo_also_where_the_record_has_neither()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; rua=mailto:dmarc@client.example");
+
+            var report = Xml((await reporter.Aggregate(await reporter.Evaluate(Letter()))).Single());
+
+            Assert.Multiple(() => {
+                Assert.That(Value(report, "policy_published/sp"), Is.EqualTo("reject"));
+                Assert.That(Value(report, "policy_published/fo"), Is.EqualTo("0"));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7489 Appendix C: policy_published says the sp and fo the record published")]
+        public async Task The_published_policy_has_sp_and_fo_as_published()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=none; sp=quarantine; fo=1; rua=mailto:dmarc@client.example; ruf=mailto:ruf@client.example");
+
+            var report = Xml((await reporter.Aggregate(await reporter.Evaluate(Letter()))).Single());
+
+            Assert.Multiple(() => {
+                Assert.That(Value(report, "policy_published/p"),  Is.EqualTo("none"));
+                Assert.That(Value(report, "policy_published/sp"), Is.EqualTo("quarantine"));
+                Assert.That(Value(report, "policy_published/fo"), Is.EqualTo("1"));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7489 Appendix C: IdentifierType has envelope_from, \"The RFC5321.MailFrom domain\", minOccurs=\"1\"; SPFAuthResultType has scope, \"helo\" or \"mfrom\", minOccurs=\"1\"")]
+        public async Task A_record_names_the_envelope_sender_and_the_scope_of_SPF()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; rua=mailto:dmarc@client.example");
+
+            var record = Xml((await reporter.Aggregate(await reporter.Evaluate(Letter(), MailFrom: "sender@client.example"))).Single()).Root?.Element("record");
+
+            Assert.Multiple(() => {
+                Assert.That(Value(record, "identifiers/envelope_from"),  Is.EqualTo("client.example"));
+                Assert.That(Value(record, "identifiers/header_from"),    Is.EqualTo("client.example"));
+                Assert.That(Value(record, "auth_results/spf/domain"),    Is.EqualTo("client.example"));
+                Assert.That(Value(record, "auth_results/spf/scope"),     Is.EqualTo("mfrom"));
+                Assert.That(Value(record, "auth_results/spf/result"),    Is.EqualTo("pass"));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7208 §2.4: a null reverse-path is checked on the HELO identity - RFC 7489 Appendix C: SPF scope \"helo\", and envelope_from, the RFC5321.MailFrom domain, empty")]
+        public async Task A_null_senders_SPF_result_has_the_scope_helo_and_no_envelope_from()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; rua=mailto:dmarc@client.example");
+
+            var record = Xml((await reporter.Aggregate(await reporter.Evaluate(Letter(), MailFrom: "", Helo: "client.example"))).Single()).Root?.Element("record");
+
+            Assert.Multiple(() => {
+                Assert.That(Value(record, "identifiers/envelope_from"),  Is.Empty);
+                Assert.That(Value(record, "auth_results/spf/domain"),    Is.EqualTo("client.example"), "the HELO identity");
+                Assert.That(Value(record, "auth_results/spf/scope"),     Is.EqualTo("helo"));
+                Assert.That(Value(record, "auth_results/spf/result"),    Is.EqualTo("pass"));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 7489 Appendix C: a record is the messages alike in its identifiers and auth_results - a null sender and a letter with the same SPF domain differ in envelope_from and scope")]
+        public async Task A_null_sender_and_a_letter_are_two_records()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; rua=mailto:dmarc@client.example");
+
+            var report = Xml((await reporter.Aggregate(await reporter.Evaluate(Letter(), MailFrom: "sender@client.example", Helo: "client.example"),
+                                                       await reporter.Evaluate(Letter(), MailFrom: "",                      Helo: "client.example"))).Single());
+
+            Assert.That(report.Root!.Elements("record").Select(record => Value(record, "auth_results/spf/scope") + " " + Value(record, "row/count")),
+                        Is.EquivalentTo(new[] { "mfrom 1", "helo 1" }));
+
+        }
+
         #endregion
 
     }

@@ -83,6 +83,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                              spfTask.Result.Result,
                                              dkim.Result,
                                              dkim.Passing,             // d= of every signature that holds
+                                             DomainOf(mailFrom),       // the RFC5321.MailFrom domain - none for a null reverse-path,
+                                                                       // whose SPF result is the HELO identity's (RFC 7208 §2.4)
                                              ct
                                          )
                                  : (DmarcResult.None, null, null);
@@ -743,12 +745,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="spfResult">The SPF result.</param>
         /// <param name="dkimResult">The DKIM result.</param>
         /// <param name="dkimPassing">The d= domain of every DKIM signature that holds.</param>
+        /// <param name="envelopeFromDomain">The RFC5321.MailFrom domain; empty for a null reverse-path, when SPF checked the HELO identity.</param>
         private async Task<(DmarcResult Result, string? Policy, DmarcEvaluation? Detail)> VerifyDmarcAsync(
             string                 fromDomain,
             string                 spfAuthDomain,
             SPFResult              spfResult,
             DkimResult             dkimResult,
             IReadOnlyList<String>  dkimPassing,
+            string                 envelopeFromDomain,
             CancellationToken      ct)
         {
             try
@@ -818,7 +822,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     DkimDomain:       dkimDomain,
                     DkimAligned:      dkimAligned,
                     Result:           pass ? DmarcResult.Pass : DmarcResult.Fail,
-                    Disposition:      disposition
+                    Disposition:      disposition,
+                    EnvelopeFromDomain: envelopeFromDomain,
+                    SpfOnHelo:          envelopeFromDomain.Length == 0
                 );
 
                 return (detail.Result, effectivePolicy, detail);

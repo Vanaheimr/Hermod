@@ -46,13 +46,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     new XElement("begin", report.WindowBegin.ToUnixTimeSeconds()),
                     new XElement("end",   report.WindowEnd.  ToUnixTimeSeconds())));
 
+            // RFC 7489 Appendix C: in PolicyPublishedType, sp and fo have no minOccurs - one each.
+            // Without an sp= tag, p= applies to subdomains too (§6.3); fo= is "0" by default.
             var policyPublished = new XElement("policy_published",
                 new XElement("domain", report.PolicyDomain),
                 new XElement("adkim",  report.Adkim),
                 new XElement("aspf",   report.Aspf),
                 new XElement("p",      report.RequestedPolicy),
-                report.SubdomainPolicy is not null ? new XElement("sp", report.SubdomainPolicy) : null,
-                new XElement("pct",    report.Percent));
+                new XElement("sp",     report.SubdomainPolicy ?? report.RequestedPolicy),
+                new XElement("pct",    report.Percent),
+                new XElement("fo",     report.FailureOptions));
 
             var feedback = new XElement("feedback",
                 new XElement("version", "1.0"),
@@ -70,9 +73,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         new XElement("domain", row.DkimAuthDomain),
                         new XElement("result", row.DkimAuthResult)));
 
-                // spf is required (1+); fall back to the header-from domain if MAIL FROM was empty.
+                // spf is required (1+); fall back to the header-from domain if there was no domain
+                // to check. Its scope (minOccurs="1") says which identity that was: "mfrom", or
+                // "helo" for a null reverse-path (RFC 7208 §2.4).
                 authResults.Add(new XElement("spf",
                     new XElement("domain", string.IsNullOrEmpty(row.SpfAuthDomain) ? row.HeaderFrom : row.SpfAuthDomain),
+                    new XElement("scope",  row.SpfAuthScope),
                     new XElement("result", row.SpfAuthResult)));
 
                 feedback.Add(new XElement("record",
@@ -83,8 +89,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             new XElement("disposition", row.Disposition),
                             new XElement("dkim",        row.DkimAligned),
                             new XElement("spf",         row.SpfAligned))),
+                    // envelope_from has minOccurs="1": the RFC5321.MailFrom domain, empty for a null reverse-path.
                     new XElement("identifiers",
-                        new XElement("header_from", row.HeaderFrom)),
+                        new XElement("envelope_from", row.EnvelopeFrom),
+                        new XElement("header_from",   row.HeaderFrom)),
                     authResults));
 
             }
