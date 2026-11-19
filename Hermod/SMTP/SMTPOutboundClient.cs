@@ -403,6 +403,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 _tlsRptRecorder(new TlsRptEvent(policyDomain, policyType, mxHost, receivingIp, sendingIp, success, failureType, policyString));
             }
 
+            // RFC 8461 §5: "testing" - "Sending MTAs that also implement the TLSRPT specification
+            // [RFC8460] send a report indicating policy application failures ...; in any case,
+            // messages may be delivered as though there were no MTA-STS validation failure."
+            // The mail goes on; the report says what the policy would have refused.
+            var stsTesting = !daneActive && stsMode == MtaStsMode.Testing;
+
             // Every read and write within its timeout: the socket's ReceiveTimeout/SendTimeout do not
             // apply to asynchronous I/O, so a silent next hop would otherwise hold the delivery forever.
             var connection = new SMTPConnection(client.GetStream(),
@@ -446,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // STARTTLS if available and desired/required
                 var supportsStartTls = extensions.ContainsKey("STARTTLS");
 
-                var wantTls = mustEnforceTls || _config.RequireStartTls || _config.PreferStartTls;
+                var wantTls = mustEnforceTls || _config.RequireStartTls || _config.PreferStartTls || stsTesting;
 
                 if (supportsStartTls && wantTls)
                 {
@@ -461,11 +467,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         // TLS is enforced, else opportunistically (RFC 7435): encrypt but tolerate a bad cert.
                         var validateStrict = mustEnforceTls || _config.RequireValidCertificate;
 
+                        // What strict validation finds wrong with the certificate, as a result type
+                        // of RFC 8460 §4.3.1 - whether or not it is accepted all the same.
+                        String? certificateFailure = null;
+
                         var sslStream = new SslStream(connection.Stream, false,
-                            (_, cert, chain, errors) => daneActive
-                                ? ValidateDaneCertificate(mxHost, daneRecords, referenceIdentifiers, cert, chain)
+                            (_, cert, chain, errors) => {
+
+                                if (daneActive)
+                                    return ValidateDaneCertificate(mxHost, daneRecords, referenceIdentifiers, cert, chain);
+
                                 // Secure TLSA records, none usable: encrypted, not authenticated (§2.2).
-                                : daneTls || ValidateServerCertificate(mxHost, validateStrict && !daneTls, cert, chain, errors));
+                                if (daneTls)
+                                    return true;
+
+                                var accepted = ValidateServerCertificate(mxHost, validateStrict, cert, chain, errors);
+
+                                // A validator of the operator's own decides what is valid.
+                                certificateFailure = _config.RemoteCertificateValidator is not null
+                                                         ? accepted ? null : CertificateFailure(errors, chain) ?? "certificate-not-trusted"
+                                                         : CertificateFailure(errors, chain);
+
+                                return accepted;
+
+                            });
 
                         try
                         {
@@ -492,7 +517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             // A rejected/mismatched certificate under enforced TLS (including a DANE
                             // TLSA mismatch) must not be bypassed: defer instead of downgrading.
                             var why = daneActive ? "DANE TLSA mismatch" : "certificate validation failed";
-                            RecordTls(false, daneActive ? "validation-failure" : "certificate-not-trusted");
+                            RecordTls(false, daneActive ? "validation-failure" : certificateFailure ?? "certificate-not-trusted");
                             return SendResult.TempFail(454, $"TLS {why} for {mxHost}: {ex.Message}", mxHost);
                         }
 
@@ -503,8 +528,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         _logger.Log(LogLevel.Debug,
                             $"TLS established with {mxHost}: {sslStream.SslProtocol}{(daneActive ? " (DANE-authenticated)" : "")}");
 
-                        // TLS-RPT (RFC 8460): a compliant TLS session was established.
-                        RecordTls(true, null);
+                        // TLS-RPT (RFC 8460): a compliant TLS session was established - unless an
+                        // MTA-STS policy in testing mode would have refused it: a certificate that is
+                        // not valid (RFC 8461 §4.2), or an MX host the policy does not name (§4.1).
+                        var policyFailure = stsTesting
+                                                ? certificateFailure ?? (stsPolicy.MatchesMx(mxHost) ? null : "validation-failure")
+                                                : null;
+
+                        if (policyFailure is not null)
+                            _logger.Log(LogLevel.Warning, $"MTA-STS policy of {policyDomain} (testing) fails for {mxHost}: {policyFailure}; delivering all the same");
+
+                        RecordTls(policyFailure is null, policyFailure);
 
                         // Re-send EHLO after TLS
                         await connection.WriteLineAsync($"EHLO {_config.LocalHostname}", ct);
@@ -521,6 +555,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         return SendResult.TempFail(454, $"STARTTLS required but failed: {starttlsResponse}", mxHost);
                     }
 
+                    // RFC 8461 §5: testing mode goes on in cleartext, and reports it.
+                    else if (stsTesting)
+                        RecordTls(false, "starttls-not-supported");
+
                 }
                 else if (mustEnforceTls || _config.RequireStartTls)
                 {
@@ -531,6 +569,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             : "STARTTLS required but not supported",
                         mxHost);
                 }
+
+                // RFC 8461 §5: testing mode goes on in cleartext, and reports it.
+                else if (stsTesting)
+                    RecordTls(false, "starttls-not-supported");
 
                 // AUTH if smarthost credentials provided - never in cleartext across a network: a
                 // password sent so is a password given away (RFC 4954 §4).
@@ -927,6 +969,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             _logger.Log(LogLevel.Warning,
                 $"TLS certificate issue for {mxHost} (opportunistic, accepting): {sslPolicyErrors}");
             return true;
+
+        }
+
+        /// <summary>
+        /// What is wrong with a certificate, as a result type of RFC 8460 §4.3.1, or null when
+        /// nothing is: "certificate-expired", "certificate-host-mismatch" ("the MX hostname does
+        /// not match any identities listed in the subject alternative name"), or
+        /// "certificate-not-trusted" (untrusted CAs, "certificate chain errors, etc.").
+        /// </summary>
+        private static String? CertificateFailure(SslPolicyErrors  sslPolicyErrors,
+                                                  X509Chain?       chain)
+        {
+
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return null;
+
+            if (sslPolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateChainErrors) &&
+                chain is not null &&
+                chain.ChainStatus.Any(status => status.Status.HasFlag(X509ChainStatusFlags.NotTimeValid)))
+                return "certificate-expired";
+
+            if (sslPolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateNameMismatch))
+                return "certificate-host-mismatch";
+
+            return "certificate-not-trusted";
 
         }
 
