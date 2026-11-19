@@ -1,0 +1,296 @@
+/*
+ * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#region Usings
+
+using System.IO.Compression;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Channels;
+using System.Xml.Linq;
+
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
+
+#endregion
+
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
+{
+
+    /// <summary>
+    /// The DMARC reports DmarcReportService writes (RFC 7489 §7): the aggregate report (§7.2,
+    /// its XML after Appendix C, its mail after §7.2.1.1), who receives one (§7.1, §7.2.1),
+    /// and the failure report (§7.3, RFC 6591). The evaluations come from DNSVerifier, as the
+    /// server's do; the reports are read from the mail the service queues. The findings R-1
+    /// to R-6 of SMTPConformanceTests.
+    /// </summary>
+    [TestFixture]
+    public class DmarcReportTests
+    {
+
+        #region Setup
+
+        private static readonly System.Net.IPAddress client = System.Net.IPAddress.Parse("192.0.2.25");
+
+        private sealed class QuietLogger : ILogger
+        {
+            public void Log(LogLevel level, String message) { }
+        }
+
+        private sealed class ReportQueue : IMailQueue
+        {
+            public readonly List<QueuedMail> Enqueued = [];
+            public Task EnqueueAsync(QueuedMail mail, CancellationToken ct = default) { Enqueued.Add(mail); return Task.CompletedTask; }
+            public Task<IReadOnlyList<QueuedMail>> GetPendingAsync(Int32 maxItems = 50, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<QueuedMail>>([]);
+            public Task<QueuedMail?> GetByIdAsync(String id, CancellationToken ct = default) => Task.FromResult<QueuedMail?>(null);
+            public Task UpdateAsync(QueuedMail mail, CancellationToken ct = default) => Task.CompletedTask;
+            public Task RemoveAsync(String id, CancellationToken ct = default) => Task.CompletedTask;
+            public Task<Int32> GetQueueLengthAsync(CancellationToken ct = default) => Task.FromResult(Enqueued.Count);
+            public Task<IReadOnlyList<QueuedMail>> GetFailedAsync(Int32 maxItems = 100, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<QueuedMail>>([]);
+            public ChannelReader<QueuedMail> NewMailReader { get; } = Channel.CreateUnbounded<QueuedMail>().Reader;
+            public void SignalRetryCheck() { }
+            public ChannelReader<Boolean> RetryCheckReader { get; } = Channel.CreateUnbounded<Boolean>().Reader;
+        }
+
+        /// <summary>
+        /// TXT records by owner name; every other query has no answer.
+        /// </summary>
+        private sealed class TxtDNS(params (String Name, String Text)[] Records) : IDNSClient
+        {
+
+            private static readonly DNSServerConfig origin = new (IPv4Address.Localhost, IPPort.Parse(53));
+
+            private Task<DNSInfo> Answer(String Name, IEnumerable<DNSResourceRecordTypes> Types)
+            {
+
+                var name    = Name.TrimEnd('.').ToLowerInvariant();
+                var answers = Types.Contains(DNSResourceRecordTypes.TXT)
+                                  ? Records.Where (record => record.Name == name).
+                                            Select(record => (IDNSResourceRecord) new TXT(DNSServiceName.Parse(name), DNSQueryClasses.IN, TimeSpan.FromMinutes(5), record.Text)).
+                                            ToArray()
+                                  : [];
+
+                return Task.FromResult(new DNSInfo(origin, 0, true, false, true, false, DNSResponseCodes.NoError,
+                                                   answers, [], [], true, false, TimeSpan.FromSeconds(1), TimeSpan.Zero));
+
+            }
+
+            public Task<DNSInfo> Query(DomainName DomainName, IEnumerable<DNSResourceRecordTypes> ResourceRecordTypes, TimeSpan? Timeout = null,
+                                       Boolean? RecursionDesired = true, Boolean? ForceUpdate = false, CancellationToken CancellationToken = default)
+                => Answer(DomainName.FullName, ResourceRecordTypes);
+
+            public Task<DNSInfo> Query(DNSServiceName DNSServiceName, IEnumerable<DNSResourceRecordTypes> ResourceRecordTypes, TimeSpan? Timeout = null,
+                                       Boolean? RecursionDesired = true, Boolean? ForceUpdate = false, CancellationToken CancellationToken = default)
+                => Answer(DNSServiceName.FullName, ResourceRecordTypes);
+
+            public void Dispose() { }
+
+            public ValueTask DisposeAsync()
+                => ValueTask.CompletedTask;
+
+        }
+
+        private const String SpfPass = "v=spf1 ip4:192.0.2.25 -all";
+
+        /// <summary>
+        /// The DNS of client.example - its SPF record lets 192.0.2.25 send, its DMARC record
+        /// is the given one - and the DMARC reporter of mx.hermod.test.
+        /// </summary>
+        private sealed class Reporter : IDisposable
+        {
+
+            private readonly String     directory = Directory.CreateTempSubdirectory("hermod-dmarc-reports-").FullName;
+
+            public  ReportQueue         Queue    { get; } = new();
+            public  DNSVerifier         Verifier { get; }
+            public  DmarcReportService  Service  { get; }
+
+            public Reporter(String Dmarc, params (String Name, String Text)[] Records)
+            {
+
+                var dns  = new TxtDNS([ ("client.example", SpfPass), ("_dmarc.client.example", Dmarc), .. Records ]);
+                var log  = new QuietLogger();
+
+                Verifier = new DNSVerifier(dns, log);
+                Service  = new DmarcReportService(new DmarcAggregator(Path.Combine(directory, "state.json"), log),
+                                                  Queue,
+                                                  Verifier,
+                                                  new DmarcReportingOptions("Hermod", "DMARC Reports <dmarc-reports@mx.hermod.test>",
+                                                                            "dmarc-reports@mx.hermod.test", "mx.hermod.test",
+                                                                            TimeSpan.FromDays(1), EnableForensic: true),
+                                                  log);
+
+            }
+
+            /// <summary>
+            /// DMARC of one message, as the server evaluates it: SPF of the reverse-path's
+            /// domain, or of the HELO identity for a null reverse-path.
+            /// </summary>
+            public async Task<DmarcEvaluation> Evaluate(String      Message,
+                                                        String      MailFrom  = "sender@client.example",
+                                                        String      Helo      = "mx.client.example",
+                                                        System.Net.IPAddress?  Client    = null)
+            {
+
+                var mailFromDomain  = MailFrom.Contains('@') ? MailFrom[(MailFrom.LastIndexOf('@') + 1)..] : "";
+                var verification    = await Verifier.VerifyAsync(mailFromDomain.Length > 0 ? mailFromDomain : Helo,
+                                                                 Client ?? client,
+                                                                 mailFromDomain.Length > 0 ? MailFrom : "",
+                                                                 Helo,
+                                                                 EMailMessage.Parse(Message));
+
+                return verification.DmarcDetail ?? throw new AssertionException("no DMARC evaluation");
+
+            }
+
+            /// <summary>
+            /// Record the evaluations, send the aggregate reports, and return what was queued.
+            /// </summary>
+            public async Task<IReadOnlyList<QueuedMail>> Aggregate(params (DmarcEvaluation Evaluation, System.Net.IPAddress Client)[] Evaluations)
+            {
+
+                foreach (var (evaluation, from) in Evaluations)
+                    Service.RecordInbound(evaluation, from);
+
+                await Service.GenerateAndSendAggregatesAsync(CancellationToken.None);
+
+                return [.. Queue.Enqueued];
+
+            }
+
+            public Task<IReadOnlyList<QueuedMail>> Aggregate(params DmarcEvaluation[] Evaluations)
+                => Aggregate([.. Evaluations.Select(evaluation => (evaluation, client))]);
+
+            /// <summary>
+            /// Send the failure report of one message, and return what was queued.
+            /// </summary>
+            public async Task<IReadOnlyList<QueuedMail>> FailureReport(DmarcEvaluation Evaluation, String Message, String MailFrom = "sender@client.example")
+            {
+
+                await Service.SendForensicAsync(Evaluation, client, Message[..(Message.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 2)], MailFrom,
+                                                $"mx.hermod.test; dmarc={(Evaluation.Failed ? "fail" : "pass")} header.from={Evaluation.HeaderFromDomain}");
+
+                return [.. Queue.Enqueued];
+
+            }
+
+            public void Dispose()
+            {
+                try { Directory.Delete(directory, recursive: true); } catch { }
+            }
+
+        }
+
+        private static String Letter(String From = "sender@client.example")
+
+            => $"From: Sender <{From}>\r\n" +
+               "To: alice@hermod.test\r\n" +
+               "Subject: reported\r\n" +
+               "Date: Sat, 17 Oct 2026 20:00:00 +0200\r\n" +
+               $"Message-ID: <{Guid.NewGuid():N}@client.example>\r\n" +
+               "\r\n" +
+               "body\r\n";
+
+        #endregion
+
+        #region Reading the reports
+
+        /// <summary>
+        /// The header fields of a message or part, unfolded, by name.
+        /// </summary>
+        private static Dictionary<String, String> Headers(String Text)
+        {
+
+            var fields = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
+            var block  = Text[..Math.Max(0, Text.IndexOf("\r\n\r\n", StringComparison.Ordinal))];
+
+            foreach (var line in Regex.Replace(block, @"\r\n[ \t]+", " ").Split("\r\n"))
+            {
+                var colon = line.IndexOf(':');
+                if (colon > 0)
+                    fields.TryAdd(line[..colon].Trim(), line[(colon + 1)..].Trim());
+            }
+
+            return fields;
+
+        }
+
+        /// <summary>
+        /// The body of the first MIME part of the given type.
+        /// </summary>
+        private static String Part(String Message, String ContentType)
+        {
+
+            var boundary = Regex.Match(Headers(Message)["Content-Type"], "boundary=\"?([^\";]+)\"?").Groups[1].Value;
+
+            foreach (var part in Message.Split("--" + boundary).Skip(1))
+            {
+                if (Headers(part.TrimStart('\r', '\n')).GetValueOrDefault("Content-Type", "").StartsWith(ContentType, StringComparison.OrdinalIgnoreCase))
+                {
+                    var text = part.TrimStart('\r', '\n');
+                    return text[(text.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4)..];
+                }
+            }
+
+            throw new AssertionException($"no {ContentType} part in:\r\n{Message}");
+
+        }
+
+        private static XDocument Xml(QueuedMail Mail)
+        {
+
+            using var gzip   = new GZipStream(new MemoryStream(Convert.FromBase64String(Part(Mail.MessageContent, "application/gzip").Replace("\r\n", "").Trim('-'))),
+                                              CompressionMode.Decompress);
+            using var reader = new StreamReader(gzip, Encoding.UTF8);
+
+            return XDocument.Parse(reader.ReadToEnd());
+
+        }
+
+        private static String? Value(XElement? Element, String Path)
+            => Path.Split('/').Aggregate(Element, (element, name) => element?.Element(name))?.Value;
+
+        private static String? Value(XDocument Report, String Path)
+            => Value(Report.Root, Path);
+
+        #endregion
+
+
+        #region The aggregate report
+
+        [Test(Description = "RFC 7489 §7.2.1.1: the Subject's Report-ID is a msg-id - \"Report-ID:\" msg-id, from RFC 5322: \"<\" id-left \"@\" id-right \">\" - and names the report whose report_id it is")]
+        public async Task The_Report_ID_of_the_subject_is_a_msg_id()
+        {
+
+            using var reporter = new Reporter("v=DMARC1; p=reject; rua=mailto:dmarc@client.example");
+
+            var mail    = (await reporter.Aggregate(await reporter.Evaluate(Letter()))).Single();
+            var subject = Headers(mail.MessageContent)["Subject"];
+            var id      = Regex.Match(subject, @" Report-ID: <([^<>@\s]+@[^<>@\s]+)>$");
+
+            Assert.Multiple(() => {
+                Assert.That(id.Success,                               Is.True, subject);
+                Assert.That(Value(Xml(mail), "report_metadata/report_id"), Is.EqualTo(id.Groups[1].Value), "the report_id of the XML is the same");
+            });
+
+        }
+
+        #endregion
+
+    }
+
+}

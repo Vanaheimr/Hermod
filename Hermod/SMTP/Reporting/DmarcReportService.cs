@@ -111,7 +111,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private async Task SendAggregateAsync(DmarcDomainReport report, CancellationToken ct)
         {
 
-            var reportId = $"{options.ReportingDomain}!{report.PolicyDomain}!{report.WindowBegin.ToUnixTimeSeconds()}!{Guid.NewGuid():N}";
+            // RFC 7489 §7.2.1.1: the Report-ID of the subject is a msg-id (RFC 5322 §3.6.4),
+            // "<" id-left "@" id-right ">"; the report_id of the XML is the same, without its brackets.
+            var reportId = $"{report.PolicyDomain}!{report.WindowBegin.ToUnixTimeSeconds()}!{Guid.NewGuid():N}@{options.ReportingDomain}";
             var xml      = DmarcReportXml.Build(report, options.OrgName, options.ReportFromAddress, reportId);
 
             foreach (var uri in ParseReportUris(report.Rua))
@@ -161,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // RFC 7489 §7.2.1.1 subject format.
             sb.Append("Subject: Report Domain: ").Append(report.PolicyDomain)
               .Append(" Submitter: ").Append(options.ReportingDomain)
-              .Append(" Report-ID: ").Append(reportId).Append("\r\n");
+              .Append(" Report-ID: <").Append(reportId).Append(">\r\n");
             sb.Append("Date: ").Append(date).Append("\r\n");
             sb.Append("Message-ID: <").Append(UUIDv7.Generate().ToString("N")).Append('@').Append(options.ReportingDomain).Append(">\r\n");
             sb.Append("Auto-Submitted: auto-generated\r\n");
