@@ -343,6 +343,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test(Description = "RFC 8617 §4.1.2: in the AMS, \"ARC-related header fields (ARC-Authentication-Results, ARC-Message-Signature, and ARC-Seal) MUST NOT be included\" - not even when the configuration names them")]
+        public async Task The_AMS_signs_no_ARC_header_field()
+        {
+
+            var sealed_  = Sealer("from:to:subject:ARC-Seal:arc-message-signature:Arc-Authentication-Results").
+                               Seal(Sealed(1), "relay.example", "arc=pass", ArcResult.Pass);
+            var h        = ArcChain.ParseTags(Fields(sealed_, AMS).First().RawValue)["h"];
+            var result   = await Validate(sealed_);
+
+            Assert.Multiple(() => {
+                Assert.That(h.Split(':').Select(name => name.Trim().ToLowerInvariant()), Has.None.StartsWith("arc-"), "h=" + h);
+                Assert.That(h.Split(':'), Is.EqualTo(new[] { "from", "to", "subject" }), "h=" + h);
+                Assert.That(result, Is.EqualTo(ArcResult.Pass), "a guard: the chain still passes");
+            });
+
+        }
+
         #endregion
 
     }

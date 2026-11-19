@@ -40,6 +40,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private readonly RSA       _privateKey;
         private readonly ILogger   _logger;
 
+        /// <summary>
+        /// The header fields of an ARC set, which no AMS signs (RFC 8617 §4.1.2).
+        /// </summary>
+        private static readonly HashSet<String> arcHeaderFields = new (StringComparer.OrdinalIgnoreCase) {
+                                                                      "ARC-Authentication-Results",
+                                                                      "ARC-Message-Signature",
+                                                                      "ARC-Seal"
+                                                                  };
+
         public ArcSealer(ArcConfig config, ILogger logger)
         {
             _config     = config;
@@ -105,9 +114,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var canonBody = DkimCanonicalization.CanonicalizeBody(body, "relaxed");
                 var bodyHash  = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(canonBody)));
 
+                // "ARC-related header fields (ARC-Authentication-Results, ARC-Message-Signature,
+                // and ARC-Seal) MUST NOT be included" (RFC 8617 §4.1.2) - whatever the
+                // configuration names.
                 var signedNames = _config.SignedHeaders.Split(':')
                                       .Select(h => h.Trim())
-                                      .Where(h => h.Length > 0 && fields.Any(f => f.Name.Equals(h, StringComparison.OrdinalIgnoreCase)))
+                                      .Where(h => h.Length > 0 && !arcHeaderFields.Contains(h) && fields.Any(f => f.Name.Equals(h, StringComparison.OrdinalIgnoreCase)))
                                       .ToList();
 
                 var amsValue = $"i={instance}; a=rsa-sha256; c=relaxed/relaxed; d={_config.Domain}; s={_config.Selector}; " +
