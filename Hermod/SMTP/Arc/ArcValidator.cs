@@ -146,6 +146,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
             var tags = ArcChain.ParseTags(set.Seal.RawValue);
 
+            // "the DKIM "h" tag is NOT allowed and, if found, MUST result in a cv status of
+            // "fail"" (RFC 8617 §4.1.3).
+            if (tags.ContainsKey("h"))
+                return false;
+
             if (!tags.TryGetValue("d", out var domain) || !tags.TryGetValue("s", out var selector) ||
                 !tags.TryGetValue("b", out var signature))
                 return false;

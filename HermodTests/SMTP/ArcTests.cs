@@ -300,6 +300,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region The tags of an ARC-Seal
+
+        [Test(Description = "RFC 8617 §4.1.3: \"the DKIM \"h\" tag is NOT allowed and, if found, MUST result in a cv status of \"fail\"\" - in the first set and in the second")]
+        public async Task An_ARC_Seal_with_an_h_tag_fails()
+        {
+
+            var first  = await Validate(HandSeal(Message(), 1, "none", ExtraSealTags: "h=from:to"));
+            var second = await Validate(HandSeal(Sealed(1), 2, "pass", ExtraSealTags: "h=from:to"));
+
+            Assert.Multiple(() => {
+                Assert.That(first,  Is.EqualTo(ArcResult.Fail), "h= in the AS of instance 1");
+                Assert.That(second, Is.EqualTo(ArcResult.Fail), "h= in the AS of instance 2");
+            });
+
+        }
+
+        #endregion
+
     }
 
 }
