@@ -30,7 +30,7 @@ HMAC-SHA256/Base62 profile of what this folder implements.
 | File | Contents |
 |---|---|
 | `TOTP.cs` | `TOTPGenerator`: token derivation, previous/current/next triples, URL templates, TLS v1.3 channel binding |
-| `TOTPConfig.cs` | A TOTP configuration as an immutable object with a JSON round-trip (`sharedSecret`, `validityTime`, `length`, `alphabet`, `useTLSExporterMaterial`, `hashAlgorithm`) |
+| `TOTPConfig.cs` | A TOTP configuration as an immutable object with a JSON round-trip (`sharedSecret`, `validityTime`, `length`, `alphabet`, `tlsChannelBinding`, `hashAlgorithm`) |
 | `TOTPHashAlgorithm.cs` | `sha256` / `sha384` / `sha512`, lenient parsing (`"SHA-256"`, `"HMAC_SHA512"`, …), canonical spellings |
 | `TOTPHTTPHeader.cs` | The HTTP header carrier: a raw TOTP, or one bound to the TLS session |
 

@@ -903,7 +903,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             var basic  = ClientLogins.IsEmpty &&
-                         !ClientTOTPConfig.Values.Any(config => config.UseTLSExporterMaterial != true)
+                         !ClientTOTPConfig.Values.Any(config => config.TLSChannelBinding != true)
                              ? null
                              : WWWAuthenticate.Basic(Realm);
             var totp   = ClientTOTPConfig.IsEmpty ? null : WWWAuthenticate.TOTP (Realm);
@@ -958,7 +958,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             if (Request.Authorization is HTTPTOTPAuthentication totpAuthentication &&
                 ClientTOTPConfig.TryGetValue(totpAuthentication.Login, out var config) &&
-                TOTPIsTheOneOf(config, totpAuthentication.TOTP, totpAuthentication.Type, Connection.TOTPTLSExporterMaterial))
+                TOTPIsTheOneOf(config, totpAuthentication.TOTP, Connection.TOTPTLSExporterMaterial))
             {
                 return Task.FromResult<String?>(totpAuthentication.Login);
             }
@@ -1021,6 +1021,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #region (public static)     TOTPIsTheOneOf(Config, TOTP, TLSExporterMaterial)
+
+        /// <summary>
+        /// Whether a one-time password sent in "Authorization: TOTP" is one
+        /// this configuration makes at this moment - the one before, the
+        /// current one or the next.
+        /// </summary>
+        /// <remarks>
+        /// "Authorization: TOTP" does not say whether its password is bound
+        /// to the TLS session: the configuration of the login says it. One
+        /// with TLSChannelBinding is verified with the keying material of the
+        /// connection the password arrived on, and refused where that
+        /// connection exports none; any other is verified as a raw one.
+        /// </remarks>
+        /// <param name="Config">The TOTP configuration of the login.</param>
+        /// <param name="TOTP">The one-time password the client sent.</param>
+        /// <param name="TLSExporterMaterial">The keying material of the connection the password arrived on, or null where its TLS exports none.</param>
+        public static Boolean TOTPIsTheOneOf(TOTPConfig  Config,
+                                             String      TOTP,
+                                             Byte[]?     TLSExporterMaterial)
+
+            => TOTPIsTheOneOf(
+                   Config,
+                   TOTP,
+                   Config.TLSChannelBinding == true
+                       ? TOTPHTTPHeaderType.TLSChannelBinding
+                       : TOTPHTTPHeaderType.RAW,
+                   TLSExporterMaterial
+               );
+
+        #endregion
+
         #region (public static)     TOTPIsTheOneOf(Config, TOTP, Type, TLSExporterMaterial)
 
         /// <summary>
@@ -1059,7 +1091,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
 
                 case TOTPHTTPHeaderType.RAW:
-                    if (Config.UseTLSExporterMaterial == true)
+                    if (Config.TLSChannelBinding == true)
                         return false;
                     material = null;
                     break;

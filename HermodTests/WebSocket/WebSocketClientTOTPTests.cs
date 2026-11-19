@@ -53,10 +53,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         private const String Secret = "abcdefghijklmnop";
 
         private static TOTPConfig Raw(TimeSpan? Validity = null)
-            => new (Secret, Validity, UseTLSExporterMaterial: false);
+            => new (Secret, Validity, TLSChannelBinding: false);
 
         private static TOTPConfig BoundToTLS
-            => new (Secret, UseTLSExporterMaterial: true);
+            => new (Secret, TLSChannelBinding: true);
 
         /// <summary>
         /// Reconnect attempts close together, so that a test does not wait on

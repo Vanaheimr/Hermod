@@ -25,7 +25,6 @@ using System.Security.Cryptography.X509Certificates;
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.PKI;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 using org.GraphDefined.Vanaheimr.Hermod.Quic.Tls;
@@ -315,227 +314,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             });
 
             await TheMirrorAnswers(client);
-
-        }
-
-        #endregion
-
-        #region (private) AServerShowing(Shown)
-
-        /// <summary>
-        /// A server that takes WebSockets over HTTP/3 and shows whatever the
-        /// given function answers with at the time it is asked - on a port
-        /// free for both, see TheServerTakesHTTP3.
-        /// </summary>
-        private async Task AServerShowing(Func<X509Certificate2> Shown)
-        {
-
-            for (var attempt = 0; attempt < 20; attempt++)
-            {
-
-                await Shutdown_WebSocketTLSServer();
-
-                var port = APortFreeForBoth();
-
-                try
-                {
-
-                    webSocketServer = new WebSocketMirrorServer(
-                                          HTTPPort:                    IPPort.Parse(port),
-                                          RequireAuthentication:       false,
-                                          ServerCertificateSelector:   (tcpServer, tcpClient) => Shown(),
-                                          SecWebSocketProtocols:       SecWebSocketProtocols,
-                                          AutoStart:                   false
-                                      ) {
-                                          AcceptHTTP3 = true
-                                      };
-
-                    await webSocketServer.Start();
-
-                }
-                catch
-                {
-                    // Not free for TCP.
-                    continue;
-                }
-
-                HTTPPort = webSocketServer.IPPort;
-
-                TheServerSaysWhoCame();
-
-                SpinWait.SpinUntil(() => webSocketServer.HTTP3Port is not null || webSocketServer.WhyNoHTTP3 is not null, TimeSpan.FromSeconds(10));
-
-                if (webSocketServer.HTTP3Port is not null)
-                    break;
-
-            }
-
-            Assert.That(webSocketServer!.HTTP3Port, Is.EqualTo(HTTPPort),
-                        "The server takes no WebSockets over HTTP/3: " + webSocketServer.WhyNoHTTP3);
-
-        }
-
-        #endregion
-
-        #region (private) ShownOverHTTP3()
-
-        /// <summary>
-        /// The thumbprint of the certificate a new WebSocket over HTTP/3 is
-        /// shown, and whether it was opened.
-        /// </summary>
-        private async Task<(String? Thumbprint, Boolean Opened)> ShownOverHTTP3()
-        {
-
-            String? shown = null;
-
-            var client = new WebSocketClient(
-                             URL.Parse($"wss://127.0.0.1:{HTTPPort}/"),
-                             SecWebSocketProtocols:       [ "ocpp2.1" ],
-                             RemoteCertificateValidator:  (sender, certificate, certificateChain, tlsClient, policyErrors) => {
-                                                              shown = certificate?.Thumbprint;
-                                                              return TLSValidationResult.Success();
-                                                          },
-                             ConnectTimeout:              TimeSpan.FromSeconds(5)
-                         ) {
-                             WebSocketOver = WebSocketHTTPVersion.HTTP3
-                         };
-
-            toDispose.Add(client);
-
-            var (_, response) = await client.Connect();
-
-            return (shown, response.HTTPStatusCode == HTTPStatusCode.SwitchingProtocols && client.HTTPVersionInUse == HTTPVersion.HTTP_3_0);
-
-        }
-
-        #endregion
-
-
-        #region ARestartOfHTTP3ShowsWhatTheSelectorAnswersWithNow()
-
-        /// <summary>
-        /// QUIC is handed its certificate when it starts: a server whose
-        /// selector answers with another certificate goes on showing the old
-        /// one over HTTP/3 - over TCP every handshake asks - until HTTP/3 is
-        /// started again, on the same UDP port, and shows the new one.
-        /// </summary>
-        [Test]
-        public async Task ARestartOfHTTP3ShowsWhatTheSelectorAnswersWithNow()
-        {
-
-            var otherKeyPair      = PKIFactory.GenerateRSAKeyPair(2048);
-
-            using var other       = PKIFactory.SignServerCertificate(
-                                        "WebSocketOverHTTP3Tests Other Server Certificate",
-                                        [],
-                                        otherKeyPair.Public,
-                                        serverCA_RSAKeyPair.Private,
-                                        serverCA_X509v3
-                                    ).ToDotNet(otherKeyPair.Private)!;
-
-            var shown             = serverCertificate!;
-
-            await AServerShowing(() => shown);
-
-            var before            = await ShownOverHTTP3();
-
-            shown                 = other;
-
-            var notRestartedYet   = await ShownOverHTTP3();
-
-            var server            = webSocketServer!;
-
-            var restarted         = await server.RestartHTTP3Async();
-
-            var after             = await ShownOverHTTP3();
-
-            Assert.Multiple(() => {
-
-                Assert.That(before,                    Is.EqualTo((serverCertificate!.Thumbprint, true)),  "before the selector answered with another");
-                Assert.That(notRestartedYet,           Is.EqualTo((serverCertificate!.Thumbprint, true)),  "after it did, before the restart");
-
-                Assert.That(restarted,                 Is.True,                                            "the restart says it failed: " + server.WhyNoHTTP3);
-                Assert.That(server.HTTP3Port,          Is.EqualTo(HTTPPort),                               "HTTP/3 is not taken on its port after the restart: " + server.WhyNoHTTP3);
-                Assert.That(after,                     Is.EqualTo((other.Thumbprint, true)),               "after the restart");
-
-            });
-
-        }
-
-        #endregion
-
-        #region RestartsOfHTTP3OneAfterAnotherEachFindThePortFree()
-
-        /// <summary>
-        /// A restart waits until the old QUIC listener let go of its UDP port
-        /// before it binds it again: switching AcceptHTTP3 off and on does not,
-        /// and the start right after it may find the port still taken. So one
-        /// restart right after another takes HTTP/3 on its port every time.
-        /// </summary>
-        [Test]
-        public async Task RestartsOfHTTP3OneAfterAnotherEachFindThePortFree()
-        {
-
-            await AServerShowing(() => serverCertificate!);
-
-            var server = webSocketServer!;
-
-            for (var round = 0; round < 10; round++)
-            {
-
-                var restarted = await server.RestartHTTP3Async();
-
-                Assert.Multiple(() => {
-                    Assert.That(restarted,         Is.True,               $"round {round}: " + server.WhyNoHTTP3);
-                    Assert.That(server.HTTP3Port,  Is.EqualTo(HTTPPort),  $"round {round}: " + server.WhyNoHTTP3);
-                });
-
-            }
-
-            var (_, opened) = await ShownOverHTTP3();
-
-            Assert.That(opened, Is.True, "no WebSocket over HTTP/3 after the restarts");
-
-        }
-
-        #endregion
-
-        #region ARestartOfAServerThatTakesNoHTTP3StartsNone()
-
-        /// <summary>
-        /// A restart starts HTTP/3 again where the server takes it, and nowhere
-        /// else: a server that was told to take none, or is not running, takes
-        /// none after it either.
-        /// </summary>
-        [Test]
-        public async Task ARestartOfAServerThatTakesNoHTTP3StartsNone()
-        {
-
-            var server        = webSocketServer!;
-            var withoutHTTP3  = await server.RestartHTTP3Async();
-
-            Assert.Multiple(() => {
-                Assert.That(server.AcceptHTTP3,  Is.False);
-                Assert.That(withoutHTTP3,        Is.False, "a server that takes no HTTP/3");
-                Assert.That(server.HTTP3Port,    Is.Null);
-            });
-
-            await using var stopped = new WebSocketMirrorServer(
-                                          HTTPPort:                    IPPort.Zero,
-                                          RequireAuthentication:       false,
-                                          ServerCertificateSelector:   (tcpServer, tcpClient) => serverCertificate!,
-                                          SecWebSocketProtocols:       [ "ocpp2.1" ],
-                                          AutoStart:                   false
-                                      ) {
-                                          AcceptHTTP3 = true
-                                      };
-
-            var notRunning = await stopped.RestartHTTP3Async();
-
-            Assert.Multiple(() => {
-                Assert.That(notRunning,         Is.False, "a server that is not running");
-                Assert.That(stopped.HTTP3Port,  Is.Null);
-            });
 
         }
 
@@ -1123,8 +901,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         private const String TOTPSecret = "a-shared-secret-of-some-length";
 
-        private static TOTPConfig Bound() => new (TOTPSecret, UseTLSExporterMaterial: true);
-        private static TOTPConfig Raw()   => new (TOTPSecret, UseTLSExporterMaterial: false);
+        private static TOTPConfig Bound() => new (TOTPSecret, TLSChannelBinding: true);
+        private static TOTPConfig Raw()   => new (TOTPSecret, TLSChannelBinding: false);
 
         /// <summary>
         /// The server takes WebSockets over HTTP/3 from who it knows by a
@@ -1182,8 +960,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
                 Assert.That(sent,                          Is.Not.Null,                                       "no Authorization: TOTP was sent");
                 Assert.That(sent?.Login,                   Is.EqualTo("station"));
-                Assert.That(sent?.Type,                    Is.EqualTo(TOTPHTTPHeaderType.TLSChannelBinding),  "the password does not say it is bound");
-                Assert.That(sent?.ToString(),              Does.Not.Contain("tlscb"),                         "bound is what a password is unless it says otherwise");
+                Assert.That(sent?.HTTPText,                Does.Not.Contain("tlscb"),                         "the header said whether the password is bound: that is for the server's configuration to say");
                 Assert.That(new[] { before, now, next },   Has.None.EqualTo(sent?.TOTP),                      "the password sent as bound is the unbound one");
 
                 Assert.That(accepted.First().TOTPTLSExporterMaterial?.Length,
@@ -1221,15 +998,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             // Shown again, at once, by somebody else on a connection of their own.
             var thief                 = ClientOver(WebSocketHTTPVersion.HTTP3);
-            thief.HTTPAuthentication  = HTTPTOTPAuthentication.Create("station", readOff.TOTP, TOTPHTTPHeaderType.TLSChannelBinding);
+            thief.HTTPAuthentication  = HTTPTOTPAuthentication.Create("station", readOff.TOTP);
 
             var (_, refused)   = await thief.Connect();
-
-            // And shown as an unbound one, it is none either.
-            var liar                  = ClientOver(WebSocketHTTPVersion.HTTP3);
-            liar.HTTPAuthentication   = HTTPTOTPAuthentication.Create("station", readOff.TOTP, TOTPHTTPHeaderType.RAW);
-
-            var (_, refusedRaw) = await liar.Connect();
 
             await first.Close();
 
@@ -1244,7 +1015,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             Assert.Multiple(() => {
                 Assert.That(refused.   HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),        "a password read off another connection was taken");
-                Assert.That(refusedRaw.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),        "a bound password was taken for a raw one");
                 Assert.That(letIn.     HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.SwitchingProtocols),  "the client was not let in on its next connection");
                 Assert.That(secondTime.TOTP,            Is.Not.EqualTo(readOff.TOTP),                   "two connections were shown the same password");
             });
@@ -1267,31 +1037,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var (_, response)  = await client.Connect();
 
-            // Nor the raw password with "bound" written on it.
-            var labelled                 = ClientOver(WebSocketHTTPVersion.HTTP3);
-            labelled.HTTPAuthentication  = HTTPTOTPAuthentication.Create("station", TOTPGenerator.GenerateTOTP(TOTPSecret).Current, TOTPHTTPHeaderType.TLSChannelBinding);
-
-            var (_, alsoRefused) = await labelled.Connect();
-
             Assert.Multiple(() => {
-                Assert.That(response.   HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),  "a raw password was taken where the binding is asked for");
-                Assert.That(alsoRefused.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),  "a raw password sent as bound was taken");
-                Assert.That(accepted,                    Is.Empty);
+                Assert.That(response.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),  "a raw password was taken where the binding is asked for");
+                Assert.That(accepted,                 Is.Empty);
             });
 
         }
 
         #endregion
 
-        #region AServerNotAskingForTheBindingTakesABoundPasswordWhereItCanVerifyIt()
+        #region AServerNotAskingForTheBindingTakesNoBoundPassword()
 
         /// <summary>
-        /// More than it asked for: a server whose configuration of a login
-        /// does not ask for the binding verifies a bound password with the
-        /// keying material of the connection all the same.
+        /// "Authorization: TOTP" does not say whether its password is bound:
+        /// a server whose configuration of a login does not ask for the
+        /// binding verifies what comes as a raw password, and a bound one is
+        /// not that.
         /// </summary>
         [Test]
-        public async Task AServerNotAskingForTheBindingTakesABoundPasswordWhereItCanVerifyIt()
+        public async Task AServerNotAskingForTheBindingTakesNoBoundPassword()
         {
 
             await TheServerKnowsItsStationBy(Raw());
@@ -1303,8 +1067,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var (_, response)  = await client.Connect();
 
             Assert.Multiple(() => {
-                Assert.That(response.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.SwitchingProtocols));
-                Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True);
+                Assert.That(response.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized),  "a bound password was verified as a raw one");
+                Assert.That(accepted,                 Is.Empty);
             });
 
         }
@@ -1481,7 +1245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             webSocketServer!.TOTPLoginOfAConnection = (connection, request) => "station";
 
             var wrong           = ClientOver(WebSocketHTTPVersion.HTTP3);
-            wrong.TOTPConfig    = new TOTPConfig("another-secret-of-some-length", UseTLSExporterMaterial: true);
+            wrong.TOTPConfig    = new TOTPConfig("another-secret-of-some-length", TLSChannelBinding: true);
 
             var (_, asWrong)    = await wrong.Connect();
 

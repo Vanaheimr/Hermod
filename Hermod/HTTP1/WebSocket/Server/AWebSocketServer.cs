@@ -20,6 +20,7 @@
 using System.Net.Sockets;
 using System.Net.Security;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 
@@ -97,6 +98,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         private          Task                                                       http3Stopped       = Task.CompletedTask;
         private          Int32                                                     disposed;
+
+        /// <summary>
+        /// The servers this one's listener hands WebSockets to, by their
+        /// subprotocol - see <see cref="RouteBySubprotocol"/> - and the one
+        /// whose listener hands WebSockets to this one, where another does.
+        /// </summary>
+        private          ImmutableArray<AWebSocketServer>                          routedServers      = [];
+        private          AWebSocketServer?                                          routedBy;
+        private readonly Lock                                                       routingLock        = new();
 
         #endregion
 
@@ -472,6 +482,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         protected ConcurrentDictionary<TCPConnection, Task>             activeClients
             => listener.ActiveClients;
 
+        /// <summary>
+        /// The servers the listener of this one hands WebSockets to, by their
+        /// subprotocol: see <see cref="RouteBySubprotocol"/>.
+        /// </summary>
+        public IReadOnlyList<AWebSocketServer>                          RoutedServers
+            => routedServers;
+
+        /// <summary>
+        /// The server whose listener hands WebSockets to this one, by their
+        /// subprotocol - or null, where this one is reached by its own.
+        /// </summary>
+        public AWebSocketServer?                                        RoutedBy
+            => routedBy;
+
         #endregion
 
         #region Events
@@ -788,21 +812,217 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         /// <summary>
         /// HTTP/3 on the UDP port of this server, while it takes WebSockets
-        /// over it: <c>h3=":port"</c>, for a day.
+        /// over it: <c>h3=":port"</c>, for a day. A server reached through
+        /// the listener of another announces what that one announces: its
+        /// WebSockets came in on that one's ports.
         /// </summary>
         protected override AlternativeServices? AlternativeServicesAnnounced
 
-            => http3Server is { } server
-                   ? AlternativeServices.Of(
-                         new HTTPAlternativeService(
-                             "h3",
-                             "",
-                             (UInt16) server.Port,
-                             HTTPAlternativeService.DefaultMaxAge,
-                             false
-                         )
-                     )
-                   : null;
+            => routedBy is { } listening
+                   ? listening.AlternativeServicesAnnounced
+                   : http3Server is { } server
+                         ? AlternativeServices.Of(
+                               new HTTPAlternativeService(
+                                   "h3",
+                                   "",
+                                   (UInt16) server.Port,
+                                   HTTPAlternativeService.DefaultMaxAge,
+                                   false
+                               )
+                           )
+                         : null;
+
+        #endregion
+
+
+        #region RouteBySubprotocol(params Servers)
+
+        /// <summary>
+        /// Hand the WebSockets the listener of this server takes to the given
+        /// servers as well, each by the subprotocol it speaks: one port for
+        /// several servers, each with its own handshake, authentication,
+        /// connections and messages.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Which server a WebSocket goes to is decided by the subprotocols the
+        /// client offers, in its order: the first it offers that this server
+        /// or one of the given speaks (see <see cref="AWebSocketEndpoint.SecWebSocketProtocols"/>)
+        /// chooses, this server first where both speak it - as an SSH server
+        /// routed by subprotocol chooses. A WebSocket that offers nothing any
+        /// of them speaks stays with this server, which turns it away as it
+        /// always did.
+        /// </para>
+        /// <para>
+        /// Decided before the handshake, on the request alone: the server
+        /// chosen validates the upgrade, authenticates the client, keeps the
+        /// connection and is told its messages and its close, as if it had
+        /// accepted it itself. What is decided before the request - the TCP
+        /// connection, TLS and the client certificate, HTTP/2 and HTTP/3 - is
+        /// this server's, whose listener it is: the certificate a client shows
+        /// has to be one this server's validator believes, for every
+        /// subprotocol it routes.
+        /// </para>
+        /// <para>
+        /// A server routed to is not started: it has no listener of its own to
+        /// start, and is given its WebSockets by this one alone.
+        /// </para>
+        /// </remarks>
+        /// <param name="Servers">The servers to hand WebSockets to as well.</param>
+        public void RouteBySubprotocol(params AWebSocketServer[] Servers)
+        {
+
+            lock (routingLock)
+            {
+
+                if (routedBy is not null)
+                    throw new InvalidOperationException("A WebSocket server handed WebSockets by another's listener has no listener to hand them on with.");
+
+                foreach (var server in Servers)
+                {
+
+                    if (ReferenceEquals(server, this) || routedServers.Contains(server))
+                        continue;
+
+                    if (server.routedBy is AWebSocketServer other && !ReferenceEquals(other, this))
+                        throw new ArgumentException("A WebSocket server is reached through one listener, and this one is reached through another's already.", nameof(Servers));
+
+                    if (server.routedServers.Length > 0)
+                        throw new ArgumentException("A WebSocket server that hands its WebSockets to others is not handed WebSockets itself.", nameof(Servers));
+
+                    server.routedBy  = this;
+                    routedServers    = routedServers.Add(server);
+
+                }
+            }
+
+        }
+
+        #endregion
+
+        #region StopRouting(Server)
+
+        /// <summary>
+        /// Hand no more WebSockets to the given server. Those it was handed
+        /// already stay its own until they close.
+        /// </summary>
+        /// <param name="Server">A server WebSockets were handed to.</param>
+        public Boolean StopRouting(AWebSocketServer Server)
+        {
+
+            lock (routingLock)
+            {
+
+                if (!routedServers.Contains(Server))
+                    return false;
+
+                routedServers    = routedServers.Remove(Server);
+                Server.routedBy  = null;
+
+                return true;
+
+            }
+
+        }
+
+        #endregion
+
+        #region (private) ServerFor(UpgradeRequest)
+
+        /// <summary>
+        /// The server the WebSocket that asks with the given upgrade request -
+        /// as it is written over HTTP/1.1 - goes to: see <see cref="RouteBySubprotocol"/>.
+        /// </summary>
+        private AWebSocketServer ServerFor(Byte[] UpgradeRequest)
+        {
+
+            var routed = routedServers;
+
+            if (routed.IsEmpty ||
+                !HTTPRequest.TryParse(UpgradeRequest, out var request))
+                return this;
+
+            foreach (var offered in request.SecWebSocketProtocol)
+            {
+
+                if (SecWebSocketProtocols.Contains(offered))
+                    return this;
+
+                foreach (var server in routed)
+                    if (server.SecWebSocketProtocols.Contains(offered))
+                        return server;
+
+            }
+
+            return this;
+
+        }
+
+        #endregion
+
+        #region (private) ReadTheUpgradeRequest(Stream, CancellationToken)
+
+        /// <summary>
+        /// What a client sent on a TCP connection up to and with the empty
+        /// line that ends the header of its request - all of it, where it
+        /// stopped before, sent more than a handshake may be, or did not
+        /// finish within the time a handshake has.
+        /// </summary>
+        /// <remarks>
+        /// Read only where WebSockets are routed by their subprotocol, which
+        /// is said in the request: everything read is handed on in front of
+        /// the stream, and the server it goes to reads it as if it had been
+        /// the first to, with its own limits.
+        /// </remarks>
+        private async Task<Byte[]> ReadTheUpgradeRequest(Stream             Stream,
+                                                         CancellationToken  CancellationToken)
+        {
+
+            var read    = new MemoryStream();
+            var buffer  = new Byte[4096];
+
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
+            if (HandshakeTimeout > TimeSpan.Zero)
+                deadline.CancelAfter(HandshakeTimeout);
+
+            try
+            {
+
+                while (true)
+                {
+
+                    var count = await Stream.ReadAsync(buffer, deadline.Token).ConfigureAwait(false);
+
+                    if (count == 0)
+                        break;
+
+                    read.Write(buffer, 0, count);
+
+                    if (EndsTheHeader(read) ||
+                        MaxHandshakeRequestSize > 0 && (UInt64) read.Length > MaxHandshakeRequestSize)
+                        break;
+
+                }
+
+            }
+            catch (OperationCanceledException)
+            { }
+            catch (IOException)
+            { }
+
+            return read.ToArray();
+
+            static Boolean EndsTheHeader(MemoryStream Read)
+            {
+
+                var bytes = Read.GetBuffer().AsSpan(0, (Int32) Read.Length);
+
+                return bytes.IndexOf("\r\n\r\n"u8) >= 0;
+
+            }
+
+        }
 
         #endregion
 
@@ -1166,12 +1386,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var bridge = new WebSocketOverHTTP2ServerStream();
 
+            // The server routed to by its subprotocol, where there is one.
+            var server = ServerFor(requestBytes);
+
             // The handshake and the frame loop every WebSocket of this
             // server has, on the request the CONNECT stands for.
-            _ = RunConnectionAsync(
+            _ = server.RunConnectionAsync(
                     new WebSocketServerConnection(
 
-                        WebSocketServer:              this,
+                        WebSocketServer:              server,
                         NetworkStream:                new PrefixedStream(requestBytes, bridge),
                         LocalSocket:                  LocalSocket,
                         RemoteSocket:                 RemoteSocket,
@@ -1180,17 +1403,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         HTTPRequest:                  null,
                         HTTPResponse:                 null,
 
-                        MaxTextMessageSizeIn:         MaxTextMessageSizeIn,
-                        MaxTextMessageSizeOut:        MaxTextMessageSizeOut,
-                        MaxTextFragmentLengthIn:      MaxTextFragmentLengthIn,
-                        MaxTextFragmentLengthOut:     MaxTextFragmentLengthOut,
+                        MaxTextMessageSizeIn:         server.MaxTextMessageSizeIn,
+                        MaxTextMessageSizeOut:        server.MaxTextMessageSizeOut,
+                        MaxTextFragmentLengthIn:      server.MaxTextFragmentLengthIn,
+                        MaxTextFragmentLengthOut:     server.MaxTextFragmentLengthOut,
 
-                        MaxBinaryMessageSizeIn:       MaxBinaryMessageSizeIn,
-                        MaxBinaryMessageSizeOut:      MaxBinaryMessageSizeOut,
-                        MaxBinaryFragmentLengthIn:    MaxBinaryFragmentLengthIn,
-                        MaxBinaryFragmentLengthOut:   MaxBinaryFragmentLengthOut,
+                        MaxBinaryMessageSizeIn:       server.MaxBinaryMessageSizeIn,
+                        MaxBinaryMessageSizeOut:      server.MaxBinaryMessageSizeOut,
+                        MaxBinaryFragmentLengthIn:    server.MaxBinaryFragmentLengthIn,
+                        MaxBinaryFragmentLengthOut:   server.MaxBinaryFragmentLengthOut,
 
-                        SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
+                        SlowNetworkSimulationDelay:   server.SlowNetworkSimulationDelay
 
                     ) {
                         HTTPVersion              = HTTPVersion.HTTP_3_0,
@@ -1280,6 +1503,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     await HandleHTTP2Connection(Connection, Connection.NetworkStream, CancellationToken).ConfigureAwait(false);
                     return;
                 }
+
+            }
+
+            // Where WebSockets are routed by their subprotocol, the request
+            // that says it is read first, and handed on in front of the stream
+            // to the server it chooses.
+            if (!routedServers.IsEmpty)
+            {
+
+                var stream          = Connection.TLSStream ?? Connection.NetworkStream;
+                var upgradeRequest  = await ReadTheUpgradeRequest(stream, CancellationToken).ConfigureAwait(false);
+                var server          = ServerFor(upgradeRequest);
+
+                await server.RunConnectionAsync(
+                          new WebSocketServerConnection(
+
+                              WebSocketServer:              server,
+                              TcpClient:                    Connection.TCPClient,
+                              TLSStream:                    new PrefixedStream(upgradeRequest, stream),
+                              ClientCertificate:            Connection.ClientCertificate,
+
+                              HTTPRequest:                  null,
+                              HTTPResponse:                 null,
+
+                              MaxTextMessageSizeIn:         server.MaxTextMessageSizeIn,
+                              MaxTextMessageSizeOut:        server.MaxTextMessageSizeOut,
+                              MaxTextFragmentLengthIn:      server.MaxTextFragmentLengthIn,
+                              MaxTextFragmentLengthOut:     server.MaxTextFragmentLengthOut,
+
+                              MaxBinaryMessageSizeIn:       server.MaxBinaryMessageSizeIn,
+                              MaxBinaryMessageSizeOut:      server.MaxBinaryMessageSizeOut,
+                              MaxBinaryFragmentLengthIn:    server.MaxBinaryFragmentLengthIn,
+                              MaxBinaryFragmentLengthOut:   server.MaxBinaryFragmentLengthOut,
+
+                              SlowNetworkSimulationDelay:   server.SlowNetworkSimulationDelay
+
+                          ) {
+                              TCPConnection = Connection,
+                              ClientKey     = Connection.ClientKey
+                          },
+                          CancellationToken
+                      ).ConfigureAwait(false);
+
+                return;
 
             }
 
@@ -1418,12 +1685,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                           var bridge = new WebSocketOverHTTP2ServerStream();
 
+                                          // The server routed to by its subprotocol, where there is one.
+                                          var server = ServerFor(requestBytes);
+
                                           // The handshake and the frame loop every WebSocket of this
                                           // server has, on the request the CONNECT stands for.
-                                          _ = RunConnectionAsync(
+                                          _ = server.RunConnectionAsync(
                                                   new WebSocketServerConnection(
 
-                                                      WebSocketServer:              this,
+                                                      WebSocketServer:              server,
                                                       NetworkStream:                new PrefixedStream(requestBytes, bridge),
                                                       LocalSocket:                  Connection.LocalSocket,
                                                       RemoteSocket:                 Connection.RemoteSocket,
@@ -1432,17 +1702,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                       HTTPRequest:                  null,
                                                       HTTPResponse:                 null,
 
-                                                      MaxTextMessageSizeIn:         MaxTextMessageSizeIn,
-                                                      MaxTextMessageSizeOut:        MaxTextMessageSizeOut,
-                                                      MaxTextFragmentLengthIn:      MaxTextFragmentLengthIn,
-                                                      MaxTextFragmentLengthOut:     MaxTextFragmentLengthOut,
+                                                      MaxTextMessageSizeIn:         server.MaxTextMessageSizeIn,
+                                                      MaxTextMessageSizeOut:        server.MaxTextMessageSizeOut,
+                                                      MaxTextFragmentLengthIn:      server.MaxTextFragmentLengthIn,
+                                                      MaxTextFragmentLengthOut:     server.MaxTextFragmentLengthOut,
 
-                                                      MaxBinaryMessageSizeIn:       MaxBinaryMessageSizeIn,
-                                                      MaxBinaryMessageSizeOut:      MaxBinaryMessageSizeOut,
-                                                      MaxBinaryFragmentLengthIn:    MaxBinaryFragmentLengthIn,
-                                                      MaxBinaryFragmentLengthOut:   MaxBinaryFragmentLengthOut,
+                                                      MaxBinaryMessageSizeIn:       server.MaxBinaryMessageSizeIn,
+                                                      MaxBinaryMessageSizeOut:      server.MaxBinaryMessageSizeOut,
+                                                      MaxBinaryFragmentLengthIn:    server.MaxBinaryFragmentLengthIn,
+                                                      MaxBinaryFragmentLengthOut:   server.MaxBinaryFragmentLengthOut,
 
-                                                      SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
+                                                      SlowNetworkSimulationDelay:   server.SlowNetworkSimulationDelay
 
                                                   ) {
                                                       HTTPVersion = HTTPVersion.HTTP_2_0,

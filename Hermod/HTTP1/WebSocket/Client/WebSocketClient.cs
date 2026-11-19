@@ -1392,7 +1392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             // Bound to the connection where that is known to be one whose TLS
             // exports what a token is bound with before it is made: HTTP/3, and
             // not "whichever the server takes", which may come to an SslStream.
-            if (TOTPConfig?.UseTLSExporterMaterial == true && WebSocketOver != WebSocketHTTPVersion.HTTP3)
+            if (TOTPConfig?.TLSChannelBinding == true && WebSocketOver != WebSocketHTTPVersion.HTTP3)
                 return TOTPConfig.TLSChannelBindingNotAvailable;
 
             return null;
@@ -1424,12 +1424,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (WhyTheTOTPCannotBeSent() is String why)
                 throw new InvalidOperationException(why);
 
-            var (totp, type) = await TOTPOfThisAttempt(TOTPConfig).ConfigureAwait(false);
+            var totp = await TOTPOfThisAttempt(TOTPConfig).ConfigureAwait(false);
 
             return HTTPTOTPAuthentication.Create(
                        TOTPLogin.Trim(),
-                       totp,
-                       type
+                       totp
                    );
 
         }
@@ -1450,12 +1449,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// request is about to be sent over, so a reconnect binds to the
         /// connection it made and not to the one before.
         /// </remarks>
-        private async Task<(String TOTP, TOTPHTTPHeaderType Type)> TOTPOfThisAttempt(TOTPConfig Config)
+        private async Task<String> TOTPOfThisAttempt(TOTPConfig Config)
         {
 
             Byte[]? material = null;
 
-            if (Config.UseTLSExporterMaterial == true)
+            if (Config.TLSChannelBinding == true)
             {
 
                 // No connection whose TLS exports anything: Connect refuses
@@ -1475,19 +1474,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             }
 
-            return (TOTPGenerator.GenerateTOTP(
-                        Config.SharedSecret,
-                        Config.ValidityTime,
-                        Config.Length,
-                        Config.Alphabet,
-                        null,
-                        material,
-                        Config.HashAlgorithm
-                    ).Current,
-
-                    material is null
-                        ? TOTPHTTPHeaderType.RAW
-                        : TOTPHTTPHeaderType.TLSChannelBinding);
+            return TOTPGenerator.GenerateTOTP(
+                       Config.SharedSecret,
+                       Config.ValidityTime,
+                       Config.Length,
+                       Config.Alphabet,
+                       null,
+                       material,
+                       Config.HashAlgorithm
+                   ).Current;
 
         }
 
@@ -1534,9 +1529,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (TOTPConfig is not null && TOTPLogin is null)
             {
 
-                var (totp, type) = await TOTPOfThisAttempt(TOTPConfig).ConfigureAwait(false);
+                var totp = await TOTPOfThisAttempt(TOTPConfig).ConfigureAwait(false);
 
-                httpRequestBuilder.TOTP = new TOTPHTTPHeader(type, totp);
+                httpRequestBuilder.TOTP = new TOTPHTTPHeader(
+                                              TOTPConfig.TLSChannelBinding == true
+                                                  ? TOTPHTTPHeaderType.TLSChannelBinding
+                                                  : TOTPHTTPHeaderType.RAW,
+                                              totp
+                                          );
 
             }
 

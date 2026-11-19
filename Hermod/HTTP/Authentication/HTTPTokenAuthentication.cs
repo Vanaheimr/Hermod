@@ -74,6 +74,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region (static) Create    (Token)
+
+        /// <summary>
+        /// Create a HTTP Token Authentication based on the given token.
+        /// </summary>
+        /// <param name="Token">A token.</param>
+        public static HTTPTokenAuthentication Create(String  Token)
+        {
+
+            if (TryCreate(Token,
+                          out var httpTokenAuthentication))
+            {
+                return httpTokenAuthentication;
+            }
+
+            throw new ArgumentException($"The given token '{Token}' is invalid!");
+
+        }
+
+        #endregion
+
+        #region (static) TryCreate (Token)
+
+        /// <summary>
+        /// Try to create a HTTP Token Authentication based on the given token.
+        /// </summary>
+        /// <param name="Token">A token.</param>
+        public static HTTPTokenAuthentication? TryCreate(String  Token)
+        {
+
+            if (TryCreate(Token,
+                          out var httpTokenAuthentication))
+            {
+                return httpTokenAuthentication;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (static) TryCreate (Token, out TokenAuthentication)
+
+        /// <summary>
+        /// Try to create a HTTP Token Authentication based on the given token.
+        /// </summary>
+        /// <param name="Token">A token.</param>
+        /// <param name="TokenAuthentication">The created HTTP Token Authentication.</param>
+        public static Boolean TryCreate(String                                            Token,
+                                        [NotNullWhen(true)] out HTTPTokenAuthentication?  TokenAuthentication)
+        {
+
+            TokenAuthentication = null;
+
+            Token = Token.Trim();
+
+            if (Token.IsNullOrEmpty())
+                return false;
+
+            TokenAuthentication = new HTTPTokenAuthentication(
+                                      Token
+                                  );
+
+            return true;
+
+        }
+
+        #endregion
+
+
         #region (static) Parse    (Text)
 
         /// <summary>

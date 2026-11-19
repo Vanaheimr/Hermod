@@ -122,26 +122,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
             await using var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
             var secret = "abcdefghijklmnop";
-            server.ClientTOTPConfig["station"] = new TOTPConfig(secret, UseTLSExporterMaterial: false);
+            server.ClientTOTPConfig["station"] = new TOTPConfig(secret, TLSChannelBinding: false);
 
             try
             {
                 var token = TOTPGenerator.GenerateTOTP(secret).Current;
 
                 Assert.That((await Connect(server,
-                                           HTTPTOTPAuthentication.Create("station", token,
-                                                                         TOTPHTTPHeaderType.RAW))).HTTPStatusCode.Code,
+                                           HTTPTOTPAuthentication.Create("station", token))).HTTPStatusCode.Code,
                             Is.EqualTo(101));
 
+                // The configuration says the password is bound to the TLS session:
+                // the raw one is not taken, and over HTTP/1.1 nothing could be.
+                server.ClientTOTPConfig["station"] = new TOTPConfig(secret, TLSChannelBinding: true);
                 Assert.That((await Connect(server,
-                                           HTTPTOTPAuthentication.Create("station", token,
-                                                                         TOTPHTTPHeaderType.TLSChannelBinding))).HTTPStatusCode.Code,
-                            Is.EqualTo(401));
-
-                server.ClientTOTPConfig["station"] = new TOTPConfig(secret, UseTLSExporterMaterial: true);
-                Assert.That((await Connect(server,
-                                           HTTPTOTPAuthentication.Create("station", token,
-                                                                         TOTPHTTPHeaderType.RAW))).HTTPStatusCode.Code,
+                                           HTTPTOTPAuthentication.Create("station", token))).HTTPStatusCode.Code,
                             Is.EqualTo(401));
             }
             finally
@@ -155,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
             await using var server = new WebSocketServer(HTTPPort: IPPort.Zero, AutoStart: true);
             var secret = "abcdefghijklmnop";
-            server.ClientTOTPConfig["station"] = new TOTPConfig(secret, UseTLSExporterMaterial: false);
+            server.ClientTOTPConfig["station"] = new TOTPConfig(secret, TLSChannelBinding: false);
 
             try
             {
@@ -164,8 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 var wrong = TOTPGenerator.GenerateTOTP("qrstuvwxyzabcdef").Current;
 
                 Assert.That((await Connect(server,
-                                           HTTPTOTPAuthentication.Create("station", wrong,
-                                                                         TOTPHTTPHeaderType.RAW))).HTTPStatusCode.Code,
+                                           HTTPTOTPAuthentication.Create("station", wrong))).HTTPStatusCode.Code,
                             Is.EqualTo(401));
             }
             finally

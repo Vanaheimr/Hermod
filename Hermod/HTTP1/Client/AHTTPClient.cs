@@ -925,7 +925,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Refused before anything is opened or sent: a one-time password that
             // was asked to be bound to the TLS session cannot be, see TOTPConfig.
-            if (TOTPConfig?.UseTLSExporterMaterial == true)
+            if (TOTPConfig?.TLSChannelBinding == true)
                 return new HTTPResponse.Builder(Request) {
                            HTTPStatusCode  = HTTPStatusCode.ClientError,
                            Content         = $"Not sent to {RemoteURL}: {TOTPConfig.TLSChannelBindingNotAvailable}".ToUTF8Bytes(),
@@ -1996,7 +1996,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // A token computed without the keying material and labelled as bound
             // is refused by every verifier that binds - and was what this sent.
-            if (TOTPConfig.UseTLSExporterMaterial == true && TLSExporterMaterial is null)
+            if (TOTPConfig.TLSChannelBinding == true && TLSExporterMaterial is null)
                 throw new InvalidOperationException(TOTPConfig.TLSChannelBindingNotAvailable);
 
             var (current, _, _)  = TOTPGenerator.GenerateTOTP(
@@ -2005,14 +2005,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        TOTPConfig.Length,
                                        TOTPConfig.Alphabet,
                                        null,
-                                       TOTPConfig.UseTLSExporterMaterial == true
+                                       TOTPConfig.TLSChannelBinding == true
                                            ? TLSExporterMaterial
                                            : null,
                                        TOTPConfig.HashAlgorithm
                                    );
 
             return new TOTPHTTPHeader(
-                       TOTPConfig.UseTLSExporterMaterial == true
+                       TOTPConfig.TLSChannelBinding == true
                            ? TOTPHTTPHeaderType.TLSChannelBinding
                            : TOTPHTTPHeaderType.RAW,
                        current
