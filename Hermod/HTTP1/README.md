@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-10-29**
+Last verified: **2026-11-20**
 
 ## Support levels
 
@@ -26,8 +26,8 @@ Last verified: **2026-10-29**
 | [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html), HTTP/1.1 message syntax and routing | Implemented and regression-tested for start lines, header parsing, message framing, persistent connections, pipelining, chunked transfer coding, trailers, and malformed-message rejection. |
 | [RFC 10008](https://www.rfc-editor.org/rfc/rfc10008.html), HTTP `QUERY` method | The method is modeled as safe and idempotent and is end-to-end tested with fixed-length and chunked request content, trailers, and chunk extensions. Media-type policy, `Accept-Query`, caching, conditional requests, and query-result URI policy are handler responsibilities. |
 | [RFC 4918](https://www.rfc-editor.org/rfc/rfc4918.html), WebDAV | Method tokens are modeled (`COPY`, `LOCK`, `MKCOL`, `MOVE`, `PROPFIND`, `PROPPATCH`, and `UNLOCK`). Hermod does not provide a complete WebDAV resource implementation. |
-| [RFC 7617](https://www.rfc-editor.org/rfc/rfc7617.html), Basic authentication | Typed parsing/serialization and end-to-end server authorization tests, including challenge, malformed credentials, invalid credentials, and forbidden users. Authentication policy is configured by the application. |
-| [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750.html), Bearer tokens | Typed Bearer authorization parsing/serialization is available. Token validation and authorization policy are application concerns. |
+| [RFC 7617](https://www.rfc-editor.org/rfc/rfc7617.html), Basic authentication | Typed parsing/serialization and end-to-end server authorization tests, including challenge, malformed credentials, invalid credentials, and forbidden users. Authentication policy is configured by the application. The client answers a challenge when it is given `Credentials`, since 2026-11-20; see [The client: challenges and redirects](#the-client-challenges-and-redirects). |
+| [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750.html), Bearer tokens | Typed Bearer authorization parsing/serialization is available. Token validation and authorization policy are application concerns. The client answers a Bearer challenge with a token from its `Credentials`. |
 | [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651.html), Structured Field Values | Lists, Dictionaries and Items with all eight bare types, including the Date and Display String that RFC 8941 did not have. Parsing follows Section 4.2 exactly, so what is malformed is refused rather than repaired, and serializing is the canonical form of Section 4.1 - the round trip is byte-for-byte, which is the property RFC 9421 signatures would need. The one leniency Section 4.2.7 asks for is there since 2026-10-28: a Byte Sequence without its `=` padding parses. Its first users are the RFC 9530 digest fields. |
 | [RFC 9530](https://www.rfc-editor.org/rfc/rfc9530.html), Digest Fields | `Content-Digest`, `Repr-Digest`, `Want-Content-Digest` and `Want-Repr-Digest` are typed on both directions, in `sha-256` and `sha-512`, with the grammar shared with HTTP/2. Opt-in on either role: the server's `AutomaticContentDigests` digests what it sends, after its compression; the client's `VerifyDigests` asks for a digest and checks it before it decodes. A handler's own digest is computed again when the server compresses. The obsolete `Content-MD5` stays readable. See [Digest fields](#digest-fields-rfc-9530). |
 | [RFC 7239](https://www.rfc-editor.org/rfc/rfc7239.html), Forwarded | The field is parsed into typed elements - `for`, `by`, `host`, `proto` and any extension parameters - and can be built to be sent onwards when a request is proxied. Node identifiers cover addresses, `unknown` and obfuscated identifiers; the last two are kept opaque rather than resolved into an address that was never given. Where a request carries both, `Forwarded` is preferred over the `X-Forwarded-For` family (Section 7.4). Either way the addresses are recorded *beside* the peer socket and never instead of it: everything in these fields is hearsay from whoever wrote them (Section 8.1), and forgeable by the client when no proxy strips them. |
@@ -189,6 +189,16 @@ Hermod rejects ambiguous or invalid framing, including:
 
 This strict handling is intended to prevent request/response desynchronization
 and common message-smuggling ambiguities.
+
+What the client states about a request without content follows RFC 9110
+Section 8.6 since 2026-11-20. A `GET`, `HEAD`, `DELETE`, `CONNECT`, `OPTIONS`
+or `TRACE` without content carries no `Content-Length`, since the method
+anticipates none. A `POST`, `PUT`, `PATCH`, `QUERY` or any other method
+without content says `Content-Length: 0`, since its method defines a meaning
+for content. Before, every request without content said `0`, because the
+request builder's `Content` setter writes it for null. A response without a
+body still states its `0` on purpose: without a length it would end only
+with its connection.
 
 ### Persistent connections and pipelining
 
@@ -713,6 +723,42 @@ breath that parsing them is ambiguous, since auth-params are comma-separated
 too. Separate header lines are the unambiguous form; one challenge per response
 is the form that works today.
 
+## The client: challenges and redirects
+
+Since 2026-11-20 the HTTP/1.x client does both of what the HTTP/2 client
+already did, with the same two classes, which moved from `HTTP2/Core/` to
+`HTTP/` for it: `HTTPClientAuthenticator` and `HTTPRedirect`. Both are off by
+default, and neither is a conformance requirement: RFC 9110 lets a user agent
+hand a `401` or a `3xx` to its user, and that is still what happens unless the
+client is told otherwise.
+
+- **`Credentials`** answers a `401` (RFC 9110 §11.6.1) once, with the strongest
+  scheme the `WWW-Authenticate` field lines offer that it holds credentials
+  for: Digest (RFC 7616, SHA-256 or MD5, `qop=auth`), then Bearer, then Token,
+  then Basic. Nothing is sent before a server asks. A request that already
+  carries `Authorization` is the caller's choice and is not answered for, and
+  a second `401` is handed back rather than answered again. The Digest nonce
+  count lives as long as the credentials it counts for, since RFC 7616 has it
+  increase with every request made with one nonce.
+- **`MaxRedirects`** follows `301`, `302`, `303`, `307` and `308` (§15.4) for
+  that many hops. `POST` becomes `GET` after the first three, and the fields
+  about the content go with the body; `307` and `308` send method and body
+  again. `300` and `304` are not redirects to follow. A relative `Location`
+  resolves against the request as it was addressed. Only targets on the
+  client's own origin are followed: a client is one connection to one origin,
+  and a `Location` elsewhere comes back unfollowed with the `3xx` intact. That
+  boundary is also what keeps `Authorization` from reaching an origin that did
+  not ask for it. The targets followed are on `HTTPResponse.RedirectChain`.
+
+Each hop is answered by the same `401` logic, from the request that was
+redirected rather than from the one that answered a challenge: Digest signs
+the request-target, so a credential for one hop is wrong for the next. A body
+a chunk worker writes cannot be sent twice, so a request with one is neither
+answered for nor followed through `307` or `308`. A `3xx` or `401` whose body
+is an event stream comes back as it is: it is the one body this client does
+not read before returning, it need never end, and the connection is the
+stream's from then on.
+
 ## Server-Sent Events
 
 Hermod implements SSE as an HTTP streaming extension using
@@ -869,7 +915,7 @@ and `DotNetHTTPClientTests_MinimalAPI`.
 - **Methods and status codes, interim responses included:**
   `HTTPStatusCodeTests`, `HTTPHeadDerivedFromGetTests`,
   `HTTPServerTraceTests`, `HTTPCORSPreflightTests`, `EarlyHintsTests`,
-  `ProblemDetailsTests`
+  `ProblemDetailsTests`, `HTTPClientRedirectTests`
 - **TLS, and the origin a connection is for:**
   `HTTPServerListenerMatrixTests`, `HTTPServerALPNTests`,
   `HTTPServerAllowedTLSProtocolsTests`, `HTTPSClientTLSByDefaultTests`,
@@ -882,7 +928,7 @@ and `DotNetHTTPClientTests_MinimalAPI`.
   `HTTPDateTests`, `HTTPCookiesTests`, `ForwardedFieldTests`,
   `AlternativeServicesTests`, `DigestFieldsTests`, `LinkFieldTests`,
   `ContentDispositionTests`, `StrictTransportSecurityTests`
-- **Authentication:** `HTTPDigestAuthenticationTests`
+- **Authentication:** `HTTPDigestAuthenticationTests`, `HTTPClientChallengeTests`
 
 Under `Tests.HTTP` and deliberately not in it: the version-neutral models of
 URLs, query strings, hostnames and methods, IPv6 zone identifiers included;
@@ -903,12 +949,14 @@ HTTP1ConformanceTests. On master `e0a9413e` the eleven names select **381** test
 and the thirty-eight below select **782 passing, 0 failed, 0 skipped**.
 `NagleTests` came on 2026-11-18 with `19db5cad` and joined the next day, which
 makes thirty-nine. On master `4b8be28a` they select **786 passing, 0 failed,
-0 skipped**.
+0 skipped**. `HTTPClientRedirectTests` and `HTTPClientChallengeTests` came on
+2026-11-20 with the client's half of finding H-38 and joined with it, which
+makes forty-one and **811**: the 786 and their 25.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests"
 ```
 
 ## Deliberate exclusions and qualification

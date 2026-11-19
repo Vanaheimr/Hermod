@@ -1593,8 +1593,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             protected override void PrepareImmutability()
             {
+
                 base.PrepareImmutability();
+
+                // RFC 9110, Section 8.6: a user agent SHOULD NOT send Content-Length
+                // when the request has no content and the method does not
+                // anticipate any. The Content setter writes 0 for null, so without
+                // this every GET went out saying its length was 0. A method that
+                // does define content, POST or PUT or one this list does not know,
+                // keeps the 0, which is what the same section asks of it. Requests
+                // only: a response without a body states its 0 on purpose, since
+                // without a length it would end with its connection.
+                if (ContentLength == 0              &&
+                    (Content is null || Content.Length == 0) &&
+                    ContentStream is null           &&
+                    !UseChunkWorker                 &&
+                    MethodsWithoutContent.Contains(HTTPMethod))
+                {
+                    ContentLength = null;
+                }
+
             }
+
+            /// <summary>
+            /// The methods whose semantics anticipate no request content: RFC 9110
+            /// defines none for content in a GET, HEAD, DELETE, CONNECT or OPTIONS
+            /// request, and forbids content in a TRACE request (Sections 9.3.1 to
+            /// 9.3.8).
+            /// </summary>
+            private static readonly HTTPMethod[] MethodsWithoutContent = [
+                                                                             HTTPMethod.GET,
+                                                                             HTTPMethod.HEAD,
+                                                                             HTTPMethod.DELETE,
+                                                                             HTTPMethod.CONNECT,
+                                                                             HTTPMethod.OPTIONS,
+                                                                             HTTPMethod.TRACE
+                                                                         ];
 
             #endregion
 
