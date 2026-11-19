@@ -297,6 +297,7 @@ public sealed partial class MtaStsResolver : IDisposable
         string? mode    = null;
         string? maxAge  = null;
         var mxPatterns  = new List<string>();
+        var lines       = new List<string>();
 
         foreach (var rawLine in policyText.Split('\n'))
         {
@@ -305,6 +306,8 @@ public sealed partial class MtaStsResolver : IDisposable
 
             if (line.Length == 0)
                 continue;
+
+            lines.Add(line);
 
             var match = PolicyField().Match(line);
             if (!match.Success)
@@ -345,7 +348,8 @@ public sealed partial class MtaStsResolver : IDisposable
             MxPatterns  = mxPatterns,
             MaxAge      = TimeSpan.FromSeconds(Math.Min(UInt64.Parse(maxAge), MaxMaxAge)),
             PolicyId    = policyId,
-            FetchedAt   = Timestamp.Now
+            FetchedAt   = Timestamp.Now,
+            Lines       = lines
         };
 
     }

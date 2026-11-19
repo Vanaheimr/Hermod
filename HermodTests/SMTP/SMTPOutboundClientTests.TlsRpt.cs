@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// <summary>
     /// What the relay records for TLS-RPT (RFC 8460) about a session: through the smart host
     /// "localhost", whose MTA-STS policy (RFC 8461 §3.4) the test serves, to the recipient
-    /// domain next.example. The finding T-4 of SMTPConformanceTests.
+    /// domain next.example. The findings T-2 and T-4 of SMTPConformanceTests.
     /// </summary>
     public partial class SMTPOutboundClientTests
     {
@@ -117,6 +117,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             var (result, events) = await SendUnderPolicy("enforce", SelfSignedLocalhost());
 
             Assert.That(events.Select(e => e.PolicyDomain), Is.EqualTo(new[] { "localhost" }), Explain(result, events));
+
+        }
+
+        #endregion
+
+        #region T-2: the policy applied
+
+        [Test(Description = "RFC 8460 §4.4, §4.5: \"policy-string\" - for MTA-STS the policy \"declared by the receiving site\", one string per line")]
+        public async Task Under_MTA_STS_the_policy_lines_are_the_policy_string()
+        {
+
+            var (result, events) = await SendUnderPolicy("testing", SelfSignedLocalhost(), TrustCertificate: true);
+
+            Assert.That(events.Single().PolicyString,
+                        Is.EqualTo(new[] { "version: STSv1", "mode: testing", "mx: localhost", "max_age: 604800" }),
+                        Explain(result, events));
+
+        }
+
+
+        [Test(Description = "RFC 8460 §4.5: for DANE \"a JSON array of strings each representing the RDATA of a single TLSA resource record as a space-separated list of its four TLSA fields\"")]
+        public async Task Under_DANE_the_TLSA_records_are_the_policy_string()
+        {
+
+            var (_, server) = IssuedBy("whatever.example");
+            using var nextHop = new NextHop(Certificate: server);
+            using var dns     = new SignedDns();
+            var tlsa          = Tlsa(nextHop.Port, TLSA_CertificateUsage.DANE_EE, server);
+            dns.Answer($"_{nextHop.Port}._tcp.localhost", DNSResourceRecordTypes.TLSA, true, tlsa);
+
+            var events = new ConcurrentQueue<TlsRptEvent>();
+            var result = await SendWithDane(nextHop, dns, events.Enqueue);
+
+            Assert.Multiple(() => {
+                Assert.That(result.Status,                          Is.EqualTo(SendStatus.Success), result.ResponseText);
+                Assert.That(events.Select(e => e.PolicyType),       Is.EqualTo(new[] { TlsRptPolicyType.Tlsa }));
+                Assert.That(events.Single().PolicyString,           Is.EqualTo(new[] { $"3 1 1 {Convert.ToHexString(tlsa.CertificateAssociationData)}" }));
+            });
 
         }
 

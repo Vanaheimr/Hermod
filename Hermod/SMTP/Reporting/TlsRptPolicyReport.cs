@@ -32,7 +32,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 /// <summary>
 /// One policy block of a TLS-RPT report (RFC 8460 §4.2/§4.4).
 /// </summary>
+/// <param name="PolicyString">The policy applied, as RFC 8460 §4.5 encodes it; empty when unknown or none.</param>
 public sealed record TlsRptPolicyReport(String                          PolicyType,   // sts|tlsa|no-policy-found
                                         IReadOnlyList<String>           MxHosts,
                                         Int64                           SuccessCount,
-                                        IReadOnlyList<TlsRptFailureRow> Failures);
+                                        IReadOnlyList<TlsRptFailureRow> Failures,
+                                        IReadOnlyList<String>?          PolicyString   = null);

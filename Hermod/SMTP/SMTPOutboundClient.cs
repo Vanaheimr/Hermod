@@ -222,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                requireTls,
                                                targetDomain,
                                                policyDomain,
-                                               mtaStsPolicy.Mode,
+                                               mtaStsPolicy,
                                                dsn ?? DsnParameters.None,
                                                priority,
                                                recipientDsns ?? [],
@@ -277,6 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="nextHopDomain">The recipient domain: with an MX host, a reference identifier of DANE (RFC 7672 §3.2.3).</param>
         /// <param name="policyDomain">The Policy Domain of MTA-STS (RFC 8461 §3.4) - the smart host's through one - and so
         /// the "policy-domain" of the session's TLS-RPT event (RFC 8460 §4.4).</param>
+        /// <param name="stsPolicy">The MTA-STS policy of the Policy Domain.</param>
         private async Task<SendResult> TrySendToMxAsync(String              mxHost,
                                                         SmartHostRoute      route,
                                                         UInt16              port,
@@ -288,12 +289,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         Boolean             requireTls,
                                                         String              nextHopDomain,
                                                         String              policyDomain,
-                                                        MtaStsMode          stsMode,
+                                                        MtaStsPolicy        stsPolicy,
                                                         DsnParameters       dsn,
                                                         SByte               priority,
                                                         IReadOnlyCollection<RecipientDsn> recipientDsns,
                                                         CancellationToken   ct)
         {
+
+            var stsMode = stsPolicy.Mode;
 
             // The addresses of the host, from the DNS client - never from the resolver of the operating
             // system - and the internet's only, when so configured, for an MX host, never for a smart
@@ -318,6 +321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var                  daneActive   = false;
             var                  daneTls      = false;
             IReadOnlyList<TLSA>  daneRecords  = [];
+            IReadOnlyList<TLSA>  daneRRset    = [];
 
             // RFC 7672 §2.2: "When the original next-hop destination is an address literal ...
             // DANE TLS does not apply."
@@ -338,6 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 daneActive   = dane.IsUsable;
                 daneTls      = dane.RequiresTls;
                 daneRecords  = [.. dane.Records.Where(DaneResult.IsUsableRecord)];
+                daneRRset    = dane.Records;
 
                 if (daneActive)
                     _logger.Log(LogLevel.Info,
@@ -388,7 +393,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                      : stsMode is MtaStsMode.Enforce or MtaStsMode.Testing
                                          ? TlsRptPolicyType.Sts
                                          : TlsRptPolicyType.NoPolicyFound;
-                _tlsRptRecorder(new TlsRptEvent(policyDomain, policyType, mxHost, receivingIp, sendingIp, success, failureType));
+                // RFC 8460 §4.5: the policy applied - the TLSA records, "a space-separated list of
+                // its four TLSA fields ... in presentation format", or the lines of the MTA-STS policy.
+                IReadOnlyList<String> policyString = policyType switch {
+                    TlsRptPolicyType.Tlsa  => [.. daneRRset.Select(tlsa => $"{tlsa.CertificateUsage} {tlsa.Selector} {tlsa.MatchingType} {Convert.ToHexString(tlsa.CertificateAssociationData)}")],
+                    TlsRptPolicyType.Sts   => stsPolicy.Lines,
+                    _                      => []
+                };
+                _tlsRptRecorder(new TlsRptEvent(policyDomain, policyType, mxHost, receivingIp, sendingIp, success, failureType, policyString));
             }
 
             // Every read and write within its timeout: the socket's ReceiveTimeout/SendTimeout do not

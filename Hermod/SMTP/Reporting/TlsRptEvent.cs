@@ -40,10 +40,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 /// <param name="SendingIp">Our sending IP address (if known).</param>
 /// <param name="Success">Whether a compliant TLS session was established.</param>
 /// <param name="FailureType">On failure, the RFC 8460 §4.3 result-type; null on success.</param>
-public sealed record TlsRptEvent(String            PolicyDomain,
-                                 TlsRptPolicyType  PolicyType,
-                                 String?           MxHost,
-                                 String?           ReceivingIp,
-                                 String?           SendingIp,
-                                 Boolean           Success,
-                                 String?           FailureType);
+/// <param name="PolicyString">The policy applied, as the "policy-string" of RFC 8460 §4.4/§4.5: the lines of the
+/// MTA-STS policy, or the TLSA records as "usage selector matching-type data"; empty without a policy.</param>
+public sealed record TlsRptEvent(String                  PolicyDomain,
+                                 TlsRptPolicyType        PolicyType,
+                                 String?                 MxHost,
+                                 String?                 ReceivingIp,
+                                 String?                 SendingIp,
+                                 Boolean                 Success,
+                                 String?                 FailureType,
+                                 IReadOnlyList<String>?  PolicyString   = null);

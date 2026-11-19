@@ -31,7 +31,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
 /// <summary>
 /// Accumulates outbound TLS session outcomes into aggregate counts, grouped by recipient
-/// (policy) domain and, within a domain, by policy type and failure signature (RFC 8460 §4).
+/// (policy) domain and, within a domain, by the policy applied - its type and policy-string -
+/// and failure signature (RFC 8460 §4).
 /// The running window is persisted to a JSON file so counts survive a restart.
 /// <see cref="Drain"/> snapshots every domain with recorded sessions and starts fresh windows.
 /// </summary>
@@ -44,12 +45,13 @@ public sealed class TlsRptAggregator
     {
         public String                            PolicyDomain { get; set; } = "";
         public DateTimeOffset                    WindowBegin  { get; set; } = DateTimeOffset.UtcNow;
-        public Dictionary<String, PolicyBucket>  Policies     { get; set; } = [];   // key = policy type
+        public Dictionary<String, PolicyBucket>  Policies     { get; set; } = [];   // key = policy type [+ policy-string]
     }
 
     private sealed class PolicyBucket
     {
-        public String                            PolicyType { get; set; } = "no-policy-found";
+        public String                            PolicyType   { get; set; } = "no-policy-found";
+        public List<String>                      PolicyString { get; set; } = [];   // missing in older state files
         public HashSet<String>                   MxHosts    { get; set; } = [];
         public Int64                             Success    { get; set; }
         public Dictionary<String, FailureBucket> Failures   { get; set; } = [];
@@ -92,7 +94,15 @@ public sealed class TlsRptAggregator
         if (String.IsNullOrEmpty(ev.PolicyDomain))
             return;
 
-        var policyType = PolicyTypeString(ev.PolicyType);
+        var policyType   = PolicyTypeString(ev.PolicyType);
+        var policyString = ev.PolicyString ?? [];
+
+        // RFC 8460 §4.4: each policy block names the policy applied, so a policy that changed
+        // within the window - a new MTA-STS policy, another MX host's TLSA records - is a block
+        // of its own. Without a policy-string the key is the policy type, as it always was.
+        var policyKey    = policyString.Count == 0
+                               ? policyType
+                               : policyType + "\n" + String.Join('\n', policyString);
 
         lock (stateLock)
         {
@@ -103,10 +113,10 @@ public sealed class TlsRptAggregator
                 domains[ev.PolicyDomain] = window;
             }
 
-            if (!window.Policies.TryGetValue(policyType, out var bucket))
+            if (!window.Policies.TryGetValue(policyKey, out var bucket))
             {
-                bucket = new PolicyBucket { PolicyType = policyType };
-                window.Policies[policyType] = bucket;
+                bucket = new PolicyBucket { PolicyType = policyType, PolicyString = [ .. policyString ] };
+                window.Policies[policyKey] = bucket;
             }
 
             if (ev.MxHost is not null)
@@ -168,7 +178,8 @@ public sealed class TlsRptAggregator
                         MxHosts:      p.MxHosts.OrderBy(h => h, StringComparer.Ordinal).ToList(),
                         SuccessCount: p.Success,
                         Failures:     p.Failures.Values.Select(f => new TlsRptFailureRow(
-                                          f.ResultType, f.SendingMtaIp, f.ReceivingMxHostname, f.ReceivingIp, f.Count)).ToList()))
+                                          f.ResultType, f.SendingMtaIp, f.ReceivingMxHostname, f.ReceivingIp, f.Count)).ToList(),
+                        PolicyString: p.PolicyString ?? []))
                     .ToList();
 
                 if (policies.Count == 0)
