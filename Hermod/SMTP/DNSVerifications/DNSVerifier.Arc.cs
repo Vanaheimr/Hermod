@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         // Resolve the base64 p= public key for a (domain, selector) from the DKIM key record.
         private async Task<string?> ResolveDkimPublicKeyAsync(string domain, string selector, CancellationToken ct)
         {
-            var record = await GetTxtRecordAsync($"{selector}._domainkey.{domain}", "v=DKIM1", ct);
+            var record = await GetDkimKeyRecordAsync($"{selector}._domainkey.{domain}", ct);
             if (record is null)
                 return null;
             return ParseDkimRecord(record).GetValueOrDefault("p");

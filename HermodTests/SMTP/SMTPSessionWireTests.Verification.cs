@@ -374,6 +374,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+
+        #region The DKIM key record (RFC 6376 §3.6.1)
+
+        [Test]
+        public async Task A_key_record_without_its_optional_version_tag_verifies()
+        {
+
+            // "v= Version of the DKIM key record (plain-text; RECOMMENDED, default is "DKIM1")" -
+            // and with p=reject, a signature that fails for want of it refuses the mail.
+            var key            = DkimKey.Make("client.example");
+            var withoutV       = (key.Record.Name, key.Record.Text.Replace("v=DKIM1; ", ""));
+            await using var server = new Server(DNS: new TxtDNS(DmarcReject, withoutV));
+
+            Assert.That(withoutV.Item2, Does.StartWith("k=rsa; p="));
+
+            var reply          = await SendAsIs(server, key.Signer.SignMessage(Letter()));
+
+            Assert.Multiple(() => {
+                Assert.That(reply.Code,                     Is.EqualTo(250), reply.Text);
+                Assert.That(AuthenticationResults(server),  Does.Contain("dkim=pass header.d=client.example").And.Contain("dmarc=pass"));
+            });
+
+        }
+
+
+        [Test]
+        public async Task A_key_record_of_another_version_is_discarded()
+        {
+
+            // "Records beginning with a "v=" tag with any other value MUST be discarded."
+            var key            = DkimKey.Make("client.example");
+            await using var server = new Server(DNS: new TxtDNS((key.Record.Name, key.Record.Text.Replace("v=DKIM1", "v=DKIM2"))));
+
+            var reply          = await SendAsIs(server, key.Signer.SignMessage(Letter()));
+
+            Assert.Multiple(() => {
+                Assert.That(reply.Code,                     Is.EqualTo(250), reply.Text);
+                Assert.That(AuthenticationResults(server),  Does.Not.Contain("dkim=pass"));
+            });
+
+        }
+
+
+        [TestCase("v=DKIM1; k=rsa; p=AQAB",   true)]
+        [TestCase("k=rsa; p=AQAB",            true,  Description = "no version tag: DKIM1 by default")]
+        [TestCase("p=AQAB",                   true)]
+        [TestCase(" v = DKIM1 ; p=AQAB",      true,  Description = "whitespace around the = of a tag")]
+        [TestCase("v=DKIM1.0; p=AQAB",        false, Description = "a string comparison: DKIM1.0 is not DKIM1")]
+        [TestCase("v=DKIM2; p=AQAB",          false)]
+        [TestCase("v=spf1 -all",              false)]
+        [TestCase("",                         false)]
+        public void Which_TXT_records_are_DKIM_key_records(String Record, Boolean IsKeyRecord)
+        {
+            Assert.That(DNSVerifier.IsDkimKeyRecord(Record), Is.EqualTo(IsKeyRecord));
+        }
+
+        #endregion
+
     }
 
 }
