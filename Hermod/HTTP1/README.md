@@ -190,6 +190,16 @@ Hermod rejects ambiguous or invalid framing, including:
 This strict handling is intended to prevent request/response desynchronization
 and common message-smuggling ambiguities.
 
+What the client states about a request without content follows RFC 9110
+Section 8.6 since 2026-11-20. A `GET`, `HEAD`, `DELETE`, `CONNECT`, `OPTIONS`
+or `TRACE` without content carries no `Content-Length`, since the method
+anticipates none. A `POST`, `PUT`, `PATCH`, `QUERY` or any other method
+without content says `Content-Length: 0`, since its method defines a meaning
+for content. Before, every request without content said `0`, because the
+request builder's `Content` setter writes it for null. A response without a
+body still states its `0` on purpose: without a length it would end only
+with its connection.
+
 ### Persistent connections and pipelining
 
 - HTTP/1.1 connections are persistent unless closing is requested or required.
