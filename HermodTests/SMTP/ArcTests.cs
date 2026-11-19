@@ -316,6 +316,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test(Description = "RFC 6376 §3.2, whose tag-lists ARC uses: \"Tags with duplicate names MUST NOT occur within a single tag-list; if a tag name does occur more than once, the entire tag-list is invalid\" - cv=fail, then cv=pass")]
+        public async Task An_ARC_Seal_naming_cv_twice_fails()
+            => Assert.That(await Validate(HandSeal(Sealed(1), 2, "fail; cv=pass")), Is.EqualTo(ArcResult.Fail));
+
+        [Test(Description = "RFC 6376 §3.2: \"if a tag name does occur more than once, the entire tag-list is invalid\" - an ARC header field whose i= occurs twice - i=1, then i=0 - has no instance, and the chain it is in is malformed (RFC 8617 §5.2 step 3)")]
+        public async Task An_ARC_header_field_naming_its_instance_twice_fails_the_chain()
+            => Assert.That(await Validate("ARC-Authentication-Results: i=1; i=0; forwarder.example; spf=pass\r\n" + Sealed(2)), Is.EqualTo(ArcResult.Fail));
+
         #endregion
 
     }
