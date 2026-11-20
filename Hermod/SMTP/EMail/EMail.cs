@@ -84,6 +84,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         // do not replace this list by a dictionary!
         private readonly ConcurrentDictionary<String, String> headers = [];
 
+        // The header section of a parsed e-mail as it was written - every field, repeated ones
+        // too, folded as they were - which the dictionary above does not keep; null when built.
+        private readonly String[]? headerLines;
+
         /// <summary>
         /// The E-Mail header as enumeration of strings.
         /// </summary>
@@ -189,11 +193,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="MailText">An enumeration of strings.</param>
         private EMail(IEnumerable<String> MailText)
 
-            : this(Unfold(MailText.TakeWhile(line => line.IsNotNullOrEmpty())))
+            : this(MailText.TakeWhile(line => line.IsNotNullOrEmpty()).ToArray(),
+                   MailText)
+
+        { }
+
+        /// <param name="HeaderLines">The lines of the header section, as they were written.</param>
+        /// <param name="MailText">An enumeration of strings.</param>
+        private EMail(String[]             HeaderLines,
+                      IEnumerable<String>  MailText)
+
+            : this(Unfold(HeaderLines))
 
         {
 
-            Body  = new EMailBodypart(MailText);
+            this.headerLines  = HeaderLines;
+            Body              = new EMailBodypart(MailText);
 
         }
 
@@ -633,13 +648,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             lines.Add($"Disposition: {disposition}");
             lines.Add("");
 
-            // Part 3 — original headers (optional)
+            // Part 3 — original headers (optional). RFC 6522 §4: "The text/rfc822-headers body part
+            // SHOULD contain all the mail header fields from the message that caused the report" -
+            // the header section as it was written, every Received field and each folded field
+            // with its white space; the parsed fields keep only the first of a name. A built
+            // e-mail has no such section, and returns what it writes.
             if (IncludeOriginalHeaders)
             {
                 lines.Add("--" + boundary);
                 lines.Add("Content-Type: text/rfc822-headers");
                 lines.Add("");
-                lines.AddRange(ToText().TakeWhile(line => line.IsNotNullOrEmpty()));
+                lines.AddRange(headerLines ?? ToText().TakeWhile(line => line.IsNotNullOrEmpty()));
                 lines.Add("");
             }
 

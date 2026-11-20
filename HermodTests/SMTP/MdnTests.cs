@@ -173,6 +173,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
+        /// <summary>
+        /// The lines of the text/rfc822-headers part of an MDN.
+        /// </summary>
+        private static String[] ReturnedHeader(EMail Mdn)
+            => [ .. Mdn.Body.NestedBodyparts.ElementAt(2).MailBody.Where(line => line.Length > 0) ];
+
+        private static readonly String[] Traced = [ "Received: from mail.example.com by mx.example.org;",
+                                                    "\tFri, 20 Nov 2026 10:00:02 +0100",
+                                                    "Received: from client.example.com by mail.example.com; Fri, 20 Nov 2026 10:00:01 +0100",
+                                                    "From: Alice <alice@example.com>",
+                                                    "To: Bob <bob@example.org>",
+                                                    "Subject: Please confirm",
+                                                    "Comments: x first",
+                                                    " second",
+                                                    "Message-ID: <orig-123@example.com>",
+                                                    "Disposition-Notification-To: Alice <alice@example.com>",
+                                                    "",
+                                                    "Hello Bob, did you read this?" ];
+
+
+        [Test(Description = "RFC 6522 §4: \"The text/rfc822-headers body part SHOULD contain all the mail header fields from the message that caused the report\" - every Received field, \"for diagnostics based on the Received header fields\"")]
+        public void The_returned_header_has_every_Received_field()
+        {
+
+            var returned = ReturnedHeader(EMail.Parse(Traced).CreateReadReceipt(Bob)!);
+
+            Assert.That(returned.Where(line => line.StartsWith("Received:")), Has.Exactly(2).Items, String.Join("\n", returned));
+
+        }
+
+
+        [Test(Description = "RFC 6522 §4: all the header fields of the message - RFC 5322 §2.2.3: a folded field keeps the white space unfolding leaves, here even its line breaks")]
+        public void The_returned_header_is_the_header_section_as_it_was_written()
+        {
+
+            var returned = ReturnedHeader(EMail.Parse(Traced).CreateReadReceipt(Bob)!);
+
+            Assert.That(returned, Is.EqualTo(Traced.TakeWhile(line => line.Length > 0)));
+
+        }
+
+
         [Test(Description = "RFC 5322 §2.2.3: a field may be folded onto any number of lines - one folded onto 240000 is parsed in time, within 10 seconds")]
         public async Task A_field_folded_onto_240000_lines_is_parsed_in_time()
         {
