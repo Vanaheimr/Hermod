@@ -155,7 +155,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             {
                 _tlsRptIngestor = new TlsRptIngestor(
                                       Path.Combine(ServerConfig.MailStoragePath, "tls-reports-received"),
-                                      _logger);
+                                      _logger,
+                                      ServerConfig.MaxTlsRptReportSize);
                 _logger.Log(LogLevel.Info, "TLS-RPT inbound report ingestion enabled");
             }
 

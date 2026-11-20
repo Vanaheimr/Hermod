@@ -34,8 +34,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server;
 /// <c>application/tlsrpt+gzip</c> (or <c>+json</c>) part; this class extracts the JSON, parses
 /// the RFC 8460 §4 schema, persists the raw report, and logs a summary.
 /// </summary>
-public sealed class TlsRptIngestor(String storageDir, ILogger logger)
+/// <remarks>
+/// What is read is limited: <paramref name="maxReportSize"/> octets of JSON at most, unpacked -
+/// a report is something a stranger sends (RFC 8460 §7, RFC 6713 §4).
+/// </remarks>
+/// <param name="storageDir">Where the reports that were read are kept.</param>
+/// <param name="logger">Where what was read is logged.</param>
+/// <param name="maxReportSize">How large the JSON of a report may be, unpacked.</param>
+public sealed class TlsRptIngestor(String   storageDir,
+                                   ILogger  logger,
+                                   Int32    maxReportSize = TlsRptIngestor.DefaultMaxReportSize)
 {
+
+    #region Data
+
+    /// <summary>
+    /// How large the JSON of a report may be by default, unpacked: 10 MiB - a report
+    /// with 20000 failure-details is under 3 MiB.
+    /// </summary>
+    public const Int32 DefaultMaxReportSize = 10 * 1024 * 1024;
+
+    /// <summary>
+    /// How large the JSON of a report may be, unpacked.
+    /// </summary>
+    public Int32 MaxReportSize { get; } = maxReportSize;
+
+    #endregion
 
     #region IsTlsRptReport(message)
 
@@ -71,9 +95,11 @@ public sealed class TlsRptIngestor(String storageDir, ILogger logger)
         try
         {
 
-            if (!TryExtractReportJson(message, out var json))
+            if (!TryExtractReportJson(message, MaxReportSize, out var json, out var tooLarge))
             {
-                logger.Log(LogLevel.Warning, "TLS-RPT ingest: message looked like a report but no tlsrpt part could be extracted");
+                logger.Log(LogLevel.Warning, tooLarge
+                                                 ? $"TLS-RPT ingest: the report is larger than the {MaxReportSize} octets allowed, unpacked"
+                                                 : "TLS-RPT ingest: message looked like a report but no tlsrpt part could be extracted");
                 return null;
             }
 
@@ -112,12 +138,17 @@ public sealed class TlsRptIngestor(String storageDir, ILogger logger)
 
     /// <summary>
     /// Locate the <c>application/tlsrpt+*</c> body part, decode its transfer encoding and,
-    /// if gzip-compressed, decompress it — yielding the report JSON.
+    /// if gzip-compressed, decompress it — yielding the report JSON; none when it is larger
+    /// than <paramref name="maxOctets"/>, and <paramref name="tooLarge"/> says so.
     /// </summary>
-    private static Boolean TryExtractReportJson(EMailMessage message, out String json)
+    private static Boolean TryExtractReportJson(EMailMessage  message,
+                                                Int32         maxOctets,
+                                                out String    json,
+                                                out Boolean   tooLarge)
     {
 
-        json = "";
+        json     = "";
+        tooLarge = false;
 
         var contentType = HeaderValue(message.Headers, "Content-Type") ?? "";
         var boundary    = BoundaryOf(contentType);
@@ -149,8 +180,17 @@ public sealed class TlsRptIngestor(String storageDir, ILogger logger)
             var bytes = DecodeBody(partBody, cte);
 
             // Gunzip when the payload is gzip (declared +gzip, or by magic number 0x1f 0x8b).
+            // RFC 8460 §6.5 refers to RFC 6713 for gzip, whose §4 says "Applications should
+            // treat any data with due skepticism": what unpacks to more than allowed is not
+            // unpacked further, neither held nor kept - no report.
             if (bytes.Length >= 2 && bytes[0] == 0x1F && bytes[1] == 0x8B)
-                bytes = Gunzip(bytes);
+                bytes = GunzipAtMost(bytes, maxOctets);
+
+            if (bytes is null || bytes.Length > maxOctets)
+            {
+                tooLarge = true;
+                return false;
+            }
 
             json = Encoding.UTF8.GetString(bytes);
             return json.Contains('{');
@@ -200,13 +240,25 @@ public sealed class TlsRptIngestor(String storageDir, ILogger logger)
         return Encoding.UTF8.GetBytes(body);
     }
 
-    private static Byte[] Gunzip(Byte[] data)
+    // Gunzip at most maxOctets octets; null when there are more.
+    private static Byte[]? GunzipAtMost(Byte[] data, Int32 maxOctets)
     {
+
         using var input  = new MemoryStream(data);
         using var gz     = new GZipStream(input, CompressionMode.Decompress);
         using var output = new MemoryStream();
-        gz.CopyTo(output);
+        var       buffer = new Byte[81920];
+        Int32     read;
+
+        while ((read = gz.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            if (output.Length + read > maxOctets)
+                return null;
+            output.Write(buffer, 0, read);
+        }
+
         return output.ToArray();
+
     }
 
     private static String? BoundaryOf(String contentType)

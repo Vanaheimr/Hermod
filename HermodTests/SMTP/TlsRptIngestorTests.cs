@@ -1,0 +1,204 @@
+/*
+ * Copyright (c) 2010-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#region Usings
+
+using System.Collections.Concurrent;
+using System.IO.Compression;
+using System.Text;
+
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
+using org.GraphDefined.Vanaheimr.Hermod.SMTP.Server;
+
+#endregion
+
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
+{
+
+    /// <summary>
+    /// TLS reports other sending MTAs deliver (RFC 8460 §5.3), as <see cref="TlsRptIngestor"/>
+    /// reads them: the mail of §5.3.1, its MIME (RFC 2045, RFC 2046, RFC 2049) - and what a
+    /// stranger may send instead. The findings I-1, I-3 and I-7 of SMTPConformanceTests.
+    /// </summary>
+    [TestFixture]
+    public class TlsRptIngestorTests
+    {
+
+        #region Setup
+
+        private sealed class CapturingLogger : ILogger
+        {
+
+            public ConcurrentQueue<String> Lines { get; } = new();
+
+            public void Log(LogLevel level, String message)
+                => Lines.Enqueue(message);
+
+        }
+
+        private String          directory = "";
+        private CapturingLogger log       = new();
+
+        [SetUp]
+        public void CreateDirectory()
+        {
+            directory = Directory.CreateTempSubdirectory("tlsrpt-received-").FullName;
+            log       = new CapturingLogger();
+        }
+
+        [TearDown]
+        public void DeleteDirectory()
+        {
+            try { Directory.Delete(directory, recursive: true); } catch { }
+        }
+
+        /// <summary>
+        /// The JSON of RFC 8460 §4.4, with the values of the example in Appendix B.
+        /// </summary>
+        private static String Json(String Organization)
+
+            => $$"""
+                 {"organization-name":"{{Organization}}","date-range":{"start-datetime":"2016-04-01T00:00:00Z","end-datetime":"2016-04-01T23:59:59Z"},"contact-info":"sts-reporting@company-x.example","report-id":"5065427c-23d3-47ca-b6e0-946ea0e8c4be","policies":[{"policy":{"policy-type":"sts","policy-string":["version: STSv1","mode: testing","mx: *.mail.company-y.example","max_age: 86400"],"policy-domain":"company-y.example","mx-host":["*.mail.company-y.example"]},"summary":{"total-successful-session-count":5326,"total-failure-session-count":303},"failure-details":[{"result-type":"certificate-expired","sending-mta-ip":"2001:db8:abcd:0012::1","receiving-mx-hostname":"mx1.mail.company-y.example","failed-session-count":100},{"result-type":"starttls-not-supported","sending-mta-ip":"2001:db8:abcd:0013::1","receiving-mx-hostname":"mx2.mail.company-y.example","receiving-ip":"203.0.113.56","failed-session-count":200,"additional-information":"https://reports.company-x.example/report_info?id=5065427c-23d3#StarttlsNotSupported"},{"result-type":"validation-failure","sending-mta-ip":"198.51.100.62","receiving-ip":"203.0.113.58","receiving-mx-hostname":"mx-backup.mail.company-y.example","failed-session-count":3,"failure-reason-code":"X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED"}]}]}
+                 """;
+
+        /// <summary>
+        /// The report mail of RFC 8460 §5.3.1: multipart/report, report-type="tlsrpt", a
+        /// text/plain part and the report part - after the preamble given.
+        /// </summary>
+        private static EMailMessage Mail(String ReportPart, String Preamble = "This is a multipart message in MIME format.\r\n")
+
+            => EMailMessage.Parse("From: tlsrpt@mail.sender.example\r\n" +
+                                  "To: tlsrpt@hermod.test\r\n" +
+                                  "Subject: Report Domain: hermod.test\r\n" +
+                                  "TLS-Report-Domain: hermod.test\r\n" +
+                                  "MIME-Version: 1.0\r\n" +
+                                  "Content-Type: multipart/report; report-type=\"tlsrpt\";\r\n" +
+                                  "    boundary=\"----=_NextPart_000_024E_01CC9B0A.AFE54C00\"\r\n" +
+                                  "\r\n" +
+                                  Preamble +
+                                  "\r\n" +
+                                  "------=_NextPart_000_024E_01CC9B0A.AFE54C00\r\n" +
+                                  "Content-Type: text/plain; charset=\"us-ascii\"\r\n" +
+                                  "\r\n" +
+                                  "This is an aggregate TLS report from mail.sender.example\r\n" +
+                                  "\r\n" +
+                                  "------=_NextPart_000_024E_01CC9B0A.AFE54C00\r\n" +
+                                  ReportPart + "\r\n" +
+                                  "------=_NextPart_000_024E_01CC9B0A.AFE54C00--\r\n");
+
+        private static String GzipPart(Byte[] Gzipped)
+
+            => "Content-Type: application/tlsrpt+gzip\r\n" +
+               "Content-Transfer-Encoding: base64\r\n" +
+               "\r\n" +
+               Convert.ToBase64String(Gzipped, Base64FormattingOptions.InsertLineBreaks) + "\r\n";
+
+        private static Byte[] Gzip(String Text)
+        {
+            using var output = new MemoryStream();
+            using (var gzip = new GZipStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
+                gzip.Write(Encoding.UTF8.GetBytes(Text));
+            return output.ToArray();
+        }
+
+        /// <summary>
+        /// A report whose JSON is padded with spaces to <paramref name="MiB"/> MiB - written
+        /// straight into the compressor, never held whole.
+        /// </summary>
+        private static Byte[] Bomb(Int32 MiB)
+        {
+            using var output = new MemoryStream();
+            using (var gzip = new GZipStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
+            {
+                gzip.Write("{\"organization-name\":\"bomb\""u8);
+                var spaces = new Byte[1024 * 1024];
+                Array.Fill(spaces, (Byte) ' ');
+                for (var i = 0; i < MiB; i++)
+                    gzip.Write(spaces);
+                gzip.Write("}"u8);
+            }
+            return output.ToArray();
+        }
+
+        private TlsRptReceivedReport? Ingest(EMailMessage Message)
+            => new TlsRptIngestor(directory, log).Ingest(Message);
+
+        private String[] Kept
+            => Directory.GetFiles(directory);
+
+        #endregion
+
+
+        #region I-1: what a report may unpack to
+
+        [Test(Description = "I-1 - RFC 8460 §6.5: \"Security considerations related to gzip compression are discussed in RFC 6713\"; RFC 6713 §4: \"Applications should treat any data with due skepticism\" - a report that unpacks to 128 MiB is unpacked no further than allowed, and neither read nor kept")]
+        public async Task A_gzip_bomb_is_not_unpacked_whole_nor_kept()
+        {
+
+            var message = Mail(GzipPart(Bomb(128)));
+
+            var (report, allocated) = await Task.Run(() => {
+                                                  var before = GC.GetAllocatedBytesForCurrentThread();
+                                                  var report = Ingest(message);
+                                                  return (report, GC.GetAllocatedBytesForCurrentThread() - before);
+                                              }).WaitAsync(TimeSpan.FromSeconds(60));
+
+            Assert.Multiple(() => {
+                Assert.That(report,     Is.Null,                         "no report");
+                Assert.That(allocated,  Is.LessThan(64L * 1024 * 1024),  $"{allocated / 1048576} MiB allocated");
+                Assert.That(Kept,       Is.Empty,                        "nothing kept");
+                Assert.That(log.Lines,  Has.Some.Contains("larger than"));
+            });
+
+        }
+
+
+        [Test(Description = "I-1 - RFC 8460 §5.3: a report within the limit is read and kept - a guard")]
+        public void A_report_within_the_limit_is_read_and_kept()
+        {
+
+            var report = Ingest(Mail(GzipPart(Gzip(Json("Company-X")))));
+
+            Assert.Multiple(() => {
+                Assert.That(report?.OrganizationName,  Is.EqualTo("Company-X"));
+                Assert.That(report?.TotalFailure,      Is.EqualTo(303));
+                Assert.That(Kept,                      Has.Length.EqualTo(1));
+            });
+
+        }
+
+
+        [Test(Description = "I-1 - the limit is the one configured: a report larger than it is no report, uncompressed too")]
+        public void The_limit_is_the_one_configured()
+        {
+
+            var json = Json("Company-X");
+
+            Assert.Multiple(() => {
+                Assert.That(new TlsRptIngestor(directory, log, json.Length - 1).Ingest(Mail(GzipPart(Gzip(json)))),                                   Is.Null, "gzipped");
+                Assert.That(new TlsRptIngestor(directory, log, json.Length - 1).Ingest(Mail("Content-Type: application/tlsrpt+json\r\n\r\n" + json)), Is.Null, "uncompressed");
+                Assert.That(new TlsRptIngestor(directory, log, json.Length + 2).Ingest(Mail(GzipPart(Gzip(json)))),                                   Is.Not.Null, "within it");
+                Assert.That(new SMTPServerConfig { Hostname = "mx.hermod.test" }.MaxTlsRptReportSize,                                                 Is.EqualTo(TlsRptIngestor.DefaultMaxReportSize));
+            });
+
+        }
+
+        #endregion
+
+    }
+
+}
