@@ -349,6 +349,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test(Description = "RFC 3156 §3: \"implementations MUST make sure that no trailing whitespace is present after the MIME encoding has been applied\" - a relay takes it away, and the signature breaks")]
+        public void PgpMime_Signed_refuses_a_part_with_trailing_white_space()
+        {
+
+            var (secret, _) = Key();
+
+            String Signature(String Part)
+                => Armored(OpenPGP.CreateSignature(new MemoryStream(Encoding.ASCII.GetBytes(Part)), secret, Passphrase, HashAlgorithmTag.Sha256));
+
+            MimeMultipart Signed(String Part)
+                => PgpMime.Signed(Encoding.ASCII.GetBytes(Part), Signature(Part));
+
+            Assert.Multiple(() => {
+
+                Assert.Throws<ArgumentException>(() => Signed("Content-Type: text/plain\r\n\r\nHallo Ben,   \r\nAnna\r\n"),  "spaces at the end of a line of the body");
+                Assert.Throws<ArgumentException>(() => Signed("Content-Type: text/plain\r\n\r\nHallo Ben,\t\r\nAnna\r\n"),   "a tab at the end of a line of the body");
+                Assert.Throws<ArgumentException>(() => Signed("Content-Type: text/plain \r\n\r\nHallo Ben,\r\nAnna\r\n"),    "a space at the end of a header line");
+                Assert.Throws<ArgumentException>(() => Signed("Content-Type: text/plain\r\n\r\nHallo Ben,\r\nAnna "),        "a space at the end of the last line, without a line break");
+
+                Assert.DoesNotThrow(() => Signed("Content-Type: text/plain\r\n\r\nHallo Ben, \t wie geht's?\r\nAnna"),           "white space inside a line");
+
+            });
+
+        }
+
         [Test]
         public void A_ciphertext_made_elsewhere_is_sent_as_multipart_encrypted()
         {

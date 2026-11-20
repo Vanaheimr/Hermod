@@ -144,9 +144,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region (private) CheckSignedPart(Octets) / CheckEncrypted(Armored)
 
         /// <summary>
-        /// What is signed has to arrive as it was: 7-bit, lines ending in CRLF and
-        /// no longer than 998 octets (RFC 3156 §3, RFC 5322 §2.1.1) - anything else
-        /// some relay on the way would change, and the signature with it.
+        /// What is signed has to arrive as it was: 7-bit, lines ending in CRLF, no
+        /// longer than 998 octets and without white space at their end (RFC 3156 §3,
+        /// RFC 5322 §2.1.1) - anything else some relay on the way would change, and
+        /// the signature with it.
         /// </summary>
         private static void CheckSignedPart(ReadOnlySpan<Byte> Octets)
         {
@@ -169,6 +170,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 if (octet == '\r' && (i + 1 == Octets.Length || Octets[i + 1] != '\n'))
                     throw new ArgumentException("What is signed has to have CRLF line breaks.");
+
+                // "implementations MUST make sure that no trailing whitespace is present after
+                // the MIME encoding has been applied" (RFC 3156 §3) - in the headers as in the body.
+                if (octet is (Byte) ' ' or (Byte) '\t' && (i + 1 == Octets.Length || Octets[i + 1] == '\r'))
+                    throw new ArgumentException("A line of what is signed ends in white space: quoted-printable encodes it.");
 
                 line = octet is (Byte) '\r' or (Byte) '\n' ? 0 : line + 1;
 
