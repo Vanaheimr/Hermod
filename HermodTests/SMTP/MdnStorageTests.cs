@@ -277,6 +277,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region Hostile messages
+
+        [TestCase(false, Description = "asking for no receipt")]
+        [TestCase(true,  Description = "asking for one")]
+        [Test(Description = "RFC 5322 §2.2.3: a field may be folded onto any number of lines - one folded onto 240000 (under 1 MB) is read in time, within 10 seconds, whether the message asks for a receipt or not")]
+        public async Task A_field_folded_onto_240000_lines_does_not_hold_up_delivery(Boolean AskForReceipt)
+        {
+
+            var folded = "X-Filler: a" + String.Concat(Enumerable.Repeat("\r\n x", 240_000)) + "\r\n";
+
+            var queued = await Task.Run(() => Store(Raw(AskForReceipt ? "alice@example.com" : null, MoreHeaders: folded))).
+                                    WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.That(queued, Has.Count.EqualTo(AskForReceipt ? 1 : 0));
+
+        }
+
+        #endregion
+
     }
 
 }

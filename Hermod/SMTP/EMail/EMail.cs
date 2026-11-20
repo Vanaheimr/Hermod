@@ -189,13 +189,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="MailText">An enumeration of strings.</param>
         private EMail(IEnumerable<String> MailText)
 
-            : this(MailText.TakeWhile(line => line.IsNotNullOrEmpty()).
-                            AggregateIndentedLines().
-                            ToKeyValuePairs(':'))
+            : this(Unfold(MailText.TakeWhile(line => line.IsNotNullOrEmpty())))
 
         {
 
             Body  = new EMailBodypart(MailText);
+
+        }
+
+        #endregion
+
+        #region (private static) Unfold(HeaderLines)
+
+        /// <summary>
+        /// The header fields of the given lines of a header section, each unfolded as RFC 5322
+        /// §2.2.3 has it: "Unfolding is accomplished by simply removing any CRLF that is
+        /// immediately followed by WSP" - the WSP stays, or "Read" and " receipt" become
+        /// "Readreceipt". A field may be folded onto any number of lines, so each line is
+        /// appended once: the time grows with the length of the field, not with its square.
+        /// </summary>
+        /// <param name="HeaderLines">The lines of a header section, without their CRLF.</param>
+        private static IEnumerable<KeyValuePair<String, String>> Unfold(IEnumerable<String> HeaderLines)
+        {
+
+            var field = new System.Text.StringBuilder();
+
+            foreach (var line in HeaderLines)
+            {
+
+                if (field.Length > 0 && line.Length > 0 && (line[0] == ' ' || line[0] == '\t'))
+                    field.Append(line);
+
+                else
+                {
+
+                    if (NameAndValue(field) is { } previous)
+                        yield return previous;
+
+                    field.Clear().Append(line);
+
+                }
+
+            }
+
+            if (NameAndValue(field) is { } last)
+                yield return last;
+
+        }
+
+        /// <summary>
+        /// The name and the value of an unfolded field - "name: value" - or null when it has no colon.
+        /// </summary>
+        private static KeyValuePair<String, String>? NameAndValue(System.Text.StringBuilder Field)
+        {
+
+            var text   = Field.ToString();
+            var colon  = text.IndexOf(':');
+
+            return colon >= 0
+                       ? new KeyValuePair<String, String>(text[..colon].Trim(), text[(colon + 1)..].Trim())
+                       : null;
 
         }
 

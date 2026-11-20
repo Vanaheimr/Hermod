@@ -152,6 +152,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+
+        [Test(Description = "RFC 5322 §2.2.3: \"Unfolding is accomplished by simply removing any CRLF that is immediately followed by WSP\" - the white space stays")]
+        public void A_folded_field_is_unfolded_with_its_white_space()
+        {
+
+            var mail = EMail.Parse([ "From: Alice <alice@example.com>",
+                                     "Subject: Read",
+                                     " receipt",
+                                     "Comments: x first",
+                                     "\tsecond",
+                                     "",
+                                     "Hello." ]);
+
+            Assert.Multiple(() => {
+                Assert.That(mail.Subject,                     Is.EqualTo("Read receipt"));
+                Assert.That(mail.GetEMailHeader("Comments"),  Is.EqualTo("x first\tsecond"));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 5322 §2.2.3: a field may be folded onto any number of lines - one folded onto 240000 is parsed in time, within 10 seconds")]
+        public async Task A_field_folded_onto_240000_lines_is_parsed_in_time()
+        {
+
+            var lines = new[] { "From: Alice <alice@example.com>", "X-Filler: a" }.
+                            Concat(Enumerable.Repeat(" x", 240_000)).
+                            Concat([ "", "Hello." ]).
+                            ToArray();
+
+            var mail  = await Task.Run(() => EMail.Parse(lines)).WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.That(mail.GetEMailHeader("X-Filler"), Has.Length.EqualTo(1 + 2 * 240_000));
+
+        }
+
     }
 
 }

@@ -102,11 +102,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         }
 
 
+        #region (private static) AsksForReceipt(RawMessage)
+
+        /// <summary>
+        /// Whether the header section of the message has a Disposition-Notification-To field:
+        /// one look at the start of each header line, before anything is parsed. Most messages
+        /// ask for no receipt, and their header - which the sender writes as long as it likes -
+        /// need not be read any further.
+        /// </summary>
+        private static Boolean AsksForReceipt(String RawMessage)
+        {
+
+            const String name = "Disposition-Notification-To";
+
+            var position = 0;
+
+            while (position < RawMessage.Length)
+            {
+
+                var end  = RawMessage.IndexOf('\n', position);
+                if (end < 0)
+                    end  = RawMessage.Length;
+
+                var line = RawMessage.AsSpan(position, end - position).TrimEnd('\r');
+
+                // The empty line ends the header section.
+                if (line.IsEmpty)
+                    return false;
+
+                if (line.StartsWith(name, StringComparison.OrdinalIgnoreCase) &&
+                    line[name.Length..].TrimStart(" \t") is [ ':', .. ])
+                {
+                    return true;
+                }
+
+                position = end + 1;
+
+            }
+
+            return false;
+
+        }
+
+        #endregion
+
+
         private async Task GenerateReadReceiptsAsync(EMailMessage         message,
                                                      String               envelopeFrom,
                                                      IEnumerable<String>  envelopeTo,
                                                      CancellationToken    ct)
         {
+
+            if (!AsksForReceipt(message.RawMessage))
+                return;
 
             var mail = EMail.Parse(message.RawMessage.Split(["\r\n", "\n"], StringSplitOptions.None));
 
