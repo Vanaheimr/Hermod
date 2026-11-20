@@ -33,7 +33,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// <para>
     /// A header value with a line break in it is refused, wherever it came from:
     /// that is how a header of one's own - a second From:, a Bcc: - would be
-    /// smuggled in.
+    /// smuggled in. So is a further header of a field RFC 5322 §3.6 allows once
+    /// at most - Date, From, To, Subject, Bcc, ...: each is written from its own
+    /// property, and of two, readers would pick either.
     /// </para>
     /// </remarks>
     public sealed class MimeMessageBuilder
@@ -117,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// The mail as octets, CRLF and all, ending with a line break.
         /// </summary>
         /// <exception cref="InvalidOperationException">It has no From or no body.</exception>
-        /// <exception cref="ArgumentException">An address cannot be written, or a header value holds a line break.</exception>
+        /// <exception cref="ArgumentException">An address cannot be written, a header value holds a line break, or a further header is one of the fields written from a property.</exception>
         public Byte[] ToBytes()
         {
 
@@ -167,6 +169,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 if (!IsFieldName(name))
                     throw new ArgumentException($"'{name}' is no header name.");
 
+                if (SingularFields.Contains(name))
+                    throw new ArgumentException($"{name} is written from its own property: a mail has it at most once (RFC 5322 §3.6).");
+
                 Line(MimeEncoding.FurtherHeader(name, value));
 
             }
@@ -181,6 +186,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
+
+        #region (private static) SingularFields
+
+        /// <summary>
+        /// The fields RFC 5322 §3.6 allows once at most - "orig-date", "from",
+        /// "sender", "reply-to", "to", "cc", "bcc", "message-id", "in-reply-to",
+        /// "references", "subject" - each written from a property of this builder,
+        /// and so none of the further headers (Bcc not even from its own).
+        /// </summary>
+        private static readonly HashSet<String> SingularFields = new (StringComparer.OrdinalIgnoreCase) {
+            "Date", "From", "Sender", "Reply-To", "To", "Cc", "Bcc", "Message-ID", "In-Reply-To", "References", "Subject"
+        };
+
+        #endregion
 
         #region (private static) Id(MessageId) / IsFieldName(Name)
 

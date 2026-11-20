@@ -343,6 +343,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region A_singular_field_among_the_further_headers_is_refused()
+
+        [TestCase("From",         "Mallory <mallory@example.com>")]
+        [TestCase("Date",         "Thu, 1 Jan 1970 00:00:00 +0000")]
+        [TestCase("Subject",      "Another subject")]
+        [TestCase("Message-ID",   "<another@example.com>")]
+        [TestCase("to",           "everybody@example.com")]
+        [TestCase("Bcc",          "everybody@example.com")]
+        [TestCase("In-Reply-To",  "<another@example.com>")]
+        [Test(Description = "RFC 5322 §3.6: orig-date, from, sender, reply-to, to, cc, bcc, message-id, in-reply-to, references and subject have a maximum number of 1 - a further header of that name, in any case, is refused, not written a second time")]
+        public void A_singular_field_among_the_further_headers_is_refused(String Name, String Value)
+        {
+
+            var mail = Mail();
+            mail.Headers.Add((Name, Value));
+
+            Assert.Throws<ArgumentException>(() => mail.ToBytes());
+
+        }
+
+        [Test(Description = "RFC 5322 §3.6: fields of no maximum - Comments, Keywords, an optional field - stay further headers")]
+        public void Further_headers_that_may_repeat_are_written()
+        {
+
+            var mail = Mail();
+            mail.Headers.Add(("Comments",  "first"));
+            mail.Headers.Add(("Comments",  "second"));
+            mail.Headers.Add(("X-From",    "not the From"));
+
+            var text = Encoding.ASCII.GetString(mail.ToBytes());
+
+            Assert.Multiple(() => {
+                Assert.That(Regex.Matches(text, "^Comments: ", RegexOptions.Multiline), Has.Count.EqualTo(2));
+                Assert.That(text,                                                       Does.Contain("\r\nX-From: not the From\r\n"));
+                Assert.That(Regex.Matches(text, "^From: ", RegexOptions.Multiline),     Has.Count.EqualTo(1));
+            });
+
+        }
+
+        #endregion
+
 
         #region An_answer_finds_its_subject_its_thread_and_its_recipients()
 
