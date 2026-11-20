@@ -437,6 +437,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region An_answer_to_a_parent_without_References_takes_its_In_Reply_To()
+
+        [Test(Description = "RFC 5322 §3.6.4: \"If the parent message does not contain a \"References:\" field but does have an \"In-Reply-To:\" field containing a single message identifier, then the \"References:\" field will contain the contents of the parent's \"In-Reply-To:\" field followed by the contents of the parent's \"Message-ID:\" field\"")]
+        public void An_answer_to_a_parent_without_References_takes_its_In_Reply_To()
+        {
+
+            static MimeMessage Parent(String Fields)
+                => MimeMessage.Parse(Encoding.ASCII.GetBytes("From: Mary Smith <mary@example.net>\r\nMessage-ID: <3456@example.net>\r\n" + Fields + "Subject: x\r\n\r\nx\r\n"));
+
+            Assert.Multiple(() => {
+
+                Assert.That(MailReplies.References(Parent("In-Reply-To: <1234@local.machine.example>\r\n")),
+                            Is.EqualTo(new[] { "1234@local.machine.example", "3456@example.net" }));
+
+                Assert.That(MailReplies.References(Parent("In-Reply-To: <1@example.org> <2@example.org>\r\n")),
+                            Is.EqualTo(new[] { "3456@example.net" }), "more than one: only the parent's Message-ID");
+
+                Assert.That(MailReplies.References(Parent("In-Reply-To: <1234@local.machine.example>\r\nReferences: <1@example.org>\r\n")),
+                            Is.EqualTo(new[] { "1@example.org", "3456@example.net" }), "References, where there are some, before In-Reply-To");
+
+                Assert.That(MailReplies.References(Parent("")),
+                            Is.EqualTo(new[] { "3456@example.net" }));
+
+            });
+
+        }
+
+        #endregion
+
 
         #region PGP/MIME
 

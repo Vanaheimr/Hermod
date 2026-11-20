@@ -117,10 +117,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// The References of an answer: those of the message it answers, and that
         /// message - the first and the newest when they are too many.
         /// </summary>
+        /// <remarks>
+        /// RFC 5322 §3.6.4: "If the parent message does not contain a
+        /// "References:" field but does have an "In-Reply-To:" field containing a
+        /// single message identifier, then the "References:" field will contain the
+        /// contents of the parent's "In-Reply-To:" field followed by the contents of
+        /// the parent's "Message-ID:" field" - mail from programs that write only
+        /// In-Reply-To keeps the thread's first message.
+        /// </remarks>
         public static IReadOnlyList<String> References(MimeMessage Original)
         {
 
-            var thread = Original.References.
+            var parents = Original.References.Count > 0
+                              ? Original.References
+                              : Original.InReplyTo.Count == 1
+                                    ? Original.InReplyTo
+                                    : [];
+
+            var thread = parents.
                              Concat(Original.MessageId is { } id ? [ id ] : []).
                              Distinct().
                              ToList();
