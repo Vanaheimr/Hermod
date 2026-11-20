@@ -233,6 +233,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+
+        [TestCase("multipart/report; report-type=disposition-notification; boundary=\"mdn\"",           Description = "as Hermod writes it")]
+        [TestCase("multipart/report;\r\n report-type=\"Disposition-Notification\";\r\n boundary=\"mdn\"", Description = "folded, quoted, in capitals")]
+        [Test(Description = "RFC 8098 §2.1: \"An MDN MUST NOT be generated in response to an MDN\" - not even to one that, against §3, asks for one itself")]
+        public async Task No_MDN_is_sent_in_answer_to_an_MDN(String ContentType)
+        {
+
+            var queued = await Store(Raw("alice@example.com",
+                                         MoreHeaders:  "MIME-Version: 1.0\r\n" +
+                                                       $"Content-Type: {ContentType}\r\n",
+                                         Body:         "--mdn\r\n" +
+                                                       "Content-Type: text/plain\r\n\r\n" +
+                                                       "Your message was displayed.\r\n" +
+                                                       "--mdn\r\n" +
+                                                       "Content-Type: message/disposition-notification\r\n\r\n" +
+                                                       "Reporting-UA: example.com; Foomail 97.1\r\n" +
+                                                       "Final-Recipient: rfc822; alice@example.com\r\n" +
+                                                       "Original-Message-ID: <first@example.org>\r\n" +
+                                                       "Disposition: manual-action/MDN-sent-manually; displayed\r\n" +
+                                                       "\r\n--mdn--\r\n"));
+
+            Assert.That(queued, Is.Empty);
+
+        }
+
+
+        [Test(Description = "RFC 8098 §2.1 forbids answering an MDN, not any multipart/report - a delivery status notification that asks for a receipt is answered")]
+        public async Task A_report_of_another_type_is_answered()
+        {
+
+            var queued = await Store(Raw("alice@example.com",
+                                         MoreHeaders:  "MIME-Version: 1.0\r\n" +
+                                                       "Content-Type: multipart/report; report-type=delivery-status; boundary=\"dsn\"\r\n",
+                                         Body:         "--dsn\r\n" +
+                                                       "Content-Type: text/plain\r\n\r\n" +
+                                                       "Delivered.\r\n" +
+                                                       "--dsn--\r\n"));
+
+            Assert.That(queued, Has.Count.EqualTo(1));
+
+        }
+
         #endregion
 
     }

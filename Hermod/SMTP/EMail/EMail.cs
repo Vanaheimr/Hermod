@@ -508,7 +508,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         /// <summary>
         /// Create a Message Disposition Notification (read receipt, RFC 8098) for this e-mail, addressed
-        /// to its "Disposition-Notification-To" header. Returns null if no read receipt was requested.
+        /// to its "Disposition-Notification-To" header. Returns null if no read receipt was requested,
+        /// and for an e-mail that is itself an MDN.
         /// A mail client calls this when the user displays (or otherwise disposes of) the message and
         /// then sends the result like any other e-mail.
         /// </summary>
@@ -525,6 +526,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             var notifyTo = DispositionNotificationTo;
             if (notifyTo is null)
                 return null;
+
+            // RFC 8098 §2.1: "An MDN MUST NOT itself have a Disposition-Notification-To header
+            // field. An MDN MUST NOT be generated in response to an MDN." - the first binds its
+            // sender, the second binds us: an MDN that asks for one anyway is not answered, or
+            // two agents that answer automatically send MDNs to each other for ever.
+            var contentType = MimeContentType.Parse(GetEMailHeader("Content-Type"), MimeContentType.TextPlain);
+            if (contentType.Is("multipart/report") &&
+                String.Equals(contentType.Parameters.GetValueOrDefault("report-type")?.Trim(), "disposition-notification", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
 
             var disposition     = Disposition ?? MessageDisposition.DisplayedAutomatically;
             var reporter        = ReportingAgent.Address.ToString();
