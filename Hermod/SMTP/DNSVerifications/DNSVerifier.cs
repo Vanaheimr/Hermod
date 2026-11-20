@@ -609,19 +609,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
             var dkimParams = ParseDkimHeader(dkimField.RawValue);
 
-            if (!dkimParams.TryGetValue("d", out var domain) ||
-                !dkimParams.TryGetValue("s", out var selector) ||
-                !dkimParams.TryGetValue("b", out var signature) ||
-                !dkimParams.TryGetValue("bh", out var bodyHash))
+            // RFC 6376 §6.1.1: "If any tag listed as "required" in Section 3.5 is omitted from the
+            // DKIM-Signature header field, the Verifier MUST ignore the DKIM-Signature header field
+            // and return PERMFAIL" - v=, a=, b=, bh=, d=, h= and s=.
+            if (!dkimParams.TryGetValue("v",  out var version)    ||
+                !dkimParams.TryGetValue("a",  out var algorithm)  ||
+                !dkimParams.TryGetValue("b",  out var signature)  ||
+                !dkimParams.TryGetValue("bh", out var bodyHash)   ||
+                !dkimParams.TryGetValue("d",  out var domain)     ||
+                !dkimParams.TryGetValue("h",  out var headerList) ||
+                !dkimParams.TryGetValue("s",  out var selector))
             {
-                return (DkimResult.Fail, "Missing required DKIM parameters");
+                return (DkimResult.Fail, "Missing required DKIM parameters (RFC 6376 §3.5: v=, a=, b=, bh=, d=, h=, s=)");
             }
+
+            // §6.1.1: "Verifiers MUST return PERMFAIL (incompatible version) when presented a
+            // DKIM-Signature header field with a "v=" tag that is inconsistent with this
+            // specification"; §3.5, v=: "It MUST have the value "1"".
+            if (version != "1")
+                return (DkimResult.Fail, $"A DKIM-Signature of version {version} (RFC 6376 §6.1.1)");
+
+            // §6.1.1: "If the "h=" tag does not include the From header field, the Verifier MUST
+            // ignore the DKIM-Signature header field and return PERMFAIL (From field not signed)" -
+            // a signature that holds whatever the From says says nothing about the author.
+            if (!headerList.Split(':').Any(name => name.Trim().Equals("From", StringComparison.OrdinalIgnoreCase)))
+                return (DkimResult.Fail, "The signature does not sign From (RFC 6376 §6.1.1)");
+
+            // §6.1.1: without i=, "the Verifier MUST behave as though the value of that tag were
+            // "@d""; "Verifiers MUST confirm that the domain specified in the "d=" tag is the same
+            // as or a parent domain of the domain part of the "i=" tag. If not, the DKIM-Signature
+            // header field MUST be ignored".
+            var identity        = dkimParams.GetValueOrDefault("i", "@" + domain);
+            var at              = identity.LastIndexOf('@');
+            var identityDomain  = at < 0 ? "" : identity[(at + 1)..].Trim().TrimEnd('.');
+            var signingDomain   = domain.Trim().TrimEnd('.');
+            var sameDomain      = identityDomain.Equals(signingDomain, StringComparison.OrdinalIgnoreCase);
+
+            if (!sameDomain && !identityDomain.EndsWith("." + signingDomain, StringComparison.OrdinalIgnoreCase))
+                return (DkimResult.Fail, $"i={identity} is not within d={domain} (RFC 6376 §6.1.1)");
 
             // rsa-sha256, and ed25519-sha256 (RFC 8463) - nothing else is verified. RFC 8301
             // §3.1: "rsa-sha1 MUST NOT be used for signing or verifying", its signatures "have
             // permanently failed evaluation"; an algorithm not known is not SHA-1 either.
-            var algorithm = dkimParams.GetValueOrDefault("a", "rsa-sha256");
-
             if (!algorithm.Equals("rsa-sha256",     StringComparison.OrdinalIgnoreCase) &&
                 !algorithm.Equals("ed25519-sha256", StringComparison.OrdinalIgnoreCase))
                 return (DkimResult.Fail, $"The signature algorithm {algorithm} is not verified (RFC 8301 §3.1)");
@@ -638,6 +667,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (!dkimRecordParams.TryGetValue("p", out var publicKeyBase64))
                 return (DkimResult.Fail, "No public key in DKIM record");
 
+            // RFC 6376 §6.1.2: "If the public-key data is not suitable for use with the algorithm
+            // and key types defined by the "a=" and "k=" tags in the DKIM-Signature header field,
+            // the Verifier MUST immediately return PERMFAIL (inappropriate key algorithm)" - rsa,
+            // the default, and ed25519 (RFC 8463) are the types there are.
+            var keyType = dkimRecordParams.GetValueOrDefault("k", "rsa").Trim().ToLowerInvariant();
+
+            if (keyType is not "rsa" and not "ed25519")
+                return (DkimResult.Fail, $"A key of type k={keyType} (RFC 6376 §6.1.2)");
+
+            // §6.1.2: "If the "h=" tag exists in the public-key record and the hash algorithm
+            // implied by the "a=" tag in the DKIM-Signature header field is not included in the
+            // contents of the "h=" tag, the Verifier MUST ignore the key record" - both algorithms
+            // verified here hash with SHA-256.
+            if (dkimRecordParams.TryGetValue("h", out var keyHashes) &&
+                !keyHashes.Split(':').Any(hash => hash.Trim().Equals("sha256", StringComparison.OrdinalIgnoreCase)))
+                return (DkimResult.Fail, $"The key allows h={keyHashes}, not sha256 (RFC 6376 §6.1.2)");
+
+            // §3.6.1, s=: "Verifiers for a given service type MUST ignore this record if the
+            // appropriate type is not listed" - "*" or "email".
+            if (dkimRecordParams.TryGetValue("s", out var services) &&
+                !services.Split(':').Any(service => service.Trim() == "*" || service.Trim().Equals("email", StringComparison.OrdinalIgnoreCase)))
+                return (DkimResult.Fail, $"The key is for s={services}, not email (RFC 6376 §3.6.1)");
+
+            // §3.6.1, t=s: "the "i=" domain MUST NOT be a subdomain of "d="".
+            if (dkimRecordParams.TryGetValue("t", out var flags) &&
+                flags.Split(':').Any(flag => flag.Trim().Equals("s", StringComparison.OrdinalIgnoreCase)) &&
+                !sameDomain)
+                return (DkimResult.Fail, $"The key has t=s, and i={identity} is in a subdomain of d={domain} (RFC 6376 §3.6.1)");
+
             var (headerCanon, bodyCanon) = ParseCanonicalization(dkimParams.GetValueOrDefault("c", "simple/simple"));
 
             // Body hash over the wire octets, via the shared canonicalizer.
@@ -653,10 +711,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var publicKeyBytes = Convert.FromBase64String(publicKeyBase64);
                 var signatureBytes = Convert.FromBase64String(signature.Replace(" ", "").Replace("\r", "").Replace("\n", "").Replace("\t", ""));
 
-                var signedHeaders = dkimParams.GetValueOrDefault("h", "").Split(':');
+                var signedHeaders = headerList.Split(':');
                 var signingInput  = DkimCanonicalization.BuildHeaderHashInput(fields, signedHeaders, dkimField, headerCanon);
 
-                var keyType       = dkimRecordParams.GetValueOrDefault("k", "rsa").ToLowerInvariant();
                 Boolean isValid;
 
                 // Ed25519 (RFC 8463): the key is its 32 octets, the signature is over the
@@ -682,6 +739,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                     using var rsa = RSA.Create();
                     rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+
+                    // RFC 8301 §3.2: "Verifiers MUST NOT consider signatures using RSA keys of less
+                    // than 1024 bits as valid signatures".
+                    if (rsa.KeySize < 1024)
+                        return (DkimResult.Fail, $"An RSA key of {rsa.KeySize} bits (RFC 8301 §3.2: at least 1024)");
 
                     isValid = rsa.VerifyData(MessageOctets.ToOctets(signingInput), signatureBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
