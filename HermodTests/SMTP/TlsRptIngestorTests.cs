@@ -77,9 +77,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         /// <summary>
         /// The report mail of RFC 8460 §5.3.1: multipart/report, report-type="tlsrpt", a
-        /// text/plain part and the report part - after the preamble given.
+        /// text/plain part and the report part - with the preamble, text and epilogue given.
         /// </summary>
-        private static EMailMessage Mail(String ReportPart, String Preamble = "This is a multipart message in MIME format.\r\n")
+        private static EMailMessage Mail(String  ReportPart,
+                                         String  Preamble  = "This is a multipart message in MIME format.\r\n",
+                                         String  Text      = "This is an aggregate TLS report from mail.sender.example\r\n",
+                                         String  Epilogue  = "")
 
             => EMailMessage.Parse("From: tlsrpt@mail.sender.example\r\n" +
                                   "To: tlsrpt@hermod.test\r\n" +
@@ -94,11 +97,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                   "------=_NextPart_000_024E_01CC9B0A.AFE54C00\r\n" +
                                   "Content-Type: text/plain; charset=\"us-ascii\"\r\n" +
                                   "\r\n" +
-                                  "This is an aggregate TLS report from mail.sender.example\r\n" +
+                                  Text +
                                   "\r\n" +
                                   "------=_NextPart_000_024E_01CC9B0A.AFE54C00\r\n" +
                                   ReportPart + "\r\n" +
-                                  "------=_NextPart_000_024E_01CC9B0A.AFE54C00--\r\n");
+                                  "------=_NextPart_000_024E_01CC9B0A.AFE54C00--\r\n" +
+                                  Epilogue);
 
         private static String GzipPart(Byte[] Gzipped)
 
@@ -256,6 +260,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(Ingest(Mail("Content-Type: application/tlsrpt+json\r\nContent-Transfer-Encoding: base64\r\n\r\n" +
                                         Convert.ToBase64String(Encoding.UTF8.GetBytes(json), Base64FormattingOptions.InsertLineBreaks)))?.OrganizationName,
                             Is.EqualTo("Company-X"), "base64");
+            });
+
+        }
+
+        #endregion
+
+        #region I-7: the parts of the multipart
+
+        [Test(Description = "I-7 - RFC 2046 §5.1.1: multipart-body := [preamble CRLF] dash-boundary ..., preamble := discard-text; \"implementations must ignore anything that appears before the first boundary delimiter line\" - a report written into the preamble is not the report, the one in the report part is")]
+        public void The_preamble_is_not_read_as_a_report()
+        {
+
+            var report = Ingest(Mail(GzipPart(Gzip(Json("Company-X"))),
+                                     Preamble: "Content-Type: application/tlsrpt+json\r\n\r\n" + Json("Forger") + "\r\n"));
+
+            Assert.That(report?.OrganizationName, Is.EqualTo("Company-X"));
+
+        }
+
+
+        [Test(Description = "I-7 - RFC 2046 §5.1.1: \"implementations must ignore anything that appears ... after the last one\" - a report in the epilogue, after the close-delimiter, is no report")]
+        public void The_epilogue_is_not_read_as_a_report()
+        {
+
+            var report = Ingest(Mail("Content-Type: text/plain\r\n\r\nNo report today.",
+                                     Epilogue: "\r\n------=_NextPart_000_024E_01CC9B0A.AFE54C00\r\n" +
+                                               "Content-Type: application/tlsrpt+json\r\n\r\n" + Json("Forger") + "\r\n"));
+
+            Assert.That(report, Is.Null);
+
+        }
+
+
+        [Test(Description = "I-7 - RFC 2046 §5.1.1: \"The boundary delimiter MUST occur at the beginning of a line\" - the boundary within a line of text is text, and what follows it no part")]
+        public void A_boundary_within_a_line_is_no_delimiter()
+        {
+
+            var report = Ingest(Mail(GzipPart(Gzip(Json("Company-X"))),
+                                     Text: "Quoted: >------=_NextPart_000_024E_01CC9B0A.AFE54C00\r\n" +
+                                           "Content-Type: application/tlsrpt+json\r\n\r\n" + Json("Forger") + "\r\n"));
+
+            Assert.That(report?.OrganizationName, Is.EqualTo("Company-X"));
+
+        }
+
+
+        [Test(Description = "I-7 - RFC 2046 §5.1.1: transport-padding after a delimiter is allowed, and a body that ends without its close-delimiter keeps its last part - guards")]
+        public void Transport_padding_and_a_missing_close_delimiter_are_taken()
+        {
+
+            var padded    = EMailMessage.Parse("TLS-Report-Domain: hermod.test\r\n" +
+                                               "Content-Type: multipart/report; report-type=tlsrpt; boundary=b1\r\n" +
+                                               "\r\n" +
+                                               "--b1 \t\r\n" +
+                                               "Content-Type: application/tlsrpt+json\r\n\r\n" + Json("Company-X") + "\r\n" +
+                                               "--b1-- \r\n");
+
+            var truncated = EMailMessage.Parse("TLS-Report-Domain: hermod.test\r\n" +
+                                               "Content-Type: multipart/report; report-type=tlsrpt; boundary=b1\r\n" +
+                                               "\r\n" +
+                                               "--b1\r\n" +
+                                               "Content-Type: application/tlsrpt+json\r\n\r\n" + Json("Company-X") + "\r\n");
+
+            Assert.Multiple(() => {
+                Assert.That(Ingest(padded)?.   OrganizationName, Is.EqualTo("Company-X"), "transport-padding");
+                Assert.That(Ingest(truncated)?.OrganizationName, Is.EqualTo("Company-X"), "no close-delimiter");
             });
 
         }

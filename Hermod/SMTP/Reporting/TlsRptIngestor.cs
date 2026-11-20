@@ -202,30 +202,85 @@ public sealed class TlsRptIngestor(String   storageDir,
 
     }
 
-    // Split a multipart body into (headers, body) pairs using the given boundary.
-    private static IEnumerable<(String Headers, String Body)> SplitMultipart(String body, String boundary)
+    /// <summary>
+    /// Split a multipart body into (headers, body) pairs using the given boundary. RFC 2046
+    /// §5.1.1: "The boundary delimiter MUST occur at the beginning of a line", the CRLF before
+    /// it belongs to the delimiter, and "implementations must ignore anything that appears
+    /// before the first boundary delimiter line or after the last one" - the preamble and the
+    /// epilogue are no parts. A body that ends without its close-delimiter keeps its last part.
+    /// </summary>
+    private static List<(String Headers, String Body)> SplitMultipart(String body, String boundary)
     {
 
-        var delimiter = "--" + boundary;
-        var segments  = body.Split(delimiter);
+        var dashBoundary = "--" + boundary;
+        var parts        = new List<(String Headers, String Body)>();
+        var partStart    = -1;      // where the current part begins, after its delimiter line
+        var lineStart    = 0;
 
-        foreach (var segment in segments)
+        while (lineStart < body.Length)
         {
-            var seg = segment;
-            if (seg.StartsWith("--"))          // closing boundary "--boundary--"
-                continue;
-            seg = seg.TrimStart('\r', '\n');
-            if (seg.Length == 0)
-                continue;
 
-            var split = seg.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-            var sep   = 4;
-            if (split < 0) { split = seg.IndexOf("\n\n", StringComparison.Ordinal); sep = 2; }
-            if (split < 0)
-                continue;
+            var lineFeed = body.IndexOf('\n', lineStart);
+            var lineEnd  = lineFeed < 0 ? body.Length : lineFeed;
+            var line     = body.AsSpan(lineStart, lineEnd - lineStart).TrimEnd('\r');
 
-            yield return (seg[..split], seg[(split + sep)..]);
+            // dash-boundary [ "--" ] transport-padding, at the start of a line
+            if (line.StartsWith(dashBoundary, StringComparison.Ordinal))
+            {
+
+                var rest    = line[dashBoundary.Length..];
+                var isClose = rest.StartsWith("--", StringComparison.Ordinal);
+
+                if (isClose)
+                    rest = rest[2..];
+
+                if (rest.Trim(" \t").IsEmpty)
+                {
+
+                    if (partStart >= 0)
+                        parts.Add(Part(body, partStart, lineStart));
+
+                    if (isClose)
+                        return parts;
+
+                    partStart = lineFeed < 0 ? body.Length : lineFeed + 1;
+
+                }
+
+            }
+
+            lineStart = lineFeed < 0 ? body.Length : lineFeed + 1;
+
         }
+
+        if (partStart >= 0 && partStart < body.Length)
+            parts.Add(Part(body, partStart, body.Length));
+
+        return parts;
+
+    }
+
+    // A body part from start up to the line break that belongs to the next delimiter: its
+    // header fields up to the first empty line, and its body after it.
+    private static (String Headers, String Body) Part(String body, Int32 start, Int32 end)
+    {
+
+        if (end > start && body[end - 1] == '\n') end--;
+        if (end > start && body[end - 1] == '\r') end--;
+
+        var part = body[start..end];
+
+        // No header fields at all: the part begins with its empty line.
+        if (part.StartsWith("\r\n", StringComparison.Ordinal)) return ("", part[2..]);
+        if (part.StartsWith('\n'))                              return ("", part[1..]);
+
+        var split = part.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+        var sep   = 4;
+        if (split < 0) { split = part.IndexOf("\n\n", StringComparison.Ordinal); sep = 2; }
+
+        return split < 0
+                   ? (part, "")
+                   : (part[..split], part[(split + sep)..]);
 
     }
 
