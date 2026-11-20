@@ -224,6 +224,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region I-5: the date range
+
+        [TestCase("99999999999999",       "1792108799",           TestName = "A begin beyond the year 9999 is none, and does not throw")]
+        [TestCase("1792022400",           "-99999999999",         TestName = "An end before the year 1 is none, and does not throw")]
+        [TestCase("1792022400",           "99999999999999999999", TestName = "An end beyond Int64 is none, and does not throw")]
+        [Description("I-5 - RFC 7489 Appendix C: begin and end are xs:integer - any integer a foreign receiver writes; one outside what a DateTimeOffset holds is no time, and the report is still read")]
+        public void A_date_range_out_of_range_is_none(String Begin, String End)
+        {
+
+            var xml = Report.Replace("<begin>1792022400</begin><end>1792108799</end>", $"<begin>{Begin}</begin><end>{End}</end>");
+
+            // The times within range are the ones written.
+            static DateTimeOffset? Expected(String Seconds)
+                => Seconds.Length == 10 ? DateTimeOffset.FromUnixTimeSeconds(Int64.Parse(Seconds)) : null;
+
+            DmarcReceivedReport? report = null;
+
+            Assert.That(() => report = DmarcReportReader.Parse(xml), Throws.Nothing);
+            Assert.Multiple(() => {
+                Assert.That(report?.Domain, Is.EqualTo("example.org"), "the report is still read");
+                Assert.That(report?.Begin,  Is.EqualTo(Expected(Begin)));
+                Assert.That(report?.End,    Is.EqualTo(Expected(End)));
+            });
+
+        }
+
+        [Test(Description = "I-5 - RFC 7489 Appendix C: the first and the last second a DateTimeOffset holds are read - a guard")]
+        public void The_bounds_of_the_date_range_are_read()
+        {
+
+            var first  = DateTimeOffset.MinValue.ToUnixTimeSeconds();
+            var last   = DateTimeOffset.MaxValue.ToUnixTimeSeconds();
+            var report = DmarcReportReader.Parse(Report.Replace("<begin>1792022400</begin><end>1792108799</end>", $"<begin>{first}</begin><end>{last}</end>"));
+
+            Assert.That((report?.Begin, report?.End), Is.EqualTo(((DateTimeOffset?) DateTimeOffset.FromUnixTimeSeconds(first), (DateTimeOffset?) DateTimeOffset.FromUnixTimeSeconds(last))));
+
+        }
+
+        #endregion
+
         #region I-2: how deep a report is nested
 
         // A report whose domain is nested the given number of levels deep.

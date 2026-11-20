@@ -347,8 +347,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private static String? Text(XElement? Parent, String Name)
             => Child(Parent, Name)?.Value.Trim() is { Length: > 0 } text ? text : null;
 
+        // RFC 7489 Appendix C: begin and end are xs:integer - any integer; one outside the
+        // years 1 to 9999 is no time a DateTimeOffset holds, and is read as none.
         private static DateTimeOffset? Seconds(String? Text)
-            => Int64.TryParse(Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds)
+            => Int64.TryParse(Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds) &&
+               seconds >= DateTimeOffset.MinValue.ToUnixTimeSeconds() &&
+               seconds <= DateTimeOffset.MaxValue.ToUnixTimeSeconds()
                    ? DateTimeOffset.FromUnixTimeSeconds(seconds)
                    : null;
 
