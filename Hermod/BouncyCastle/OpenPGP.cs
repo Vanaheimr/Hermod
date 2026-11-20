@@ -381,6 +381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ArmoredCiphertext">The armored (or binary) OpenPGP message.</param>
         /// <param name="SecretKeys">The recipient's secret key ring bundle.</param>
         /// <param name="Passphrase">The passphrase protecting the matching secret key.</param>
+        /// <exception cref="PgpException">No key fits, or the message is not integrity protected, or its integrity check fails - no plaintext is released then (RFC 9580 §5.7, §5.13.1).</exception>
         public static Byte[] Decrypt(Stream                  ArmoredCiphertext,
                                      PgpSecretKeyRingBundle  SecretKeys,
                                      String                  Passphrase)
@@ -401,6 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="SecretKeys">The recipient's secret key ring bundle.</param>
         /// <param name="Passphrase">The passphrase protecting the matching secret key.</param>
         /// <param name="SenderPublicKeys">Candidate signer public keys; null to skip signature verification.</param>
+        /// <exception cref="PgpException">No key fits, or the message is not integrity protected, or its integrity check fails - no plaintext is released then (RFC 9580 §5.7, §5.13.1).</exception>
         public static (Byte[] Plaintext, PgpSignatureVerification Signature) DecryptAndVerify(Stream                   ArmoredCiphertext,
                                                                                               PgpSecretKeyRingBundle   SecretKeys,
                                                                                               String                   Passphrase,
@@ -436,6 +438,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             if (encrypted is null || privateKey is null)
                 throw new PgpException("No matching secret key for any of the message's recipients!");
+
+            // The obsolete Symmetrically Encrypted Data packet has no MDC, so nothing tells a changed
+            // ciphertext from the one that was sent: "An implementation SHOULD reject such a packet and
+            // stop processing the message" (RFC 9580 §5.7) - there is no warning to return instead.
+            if (!encrypted.IsIntegrityProtected())
+                throw new PgpException("The message is not integrity protected (no MDC): it is not decrypted!");
 
             var clearFactory = new PgpObjectFactory(encrypted.GetDataStream(privateKey));
             var message      = clearFactory.NextPgpObject();
@@ -512,6 +520,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   );
 
             }
+
+            // The MDC, once all of the decrypted data has been read: "A mismatch of the hash indicates
+            // that the message has been modified and MUST be treated as a security problem" (RFC 9580
+            // §5.13.1), and the plaintext of such a message is not released (§13.7, EFAIL).
+            if (!encrypted.Verify())
+                throw new PgpException("The integrity check (MDC) of the message failed: it was modified, and it is not decrypted!");
 
             return (plaintext, signature);
 
