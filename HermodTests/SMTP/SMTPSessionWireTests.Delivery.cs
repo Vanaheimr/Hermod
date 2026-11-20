@@ -164,6 +164,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test(Description = "RFC 8098 §2.3: the copies of one message for recipients with different ORCPTs are stored one after the other, often in the same millisecond - none overwrites another")]
+        public async Task The_file_store_keeps_every_copy_of_a_message()
+        {
+
+            var directory = Directory.CreateTempSubdirectory("hermod-filestore-").FullName;
+
+            try
+            {
+
+                // Twenty at once, so that some share a millisecond whatever the disk.
+                var store      = new FileMailStorage(directory, new QuietLogger());
+                var originals  = Enumerable.Range(1, 20).Select(number => $"alias{number}").ToArray();
+
+                var paths      = await Task.WhenAll(originals.Select(original =>
+                                     store.StoreAsync(EMailMessage.Parse($"Original-Recipient: rfc822;{original}@hermod.test\r\nMessage-ID: <same@client.example>\r\nSubject: Copies\r\n\r\nHello.\r\n"),
+                                                      "sender@client.example",
+                                                      [ $"{original}@hermod.test" ])));
+
+                Assert.That(paths.Distinct().Count(),        Is.EqualTo(20), String.Join("\n", paths));
+                Assert.That(Directory.GetFiles(directory),   Has.Length.EqualTo(20));
+                Assert.That(paths.Zip(originals).All(stored => File.ReadAllText(stored.First).Contains($"\r\nOriginal-Recipient: rfc822;{stored.Second}@hermod.test\r\n")),
+                            Is.True, "each path names its own copy");
+
+            }
+            finally
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+
+        }
+
         #endregion
 
         #region Recipients that do not exist
