@@ -53,7 +53,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         public const Int32 BodyLineLength   = 76;
 
+        /// <summary>
+        /// The length no line may exceed (RFC 5322 §2.1.1: "Each line of characters
+        /// MUST be no more than 998 characters").
+        /// </summary>
+        public const Int32 MaximumLineLength = 998;
+
         private const String CRLF           = "\r\n";
+
+        // The longest piece written whole: with a line of 78 before it - the field
+        // name, a value, a parameter - it still fits a line of 998. A longer one is
+        // broken: into encoded words, RFC 2231 sections or folded chunks.
+        private const Int32  LongestPiece   = MaximumLineLength - HeaderLineLength;
 
         // RFC 2047 §2: a line that holds an encoded word is at most 76 characters.
         private const Int32  EncodedLineLength = 76;
@@ -195,8 +206,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <remarks>
         /// Folding inserts a line break before the white space between two pieces;
         /// unfolding takes it out again, and the value is what it was (§2.2.3). A
-        /// line that holds encoded words is folded at 76 (RFC 2047 §2).
+        /// line that holds encoded words is folded at 76 (RFC 2047 §2). A piece that
+        /// makes a line longer than 998 characters even on a line of its own is
+        /// refused: RFC 5322 §2.1.1 "Each line of characters MUST be no more than
+        /// 998 characters", and folding only happens between pieces. The writers
+        /// below break a word that long before it comes here.
         /// </remarks>
+        /// <exception cref="ArgumentException">A piece is too long for any line.</exception>
         public static String Fold(String                                    Name,
                                   IEnumerable<(String Text, Boolean Comma)>  Pieces,
                                   Int32                                     Limit = HeaderLineLength)
@@ -206,6 +222,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             var column  = Name.Length + 1;
             var first   = true;
 
+            void CheckLength()
+            {
+                if (column > MaximumLineLength)
+                    throw new ArgumentException($"A value of {Name} is longer than a line may be (RFC 5322 §2.1.1: {MaximumLineLength} characters).");
+            }
+
             foreach (var (text, comma) in Pieces)
             {
 
@@ -214,6 +236,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     line.Append(',');
                     column++;
                 }
+
+                CheckLength();
 
                 if (!first && column + 1 + text.Length > Limit)
                 {
@@ -230,6 +254,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 column += text.Length;
                 first   = false;
 
+                CheckLength();
+
             }
 
             return line.ToString();
@@ -242,22 +268,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         /// <summary>
         /// A header line of free text - a Subject - folded: as it is when it is
-        /// ASCII, as encoded words when it is not.
+        /// ASCII, as encoded words when it is not - or when a word of it, a long
+        /// URL, is too long for a line.
         /// </summary>
+        /// <remarks>
+        /// Free text is folded only at its white space, and RFC 5322 §2.1.1 says
+        /// "Each line of characters MUST be no more than 998 characters". Encoded
+        /// words, of at most 75 characters each, read back as the text they encode
+        /// (RFC 2047 §5 (1): "in any Subject or Comments header field ... or in
+        /// any unstructured text").
+        /// </remarks>
         public static String UnstructuredHeader(String Name, String Text)
         {
 
             CheckHeaderValue(Name, Text);
 
-            return IsPrintableAscii(Text)
-                       ? Fold(Name, Text.Split(' ').Select(word => (word, false)))
+            var words = Text.Split(' ');
+
+            return IsPrintableAscii(Text) && words.All(word => word.Length <= LongestPiece)
+                       ? Fold(Name, words.Select(word => (word, false)))
                        : Fold(Name, EncodedWords(Text, EncodedLineLength - Name.Length - 2).Select(word => (word, false)), EncodedLineLength);
 
         }
 
         #endregion
 
-        #region MailboxPieces(Mailbox) / MailboxListHeader(Name, Mailboxes)
+        #region FurtherHeader(Name, Value)
+
+        /// <summary>
+        /// A header this writer knows no grammar of - User-Agent, Autocrypt,
+        /// List-Unsubscribe - folded: as <see cref="UnstructuredHeader"/> writes free
+        /// text, but for an ASCII word too long for a line, which is folded inside.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// RFC 5322 §2.1.1: "Each line of characters MUST be no more than 998
+        /// characters". A word longer than that in a field of its own grammar - the
+        /// keydata of an Autocrypt header, a signature - is base64, which is read
+        /// without the white space it is folded with (RFC 2045 §6.8: "All line
+        /// breaks or other characters not found in Table 1 must be ignored"; the
+        /// Autocrypt header's size limit counts "folding whitespace"). As encoded
+        /// words it would not be read at all: those stand in no structured field
+        /// (RFC 2047 §5). So such a word is broken into chunks of a line, with
+        /// folding white space between them.
+        /// </para>
+        /// <para>
+        /// A field whose word must stay whole cannot be written longer than a line
+        /// in any way.
+        /// </para>
+        /// </remarks>
+        public static String FurtherHeader(String Name, String Value)
+        {
+
+            CheckHeaderValue(Name, Value);
+
+            if (!IsPrintableAscii(Value))
+                return UnstructuredHeader(Name, Value);
+
+            static IEnumerable<String> Chunks(String Word)
+            {
+                for (var i = 0; i < Word.Length; i += HeaderLineLength - 2)
+                    yield return Word.Substring(i, Math.Min(HeaderLineLength - 2, Word.Length - i));
+            }
+
+            return Fold(Name, Value.Split(' ').
+                                    SelectMany(word => word.Length <= LongestPiece ? [ word ] : Chunks(word)).
+                                    Select(word => (word, false)));
+
+        }
+
+        #endregion
+
+        #region MailboxPieces(Mailbox) / Phrase(Name) / MailboxListHeader(Name, Mailboxes)
 
         /// <summary>
         /// A mailbox as the pieces of a header: the display name - its words, a
@@ -279,14 +361,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if (String.IsNullOrEmpty(name))
                 return [ Mailbox.Address ];
 
-            IEnumerable<String> phrase =
+            return [ .. Phrase(name, FirstMaximum), $"<{Mailbox.Address}>" ];
+
+        }
+
+        /// <summary>
+        /// A name as an RFC 5322 phrase of ASCII, in pieces: its words, a quoted
+        /// string when it holds specials, or encoded words when it is not ASCII or
+        /// a piece of it is too long for a line - the display name of a mailbox, the
+        /// description of a list (RFC 2919 §3).
+        /// </summary>
+        public static IEnumerable<String> Phrase(String  Name,
+                                                 Int32   FirstMaximum = 75)
+        {
+
+            CheckHeaderValue("a phrase", Name);
+
+            var name = Name.Trim();
+
+            IReadOnlyList<String> phrase =
                 !IsPrintableAscii(name)
-                    ? EncodedWords(name, FirstMaximum)
+                    ? [ .. EncodedWords(name, FirstMaximum) ]
                     : name.Any(Specials.Contains) || name.Contains("  ") || name.Contains('\t')
                           ? [ "\"" + name.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"" ]
                           : name.Split(' ');
 
-            return [ .. phrase, $"<{Mailbox.Address}>" ];
+            return phrase.All(piece => piece.Length <= LongestPiece)
+                       ? phrase
+                       : EncodedWords(name, FirstMaximum);
 
         }
 
@@ -304,38 +406,89 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
-        #region Parameter(Name, Value)
+        #region Parameter(Name, Value) / ParameterSections(Name, Value)
 
         /// <summary>
         /// A parameter of a Content-Type or Content-Disposition - "; name=value" -
         /// as a token, a quoted string, or, when it is not ASCII, as RFC 2231 has
-        /// it: name*=utf-8''percent-encoded.
+        /// it: name*=utf-8''percent-encoded - and when it is too long for a line, in
+        /// the sections of <see cref="ParameterSections"/>, folded between them.
         /// </summary>
         public static String Parameter(String Name, String Value)
+
+            => String.Join(";" + CRLF + " ", ParameterSections(Name, Value));
+
+        /// <summary>
+        /// A parameter as <see cref="Parameter"/> writes it, in one piece - or, when
+        /// that piece is too long for a line, in the continuations of RFC 2231 §3:
+        /// name*0*=utf-8''…, name*1*=…, each fitting a line of 78.
+        /// </summary>
+        /// <remarks>
+        /// RFC 5322 §2.1.1: "Each line of characters MUST be no more than 998
+        /// characters"; RFC 2231 §3: "Long MIME media type or disposition parameter
+        /// values do not interact well with header line wrapping conventions" - a
+        /// parameter is split into sections that a reader joins again. A character
+        /// is never split between two of them.
+        /// </remarks>
+        public static IEnumerable<String> ParameterSections(String Name, String Value)
         {
 
             CheckHeaderValue(Name, Value);
 
-            if (!IsPrintableAscii(Value))
+            var whole = IsPrintableAscii(Value)
+                            ? Value.Length > 0 && !Value.Any(character => character <= ' ' || TSpecials.Contains(character))
+                                  ? $"{Name}={Value}"
+                                  : $"{Name}=\"{Value.Replace("\\", "\\\\").Replace("\"", "\\\"")}\""
+                            : $"{Name}*=utf-8''{String.Concat(Value.EnumerateRunes().Select(PercentEncoded))}";
+
+            if (whole.Length <= LongestPiece)
+                return [ whole ];
+
+            var sections = new List<String>();
+            var section  = new StringBuilder("utf-8''");
+
+            foreach (var rune in Value.EnumerateRunes())
             {
 
-                var encoded = new StringBuilder("utf-8''");
+                var encoded = PercentEncoded(rune);
 
-                foreach (var octet in Encoding.UTF8.GetBytes(Value))
+                // " name*12*=" and the ";" after it: a section line of at most 78.
+                var line = 1 + Name.Length + 1 + sections.Count.ToString(CultureInfo.InvariantCulture).Length + 2 + section.Length + encoded.Length + 1;
+
+                if (section.Length > 0 && line > HeaderLineLength)
                 {
-                    if (octet < 0x80 && (Char.IsAsciiLetterOrDigit((Char) octet) || AttributeSafe.Contains((Char) octet)))
-                        encoded.Append((Char) octet);
-                    else
-                        encoded.Append('%').Append(octet.ToString("X2", CultureInfo.InvariantCulture));
+                    sections.Add($"{Name}*{sections.Count}*={section}");
+                    section.Clear();
                 }
 
-                return $"{Name}*={encoded}";
+                section.Append(encoded);
 
             }
 
-            return Value.Length > 0 && !Value.Any(character => character <= ' ' || TSpecials.Contains(character))
-                       ? $"{Name}={Value}"
-                       : $"{Name}=\"{Value.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+            sections.Add($"{Name}*{sections.Count}*={section}");
+
+            return sections;
+
+        }
+
+        /// <summary>
+        /// A character as RFC 2231 §7 writes it in an extended value: an
+        /// attribute-char as it is, every other octet of its UTF-8 as %XX.
+        /// </summary>
+        private static String PercentEncoded(Rune Character)
+        {
+
+            if (Character.IsAscii && (Char.IsAsciiLetterOrDigit((Char) Character.Value) || AttributeSafe.Contains((Char) Character.Value)))
+                return ((Char) Character.Value).ToString();
+
+            var utf8    = new Byte[4];
+            var length  = Character.EncodeToUtf8(utf8);
+            var builder = new StringBuilder(length * 3);
+
+            for (var i = 0; i < length; i++)
+                builder.Append('%').Append(utf8[i].ToString("X2", CultureInfo.InvariantCulture));
+
+            return builder.ToString();
 
         }
 
@@ -352,11 +505,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                                  IEnumerable<(String Name, String Value)>    Parameters)
         {
 
-            var pieces = new List<(String, Boolean)> { (Value + (Parameters.Any() ? ";" : ""), false) };
-            var list   = Parameters.ToList();
+            var sections = Parameters.SelectMany(parameter => ParameterSections(parameter.Name, parameter.Value)).ToList();
+            var pieces   = new List<(String, Boolean)> { (Value + (sections.Count > 0 ? ";" : ""), false) };
 
-            for (var i = 0; i < list.Count; i++)
-                pieces.Add((Parameter(list[i].Name, list[i].Value) + (i < list.Count - 1 ? ";" : ""), false));
+            for (var i = 0; i < sections.Count; i++)
+                pieces.Add((sections[i] + (i < sections.Count - 1 ? ";" : ""), false));
 
             return Fold(Name, pieces);
 

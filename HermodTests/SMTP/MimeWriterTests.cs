@@ -231,6 +231,160 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         #endregion
 
 
+        #region No_line_is_longer_than_998_characters
+
+        private static String Unfolded(String Header, String Name)
+
+            => Regex.Replace(Regex.Match(Header, $@"^{Name}:([^\r\n]*(?:\r\n[ \t][^\r\n]*)*)", RegexOptions.Multiline).Groups[1].Value,
+                             @"\r\n(?=[ \t])",
+                             "");
+
+        private static Int32 LongestLine(Byte[] Octets)
+            => Encoding.ASCII.GetString(Octets).Split("\r\n").Max(line => line.Length);
+
+        [Test(Description = "RFC 5322 §2.1.1: \"Each line of characters MUST be no more than 998 characters\"; RFC 2047 §5 (1): encoded words \"in any Subject or Comments header field ... or in any unstructured text\"")]
+        public void A_subject_word_longer_than_a_line_is_written_as_encoded_words()
+        {
+
+            var url     = "https://example.org/" + new String('a', 1200);
+            var mail    = Mail();
+            mail.Subject = "See " + url + " please";
+
+            var octets  = mail.ToBytes();
+
+            Assert.Multiple(() => {
+                Assert.That(LongestLine(octets),                    Is.LessThanOrEqualTo(78));
+                Assert.That(Encoding.ASCII.GetString(octets),       Does.Contain("Subject: =?UTF-8?Q?See_https"));
+                Assert.That(MimeMessage.Parse(octets).Subject,      Is.EqualTo(mail.Subject), "reads back as it was");
+            });
+
+        }
+
+        [Test(Description = "RFC 5322 §2.1.1: \"Each line of characters MUST be no more than 998 characters\"; RFC 2045 §6.8: in base64 \"All line breaks or other characters not found in Table 1 must be ignored\" - the keydata of an Autocrypt header is folded inside, not encoded")]
+        public void A_further_header_word_longer_than_a_line_is_folded_inside()
+        {
+
+            var keydata = Convert.ToBase64String([ .. Enumerable.Range(0, 2250).Select(i => (Byte) i) ]);
+            var mail    = Mail();
+            mail.Headers.Add(("Autocrypt", "addr=joerg@example.org; keydata=" + keydata));
+
+            var octets  = mail.ToBytes();
+            var value   = Unfolded(Encoding.ASCII.GetString(octets), "Autocrypt");
+
+            Assert.Multiple(() => {
+                Assert.That(LongestLine(octets),                                        Is.LessThanOrEqualTo(78));
+                Assert.That(value,                                                      Does.StartWith(" addr=joerg@example.org; keydata="), "no encoded word");
+                Assert.That(Regex.Replace(value[(value.IndexOf("keydata=") + 8)..], @"\s", ""), Is.EqualTo(keydata), "the key data without the white space it was folded with");
+            });
+
+        }
+
+        [Test(Description = "RFC 2231 §3: \"Long MIME media type or disposition parameter values do not interact well with header line wrapping conventions\" - a file name too long for a line is written in continuations, name*0*= name*1*=, and reads back as it was")]
+        public void A_parameter_longer_than_a_line_is_written_in_RFC_2231_continuations()
+        {
+
+            var name    = String.Concat(Enumerable.Repeat("报告", 60)) + ".pdf";
+            var ascii   = new String('x', 1200) + ".pdf";
+
+            Byte[] With(String FileName)
+            {
+                var mail  = Mail();
+                mail.Body = new MimeMultipart("mixed", [ new MimeTextPart("Anbei."), new MimeAttachment(Pdf, "application/pdf", FileName) ]);
+                return mail.ToBytes();
+            }
+
+            var chinese = With(name);
+            var long_   = With(ascii);
+
+            Assert.Multiple(() => {
+
+                Assert.That(LongestLine(chinese),                                       Is.LessThanOrEqualTo(78));
+                Assert.That(Encoding.ASCII.GetString(chinese),                          Does.Contain("filename*0*=utf-8''%E6%8A%A5"));
+                Assert.That(Encoding.ASCII.GetString(chinese),                          Does.Contain("filename*1*="));
+                Assert.That(MimeMessage.Parse(chinese).Attachments.Single().FileName,   Is.EqualTo(name));
+
+                Assert.That(LongestLine(long_),                                         Is.LessThanOrEqualTo(78), "an ASCII name too");
+                Assert.That(MimeMessage.Parse(long_).Attachments.Single().FileName,     Is.EqualTo(ascii));
+
+                Assert.That(MimeEncoding.Parameter("filename", "Übersicht 2026.pdf"),   Is.EqualTo("filename*=utf-8''%C3%9Cbersicht%202026.pdf"), "one that fits stays whole");
+
+            });
+
+        }
+
+        [Test(Description = "RFC 5322 §2.1.1: \"Each line of characters MUST be no more than 998 characters\" - a display name with a word too long for a line is written as encoded words, a message id that long is refused")]
+        public void A_long_display_name_is_encoded_and_a_long_message_id_refused()
+        {
+
+            var name    = "Doe, " + new String('J', 1200);
+            var mail    = Mail();
+            mail.To.Add(new MailboxAddress(name, "jj@example.com"));
+
+            var octets  = mail.ToBytes();
+
+            Assert.Multiple(() => {
+
+                Assert.That(LongestLine(octets),                                          Is.LessThanOrEqualTo(78));
+                Assert.That(MimeMessage.Parse(octets).To.Last(),                          Is.EqualTo(new MailboxAddress(name, "jj@example.com")));
+
+                var longId  = Mail();
+                longId.MessageId = new String('a', 1200) + "@example.org";
+                Assert.Throws<ArgumentException>(() => longId.ToBytes(),                  "no folding can write it");
+
+                var longRef = Mail();
+                longRef.References.Add(new String('a', 1200) + "@example.org");
+                Assert.Throws<ArgumentException>(() => longRef.ToBytes());
+
+                Assert.Throws<ArgumentException>(() => MimeEncoding.Fold("X-Test", [ (new String('x', 1000), false) ]));
+
+            });
+
+        }
+
+        #endregion
+
+        #region A_singular_field_among_the_further_headers_is_refused()
+
+        [TestCase("From",         "Mallory <mallory@example.com>")]
+        [TestCase("Date",         "Thu, 1 Jan 1970 00:00:00 +0000")]
+        [TestCase("Subject",      "Another subject")]
+        [TestCase("Message-ID",   "<another@example.com>")]
+        [TestCase("to",           "everybody@example.com")]
+        [TestCase("Bcc",          "everybody@example.com")]
+        [TestCase("In-Reply-To",  "<another@example.com>")]
+        [Test(Description = "RFC 5322 §3.6: orig-date, from, sender, reply-to, to, cc, bcc, message-id, in-reply-to, references and subject have a maximum number of 1 - a further header of that name, in any case, is refused, not written a second time")]
+        public void A_singular_field_among_the_further_headers_is_refused(String Name, String Value)
+        {
+
+            var mail = Mail();
+            mail.Headers.Add((Name, Value));
+
+            Assert.Throws<ArgumentException>(() => mail.ToBytes());
+
+        }
+
+        [Test(Description = "RFC 5322 §3.6: fields of no maximum - Comments, Keywords, an optional field - stay further headers")]
+        public void Further_headers_that_may_repeat_are_written()
+        {
+
+            var mail = Mail();
+            mail.Headers.Add(("Comments",  "first"));
+            mail.Headers.Add(("Comments",  "second"));
+            mail.Headers.Add(("X-From",    "not the From"));
+
+            var text = Encoding.ASCII.GetString(mail.ToBytes());
+
+            Assert.Multiple(() => {
+                Assert.That(Regex.Matches(text, "^Comments: ", RegexOptions.Multiline), Has.Count.EqualTo(2));
+                Assert.That(text,                                                       Does.Contain("\r\nX-From: not the From\r\n"));
+                Assert.That(Regex.Matches(text, "^From: ", RegexOptions.Multiline),     Has.Count.EqualTo(1));
+            });
+
+        }
+
+        #endregion
+
+
         #region An_answer_finds_its_subject_its_thread_and_its_recipients()
 
         [Test]
@@ -278,6 +432,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                         Is.EqualTo(new[] { "ben@example.test" }), "an answer to one's own message goes where it went");
 
             Assert.That(MailReplies.Quote("Hallo\r\n> zitiert\r\n\r\n"), Is.EqualTo("> Hallo\n>> zitiert\n"));
+
+        }
+
+        #endregion
+
+        #region An_answer_to_a_parent_without_References_takes_its_In_Reply_To()
+
+        [Test(Description = "RFC 5322 §3.6.4: \"If the parent message does not contain a \"References:\" field but does have an \"In-Reply-To:\" field containing a single message identifier, then the \"References:\" field will contain the contents of the parent's \"In-Reply-To:\" field followed by the contents of the parent's \"Message-ID:\" field\"")]
+        public void An_answer_to_a_parent_without_References_takes_its_In_Reply_To()
+        {
+
+            static MimeMessage Parent(String Fields)
+                => MimeMessage.Parse(Encoding.ASCII.GetBytes("From: Mary Smith <mary@example.net>\r\nMessage-ID: <3456@example.net>\r\n" + Fields + "Subject: x\r\n\r\nx\r\n"));
+
+            Assert.Multiple(() => {
+
+                Assert.That(MailReplies.References(Parent("In-Reply-To: <1234@local.machine.example>\r\n")),
+                            Is.EqualTo(new[] { "1234@local.machine.example", "3456@example.net" }));
+
+                Assert.That(MailReplies.References(Parent("In-Reply-To: <1@example.org> <2@example.org>\r\n")),
+                            Is.EqualTo(new[] { "3456@example.net" }), "more than one: only the parent's Message-ID");
+
+                Assert.That(MailReplies.References(Parent("In-Reply-To: <1234@local.machine.example>\r\nReferences: <1@example.org>\r\n")),
+                            Is.EqualTo(new[] { "1@example.org", "3456@example.net" }), "References, where there are some, before In-Reply-To");
+
+                Assert.That(MailReplies.References(Parent("")),
+                            Is.EqualTo(new[] { "3456@example.net" }));
+
+            });
 
         }
 

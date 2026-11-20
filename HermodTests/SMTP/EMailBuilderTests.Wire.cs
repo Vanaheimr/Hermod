@@ -185,6 +185,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test(Description = "RFC 5322 §2.1.1: \"Each line of characters MUST be no more than 998 characters\" - a subject word longer than a line as encoded words, a file name in RFC 2231 continuations")]
+        public void No_line_of_the_older_builders_is_longer_than_998_characters()
+        {
+
+            var name    = String.Concat(Enumerable.Repeat("报告", 60)) + ".pdf";
+            var builder = new TextEMailBuilder {
+                              From     = Address("mary@example.net", "Mary Smith"),
+                              Subject  = "See https://example.org/" + new String('a', 1200),
+                              Text     = "Hello."
+                          };
+
+            builder.To.Add(Address("john@example.org"));
+            builder.AddAttachment([ 1, 2, 3 ], name, MailContentTypes.application_octet__stream);
+
+            EMail mail  = builder;
+            var text    = Text(mail);
+
+            Assert.Multiple(() => {
+                Assert.That(text.Split("\r\n").Max(line => line.Length),           Is.LessThanOrEqualTo(998), text.Split("\r\n").MaxBy(line => line.Length));                Assert.That(Header(text, "Subject"),                               Does.StartWith("=?UTF-8?Q?See_https"));
+                Assert.That(EMail.Parse(text.Split("\r\n")).Subject,               Is.EqualTo(builder.Subject), "reads back as it was");
+                Assert.That(mail.Body.NestedBodyparts.Last().ContentDisposition,   Does.StartWith("attachment; filename*0*=utf-8''%E6%8A%A5"));
+            });
+
+        }
+
+        [TestCase("Grüße, Freunde",     "=?UTF-8?Q?Gr=C3=BC=C3=9Fe=2C_Freunde?= <friends.list.example.org>")]
+        [TestCase("Friends, Romans",    "\"Friends, Romans\" <friends.list.example.org>")]
+        [TestCase("Hermod developers",  "Hermod developers <friends.list.example.org>")]
+        [TestCase("",                   "<friends.list.example.org>")]
+        [Test(Description = "RFC 2919 §3: \"The list header fields are subject to the encoding and character restrictions for mail headers\"; list-id-header = \"List-ID:\" [phrase] \"<\" list-id \">\" - a description that is not ASCII as encoded words, one with a comma as a quoted string")]
+        public void A_list_description_is_written_as_a_phrase_of_ASCII(String Description, String Expected)
+        {
+
+            var builder = new TextEMailBuilder {
+                              From     = Address("alice@example.com"),
+                              Subject  = "List",
+                              Text     = "Hallo",
+                              ListId   = ListId.Parse(Description.Length > 0 ? $"\"{Description}\" <friends.list.example.org>" : "<friends.list.example.org>")
+                          };
+
+            builder.To.Add(Address("bob@example.org"));
+
+            var value = Header(Text(builder), "List-ID");
+
+            Assert.Multiple(() => {
+                Assert.That(value,                          Is.EqualTo(Expected));
+                Assert.That(value.All(c => c is >= ' ' and <= '~'), Is.True, "printable ASCII");
+                Assert.That(ListId.Parse(value)?.Name,      Is.EqualTo(Description), "reads back as it was");
+            });
+
+        }
+
         [Test]
         public void Ids_and_the_date_are_written_as_RFC_5322_has_them()
         {
@@ -272,6 +324,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(alternative.Body.NestedBodyparts.Select(part => part.ContentType!.ContentType),
                             Is.EqualTo(new[] { MailContentTypes.text_plain, MailContentTypes.text_html }));
                 Assert.That(EMail.Parse(Text(alternative).Split("\r\n")).Body.NestedBodyparts.Count(), Is.EqualTo(2));
+
+            });
+
+        }
+
+        [Test(Description = "RFC 2046 §5.1.1: boundary := 0*69<bchars> bcharsnospace, bcharsnospace := DIGIT / ALPHA / \"'\" / \"(\" / \")\" / \"+\" / \"_\" / \",\" / \"-\" / \".\" / \"/\" / \":\" / \"=\" / \"?\"; \"Boundary delimiters must not appear within the encapsulated material\"")]
+        public void The_boundaries_of_the_older_builders_follow_the_grammar()
+        {
+
+            var builder = new HTMLEMailBuilder("<p>Grüße</p>", "Grüße") { From = Address("alice@example.com"), Subject = "HTML" };
+            builder.To.Add(Address("bob@example.org"));
+            builder.AddAttachment([ 1, 2, 3 ], "data.bin", MailContentTypes.application_octet__stream);
+
+            var text        = Text(builder);
+            var boundaries  = Regex.Matches(Regex.Replace(text, @"\r\n(?=[ \t])", ""), @"boundary=""([^""]*)""").Select(match => match.Groups[1].Value).ToList();
+
+            Assert.Multiple(() => {
+
+                Assert.That(boundaries,                                                      Has.Count.EqualTo(2), "mixed around alternative");
+                Assert.That(boundaries.Distinct().Count(),                                   Is.EqualTo(2));
+
+                foreach (var boundary in boundaries)
+                {
+                    Assert.That(Regex.IsMatch(boundary, @"^[0-9A-Za-z'()+_,\-./:=? ]{0,69}[0-9A-Za-z'()+_,\-./:=?]$"), Is.True, boundary);
+                    Assert.That(text.Split("\r\n").Where(line => line.Contains(boundary) && !line.Contains("boundary=") && line != "--" + boundary && line != "--" + boundary + "--"),
+                                Is.Empty, "only in its delimiter lines");
+                    Assert.That(boundaries.Where(other => other != boundary && other.StartsWith(boundary)), Is.Empty, "no prefix of another (§5.1.2)");
+                }
+
+                Assert.That(EMail.Parse(text.Split("\r\n")).Body.NestedBodyparts.Count(),     Is.EqualTo(2), "read back: the alternative and the attachment");
 
             });
 

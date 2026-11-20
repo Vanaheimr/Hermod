@@ -444,8 +444,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     if (References.Count > 0)
                         SetEMailHeader("References",                 HeaderValue("References", MimeEncoding.Fold("References", References.Select(id => ($"<{id}>", false)))));
 
+                    // RFC 2919 §3: list-id-header = "List-ID:" [phrase] "<" list-id ">" CRLF, and "the list
+                    // header fields are subject to the encoding and character restrictions for mail headers":
+                    // the description as a phrase of ASCII - a quoted string, encoded words - not as it reads.
                     if (ListId             is not null)
-                        SetEMailHeader("List-ID",                    ListId.Value.ToString());
+                        SetEMailHeader("List-ID",                    HeaderValue("List-ID", MimeEncoding.Fold("List-ID",
+                                                                                                               [ .. (ListId.Name.Length > 0 ? MimeEncoding.Phrase(ListId.Name, 76 - "List-ID".Length - 2) : []).
+                                                                                                                        Select(piece => (piece, false)),
+                                                                                                                    ($"<{ListId.Identification}>", false) ],
+                                                                                                               76)));
 
                     if (ListPost           is not null)
                         SetEMailHeader("List-Post",                  $"<mailto:{ListPost}>");
