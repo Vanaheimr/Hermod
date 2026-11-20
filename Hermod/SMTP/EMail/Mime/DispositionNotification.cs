@@ -143,15 +143,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         /// <summary>
         /// Whether the receipt would go to another address than the one the message
-        /// came from - its From: and its reverse-path. RFC 8098 §2.1 asks to say so:
-        /// it may be somebody who wants to learn that an address is read.
+        /// came from - its From: and its reverse-path - and the reader must be asked
+        /// first. RFC 8098 §2.1 asks to say so: it may be somebody who wants to learn
+        /// that an address is read.
         /// </summary>
+        /// <remarks>
+        /// True, too, when the reverse-path is not known or is the null one, and when
+        /// the message asks for receipts to more than one address: "Confirmation from
+        /// the user MUST be obtained (or no MDN sent) if there is no Return-Path header
+        /// field in the message or if there is more than one distinct address in the
+        /// Disposition-Notification-To header field". Addresses are compared "case
+        /// sensitive for the local-part and case insensitive for the domain part".
+        /// </remarks>
+        /// <param name="Message">The message read.</param>
+        /// <param name="To">Where the receipt would go - <see cref="RequestedBy"/>.</param>
+        /// <param name="EnvelopeFrom">The reverse-path the message came with - its Return-Path - "" or "&lt;&gt;" for the null one, null when it is not known.</param>
         public static Boolean GoesElsewhere(MimeMessage     Message,
                                             MailboxAddress  To,
                                             String?         EnvelopeFrom)
+        {
 
-            => !Message.From.Any(from => from.Address.Equals(To.Address, StringComparison.OrdinalIgnoreCase)) ||
-               (EnvelopeFrom is { Length: > 0 } envelopeFrom && !envelopeFrom.Equals(To.Address, StringComparison.OrdinalIgnoreCase));
+            if (ReversePath(EnvelopeFrom) is not { } reversePath)
+                return true;
+
+            if (Requesters(Message.Headers.Get("Disposition-Notification-To")).Count > 1)
+                return true;
+
+            return !SameAddress(To.Address, reversePath) ||
+                   !Message.From.Any(from => SameAddress(from.Address, To.Address));
+
+        }
 
         #endregion
 
@@ -160,7 +181,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// The read receipt for a message the reader displayed, and chose to confirm:
         /// multipart/report; report-type=disposition-notification, with a text for
-        /// people and the message/disposition-notification for programs.
+        /// people and the message/disposition-notification for programs - to every
+        /// address of the message's Disposition-Notification-To.
         /// </summary>
         /// <param name="Message">The message read.</param>
         /// <param name="From">The reader: the address the message came to.</param>
@@ -174,7 +196,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                                DateTimeOffset  Displayed)
         {
 
-            var to       = RequestedBy(Message) ?? throw new ArgumentException("The message asks for no read receipt.");
+            // RFC 8098 §3: "The MDN MUST be addressed (in both the message header field and the
+            // transport envelope) to the address(es) from the Disposition-Notification-To header
+            // field" - to every one of them, now that the reader confirmed.
+            var to       = Requesters(Message.Headers.Get("Disposition-Notification-To")).
+                               Where(mailbox => MimeEncoding.IsAddress(mailbox.Address)).
+                               ToList();
+
+            if (to.Count == 0)
+                throw new ArgumentException("The message asks for no read receipt.");
+
             var domain   = From.Address[(From.Address.LastIndexOf('@') + 1)..];
             var subject  = Message.Subject.Length > 0 ? Message.Subject : "(kein Betreff)";
             var when     = Displayed.ToString("dd.MM.yyyy, HH:mm", CultureInfo.InvariantCulture);
@@ -186,7 +217,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                MessageId  = MimeEncoding.NewMessageId(domain)
                            };
 
-            builder.To.Add(to);
+            foreach (var requester in to)
+                builder.To.Add(requester);
 
             if (Message.MessageId is { } original)
             {
