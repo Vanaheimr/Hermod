@@ -544,6 +544,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test(Description = "RFC 2046 §5.1.1: transport-padding := *LWSP-char - \"receivers MUST be able to handle padding added by message transports\"; \"If a boundary delimiter line appears to end with white space, the white space must be presumed to have been added by a gateway, and must be deleted\" - in the old model's EMail.Parse")]
+        public void Delimiter_lines_with_transport_padding_are_read_by_the_old_model()
+        {
+
+            EMail? email = null;
+
+            Assert.That(() => email = EMail.Parse([
+                                          "From: someone@example.org",
+                                          "MIME-Version: 1.0",
+                                          "Content-Type: multipart/mixed; boundary=\"xyz\"",
+                                          "",
+                                          "--xyz  ",
+                                          "Content-Type: text/plain",
+                                          "",
+                                          "one",
+                                          "--xyz\t",
+                                          "Content-Type: text/plain",
+                                          "",
+                                          "two",
+                                          "--xyz-- ",
+                                          ""
+                                      ]),
+                        Throws.Nothing);
+
+            Assert.That(email!.Body.NestedBodyparts.Select(part => String.Join("\r\n", part.MailBody)), Is.EqualTo(new[] { "one", "two" }));
+
+        }
+
+        [Test(Description = "Hostile input: a multipart without a single delimiter line is read by the old model's EMail.Parse - which MdnGeneratingMailStorage runs on every message it stores - as a body without parts, not with an exception")]
+        public void A_multipart_without_delimiters_is_read_by_the_old_model()
+        {
+
+            EMail? email = null;
+
+            Assert.That(() => email = EMail.Parse([
+                                          "From: someone@example.org",
+                                          "Content-Type: multipart/mixed; boundary=xyz",
+                                          "",
+                                          "No delimiter anywhere."
+                                      ]),
+                        Throws.Nothing);
+
+            Assert.That(email!.Body.NestedBodyparts, Is.Empty);
+            Assert.That(email.Body.MailBody,         Is.EqualTo(new[] { "No delimiter anywhere." }));
+
+        }
+
         [Test]
         public void A_signed_message_shows_its_content_and_lists_no_signature()
         {

@@ -180,8 +180,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 foreach (var line in MailBody)
                 {
 
-                    if (line == mimeBoundaryCheck ||
-                        line == mimeBoundaryCheckEnd)
+                    // RFC 2046 §5.1.1: transport-padding := *LWSP-char - "receivers MUST be
+                    // able to handle padding added by message transports"; "If a boundary
+                    // delimiter line appears to end with white space, the white space must be
+                    // presumed to have been added by a gateway, and must be deleted."
+                    var delimiter = line.TrimEnd(' ', '\t');
+
+                    if (delimiter == mimeBoundaryCheck ||
+                        delimiter == mimeBoundaryCheckEnd)
                     {
                         listOfList.Add(list);
                         list = [];
@@ -192,8 +198,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 }
 
-                this.MailBody         = listOfList[0];
-                this.NestedBodyparts  = [.. listOfList.Skip(1).Select(list => new EMailBodypart(list))];
+                // Without a single delimiter line there are no parts: the body is all
+                // there is.
+                if (listOfList.Count > 0)
+                {
+                    this.MailBody         = listOfList[0];
+                    this.NestedBodyparts  = [.. listOfList.Skip(1).Select(list => new EMailBodypart(list))];
+                }
+
+                else
+                    this.NestedBodyparts  = [];
 
             }
 
