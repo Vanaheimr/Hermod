@@ -170,7 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     xml = Content.ToArray();
                 }
 
-                var text = Encoding.UTF8.GetString(xml);
+                var text = Decode(xml);
 
                 return text.Contains("<feedback", StringComparison.Ordinal) ? text : null;
 
@@ -204,6 +204,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         }
 
+        /// <summary>
+        /// The text of an XML document, in the encoding its octets are in. XML 1.0 §4.3.3:
+        /// "All XML processors MUST be able to read entities in both the UTF-8 and UTF-16
+        /// encodings", and "Entities encoded in UTF-16 MUST and entities encoded in UTF-8
+        /// MAY begin with the Byte Order Mark" - the XmlReader detects the encoding from the
+        /// Byte Order Mark and the encoding declaration; without either it is UTF-8. The Byte
+        /// Order Mark is no part of the text.
+        /// </summary>
+        private static String Decode(Byte[] Xml)
+        {
+
+            var encoding = Encoding.UTF8;
+
+            try
+            {
+
+                using var reader = new XmlTextReader(new MemoryStream(Xml)) {
+                                       DtdProcessing  = DtdProcessing.Prohibit,
+                                       XmlResolver    = null
+                                   };
+
+                // The first node is the XML declaration, when there is one.
+                reader.Read();
+                encoding = reader.Encoding ?? Encoding.UTF8;
+
+            }
+            catch (XmlException)
+            {
+                // Not even the start of a document: Parse refuses it.
+            }
+
+            using var text = new StreamReader(new MemoryStream(Xml), encoding, detectEncodingFromByteOrderMarks: true);
+
+            return text.ReadToEnd();
+
+        }
+
         #endregion
 
         #region Parse(Xml)
@@ -213,6 +250,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public static DmarcReceivedReport? Parse(String Xml)
         {
+
+            // A Byte Order Mark left in the text by a caller who decoded the octets himself is
+            // no part of the document (XML 1.0 §4.3.3).
+            if (Xml.StartsWith('﻿'))
+                Xml = Xml[1..];
 
             try
             {

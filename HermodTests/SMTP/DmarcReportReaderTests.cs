@@ -174,6 +174,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
+        #region I-4: the encoding of the XML
+
+        private static Byte[] Gzipped(Byte[] Content)
+        {
+            using var output = new MemoryStream();
+            using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true))
+                gzip.Write(Content);
+            return output.ToArray();
+        }
+
+        public static IEnumerable<TestCaseData> Encodings()
+        {
+
+            Byte[] Bom(Encoding Encoding, String Text) => [ .. Encoding.GetPreamble(), .. Encoding.GetBytes(Text) ];
+
+            var utf16 = Report.Replace("UTF-8", "UTF-16").Replace("google.com", "Müller GmbH");
+
+            yield return new TestCaseData(Bom(new UTF8Encoding(true), Report),                                    "google.com"). SetName("UTF-8 with a Byte Order Mark is read");
+            yield return new TestCaseData(Gzipped(Bom(new UTF8Encoding(true), Report)),                           "google.com"). SetName("UTF-8 with a Byte Order Mark is read, gzipped");
+            yield return new TestCaseData(Bom(Encoding.Unicode, utf16),                                           "Müller GmbH").SetName("UTF-16 little-endian is read");
+            yield return new TestCaseData(Bom(Encoding.BigEndianUnicode, utf16),                                  "Müller GmbH").SetName("UTF-16 big-endian is read");
+            yield return new TestCaseData(Encoding.Latin1.GetBytes(Report.Replace("UTF-8", "ISO-8859-1").Replace("google.com", "Müller GmbH")),
+                                                                                                                 "Müller GmbH").SetName("ISO-8859-1 as the declaration says is read");
+
+        }
+
+        [TestCaseSource(nameof(Encodings))]
+        [Description("I-4 - XML 1.0 §4.3.3: \"All XML processors MUST be able to read entities in both the UTF-8 and UTF-16 encodings\"; \"Entities encoded in UTF-16 MUST and entities encoded in UTF-8 MAY begin with the Byte Order Mark\" - RFC 7489 §7.2.1.1: the report \"MUST be an XML file\"")]
+        public void A_report_in_the_encoding_its_octets_are_in_is_read(Byte[] Attachment, String Organization)
+        {
+
+            var report = DmarcReportReader.Unpack(Attachment) is { } xml ? DmarcReportReader.Parse(xml) : null;
+
+            Assert.Multiple(() => {
+                Assert.That(report?.Domain,            Is.EqualTo("example.org"));
+                Assert.That(report?.OrganizationName,  Is.EqualTo(Organization));
+            });
+
+        }
+
+        [Test(Description = "I-4 - XML 1.0 §4.3.3: the Byte Order Mark is no part of the document - XML text that still starts with one is read")]
+        public void XML_text_starting_with_a_Byte_Order_Mark_is_read()
+        {
+
+            Assert.That(DmarcReportReader.Parse("﻿" + Report)?.Domain, Is.EqualTo("example.org"));
+
+        }
+
+        #endregion
+
         #region I-2: how deep a report is nested
 
         // A report whose domain is nested the given number of levels deep.
