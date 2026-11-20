@@ -102,7 +102,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(text, Does.Contain("message/disposition-notification"));
             Assert.That(text, Does.Contain("Final-Recipient: rfc822; bob@example.org"));
             Assert.That(text, Does.Contain("Original-Message-ID: <orig-123@example.com>"));
-            Assert.That(text, Does.Contain("Disposition: automatic-action/MDN-sent-automatically; displayed"));
+            Assert.That(text, Does.Contain("Disposition: manual-action/MDN-sent-manually; displayed"), "RFC 8098 §3.2.6.1: the default for MUAs");
+
+        }
+
+
+        [Test(Description = "RFC 8098 §3.2.6.1: manual-action - \"in order to preserve the user's privacy, this MUST be the default for MUAs\"; MDN-sent-manually - \"this MUST be the default for MUAs\"")]
+        public void CreateReadReceipt_defaults_to_manual_action_and_MDN_sent_manually()
+        {
+
+            var text = String.Join("\r\n", Incoming(RequestReceipt: true).CreateReadReceipt(Bob)!.ToText());
+
+            Assert.Multiple(() => {
+                Assert.That(text, Does.Contain("Disposition: manual-action/MDN-sent-manually; displayed"));
+                Assert.That(text, Does.Not.Contain("automatic"));
+            });
 
         }
 

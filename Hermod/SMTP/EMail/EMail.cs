@@ -582,7 +582,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// then sends the result like any other e-mail.
         /// </summary>
         /// <param name="ReportingAgent">The recipient generating the receipt (becomes the MDN's From).</param>
-        /// <param name="Disposition">What happened to the message; defaults to displayed/automatic.</param>
+        /// <param name="Disposition">What happened to the message; defaults to manual-action/MDN-sent-manually; displayed.</param>
         /// <param name="ReportingUAProduct">The product name for the Reporting-UA field.</param>
         /// <param name="IncludeOriginalHeaders">Whether to append the original message headers.</param>
         public EMail? CreateReadReceipt(EMailAddress         ReportingAgent,
@@ -606,7 +606,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 return null;
             }
 
-            var disposition     = Disposition ?? MessageDisposition.DisplayedAutomatically;
+            // RFC 8098 §3.2.6.1: manual-action - "Unless prescribed otherwise in a particular mail
+            // environment, in order to preserve the user's privacy, this MUST be the default for
+            // MUAs", and MDN-sent-manually alike. A delivery agent says otherwise, explicitly.
+            var disposition     = Disposition ?? MessageDisposition.DisplayedManually;
             var reporter        = ReportingAgent.Address.ToString();
             var reporterDomain  = reporter.Contains('@') ? reporter[(reporter.IndexOf('@') + 1)..] : "localhost";
             var product         = ReportingUAProduct.IsNotNullOrEmpty() ? ReportingUAProduct! : "Hermod";
