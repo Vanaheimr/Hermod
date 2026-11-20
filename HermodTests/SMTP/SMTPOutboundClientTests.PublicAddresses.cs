@@ -45,11 +45,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         /// <summary>
         /// A DNS client with the MX records a test gives it, by preference; no TXT, so no MTA-STS.
+        /// The hosts in <see cref="Failing"/> cannot be looked up now: their address queries are
+        /// answered with SERVFAIL.
         /// </summary>
         private sealed class MxDns(params (String Host, UInt16 Preference)[] Mx) : IDNSClient
         {
 
             private static readonly DNSServerConfig origin = new (IPv4Address.Localhost, IPPort.Parse(53));
+
+            public IReadOnlyCollection<String> Failing { get; init; } = [];
 
             private Task<DNSInfo> Answer(String Name, IEnumerable<DNSResourceRecordTypes> Types)
             {
@@ -58,7 +62,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                                    ? [ .. Mx.Select(mx => new MX(DomainName.ParseLenient(Name), DNSQueryClasses.IN, TimeSpan.FromHours(1), mx.Preference, DomainName.ParseLenient(mx.Host))) ]
                                                    : [];
 
-                return Task.FromResult(new DNSInfo(origin, 0, true, false, true, false, DNSResponseCodes.NoError,
+                var code = !Types.Contains(DNSResourceRecordTypes.MX) && Failing.Contains(Name.TrimEnd('.'))
+                               ? DNSResponseCodes.ServerFailure
+                               : DNSResponseCodes.NoError;
+
+                return Task.FromResult(new DNSInfo(origin, 0, true, false, true, false, code,
                                                    answers, [], [], true, false, TimeSpan.FromSeconds(1), TimeSpan.Zero));
 
             }
@@ -231,7 +239,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             var logger = new LinesLogger();
-            var client = PublicOnlyClient(new MxDns(("127.0.0.1", 10), ("unreachable.invalid", 20)), logger);
+            // Its address lookup fails now: RFC 5321 §5.1 has a temporary error queued. (A name
+            // whose name servers say it has no address is no MX host to wait for.)
+            var client = PublicOnlyClient(new MxDns(("127.0.0.1", 10), ("unreachable.example", 20)) { Failing = [ "unreachable.example" ] }, logger);
 
             var result = await client.SendAsync("next.example", "sender@client.example", [ "you@next.example" ], "Subject: mixed\r\n\r\nhello\r\n");
 
