@@ -322,6 +322,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if (parts.Count < 2)
                 return PgpSignatureVerification.NoSignature;
 
+            // "The multipart/signed body MUST consist of exactly two parts" (RFC 3156 §5, RFC 1847
+            // §2.1): a third one is covered by no signature, and must not ride along as signed.
+            if (parts.Count > 2)
+                return new PgpSignatureVerification(PgpVerificationStatus.Invalid);
+
             var signedPart     = parts[0];
             var signaturePart  = parts[1];
 

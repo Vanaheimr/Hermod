@@ -39,6 +39,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     public partial class EMailBuilderTests
     {
 
+        #region (helpers) Signed(...), SignedPart(...)
+
+        private EMail Signed(EMailBodypart? Attachment = null, HashAlgorithmTag Hash = HashAlgorithmTag.Sha256)
+        {
+
+            var builder = new TextEMailBuilder {
+                              From           = new EMailAddress("Alice", SimpleEMailAddress.Parse("alice@example.com"), secretKeyRing, publicKeyRing),
+                              Subject        = "Signiert",
+                              Text           = $"Notes attached. {Marker}",
+                              SecurityLevel  = EMailSecurity.sign,
+                              HashAlgorithm  = Hash,
+                              Passphrase     = Passphrase
+                          };
+
+            builder.To.Add(Address("bob@example.org"));
+
+            if (Attachment is not null)
+                builder.AddAttachment<TextEMailBuilder>(Attachment);
+
+            return builder;
+
+        }
+
+        /// <summary>
+        /// The first part of the multipart/signed, as it was sent.
+        /// </summary>
+        private static String[] SignedPart(String Text)
+            => EMail.Parse(Text.Split("\r\n")).Body.NestedBodyparts.First().RawContent!.ToArray();
+
+        #endregion
+
+
+        #region Verifying: two parts, and a signature that is none (RFC 3156 §5)
+
+        [Test(Description = "RFC 3156 §5: \"The multipart/signed body MUST consist of exactly two parts\"; RFC 1847 §2.1: \"The multipart/signed content type contains exactly two body parts\"")]
+        public void A_multipart_signed_with_a_third_part_is_not_valid()
+        {
+
+            var text     = Text(Signed());
+            var boundary = EMail.Parse(text.Split("\r\n")).Body.ContentType!.MIMEBoundary;
+            var tampered = text.Replace($"--{boundary}--",
+                                        $"--{boundary}\r\nContent-Type: text/plain\r\n\r\nP.S.: No, pay the invoice to account 666 instead.\r\n--{boundary}--");
+
+            var parsed   = EMail.Parse(tampered.Split("\r\n"));
+
+            Assert.Multiple(() => {
+                Assert.That(EMail.Parse(text.Split("\r\n")).VerifyPgpSignature(publicKeyRing).Status, Is.EqualTo(PgpVerificationStatus.Valid), "the two parts as signed");
+                Assert.That(parsed.Body.NestedBodyparts.Count(),                                       Is.EqualTo(3));
+                Assert.That(parsed.VerifyPgpSignature(publicKeyRing).IsValid,                          Is.False, "with a third part");
+            });
+
+        }
+
+        [TestCase("-----BEGIN PGP SIGNATURE-----\r\n\r\nAAAA\r\n-----END PGP SIGNATURE-----",  Description = "armor around a broken packet")]
+        [TestCase("-----BEGIN PGP SIGNATURE-----\r\n\r\n%%%%\r\n-----END PGP SIGNATURE-----",  Description = "armor around no base64")]
+        [TestCase("-----BEGIN PGP SIGNATURE-----\r\n\r\n-----END PGP SIGNATURE-----",          Description = "armor around nothing")]
+        [TestCase("not a signature at all",                                                    Description = "no armor")]
+        [Test(Description = "RFC 3156 §5: \"The second body MUST contain the OpenPGP digital signature\" - a part that holds none is a failed verification, not an exception")]
+        [CancelAfter(10_000)]
+        public void A_signature_part_without_a_signature_is_not_valid(String Signature)
+        {
+
+            var text     = Text(Signed());
+            var parsed   = EMail.Parse(text.Split("\r\n"));
+            var boundary = parsed.Body.ContentType!.MIMEBoundary;
+            var start    = text.IndexOf("-----BEGIN PGP SIGNATURE-----", StringComparison.Ordinal);
+            var end      = text.IndexOf($"\r\n--{boundary}--", StringComparison.Ordinal);
+            var broken   = EMail.Parse((text[..start] + Signature + text[end..]).Split("\r\n"));
+
+            PgpSignatureVerification? result = null;
+
+            Assert.That(() => result = broken.VerifyPgpSignature(publicKeyRing), Throws.Nothing);
+            Assert.That(result?.IsValid, Is.False);
+
+        }
+
+        #endregion
 
         #region Decrypting: integrity protection (RFC 9580 §5.7, §5.13.1)
 

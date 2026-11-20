@@ -334,38 +334,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                        PgpPublicKeyRingBundle  PublicKeys)
         {
 
-            using var decoder = PgpUtilities.GetDecoderStream(ArmoredSignature);
+            PgpSignature? signature = null;
 
-            var factory   = new PgpObjectFactory(decoder);
-            var pgpObject = factory.NextPgpObject();
-
-            // Signatures may be wrapped in a compressed-data packet.
-            if (pgpObject is PgpCompressedData compressed)
+            // The signature comes from whoever sent the message: armor around no base64 or around a
+            // broken packet is a signature that does not verify - a result, not an exception for the
+            // application that checks its incoming mail (RFC 3156 §5: "The second body MUST contain
+            // the OpenPGP digital signature").
+            try
             {
-                factory   = new PgpObjectFactory(compressed.GetDataStream());
-                pgpObject = factory.NextPgpObject();
+
+                using var decoder = PgpUtilities.GetDecoderStream(ArmoredSignature);
+
+                var factory   = new PgpObjectFactory(decoder);
+                var pgpObject = factory.NextPgpObject();
+
+                // Signatures may be wrapped in a compressed-data packet.
+                if (pgpObject is PgpCompressedData compressed)
+                {
+                    factory   = new PgpObjectFactory(compressed.GetDataStream());
+                    pgpObject = factory.NextPgpObject();
+                }
+
+                if (pgpObject is not PgpSignatureList signatureList || signatureList.Count == 0)
+                    return PgpSignatureVerification.NoSignature;
+
+                signature     = signatureList[0];
+                var publicKey = PublicKeys.GetPublicKey(signature.KeyId);
+
+                if (publicKey is null)
+                    return PgpSignatureVerification.NoMatchingKey(signature.KeyId);
+
+                signature.InitVerify(publicKey);
+                signature.Update(SignedData);
+
+                return new PgpSignatureVerification(
+                           signature.Verify()
+                               ? PgpVerificationStatus.Valid
+                               : PgpVerificationStatus.Invalid,
+                           signature.KeyId,
+                           signature.HashAlgorithm,
+                           signature.CreationTime
+                       );
+
             }
-
-            if (pgpObject is not PgpSignatureList signatureList || signatureList.Count == 0)
-                return PgpSignatureVerification.NoSignature;
-
-            var signature = signatureList[0];
-            var publicKey = PublicKeys.GetPublicKey(signature.KeyId);
-
-            if (publicKey is null)
-                return PgpSignatureVerification.NoMatchingKey(signature.KeyId);
-
-            signature.InitVerify(publicKey);
-            signature.Update(SignedData);
-
-            return new PgpSignatureVerification(
-                       signature.Verify()
-                           ? PgpVerificationStatus.Valid
-                           : PgpVerificationStatus.Invalid,
-                       signature.KeyId,
-                       signature.HashAlgorithm,
-                       signature.CreationTime
-                   );
+            catch (Exception e) when (e is IOException or PgpException)
+            {
+                return new PgpSignatureVerification(PgpVerificationStatus.Invalid,
+                                                    signature?.KeyId,
+                                                    signature?.HashAlgorithm);
+            }
 
         }
 
