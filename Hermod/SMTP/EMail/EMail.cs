@@ -84,6 +84,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         // do not replace this list by a dictionary!
         private readonly ConcurrentDictionary<String, String> headers = [];
 
+        // The header section of a parsed e-mail as it was written - every field, repeated ones
+        // too, folded as they were - which the dictionary above does not keep; null when built.
+        private readonly String[]? headerLines;
+
         /// <summary>
         /// The E-Mail header as enumeration of strings.
         /// </summary>
@@ -197,13 +201,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="MailText">An enumeration of strings.</param>
         private EMail(IEnumerable<String> MailText)
 
-            : this(MailText.TakeWhile(line => line.IsNotNullOrEmpty()).
-                            AggregateIndentedLines().
-                            ToKeyValuePairs(':'))
+            : this(MailText.TakeWhile(line => line.IsNotNullOrEmpty()).ToArray(),
+                   MailText)
+
+        { }
+
+        /// <param name="HeaderLines">The lines of the header section, as they were written.</param>
+        /// <param name="MailText">An enumeration of strings.</param>
+        private EMail(String[]             HeaderLines,
+                      IEnumerable<String>  MailText)
+
+            : this(Unfold(HeaderLines))
 
         {
 
-            Body  = new EMailBodypart(MailText);
+            this.headerLines  = HeaderLines;
+            Body              = new EMailBodypart(MailText);
+
+        }
+
+        #endregion
+
+        #region (private static) Unfold(HeaderLines)
+
+        /// <summary>
+        /// The header fields of the given lines of a header section, each unfolded as RFC 5322
+        /// §2.2.3 has it: "Unfolding is accomplished by simply removing any CRLF that is
+        /// immediately followed by WSP" - the WSP stays, or "Read" and " receipt" become
+        /// "Readreceipt". A field may be folded onto any number of lines, so each line is
+        /// appended once: the time grows with the length of the field, not with its square.
+        /// </summary>
+        /// <param name="HeaderLines">The lines of a header section, without their CRLF.</param>
+        private static IEnumerable<KeyValuePair<String, String>> Unfold(IEnumerable<String> HeaderLines)
+        {
+
+            var field = new System.Text.StringBuilder();
+
+            foreach (var line in HeaderLines)
+            {
+
+                if (field.Length > 0 && line.Length > 0 && (line[0] == ' ' || line[0] == '\t'))
+                    field.Append(line);
+
+                else
+                {
+
+                    if (NameAndValue(field) is { } previous)
+                        yield return previous;
+
+                    field.Clear().Append(line);
+
+                }
+
+            }
+
+            if (NameAndValue(field) is { } last)
+                yield return last;
+
+        }
+
+        /// <summary>
+        /// The name and the value of an unfolded field - "name: value" - or null when it has no colon.
+        /// </summary>
+        private static KeyValuePair<String, String>? NameAndValue(System.Text.StringBuilder Field)
+        {
+
+            var text   = Field.ToString();
+            var colon  = text.IndexOf(':');
+
+            return colon >= 0
+                       ? new KeyValuePair<String, String>(text[..colon].Trim(), text[(colon + 1)..].Trim())
+                       : null;
 
         }
 
@@ -516,25 +584,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         /// <summary>
         /// Create a Message Disposition Notification (read receipt, RFC 8098) for this e-mail, addressed
-        /// to its "Disposition-Notification-To" header. Returns null if no read receipt was requested.
+        /// to its "Disposition-Notification-To" header. Returns null if no read receipt was requested,
+        /// and for an e-mail that is itself an MDN.
         /// A mail client calls this when the user displays (or otherwise disposes of) the message and
         /// then sends the result like any other e-mail.
         /// </summary>
         /// <param name="ReportingAgent">The recipient generating the receipt (becomes the MDN's From).</param>
-        /// <param name="Disposition">What happened to the message; defaults to displayed/automatic.</param>
+        /// <param name="Disposition">What happened to the message; defaults to manual-action/MDN-sent-manually; displayed.</param>
         /// <param name="ReportingUAProduct">The product name for the Reporting-UA field.</param>
         /// <param name="IncludeOriginalHeaders">Whether to append the original message headers.</param>
+        /// <param name="OriginalRecipient">The original recipient as known some other way than from the message's Original-Recipient header field - address-type ";" address, e.g. the xtext-decoded ORCPT of RFC 3461: "rfc822;alias@example.org".</param>
         public EMail? CreateReadReceipt(EMailAddress         ReportingAgent,
                                         MessageDisposition?  Disposition             = null,
                                         String?              ReportingUAProduct      = null,
-                                        Boolean              IncludeOriginalHeaders  = true)
+                                        Boolean              IncludeOriginalHeaders  = true,
+                                        String?              OriginalRecipient       = null)
         {
 
             var notifyTo = DispositionNotificationTo;
             if (notifyTo is null)
                 return null;
 
-            var disposition     = Disposition ?? MessageDisposition.DisplayedAutomatically;
+            // RFC 8098 §2.1: "An MDN MUST NOT itself have a Disposition-Notification-To header
+            // field. An MDN MUST NOT be generated in response to an MDN." - the first binds its
+            // sender, the second binds us: an MDN that asks for one anyway is not answered, or
+            // two agents that answer automatically send MDNs to each other for ever.
+            var contentType = MimeContentType.Parse(GetEMailHeader("Content-Type"), MimeContentType.TextPlain);
+            if (contentType.Is("multipart/report") &&
+                String.Equals(contentType.Parameters.GetValueOrDefault("report-type")?.Trim(), "disposition-notification", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            // RFC 8098 §3.2.6.1: manual-action - "Unless prescribed otherwise in a particular mail
+            // environment, in order to preserve the user's privacy, this MUST be the default for
+            // MUAs", and MDN-sent-manually alike. A delivery agent says otherwise, explicitly.
+            var disposition     = Disposition ?? MessageDisposition.DisplayedManually;
             var reporter        = ReportingAgent.Address.ToString();
             var reporterDomain  = reporter.Contains('@') ? reporter[(reporter.IndexOf('@') + 1)..] : "localhost";
             var product         = ReportingUAProduct.IsNotNullOrEmpty() ? ReportingUAProduct! : "Hermod";
@@ -565,9 +650,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 "--" + boundary,
                 "Content-Type: message/disposition-notification",
                 "",
-                $"Reporting-UA: {reporterDomain}; {product}",
-                $"Final-Recipient: rfc822; {reporter}"
+                $"Reporting-UA: {reporterDomain}; {product}"
             };
+
+            // RFC 8098 §3.2.3: "If there is an Original-Recipient header field in the message, or
+            // if information about the original recipient is reliably available some other way,
+            // then the Original-Recipient field MUST be included. Otherwise, the
+            // Original-Recipient field MUST NOT be included." Of several such header fields the
+            // first - the one the delivering server wrote at the top (§2.3).
+            var originalRecipient = (OriginalRecipient ?? GetEMailHeader("Original-Recipient")).
+                                        Replace("\r", " ").Replace("\n", " ").Trim();
+
+            if (originalRecipient.Length > 0)
+                lines.Add($"Original-Recipient: {originalRecipient}");
+
+            lines.Add($"Final-Recipient: rfc822; {reporter}");
 
             var originalMessageId = GetEMailHeader("Message-ID");
             if (originalMessageId.IsNotNullOrEmpty())
@@ -576,13 +673,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             lines.Add($"Disposition: {disposition}");
             lines.Add("");
 
-            // Part 3 — original headers (optional)
+            // Part 3 — original headers (optional). RFC 6522 §4: "The text/rfc822-headers body part
+            // SHOULD contain all the mail header fields from the message that caused the report" -
+            // the header section as it was written, every Received field and each folded field
+            // with its white space; the parsed fields keep only the first of a name. A built
+            // e-mail has no such section, and returns what it writes.
             if (IncludeOriginalHeaders)
             {
                 lines.Add("--" + boundary);
                 lines.Add("Content-Type: text/rfc822-headers");
                 lines.Add("");
-                lines.AddRange(ToText().TakeWhile(line => line.IsNotNullOrEmpty()));
+                lines.AddRange(headerLines ?? ToText().TakeWhile(line => line.IsNotNullOrEmpty()));
                 lines.Add("");
             }
 

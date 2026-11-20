@@ -19,6 +19,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -58,7 +59,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 var MailHeader  = MailText.TakeWhile(line => line.IsNeitherNullNorEmpty()).ToList();
 
                 var Key         = "";
-                var Value       = "";
+                // A field may be folded onto any number of lines (RFC 5322 §2.2.3): appended to a
+                // builder, each line is copied once - "Value += ..." copied the whole field again
+                // for every line, a time that grows with the square of their number.
+                var Value       = new StringBuilder();
                 var space       = ' ';
                 var tab         = '\t';
                 var splitter    = new Char[1] { ':' };
@@ -70,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     if (mailHeaderLine.StartsWith(space) ||
                         mailHeaderLine.StartsWith(tab))
                     {
-                        Value += " " + mailHeaderLine.Trim();
+                        Value.Append(' ').Append(mailHeaderLine.Trim());
                     }
 
                     else
@@ -78,21 +82,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                         if (Key != "")
                         {
-                            MailHeaders.TryAdd(Key, Value);
+                            MailHeaders.TryAdd(Key, Value.ToString());
                             Key   = "";
-                            Value = "";
+                            Value.Clear();
                         }
 
                         Splitted = mailHeaderLine.Split(splitter, 2);
                         Key      = Splitted[0].Trim();
-                        Value    = Splitted[1].Trim();
+                        Value.Append(Splitted[1].Trim());
 
                     }
 
                 }
 
                 if (Key != "")
-                    MailHeaders.TryAdd(Key, Value);
+                    MailHeaders.TryAdd(Key, Value.ToString());
 
                 MailBody = [.. MailText.SkipWhile(line => line.IsNeitherNullNorEmpty()).Skip(1)];
 

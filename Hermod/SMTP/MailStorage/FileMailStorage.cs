@@ -73,7 +73,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             metadataBytes.CopyTo(fullMessage, 0);
             messageBytes. CopyTo(fullMessage, metadataBytes.Length);
 
-            await File.WriteAllBytesAsync(filePath, fullMessage, ct);
+            // One message can be stored more than once in the same millisecond - a copy for each
+            // ORCPT, with its own Original-Recipient field (RFC 8098 §2.3) - and a copy must not
+            // overwrite the one before: a file that is there already gets a number.
+            for (var number = 1; ; number++)
+            {
+                try
+                {
+                    await using var file = new FileStream(filePath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                    await file.WriteAsync(fullMessage, ct);
+                    break;
+                }
+                catch (IOException) when (File.Exists(filePath) && number < 1000)
+                {
+                    filePath = Path.Combine(basePath, $"{timestamp}_{SanitizeFileName(messageId)}_{number}.eml");
+                }
+            }
 
             logger.Log(LogLevel.Info, $"Stored message: {filePath}");
             return filePath;
