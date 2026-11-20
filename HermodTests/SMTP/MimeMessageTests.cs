@@ -20,6 +20,7 @@
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
 #endregion
 
@@ -134,6 +135,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(message.ReplyTo.Single(), Is.EqualTo(new MailboxAddress(null, "reply@example.org")));
             });
 
+        }
+
+        [TestCase("Pete(A nice \\) chap) <pete(his account)@silly.test(his host)>",  "Pete",        "pete@silly.test",        TestName = "RFC 5322 A.5: comments inside the angle-addr")]
+        [TestCase("John Doe <jdoe@machine(comment).  example>",                     "John Doe",    "jdoe@machine.example",   TestName = "RFC 5322 A.6.3: a comment and white space in the domain")]
+        [TestCase("jdoe@test  . example",                                           null,          "jdoe@test.example",      TestName = "RFC 5322 A.6.1: white space around the dot of a bare addr-spec")]
+        [TestCase("Alice <alice@example.org> (sent via <mallory@evil.example>)",    "Alice",       "alice@example.org",      TestName = "An angle-addr in a comment after the address is no mailbox")]
+        [TestCase("mallory@evil.example (<ceo@company.example>)",                   null,          "mallory@evil.example",   TestName = "An angle-addr in a comment after a bare address is no mailbox and no name")]
+        [TestCase("Mary Smith <@node.test:mary@example.net>",                       "Mary Smith",  "mary@example.net",       TestName = "RFC 5322 A.6.1: a source route is no part of the address (guard)")]
+        [Test(Description = "RFC 5322 §3.4: angle-addr = [CFWS] \"<\" addr-spec \">\" [CFWS]; §4.4: obs-local-part = word *(\".\" word), obs-domain = atom *(\".\" atom), with CFWS around them; §4: obsolete forms \"MUST be accepted and parsed by a conformant receiver\"")]
+        public void Comments_and_obsolete_white_space_are_no_part_of_the_address(String Header, String? Name, String Address)
+        {
+            Assert.That(Parse("To: " + Header + "\n\nx\n").To, Is.EqualTo(new[] { new MailboxAddress(Name, Address) }));
+        }
+
+        [Test(Description = "RFC 5322 Appendix A.5: a group with comments in its name, in an addr-spec and after its semicolon")]
+        public void A_group_with_comments_is_read_as_its_three_mailboxes()
+        {
+
+            var message = Parse("To: A Group(Some people)\n" +
+                                "     :Chris Jones <c@(Chris's host.)public.example>,\n" +
+                                "         joe@example.org,\n" +
+                                "  John <jdoe@one.test> (my dear friend); (the end of the group)\n" +
+                                "\n" +
+                                "x\n");
+
+            Assert.That(message.To, Is.EqualTo(new[] {
+                                        new MailboxAddress("Chris Jones",  "c@public.example"),
+                                        new MailboxAddress(null,           "joe@example.org"),
+                                        new MailboxAddress("John",         "jdoe@one.test")
+                                    }));
+
+        }
+
+        [Test(Description = "RFC 5322 §3.4: a comment after the addr-spec names no mailbox - the From domain Hermod signs for (DKIM), shows (EMail, MimeMessage) and sends a read receipt to is the one RFC 5322 and its own DMARC check (MailAddressParser) read")]
+        public void The_From_domain_is_the_one_RFC_5322_and_the_DMARC_check_read()
+        {
+
+            const String from = "mallory@evil.example (<ceo@company.example>)";
+
+            Assert.Multiple(() => {
+
+                Assert.That(MailAddressParser.ParseAddressList(from),                                                          Is.EqualTo(new[] { "mallory@evil.example" }), "the address parser the DMARC check uses");
+                Assert.That(DkimSigning.FromDomain($"From: {from}\r\nTo: <a@example.net>\r\nSubject: Hi\r\n\r\nBody.\r\n"),  Is.EqualTo("evil.example"),                     "the domain whose DKIM key signs the message");
+                Assert.That(EMail.Parse([ $"From: {from}", "Subject: Hi", "", "x" ]).From.Address.ToString(),                 Is.EqualTo("mallory@evil.example"),             "EMail.From");
+                Assert.That(Parse($"From: {from}\n\nx\n").From.Single(),                                                       Is.EqualTo(new MailboxAddress(null, "mallory@evil.example")), "MimeMessage.From");
+                Assert.That(DispositionNotification.RequestedBy(Parse($"Disposition-Notification-To: {from}\n\nx\n"))?.Address, Is.EqualTo("mallory@evil.example"),             "where a read receipt goes");
+
+            });
+
+        }
+
+        [TestCase("John Doe <jdoe@machine(comment).  example>",  "jdoe@machine.example",  TestName = "MailAddressParser: RFC 5322 A.6.3")]
+        [TestCase("jdoe@test  . example",                        "jdoe@test.example",     TestName = "MailAddressParser: RFC 5322 A.6.1, white space around a dot")]
+        [TestCase("Mary Smith <@node.test:mary@example.net>",    "mary@example.net",      TestName = "MailAddressParser: RFC 5322 A.6.1, a source route")]
+        [Test(Description = "RFC 5322 §4.4: the obsolete addr-spec and route-addr, read by the address parser the DMARC check uses as MailboxAddress reads them; §4: \"MUST be accepted and parsed\"")]
+        public void The_DMARC_address_parser_reads_obsolete_addresses_as_MailboxAddress_does(String Header, String Address)
+        {
+            Assert.Multiple(() => {
+                Assert.That(MailAddressParser.ParseAddressList(Header),            Is.EqualTo(new[] { Address }));
+                Assert.That(MailboxAddress.ParseList(Header).Single().Address,     Is.EqualTo(Address));
+            });
         }
 
         #endregion
