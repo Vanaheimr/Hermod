@@ -623,6 +623,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test(Description = "RFC 5322 Appendix A.6.3 and §4.5.4: obs-id-left = local-part, obs-id-right = domain - with their CFWS: \"<1234   @   local(blah)  .machine .example>\" is 1234@local.machine.example; §4: \"MUST be accepted and parsed\"")]
+        public void An_obsolete_message_id_is_read_as_id_left_at_id_right()
+        {
+
+            var message = Parse("Message-ID  : <1234   @   local(blah)  .machine .example>\n" +
+                                "In-Reply-To: <a (one) @ x> \"a phrase\" <b@ y .example>\n" +
+                                "References: (a comment <not@an.id>) <c@x>\n" +
+                                "\n" +
+                                "x\n");
+
+            Assert.Multiple(() => {
+                Assert.That(message.MessageId,   Is.EqualTo("1234@local.machine.example"));
+                Assert.That(message.InReplyTo,   Is.EqualTo(new[] { "a@x", "b@y.example" }));
+                Assert.That(message.References,  Is.EqualTo(new[] { "c@x" }), "a msg-id in a comment is none");
+            });
+
+        }
+
+        [TestCase("<id@[192.0.2.1]>",                         "id@[192.0.2.1]",                 TestName = "RFC 5322 §3.6.4: id-right as a no-fold-literal (guard)")]
+        [TestCase("<abcd.1234@local.machine.test> (a comment)", "abcd.1234@local.machine.test", TestName = "RFC 5322 §3.6.4: msg-id with CFWS after it (guard)")]
+        [Test(Description = "RFC 5322 §3.6.4: msg-id = [CFWS] \"<\" id-left \"@\" id-right \">\" [CFWS]")]
+        public void A_message_id_is_read(String Header, String Expected)
+        {
+            Assert.That(Parse("Message-ID: " + Header + "\n\nx\n").MessageId, Is.EqualTo(Expected));
+        }
+
         [TestCase("Hermod developers <hermod-dev.lists.example.org>",  "Hermod developers",  "hermod-dev.lists.example.org")]
         [TestCase("\"Hermod, dev\" <hermod-dev.lists.example.org>",    "Hermod, dev",        "hermod-dev.lists.example.org")]
         [TestCase("<announce.example.org>",                             "",                   "announce.example.org")]

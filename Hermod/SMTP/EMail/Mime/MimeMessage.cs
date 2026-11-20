@@ -17,7 +17,7 @@
 
 #region Usings
 
-using System.Text.RegularExpressions;
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
 #endregion
 
@@ -268,8 +268,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// How many parts a message has at most.
         /// </summary>
         public const Int32 MaxParts  = 2000;
-
-        private static readonly Regex MessageIdPattern = new (@"<([^<>\s]+)>", RegexOptions.CultureInvariant);
 
         private sealed class ParseState
         {
@@ -752,11 +750,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region (private static) MessageIds(Value) / NullIfEmpty(Text)
 
+        /// <summary>
+        /// The msg-ids of a Message-ID, In-Reply-To or References value, without their
+        /// angle brackets, in their order. The phrases and comments between them are
+        /// none (§4.5.4, obs-references); inside the brackets the obsolete form
+        /// obs-id-left = local-part, obs-id-right = domain has CFWS around its words and
+        /// dots, which is no part of the id: Appendix A.6.3's
+        /// "&lt;1234   @   local(blah)  .machine .example&gt;" is
+        /// 1234@local.machine.example (RFC 5322 §4: "MUST be accepted and parsed").
+        /// </summary>
         private static IReadOnlyList<String> MessageIds(String? Value)
+        {
 
-            => Value is null
-                   ? []
-                   : [.. MessageIdPattern.Matches(Value).Select(match => match.Groups[1].Value)];
+            if (Value is null)
+                return [];
+
+            var ids     = new List<String>();
+            var inQuote = false;
+            var paren   = 0;
+            var start   = -1;
+
+            for (var i = 0; i < Value.Length; i++)
+            {
+
+                var c = Value[i];
+
+                if (inQuote)
+                {
+                    if (c == '\\') { i++; continue; }
+                    if (c == '"')  inQuote = false;
+                    continue;
+                }
+
+                if (paren > 0)
+                {
+                    if      (c == '\\') i++;
+                    else if (c == '(')  paren++;
+                    else if (c == ')')  paren--;
+                    continue;
+                }
+
+                switch (c)
+                {
+
+                    case '"': inQuote = true;  break;
+                    case '(': paren++;         break;
+                    case '<': start = i + 1;   break;
+
+                    case '>':
+                        if (start >= 0 && MailAddressParser.NormalizeAddrSpec(Value[start..i]) is { Length: > 0 } id && !id.Contains(' '))
+                            ids.Add(id);
+                        start = -1;
+                        break;
+
+                }
+
+            }
+
+            return ids;
+
+        }
 
         private static String? NullIfEmpty(String? Text)
             => String.IsNullOrEmpty(Text) ? null : Text;
