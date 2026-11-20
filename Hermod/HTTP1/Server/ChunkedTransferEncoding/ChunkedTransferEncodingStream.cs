@@ -729,8 +729,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     currentChunkRead += read;
                     totalRead        += read;
-                    currentOffset    += read;
-                    remainingCount   -= read;
+
+                    // Returned at once, as in ReadAsync, which says why.
+                    return totalRead;
 
                 }
                 else
@@ -808,11 +809,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     currentChunkRead += read;
                     totalRead += read;
 
-                    var bytes = currentDestination.ToArray();
-                    Array.Resize(ref bytes, read);
-                    //OnChunkReceived?.Invoke(bytes);
-
-                    currentDestination = currentDestination[read..];
+                    // What arrived is returned now rather than held while the
+                    // destination fills: a Stream returns once it has data. The loop
+                    // used to read on, and when the connection ended in the middle
+                    // of a chunk, the exception took the octets already in the
+                    // destination with it, since totalRead was never returned. A
+                    // body broken off inside one chunk then looked as if not one
+                    // octet of it had come, and DownloadAsync had nothing to resume
+                    // from. The copy of the remaining destination that stood here
+                    // went too: it fed a callback that has been commented out.
+                    return totalRead;
 
                 }
                 else

@@ -25,6 +25,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 using Microsoft.Extensions.Logging;
@@ -976,6 +977,333 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        CancellationToken
                    );
 
+            return await SendAnsweringAndFollowing(Request, Send, CancellationToken).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region DownloadAsync (Path, Destination, ...)
+
+        /// <summary>
+        /// GET a representation into the destination, and when its body breaks
+        /// off, ask for the rest with Range (RFC 9110, Section 14) instead of
+        /// starting over.
+        ///
+        /// The body goes to the destination as it arrives rather than into
+        /// HTTPBody: SendRequest keeps a body only once it is whole, and a body
+        /// thrown away when it breaks off is nothing to resume from.
+        ///
+        /// A resume needs a validator to guard it, a strong entity-tag or else a
+        /// Last-Modified date, and every resume carries it in If-Range (Section
+        /// 13.1.5). The server then decides whether the two parts are one
+        /// representation: a 206 that starts where the destination stops is
+        /// appended, and a 200, or a 206 that starts anywhere else, means the
+        /// representation changed and the destination starts over. A weak
+        /// entity-tag does not qualify: equivalent is not the same octets.
+        ///
+        /// Accept-Encoding is identity unless RequestBuilder says otherwise,
+        /// since ranges of a compressed representation would splice compressed
+        /// parts. With VerifyDigests the request asks for a Repr-Digest, and the
+        /// octets of every part are checked against it together, since no single
+        /// range's content digest says anything about the whole.
+        ///
+        /// Credentials and MaxRedirects apply as they do to SendRequest. Nothing
+        /// but the body of a 200 or 206 is written to the destination, so an error
+        /// page cannot pass for the representation.
+        /// </summary>
+        /// <param name="Path">The path of the representation.</param>
+        /// <param name="Destination">Where its octets go, from its current position on. It must seek for a restart.</param>
+        /// <param name="QueryString">An optional query string.</param>
+        /// <param name="RequestBuilder">An optional delegate to change each request, applied before Range and If-Range are set.</param>
+        /// <param name="MaxAttempts">How many requests in all, the first one included.</param>
+        /// <param name="RequestTimeout">An optional timeout for each request.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public async Task<HTTPDownloadResult> DownloadAsync(HTTPPath                      Path,
+                                                            Stream                        Destination,
+                                                            QueryString?                  QueryString         = null,
+                                                            Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                            Byte                          MaxAttempts         = 3,
+                                                            TimeSpan?                     RequestTimeout      = null,
+                                                            CancellationToken             CancellationToken   = default)
+        {
+
+            var startPosition   = Destination.CanSeek ? Destination.Position : 0L;
+
+            UInt64  written     = 0;
+            Byte    attempts    = 0,
+                    resumes     = 0,
+                    restarts    = 0;
+            String? validator   = null;
+            String? notWritten  = null;
+
+            HTTPResponse? representation = null;
+
+            // RFC 9530, Section 3: the digest of the whole representation, and the
+            // running hash of everything written to check it against at the end.
+            IncrementalHash?        hash          = null;
+            String?                 algorithm     = null;
+            Byte[]?                 expected      = null;
+            HTTPDigestVerification  verification  = HTTPDigestVerification.NotPresent;
+
+            HTTPDownloadResult Result(HTTPStatusCode Status, HTTPResponse? Response, String? Error = null)
+
+                => new (Status,
+                        Response,
+                        written,
+                        attempts,
+                        resumes,
+                        restarts,
+                        validator,
+                        verification,
+                        Error);
+
+            try
+            {
+
+                while (true)
+                {
+
+                    if (CancellationToken.IsCancellationRequested)
+                        return Result(HTTPStatusCode.ClientError, representation, "the download was cancelled");
+
+                    attempts++;
+                    notWritten = null;
+
+                    var resuming = written > 0 && validator is not null;
+
+                    if (resuming)
+                        resumes++;
+
+                    var request = CreateRequest(
+                                      HTTPMethod.GET,
+                                      Path,
+                                      QueryString,
+                                      RequestBuilder: builder => {
+
+                                          builder.SetHeaderField("Accept-Encoding", "identity");
+
+                                          // The digest of one range's content says
+                                          // nothing about the file the ranges add up
+                                          // to; the representation's digest does.
+                                          builder.RemoveHeaderField("Want-Content-Digest");
+
+                                          if (VerifyDigests)
+                                              builder.SetHeaderField("Want-Repr-Digest", HTTPDigest.Want);
+
+                                          RequestBuilder?.Invoke(builder);
+
+                                          if (resuming)
+                                          {
+                                              builder.SetHeaderField("Range",    HTTPContentRange.RequestFrom((Int64) written));
+                                              builder.SetHeaderField("If-Range", validator!);
+                                          }
+
+                                      },
+                                      CancellationToken: CancellationToken
+                                  ).AsImmutable;
+
+                    // Asked once each response head is in: whether its body goes to
+                    // the destination, which only that of a 200 or a 206 does.
+                    Func<ReadOnlyMemory<Byte>, CancellationToken, ValueTask>? Sink(HTTPResponse Head)
+                    {
+
+                        if (Head.HTTPStatusCode.Code is not (200 or 206))
+                            return null;
+
+                        // Where does this body start? A resume answered 200, or with
+                        // a range that does not begin where the destination stops,
+                        // means the octets there belong to a representation that is
+                        // gone.
+                        if (resuming &&
+                            (Head.HTTPStatusCode.Code == 200 ||
+                             ContentRangeOf(Head)?.Start != (Int64) written))
+                        {
+
+                            if (!Destination.CanSeek)
+                            {
+                                notWritten = "the representation changed and the download must start over, but the destination cannot seek";
+                                return null;
+                            }
+
+                            Destination.Position = startPosition;
+                            Destination.SetLength(startPosition);
+
+                            written         = 0;
+                            restarts++;
+                            representation  = null;
+
+                            // A different representation has a different digest.
+                            hash?.Dispose();
+                            hash            = null;
+                            algorithm       = null;
+                            expected        = null;
+                            verification    = HTTPDigestVerification.NotPresent;
+
+                        }
+
+                        representation ??= Head;
+
+                        // The digest is taken from the first response that brings
+                        // one, and only while nothing has been written: a hash begun
+                        // in the middle of the file could never match.
+                        if (VerifyDigests && algorithm is null && written == 0 &&
+                            FieldLines(Head, "Repr-Digest") is [ var offered ])
+                        {
+
+                            var digests = HTTPDigest.Parse(offered);
+
+                            algorithm = Array.Find(HTTPDigest.Supported, digests.ContainsKey);
+
+                            if (algorithm is not null)
+                            {
+                                expected  = digests[algorithm];
+                                hash      = HTTPDigest.CreateIncremental(algorithm);
+                            }
+                            else
+                                verification = HTTPDigestVerification.Unsupported;
+
+                        }
+
+                        validator = ResumeValidatorOf(Head) ?? validator;
+
+                        return async (chunk, cancellationToken) => {
+                            await Destination.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
+                            hash?.AppendData(chunk.Span);
+                            written += (UInt64) chunk.Length;
+                        };
+
+                    }
+
+                    var response = await SendAnsweringAndFollowing(
+                                             request,
+                                             oneRequest => SendOneRequest(
+                                                               oneRequest,
+                                                               ConsumeResponseChunkedTEImmediately: false,
+                                                               RequestTimeout:     RequestTimeout,
+                                                               CancellationToken:  CancellationToken,
+                                                               BodySink:           Sink
+                                                           ),
+                                             CancellationToken
+                                         ).ConfigureAwait(false);
+
+                    if (notWritten is not null)
+                        return Result(HTTPStatusCode.ClientError, response, notWritten);
+
+                    if (response.HTTPStatusCode.Code is not (200 or 206))
+                    {
+
+                        // A 416 to a resume is not a failure when the representation
+                        // is exactly as long as what the destination holds: the body
+                        // broke off at its very end (RFC 9110, Section 15.5.17).
+                        if (response.HTTPStatusCode.Code == 416 && resuming &&
+                            ContentRangeOf(response) is { IsUnsatisfied: true } unsatisfied &&
+                            unsatisfied.CompleteLength == (Int64) written)
+                        {
+                            return Finish(HTTPStatusCode.OK, representation ?? response);
+                        }
+
+                        return Result(response.HTTPStatusCode, representation ?? response);
+
+                    }
+
+                    if (response.BodyInterruption is Exception interruption)
+                    {
+
+                        if (attempts < MaxAttempts && written > 0 && validator is not null)
+                            continue;
+
+                        return Result(
+                                   HTTPStatusCode.ClientError,
+                                   representation ?? response,
+                                   $"the body broke off after {written} octets, " +
+                                   (validator is null
+                                        ? "and the server sent no validator to resume with"
+                                        : $"after {attempts} {(attempts == 1 ? "attempt" : "attempts")}") +
+                                   $": {interruption.Message}"
+                               );
+
+                    }
+
+                    return Finish(response.HTTPStatusCode, representation ?? response);
+
+                }
+
+            }
+            finally
+            {
+                hash?.Dispose();
+            }
+
+            // The last octet is in: compare the hash of all of them with the
+            // Repr-Digest the server promised. A destination that holds other
+            // octets than those is not a download to report as complete.
+            HTTPDownloadResult Finish(HTTPStatusCode Status, HTTPResponse Response)
+            {
+
+                if (hash is not null && expected is not null)
+                {
+
+                    verification = expected.AsSpan().SequenceEqual(hash.GetCurrentHash())
+                                       ? HTTPDigestVerification.Match
+                                       : HTTPDigestVerification.Mismatch;
+
+                    if (verification == HTTPDigestVerification.Mismatch)
+                        return Result(HTTPStatusCode.ClientError, Response, $"the {algorithm} digest of the {written} octets written does not match the Repr-Digest the server sent (RFC 9530)");
+
+                }
+
+                return Result(Status, Response);
+
+            }
+
+        }
+
+        /// <summary>
+        /// The response's Content-Range, when it has exactly one that parses.
+        /// </summary>
+        private static HTTPContentRange? ContentRangeOf(HTTPResponse Response)
+
+            => FieldLines(Response, "Content-Range") is [ var value ] &&
+               HTTPContentRange.TryParse(value, out var contentRange)
+                   ? contentRange
+                   : null;
+
+        /// <summary>
+        /// The validator a resume may be guarded by (RFC 9110, Section 13.1.5): a
+        /// strong entity-tag, or else the Last-Modified date. A weak entity-tag
+        /// promises equivalence, and splicing octets needs them to be the same.
+        /// </summary>
+        private static String? ResumeValidatorOf(HTTPResponse Response)
+        {
+
+            if (FieldLines(Response, "ETag") is [ var etag ] &&
+                !HTTPValidators.SplitETag(etag).Weak)
+            {
+                return etag.Trim();
+            }
+
+            return FieldLines(Response, "Last-Modified") is [ var lastModified ]
+                       ? lastModified.Trim()
+                       : null;
+
+        }
+
+        #endregion
+
+        #region (private) SendAnsweringAndFollowing (Request, Send, CancellationToken)
+
+        /// <summary>
+        /// The request, its 401 answered with <see cref="Credentials"/> and its
+        /// redirections followed as far as <see cref="MaxRedirects"/> allows, each
+        /// single request going out through Send: SendRequest's way, or
+        /// DownloadAsync's, which hands a body to its destination as it arrives.
+        /// </summary>
+        private async Task<HTTPResponse> SendAnsweringAndFollowing(HTTPRequest                            Request,
+                                                                   Func<HTTPRequest, Task<HTTPResponse>>  Send,
+                                                                   CancellationToken                      CancellationToken)
+        {
+
             var maxRedirects  = MaxRedirects;
             var request       = Request;
             var response      = await SendAnsweringChallenge(request, Send, CancellationToken).ConfigureAwait(false);
@@ -1221,6 +1549,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// once, as it is: no challenge answered and no redirect followed.
         /// </summary>
         /// <param name="Request">The HTTP Request to send.</param>
+        /// <param name="BodySink">Asked once the response head is in, for where its body should go instead of HTTPBody, or null to keep it as usual.</param>
         private async Task<HTTPResponse>
 
             SendOneRequest(HTTPRequest                Request,
@@ -1230,7 +1559,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            TimeSpan?                  MaxSemaphoreWaitTime                  = null,
                            TimeSpan?                  RequestTimeout                        = null,
                            UInt16?                    MaxNumberOfRetries                    = null,
-                           CancellationToken          CancellationToken                     = default)
+                           CancellationToken          CancellationToken                     = default,
+                           Func<HTTPResponse, Func<ReadOnlyMemory<Byte>, CancellationToken, ValueTask>?>?  BodySink  = null)
 
         {
 
@@ -1761,7 +2091,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     try
                                     {
 
-                                        if (bodyStream is not null)
+                                        // A body handed to a sink as it arrives rather
+                                        // than kept: what DownloadAsync writes to its
+                                        // destination. The octets go on as they came,
+                                        // undecoded and unchecked, since a range of a
+                                        // representation has no content coding or
+                                        // digest of its own to undo or check. A body
+                                        // that breaks off is recorded on the response
+                                        // instead of sent for again: what reached the
+                                        // sink is kept, and the request is not
+                                        // repeated from its first octet by the retry
+                                        // loop below, which would hand the same octets
+                                        // to the sink a second time.
+                                        var bodySink = bodyStream is not null && !bodyAlreadyConsumed
+                                                           ? BodySink?.Invoke(response)
+                                                           : null;
+
+                                        if (bodySink is not null)
+                                        {
+
+                                            var chunk = new Byte[64 * 1024];
+
+                                            try
+                                            {
+
+                                                Int32 read;
+
+                                                while ((read = await bodyStream!.ReadAsync(chunk, linkedCancellationToken.Token).ConfigureAwait(false)) > 0)
+                                                    await bodySink(chunk.AsMemory(0, read), linkedCancellationToken.Token).ConfigureAwait(false);
+
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                response.BodyInterruption = e;
+                                                await CloseHTTPConnectionAfterFailure().ConfigureAwait(false);
+                                            }
+
+                                            response.HTTPBody        = [];
+                                            response.HTTPBodyStream  = null;
+
+                                        }
+
+                                        else if (bodyStream is not null)
                                         {
 
                                             // RFC 9110, Section 8.4: undo what we asked

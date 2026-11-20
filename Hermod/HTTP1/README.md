@@ -429,6 +429,11 @@ and server roles.
   supported.
 - Malformed extension syntax, control characters, and incomplete quoted values
   are rejected.
+- Chunk data is handed over as it arrives: a read returns once it has octets,
+  rather than filling the caller's buffer. Until 2026-11-20 it read on, and a
+  connection that ended inside a chunk took the octets already in the buffer
+  with the exception, so a body cut short in its first chunk looked as if none
+  of it had come.
 - Trailers are parsed after the terminal chunk and exposed as trailing headers.
 - Body-size and metadata limits apply while streaming; buffering the entire
   encoded message is not required.
@@ -759,6 +764,40 @@ is an event stream comes back as it is: it is the one body this client does
 not read before returning, it need never end, and the connection is the
 stream's from then on.
 
+## The client: downloads that resume
+
+`AHTTPClient.DownloadAsync(path, destination)` is the third thing the HTTP/2
+client did alone until 2026-11-20 (RFC 9110 §14 and §13.1.5). Its body goes to
+the destination as it arrives, not into `HTTPBody`: every other request keeps
+a body only once it is whole, and a body discarded when it breaks off is
+nothing to resume from. `HTTPContentRange` and `HTTPValidators` moved from
+`HTTP2/Core/` to `HTTP/` for it.
+
+- When the body breaks off, the rest is asked for with `Range: bytes=n-` and
+  `If-Range`, up to `MaxAttempts` requests in all. The validator is a strong
+  entity-tag, or else the `Last-Modified` date; a weak entity-tag promises
+  equivalence, not the same octets, and does not guard a resume. Without a
+  validator a broken body is reported, not sent for again.
+- A `206` that starts where the destination stops is appended. A `200`, or a
+  `206` that starts anywhere else, means the representation changed, and the
+  destination starts over, which it must be able to seek for. A `416` whose
+  `Content-Range` names exactly the length already written finishes the
+  download: the body broke off at its very end.
+- `Accept-Encoding` is `identity` unless the request builder says otherwise,
+  since ranges of a compressed representation would splice compressed parts.
+  With `VerifyDigests` the request asks for `Repr-Digest` instead of
+  `Content-Digest`, and the octets of all parts together are checked against
+  it: no single range's content digest says anything about the whole.
+- Only the body of a `200` or `206` reaches the destination, so an error page
+  cannot pass for the representation. `Credentials` and `MaxRedirects` apply
+  as they do to every request.
+
+`HTTPDownloadResult` says how it ended: `IsComplete`, the octets written, the
+attempts, resumes and restarts, the validator and the digest check. A download
+that did not finish has the status `ClientError`, which no server sends, and
+says why in `Error`. Nothing is thrown, as nothing is by the rest of this
+client.
+
 ## Server-Sent Events
 
 Hermod implements SSE as an HTTP streaming extension using
@@ -911,7 +950,7 @@ and `DotNetHTTPClientTests_MinimalAPI`.
   `HTTPClientProtocolRegressionTests`, `HTTP11AuditRegressionTests`,
   `HTTP_TCPClientTests`, `ChunkedFramingTests`, `TransferCodingTests`,
   `BodilessResponseTests`, `HTTPLineEndingTests`, `HTTPClientPoolTests`,
-  `NagleTests`
+  `NagleTests`, `HTTPClientDownloadTests`
 - **Methods and status codes, interim responses included:**
   `HTTPStatusCodeTests`, `HTTPHeadDerivedFromGetTests`,
   `HTTPServerTraceTests`, `HTTPCORSPreflightTests`, `EarlyHintsTests`,
@@ -953,12 +992,15 @@ makes thirty-nine. On master `4b8be28a` they select **786 passing, 0 failed,
 2026-11-20 with the client's half of finding H-38 and joined with it, which
 makes forty-one, and H-41 added eight cases to `HTTPClientProtocolRegressionTests`
 the same day. On master `7d821a1c` they select **819 passing, 0 failed,
-0 skipped**: the 786, H-38's 25 and H-41's 8.
+0 skipped**: the 786, H-38's 25 and H-41's 8. `HTTPClientDownloadTests` came
+with H-38's second half and joined with it, which makes forty-two, and the
+same change put two cases into `ChunkedFramingTests`: **833**, the 819 and
+their 14.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests"
 ```
 
 ## Deliberate exclusions and qualification
