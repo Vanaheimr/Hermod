@@ -20,6 +20,7 @@
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
 #endregion
 
@@ -136,6 +137,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [TestCase("Pete(A nice \\) chap) <pete(his account)@silly.test(his host)>",  "Pete",        "pete@silly.test",        TestName = "RFC 5322 A.5: comments inside the angle-addr")]
+        [TestCase("John Doe <jdoe@machine(comment).  example>",                     "John Doe",    "jdoe@machine.example",   TestName = "RFC 5322 A.6.3: a comment and white space in the domain")]
+        [TestCase("jdoe@test  . example",                                           null,          "jdoe@test.example",      TestName = "RFC 5322 A.6.1: white space around the dot of a bare addr-spec")]
+        [TestCase("Alice <alice@example.org> (sent via <mallory@evil.example>)",    "Alice",       "alice@example.org",      TestName = "An angle-addr in a comment after the address is no mailbox")]
+        [TestCase("mallory@evil.example (<ceo@company.example>)",                   null,          "mallory@evil.example",   TestName = "An angle-addr in a comment after a bare address is no mailbox and no name")]
+        [TestCase("Mary Smith <@node.test:mary@example.net>",                       "Mary Smith",  "mary@example.net",       TestName = "RFC 5322 A.6.1: a source route is no part of the address (guard)")]
+        [Test(Description = "RFC 5322 §3.4: angle-addr = [CFWS] \"<\" addr-spec \">\" [CFWS]; §4.4: obs-local-part = word *(\".\" word), obs-domain = atom *(\".\" atom), with CFWS around them; §4: obsolete forms \"MUST be accepted and parsed by a conformant receiver\"")]
+        public void Comments_and_obsolete_white_space_are_no_part_of_the_address(String Header, String? Name, String Address)
+        {
+            Assert.That(Parse("To: " + Header + "\n\nx\n").To, Is.EqualTo(new[] { new MailboxAddress(Name, Address) }));
+        }
+
+        [Test(Description = "RFC 5322 Appendix A.5: a group with comments in its name, in an addr-spec and after its semicolon")]
+        public void A_group_with_comments_is_read_as_its_three_mailboxes()
+        {
+
+            var message = Parse("To: A Group(Some people)\n" +
+                                "     :Chris Jones <c@(Chris's host.)public.example>,\n" +
+                                "         joe@example.org,\n" +
+                                "  John <jdoe@one.test> (my dear friend); (the end of the group)\n" +
+                                "\n" +
+                                "x\n");
+
+            Assert.That(message.To, Is.EqualTo(new[] {
+                                        new MailboxAddress("Chris Jones",  "c@public.example"),
+                                        new MailboxAddress(null,           "joe@example.org"),
+                                        new MailboxAddress("John",         "jdoe@one.test")
+                                    }));
+
+        }
+
+        [Test(Description = "RFC 5322 §3.4: a comment after the addr-spec names no mailbox - the From domain Hermod signs for (DKIM), shows (EMail, MimeMessage) and sends a read receipt to is the one RFC 5322 and its own DMARC check (MailAddressParser) read")]
+        public void The_From_domain_is_the_one_RFC_5322_and_the_DMARC_check_read()
+        {
+
+            const String from = "mallory@evil.example (<ceo@company.example>)";
+
+            Assert.Multiple(() => {
+
+                Assert.That(MailAddressParser.ParseAddressList(from),                                                          Is.EqualTo(new[] { "mallory@evil.example" }), "the address parser the DMARC check uses");
+                Assert.That(DkimSigning.FromDomain($"From: {from}\r\nTo: <a@example.net>\r\nSubject: Hi\r\n\r\nBody.\r\n"),  Is.EqualTo("evil.example"),                     "the domain whose DKIM key signs the message");
+                Assert.That(EMail.Parse([ $"From: {from}", "Subject: Hi", "", "x" ]).From.Address.ToString(),                 Is.EqualTo("mallory@evil.example"),             "EMail.From");
+                Assert.That(Parse($"From: {from}\n\nx\n").From.Single(),                                                       Is.EqualTo(new MailboxAddress(null, "mallory@evil.example")), "MimeMessage.From");
+                Assert.That(DispositionNotification.RequestedBy(Parse($"Disposition-Notification-To: {from}\n\nx\n"))?.Address, Is.EqualTo("mallory@evil.example"),             "where a read receipt goes");
+
+            });
+
+        }
+
+        [TestCase("John Doe <jdoe@machine(comment).  example>",  "jdoe@machine.example",  TestName = "MailAddressParser: RFC 5322 A.6.3")]
+        [TestCase("jdoe@test  . example",                        "jdoe@test.example",     TestName = "MailAddressParser: RFC 5322 A.6.1, white space around a dot")]
+        [TestCase("Mary Smith <@node.test:mary@example.net>",    "mary@example.net",      TestName = "MailAddressParser: RFC 5322 A.6.1, a source route")]
+        [Test(Description = "RFC 5322 §4.4: the obsolete addr-spec and route-addr, read by the address parser the DMARC check uses as MailboxAddress reads them; §4: \"MUST be accepted and parsed\"")]
+        public void The_DMARC_address_parser_reads_obsolete_addresses_as_MailboxAddress_does(String Header, String Address)
+        {
+            Assert.Multiple(() => {
+                Assert.That(MailAddressParser.ParseAddressList(Header),            Is.EqualTo(new[] { Address }));
+                Assert.That(MailboxAddress.ParseList(Header).Single().Address,     Is.EqualTo(Address));
+            });
+        }
+
         #endregion
 
         #region Dates
@@ -162,6 +224,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         public void Dates_that_are_none_are_none(String Text)
         {
             Assert.That(MimeDate.TryParse(Text, out _), Is.False);
+        }
+
+        [TestCase("Fri, 21 Nov 1997 09(comment):   55  :  06 -0600",  TestName = "RFC 5322 A.6.3: a comment and white space inside the time")]
+        [TestCase("Fri, 21 Nov 1997 09 : 55 : 06 -0600",             TestName = "RFC 5322 §4.3: white space around the colons")]
+        [TestCase("Fri, 21 Nov 1997 09:55:06 -0600 (a (nested) one)", TestName = "A nested comment after the zone (guard)")]
+        [Test(Description = "RFC 5322 §4.3: obs-hour = [CFWS] 2DIGIT [CFWS], obs-minute and obs-second alike; §4: obsolete forms \"MUST be accepted and parsed by a conformant receiver\"")]
+        public void White_space_and_comments_inside_the_time_are_read(String Text)
+        {
+
+            Assert.That(MimeDate.TryParse(Text, out var date), Is.True);
+            Assert.That(date, Is.EqualTo(new DateTimeOffset(1997, 11, 21, 9, 55, 6, TimeSpan.FromHours(-6))));
+
+        }
+
+        [Test(Description = "RFC 5322 §3.2.2: comment = \"(\" *([FWS] ccontent) [FWS] \")\", ccontent = ctext / quoted-pair / comment - nesting is legal at any depth; a Date with a comment 10 000 deep is read in time")]
+        public async Task A_date_with_deeply_nested_comments_is_read_in_time()
+        {
+
+            var header   = "From: someone@example.org\nDate: Fri, 21 Nov 1997 09:55:06 -0600 " + new String('(', 10_000) + new String(')', 10_000) + "\n\nx\n";
+
+            MimeMessage? message = null;
+
+            try
+            {
+                message = await Task.Run(() => Parse(header)).WaitAsync(TimeSpan.FromSeconds(2));
+            }
+            catch (TimeoutException)
+            { }
+
+            Assert.That(message?.Date, Is.EqualTo(new DateTimeOffset(1997, 11, 21, 9, 55, 6, TimeSpan.FromHours(-6))), "no result within 2 s");
+
+        }
+
+        [TestCase("Fri, 21 Nov 1997 09:55:06 EST",                    "1997-11-21T09:55:06-05:00",  TestName = "EMail: RFC 5322 §4.3 obs-zone EST")]
+        [TestCase("Fri, 21 Nov 1997 09:55:06 PDT",                    "1997-11-21T09:55:06-07:00",  TestName = "EMail: RFC 5322 §4.3 obs-zone PDT")]
+        [TestCase("Fri, 21 Nov 1997 09:55:06 UT",                     "1997-11-21T09:55:06+00:00",  TestName = "EMail: RFC 5322 §4.3 obs-zone UT")]
+        [TestCase("Fri, 21 Nov 1997 09(comment):   55  :  06 -0600",  "1997-11-21T09:55:06-06:00",  TestName = "EMail: RFC 5322 A.6.3, a comment in the time")]
+        [TestCase("Wed, 14 Oct 2026 09:30:00 +0200 (CEST)",           "2026-10-14T09:30:00+02:00",  TestName = "EMail: RFC 5322 §3.3 with a comment after the zone (guard)")]
+        [Test(Description = "RFC 5322 §4.3 obs-zone and obs-hour/-minute/-second, read by the older EMail.Parse; §4: obsolete forms \"MUST be accepted and parsed by a conformant receiver\"")]
+        public void Obsolete_dates_are_read_by_the_old_model(String Text, String Expected)
+        {
+
+            var email = EMail.Parse([ "From: someone@example.org", "Date: " + Text, "", "x" ]);
+
+            Assert.That(email.Date,         Is.EqualTo(DateTimeOffset.Parse(Expected)));
+            Assert.That(email.Date.Offset,  Is.EqualTo(DateTimeOffset.Parse(Expected).Offset));
+
         }
 
         #endregion
@@ -234,6 +343,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             Assert.That(message.TextBody!.GetText(), Is.EqualTo("Schöne Grüße"));
 
+        }
+
+        [TestCase("padded by a relay  \r\nand a tab\t\r\nlast",  "padded by a relay\r\nand a tab\r\nlast",  TestName = "Trailing spaces and tabs before CR LF go")]
+        [TestCase("bare LF \nlast \t",                          "bare LF\nlast",                          TestName = "Trailing white space before a bare LF and at the end goes")]
+        [TestCase("encoded=20\r\nand=09\r\nnext",               "encoded \r\nand\t\r\nnext",              TestName = "Encoded white space at the end of a line stays (guard)")]
+        [TestCase("inner  space stays =\r\nsoft",              "inner  space stays soft",                TestName = "White space before a soft line break and inside a line stays (guard)")]
+        [Test(Description = "RFC 2045 §6.7 (3): \"when decoding a Quoted-Printable body, any trailing white space on a line must be deleted, as it will necessarily have been added by intermediate transport agents\"")]
+        public void Quoted_printable_decoding_deletes_trailing_white_space(String Encoded, String Decoded)
+        {
+            Assert.That(Encoding.ASCII.GetString(TransferEncodings.DecodeQuotedPrintable(Encoding.ASCII.GetBytes(Encoded))), Is.EqualTo(Decoded));
+        }
+
+        [TestCase("x-private-scheme",  TestName = "An unknown Content-Transfer-Encoding makes the part application/octet-stream")]
+        [TestCase("x-uuencode",        TestName = "x-uuencode, which Hermod does not decode, makes the part application/octet-stream")]
+        [Test(Description = "RFC 2045 §6.4: \"Any entity with an unrecognized Content-Transfer-Encoding must be treated as if it has a Content-Type of \"application/octet-stream\", regardless of what the Content-Type header field actually says\"")]
+        public void A_part_with_an_unknown_transfer_encoding_is_no_text(String TransferEncoding)
+        {
+
+            var message = Parse("From: someone@example.org\n" +
+                                "MIME-Version: 1.0\n" +
+                                "Content-Type: multipart/mixed; boundary=b\n" +
+                                "\n" +
+                                "--b\n" +
+                                "Content-Type: text/plain; charset=us-ascii\n" +
+                                "\n" +
+                                "The text.\n" +
+                                "--b\n" +
+                                "Content-Type: text/plain; charset=us-ascii; name=data.txt\n" +
+                                "Content-Transfer-Encoding: " + TransferEncoding + "\n" +
+                                "\n" +
+                                "QmluYXJ5IGRhdGE=\n" +
+                                "--b--\n");
+
+            Assert.Multiple(() => {
+                Assert.That(message.TextBody?.GetText(),                       Is.EqualTo("The text."));
+                Assert.That(message.Attachments.Single().ContentType.MimeType, Is.EqualTo("application/octet-stream"));
+                Assert.That(message.Attachments.Single().FileName,             Is.EqualTo("data.txt"));
+                Assert.That(message.Attachments.Single().GetContent(),         Is.EqualTo(Encoding.ASCII.GetBytes("QmluYXJ5IGRhdGE=")), "the octets as they are");
+            });
+
+        }
+
+        [Test(Description = "RFC 2045 §6.4: a single-part message with an unrecognized Content-Transfer-Encoding is application/octet-stream - no text to show")]
+        public void A_message_with_an_unknown_transfer_encoding_has_no_text()
+        {
+
+            var message = Parse("From: someone@example.org\nMIME-Version: 1.0\nContent-Type: text/plain; charset=us-ascii\nContent-Transfer-Encoding: x-private-scheme\n\nQmluYXJ5IGRhdGE=\n");
+
+            Assert.Multiple(() => {
+                Assert.That(message.TextBody,     Is.Null);
+                Assert.That(message.Attachments,  Has.Count.EqualTo(1));
+            });
+
+        }
+
+        [TestCase("7BIT",                  TestName = "7BIT in upper case is known (guard)")]
+        [TestCase("8bit (a comment)",      TestName = "8bit with a comment is known (guard)")]
+        [TestCase("binary",                TestName = "binary is known (guard)")]
+        [Test(Description = "RFC 2045 §6.1: \"These values are not case sensitive\"; §1: the MIME header fields \"can include RFC 822 comments, which have no semantic content\" - the known encodings stay text")]
+        public void A_part_with_a_known_transfer_encoding_stays_text(String TransferEncoding)
+        {
+            Assert.That(Parse("Content-Type: text/plain\nContent-Transfer-Encoding: " + TransferEncoding + "\n\nThe text.\n").TextBody?.GetText(), Is.EqualTo("The text.\r\n"));
         }
 
         [Test]
@@ -370,6 +541,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                 "--b--\n");
 
             Assert.That(message.TextBody?.GetText(), Is.EqualTo("--bx is not the boundary"));
+
+        }
+
+        [Test(Description = "RFC 2046 §5.1.1: transport-padding := *LWSP-char - \"receivers MUST be able to handle padding added by message transports\"; \"If a boundary delimiter line appears to end with white space, the white space must be presumed to have been added by a gateway, and must be deleted\" - in the old model's EMail.Parse")]
+        public void Delimiter_lines_with_transport_padding_are_read_by_the_old_model()
+        {
+
+            EMail? email = null;
+
+            Assert.That(() => email = EMail.Parse([
+                                          "From: someone@example.org",
+                                          "MIME-Version: 1.0",
+                                          "Content-Type: multipart/mixed; boundary=\"xyz\"",
+                                          "",
+                                          "--xyz  ",
+                                          "Content-Type: text/plain",
+                                          "",
+                                          "one",
+                                          "--xyz\t",
+                                          "Content-Type: text/plain",
+                                          "",
+                                          "two",
+                                          "--xyz-- ",
+                                          ""
+                                      ]),
+                        Throws.Nothing);
+
+            Assert.That(email!.Body.NestedBodyparts.Select(part => String.Join("\r\n", part.MailBody)), Is.EqualTo(new[] { "one", "two" }));
+
+        }
+
+        [Test(Description = "Hostile input: a multipart without a single delimiter line is read by the old model's EMail.Parse - which MdnGeneratingMailStorage runs on every message it stores - as a body without parts, not with an exception")]
+        public void A_multipart_without_delimiters_is_read_by_the_old_model()
+        {
+
+            EMail? email = null;
+
+            Assert.That(() => email = EMail.Parse([
+                                          "From: someone@example.org",
+                                          "Content-Type: multipart/mixed; boundary=xyz",
+                                          "",
+                                          "No delimiter anywhere."
+                                      ]),
+                        Throws.Nothing);
+
+            Assert.That(email!.Body.NestedBodyparts, Is.Empty);
+            Assert.That(email.Body.MailBody,         Is.EqualTo(new[] { "No delimiter anywhere." }));
 
         }
 
@@ -512,6 +730,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(message.InReplyTo,   Is.EqualTo(new[] { "b@x" }));
             Assert.That(message.References,  Is.EqualTo(new[] { "c@x", "b@x" }));
 
+        }
+
+        [Test(Description = "RFC 5322 Appendix A.6.3 and §4.5.4: obs-id-left = local-part, obs-id-right = domain - with their CFWS: \"<1234   @   local(blah)  .machine .example>\" is 1234@local.machine.example; §4: \"MUST be accepted and parsed\"")]
+        public void An_obsolete_message_id_is_read_as_id_left_at_id_right()
+        {
+
+            var message = Parse("Message-ID  : <1234   @   local(blah)  .machine .example>\n" +
+                                "In-Reply-To: <a (one) @ x> \"a phrase\" <b@ y .example>\n" +
+                                "References: (a comment <not@an.id>) <c@x>\n" +
+                                "\n" +
+                                "x\n");
+
+            Assert.Multiple(() => {
+                Assert.That(message.MessageId,   Is.EqualTo("1234@local.machine.example"));
+                Assert.That(message.InReplyTo,   Is.EqualTo(new[] { "a@x", "b@y.example" }));
+                Assert.That(message.References,  Is.EqualTo(new[] { "c@x" }), "a msg-id in a comment is none");
+            });
+
+        }
+
+        [TestCase("<id@[192.0.2.1]>",                         "id@[192.0.2.1]",                 TestName = "RFC 5322 §3.6.4: id-right as a no-fold-literal (guard)")]
+        [TestCase("<abcd.1234@local.machine.test> (a comment)", "abcd.1234@local.machine.test", TestName = "RFC 5322 §3.6.4: msg-id with CFWS after it (guard)")]
+        [Test(Description = "RFC 5322 §3.6.4: msg-id = [CFWS] \"<\" id-left \"@\" id-right \">\" [CFWS]")]
+        public void A_message_id_is_read(String Header, String Expected)
+        {
+            Assert.That(Parse("Message-ID: " + Header + "\n\nx\n").MessageId, Is.EqualTo(Expected));
         }
 
         [TestCase("Hermod developers <hermod-dev.lists.example.org>",  "Hermod developers",  "hermod-dev.lists.example.org")]

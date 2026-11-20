@@ -73,13 +73,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 var mailbox = piece;
 
-                // A group's name ends at its colon, the group at its semicolon.
-                var colon   = TopLevelColon(mailbox);
+                // A group's name ends at its colon, the group at its semicolon - what
+                // follows that is CFWS: "(the end of the group)" of Appendix A.5.
+                var colon      = FirstTopLevel(mailbox, ':');
 
                 if (colon >= 0)
                     mailbox = mailbox[(colon + 1)..];
 
-                mailbox = mailbox.Trim().TrimEnd(';').Trim();
+                var semicolon  = FirstTopLevel(mailbox, ';');
+
+                if (semicolon >= 0)
+                    mailbox = mailbox[..semicolon];
+
+                mailbox = mailbox.Trim();
 
                 if (mailbox.Length == 0)
                     continue;
@@ -101,6 +107,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// One mailbox: name-addr ("Name &lt;a@b&gt;") or a bare addr-spec, or null when
         /// there is no address in it.
         /// </summary>
+        /// <remarks>
+        /// RFC 5322 §3.4: angle-addr = [CFWS] "&lt;" addr-spec "&gt;" [CFWS] - a comment
+        /// is CFWS wherever it is, never a mailbox: the "&lt;" of
+        /// "a@evil.example (&lt;ceo@company.example&gt;)" is in a comment, and the
+        /// mailbox is a@evil.example, as for every RFC 5322 reader and for
+        /// <see cref="MailAddressParser"/>, which the DMARC check uses. Comments and
+        /// the obsolete white space inside the addr-spec (§4.4, Appendix A.5 and
+        /// A.6.3) are no part of the address either.
+        /// </remarks>
         public static MailboxAddress? Parse(String Mailbox)
         {
 
@@ -109,8 +124,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if (lt >= 0)
             {
 
-                var gt       = Mailbox.IndexOf('>', lt + 1);
-                var address  = (gt > lt ? Mailbox[(lt + 1)..gt] : Mailbox[(lt + 1)..]).Trim();
+                var gt       = FirstTopLevel(Mailbox, '>', lt + 1);
+                var address  = MailAddressParser.NormalizeAddrSpec(gt > lt ? Mailbox[(lt + 1)..gt] : Mailbox[(lt + 1)..]);
 
                 // A source route ("<@relay:joe@example.org>") is obsolete and means
                 // only the part after the colon.
@@ -125,12 +140,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             }
 
             var comment  = FirstComment(Mailbox);
-            var bare     = MailAddressParser.StripComments(Mailbox).Trim();
+            var bare     = MailAddressParser.NormalizeAddrSpec(Mailbox);
 
             if (!bare.Contains('@'))
                 return null;
 
-            return new MailboxAddress(comment is not null ? DisplayName(comment) : null, bare);
+            // The old form "joerg@example.org (Jörg Müller)" names its mailbox in the
+            // comment - but a comment that holds an address does not name this one.
+            return new MailboxAddress(comment is not null && !comment.Contains('@') ? DisplayName(comment) : null, bare);
 
         }
 
@@ -179,19 +196,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
-        #region (private static) TopLevelColon(Text)
+        #region (private static) FirstTopLevel(Text, Character, Start = 0)
 
         /// <summary>
-        /// The colon that ends a group's name: the first one outside quotes, angle
-        /// brackets, domain literals and comments - "a@x (note: hi)" is no group.
+        /// The first of the given character outside quotes, angle brackets, domain
+        /// literals and comments - the colon that ends a group's name, the semicolon
+        /// that ends the group ("a@x (note: hi)" is no group), the "&gt;" that ends an
+        /// angle-addr.
         /// </summary>
-        private static Int32 TopLevelColon(String Text)
+        private static Int32 FirstTopLevel(String  Text,
+                                           Char    Character,
+                                           Int32   Start   = 0)
         {
 
             var inQuote = false;
             Int32 angle = 0, bracket = 0, paren = 0;
 
-            for (var i = 0; i < Text.Length; i++)
+            for (var i = Start; i < Text.Length; i++)
             {
 
                 var c = Text[i];
@@ -203,6 +224,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     continue;
                 }
 
+                // In a comment a quoted-pair is one character, "\)" no end of it.
+                if (paren > 0)
+                {
+                    if      (c == '\\') i++;
+                    else if (c == '(')  paren++;
+                    else if (c == ')')  paren--;
+                    continue;
+                }
+
+                if (c == Character && angle == 0 && bracket == 0)
+                    return i;
+
                 switch (c)
                 {
                     case '"': inQuote = true;              break;
@@ -211,8 +244,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     case '[': bracket++;                   break;
                     case ']': if (bracket > 0) bracket--;  break;
                     case '(': paren++;                     break;
-                    case ')': if (paren   > 0) paren--;    break;
-                    case ':': if (angle == 0 && bracket == 0 && paren == 0) return i; break;
                 }
 
             }
@@ -243,11 +274,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         }
 
+        /// <summary>
+        /// The last of the given character outside quotes and comments: a "&lt;" in a
+        /// comment - "(sent via &lt;mallory@evil.example&gt;)" - starts no angle-addr.
+        /// </summary>
         private static Int32 LastTopLevel(String Text, Char Character)
         {
 
             var found   = -1;
             var inQuote = false;
+            var paren   = 0;
 
             for (var i = 0; i < Text.Length; i++)
             {
@@ -261,8 +297,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     continue;
                 }
 
+                if (paren > 0)
+                {
+                    if      (c == '\\') i++;
+                    else if (c == '(')  paren++;
+                    else if (c == ')')  paren--;
+                    continue;
+                }
+
                 if (c == '"')
                     inQuote = true;
+
+                else if (c == '(')
+                    paren++;
 
                 else if (c == Character)
                     found = i;

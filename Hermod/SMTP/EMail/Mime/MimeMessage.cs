@@ -17,7 +17,7 @@
 
 #region Usings
 
-using System.Text.RegularExpressions;
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
 #endregion
 
@@ -172,12 +172,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             this.Headers                  = Headers;
             this.ContentType              = ContentType;
             this.ContentDisposition       = MimeContentDisposition.Parse(Headers.Get("Content-Disposition"));
-            this.ContentTransferEncoding  = Headers.Get("Content-Transfer-Encoding")?.Trim().ToLowerInvariant() ?? "7bit";
+            this.ContentTransferEncoding  = TransferEncodingOf(Headers);
             this.ContentId                = Headers.Get("Content-ID")?.Trim().Trim('<', '>').Trim();
             this.Raw                      = Raw;
             this.RawBody                  = RawBody;
 
         }
+
+        #endregion
+
+
+        #region (internal static) TransferEncodingOf(Headers)
+
+        /// <summary>
+        /// The Content-Transfer-Encoding of the given header fields, lower case and
+        /// without comments (RFC 2045 §6.1); "7bit" where there is none (§6.1: "This
+        /// is the default value").
+        /// </summary>
+        internal static String TransferEncodingOf(MimeHeaders Headers)
+
+            => Headers.Get("Content-Transfer-Encoding") is { } value &&
+               MailAddressParser.StripComments(value).Trim().ToLowerInvariant() is { Length: > 0 } encoding
+                   ? encoding
+                   : "7bit";
 
         #endregion
 
@@ -268,8 +285,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// How many parts a message has at most.
         /// </summary>
         public const Int32 MaxParts  = 2000;
-
-        private static readonly Regex MessageIdPattern = new (@"<([^<>\s]+)>", RegexOptions.CultureInvariant);
 
         private sealed class ParseState
         {
@@ -404,7 +419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             // The top of a message is part "1" (or Prefix.1) when it is not a multipart,
             // and the container Prefix when it is - what IMAP calls its sections.
             var (headers, body) = SplitEntity(Raw);
-            var contentType     = MimeContentType.Parse(headers.Get("Content-Type"), MimeContentType.TextPlain);
+            var contentType     = ContentTypeOf(headers, MimeContentType.TextPlain);
 
             var partId          = contentType.IsMultipart
                                       ? Prefix
@@ -453,7 +468,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                         break;
 
                     var (childHeaders, childBody) = SplitEntity(slice);
-                    var childType                 = MimeContentType.Parse(childHeaders.Get("Content-Type"), childDefault);
+                    var childType                 = ContentTypeOf(childHeaders, childDefault);
                     var childId                   = PartId.Length == 0 ? $"{++index}" : $"{PartId}.{++index}";
 
                     var child                     = ParseEntity(slice, childHeaders, childBody, childType, childId, Depth + 1, State);
@@ -471,6 +486,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 part.EmbeddedMessage = Parse(part.GetContent(), PartId, Depth + 1, State);
 
             return part;
+
+        }
+
+        #endregion
+
+        #region (private static) ContentTypeOf(Headers, Default)
+
+        /// <summary>
+        /// The Content-Type of an entity, or the default where it has none - and
+        /// application/octet-stream, its parameters kept, where its
+        /// Content-Transfer-Encoding is none the reader knows. RFC 2045 §6.4: "Any
+        /// entity with an unrecognized Content-Transfer-Encoding must be treated as if
+        /// it has a Content-Type of "application/octet-stream", regardless of what the
+        /// Content-Type header field actually says."
+        /// </summary>
+        private static MimeContentType ContentTypeOf(MimeHeaders      Headers,
+                                                     MimeContentType  Default)
+        {
+
+            var contentType = MimeContentType.Parse(Headers.Get("Content-Type"), Default);
+
+            return MimePart.TransferEncodingOf(Headers) is not ("7bit" or "8bit" or "binary" or "base64" or "quoted-printable")
+                       ? new MimeContentType("application", "octet-stream", contentType.Parameters)
+                       : contentType;
 
         }
 
@@ -752,11 +791,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region (private static) MessageIds(Value) / NullIfEmpty(Text)
 
+        /// <summary>
+        /// The msg-ids of a Message-ID, In-Reply-To or References value, without their
+        /// angle brackets, in their order. The phrases and comments between them are
+        /// none (§4.5.4, obs-references); inside the brackets the obsolete form
+        /// obs-id-left = local-part, obs-id-right = domain has CFWS around its words and
+        /// dots, which is no part of the id: Appendix A.6.3's
+        /// "&lt;1234   @   local(blah)  .machine .example&gt;" is
+        /// 1234@local.machine.example (RFC 5322 §4: "MUST be accepted and parsed").
+        /// </summary>
         private static IReadOnlyList<String> MessageIds(String? Value)
+        {
 
-            => Value is null
-                   ? []
-                   : [.. MessageIdPattern.Matches(Value).Select(match => match.Groups[1].Value)];
+            if (Value is null)
+                return [];
+
+            var ids     = new List<String>();
+            var inQuote = false;
+            var paren   = 0;
+            var start   = -1;
+
+            for (var i = 0; i < Value.Length; i++)
+            {
+
+                var c = Value[i];
+
+                if (inQuote)
+                {
+                    if (c == '\\') { i++; continue; }
+                    if (c == '"')  inQuote = false;
+                    continue;
+                }
+
+                if (paren > 0)
+                {
+                    if      (c == '\\') i++;
+                    else if (c == '(')  paren++;
+                    else if (c == ')')  paren--;
+                    continue;
+                }
+
+                switch (c)
+                {
+
+                    case '"': inQuote = true;  break;
+                    case '(': paren++;         break;
+                    case '<': start = i + 1;   break;
+
+                    case '>':
+                        if (start >= 0 && MailAddressParser.NormalizeAddrSpec(Value[start..i]) is { Length: > 0 } id && !id.Contains(' '))
+                            ids.Add(id);
+                        start = -1;
+                        break;
+
+                }
+
+            }
+
+            return ids;
+
+        }
 
         private static String? NullIfEmpty(String? Text)
             => String.IsNullOrEmpty(Text) ? null : Text;

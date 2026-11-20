@@ -89,7 +89,16 @@ public static class MailAddressParser
     private static String? CleanAddrSpec(String s)
     {
 
-        s = s.Trim();
+        // RFC 5322 §4.4: the obsolete addr-spec has CFWS around its words and dots
+        // ("jdoe@machine.  example"), and §4: obsolete forms "MUST be accepted and
+        // parsed by a conformant receiver".
+        s = NormalizeAddrSpec(s);
+
+        // An obsolete source route ("@relay:joe@example.org") means only the part
+        // after the colon (RFC 5322 §4.4, obs-route).
+        if (s.StartsWith('@') && s.IndexOf(':') is var routeEnd and > 0)
+            s = s[(routeEnd + 1)..];
+
         if (s.Length == 0)
             return null;
 
@@ -241,6 +250,97 @@ public static class MailAddressParser
             if (c == '"') { inQuote = true; sb.Append(c); }
             else if (c == '(') depth++;
             else sb.Append(c);
+        }
+
+        return sb.ToString();
+
+    }
+
+    /// <summary>
+    /// An addr-spec - or a msg-id's id-left "@" id-right, which in its obsolete form
+    /// is one (RFC 5322 §4.5.4) - as RFC 5322 reads it: without its comments and
+    /// without the white space the obsolete syntax allows around its words, dots and
+    /// "@" (§4.4: obs-local-part = word *("." word), obs-domain = atom *("." atom),
+    /// atoms and words with [CFWS] around them). Appendix A.6.3:
+    /// "jdoe@machine(comment).  example" is jdoe@machine.example. Quoted strings
+    /// and domain literals are kept as they are; two words with only white space
+    /// between them stay two, which no address is.
+    /// </summary>
+    internal static String NormalizeAddrSpec(String s)
+    {
+
+        var sb      = new StringBuilder(s.Length);
+        var spaced  = false;   // white space or a comment since the last character kept
+
+        for (var i = 0; i < s.Length; i++)
+        {
+
+            var c = s[i];
+
+            // A comment, with the comments nested in it, goes whole.
+            if (c == '(')
+            {
+
+                var depth = 1;
+
+                for (i++; i < s.Length && depth > 0; i++)
+                {
+                    if      (s[i] == '\\') i++;
+                    else if (s[i] == '(')  depth++;
+                    else if (s[i] == ')')  depth--;
+                }
+
+                i--;
+                spaced = true;
+                continue;
+
+            }
+
+            if (c is ' ' or '\t' or '\r' or '\n')
+            {
+                spaced = true;
+                continue;
+            }
+
+            if (c is '.' or '@')
+            {
+                sb.Append(c);
+                spaced = false;
+                continue;
+            }
+
+            if (spaced && sb.Length > 0 && sb[^1] is not '.' and not '@')
+                sb.Append(' ');
+
+            spaced = false;
+
+            // A quoted-string or a domain-literal, escapes and all.
+            if (c is '"' or '[')
+            {
+
+                var close = c == '"' ? '"' : ']';
+
+                sb.Append(c);
+
+                for (i++; i < s.Length; i++)
+                {
+
+                    sb.Append(s[i]);
+
+                    if (s[i] == '\\' && i + 1 < s.Length)
+                        sb.Append(s[++i]);
+
+                    else if (s[i] == close)
+                        break;
+
+                }
+
+                continue;
+
+            }
+
+            sb.Append(c);
+
         }
 
         return sb.ToString();

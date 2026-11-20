@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Text;
 using System.Text.RegularExpressions;
 
 #endregion
@@ -29,7 +30,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// less often than one would hope.
     /// </summary>
     /// <remarks>
-    /// Accepted besides the standard form: a trailing comment ("(CET)"), no day name
+    /// Accepted besides the standard form: comments anywhere, nested to any depth
+    /// ("(CET)"), white space and comments around the colons of the time (§4.3,
+    /// obs-hour, obs-minute, obs-second), no day name
     /// or a wrong one, two- and three-digit years (§4.3), no seconds, the zone names
     /// UT, GMT and the North American ones of §4.3, a zone written "+01:00", and the
     /// asctime() order "Wed Oct 14 09:30:00 2026". A military zone letter, or no zone
@@ -40,7 +43,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Data
 
-        private static readonly Regex Comment  = new (@"\([^()]*\)", RegexOptions.CultureInvariant);
         private static readonly Regex Time     = new (@"^(\d{1,2}):(\d{2})(?::(\d{2}))?$", RegexOptions.CultureInvariant);
         private static readonly Regex Offset   = new (@"^([+-])(\d{2}):?(\d{2})$", RegexOptions.CultureInvariant);
 
@@ -71,10 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if (String.IsNullOrWhiteSpace(Text))
                 return false;
 
-            // Comments go, nested ones from the inside out.
-            var text = Text;
-            while (Comment.IsMatch(text))
-                text = Comment.Replace(text, " ");
+            var text   = WithoutCFWSInTheTime(WithoutComments(Text));
 
             var tokens = text.Replace(",", " ").
                               Split([ ' ', '\t', '\r', '\n' ], StringSplitOptions.RemoveEmptyEntries).
@@ -143,6 +142,95 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             {
                 return false;
             }
+
+        }
+
+        #endregion
+
+        #region (private) WithoutComments(Text)
+
+        /// <summary>
+        /// The text with every comment a space - in one pass, however deep they nest:
+        /// RFC 5322 §3.2.2, comment = "(" *([FWS] ccontent) [FWS] ")", ccontent =
+        /// ctext / quoted-pair / comment.
+        /// </summary>
+        private static String WithoutComments(String Text)
+        {
+
+            if (!Text.Contains('('))
+                return Text;
+
+            var result = new StringBuilder(Text.Length);
+            var depth  = 0;
+
+            for (var i = 0; i < Text.Length; i++)
+            {
+
+                var c = Text[i];
+
+                if (depth > 0)
+                {
+                    if      (c == '\\') i++;
+                    else if (c == '(')  depth++;
+                    else if (c == ')' && --depth == 0)
+                        result.Append(' ');
+                    continue;
+                }
+
+                if (c == '(')
+                    depth++;
+
+                else
+                    result.Append(c);
+
+            }
+
+            return result.ToString();
+
+        }
+
+        #endregion
+
+        #region (private) WithoutCFWSInTheTime(Text)
+
+        /// <summary>
+        /// The text with the white space around the colons of the time gone - which
+        /// the obsolete syntax allows: RFC 5322 §4.3, obs-hour = [CFWS] 2DIGIT [CFWS],
+        /// obs-minute and obs-second alike; Appendix A.6.3 "09(comment):   55  :  06".
+        /// The comments are spaces by then.
+        /// </summary>
+        private static String WithoutCFWSInTheTime(String Text)
+        {
+
+            if (!Text.Contains(':'))
+                return Text;
+
+            var result = new StringBuilder(Text.Length);
+
+            for (var i = 0; i < Text.Length; i++)
+            {
+
+                var c = Text[i];
+
+                if (c == ':')
+                {
+
+                    while (result.Length > 0 && Char.IsWhiteSpace(result[^1]))
+                        result.Length--;
+
+                    result.Append(c);
+
+                    while (i + 1 < Text.Length && Char.IsWhiteSpace(Text[i + 1]))
+                        i++;
+
+                }
+
+                else
+                    result.Append(c);
+
+            }
+
+            return result.ToString();
 
         }
 
