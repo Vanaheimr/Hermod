@@ -83,7 +83,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         /// <summary>
         /// Further headers - User-Agent, Autocrypt, List-Unsubscribe - written after
-        /// the others, in their order; free text, encoded where it is not ASCII.
+        /// the others, in their order; free text, encoded where it is not ASCII, a
+        /// word too long for a line folded inside (<see cref="MimeEncoding.FurtherHeader"/>).
         /// </summary>
         public List<(String Name, String Value)>    Headers     { get; } = [];
 
@@ -152,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 Line(MimeEncoding.MailboxListHeader("Cc", Cc));
 
             Line(MimeEncoding.UnstructuredHeader("Subject", Subject));
-            Line($"Message-ID: {Id(MessageId)}");
+            Line(MimeEncoding.Fold("Message-ID", [ (Id(MessageId), false) ]));
 
             if (InReplyTo.Count > 0)
                 Line(MimeEncoding.Fold("In-Reply-To", InReplyTo.Select(id => (Id(id), false))));
@@ -162,9 +163,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             foreach (var (name, value) in Headers)
             {
+
                 if (!IsFieldName(name))
                     throw new ArgumentException($"'{name}' is no header name.");
-                Line(MimeEncoding.UnstructuredHeader(name, value));
+
+                Line(MimeEncoding.FurtherHeader(name, value));
+
             }
 
             Line("MIME-Version: 1.0");

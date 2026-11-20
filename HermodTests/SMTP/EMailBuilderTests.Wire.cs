@@ -185,6 +185,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test(Description = "RFC 5322 §2.1.1: \"Each line of characters MUST be no more than 998 characters\" - a subject word longer than a line as encoded words, a file name in RFC 2231 continuations")]
+        public void No_line_of_the_older_builders_is_longer_than_998_characters()
+        {
+
+            var name    = String.Concat(Enumerable.Repeat("报告", 60)) + ".pdf";
+            var builder = new TextEMailBuilder {
+                              From     = Address("mary@example.net", "Mary Smith"),
+                              Subject  = "See https://example.org/" + new String('a', 1200),
+                              Text     = "Hello."
+                          };
+
+            builder.To.Add(Address("john@example.org"));
+            builder.AddAttachment([ 1, 2, 3 ], name, MailContentTypes.application_octet__stream);
+
+            EMail mail  = builder;
+            var text    = Text(mail);
+
+            Assert.Multiple(() => {
+                Assert.That(text.Split("\r\n").Max(line => line.Length),           Is.LessThanOrEqualTo(998), text.Split("\r\n").MaxBy(line => line.Length));                Assert.That(Header(text, "Subject"),                               Does.StartWith("=?UTF-8?Q?See_https"));
+                Assert.That(EMail.Parse(text.Split("\r\n")).Subject,               Is.EqualTo(builder.Subject), "reads back as it was");
+                Assert.That(mail.Body.NestedBodyparts.Last().ContentDisposition,   Does.StartWith("attachment; filename*0*=utf-8''%E6%8A%A5"));
+            });
+
+        }
+
         [Test]
         public void Ids_and_the_date_are_written_as_RFC_5322_has_them()
         {

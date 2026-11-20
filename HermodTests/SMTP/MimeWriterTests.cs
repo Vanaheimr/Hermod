@@ -231,6 +231,119 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         #endregion
 
 
+        #region No_line_is_longer_than_998_characters
+
+        private static String Unfolded(String Header, String Name)
+
+            => Regex.Replace(Regex.Match(Header, $@"^{Name}:([^\r\n]*(?:\r\n[ \t][^\r\n]*)*)", RegexOptions.Multiline).Groups[1].Value,
+                             @"\r\n(?=[ \t])",
+                             "");
+
+        private static Int32 LongestLine(Byte[] Octets)
+            => Encoding.ASCII.GetString(Octets).Split("\r\n").Max(line => line.Length);
+
+        [Test(Description = "RFC 5322 §2.1.1: \"Each line of characters MUST be no more than 998 characters\"; RFC 2047 §5 (1): encoded words \"in any Subject or Comments header field ... or in any unstructured text\"")]
+        public void A_subject_word_longer_than_a_line_is_written_as_encoded_words()
+        {
+
+            var url     = "https://example.org/" + new String('a', 1200);
+            var mail    = Mail();
+            mail.Subject = "See " + url + " please";
+
+            var octets  = mail.ToBytes();
+
+            Assert.Multiple(() => {
+                Assert.That(LongestLine(octets),                    Is.LessThanOrEqualTo(78));
+                Assert.That(Encoding.ASCII.GetString(octets),       Does.Contain("Subject: =?UTF-8?Q?See_https"));
+                Assert.That(MimeMessage.Parse(octets).Subject,      Is.EqualTo(mail.Subject), "reads back as it was");
+            });
+
+        }
+
+        [Test(Description = "RFC 5322 §2.1.1: \"Each line of characters MUST be no more than 998 characters\"; RFC 2045 §6.8: in base64 \"All line breaks or other characters not found in Table 1 must be ignored\" - the keydata of an Autocrypt header is folded inside, not encoded")]
+        public void A_further_header_word_longer_than_a_line_is_folded_inside()
+        {
+
+            var keydata = Convert.ToBase64String([ .. Enumerable.Range(0, 2250).Select(i => (Byte) i) ]);
+            var mail    = Mail();
+            mail.Headers.Add(("Autocrypt", "addr=joerg@example.org; keydata=" + keydata));
+
+            var octets  = mail.ToBytes();
+            var value   = Unfolded(Encoding.ASCII.GetString(octets), "Autocrypt");
+
+            Assert.Multiple(() => {
+                Assert.That(LongestLine(octets),                                        Is.LessThanOrEqualTo(78));
+                Assert.That(value,                                                      Does.StartWith(" addr=joerg@example.org; keydata="), "no encoded word");
+                Assert.That(Regex.Replace(value[(value.IndexOf("keydata=") + 8)..], @"\s", ""), Is.EqualTo(keydata), "the key data without the white space it was folded with");
+            });
+
+        }
+
+        [Test(Description = "RFC 2231 §3: \"Long MIME media type or disposition parameter values do not interact well with header line wrapping conventions\" - a file name too long for a line is written in continuations, name*0*= name*1*=, and reads back as it was")]
+        public void A_parameter_longer_than_a_line_is_written_in_RFC_2231_continuations()
+        {
+
+            var name    = String.Concat(Enumerable.Repeat("报告", 60)) + ".pdf";
+            var ascii   = new String('x', 1200) + ".pdf";
+
+            Byte[] With(String FileName)
+            {
+                var mail  = Mail();
+                mail.Body = new MimeMultipart("mixed", [ new MimeTextPart("Anbei."), new MimeAttachment(Pdf, "application/pdf", FileName) ]);
+                return mail.ToBytes();
+            }
+
+            var chinese = With(name);
+            var long_   = With(ascii);
+
+            Assert.Multiple(() => {
+
+                Assert.That(LongestLine(chinese),                                       Is.LessThanOrEqualTo(78));
+                Assert.That(Encoding.ASCII.GetString(chinese),                          Does.Contain("filename*0*=utf-8''%E6%8A%A5"));
+                Assert.That(Encoding.ASCII.GetString(chinese),                          Does.Contain("filename*1*="));
+                Assert.That(MimeMessage.Parse(chinese).Attachments.Single().FileName,   Is.EqualTo(name));
+
+                Assert.That(LongestLine(long_),                                         Is.LessThanOrEqualTo(78), "an ASCII name too");
+                Assert.That(MimeMessage.Parse(long_).Attachments.Single().FileName,     Is.EqualTo(ascii));
+
+                Assert.That(MimeEncoding.Parameter("filename", "Übersicht 2026.pdf"),   Is.EqualTo("filename*=utf-8''%C3%9Cbersicht%202026.pdf"), "one that fits stays whole");
+
+            });
+
+        }
+
+        [Test(Description = "RFC 5322 §2.1.1: \"Each line of characters MUST be no more than 998 characters\" - a display name with a word too long for a line is written as encoded words, a message id that long is refused")]
+        public void A_long_display_name_is_encoded_and_a_long_message_id_refused()
+        {
+
+            var name    = "Doe, " + new String('J', 1200);
+            var mail    = Mail();
+            mail.To.Add(new MailboxAddress(name, "jj@example.com"));
+
+            var octets  = mail.ToBytes();
+
+            Assert.Multiple(() => {
+
+                Assert.That(LongestLine(octets),                                          Is.LessThanOrEqualTo(78));
+                Assert.That(MimeMessage.Parse(octets).To.Last(),                          Is.EqualTo(new MailboxAddress(name, "jj@example.com")));
+
+                var longId  = Mail();
+                longId.MessageId = new String('a', 1200) + "@example.org";
+                Assert.Throws<ArgumentException>(() => longId.ToBytes(),                  "no folding can write it");
+
+                var longRef = Mail();
+                longRef.References.Add(new String('a', 1200) + "@example.org");
+                Assert.Throws<ArgumentException>(() => longRef.ToBytes());
+
+                Assert.Throws<ArgumentException>(() => MimeEncoding.Fold("X-Test", [ (new String('x', 1000), false) ]));
+
+            });
+
+        }
+
+        #endregion
+
+
         #region An_answer_finds_its_subject_its_thread_and_its_recipients()
 
         [Test]
