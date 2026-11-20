@@ -110,6 +110,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 var octet = Body[i];
 
+                // RFC 2045 §6.7 (3): "when decoding a Quoted-Printable body, any
+                // trailing white space on a line must be deleted, as it will
+                // necessarily have been added by intermediate transport agents".
+                if (octet is (Byte) ' ' or (Byte) '\t')
+                {
+
+                    var end = i + 1;
+                    while (end < Body.Length && Body[end] is (Byte) ' ' or (Byte) '\t')
+                        end++;
+
+                    if (end < Body.Length && Body[end] is not ((Byte) '\r' or (Byte) '\n'))
+                        for (var k = i; k < end; k++)
+                            output.Add(Body[k]);
+
+                    i = end - 1;
+                    continue;
+
+                }
+
                 if (octet != '=')
                 {
                     output.Add(octet);

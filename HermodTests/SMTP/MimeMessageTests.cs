@@ -345,6 +345,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [TestCase("padded by a relay  \r\nand a tab\t\r\nlast",  "padded by a relay\r\nand a tab\r\nlast",  TestName = "Trailing spaces and tabs before CR LF go")]
+        [TestCase("bare LF \nlast \t",                          "bare LF\nlast",                          TestName = "Trailing white space before a bare LF and at the end goes")]
+        [TestCase("encoded=20\r\nand=09\r\nnext",               "encoded \r\nand\t\r\nnext",              TestName = "Encoded white space at the end of a line stays (guard)")]
+        [TestCase("inner  space stays =\r\nsoft",              "inner  space stays soft",                TestName = "White space before a soft line break and inside a line stays (guard)")]
+        [Test(Description = "RFC 2045 §6.7 (3): \"when decoding a Quoted-Printable body, any trailing white space on a line must be deleted, as it will necessarily have been added by intermediate transport agents\"")]
+        public void Quoted_printable_decoding_deletes_trailing_white_space(String Encoded, String Decoded)
+        {
+            Assert.That(Encoding.ASCII.GetString(TransferEncodings.DecodeQuotedPrintable(Encoding.ASCII.GetBytes(Encoded))), Is.EqualTo(Decoded));
+        }
+
         [TestCase("x-private-scheme",  TestName = "An unknown Content-Transfer-Encoding makes the part application/octet-stream")]
         [TestCase("x-uuencode",        TestName = "x-uuencode, which Hermod does not decode, makes the part application/octet-stream")]
         [Test(Description = "RFC 2045 §6.4: \"Any entity with an unrecognized Content-Transfer-Encoding must be treated as if it has a Content-Type of \"application/octet-stream\", regardless of what the Content-Type header field actually says\"")]
