@@ -257,6 +257,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [TestCase("Fri, 21 Nov 1997 09:55:06 EST",                    "1997-11-21T09:55:06-05:00",  TestName = "EMail: RFC 5322 §4.3 obs-zone EST")]
+        [TestCase("Fri, 21 Nov 1997 09:55:06 PDT",                    "1997-11-21T09:55:06-07:00",  TestName = "EMail: RFC 5322 §4.3 obs-zone PDT")]
+        [TestCase("Fri, 21 Nov 1997 09:55:06 UT",                     "1997-11-21T09:55:06+00:00",  TestName = "EMail: RFC 5322 §4.3 obs-zone UT")]
+        [TestCase("Fri, 21 Nov 1997 09(comment):   55  :  06 -0600",  "1997-11-21T09:55:06-06:00",  TestName = "EMail: RFC 5322 A.6.3, a comment in the time")]
+        [TestCase("Wed, 14 Oct 2026 09:30:00 +0200 (CEST)",           "2026-10-14T09:30:00+02:00",  TestName = "EMail: RFC 5322 §3.3 with a comment after the zone (guard)")]
+        [Test(Description = "RFC 5322 §4.3 obs-zone and obs-hour/-minute/-second, read by the older EMail.Parse; §4: obsolete forms \"MUST be accepted and parsed by a conformant receiver\"")]
+        public void Obsolete_dates_are_read_by_the_old_model(String Text, String Expected)
+        {
+
+            var email = EMail.Parse([ "From: someone@example.org", "Date: " + Text, "", "x" ]);
+
+            Assert.That(email.Date,         Is.EqualTo(DateTimeOffset.Parse(Expected)));
+            Assert.That(email.Date.Offset,  Is.EqualTo(DateTimeOffset.Parse(Expected).Offset));
+
+        }
+
         #endregion
 
         #region Content-Type and RFC 2231

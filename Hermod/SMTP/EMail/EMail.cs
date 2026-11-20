@@ -158,8 +158,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// A date as RFC 5322 §3.3 has it - "Fri, 16 Oct 2026 09:30:00 +0200" - or as
         /// anything else .NET reads; none, when it is neither.
         /// </summary>
+        /// <remarks>
+        /// The obsolete forms of §4.3 - "EST", "UT", comments and white space inside
+        /// the time - "MUST be accepted and parsed by a conformant receiver" (§4); the
+        /// MIME reader's <see cref="MimeDate"/> reads them, and reads them here too.
+        /// </remarks>
         private static DateTimeOffset? ParseDate(String Text)
         {
+
+            if (MimeDate.TryParse(Text, out var mimeDate))
+                return mimeDate;
 
             // A comment after the zone - "(CEST)" - goes, and "+0200" becomes the "+02:00" .NET reads.
             var text = System.Text.RegularExpressions.Regex.Replace(Text, @"\s*\([^)]*\)\s*$", "").Trim();
