@@ -210,6 +210,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [TestCase("Grüße, Freunde",     "=?UTF-8?Q?Gr=C3=BC=C3=9Fe=2C_Freunde?= <friends.list.example.org>")]
+        [TestCase("Friends, Romans",    "\"Friends, Romans\" <friends.list.example.org>")]
+        [TestCase("Hermod developers",  "Hermod developers <friends.list.example.org>")]
+        [TestCase("",                   "<friends.list.example.org>")]
+        [Test(Description = "RFC 2919 §3: \"The list header fields are subject to the encoding and character restrictions for mail headers\"; list-id-header = \"List-ID:\" [phrase] \"<\" list-id \">\" - a description that is not ASCII as encoded words, one with a comma as a quoted string")]
+        public void A_list_description_is_written_as_a_phrase_of_ASCII(String Description, String Expected)
+        {
+
+            var builder = new TextEMailBuilder {
+                              From     = Address("alice@example.com"),
+                              Subject  = "List",
+                              Text     = "Hallo",
+                              ListId   = ListId.Parse(Description.Length > 0 ? $"\"{Description}\" <friends.list.example.org>" : "<friends.list.example.org>")
+                          };
+
+            builder.To.Add(Address("bob@example.org"));
+
+            var value = Header(Text(builder), "List-ID");
+
+            Assert.Multiple(() => {
+                Assert.That(value,                          Is.EqualTo(Expected));
+                Assert.That(value.All(c => c is >= ' ' and <= '~'), Is.True, "printable ASCII");
+                Assert.That(ListId.Parse(value)?.Name,      Is.EqualTo(Description), "reads back as it was");
+            });
+
+        }
+
         [Test]
         public void Ids_and_the_date_are_written_as_RFC_5322_has_them()
         {
