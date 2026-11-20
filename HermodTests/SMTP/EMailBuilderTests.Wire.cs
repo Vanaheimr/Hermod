@@ -302,6 +302,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test(Description = "RFC 2046 §5.1.1: boundary := 0*69<bchars> bcharsnospace, bcharsnospace := DIGIT / ALPHA / \"'\" / \"(\" / \")\" / \"+\" / \"_\" / \",\" / \"-\" / \".\" / \"/\" / \":\" / \"=\" / \"?\"; \"Boundary delimiters must not appear within the encapsulated material\"")]
+        public void The_boundaries_of_the_older_builders_follow_the_grammar()
+        {
+
+            var builder = new HTMLEMailBuilder("<p>Grüße</p>", "Grüße") { From = Address("alice@example.com"), Subject = "HTML" };
+            builder.To.Add(Address("bob@example.org"));
+            builder.AddAttachment([ 1, 2, 3 ], "data.bin", MailContentTypes.application_octet__stream);
+
+            var text        = Text(builder);
+            var boundaries  = Regex.Matches(Regex.Replace(text, @"\r\n(?=[ \t])", ""), @"boundary=""([^""]*)""").Select(match => match.Groups[1].Value).ToList();
+
+            Assert.Multiple(() => {
+
+                Assert.That(boundaries,                                                      Has.Count.EqualTo(2), "mixed around alternative");
+                Assert.That(boundaries.Distinct().Count(),                                   Is.EqualTo(2));
+
+                foreach (var boundary in boundaries)
+                {
+                    Assert.That(Regex.IsMatch(boundary, @"^[0-9A-Za-z'()+_,\-./:=? ]{0,69}[0-9A-Za-z'()+_,\-./:=?]$"), Is.True, boundary);
+                    Assert.That(text.Split("\r\n").Where(line => line.Contains(boundary) && !line.Contains("boundary=") && line != "--" + boundary && line != "--" + boundary + "--"),
+                                Is.Empty, "only in its delimiter lines");
+                    Assert.That(boundaries.Where(other => other != boundary && other.StartsWith(boundary)), Is.Empty, "no prefix of another (§5.1.2)");
+                }
+
+                Assert.That(EMail.Parse(text.Split("\r\n")).Body.NestedBodyparts.Count(),     Is.EqualTo(2), "read back: the alternative and the attachment");
+
+            });
+
+        }
+
         [Test]
         public void An_attachment_is_base64_in_lines_and_its_name_encoded()
         {

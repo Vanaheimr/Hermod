@@ -226,13 +226,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Generate a valid MIME boundary, if it does not exist.
         /// </summary>
+        /// <remarks>
+        /// RFC 2046 §5.1.1: boundary := 0*69&lt;bchars&gt; bcharsnospace, of digits,
+        /// letters and '()+_,-./:=? - "a set of characters known to be very robust
+        /// through mail gateways"; the "-8&lt;--" scissors this used to write are
+        /// none of them. The boundary is the MIME writer's: "=_", which neither
+        /// base64 nor quoted-printable ever writes, and a random number - in no part
+        /// by chance, and of one length, so that no boundary is the prefix of another
+        /// (§5.1.2).
+        /// </remarks>
         public MailContentType GenerateMIMEBoundary()
         {
 
             if (MIMEBoundary is null)
             {
 
-                MIMEBoundary = "-8<--" + ContentType.ToString().Replace("_", "/") + "--8<--" + RandomExtensions.RandomBytes(12).ToHexString() + "--8<-";
+                MIMEBoundary = MimeEncoding.NewBoundary();
 
                 //// Update text-version within the e-mail header
                 //if (AbstractEMail is not null)
