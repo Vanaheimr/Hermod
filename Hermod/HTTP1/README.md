@@ -951,7 +951,9 @@ and the thirty-eight below select **782 passing, 0 failed, 0 skipped**.
 makes thirty-nine. On master `4b8be28a` they select **786 passing, 0 failed,
 0 skipped**. `HTTPClientRedirectTests` and `HTTPClientChallengeTests` came on
 2026-11-20 with the client's half of finding H-38 and joined with it, which
-makes forty-one and **811**: the 786 and their 25.
+makes forty-one, and H-41 added eight cases to `HTTPClientProtocolRegressionTests`
+the same day. On master `7d821a1c` they select **819 passing, 0 failed,
+0 skipped**: the 786, H-38's 25 and H-41's 8.
 
 Run it with:
 
