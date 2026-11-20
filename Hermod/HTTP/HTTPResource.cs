@@ -15,16 +15,17 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
     /// A representation of a resource, for the purposes of GET/HEAD/OPTIONS and
-    /// the conditional/range machinery in <see cref="HTTPSemantics"/>. Deliberately
+    /// the conditional/range machinery in <see cref="HTTPResourceSemantics"/>. Deliberately
     /// has no notion of streams, frames, or HPACK — RFC 9110 (HTTP Semantics) is
     /// version-independent, shared unchanged across HTTP/1.1, HTTP/2, and HTTP/3;
-    /// this type and <see cref="HTTPSemantics"/> could sit in front of any of
-    /// them without modification.
+    /// this type and <see cref="HTTPResourceSemantics"/> sit in front of HTTP/2
+    /// through <see cref="HTTP2.HTTPSemantics"/> and in front of HTTP/1.x
+    /// through <see cref="HTTPResourceHandlers"/>.
     /// </summary>
     public sealed class HTTPResource
     {
@@ -43,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Section 8.4) — the "Accept-Encoding" negotiation axis, e.g. "gzip".
         /// Null means the body is unencoded ("identity"). An app can pre-provide
         /// encoded variants here (picked by negotiation among the variants it
-        /// supplies); separately, <see cref="HTTPSemantics.Wrap"/> can compress an
+        /// supplies); separately, <see cref="HTTPResourceSemantics"/> can compress an
         /// identity body on the fly when <c>CompressResponses</c> is enabled — a
         /// pre-encoded variant is never re-compressed.
         /// </summary>

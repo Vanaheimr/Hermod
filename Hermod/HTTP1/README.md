@@ -22,9 +22,9 @@ Last verified: **2026-11-20**
 | Specification | Hermod support |
 |---|---|
 | [RFC 1945](https://www.rfc-editor.org/rfc/rfc1945.html), HTTP/1.0 | Implemented and regression-tested for requests, responses, `Content-Length`, close-delimited responses, default connection closing, optional negotiated keep-alive, and HTTP/1.0-specific rejection/fallback behavior. |
-| [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host` and the §7.4 refusal of a request for an origin the TLS certificate does not cover (since 2026-10-29), connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Every status code in the IANA registry is defined with its registered reason phrase. Six carried pre-RFC-9110 phrases until 2026-10-03; five now match the registry (413 `Content Too Large`, 414 `URI Too Long`, 416 `Range Not Satisfiable`, 422 `Unprocessable Content` and 306 `(Unused)`) without any field being renamed, since the wire carries the phrase and downstream code refers to the field. 418 keeps `I'm a teapot`, which RFC 9110 does not mention and RFC 2324 does. `HTTPStatusCodeTests` pins that one remaining divergence. Resource semantics remain application-defined. |
+| [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host` and the §7.4 refusal of a request for an origin the TLS certificate does not cover (since 2026-10-29), connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Every status code in the IANA registry is defined with its registered reason phrase. Six carried pre-RFC-9110 phrases until 2026-10-03; five now match the registry (413 `Content Too Large`, 414 `URI Too Long`, 416 `Range Not Satisfiable`, 422 `Unprocessable Content` and 306 `(Unused)`) without any field being renamed, since the wire carries the phrase and downstream code refers to the field. 418 keeps `I'm a teapot`, which RFC 9110 does not mention and RFC 2324 does. `HTTPStatusCodeTests` pins that one remaining divergence. Resource semantics remain application-defined, unless a resource is registered with `AddResource`: then negotiation, preconditions and ranges (§12–14) come from the library, the same code HTTP/2 uses, since 2026-11-20 — see "Resources: negotiation, preconditions and ranges". |
 | [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html), HTTP/1.1 message syntax and routing | Implemented and regression-tested for start lines, header parsing, message framing, persistent connections, pipelining, chunked transfer coding, trailers, and malformed-message rejection. |
-| [RFC 10008](https://www.rfc-editor.org/rfc/rfc10008.html), HTTP `QUERY` method | The method is modeled as safe and idempotent and is end-to-end tested with fixed-length and chunked request content, trailers, and chunk extensions. Media-type policy, `Accept-Query`, caching, conditional requests, and query-result URI policy are handler responsibilities. |
+| [RFC 10008](https://www.rfc-editor.org/rfc/rfc10008.html), HTTP `QUERY` method | The method is modeled as safe and idempotent and is end-to-end tested with fixed-length and chunked request content, trailers, and chunk extensions. Media-type policy, `Accept-Query`, caching, conditional requests, and query-result URI policy are handler responsibilities, except for a resource registered with `AddResource` and a query handler: its `QUERY` runs through the `GET` pipeline, conditional requests and negotiation included, content without a `Content-Type` is a `400` (RFC 10008, Section 4), and the result can name its own URI in `Content-Location`. |
 | [RFC 4918](https://www.rfc-editor.org/rfc/rfc4918.html), WebDAV | Method tokens are modeled (`COPY`, `LOCK`, `MKCOL`, `MOVE`, `PROPFIND`, `PROPPATCH`, and `UNLOCK`). Hermod does not provide a complete WebDAV resource implementation. |
 | [RFC 7617](https://www.rfc-editor.org/rfc/rfc7617.html), Basic authentication | Typed parsing/serialization and end-to-end server authorization tests, including challenge, malformed credentials, invalid credentials, and forbidden users. Authentication policy is configured by the application. The client answers a challenge when it is given `Credentials`, since 2026-11-20; see [The client: challenges and redirects](#the-client-challenges-and-redirects). |
 | [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750.html), Bearer tokens | Typed Bearer authorization parsing/serialization is available. Token validation and authorization policy are application concerns. The client answers a Bearer challenge with a token from its `Credentials`. |
@@ -829,6 +829,62 @@ SSE is not a separate HTTP version and uses the normal HTTP/1.1 connection and
 stream lifecycle. It is specified by the WHATWG HTML Living Standard rather
 than an IETF RFC.
 
+## Resources: negotiation, preconditions and ranges
+
+Since 2026-11-20 a resource can leave RFC 9110's core mechanics to the
+library. Its handler says what the representation is, and the library answers
+the request:
+
+```csharp
+httpAPI.AddResource(
+    HTTPPath.Root + "report.txt",
+    (path, headers, cancellationToken) => Task.FromResult<HTTPResource?>(
+        new HTTPResource {
+            Body          = bytes,
+            ContentType   = "text/plain; charset=utf-8",
+            LastModified  = modified
+        }
+    )
+);
+```
+
+| | |
+|---|---|
+| Preconditions (Section 13) | `If-Match`, `If-Unmodified-Since`, `If-None-Match` and `If-Modified-Since` in Section 13.2.2's order: a `412`, or a `304` with the validators and no content |
+| Ranges (Section 14) | One range is a `206` with `Content-Range`, several are one `multipart/byteranges` body, and none satisfiable is a `416` with `bytes */length`. `If-Range` lets a range through only on the current strong entity-tag or the exact date. An unknown unit, a malformed set or more than 100 ranges is ignored, and the answer is a `200` (Section 14.2) |
+| Negotiation (Section 12) | An `HTTPVariantHandler` returns several representations. `Accept`, `Accept-Encoding` and `Accept-Language` pick one, `Vary` names every axis on which they differ, and a `406` comes only when every one is refused with `q=0` |
+| Validators | An `ETag` derived from the octets unless the representation states one, `Last-Modified` when it has one, `Accept-Ranges: bytes` |
+| `QUERY` (RFC 10008) | With a query handler, the result runs through the same pipeline as a `GET`. Content without a `Content-Type` is a `400`, and `Content-Location` can name a URI for the result |
+
+`CompressResponses` and `ContentDigests` are off by default, as on HTTP/2.
+The server's `AutomaticContentCompression` and `AutomaticContentDigests` apply
+to these answers as to any other handler's.
+
+It is the code HTTP/2 has used all along through `HTTPSemantics.Wrap`. The
+rules moved out of `HTTP2/Core` into the version-neutral
+`HTTPResourceSemantics` in `Hermod/HTTP/`, together with `HTTPResource` and
+the three handler delegates, and `HTTP2.HTTPSemantics.Wrap` kept its
+signatures. `HTTPResourceHandlers` adapts it to HTTP/1.x. The header fields go
+in under their lower-case names, and the target goes in as sent, in origin
+form with its query. The answer comes back with each field under its usual
+spelling, and `Content-Type` verbatim: the typed field keeps a charset and
+nothing else.
+
+Two things stay the server's:
+
+- **`HEAD`** is derived from the `GET` handler, which is called with the
+  request's own method. A conditional `HEAD` therefore gets its `304`, and a
+  `HEAD` with a `Range` gets the whole length, since Section 14.2 defines
+  ranges for `GET` alone.
+- **`OPTIONS` and the `405`** come from the methods registered. `QUERY` is
+  among them only where a query handler was given.
+
+It is opt-in. A handler registered with `AddHandler` still sees every
+precondition and range as typed fields and decides for itself. Before, the
+stack made this decision twice, in opposite directions: a library layer on
+HTTP/2, and every HTTP/1.x handler's own work. `HTTPStandardHandlers`' static
+files and `SinglePageAppHandler` do not use the layer yet.
+
 ## Headers, authentication, and application semantics
 
 Hermod has typed models for many common request and response fields and also
@@ -889,9 +945,10 @@ The presence of a typed field does not imply an automatic policy engine:
 - Basic and Bearer credentials can be parsed and serialized; handlers decide
   whether credentials are valid and authorized.
 - Conditional fields and ETags are available to handlers; Hermod is not a
-  shared HTTP cache.
+  shared HTTP cache. A resource registered with `AddResource` has its
+  preconditions evaluated by the library instead.
 - Range and `Content-Range` fields are modeled; handlers select and generate
-  partial representations.
+  partial representations, or leave it to `AddResource`.
 - CORS fields are modeled, and the one part no handler can reach — the
   preflight — is available as an opt-in `HTTPCORSPipeline` carrying a
   `CORSPolicy` the application states. A server that installs none does no CORS,
@@ -955,6 +1012,8 @@ and `DotNetHTTPClientTests_MinimalAPI`.
   `HTTPStatusCodeTests`, `HTTPHeadDerivedFromGetTests`,
   `HTTPServerTraceTests`, `HTTPCORSPreflightTests`, `EarlyHintsTests`,
   `ProblemDetailsTests`, `HTTPClientRedirectTests`
+- **Resources — negotiation, preconditions and ranges:**
+  `HTTPResourceSemanticsTests`
 - **TLS, and the origin a connection is for:**
   `HTTPServerListenerMatrixTests`, `HTTPServerALPNTests`,
   `HTTPServerAllowedTLSProtocolsTests`, `HTTPSClientTLSByDefaultTests`,
@@ -995,12 +1054,13 @@ the same day. On master `7d821a1c` they select **819 passing, 0 failed,
 0 skipped**: the 786, H-38's 25 and H-41's 8. `HTTPClientDownloadTests` came
 with H-38's second half and joined with it, which makes forty-two, and the
 same change put two cases into `ChunkedFramingTests`: **833**, the 819 and
-their 14.
+their 14. `HTTPResourceSemanticsTests` came with finding H-37 and joined with
+it, which makes forty-three: **880**, the 833 and its 47.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests"
 ```
 
 ## Deliberate exclusions and qualification
@@ -1012,8 +1072,8 @@ scope, with these explicit boundaries:
   routing, proxy authentication, and intermediary transformations are out of
   scope.
 - It does not provide a shared RFC 9111 cache.
-- It does not automatically implement application-specific conditional,
-  range, WebDAV, or QUERY semantics.
+- It applies conditional, range and QUERY semantics only to a resource
+  registered with `AddResource`, and WebDAV semantics not at all.
 - WebSocket is tested and maintained as a separate subsystem; the HTTP/1.1
   server only hands a request that asks for an upgrade over to it
   (`WebSocketUpgrade.For`).
