@@ -461,6 +461,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region AChunkCutShortStillHandsOverWhatArrived()
+
+        /// <summary>
+        /// A chunk that announces 1000 octets, carries 700 and then the connection
+        /// ends. The 700 are read and returned; the read after them reports the
+        /// broken framing. Until H-38's second half, ReadAsync and Read went on
+        /// reading to fill the caller's buffer, and the exception that ended the
+        /// chunk took the 700 with it: the first read threw, and a caller could not
+        /// tell how much of the body had come.
+        /// </summary>
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task AChunkCutShortStillHandsOverWhatArrived(Boolean Async)
+        {
+
+            var octets  = Enumerable.Range(0, 700).Select(i => (Byte) (i % 251)).ToArray();
+            var wire    = new MemoryStream([.. Encoding.ASCII.GetBytes("3e8\r\n"), .. octets]);
+            var chunked = new ChunkedTransferEncodingStream(wire);
+            var buffer  = new Byte[64 * 1024];
+            var arrived = new MemoryStream();
+
+            Int32 Read()
+                => Async
+                       ? chunked.ReadAsync(buffer.AsMemory()).AsTask().GetAwaiter().GetResult()
+                       : chunked.Read(buffer, 0, buffer.Length);
+
+            var first = Read();
+            arrived.Write(buffer, 0, first);
+
+            Assert.Multiple(() => {
+                Assert.That(first,             Is.GreaterThan(0), "the first read returns what arrived");
+                Assert.That(() => {
+                                while (true)
+                                {
+                                    var read = Read();
+                                    if (read == 0) break;
+                                    arrived.Write(buffer, 0, read);
+                                }
+                            },
+                            Throws.InstanceOf<HTTPInvalidChunkException>());
+                Assert.That(arrived.ToArray(), Is.EqualTo(octets));
+            });
+
+            await Task.CompletedTask;
+
+        }
+
+        #endregion
+
     }
 
 }

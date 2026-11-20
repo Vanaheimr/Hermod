@@ -18,6 +18,8 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 {
 
+    using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
     /// <summary>
     /// The head of a response — its <c>:status</c> and header fields — surfaced by a
     /// streaming exchange (<see cref="HTTP2ClientStream"/>) as soon as the response

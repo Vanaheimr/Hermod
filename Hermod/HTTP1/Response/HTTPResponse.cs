@@ -722,6 +722,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public IReadOnlyList<String>        RedirectChain             { get; internal set; } = [];
 
+        /// <summary>
+        /// Why a body the client handed to a sink as it arrived broke off before
+        /// its end, or null when it did not. Set by AHTTPClient for DownloadAsync,
+        /// which resumes from where the body stopped.
+        /// </summary>
+        internal Exception?                 BodyInterruption          { get; set; }
+
         #endregion
 
         #region Constructor(s)
