@@ -306,6 +306,118 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
 
         #endregion
 
+        #region TOTPConfig_JSONRoundtrip
+
+        /// <summary>
+        /// What ToJSON() writes, TryParse() reads back - every field, under
+        /// the names of the token format specification's Appendix B.
+        /// </summary>
+        [Test]
+        public void TOTPConfig_JSONRoundtrip()
+        {
+
+            var original = new TOTPConfig(
+                               sharedSecret,
+                               TimeSpan.FromSeconds(60),
+                               16,
+                               "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
+                               TOTPHashAlgorithm.SHA512,
+                               TLSChannelBinding: true
+                           );
+
+            var json = original.ToJSON();
+
+            Assert.Multiple(() => {
+                Assert.That(json["length"]?.Value<UInt32>(), Is.EqualTo(16));
+                Assert.That(json["totpLength"],              Is.Null);
+            });
+
+            Assert.That(TOTPConfig.TryParse(json, out var parsed, out var errorResponse),
+                        Is.True,
+                        errorResponse ?? "");
+
+            Assert.Multiple(() => {
+                Assert.That(parsed?.SharedSecret,       Is.EqualTo(original.SharedSecret));
+                Assert.That(parsed?.ValidityTime,       Is.EqualTo(original.ValidityTime));
+                Assert.That(parsed?.Length,             Is.EqualTo(original.Length));
+                Assert.That(parsed?.Alphabet,           Is.EqualTo(original.Alphabet));
+                Assert.That(parsed?.HashAlgorithm,      Is.EqualTo(original.HashAlgorithm));
+                Assert.That(parsed?.TLSChannelBinding,  Is.EqualTo(original.TLSChannelBinding));
+                Assert.That(parsed,                     Is.EqualTo(original));
+            });
+
+        }
+
+        #endregion
+
+        #region TOTPConfig_JSONRoundtrip_OnlyTheSecret
+
+        /// <summary>
+        /// Absent optional fields stay absent: no "length": null, which
+        /// TryParse() would have to read as a length.
+        /// </summary>
+        [Test]
+        public void TOTPConfig_JSONRoundtrip_OnlyTheSecret()
+        {
+
+            var json = new TOTPConfig(sharedSecret).ToJSON();
+
+            Assert.That(json.Properties().Select(property => property.Name),
+                        Is.EquivalentTo(new[] { "sharedSecret" }));
+
+            Assert.That(TOTPConfig.TryParse(json, out var parsed, out var errorResponse),
+                        Is.True,
+                        errorResponse ?? "");
+
+            Assert.Multiple(() => {
+                Assert.That(parsed?.Length,    Is.Null);
+                Assert.That(parsed?.Alphabet,  Is.Null);
+            });
+
+        }
+
+        #endregion
+
+        #region TOTPConfig_LegacyTOTPLength
+
+        /// <summary>
+        /// Configurations stored for earlier revisions name the length
+        /// "totpLength" - still read, but never together with "length".
+        /// </summary>
+        [Test]
+        public void TOTPConfig_LegacyTOTPLength()
+        {
+
+            Assert.That(TOTPConfig.TryParse(
+                            new JObject(
+                                new JProperty("sharedSecret",  sharedSecret),
+                                new JProperty("totpLength",    8)
+                            ),
+                            out var legacy,
+                            out var errorResponse
+                        ),
+                        Is.True,
+                        errorResponse ?? "");
+
+            Assert.That(legacy?.Length, Is.EqualTo(8));
+
+            Assert.That(TOTPConfig.TryParse(
+                            new JObject(
+                                new JProperty("sharedSecret",  sharedSecret),
+                                new JProperty("length",        8),
+                                new JProperty("totpLength",    9)
+                            ),
+                            out _,
+                            out var ambiguous
+                        ),
+                        Is.False);
+
+            Assert.That(ambiguous, Does.Contain("totpLength"));
+
+        }
+
+        #endregion
+
     }
 
 }

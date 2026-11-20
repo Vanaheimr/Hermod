@@ -238,7 +238,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 #region Parse Length               [optional]
 
-                if (JSON.ParseOptional("totpLength",
+                // "length" is what ToJSON() writes and what the token format
+                // specification names it (Appendix B). "totpLength" is what
+                // earlier revisions read, still taken from configurations
+                // stored for them - but not both at once: which one would win
+                // is not obvious, so neither does.
+                if (JSON.ContainsKey("length") && JSON.ContainsKey("totpLength"))
+                {
+                    ErrorResponse = "The given JSON object must not contain both 'length' and 'totpLength'!";
+                    return false;
+                }
+
+                if (JSON.ParseOptional(JSON.ContainsKey("length") ? "length" : "totpLength",
                                        "length of the time-based one-time password",
                                        out Byte? totpLength,
                                        out ErrorResponse))
@@ -330,8 +341,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                ? new JProperty("validityTime",        ValidityTime.Value.TotalSeconds)
                                : null,
 
-                                 new JProperty("length",              Length),
-                                 new JProperty("alphabet",            Alphabet),
+                           Length.                HasValue
+                               ? new JProperty("length",              Length.Value)
+                               : null,
+
+                           Alphabet is not null
+                               ? new JProperty("alphabet",            Alphabet)
+                               : null,
 
                            TLSChannelBinding.HasValue
                                ? new JProperty("tlsChannelBinding",   TLSChannelBinding.Value)
