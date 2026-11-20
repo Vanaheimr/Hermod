@@ -671,7 +671,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 if (EncryptTheMail)
                 {
 
-                    var Plaintext   = bodypartToBeSecured.ToText().Aggregate((a, b) => a + "\r\n" + b).ToUTF8Bytes();
+                    // "Messages which are encrypted and signed in this combined fashion are REQUIRED to
+                    // follow the same canonicalization rules as multipart/signed objects" (RFC 3156 §6.2).
+                    var Plaintext   = SignableBodypart(bodypartToBeSecured).ToText().Aggregate((a, b) => a + "\r\n" + b).ToUTF8Bytes();
                     var Ciphertext  = new MemoryStream();
 
                     // Encrypt to EVERY recipient (To + Cc) that carries a public key, so each of them
@@ -728,34 +730,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 else if (SignTheMail)
                 {
 
-                    var dataToBeSigned      = bodypartToBeSecured.
+                    // "all data signed according to this protocol MUST be constrained to 7 bits" and
+                    // "implementations MUST make sure that no trailing whitespace is present after the
+                    // MIME encoding has been applied" (RFC 3156 §3) - so the transfer encoding is applied
+                    // to the part first, and that part is what is signed AND what is sent: "(signed
+                    // message and transmitted message MUST be identical)" (§5).
+                    var signedBodypart      = SignableBodypart(bodypartToBeSecured);
+
+                    var dataToBeSigned      = String.Join("\r\n",
 
                                                   // Include headers of this MIME body
                                                   // https://tools.ietf.org/html/rfc1847 Security Multiparts for MIME:
-                                                  ToText().
-
-                                                  // Any trailing whitespace MUST then be removed from the signed material
-                                                  Select(line => line.TrimEnd()).
-
                                                   // Canonical text format with <CR><LF> line endings
                                                   // https://tools.ietf.org/html/rfc3156 5. OpenPGP signed data
-                                                  Aggregate((a, b) => a + "\r\n" + b)
+                                                  signedBodypart.ToText()
 
-                                                  //ToDo: Apply Content-Transfer-Encoding
-                                                  ;
+                                              );
 
                     // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
                     // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
                     // micalg names the hash the signature was made with (RFC 3156 §5): pgp-sha256 for
-                    // SHA-256 - not pgp-sha512 whatever it was.
+                    // SHA-256 - not pgp-sha512 whatever it was - in the text name of RFC 9580 §9.5:
+                    // pgp-sha3-256, not BouncyCastle's Sha3_256.
                     body = new EMailBodypart(ContentTypeBuilder:          AMail => new MailContentType(MailContentTypes.multipart_signed) {
-                                                                               MicAlg    = "pgp-" + HashAlgorithm.ToString().ToLowerInvariant(),
+                                                                               MicAlg    = PgpMime.MicAlg(HashAlgorithm) ?? "pgp-" + HashAlgorithm.ToString().ToLowerInvariant(),
                                                                                Protocol  = "application/pgp-signature"
                                                                            },
                                               ContentTransferEncoding:     "7bit",
                                               NestedBodyparts:             [
 
-                                                                               bodypartToBeSecured,
+                                                                               signedBodypart,
 
                                                                                new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(MailContentTypes.application_pgp__signature) { CharSet = "utf-8" },
                                                                                              //    ContentTransferEncoding:  "8bit",
@@ -785,6 +789,92 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     this.body = bodypartToBeSecured;
 
                 return this;
+
+            }
+
+            #endregion
+
+            #region (private, static) SignableBodypart(Bodypart)
+
+            /// <summary>
+            /// The body part as it can be signed and sent unchanged (RFC 3156 §3): every part in it
+            /// that goes out as it is (7bit, 8bit, binary) although it is not 7-bit ASCII in short
+            /// lines, or has white space at the end of a line, or a line that begins with "From ",
+            /// becomes quoted-printable when it is text and base64 when it is not. Those parts are
+            /// copies - the parts the application gave stay as they are -, and a part that needs no
+            /// encoding is the part itself.
+            /// </summary>
+            /// <param name="Bodypart">A body part to be signed.</param>
+            private static EMailBodypart SignableBodypart(EMailBodypart Bodypart)
+            {
+
+                var transferEncoding = Bodypart.ContentTransferEncoding?.Trim().ToLowerInvariant();
+
+                #region A multipart: its parts, and 7bit for itself
+
+                if (Bodypart.NestedBodyparts.Any())
+                {
+
+                    var nested = Bodypart.NestedBodyparts.Select(SignableBodypart).ToList();
+
+                    // "If an entity is of type "multipart" the Content-Transfer-Encoding is not permitted
+                    // to have any value other than "7bit", "8bit" or "binary"" (RFC 2045 §6.4).
+                    return nested.SequenceEqual(Bodypart.NestedBodyparts) && transferEncoding is not ("8bit" or "binary")
+                               ? Bodypart
+                               : CopyOf(Bodypart,
+                                        transferEncoding is "8bit" or "binary" ? "7bit" : Bodypart.ContentTransferEncoding,
+                                        Bodypart.MailBody,
+                                        nested);
+
+                }
+
+                #endregion
+
+                // Already encoded - quoted-printable, base64 - and 7-bit as it is.
+                if (transferEncoding is not (null or "" or "7bit" or "8bit" or "binary"))
+                    return Bodypart;
+
+                var octets = (MimeCharsets.Find(Bodypart.ContentType?.CharSet) ?? Encoding.UTF8).GetBytes(String.Join("\r\n", Bodypart.MailBody));
+
+                if (!MimeEncoding.NeedsEncoding(octets))
+                    return Bodypart;
+
+                return Bodypart.ContentType is null || Bodypart.ContentType.ContentType.ToString().StartsWith("text_", StringComparison.Ordinal)
+
+                           ? CopyOf(Bodypart,
+                                    "quoted-printable",
+                                    Encoding.ASCII.GetString(MimeEncoding.QuotedPrintable(octets)).Split("\r\n"))
+
+                           : CopyOf(Bodypart,
+                                    "base64",
+                                    Encoding.ASCII.GetString(MimeEncoding.Base64(octets)).TrimEnd('\r', '\n').Split("\r\n"));
+
+            }
+
+            /// <summary>
+            /// A copy of the body part - all of its content headers as they were, Content-ID,
+            /// Content-Disposition, ... - with another transfer encoding and content.
+            /// </summary>
+            private static EMailBodypart CopyOf(EMailBodypart                Bodypart,
+                                                String?                      TransferEncoding,
+                                                IEnumerable<String>          Content,
+                                                IEnumerable<EMailBodypart>?  NestedBodyparts   = null)
+            {
+
+                var copy = new EMailBodypart(ContentTypeBuilder:  _ => Bodypart.ContentType!,
+                                             NestedBodyparts:     NestedBodyparts,
+                                             Content:             Content);
+
+                copy.MailHeaders.Clear();
+
+                foreach (var header in Bodypart.MailHeaders)
+                    if (!header.Key.Equals("Content-Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
+                        copy.MailHeaders.TryAdd(header.Key, header.Value);
+
+                if (TransferEncoding.IsNotNullOrEmpty())
+                    copy.MailHeaders.TryAdd("Content-Transfer-Encoding", TransferEncoding);
+
+                return copy;
 
             }
 

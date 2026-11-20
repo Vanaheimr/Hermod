@@ -183,6 +183,111 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.BouncyCastle
 
         }
 
+
+        #region Integrity protection (RFC 9580 §5.7, §5.13.1)
+
+        /// <summary>
+        /// A plaintext long enough that the octet in the middle of its ciphertext lies inside
+        /// the literal data, far from the signature and the MDC at the end.
+        /// </summary>
+        private static Byte[] LongPlaintext
+            => Encoding.ASCII.GetBytes(String.Join("\r\n", Enumerable.Range(1, 40).Select(i => $"Line {i:00}: pay the invoice to account 4711 as agreed.")));
+
+        /// <summary>
+        /// The plaintext encrypted to the Curve25519 key without compression - so that a
+        /// changed octet changes the plaintext and nothing else complains - in a SEIPD
+        /// packet with its MDC or in the obsolete SED packet without one, and signed
+        /// with the Ed25519 key (one-pass) if asked to.
+        /// </summary>
+        private static Byte[] Encrypt(Byte[] Plaintext, Boolean IntegrityProtected, Boolean Signed)
+        {
+
+            using var output = new MemoryStream();
+
+            var encryption = new PgpEncryptedDataGenerator(Org.BouncyCastle.Bcpg.SymmetricKeyAlgorithmTag.Aes256, IntegrityProtected, new Org.BouncyCastle.Security.SecureRandom());
+            encryption.AddMethod(OpenPGP.ReadPublicKeyRing(PublicKey).GetPublicKeys().Cast<PgpPublicKey>().First(key => key.IsEncryptionKey));
+
+            using (var encrypted = encryption.Open(output, new Byte[1 << 12]))
+            {
+
+                PgpSignatureGenerator? signer = null;
+
+                if (Signed)
+                {
+                    var key = OpenPGP.ReadSecretKey(SecretKey)!;
+                    signer  = new PgpSignatureGenerator(key.PublicKey.Algorithm, Org.BouncyCastle.Bcpg.HashAlgorithmTag.Sha256);
+                    signer.InitSign(PgpSignature.BinaryDocument, key.ExtractPrivateKey(Passphrase.ToCharArray()));
+                    signer.GenerateOnePassVersion(false).Encode(encrypted);
+                }
+
+                using (var literal = new PgpLiteralDataGenerator().Open(encrypted, PgpLiteralData.Binary, "", Plaintext.Length, DateTime.UtcNow))
+                    literal.Write(Plaintext);
+
+                if (signer is not null)
+                {
+                    signer.Update(Plaintext);
+                    signer.Generate().Encode(encrypted);
+                }
+
+            }
+
+            return output.ToArray();
+
+        }
+
+        private static (Byte[] Plaintext, PgpSignatureVerification Signature) Open(Byte[] Ciphertext)
+
+            => OpenPGP.DecryptAndVerify(new MemoryStream(Ciphertext),
+                                        OpenPGP.ReadSecretKeyRingBundle(SecretKey),
+                                        Passphrase,
+                                        OpenPGP.ReadPublicKeyRingBundle(PublicKey));
+
+
+        [TestCase(false, Description = "not signed")]
+        [TestCase(true,  Description = "signed")]
+        [Test(Description = "RFC 9580 §5.13.1: \"A mismatch of the hash indicates that the message has been modified and MUST be treated as a security problem\"; §13.7: \"it SHOULD NOT attempt to parse nor release decrypted data to the user\"")]
+        public void A_ciphertext_changed_in_transit_is_not_decrypted(Boolean Signed)
+        {
+
+            var ciphertext = Encrypt(LongPlaintext, IntegrityProtected: true, Signed);
+            ciphertext[ciphertext.Length / 2] ^= 0x01;
+
+            Assert.Multiple(() => {
+                Assert.That(() => Open(ciphertext),                                                                                     Throws.InstanceOf<PgpException>(), "DecryptAndVerify");
+                Assert.That(() => OpenPGP.Decrypt(new MemoryStream(ciphertext), OpenPGP.ReadSecretKeyRingBundle(SecretKey), Passphrase), Throws.InstanceOf<PgpException>(), "Decrypt");
+            });
+
+        }
+
+        [TestCase(false, Description = "not signed")]
+        [TestCase(true,  Description = "signed")]
+        [Test(Description = "RFC 9580 §5.7: the Symmetrically Encrypted Data packet: \"An implementation SHOULD reject such a packet and stop processing the message\"")]
+        public void A_ciphertext_without_integrity_protection_is_not_decrypted(Boolean Signed)
+        {
+
+            var ciphertext = Encrypt(LongPlaintext, IntegrityProtected: false, Signed);
+
+            Assert.That(() => Open(ciphertext), Throws.InstanceOf<PgpException>());
+
+        }
+
+        [TestCase(false, Description = "not signed")]
+        [TestCase(true,  Description = "signed")]
+        [Test(Description = "RFC 9580 §5.13.1: a SEIPD packet whose MDC holds decrypts - with the signature it carries")]
+        public void An_unchanged_ciphertext_with_its_MDC_is_decrypted(Boolean Signed)
+        {
+
+            var (plaintext, signature) = Open(Encrypt(LongPlaintext, IntegrityProtected: true, Signed));
+
+            Assert.Multiple(() => {
+                Assert.That(plaintext,         Is.EqualTo(LongPlaintext));
+                Assert.That(signature.Status,  Is.EqualTo(Signed ? PgpVerificationStatus.Valid : PgpVerificationStatus.NoSignature));
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

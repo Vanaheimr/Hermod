@@ -334,38 +334,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                        PgpPublicKeyRingBundle  PublicKeys)
         {
 
-            using var decoder = PgpUtilities.GetDecoderStream(ArmoredSignature);
+            PgpSignature? signature = null;
 
-            var factory   = new PgpObjectFactory(decoder);
-            var pgpObject = factory.NextPgpObject();
-
-            // Signatures may be wrapped in a compressed-data packet.
-            if (pgpObject is PgpCompressedData compressed)
+            // The signature comes from whoever sent the message: armor around no base64 or around a
+            // broken packet is a signature that does not verify - a result, not an exception for the
+            // application that checks its incoming mail (RFC 3156 §5: "The second body MUST contain
+            // the OpenPGP digital signature").
+            try
             {
-                factory   = new PgpObjectFactory(compressed.GetDataStream());
-                pgpObject = factory.NextPgpObject();
+
+                using var decoder = PgpUtilities.GetDecoderStream(ArmoredSignature);
+
+                var factory   = new PgpObjectFactory(decoder);
+                var pgpObject = factory.NextPgpObject();
+
+                // Signatures may be wrapped in a compressed-data packet.
+                if (pgpObject is PgpCompressedData compressed)
+                {
+                    factory   = new PgpObjectFactory(compressed.GetDataStream());
+                    pgpObject = factory.NextPgpObject();
+                }
+
+                if (pgpObject is not PgpSignatureList signatureList || signatureList.Count == 0)
+                    return PgpSignatureVerification.NoSignature;
+
+                signature     = signatureList[0];
+                var publicKey = PublicKeys.GetPublicKey(signature.KeyId);
+
+                if (publicKey is null)
+                    return PgpSignatureVerification.NoMatchingKey(signature.KeyId);
+
+                signature.InitVerify(publicKey);
+                signature.Update(SignedData);
+
+                return new PgpSignatureVerification(
+                           signature.Verify()
+                               ? PgpVerificationStatus.Valid
+                               : PgpVerificationStatus.Invalid,
+                           signature.KeyId,
+                           signature.HashAlgorithm,
+                           signature.CreationTime
+                       );
+
             }
-
-            if (pgpObject is not PgpSignatureList signatureList || signatureList.Count == 0)
-                return PgpSignatureVerification.NoSignature;
-
-            var signature = signatureList[0];
-            var publicKey = PublicKeys.GetPublicKey(signature.KeyId);
-
-            if (publicKey is null)
-                return PgpSignatureVerification.NoMatchingKey(signature.KeyId);
-
-            signature.InitVerify(publicKey);
-            signature.Update(SignedData);
-
-            return new PgpSignatureVerification(
-                       signature.Verify()
-                           ? PgpVerificationStatus.Valid
-                           : PgpVerificationStatus.Invalid,
-                       signature.KeyId,
-                       signature.HashAlgorithm,
-                       signature.CreationTime
-                   );
+            catch (Exception e) when (e is IOException or PgpException)
+            {
+                return new PgpSignatureVerification(PgpVerificationStatus.Invalid,
+                                                    signature?.KeyId,
+                                                    signature?.HashAlgorithm);
+            }
 
         }
 
@@ -381,6 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ArmoredCiphertext">The armored (or binary) OpenPGP message.</param>
         /// <param name="SecretKeys">The recipient's secret key ring bundle.</param>
         /// <param name="Passphrase">The passphrase protecting the matching secret key.</param>
+        /// <exception cref="PgpException">No key fits, or the message is not integrity protected, or its integrity check fails - no plaintext is released then (RFC 9580 §5.7, §5.13.1).</exception>
         public static Byte[] Decrypt(Stream                  ArmoredCiphertext,
                                      PgpSecretKeyRingBundle  SecretKeys,
                                      String                  Passphrase)
@@ -401,6 +419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="SecretKeys">The recipient's secret key ring bundle.</param>
         /// <param name="Passphrase">The passphrase protecting the matching secret key.</param>
         /// <param name="SenderPublicKeys">Candidate signer public keys; null to skip signature verification.</param>
+        /// <exception cref="PgpException">No key fits, or the message is not integrity protected, or its integrity check fails - no plaintext is released then (RFC 9580 §5.7, §5.13.1).</exception>
         public static (Byte[] Plaintext, PgpSignatureVerification Signature) DecryptAndVerify(Stream                   ArmoredCiphertext,
                                                                                               PgpSecretKeyRingBundle   SecretKeys,
                                                                                               String                   Passphrase,
@@ -436,6 +455,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             if (encrypted is null || privateKey is null)
                 throw new PgpException("No matching secret key for any of the message's recipients!");
+
+            // The obsolete Symmetrically Encrypted Data packet has no MDC, so nothing tells a changed
+            // ciphertext from the one that was sent: "An implementation SHOULD reject such a packet and
+            // stop processing the message" (RFC 9580 §5.7) - there is no warning to return instead.
+            if (!encrypted.IsIntegrityProtected())
+                throw new PgpException("The message is not integrity protected (no MDC): it is not decrypted!");
 
             var clearFactory = new PgpObjectFactory(encrypted.GetDataStream(privateKey));
             var message      = clearFactory.NextPgpObject();
@@ -512,6 +537,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   );
 
             }
+
+            // The MDC, once all of the decrypted data has been read: "A mismatch of the hash indicates
+            // that the message has been modified and MUST be treated as a security problem" (RFC 9580
+            // §5.13.1), and the plaintext of such a message is not released (§13.7, EFAIL).
+            if (!encrypted.Verify())
+                throw new PgpException("The integrity check (MDC) of the message failed: it was modified, and it is not decrypted!");
 
             return (plaintext, signature);
 
