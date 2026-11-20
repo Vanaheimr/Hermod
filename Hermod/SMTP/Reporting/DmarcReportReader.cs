@@ -105,8 +105,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// gzipped, or the only XML file in a ZIP.
     /// </summary>
     /// <remarks>
-    /// What is read is limited: 20 MiB of XML at most, unpacked, and no DTD - a
-    /// report is something a stranger sends.
+    /// What is read is limited: 20 MiB of XML at most, unpacked, nested no deeper
+    /// than <see cref="MaxDepth"/>, and no DTD - a report is something a stranger
+    /// sends.
     /// </remarks>
     public static class DmarcReportReader
     {
@@ -117,6 +118,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// How large the XML of a report may be, unpacked.
         /// </summary>
         public const Int32 MaxXmlOctets = 20 * 1024 * 1024;
+
+        /// <summary>
+        /// How deep the elements of a report may be nested: the schema of RFC 7489
+        /// Appendix C needs five levels (feedback, record, auth_results, dkim, domain);
+        /// a document nested deeper is no report.
+        /// </summary>
+        public const Int32 MaxDepth = 32;
 
         #endregion
 
@@ -209,10 +217,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             try
             {
 
-                using var reader = XmlReader.Create(new StringReader(Xml), new XmlReaderSettings {
-                                                                               DtdProcessing  = DtdProcessing.Prohibit,
-                                                                               XmlResolver    = null
-                                                                           });
+                var settings = new XmlReaderSettings {
+                                   DtdProcessing  = DtdProcessing.Prohibit,
+                                   XmlResolver    = null
+                               };
+
+                // XmlReaderSettings has no limit on depth, and LINQ to XML reads the text of an
+                // element (XElement.Value) by calling itself once per level - a stranger's
+                // document nested 50000 deep overflows the stack, which no catch survives. What
+                // is nested deeper than a report needs is refused before a tree is built.
+                using (var probe = XmlReader.Create(new StringReader(Xml), settings))
+                {
+                    while (probe.Read())
+                        if (probe.Depth > MaxDepth)
+                            return null;
+                }
+
+                using var reader = XmlReader.Create(new StringReader(Xml), settings);
 
                 var feedback = XDocument.Load(reader).Root;
 

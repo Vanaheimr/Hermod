@@ -173,6 +173,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+
+        #region I-2: how deep a report is nested
+
+        // A report whose domain is nested the given number of levels deep.
+        private static String Nested(Int32 Depth)
+
+            => "<?xml version=\"1.0\"?><feedback><policy_published><domain>" +
+               String.Concat(Enumerable.Repeat("<a>", Depth)) + "example.org" + String.Concat(Enumerable.Repeat("</a>", Depth)) +
+               "</domain></policy_published></feedback>";
+
+        // Parse on a thread with the stack of a server's worker thread on Linux: 1.5 MiB.
+        private static DmarcReceivedReport? ParseOnASmallStack(String Xml)
+        {
+
+            DmarcReceivedReport? report = null;
+
+            var thread = new Thread(() => report = DmarcReportReader.Parse(Xml), 1536 * 1024);
+            thread.Start();
+
+            Assert.That(thread.Join(TimeSpan.FromSeconds(60)), Is.True, "parsed in time");
+
+            return report;
+
+        }
+
+        [TestCase(    100, TestName = "Nesting 100 deep is no report")]
+        [TestCase( 50_000, TestName = "Nesting 50000 deep is no report and does not overflow the stack")]
+        [Description("I-2 - RFC 7489 §7.2.1.1: aggregate reports come by mail from receivers - from strangers; a document nested deeper than the schema of Appendix C needs is no report, and reading it does not end the process")]
+        public void Nesting_deeper_than_a_report_needs_is_no_report(Int32 Depth)
+        {
+
+            Assert.That(ParseOnASmallStack(Nested(Depth)), Is.Null);
+
+        }
+
+        [Test(Description = "I-2 - RFC 7489 Appendix C: a report nested within the limit is read - a guard")]
+        public void Nesting_within_the_limit_is_read()
+        {
+
+            Assert.That(ParseOnASmallStack(Nested(20))?.Domain, Is.EqualTo("example.org"));
+
+        }
+
+        #endregion
+
     }
 
 }
