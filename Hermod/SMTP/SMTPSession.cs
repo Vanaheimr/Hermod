@@ -1416,8 +1416,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     // message (along with the Return-Path header field)" - the only way a mail
                     // client learns the address to return in its MDN. The field names the original
                     // address of one recipient, so the recipients are stored in groups of the same
-                    // ORCPT, each with its own field in front; those without one get the message as
-                    // it is, all together, as before.
+                    // ORCPT, each with its own field in front; those without one - or with one that
+                    // is their own address - get the message as it is, all together, as before.
                     foreach (var group in _localRcptTo.GroupBy(OriginalRecipientField))
                     {
 
@@ -1556,7 +1556,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (address.Length == 0 || address.Any(Char.IsControl))
                 return null;
 
+            // An ORCPT that is the recipient's own address - Postfix, and Hermod's own client, send
+            // one with every RCPT - names no other original address: the field would say what
+            // Final-Recipient says. Writing it would put each such recipient in a group of its own,
+            // a copy per recipient of every message to several.
+            if (addressType.Equals("rfc822", StringComparison.OrdinalIgnoreCase) &&
+                SameMailbox(address, Recipient))
+                return null;
+
             return $"Original-Recipient: {addressType};{address}\r\n";
+
+        }
+
+
+        /// <summary>
+        /// Whether two addr-specs name the same mailbox: the local-part as it is, as RFC 5321
+        /// §2.4 has it ("MUST be treated as case sensitive"), the domain without case.
+        /// </summary>
+        private static Boolean SameMailbox(String Address, String Recipient)
+        {
+
+            var a = Address.  Trim().TrimStart('<').TrimEnd('>');
+            var r = Recipient.Trim().TrimStart('<').TrimEnd('>');
+
+            var atA = a.LastIndexOf('@');
+            var atR = r.LastIndexOf('@');
+
+            return atA > 0 && atR > 0 &&
+                   a[..atA].Equals(r[..atR], StringComparison.Ordinal) &&
+                   a[(atA + 1)..].Equals(r[(atR + 1)..], StringComparison.OrdinalIgnoreCase);
 
         }
 

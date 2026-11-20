@@ -450,6 +450,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
+        [Test(Description = "RFC 5321 §3.3: one transaction, one message - an ORCPT that is the recipient's own address, as Postfix sends with every RCPT, names no other original recipient and splits nothing")]
+        public async Task An_ORCPT_of_the_recipients_own_address_stores_one_copy()
+        {
+
+            await using var server = new Server();
+
+            await DeliverTo(server, "<bob@hermod.test> ORCPT=rfc822;bob@hermod.test",
+                                    "<carol@hermod.test> ORCPT=rfc822;carol@HERMOD.test",
+                                    "<dave@hermod.test>");
+
+            Assert.That(server.Storage.Envelopes.Select(envelope => envelope.To),
+                        Is.EqualTo(new[] { new[] { "bob@hermod.test", "carol@hermod.test", "dave@hermod.test" } }));
+
+            Assert.That(server.Storage.Messages.Single(), Does.Not.Contain("Original-Recipient"));
+
+        }
+
+
+        [Test(Description = "RFC 5321 §2.4: the local-part \"MUST be treated as case sensitive\" - an ORCPT that differs from the recipient only in the case of its local-part names another mailbox")]
+        public async Task An_ORCPT_whose_local_part_differs_in_case_is_written()
+        {
+
+            await using var server = new Server();
+
+            await DeliverTo(server, "<bob@hermod.test> ORCPT=rfc822;Bob@hermod.test");
+
+            Assert.That(server.Storage.Messages.Single(), Does.StartWith("Original-Recipient: rfc822;Bob@hermod.test\r\n"));
+
+        }
+
+
         [Test(Description = "RFC 5322 §2.2: a header field is one line, unfolded - an ORCPT whose xtext hides a CR LF writes no header field of the client's choosing")]
         public async Task An_ORCPT_with_a_line_break_writes_no_header_field()
         {
