@@ -30,8 +30,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// A server uses these to *evaluate* preconditions it receives; a client uses
     /// them to *build* preconditions it sends and to check what came back. Same
     /// rules, opposite ends — which is why they sit here rather than inside
-    /// <see cref="HTTP2.HTTPSemantics"/>, whose public shape (a request-handler wrapper)
-    /// a client cannot call at all.
+    /// <see cref="HTTPResourceSemantics"/>, whose public shape (a request in,
+    /// a response out) a client has no use for.
     /// </summary>
     public static class HTTPValidators
     {

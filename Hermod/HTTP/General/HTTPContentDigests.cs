@@ -20,8 +20,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     /// <summary>
     /// A Content-Digest on every response that carries content (RFC 9530,
-    /// Section 2), for every handler at once — the HTTP/1.x counterpart of
-    /// HTTPSemantics.Wrap(…, ContentDigests: true) on HTTP/2.
+    /// Section 2), for every handler at once, where HTTPResourceSemantics'
+    /// ContentDigests option reaches only the resources registered through it.
     ///
     /// The digest is of the octets as they travel, and a digest of the identity
     /// form on a gzipped response is one no client can reproduce. It runs after

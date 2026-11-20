@@ -26,7 +26,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// directions.
     ///
     /// The encode direction is what a server applies to a response it is about to
-    /// send (<see cref="HTTPSemantics"/>); the decode direction is what a client
+    /// send (<see cref="HTTPResourceSemantics"/>); the decode direction is what a client
     /// applies to a response it has just received. They are the same three
     /// algorithms, so they live together here rather than once per role — the
     /// codings a peer may send us are exactly the codings we can produce.

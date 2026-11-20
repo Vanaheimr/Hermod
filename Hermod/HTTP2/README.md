@@ -121,7 +121,9 @@ tunnels — CONNECT and extended CONNECT (RFC 8441), e.g. to bootstrap a
 WebSocket — is `HTTP2ConnectHandler`: it decides accept/reject up front, and
 if accepted, runs against an `HTTP2Tunnel` (a raw bidirectional byte stream
 over the accepted stream). A third, narrower seam sits one level above the
-first: `HTTPResourceHandler` (see `HTTPSemantics.cs`) just answers "what is
+first: `HTTPResourceHandler` (see `Hermod/HTTP/HTTPResourceSemantics.cs`,
+where the rules have lived since 2026-11-20 so that HTTP/1.x can use them too,
+through `HTTPResourceHandlers`) just answers "what is
 this resource's current representation, or null for 404" — `HTTPSemantics.Wrap`
 turns that into an ordinary `HTTP2RequestHandler`, adding RFC 9110
 GET/HEAD/OPTIONS method semantics, conditional requests, and Range requests
