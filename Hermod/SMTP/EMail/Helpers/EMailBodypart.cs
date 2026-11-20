@@ -169,7 +169,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             ContentType ??= MailContentType.Parse(GetEMailHeader("Content-Type"));
 
-            if (ContentType.Text.Contains("boundary="))
+            // A body is split into parts when it is a multipart with a boundary - not when the
+            // text of its Content-Type happens to hold "boundary=" (RFC 2045 §5.1: parameters
+            // are "modifiers of the media subtype").
+            if (ContentType!.IsMultipart && ContentType.MIMEBoundary is not null)
             {
 
                 var mimeBoundaryCheck     = "--" + ContentType.MIMEBoundary;

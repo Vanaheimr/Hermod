@@ -188,6 +188,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [TestCase("Multipart/Signed")]
+        [TestCase("MULTIPART/SIGNED")]
+        [Test(Description = "RFC 2045 §5.1: \"The type, subtype, and parameter names are not case sensitive\" - a signed message whose type is not in lower case is signed, and verifies")]
+        public void A_signed_message_verifies_whatever_the_case_of_its_type(String Type)
+        {
+
+            var parsed = EMail.Parse(Text(Signed()).Replace("multipart/signed", Type).Split("\r\n"));
+
+            Assert.Multiple(() => {
+                Assert.That(parsed.IsPgpSigned,                                Is.True);
+                Assert.That(parsed.VerifyPgpSignature(publicKeyRing).Status,   Is.EqualTo(PgpVerificationStatus.Valid));
+            });
+
+        }
+
         [TestCase("-----BEGIN PGP SIGNATURE-----\r\n\r\nAAAA\r\n-----END PGP SIGNATURE-----",  Description = "armor around a broken packet")]
         [TestCase("-----BEGIN PGP SIGNATURE-----\r\n\r\n%%%%\r\n-----END PGP SIGNATURE-----",  Description = "armor around no base64")]
         [TestCase("-----BEGIN PGP SIGNATURE-----\r\n\r\n-----END PGP SIGNATURE-----",          Description = "armor around nothing")]
@@ -291,6 +306,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             var mail = EMail.Parse(EncryptedToBob(IntegrityProtected: true, ChangeAnOctet: false).Split("\r\n"));
 
+            Assert.That(String.Join("\r\n", mail.DecryptPgp(recipientSecretRing, Passphrase).ToText()), Does.Contain("Line 40: pay the invoice to account 4711 as agreed."));
+
+        }
+
+        [TestCase("Multipart/Encrypted")]
+        [TestCase("MULTIPART/ENCRYPTED")]
+        [Test(Description = "RFC 2045 §5.1: \"The type, subtype, and parameter names are not case sensitive\" - an encrypted message whose type is not in lower case is decrypted")]
+        public void An_encrypted_message_decrypts_whatever_the_case_of_its_type(String Type)
+        {
+
+            var mail = EMail.Parse(EncryptedToBob(IntegrityProtected: true, ChangeAnOctet: false).Replace("multipart/encrypted", Type).Split("\r\n"));
+
+            Assert.That(mail.IsPgpEncrypted, Is.True);
             Assert.That(String.Join("\r\n", mail.DecryptPgp(recipientSecretRing, Passphrase).ToText()), Does.Contain("Line 40: pay the invoice to account 4711 as agreed."));
 
         }
