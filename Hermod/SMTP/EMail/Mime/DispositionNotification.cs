@@ -58,6 +58,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
+        #region (internal) Requesters(HeaderValue)
+
+        /// <summary>
+        /// The distinct addresses of a Disposition-Notification-To value, in their
+        /// order: one address written twice, or in another spelling, is one (RFC 8098
+        /// §2.1 compares addresses with <see cref="SameAddress"/>).
+        /// </summary>
+        internal static IReadOnlyList<MailboxAddress> Requesters(String? HeaderValue)
+
+            => [ .. MailboxAddress.ParseList(HeaderValue).
+                                   Where     (mailbox => mailbox.Address.Contains('@')).
+                                   DistinctBy(mailbox => Canonical(mailbox.Address)) ];
+
+        #endregion
+
+        #region (internal) ReversePath(EnvelopeFrom)
+
+        /// <summary>
+        /// The address of an envelope's reverse-path - without angle brackets - or null
+        /// for the null reverse-path (&lt;&gt;) and for one that is not known.
+        /// </summary>
+        internal static String? ReversePath(String? EnvelopeFrom)
+        {
+
+            var path = EnvelopeFrom?.Trim() ?? "";
+
+            if (path.StartsWith('<') && path.EndsWith('>'))
+                path = path[1..^1].Trim();
+
+            return path.Length > 0 ? path : null;
+
+        }
+
+        #endregion
+
+        #region (internal) SameAddress(A, B)
+
+        /// <summary>
+        /// Whether two addr-specs are one address as RFC 8098 §2.1 compares them: "the
+        /// comparison is case sensitive for the local-part and case insensitive for the
+        /// domain part", the local-part "after removing the surrounding double-quote
+        /// characters, if any, as well as any escaping "\" characters".
+        /// </summary>
+        internal static Boolean SameAddress(String A, String B)
+
+            => String.Equals(Canonical(A), Canonical(B), StringComparison.Ordinal);
+
+
+        private static String Canonical(String Address)
+        {
+
+            var address = ReversePath(Address) ?? "";
+            var at      = address.LastIndexOf('@');
+            var local   = at >= 0 ? address[..at]         : address;
+            var domain  = at >= 0 ? address[(at + 1)..]   : "";
+
+            if (local.Length >= 2 && local[0] == '"' && local[^1] == '"')
+            {
+
+                var unquoted = new StringBuilder(local.Length);
+
+                for (var i = 1; i < local.Length - 1; i++)
+                {
+
+                    if (local[i] == '\\' && i + 1 < local.Length - 1)
+                        i++;
+
+                    unquoted.Append(local[i]);
+
+                }
+
+                local = unquoted.ToString();
+
+            }
+
+            return local + "@" + domain.ToLowerInvariant();
+
+        }
+
+        #endregion
+
         #region GoesElsewhere(Message, To, EnvelopeFrom)
 
         /// <summary>

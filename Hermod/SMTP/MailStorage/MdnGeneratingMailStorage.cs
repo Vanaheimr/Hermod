@@ -27,8 +27,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
     /// <summary>
     /// An <see cref="IMailStorage"/> decorator that turns the local-delivery step into a minimal
     /// delivery agent: after a message is stored in a local mailbox, it automatically generates a
-    /// Message Disposition Notification (read receipt, RFC 8098) for any message that requested one
-    /// (via <c>Disposition-Notification-To</c>) and queues it back to the requester.
+    /// Message Disposition Notification (read receipt, RFC 8098) for a message that requested one
+    /// (via <c>Disposition-Notification-To</c>) and queues it back to the requester - only when the
+    /// requester is the message's reverse-path, and nobody else (§2.1: anything else needs the
+    /// user's consent, which a delivery agent cannot get).
     ///
     /// The reported disposition is <c>processed</c> with <c>automatic-action</c>: the message was
     /// handled automatically by the delivery agent, NOT displayed by a human — claiming "displayed"
@@ -88,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // MDN generation is a best-effort side effect — never fail or delay local delivery for it.
             try
             {
-                await GenerateReadReceiptsAsync(message, envelopeTo, ct);
+                await GenerateReadReceiptsAsync(message, envelopeFrom, envelopeTo, ct);
             }
             catch (Exception e)
             {
@@ -101,6 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
 
         private async Task GenerateReadReceiptsAsync(EMailMessage         message,
+                                                     String               envelopeFrom,
                                                      IEnumerable<String>  envelopeTo,
                                                      CancellationToken    ct)
         {
@@ -109,6 +112,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             if (!mail.IsReadReceiptRequested)
                 return;
+
+            // RFC 8098 §2.1: "MDNs MUST NOT be sent automatically if the address in the
+            // Disposition-Notification-To header field differs from the address in the
+            // Return-Path header field", and "Confirmation from the user MUST be obtained (or no
+            // MDN sent) if there is no Return-Path header field in the message or if there is
+            // more than one distinct address in the Disposition-Notification-To header field".
+            // Nobody can be asked here, so no MDN: an address the reverse-path does not vouch
+            // for may be a third party to be flooded with receipts (§6.4).
+            var reversePath = DispositionNotification.ReversePath(envelopeFrom);
+            var requesters  = DispositionNotification.Requesters(mail.DispositionNotificationTo);
+
+            if (reversePath is null || requesters.Count != 1 || !DispositionNotification.SameAddress(requesters[0].Address, reversePath))
+            {
+                logger.Log(LogLevel.Info, $"No automatic MDN: {requesters.Count} requester(s), and the reverse-path <{envelopeFrom}> must be the only one (RFC 8098 §2.1)");
+                return;
+            }
 
             // One MDN per local recipient — each mailbox reports its own disposition (RFC 8098).
             foreach (var recipient in envelopeTo)
@@ -120,8 +139,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 if (mdn is null)
                     continue;
 
-                await sender.SendAsync(mdn, CancellationToken: ct);
-                logger.Log(LogLevel.Info, $"Queued automatic MDN from {recipient} to {mail.DispositionNotificationTo}");
+                // RFC 8098 §3: "The envelope sender address (i.e., SMTP "MAIL FROM") of the MDN
+                // MUST be null (<>), specifying that no Delivery Status Notification messages nor
+                // other messages indicating successful or unsuccessful delivery are to be sent in
+                // response to an MDN" - not the recipient's address, which the From: of the MDN is.
+                await sender.SendAsync(EnvelopeFrom:       "",
+                                       Recipients:         [ requesters[0].Address ],
+                                       Message:            String.Join("\r\n", mdn.ToText(IncludeBcc: false)),
+                                       CancellationToken:  ct);
+
+                logger.Log(LogLevel.Info, $"Queued automatic MDN from {recipient} to {requesters[0].Address}");
 
             }
 
