@@ -62,6 +62,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                           var rsa = RSA.Create();
                           rsa.ImportFromPem(config.PrivateKeyPem);
+
+                          // RFC 8301 §3.2: "Signers MUST use RSA keys of at least 1024 bits for all
+                          // keys" - a smaller one makes signatures every verifier fails, and that
+                          // anyone who factors the key can make too.
+                          if (rsa.KeySize < DkimKeyMaterial.MinimumRsaKeySize)
+                          {
+                              var bits = rsa.KeySize;
+                              rsa.Dispose();
+                              throw new ArgumentException($"The DKIM key of {config.Domain} ({config.Selector}) has {bits} bits; RFC 8301 §3.2 asks for at least {DkimKeyMaterial.MinimumRsaKeySize}.", nameof(configs));
+                          }
+
                           return new Key(config, rsa, null);
 
                       }) ];
