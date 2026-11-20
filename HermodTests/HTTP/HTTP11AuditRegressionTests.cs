@@ -595,11 +595,14 @@ public sealed class HTTP11AuditRegressionTests
             {
                 Assert.That(originFormResponse.StatusLine,     Does.Contain("200 OK"));
                 Assert.That(originFormResponse.Body,           Is.EqualTo("origin-form"));
-                Assert.That(absoluteFormResponse.StatusLine,   Does.Contain("400 Bad Request"));
+                // RFC 9112, Section 3.2.2: "A server MUST accept the absolute-form
+                // in requests" (H-42; it was refused with 400 until 2026-11-20).
+                Assert.That(absoluteFormResponse.StatusLine,   Does.Contain("200 OK"));
+                Assert.That(absoluteFormResponse.Body,         Is.EqualTo("origin-form"));
                 Assert.That(authorityFormResponse.StatusLine,  Does.Contain("501 Not Implemented"));
                 Assert.That(asteriskFormResponse.StatusLine,   Does.Contain("204 No Content"));
                 Assert.That(invalidAsteriskResponse.StatusLine, Does.Contain("400 Bad Request"));
-                Assert.That(routedRequests,                    Is.EqualTo(1));
+                Assert.That(routedRequests,                    Is.EqualTo(2));
             });
 
             async Task<(String StatusLine, String Body)> SendRequest(String request)

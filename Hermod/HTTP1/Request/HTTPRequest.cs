@@ -803,6 +803,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String                      RequestTarget           { get; private set; }
 
         /// <summary>
+        /// The scheme of a request-target in absolute form, "http" or "https" in
+        /// lower case, and null for every other form, whose scheme is the
+        /// connection's (RFC 9112, Section 3.3).
+        /// </summary>
+        public String?                     TargetScheme            { get; private set; }
+
+        /// <summary>
+        /// The request-target in origin form, query included: for one in absolute
+        /// form its path and query, "/" when the path is empty (RFC 9112,
+        /// Section 3.2.2); for every other form the request-target itself.
+        /// </summary>
+        public String                      OriginFormTarget
+
+            => originFormTarget ?? RequestTarget;
+
+        private String?                    originFormTarget;
+
+        /// <summary>
         /// The HTTP path (the HTTP request-target without the query string).
         /// </summary>
         public HTTPPath                    Path                    { get; private set; }
@@ -1493,6 +1511,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                      HTTPMethod,
                      RequestTarget,
                      out var normalizedPath,
+                     out var targetScheme,
+                     out var targetAuthority,
+                     out originFormTarget,
                      out _,
                      out var requestTargetErrorDescription
                  ))
@@ -1500,7 +1521,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new Exception(requestTargetErrorDescription);
             }
 
-            var parsedURL   = RequestTarget.Split(urlSeparator, 2, StringSplitOptions.None);
+            TargetScheme    = targetScheme;
+
+            var parsedURL   = OriginFormTarget.Split(urlSeparator, 2, StringSplitOptions.None);
             this.Path       = HTTPPath.Parse(normalizedPath);
 
             if (Path == "")
@@ -1511,7 +1534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Parse QueryString (optional)
 
             // Parse QueryString after '?'
-            if (RequestTarget.IndexOf('?') > -1 && parsedURL[1].IsNeitherNullNorEmpty())
+            if (OriginFormTarget.IndexOf('?') > -1 && parsedURL[1].IsNeitherNullNorEmpty())
                 QueryString = QueryString.Parse(parsedURL[1]);
             else
                 QueryString = QueryString.Empty;
@@ -1528,8 +1551,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // any HTTP/1.1 request message that lacks one, carries more than one, or
             // carries one whose field value is invalid.
 
-            // This origin-server profile accepts only origin-form (plus OPTIONS *),
-            // so the target authority is always supplied by the Host header field.
+            // That holds for a request-target in absolute form as well, whose
+            // authority then replaces the field below.
             if (ProtocolVersion == HTTPVersion.HTTP_1_1 &&
                 (!headerFields.TryGetValue(HTTPRequestHeaderField.Host.Name, out var hostHeaderRAW) ||
                  hostHeaderRAW is not String hostHeaderString ||
@@ -1537,6 +1560,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 throw new Exception("The HTTP request must have have a valid HOST header!");
             }
+
+            // RFC 9112, Section 3.2.2: an origin server receiving the absolute-form
+            // "MUST ignore the received Host header field (if any) and instead use
+            // the host information of the request-target".
+            if (targetAuthority is not null)
+                headerFields[HTTPRequestHeaderField.Host.Name] = targetAuthority;
 
             #endregion
 
@@ -2155,14 +2184,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+        /// <summary>
+        /// Validate a request-target and return its path, normalised.
+        /// </summary>
+        /// <param name="TargetScheme">The scheme of an absolute-form target, in lower case; null for every other form.</param>
+        /// <param name="TargetAuthority">The authority of an absolute-form target, which replaces the Host field; null for every other form.</param>
+        /// <param name="OriginFormTarget">The path and query of an absolute-form target; null for every other form.</param>
         private static Boolean TryValidateRequestTarget(HTTPMethod                          HTTPMethod,
                                                         String                              RequestTarget,
                                                         [NotNullWhen(true)] out String?    NormalizedPath,
+                                                        out String?                         TargetScheme,
+                                                        out String?                         TargetAuthority,
+                                                        out String?                         OriginFormTarget,
                                                         out HTTPStatusCode?                 ErrorStatusCode,
                                                         [NotNullWhen(false)] out String?  ErrorDescription)
         {
 
             NormalizedPath    = null;
+            TargetScheme      = null;
+            TargetAuthority   = null;
+            OriginFormTarget  = null;
             ErrorStatusCode   = null;
             ErrorDescription  = null;
 
@@ -2189,17 +2230,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            // Forward-proxy absolute-form and authority-form are intentionally not accepted.
-            // All remaining requests must use origin-form. Fragments never belong in a request-target.
-            if (!RequestTarget.StartsWith("/", StringComparison.Ordinal) ||
-                 RequestTarget.Contains('#'))
+            // Fragments never belong in a request-target.
+            if (RequestTarget.Contains('#'))
             {
                 ErrorStatusCode   = HTTPStatusCode.BadRequest;
                 ErrorDescription  = "Invalid HTTP request-target form.";
                 return false;
             }
 
-            if (!TryNormalizeOriginFormPath(RequestTarget, out NormalizedPath, out ErrorDescription))
+            var originForm = RequestTarget;
+
+            // RFC 9112, Section 3.2.2: "A server MUST accept the absolute-form in
+            // requests", although clients send it mostly to a proxy. Of the
+            // schemes, only the two an HTTP server can be authoritative for. The
+            // authority replaces the Host field (same section), and the path is
+            // held to the rules of an origin-form one, so that both forms of the
+            // same target reach the same resource.
+            var schemeEnd  = RequestTarget.IndexOf("://", StringComparison.Ordinal);
+
+            if (!RequestTarget.StartsWith('/') && schemeEnd > 0)
+            {
+
+                var scheme        = RequestTarget[..schemeEnd].ToLowerInvariant();
+
+                if (scheme != "http" && scheme != "https")
+                {
+                    ErrorStatusCode   = HTTPStatusCode.BadRequest;
+                    ErrorDescription  = "An absolute-form request-target must use the http or https scheme.";
+                    return false;
+                }
+
+                var rest          = RequestTarget[(schemeEnd + 3)..];
+                var authorityEnd  = rest.IndexOfAny([ '/', '?' ]);
+                var authority     = authorityEnd < 0 ? rest : rest[..authorityEnd];
+
+                originForm        = authorityEnd < 0 ? "/" : rest[authorityEnd..];
+
+                if (originForm.StartsWith('?'))
+                    originForm    = "/" + originForm;
+
+                // RFC 9110, Section 4.2.1: a recipient "MUST reject" an http URI
+                // with an empty host as invalid. Section 4.2.4: userinfo "SHOULD"
+                // be treated as an error. The rest is what a Host field must be.
+                if (!IsValidRequestHostHeader(authority))
+                {
+                    ErrorStatusCode   = HTTPStatusCode.BadRequest;
+                    ErrorDescription  = "Invalid authority in the absolute-form request-target.";
+                    return false;
+                }
+
+                TargetScheme      = scheme;
+                TargetAuthority   = authority;
+                OriginFormTarget  = originForm;
+
+            }
+
+            // Authority-form is CONNECT's, which is answered above. Every other
+            // request must be in origin form by now.
+            if (!originForm.StartsWith('/'))
+            {
+                ErrorStatusCode   = HTTPStatusCode.BadRequest;
+                ErrorDescription  = "Invalid HTTP request-target form.";
+                return false;
+            }
+
+            if (!TryNormalizeOriginFormPath(originForm, out NormalizedPath, out ErrorDescription))
             {
                 ErrorStatusCode = HTTPStatusCode.BadRequest;
                 return false;
@@ -2649,6 +2744,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          httpMethod,
                          rawURL,
                          out var normalizedPath,
+                         out var targetScheme,
+                         out var targetAuthority,
+                         out var originFormTarget,
                          out var requestTargetErrorStatusCode,
                          out var requestTargetErrorDescription
                      ))
@@ -2675,7 +2773,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                var parsedURL  = rawURL.Split(urlSeparator, 2, StringSplitOptions.None);
+                var originForm = originFormTarget ?? rawURL;
+                var parsedURL  = originForm.Split(urlSeparator, 2, StringSplitOptions.None);
                 var path       = HTTPPath.Parse(normalizedPath);
 
                 if (path == "")
@@ -2688,7 +2787,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 QueryString? queryString = null;
 
                 // Parse QueryString after '?'
-                if (rawURL.IndexOf('?') > -1 && parsedURL[1].IsNeitherNullNorEmpty())
+                if (originForm.IndexOf('?') > -1 && parsedURL[1].IsNeitherNullNorEmpty())
                     queryString = QueryString.Parse(parsedURL[1]);
                 else
                     queryString = QueryString.Empty;
@@ -2705,8 +2804,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 // any HTTP/1.1 request message that lacks one, carries more than one, or
                 // carries one whose field value is invalid.
 
-                // This origin-server profile accepts only origin-form (plus OPTIONS *),
-                // so the target authority is always supplied by the Host header field.
+                // That holds for a request-target in absolute form as well, whose
+                // authority then replaces the field below.
                 if (httpProtocolVersion == HTTPVersion.HTTP_1_1 &&
                     (!headerFields.TryGetValue(HTTPRequestHeaderField.Host.Name, out var hostHeaderRAW) ||
                      hostHeaderRAW is not String hostHeaderString ||
@@ -2733,6 +2832,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return false;
 
                 }
+
+                // RFC 9112, Section 3.2.2: an origin server receiving the absolute-form
+                // "MUST ignore the received Host header field (if any) and instead use
+                // the host information of the request-target". So routing, the check
+                // for misdirected requests and the handler all see the target's.
+                if (targetAuthority is not null)
+                    headerFields[HTTPRequestHeaderField.Host.Name] = targetAuthority;
 
                 #endregion
 
@@ -2764,7 +2870,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                               );
 
-                HTTPRequest.RequestTarget   = rawURL;
+                HTTPRequest.RequestTarget     = rawURL;
+                HTTPRequest.TargetScheme      = targetScheme;
+                HTTPRequest.originFormTarget  = originFormTarget;
 
                 HTTPRequest.MaxHTTPBodySize = HTTPServer?.MaxHTTPBodySize ?? DefaultMaxHTTPBodySize;
 

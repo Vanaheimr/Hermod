@@ -746,9 +746,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         // one of its own (Section 15.5.20). A request without Host
                         // names no origin and cannot be misdirected; that is an
                         // HTTP/1.0 one, since HTTP/1.1 requires the field.
-                        if (isAuthorityServed is not null &&
-                            request.Host.IsNotNullOrEmpty &&
-                           !isAuthorityServed(request.Host.ToString()))
+                        //
+                        // Only a target in absolute form names its scheme. One
+                        // naming "https" on a cleartext connection has no
+                        // certificate at all behind it, and is refused for the
+                        // same sentence of Section 7.4 - unless a predicate of
+                        // the server's own says which origins it serves, the
+                        // way out for a trusted gateway.
+                        if ((isAuthorityServed is not null &&
+                             request.Host.IsNotNullOrEmpty &&
+                            !isAuthorityServed(request.Host.ToString())) ||
+                            (IsAuthorityServed is null &&
+                             ServerCertificate is null &&
+                             request.TargetScheme == "https"))
                         {
                             await SendResponse(
                                       stream,

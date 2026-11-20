@@ -23,7 +23,7 @@ Last verified: **2026-11-20**
 |---|---|
 | [RFC 1945](https://www.rfc-editor.org/rfc/rfc1945.html), HTTP/1.0 | Implemented and regression-tested for requests, responses, `Content-Length`, close-delimited responses, default connection closing, optional negotiated keep-alive, and HTTP/1.0-specific rejection/fallback behavior. |
 | [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host` and the §7.4 refusal of a request for an origin the TLS certificate does not cover (since 2026-10-29), connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Every status code in the IANA registry is defined with its registered reason phrase. Six carried pre-RFC-9110 phrases until 2026-10-03; five now match the registry (413 `Content Too Large`, 414 `URI Too Long`, 416 `Range Not Satisfiable`, 422 `Unprocessable Content` and 306 `(Unused)`) without any field being renamed, since the wire carries the phrase and downstream code refers to the field. 418 keeps `I'm a teapot`, which RFC 9110 does not mention and RFC 2324 does. `HTTPStatusCodeTests` pins that one remaining divergence. Resource semantics remain application-defined, unless a resource is registered with `AddResource`: then negotiation, preconditions and ranges (§12–14) come from the library, the same code HTTP/2 uses, since 2026-11-20 — see "Resources: negotiation, preconditions and ranges". |
-| [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html), HTTP/1.1 message syntax and routing | Implemented and regression-tested for start lines, header parsing, message framing, persistent connections, pipelining, chunked transfer coding, trailers, and malformed-message rejection. |
+| [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html), HTTP/1.1 message syntax and routing | Implemented and regression-tested for start lines, all four forms of request-target (absolute-form accepted since 2026-11-20), header parsing, message framing, persistent connections, pipelining, chunked transfer coding, trailers, and malformed-message rejection. |
 | [RFC 10008](https://www.rfc-editor.org/rfc/rfc10008.html), HTTP `QUERY` method | The method is modeled as safe and idempotent and is end-to-end tested with fixed-length and chunked request content, trailers, and chunk extensions. Media-type policy, `Accept-Query`, caching, conditional requests, and query-result URI policy are handler responsibilities, except for a resource registered with `AddResource` and a query handler: its `QUERY` runs through the `GET` pipeline, conditional requests and negotiation included, content without a `Content-Type` is a `400` (RFC 10008, Section 4), and the result can name its own URI in `Content-Location`. |
 | [RFC 4918](https://www.rfc-editor.org/rfc/rfc4918.html), WebDAV | Method tokens are modeled (`COPY`, `LOCK`, `MKCOL`, `MOVE`, `PROPFIND`, `PROPPATCH`, and `UNLOCK`). Hermod does not provide a complete WebDAV resource implementation. |
 | [RFC 7617](https://www.rfc-editor.org/rfc/rfc7617.html), Basic authentication | Typed parsing/serialization and end-to-end server authorization tests, including challenge, malformed credentials, invalid credentials, and forbidden users. Authentication policy is configured by the application. The client answers a challenge when it is given `Credentials`, since 2026-11-20; see [The client: challenges and redirects](#the-client-challenges-and-redirects). |
@@ -76,7 +76,10 @@ reference is. There was a seventh, inside commented-out code under
   - The check comes before routing and before the body is read, so the
     connection is closed after the `421` and the client tries a new one
     (§15.5.20).
-  - A cleartext connection has no certificate and is not checked. A request
+  - A cleartext connection has no certificate and is not checked by name.
+    A target in absolute form naming `https` on it is refused with `421`
+    since 2026-11-20: no certificate stands behind it at all, and only that
+    form names a scheme. A request
     without `Host`, which only HTTP/1.0 allows, names no origin and cannot be
     misdirected.
   - `AHTTPServer.IsAuthorityServed` is asked in place of the certificate, on
@@ -84,7 +87,8 @@ reference is. There was a seventh, inside commented-out code under
     the way out: §7.4 excepts "a trusted gateway", which a server cannot
     recognise by itself, so a server behind a proxy that terminates TLS and
     connects with a certificate of its own is given `_ => true`, or the names
-    the proxy forwards.
+    the proxy forwards. With a predicate given, an `https` target on cleartext
+    is left to it as well.
   - `HTTPAuthority`, the HTTP/2 stack's answer to the same question, moved
     from `HTTP2/Core` to `HTTP/` to be used here.
 - The connection a handler reaches through `request.TCPConnection` is the one
@@ -160,7 +164,15 @@ The server validates the request line and header section before routing:
 - Requests fragmented across multiple TCP reads are assembled correctly.
 - Origin-form request targets are supported.
 - Asterisk-form is supported for server-wide `OPTIONS *`.
-- Absolute-form targets are rejected because Hermod is not acting as a proxy.
+- Absolute-form targets are accepted, since 2026-11-20, as RFC 9112 §3.2.2
+  requires of every server: "A server MUST accept the absolute-form in
+  requests". The target's authority replaces the `Host` field, which an
+  HTTP/1.1 request must still carry, so routing, the `421` check and the
+  handler all see one origin, and the path is held to the origin-form rules.
+  Only `http` and `https` are accepted; userinfo and an empty host are refused
+  with `400`. `HTTPRequest.TargetScheme` and `HTTPRequest.OriginFormTarget`
+  give the parts. Until then the form was refused with `400`, on the reasoning
+  that Hermod is not a proxy (H-42 in HTTP1ConformanceTests).
 - Authority-form `CONNECT` requests return `501 Not Implemented`.
 - Fragments, malformed percent escapes, encoded path separators, dot segments,
   repeated path separators, and double-encoded separators are rejected by the
@@ -1007,7 +1019,7 @@ and `DotNetHTTPClientTests_MinimalAPI`.
   `HTTPClientProtocolRegressionTests`, `HTTP11AuditRegressionTests`,
   `HTTP_TCPClientTests`, `ChunkedFramingTests`, `TransferCodingTests`,
   `BodilessResponseTests`, `HTTPLineEndingTests`, `HTTPClientPoolTests`,
-  `NagleTests`, `HTTPClientDownloadTests`
+  `NagleTests`, `HTTPClientDownloadTests`, `AbsoluteFormTests`
 - **Methods and status codes, interim responses included:**
   `HTTPStatusCodeTests`, `HTTPHeadDerivedFromGetTests`,
   `HTTPServerTraceTests`, `HTTPCORSPreflightTests`, `EarlyHintsTests`,
@@ -1055,12 +1067,15 @@ the same day. On master `7d821a1c` they select **819 passing, 0 failed,
 with H-38's second half and joined with it, which makes forty-two, and the
 same change put two cases into `ChunkedFramingTests`: **833**, the 819 and
 their 14. `HTTPResourceSemanticsTests` came with finding H-37 and joined with
-it, which makes forty-three: **880**, the 833 and its 47.
+it, which makes forty-three: **880**, the 833 and its 47. `AbsoluteFormTests`
+came with finding H-42 and joined with it, which makes forty-four, and the
+same change put four cases into `MisdirectedRequestTests` and one more into
+`HTTPServerSocketRegressionTests`: **904**, the 880 and their 24.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests"
 ```
 
 ## Deliberate exclusions and qualification
@@ -1068,8 +1083,8 @@ dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClie
 Hermod's HTTP/1.x origin client/server is feature-complete for its intended
 scope, with these explicit boundaries:
 
-- It is not an HTTP forward proxy or gateway; `CONNECT`, proxy absolute-form
-  routing, proxy authentication, and intermediary transformations are out of
+- It is not an HTTP forward proxy or gateway; `CONNECT`, forwarding a request
+  in absolute form to another origin, proxy authentication, and intermediary transformations are out of
   scope.
 - It does not provide a shared RFC 9111 cache.
 - It applies conditional, range and QUERY semantics only to a resource

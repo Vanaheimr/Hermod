@@ -551,6 +551,113 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+
+        #region AnAbsoluteFormTargetIsCheckedByItsAuthority(Target, Host, Expected)
+
+        /// <summary>
+        /// RFC 9112, Section 3.2.2 has the server take a target's authority in
+        /// place of the Host field (H-42), so that is the origin Section 7.4 asks
+        /// about: a Host field naming the certificate's host does not carry a
+        /// target naming another, and one naming another does not stop a target
+        /// naming the certificate's.
+        /// </summary>
+        [TestCase("https://evil.example/", "localhost",    "HTTP/1.1 421")]
+        [TestCase("https://localhost/",    "evil.example", "HTTP/1.1 200")]
+        public async Task AnAbsoluteFormTargetIsCheckedByItsAuthority(String Target, String Host, String Expected)
+        {
+
+            var handled    = 0;
+            var httpServer = await StartServer([ localhost ], () => Interlocked.Increment(ref handled));
+
+            try
+            {
+
+                var (received, _) = await Exchange(httpServer.TCPPort, $"GET {Target} HTTP/1.1\r\nHost: {Host}\r\nConnection: close\r\n\r\n");
+
+                Assert.That(received, Does.StartWith(Expected));
+                Assert.That(handled,  Is.EqualTo(Expected.EndsWith("200") ? 1 : 0));
+
+            }
+            finally
+            {
+                await httpServer.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
+        #region AnHTTPSTargetOnCleartextIsMisdirected()
+
+        /// <summary>
+        /// "a request for an "https" resource MUST be rejected unless it has been
+        /// received over a connection that has been secured via a certificate
+        /// valid for that target URI's origin". Only the absolute-form names a
+        /// scheme, and a cleartext connection has no certificate at all; an
+        /// "http" target on the same connection is served.
+        /// </summary>
+        [Test]
+        public async Task AnHTTPSTargetOnCleartextIsMisdirected()
+        {
+
+            var handled    = 0;
+            var httpServer = await StartServer([], () => Interlocked.Increment(ref handled));
+
+            try
+            {
+
+                var (refused, closed) = await Exchange(httpServer.TCPPort, "GET https://localhost/ HTTP/1.1\r\nHost: localhost\r\n\r\n", TLS: false);
+                var (served,  _)      = await Exchange(httpServer.TCPPort, "GET http://localhost/ HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n", TLS: false);
+
+                Assert.That(refused, Does.StartWith("HTTP/1.1 421"));
+                Assert.That(closed,  Is.True,        "the server closes after a 421");
+                Assert.That(served,  Does.StartWith("HTTP/1.1 200"));
+                Assert.That(handled, Is.EqualTo(1),  "only the http target reaches a handler");
+
+            }
+            finally
+            {
+                await httpServer.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
+        #region AnHTTPSTargetOnCleartextFromATrustedGatewayIsServed()
+
+        /// <summary>
+        /// A gateway that terminated TLS and forwards the absolute-form on
+        /// cleartext is the exception Section 7.4 makes, and as for the
+        /// certificate check, the server is told so with a predicate.
+        /// </summary>
+        [Test]
+        public async Task AnHTTPSTargetOnCleartextFromATrustedGatewayIsServed()
+        {
+
+            var handled    = 0;
+            var httpServer = await StartServer([], () => Interlocked.Increment(ref handled));
+
+            httpServer.IsAuthorityServed = authority => true;
+
+            try
+            {
+
+                var (received, _) = await Exchange(httpServer.TCPPort, "GET https://localhost/ HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n", TLS: false);
+
+                Assert.That(received, Does.StartWith("HTTP/1.1 200"));
+                Assert.That(handled,  Is.EqualTo(1));
+
+            }
+            finally
+            {
+                await httpServer.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
     }
 
 }
