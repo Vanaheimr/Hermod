@@ -210,6 +210,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
+        [TestCase(550, "550 5.01.1 leading zero in the subject",  "5.0.0")]
+        [TestCase(550, "550 5.1.01 leading zero in the detail",   "5.0.0")]
+        [TestCase(450, "450 4.007.000 leading zeros throughout",  "4.0.0")]
+        [TestCase(550, "550 5.0.0 zero itself",                   "5.0.0")]
+        [TestCase(550, "550 5.10.100 no leading zero",            "5.10.100")]
+        [Description("I-6 - RFC 3463 §2: \"Each numeric sub-code within the status-code MUST be expressed without leading zero digits\" - a code with leading zeros is no status code, and the DSN carries X.0.0 of the reply's class; 0 itself and codes with inner zeros are taken")]
+        public void A_status_code_with_leading_zeros_is_none(Int32 Code, String Text, String Status)
+        {
+            Assert.That(DsnGenerator.StatusOf(Code, Text, Permanent: Code >= 500), Is.EqualTo(Status));
+        }
+
+
+        [Test(Description = "I-6 - RFC 3464 §2.3.4: the Status field takes its status-code from RFC 3463 - a next hop's 5.01.1 does not go into the bounce as it is")]
+        public async Task A_status_code_with_leading_zeros_does_not_go_into_a_bounce()
+        {
+
+            var bounce = (await Bounce(Relayed(), Refused("550 5.01.1 No such user"))).Single().MessageContent;
+
+            Assert.Multiple(() => {
+                Assert.That(bounce, Does.Contain("\r\nStatus: 5.0.0\r\n"));
+                Assert.That(bounce, Does.Contain("\r\nDiagnostic-Code: smtp; 550 5.01.1 No such user\r\n"), "the reply as it was");
+            });
+
+        }
+
+
         [Test(Description = "D-6 - a refusal at the end of data, whose text starts with its code, is quoted once")]
         public async Task A_reply_is_quoted_once()
         {

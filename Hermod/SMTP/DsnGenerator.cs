@@ -335,7 +335,9 @@ public sealed partial class DsnGenerator
     }
 
 
-    [GeneratedRegex(@"^(?:\d{3}[ -])?([245]\.\d{1,3}\.\d{1,3})(?:\s|$)")]
+    // RFC 3463 §2: subject and detail are 1*3digit, and "Each numeric sub-code within the
+    // status-code MUST be expressed without leading zero digits".
+    [GeneratedRegex(@"^(?:\d{3}[ -])?([245]\.(?:0|[1-9]\d{0,2})\.(?:0|[1-9]\d{0,2}))(?:\s|$)")]
     private static partial Regex EnhancedStatusCode();
 
     // RFC 5322 §3.3 date-time, with a numeric zone (the obsolete "GMT" is not to be generated).
