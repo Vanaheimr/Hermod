@@ -32,14 +32,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// "Authorization: TOTP" scheme of the TOTP HTTP authentication
     /// specification, using RFC 9110 auth-params:
     ///
-    ///     TOTP login="&lt;b64&gt;", totp="&lt;b64&gt;"[, tlscb=true|false]
+    ///     TOTP login="&lt;b64&gt;", totp="&lt;b64&gt;"
     ///
-    /// login and totp are MANDATORY (Base64 of the UTF-8 text); tlscb is
-    /// OPTIONAL and DEFAULTS TO TRUE - secure by default: a credential that
-    /// says nothing about channel binding claims the TLS-bound mode, and an
-    /// unbound deployment must say tlscb=false explicitly. Unknown
-    /// parameters are ignored (the standard auth-param extension point),
-    /// duplicates are rejected. The login names a role - a charging station,
+    /// login and totp are MANDATORY (Base64 of the UTF-8 text). Whether the
+    /// password is bound to the TLS session is no part of the header: the
+    /// TOTP configuration of the login says it (TOTPConfig.TLSChannelBinding),
+    /// on both sides, so a client cannot talk a binding down. Unknown
+    /// parameters are ignored (the standard auth-param extension point) -
+    /// "tlscb", the binding flag of earlier drafts of the specification,
+    /// among them - and duplicates are rejected. The login names a role - a charging station,
     /// a backend service - deliberately not a "user": nothing about it
     /// implies a natural person.
     /// </summary>
@@ -70,13 +71,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP request header representation. The canonical form sends
         /// login and totp as quoted strings (Base64 padding '=' is not a
-        /// token character) and omits tlscb at its default (true).
+        /// token character) - for a raw password and a bound one alike.
         /// </summary>
         public String       HTTPText
 
-            => //TOTPConfig?.TLSChannelBinding == true
-                    $"TOTP login=\"{Login.ToBase64()}\", totp=\"{TOTP.ToBase64()}\"";
-                   // $"TOTP login=\"{Login.ToBase64()}\", totp=\"{TOTP.ToBase64()}\", tlscb=false";
+            => $"TOTP login=\"{Login.ToBase64()}\", totp=\"{TOTP.ToBase64()}\"";
 
         #endregion
 
@@ -482,27 +481,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region tlscb       [optional, default: true]
-
-            //var type = TOTPHTTPHeaderType.TLSChannelBinding;
-
-            //if (parameters.TryGetValue("tlscb", out var tlscb))
-            //{
-
-            //    if      (String.Equals(tlscb, "true",  StringComparison.OrdinalIgnoreCase))
-            //        type = TOTPHTTPHeaderType.TLSChannelBinding;
-
-            //    else if (String.Equals(tlscb, "false", StringComparison.OrdinalIgnoreCase))
-            //        type = TOTPHTTPHeaderType.RAW;
-
-            //    else
-            //        return false;
-
-            //}
-
-            #endregion
-
-            // Unknown parameters are ignored by design:
+            // Unknown parameters are ignored by design - "tlscb" of earlier
+            // drafts among them, whatever its value:
             // the standard auth-param extension point.
 
             return TryCreate(

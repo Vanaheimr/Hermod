@@ -301,11 +301,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
             public override String ToString() => Id;
         }
 
+        /// <summary>
+        /// Login and token - whether the token is bound is the login's
+        /// configuration, not part of the header.
+        /// </summary>
         public sealed class HttpAuthTriple
         {
             public String   Login  { get; set; } = "";
             public String   Totp   { get; set; } = "";
-            public Boolean  Tlscb  { get; set; }
         }
 
         public sealed class HttpAuthExpected
@@ -329,13 +332,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
                        ?? throw new InvalidOperationException($"Could not parse '{path}'!");
 
         });
-
-        /// <summary>
-        /// "tlscb" is neither written nor read by this implementation: whether
-        /// a password is bound to the TLS session is what the verifier's
-        /// configuration of the login says, not what the header claims.
-        /// </summary>
-        private const String TlscbIsNotOnTheWire = "Deviation: 'tlscb' is neither written nor read - the verifier's TOTP configuration says whether a password is bound.";
 
         public static IEnumerable<TestCaseData> HttpAuthBuildVectors()
             => httpAuthFile.Value.Vectors       .Select(vector => new TestCaseData(vector).SetArgDisplayNames(vector.Id));
@@ -374,10 +370,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
         [TestCaseSource(nameof(HttpAuthBuildVectors))]
         public void BuildsAndRoundTripsAuthorizationHeader(HttpAuthVector Vector)
         {
-
-            // The canonical header of a raw token carries "tlscb=false".
-            if (!Vector.Input.Tlscb)
-                Assert.Ignore(TlscbIsNotOnTheWire);
 
             var auth = HTTPTOTPAuthentication.Create(
                            Vector.Input.Login,
@@ -423,10 +415,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TOTP
         [TestCaseSource(nameof(HttpAuthInvalidHeaders))]
         public void RejectsInvalidAuthorizationHeader(InvalidHeaderVector Vector)
         {
-
-            // What "tlscb" says is not read, so neither is a value it cannot have.
-            if (Vector.Id == "tlscb-invalid-value")
-                Assert.Ignore(TlscbIsNotOnTheWire);
 
             Assert.That(HTTPTOTPAuthentication.TryParseHTTPHeader(Vector.Header, out _),
                         Is.False,
