@@ -67,6 +67,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         public String            Text            { get; set; }
 
+        /// <summary>
+        /// Whether this is a multipart - of any subtype, also one MailContentTypes does not list
+        /// (RFC 2046 §5.1.7: "as being equivalent to "multipart/mixed"").
+        /// </summary>
+        public Boolean           IsMultipart
+        {
+            get => isMultipart ?? ContentType.ToString().StartsWith("multipart_", StringComparison.Ordinal);
+            init => isMultipart = value;
+        }
+
+        private readonly Boolean? isMultipart;
+
         #endregion
 
         #region Constructor(s)
@@ -123,96 +135,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                        [NotNullWhen(true)] out MailContentType?  MailContentType)
         {
 
-            MailContentTypes? mailContentType = null;
-
-            var splitted = ContentTypeString.
-                               Split([";"], StringSplitOptions.RemoveEmptyEntries).
-                               Select(v => v.Trim()).
-                               ToArray();
-
-            if (splitted.Length == 0)
-            {
-
-                MailContentType  = new MailContentType(
-                                       MailContentTypes.text_plain,
-                                       Text: ContentTypeString
-                                   );
-
-                return true;
-
-            }
-
-            // Map the MIME type to the enum member name: '/' → '_', '-' → '__' (e.g.
-            // "application/pgp-signature" → application_pgp__signature). This must mirror
-            // MailContentType.ToString(), which does the inverse ('__' → '-', '_' → '/').
-            if (Enum.TryParse<MailContentTypes>(splitted[0].Replace("/", "_").Replace("+", "__").Replace("-", "__"), out var _mailContentType))
-            {
-
-                mailContentType = _mailContentType;
-
-                var charSet       = "";
-                var mimeBoundary  = "";
-
-                foreach (var subInformation in splitted.Skip(1))
-                {
-
-                    if (subInformation.ToLower().StartsWith("charset="))
-                    {
-
-                        charSet = subInformation.Substring("charset=".Length).Trim().ToLower();
-
-                        if (charSet.StartsWith(@""""))
-                            charSet = charSet.Remove(0, 1);
-
-                        if (charSet.EndsWith(@""""))
-                            charSet = charSet.Substring(0, charSet.Length - 1);
-
-                        continue;
-
-                    }
-
-                    if (subInformation.ToLower().StartsWith("boundary="))
-                    {
-
-                        mimeBoundary = subInformation.Substring("boundary=".Length).Trim();
-
-                        if (mimeBoundary.StartsWith(@""""))
-                            mimeBoundary = mimeBoundary.Remove(0, 1);
-
-                        if (mimeBoundary.EndsWith(@""""))
-                            mimeBoundary = mimeBoundary.Substring(0, mimeBoundary.Length - 1);
-
-                        continue;
-
-                    }
-
-                    // Any other parameter (e.g. "format=flowed", "name=…") is not modelled here — ignore it.
-
-                }
-
-                // Build the result once, after all parameters are known. This used to be done
-                // *inside* the loop only for an unrecognised parameter, so a content type whose
-                // parameters were all charset=/boundary= — e.g. "text/plain; charset=utf-8" or
-                // "multipart/mixed; boundary=…" — never got constructed and Parse returned null
-                // (which then NRE'd the MIME parser on re-parse).
-                MailContentType  = new MailContentType(
-                                       mailContentType.Value,
-                                       CharSet:       charSet,
-                                       MIMEBoundary:  String.IsNullOrEmpty(mimeBoundary) ? null : mimeBoundary,
-                                       Text:          ContentTypeString
-                                   );
-
-                return true;
-
-            }
+            // RFC 2045 §5.1: "The type, subtype, and parameter names are not case sensitive"; §1:
+            // the MIME header fields follow RFC 822's syntax and "can include RFC 822 comments,
+            // which have no semantic content and should be ignored during MIME processing". The
+            // MIME reader's parser does all that - white space around "=", quoted values, RFC 2231
+            // sections - so the older model reads a Content-Type as the MIME reader does.
+            var unreadable  = new MimeContentType("x-unreadable", "x-unreadable");
+            var parsed      = String.IsNullOrWhiteSpace(ContentTypeString)
+                                  ? MimeContentType.TextPlain
+                                  : MimeContentType.Parse(ContentTypeString, unreadable);
 
             // Unrecognized media type: keep it as 'unknown' (retaining the original text) rather than
             // failing. Real inbound mail carries many leaf types we do not model; returning null here
             // made the MIME parser NRE. The verbatim string is preserved in Text.
-            MailContentType = new MailContentType(
-                                  MailContentTypes.unknown,
-                                  Text: ContentTypeString
-                              );
+            if (ReferenceEquals(parsed, unreadable))
+            {
+
+                MailContentType = new MailContentType(
+                                      MailContentTypes.unknown,
+                                      Text: ContentTypeString
+                                  );
+
+                return true;
+
+            }
+
+            // Map the MIME type - lower case - to the enum member name: '/' → '_', '-' → '__' (e.g.
+            // "application/pgp-signature" → application_pgp__signature). This must mirror
+            // MailContentType.ToString(), which does the inverse ('__' → '-', '_' → '/').
+            var contentType = Enum.TryParse<MailContentTypes>(parsed.MimeType.Replace("/", "_").Replace("+", "__").Replace("-", "__"), out var known)
+                                  ? known
+                                  : MailContentTypes.unknown;
+
+            // A boundary belongs to a multipart (RFC 2046 §5.1.1), whatever its subtype: one
+            // that is not listed is multipart/mixed (§5.1.7). On any other type a parameter
+            // named so is no boundary.
+            MailContentType  = new MailContentType(
+                                   contentType,
+                                   CharSet:       contentType == MailContentTypes.unknown
+                                                      ? parsed.Charset?.ToLowerInvariant()
+                                                      : parsed.Charset?.ToLowerInvariant() ?? "",
+                                   MIMEBoundary:  parsed.IsMultipart && !String.IsNullOrEmpty(parsed.Boundary)
+                                                      ? parsed.Boundary
+                                                      : null,
+                                   Text:          ContentTypeString
+                               ) {
+                                   IsMultipart  = parsed.IsMultipart
+                               };
 
             return true;
 

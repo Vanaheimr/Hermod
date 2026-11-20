@@ -572,6 +572,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        /// <summary>
+        /// A multipart of two text parts, "one" and "two", under the given Content-Type, whose
+        /// boundary is "xyz", read by the old model.
+        /// </summary>
+        private static IEnumerable<String> PartsInTheOldModel(String ContentType)
+
+            => EMail.Parse([
+                   "From: someone@example.org",
+                   "MIME-Version: 1.0",
+                   "Content-Type: " + ContentType,
+                   "",
+                   "--xyz",
+                   "Content-Type: Text/Plain",
+                   "",
+                   "one",
+                   "--xyz",
+                   "Content-Type: text/plain",
+                   "",
+                   "two",
+                   "--xyz--",
+                   ""
+               ]).Body.NestedBodyparts.Select(part => String.Join("\r\n", part.MailBody));
+
+        [TestCase("multipart/mixed; boundary=xyz",                                         TestName = "The old model reads multipart/mixed")]
+        [TestCase("Multipart/Mixed; boundary=xyz",                                         TestName = "The old model reads Multipart/Mixed")]
+        [TestCase("MULTIPART/MIXED; boundary=xyz",                                         TestName = "The old model reads MULTIPART/MIXED")]
+        [TestCase("multipart/mixed; Boundary=xyz",                                         TestName = "The old model reads Boundary=")]
+        [TestCase("multipart/mixed; BOUNDARY=\"xyz\"",                                     TestName = "The old model reads BOUNDARY= quoted")]
+        [TestCase("Multipart/Report; report-type=disposition-notification; boundary=xyz",  TestName = "The old model reads Multipart/Report")]
+        [TestCase("multipart/mixed; boundary = xyz",                                       TestName = "The old model reads white space around =")]
+        [TestCase("multipart/mixed; boundary=xyz (a comment)",                             TestName = "The old model reads a comment after the boundary")]
+        [TestCase("multipart/mixed (a comment); boundary=xyz",                             TestName = "The old model reads a comment after the subtype")]
+        [TestCase("multipart/related; boundary=xyz",                                       TestName = "The old model reads an unlisted multipart subtype as mixed")]
+        [Test(Description = "RFC 2045 §5.1: \"The type, subtype, and parameter names are not case sensitive\"; §1: the MIME header fields follow RFC 822's syntax and \"can include RFC 822 comments, which have no semantic content\"; RFC 2046 §5.1.7: unrecognized subtypes of multipart \"as being equivalent to \"multipart/mixed\"\" - in the old model's EMail.Parse, as in MimeMessage")]
+        public void A_Content_Type_is_read_by_the_old_model_as_by_the_MIME_reader(String ContentType)
+        {
+            Assert.That(PartsInTheOldModel(ContentType), Is.EqualTo(new[] { "one", "two" }));
+        }
+
+        [Test(Description = "RFC 2045 §5.1: parameters are \"modifiers of the media subtype\", and RFC 2046 §5.1.1 defines boundary for multipart - a text/plain with a parameter ending in \"boundary\" is not split in the old model, a line \"--\" in it is text")]
+        public void A_text_with_a_parameter_ending_in_boundary_is_not_split_by_the_old_model()
+        {
+
+            var email = EMail.Parse([ "From: someone@example.org", "Content-Type: text/plain; x-boundary=xyz", "", "above", "--", "below" ]);
+
+            Assert.Multiple(() => {
+                Assert.That(email.Body.NestedBodyparts,  Is.Empty);
+                Assert.That(email.Body.MailBody,         Is.EqualTo(new[] { "above", "--", "below" }));
+            });
+
+        }
+
         [Test(Description = "Hostile input: a multipart without a single delimiter line is read by the old model's EMail.Parse - which MdnGeneratingMailStorage runs on every message it stores - as a body without parts, not with an exception")]
         public void A_multipart_without_delimiters_is_read_by_the_old_model()
         {
