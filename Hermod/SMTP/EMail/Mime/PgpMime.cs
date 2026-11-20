@@ -126,17 +126,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 throw new ArgumentException($"That is no OpenPGP signature: {e.Message}");
             }
 
-            return signature.HashAlgorithm switch {
-                       HashAlgorithmTag.Sha256     => "pgp-sha256",
-                       HashAlgorithmTag.Sha384     => "pgp-sha384",
-                       HashAlgorithmTag.Sha512     => "pgp-sha512",
-                       HashAlgorithmTag.Sha224     => "pgp-sha224",
-                       HashAlgorithmTag.Sha1       => "pgp-sha1",
-                       HashAlgorithmTag.RipeMD160  => "pgp-ripemd160",
-                       var other                   => throw new ArgumentException($"A signature made with {other} has no micalg.")
-                   };
+            return MicAlg(signature.HashAlgorithm)
+                       ?? throw new ArgumentException($"A signature made with {signature.HashAlgorithm} has no micalg.");
 
         }
+
+        #endregion
+
+        #region MicAlg(HashAlgorithm)
+
+        /// <summary>
+        /// The micalg of a hash algorithm - "pgp-sha256", "pgp-sha3-256" - or null for one
+        /// a signature is not made with. RFC 3156 §5: "Hash-symbols are constructed from the
+        /// text names registered in [1] ... by converting the text name to lower case and
+        /// prefixing it with the four characters "pgp-"" - the text names of RFC 9580 §9.5
+        /// ("SHA3-256"), not those of BouncyCastle's enum (Sha3_256).
+        /// </summary>
+        /// <param name="HashAlgorithm">The hash algorithm the signature is made with.</param>
+        public static String? MicAlg(HashAlgorithmTag HashAlgorithm)
+
+            => HashAlgorithm switch {
+                   HashAlgorithmTag.Sha256     => "pgp-sha256",
+                   HashAlgorithmTag.Sha384     => "pgp-sha384",
+                   HashAlgorithmTag.Sha512     => "pgp-sha512",
+                   HashAlgorithmTag.Sha224     => "pgp-sha224",
+                   HashAlgorithmTag.Sha3_256   => "pgp-sha3-256",
+                   HashAlgorithmTag.Sha3_512   => "pgp-sha3-512",
+                   HashAlgorithmTag.Sha1       => "pgp-sha1",
+                   HashAlgorithmTag.RipeMD160  => "pgp-ripemd160",
+                   _                           => null
+               };
 
         #endregion
 

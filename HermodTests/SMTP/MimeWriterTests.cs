@@ -374,6 +374,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [Test(Description = "RFC 3156 §5: \"Hash-symbols are constructed from the text names registered in [1] ... by converting the text name to lower case and prefixing it with the four characters \"pgp-\"\"; RFC 9580 §9.5 registers \"SHA3-256\" and \"SHA3-512\"")]
+        public void The_micalg_of_a_SHA3_signature_is_its_registered_text_name()
+        {
+
+            var (secret, _) = Key();
+
+            var inner       = new MimeTextPart("Hallo Ben.").ToBytes();
+            var sha3_256    = Armored(OpenPGP.CreateSignature(new MemoryStream(inner), secret, Passphrase, HashAlgorithmTag.Sha3_256));
+            var sha3_512    = Armored(OpenPGP.CreateSignature(new MemoryStream(inner), secret, Passphrase, HashAlgorithmTag.Sha3_512));
+
+            var mail        = new MimeMessageBuilder { From = new MailboxAddress("Anna", "anna@example.test"), Subject = "SHA3", Body = PgpMime.Signed(inner, sha3_256) };
+            mail.To.Add(new MailboxAddress(null, "ben@example.test"));
+
+            var parsed      = MimeMessage.Parse(mail.ToBytes());
+
+            Assert.Multiple(() => {
+
+                Assert.That(PgpMime.MicAlg(sha3_256),                                            Is.EqualTo("pgp-sha3-256"));
+                Assert.That(PgpMime.MicAlg(sha3_512),                                            Is.EqualTo("pgp-sha3-512"));
+                Assert.That(parsed.Root.ContentType.Parameters.GetValueOrDefault("micalg"),      Is.EqualTo("pgp-sha3-256"), "in the multipart/signed");
+
+            });
+
+        }
+
         [Test]
         public void A_ciphertext_made_elsewhere_is_sent_as_multipart_encrypted()
         {
