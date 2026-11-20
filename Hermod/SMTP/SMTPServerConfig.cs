@@ -219,6 +219,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public          Boolean   EnableTlsRptIngestion      { get; init; } = false;
 
+        /// <summary>
+        /// How large the JSON of a received TLS-RPT report may be, unpacked (10 MiB by
+        /// default): a report that unpacks to more is no report - neither unpacked further,
+        /// nor kept (RFC 8460 §6.5, RFC 6713 §4).
+        /// </summary>
+        public          Int32     MaxTlsRptReportSize        { get; init; } = 10 * 1024 * 1024;
+
         #endregion
 
 

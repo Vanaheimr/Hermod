@@ -173,6 +173,141 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+
+        #region I-4: the encoding of the XML
+
+        private static Byte[] Gzipped(Byte[] Content)
+        {
+            using var output = new MemoryStream();
+            using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true))
+                gzip.Write(Content);
+            return output.ToArray();
+        }
+
+        public static IEnumerable<TestCaseData> Encodings()
+        {
+
+            Byte[] Bom(Encoding Encoding, String Text) => [ .. Encoding.GetPreamble(), .. Encoding.GetBytes(Text) ];
+
+            var utf16 = Report.Replace("UTF-8", "UTF-16").Replace("google.com", "Müller GmbH");
+
+            yield return new TestCaseData(Bom(new UTF8Encoding(true), Report),                                    "google.com"). SetName("UTF-8 with a Byte Order Mark is read");
+            yield return new TestCaseData(Gzipped(Bom(new UTF8Encoding(true), Report)),                           "google.com"). SetName("UTF-8 with a Byte Order Mark is read, gzipped");
+            yield return new TestCaseData(Bom(Encoding.Unicode, utf16),                                           "Müller GmbH").SetName("UTF-16 little-endian is read");
+            yield return new TestCaseData(Bom(Encoding.BigEndianUnicode, utf16),                                  "Müller GmbH").SetName("UTF-16 big-endian is read");
+            yield return new TestCaseData(Encoding.Latin1.GetBytes(Report.Replace("UTF-8", "ISO-8859-1").Replace("google.com", "Müller GmbH")),
+                                                                                                                 "Müller GmbH").SetName("ISO-8859-1 as the declaration says is read");
+
+        }
+
+        [TestCaseSource(nameof(Encodings))]
+        [Description("I-4 - XML 1.0 §4.3.3: \"All XML processors MUST be able to read entities in both the UTF-8 and UTF-16 encodings\"; \"Entities encoded in UTF-16 MUST and entities encoded in UTF-8 MAY begin with the Byte Order Mark\" - RFC 7489 §7.2.1.1: the report \"MUST be an XML file\"")]
+        public void A_report_in_the_encoding_its_octets_are_in_is_read(Byte[] Attachment, String Organization)
+        {
+
+            var report = DmarcReportReader.Unpack(Attachment) is { } xml ? DmarcReportReader.Parse(xml) : null;
+
+            Assert.Multiple(() => {
+                Assert.That(report?.Domain,            Is.EqualTo("example.org"));
+                Assert.That(report?.OrganizationName,  Is.EqualTo(Organization));
+            });
+
+        }
+
+        [Test(Description = "I-4 - XML 1.0 §4.3.3: the Byte Order Mark is no part of the document - XML text that still starts with one is read")]
+        public void XML_text_starting_with_a_Byte_Order_Mark_is_read()
+        {
+
+            Assert.That(DmarcReportReader.Parse("﻿" + Report)?.Domain, Is.EqualTo("example.org"));
+
+        }
+
+        #endregion
+
+        #region I-5: the date range
+
+        [TestCase("99999999999999",       "1792108799",           TestName = "A begin beyond the year 9999 is none, and does not throw")]
+        [TestCase("1792022400",           "-99999999999",         TestName = "An end before the year 1 is none, and does not throw")]
+        [TestCase("1792022400",           "99999999999999999999", TestName = "An end beyond Int64 is none, and does not throw")]
+        [Description("I-5 - RFC 7489 Appendix C: begin and end are xs:integer - any integer a foreign receiver writes; one outside what a DateTimeOffset holds is no time, and the report is still read")]
+        public void A_date_range_out_of_range_is_none(String Begin, String End)
+        {
+
+            var xml = Report.Replace("<begin>1792022400</begin><end>1792108799</end>", $"<begin>{Begin}</begin><end>{End}</end>");
+
+            // The times within range are the ones written.
+            static DateTimeOffset? Expected(String Seconds)
+                => Seconds.Length == 10 ? DateTimeOffset.FromUnixTimeSeconds(Int64.Parse(Seconds)) : null;
+
+            DmarcReceivedReport? report = null;
+
+            Assert.That(() => report = DmarcReportReader.Parse(xml), Throws.Nothing);
+            Assert.Multiple(() => {
+                Assert.That(report?.Domain, Is.EqualTo("example.org"), "the report is still read");
+                Assert.That(report?.Begin,  Is.EqualTo(Expected(Begin)));
+                Assert.That(report?.End,    Is.EqualTo(Expected(End)));
+            });
+
+        }
+
+        [Test(Description = "I-5 - RFC 7489 Appendix C: the first and the last second a DateTimeOffset holds are read - a guard")]
+        public void The_bounds_of_the_date_range_are_read()
+        {
+
+            var first  = DateTimeOffset.MinValue.ToUnixTimeSeconds();
+            var last   = DateTimeOffset.MaxValue.ToUnixTimeSeconds();
+            var report = DmarcReportReader.Parse(Report.Replace("<begin>1792022400</begin><end>1792108799</end>", $"<begin>{first}</begin><end>{last}</end>"));
+
+            Assert.That((report?.Begin, report?.End), Is.EqualTo(((DateTimeOffset?) DateTimeOffset.FromUnixTimeSeconds(first), (DateTimeOffset?) DateTimeOffset.FromUnixTimeSeconds(last))));
+
+        }
+
+        #endregion
+
+        #region I-2: how deep a report is nested
+
+        // A report whose domain is nested the given number of levels deep.
+        private static String Nested(Int32 Depth)
+
+            => "<?xml version=\"1.0\"?><feedback><policy_published><domain>" +
+               String.Concat(Enumerable.Repeat("<a>", Depth)) + "example.org" + String.Concat(Enumerable.Repeat("</a>", Depth)) +
+               "</domain></policy_published></feedback>";
+
+        // Parse on a thread with the stack of a server's worker thread on Linux: 1.5 MiB.
+        private static DmarcReceivedReport? ParseOnASmallStack(String Xml)
+        {
+
+            DmarcReceivedReport? report = null;
+
+            var thread = new Thread(() => report = DmarcReportReader.Parse(Xml), 1536 * 1024);
+            thread.Start();
+
+            Assert.That(thread.Join(TimeSpan.FromSeconds(60)), Is.True, "parsed in time");
+
+            return report;
+
+        }
+
+        [TestCase(    100, TestName = "Nesting 100 deep is no report")]
+        [TestCase( 50_000, TestName = "Nesting 50000 deep is no report and does not overflow the stack")]
+        [Description("I-2 - RFC 7489 §7.2.1.1: aggregate reports come by mail from receivers - from strangers; a document nested deeper than the schema of Appendix C needs is no report, and reading it does not end the process")]
+        public void Nesting_deeper_than_a_report_needs_is_no_report(Int32 Depth)
+        {
+
+            Assert.That(ParseOnASmallStack(Nested(Depth)), Is.Null);
+
+        }
+
+        [Test(Description = "I-2 - RFC 7489 Appendix C: a report nested within the limit is read - a guard")]
+        public void Nesting_within_the_limit_is_read()
+        {
+
+            Assert.That(ParseOnASmallStack(Nested(20))?.Domain, Is.EqualTo("example.org"));
+
+        }
+
+        #endregion
+
     }
 
 }

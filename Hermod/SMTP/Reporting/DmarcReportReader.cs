@@ -105,8 +105,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// gzipped, or the only XML file in a ZIP.
     /// </summary>
     /// <remarks>
-    /// What is read is limited: 20 MiB of XML at most, unpacked, and no DTD - a
-    /// report is something a stranger sends.
+    /// What is read is limited: 20 MiB of XML at most, unpacked, nested no deeper
+    /// than <see cref="MaxDepth"/>, and no DTD - a report is something a stranger
+    /// sends.
     /// </remarks>
     public static class DmarcReportReader
     {
@@ -117,6 +118,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// How large the XML of a report may be, unpacked.
         /// </summary>
         public const Int32 MaxXmlOctets = 20 * 1024 * 1024;
+
+        /// <summary>
+        /// How deep the elements of a report may be nested: the schema of RFC 7489
+        /// Appendix C needs five levels (feedback, record, auth_results, dkim, domain);
+        /// a document nested deeper is no report.
+        /// </summary>
+        public const Int32 MaxDepth = 32;
 
         #endregion
 
@@ -162,7 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     xml = Content.ToArray();
                 }
 
-                var text = Encoding.UTF8.GetString(xml);
+                var text = Decode(xml);
 
                 return text.Contains("<feedback", StringComparison.Ordinal) ? text : null;
 
@@ -196,6 +204,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         }
 
+        /// <summary>
+        /// The text of an XML document, in the encoding its octets are in. XML 1.0 §4.3.3:
+        /// "All XML processors MUST be able to read entities in both the UTF-8 and UTF-16
+        /// encodings", and "Entities encoded in UTF-16 MUST and entities encoded in UTF-8
+        /// MAY begin with the Byte Order Mark" - the XmlReader detects the encoding from the
+        /// Byte Order Mark and the encoding declaration; without either it is UTF-8. The Byte
+        /// Order Mark is no part of the text.
+        /// </summary>
+        private static String Decode(Byte[] Xml)
+        {
+
+            var encoding = Encoding.UTF8;
+
+            try
+            {
+
+                using var reader = new XmlTextReader(new MemoryStream(Xml)) {
+                                       DtdProcessing  = DtdProcessing.Prohibit,
+                                       XmlResolver    = null
+                                   };
+
+                // The first node is the XML declaration, when there is one.
+                reader.Read();
+                encoding = reader.Encoding ?? Encoding.UTF8;
+
+            }
+            catch (XmlException)
+            {
+                // Not even the start of a document: Parse refuses it.
+            }
+
+            using var text = new StreamReader(new MemoryStream(Xml), encoding, detectEncodingFromByteOrderMarks: true);
+
+            return text.ReadToEnd();
+
+        }
+
         #endregion
 
         #region Parse(Xml)
@@ -206,13 +251,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public static DmarcReceivedReport? Parse(String Xml)
         {
 
+            // A Byte Order Mark left in the text by a caller who decoded the octets himself is
+            // no part of the document (XML 1.0 §4.3.3).
+            if (Xml.StartsWith('﻿'))
+                Xml = Xml[1..];
+
             try
             {
 
-                using var reader = XmlReader.Create(new StringReader(Xml), new XmlReaderSettings {
-                                                                               DtdProcessing  = DtdProcessing.Prohibit,
-                                                                               XmlResolver    = null
-                                                                           });
+                var settings = new XmlReaderSettings {
+                                   DtdProcessing  = DtdProcessing.Prohibit,
+                                   XmlResolver    = null
+                               };
+
+                // XmlReaderSettings has no limit on depth, and LINQ to XML reads the text of an
+                // element (XElement.Value) by calling itself once per level - a stranger's
+                // document nested 50000 deep overflows the stack, which no catch survives. What
+                // is nested deeper than a report needs is refused before a tree is built.
+                using (var probe = XmlReader.Create(new StringReader(Xml), settings))
+                {
+                    while (probe.Read())
+                        if (probe.Depth > MaxDepth)
+                            return null;
+                }
+
+                using var reader = XmlReader.Create(new StringReader(Xml), settings);
 
                 var feedback = XDocument.Load(reader).Root;
 
@@ -284,8 +347,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private static String? Text(XElement? Parent, String Name)
             => Child(Parent, Name)?.Value.Trim() is { Length: > 0 } text ? text : null;
 
+        // RFC 7489 Appendix C: begin and end are xs:integer - any integer; one outside the
+        // years 1 to 9999 is no time a DateTimeOffset holds, and is read as none.
         private static DateTimeOffset? Seconds(String? Text)
-            => Int64.TryParse(Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds)
+            => Int64.TryParse(Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds) &&
+               seconds >= DateTimeOffset.MinValue.ToUnixTimeSeconds() &&
+               seconds <= DateTimeOffset.MaxValue.ToUnixTimeSeconds()
                    ? DateTimeOffset.FromUnixTimeSeconds(seconds)
                    : null;
 

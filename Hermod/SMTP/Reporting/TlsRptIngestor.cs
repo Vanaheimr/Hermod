@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -34,8 +35,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server;
 /// <c>application/tlsrpt+gzip</c> (or <c>+json</c>) part; this class extracts the JSON, parses
 /// the RFC 8460 §4 schema, persists the raw report, and logs a summary.
 /// </summary>
-public sealed class TlsRptIngestor(String storageDir, ILogger logger)
+/// <remarks>
+/// What is read is limited: <paramref name="maxReportSize"/> octets of JSON at most, unpacked -
+/// a report is something a stranger sends (RFC 8460 §7, RFC 6713 §4).
+/// </remarks>
+/// <param name="storageDir">Where the reports that were read are kept.</param>
+/// <param name="logger">Where what was read is logged.</param>
+/// <param name="maxReportSize">How large the JSON of a report may be, unpacked.</param>
+public sealed class TlsRptIngestor(String   storageDir,
+                                   ILogger  logger,
+                                   Int32    maxReportSize = TlsRptIngestor.DefaultMaxReportSize)
 {
+
+    #region Data
+
+    /// <summary>
+    /// How large the JSON of a report may be by default, unpacked: 10 MiB - a report
+    /// with 20000 failure-details is under 3 MiB.
+    /// </summary>
+    public const Int32 DefaultMaxReportSize = 10 * 1024 * 1024;
+
+    /// <summary>
+    /// How large the JSON of a report may be, unpacked.
+    /// </summary>
+    public Int32 MaxReportSize { get; } = maxReportSize;
+
+    #endregion
 
     #region IsTlsRptReport(message)
 
@@ -71,9 +96,11 @@ public sealed class TlsRptIngestor(String storageDir, ILogger logger)
         try
         {
 
-            if (!TryExtractReportJson(message, out var json))
+            if (!TryExtractReportJson(message, MaxReportSize, out var json, out var tooLarge))
             {
-                logger.Log(LogLevel.Warning, "TLS-RPT ingest: message looked like a report but no tlsrpt part could be extracted");
+                logger.Log(LogLevel.Warning, tooLarge
+                                                 ? $"TLS-RPT ingest: the report is larger than the {MaxReportSize} octets allowed, unpacked"
+                                                 : "TLS-RPT ingest: message looked like a report but no tlsrpt part could be extracted");
                 return null;
             }
 
@@ -112,12 +139,17 @@ public sealed class TlsRptIngestor(String storageDir, ILogger logger)
 
     /// <summary>
     /// Locate the <c>application/tlsrpt+*</c> body part, decode its transfer encoding and,
-    /// if gzip-compressed, decompress it — yielding the report JSON.
+    /// if gzip-compressed, decompress it — yielding the report JSON; none when it is larger
+    /// than <paramref name="maxOctets"/>, and <paramref name="tooLarge"/> says so.
     /// </summary>
-    private static Boolean TryExtractReportJson(EMailMessage message, out String json)
+    private static Boolean TryExtractReportJson(EMailMessage  message,
+                                                Int32         maxOctets,
+                                                out String    json,
+                                                out Boolean   tooLarge)
     {
 
-        json = "";
+        json     = "";
+        tooLarge = false;
 
         var contentType = HeaderValue(message.Headers, "Content-Type") ?? "";
         var boundary    = BoundaryOf(contentType);
@@ -149,8 +181,17 @@ public sealed class TlsRptIngestor(String storageDir, ILogger logger)
             var bytes = DecodeBody(partBody, cte);
 
             // Gunzip when the payload is gzip (declared +gzip, or by magic number 0x1f 0x8b).
+            // RFC 8460 §6.5 refers to RFC 6713 for gzip, whose §4 says "Applications should
+            // treat any data with due skepticism": what unpacks to more than allowed is not
+            // unpacked further, neither held nor kept - no report.
             if (bytes.Length >= 2 && bytes[0] == 0x1F && bytes[1] == 0x8B)
-                bytes = Gunzip(bytes);
+                bytes = GunzipAtMost(bytes, maxOctets);
+
+            if (bytes is null || bytes.Length > maxOctets)
+            {
+                tooLarge = true;
+                return false;
+            }
 
             json = Encoding.UTF8.GetString(bytes);
             return json.Contains('{');
@@ -161,30 +202,85 @@ public sealed class TlsRptIngestor(String storageDir, ILogger logger)
 
     }
 
-    // Split a multipart body into (headers, body) pairs using the given boundary.
-    private static IEnumerable<(String Headers, String Body)> SplitMultipart(String body, String boundary)
+    /// <summary>
+    /// Split a multipart body into (headers, body) pairs using the given boundary. RFC 2046
+    /// §5.1.1: "The boundary delimiter MUST occur at the beginning of a line", the CRLF before
+    /// it belongs to the delimiter, and "implementations must ignore anything that appears
+    /// before the first boundary delimiter line or after the last one" - the preamble and the
+    /// epilogue are no parts. A body that ends without its close-delimiter keeps its last part.
+    /// </summary>
+    private static List<(String Headers, String Body)> SplitMultipart(String body, String boundary)
     {
 
-        var delimiter = "--" + boundary;
-        var segments  = body.Split(delimiter);
+        var dashBoundary = "--" + boundary;
+        var parts        = new List<(String Headers, String Body)>();
+        var partStart    = -1;      // where the current part begins, after its delimiter line
+        var lineStart    = 0;
 
-        foreach (var segment in segments)
+        while (lineStart < body.Length)
         {
-            var seg = segment;
-            if (seg.StartsWith("--"))          // closing boundary "--boundary--"
-                continue;
-            seg = seg.TrimStart('\r', '\n');
-            if (seg.Length == 0)
-                continue;
 
-            var split = seg.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-            var sep   = 4;
-            if (split < 0) { split = seg.IndexOf("\n\n", StringComparison.Ordinal); sep = 2; }
-            if (split < 0)
-                continue;
+            var lineFeed = body.IndexOf('\n', lineStart);
+            var lineEnd  = lineFeed < 0 ? body.Length : lineFeed;
+            var line     = body.AsSpan(lineStart, lineEnd - lineStart).TrimEnd('\r');
 
-            yield return (seg[..split], seg[(split + sep)..]);
+            // dash-boundary [ "--" ] transport-padding, at the start of a line
+            if (line.StartsWith(dashBoundary, StringComparison.Ordinal))
+            {
+
+                var rest    = line[dashBoundary.Length..];
+                var isClose = rest.StartsWith("--", StringComparison.Ordinal);
+
+                if (isClose)
+                    rest = rest[2..];
+
+                if (rest.Trim(" \t").IsEmpty)
+                {
+
+                    if (partStart >= 0)
+                        parts.Add(Part(body, partStart, lineStart));
+
+                    if (isClose)
+                        return parts;
+
+                    partStart = lineFeed < 0 ? body.Length : lineFeed + 1;
+
+                }
+
+            }
+
+            lineStart = lineFeed < 0 ? body.Length : lineFeed + 1;
+
         }
+
+        if (partStart >= 0 && partStart < body.Length)
+            parts.Add(Part(body, partStart, body.Length));
+
+        return parts;
+
+    }
+
+    // A body part from start up to the line break that belongs to the next delimiter: its
+    // header fields up to the first empty line, and its body after it.
+    private static (String Headers, String Body) Part(String body, Int32 start, Int32 end)
+    {
+
+        if (end > start && body[end - 1] == '\n') end--;
+        if (end > start && body[end - 1] == '\r') end--;
+
+        var part = body[start..end];
+
+        // No header fields at all: the part begins with its empty line.
+        if (part.StartsWith("\r\n", StringComparison.Ordinal)) return ("", part[2..]);
+        if (part.StartsWith('\n'))                              return ("", part[1..]);
+
+        var split = part.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+        var sep   = 4;
+        if (split < 0) { split = part.IndexOf("\n\n", StringComparison.Ordinal); sep = 2; }
+
+        return split < 0
+                   ? (part, "")
+                   : (part[..split], part[(split + sep)..]);
 
     }
 
@@ -196,17 +292,34 @@ public sealed class TlsRptIngestor(String storageDir, ILogger logger)
             try { return Convert.FromBase64String(cleaned); }
             catch { return []; }
         }
-        // 7bit / 8bit / binary / quoted-printable(best-effort as-is): treat as raw text bytes.
+        // RFC 2049 §2: a MIME-conformant agent MUST "decode all received data encoded by either
+        // quoted-printable or base64 implementations" - an uncompressed report is one JSON line
+        // longer than the 998 octets RFC 5322 §2.1.1 allows, so a sender may well encode it so.
+        if (cte.Equals("quoted-printable", StringComparison.OrdinalIgnoreCase))
+            return TransferEncodings.DecodeQuotedPrintable(Encoding.UTF8.GetBytes(body));
+        // 7bit / 8bit / binary: treat as raw text bytes.
         return Encoding.UTF8.GetBytes(body);
     }
 
-    private static Byte[] Gunzip(Byte[] data)
+    // Gunzip at most maxOctets octets; null when there are more.
+    private static Byte[]? GunzipAtMost(Byte[] data, Int32 maxOctets)
     {
+
         using var input  = new MemoryStream(data);
         using var gz     = new GZipStream(input, CompressionMode.Decompress);
         using var output = new MemoryStream();
-        gz.CopyTo(output);
+        var       buffer = new Byte[81920];
+        Int32     read;
+
+        while ((read = gz.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            if (output.Length + read > maxOctets)
+                return null;
+            output.Write(buffer, 0, read);
+        }
+
         return output.ToArray();
+
     }
 
     private static String? BoundaryOf(String contentType)
