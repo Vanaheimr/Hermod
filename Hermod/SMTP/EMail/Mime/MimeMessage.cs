@@ -172,12 +172,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             this.Headers                  = Headers;
             this.ContentType              = ContentType;
             this.ContentDisposition       = MimeContentDisposition.Parse(Headers.Get("Content-Disposition"));
-            this.ContentTransferEncoding  = Headers.Get("Content-Transfer-Encoding")?.Trim().ToLowerInvariant() ?? "7bit";
+            this.ContentTransferEncoding  = TransferEncodingOf(Headers);
             this.ContentId                = Headers.Get("Content-ID")?.Trim().Trim('<', '>').Trim();
             this.Raw                      = Raw;
             this.RawBody                  = RawBody;
 
         }
+
+        #endregion
+
+
+        #region (internal static) TransferEncodingOf(Headers)
+
+        /// <summary>
+        /// The Content-Transfer-Encoding of the given header fields, lower case and
+        /// without comments (RFC 2045 §6.1); "7bit" where there is none (§6.1: "This
+        /// is the default value").
+        /// </summary>
+        internal static String TransferEncodingOf(MimeHeaders Headers)
+
+            => Headers.Get("Content-Transfer-Encoding") is { } value &&
+               MailAddressParser.StripComments(value).Trim().ToLowerInvariant() is { Length: > 0 } encoding
+                   ? encoding
+                   : "7bit";
 
         #endregion
 
@@ -402,7 +419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             // The top of a message is part "1" (or Prefix.1) when it is not a multipart,
             // and the container Prefix when it is - what IMAP calls its sections.
             var (headers, body) = SplitEntity(Raw);
-            var contentType     = MimeContentType.Parse(headers.Get("Content-Type"), MimeContentType.TextPlain);
+            var contentType     = ContentTypeOf(headers, MimeContentType.TextPlain);
 
             var partId          = contentType.IsMultipart
                                       ? Prefix
@@ -451,7 +468,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                         break;
 
                     var (childHeaders, childBody) = SplitEntity(slice);
-                    var childType                 = MimeContentType.Parse(childHeaders.Get("Content-Type"), childDefault);
+                    var childType                 = ContentTypeOf(childHeaders, childDefault);
                     var childId                   = PartId.Length == 0 ? $"{++index}" : $"{PartId}.{++index}";
 
                     var child                     = ParseEntity(slice, childHeaders, childBody, childType, childId, Depth + 1, State);
@@ -469,6 +486,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 part.EmbeddedMessage = Parse(part.GetContent(), PartId, Depth + 1, State);
 
             return part;
+
+        }
+
+        #endregion
+
+        #region (private static) ContentTypeOf(Headers, Default)
+
+        /// <summary>
+        /// The Content-Type of an entity, or the default where it has none - and
+        /// application/octet-stream, its parameters kept, where its
+        /// Content-Transfer-Encoding is none the reader knows. RFC 2045 §6.4: "Any
+        /// entity with an unrecognized Content-Transfer-Encoding must be treated as if
+        /// it has a Content-Type of "application/octet-stream", regardless of what the
+        /// Content-Type header field actually says."
+        /// </summary>
+        private static MimeContentType ContentTypeOf(MimeHeaders      Headers,
+                                                     MimeContentType  Default)
+        {
+
+            var contentType = MimeContentType.Parse(Headers.Get("Content-Type"), Default);
+
+            return MimePart.TransferEncodingOf(Headers) is not ("7bit" or "8bit" or "binary" or "base64" or "quoted-printable")
+                       ? new MimeContentType("application", "octet-stream", contentType.Parameters)
+                       : contentType;
 
         }
 

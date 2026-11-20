@@ -345,6 +345,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+        [TestCase("x-private-scheme",  TestName = "An unknown Content-Transfer-Encoding makes the part application/octet-stream")]
+        [TestCase("x-uuencode",        TestName = "x-uuencode, which Hermod does not decode, makes the part application/octet-stream")]
+        [Test(Description = "RFC 2045 §6.4: \"Any entity with an unrecognized Content-Transfer-Encoding must be treated as if it has a Content-Type of \"application/octet-stream\", regardless of what the Content-Type header field actually says\"")]
+        public void A_part_with_an_unknown_transfer_encoding_is_no_text(String TransferEncoding)
+        {
+
+            var message = Parse("From: someone@example.org\n" +
+                                "MIME-Version: 1.0\n" +
+                                "Content-Type: multipart/mixed; boundary=b\n" +
+                                "\n" +
+                                "--b\n" +
+                                "Content-Type: text/plain; charset=us-ascii\n" +
+                                "\n" +
+                                "The text.\n" +
+                                "--b\n" +
+                                "Content-Type: text/plain; charset=us-ascii; name=data.txt\n" +
+                                "Content-Transfer-Encoding: " + TransferEncoding + "\n" +
+                                "\n" +
+                                "QmluYXJ5IGRhdGE=\n" +
+                                "--b--\n");
+
+            Assert.Multiple(() => {
+                Assert.That(message.TextBody?.GetText(),                       Is.EqualTo("The text."));
+                Assert.That(message.Attachments.Single().ContentType.MimeType, Is.EqualTo("application/octet-stream"));
+                Assert.That(message.Attachments.Single().FileName,             Is.EqualTo("data.txt"));
+                Assert.That(message.Attachments.Single().GetContent(),         Is.EqualTo(Encoding.ASCII.GetBytes("QmluYXJ5IGRhdGE=")), "the octets as they are");
+            });
+
+        }
+
+        [Test(Description = "RFC 2045 §6.4: a single-part message with an unrecognized Content-Transfer-Encoding is application/octet-stream - no text to show")]
+        public void A_message_with_an_unknown_transfer_encoding_has_no_text()
+        {
+
+            var message = Parse("From: someone@example.org\nMIME-Version: 1.0\nContent-Type: text/plain; charset=us-ascii\nContent-Transfer-Encoding: x-private-scheme\n\nQmluYXJ5IGRhdGE=\n");
+
+            Assert.Multiple(() => {
+                Assert.That(message.TextBody,     Is.Null);
+                Assert.That(message.Attachments,  Has.Count.EqualTo(1));
+            });
+
+        }
+
+        [TestCase("7BIT",                  TestName = "7BIT in upper case is known (guard)")]
+        [TestCase("8bit (a comment)",      TestName = "8bit with a comment is known (guard)")]
+        [TestCase("binary",                TestName = "binary is known (guard)")]
+        [Test(Description = "RFC 2045 §6.1: \"These values are not case sensitive\"; §1: the MIME header fields \"can include RFC 822 comments, which have no semantic content\" - the known encodings stay text")]
+        public void A_part_with_a_known_transfer_encoding_stays_text(String TransferEncoding)
+        {
+            Assert.That(Parse("Content-Type: text/plain\nContent-Transfer-Encoding: " + TransferEncoding + "\n\nThe text.\n").TextBody?.GetText(), Is.EqualTo("The text.\r\n"));
+        }
+
         [Test]
         public void Text_that_says_UTF8_and_is_not_is_read_as_Windows1252()
         {
