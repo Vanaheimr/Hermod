@@ -165,14 +165,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <c>:path</c> carries it: what the resource handler is given on either
         /// version: the target as sent, not one put together again from the
         /// parsed query string, which would encode it anew and order it by name.
-        /// Only origin form reaches a handler — the server refuses absolute form
-        /// before routing, and asterisk form is answered by the server itself —
-        /// so the fallback is there for a request built in process.
+        /// A target in absolute form is given as its path and query, as RFC 9112,
+        /// Section 3.2.2 has the server take its authority for Host. Asterisk form
+        /// is answered by the server itself, so the fallback is there for a
+        /// request built in process.
         /// </summary>
         private static String PathOf(HTTPRequest Request)
 
-            => Request.RequestTarget.StartsWith('/')
-                   ? Request.RequestTarget
+            => Request.OriginFormTarget?.StartsWith('/') == true
+                   ? Request.OriginFormTarget
                    : Request.Path.ToString();
 
         #endregion
