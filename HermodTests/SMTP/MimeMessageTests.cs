@@ -226,6 +226,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(MimeDate.TryParse(Text, out _), Is.False);
         }
 
+        [TestCase("Fri, 21 Nov 1997 09(comment):   55  :  06 -0600",  TestName = "RFC 5322 A.6.3: a comment and white space inside the time")]
+        [TestCase("Fri, 21 Nov 1997 09 : 55 : 06 -0600",             TestName = "RFC 5322 §4.3: white space around the colons")]
+        [TestCase("Fri, 21 Nov 1997 09:55:06 -0600 (a (nested) one)", TestName = "A nested comment after the zone (guard)")]
+        [Test(Description = "RFC 5322 §4.3: obs-hour = [CFWS] 2DIGIT [CFWS], obs-minute and obs-second alike; §4: obsolete forms \"MUST be accepted and parsed by a conformant receiver\"")]
+        public void White_space_and_comments_inside_the_time_are_read(String Text)
+        {
+
+            Assert.That(MimeDate.TryParse(Text, out var date), Is.True);
+            Assert.That(date, Is.EqualTo(new DateTimeOffset(1997, 11, 21, 9, 55, 6, TimeSpan.FromHours(-6))));
+
+        }
+
+        [Test(Description = "RFC 5322 §3.2.2: comment = \"(\" *([FWS] ccontent) [FWS] \")\", ccontent = ctext / quoted-pair / comment - nesting is legal at any depth; a Date with a comment 10 000 deep is read in time")]
+        public async Task A_date_with_deeply_nested_comments_is_read_in_time()
+        {
+
+            var header   = "From: someone@example.org\nDate: Fri, 21 Nov 1997 09:55:06 -0600 " + new String('(', 10_000) + new String(')', 10_000) + "\n\nx\n";
+
+            MimeMessage? message = null;
+
+            try
+            {
+                message = await Task.Run(() => Parse(header)).WaitAsync(TimeSpan.FromSeconds(2));
+            }
+            catch (TimeoutException)
+            { }
+
+            Assert.That(message?.Date, Is.EqualTo(new DateTimeOffset(1997, 11, 21, 9, 55, 6, TimeSpan.FromHours(-6))), "no result within 2 s");
+
+        }
+
         #endregion
 
         #region Content-Type and RFC 2231
