@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -236,7 +237,12 @@ public sealed class TlsRptIngestor(String   storageDir,
             try { return Convert.FromBase64String(cleaned); }
             catch { return []; }
         }
-        // 7bit / 8bit / binary / quoted-printable(best-effort as-is): treat as raw text bytes.
+        // RFC 2049 §2: a MIME-conformant agent MUST "decode all received data encoded by either
+        // quoted-printable or base64 implementations" - an uncompressed report is one JSON line
+        // longer than the 998 octets RFC 5322 §2.1.1 allows, so a sender may well encode it so.
+        if (cte.Equals("quoted-printable", StringComparison.OrdinalIgnoreCase))
+            return TransferEncodings.DecodeQuotedPrintable(Encoding.UTF8.GetBytes(body));
+        // 7bit / 8bit / binary: treat as raw text bytes.
         return Encoding.UTF8.GetBytes(body);
     }
 

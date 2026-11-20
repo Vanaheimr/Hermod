@@ -134,6 +134,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             return output.ToArray();
         }
 
+        /// <summary>
+        /// Quoted-printable (RFC 2045 §6.7): the UTF-8 octets, "=" and those above 126 as =XX,
+        /// in lines of at most 76 characters ending in a soft line break "=".
+        /// </summary>
+        private static String QuotedPrintable(String Text)
+        {
+
+            var output = new StringBuilder();
+            var line   = 0;
+
+            foreach (var octet in Encoding.UTF8.GetBytes(Text))
+            {
+                var encoded = octet == '=' || octet > 126 ? $"={octet:X2}" : ((Char) octet).ToString();
+                if (line + encoded.Length > 75)
+                {
+                    output.Append("=\r\n");
+                    line = 0;
+                }
+                output.Append(encoded);
+                line += encoded.Length;
+            }
+
+            return output.ToString();
+
+        }
+
         private TlsRptReceivedReport? Ingest(EMailMessage Message)
             => new TlsRptIngestor(directory, log).Ingest(Message);
 
@@ -193,6 +219,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(new TlsRptIngestor(directory, log, json.Length - 1).Ingest(Mail("Content-Type: application/tlsrpt+json\r\n\r\n" + json)), Is.Null, "uncompressed");
                 Assert.That(new TlsRptIngestor(directory, log, json.Length + 2).Ingest(Mail(GzipPart(Gzip(json)))),                                   Is.Not.Null, "within it");
                 Assert.That(new SMTPServerConfig { Hostname = "mx.hermod.test" }.MaxTlsRptReportSize,                                                 Is.EqualTo(TlsRptIngestor.DefaultMaxReportSize));
+            });
+
+        }
+
+        #endregion
+
+        #region I-3: the transfer encodings
+
+        [Test(Description = "I-3 - RFC 2049 §2: a MIME-conformant agent MUST \"decode all received data encoded by either quoted-printable or base64 implementations\" - an application/tlsrpt+json report in quoted-printable, soft line breaks, =3D and UTF-8 as =XX, is read as it was written")]
+        public void A_quoted_printable_report_is_read()
+        {
+
+            var report = Ingest(Mail("Content-Type: application/tlsrpt+json\r\n" +
+                                     "Content-Transfer-Encoding: quoted-printable\r\n" +
+                                     "\r\n" +
+                                     QuotedPrintable(Json("Müller & Söhne")) + "\r\n"));
+
+            Assert.Multiple(() => {
+                Assert.That(report?.OrganizationName,                                  Is.EqualTo("Müller & Söhne"));
+                Assert.That(report?.Policies.Single().Failures[1].FailedSessionCount,  Is.EqualTo(200));
+            });
+
+        }
+
+
+        [Test(Description = "I-3 - RFC 8460 §5.3: an uncompressed report in 7bit, and one in base64, are read - guards")]
+        public void A_report_in_7bit_or_base64_is_read()
+        {
+
+            var json = Json("Company-X");
+
+            Assert.Multiple(() => {
+                Assert.That(Ingest(Mail("Content-Type: application/tlsrpt+json\r\nContent-Transfer-Encoding: 7bit\r\n\r\n" + json.Replace(",\"", ",\r\n \"")))?.OrganizationName,
+                            Is.EqualTo("Company-X"), "7bit");
+                Assert.That(Ingest(Mail("Content-Type: application/tlsrpt+json\r\nContent-Transfer-Encoding: base64\r\n\r\n" +
+                                        Convert.ToBase64String(Encoding.UTF8.GetBytes(json), Base64FormattingOptions.InsertLineBreaks)))?.OrganizationName,
+                            Is.EqualTo("Company-X"), "base64");
             });
 
         }
