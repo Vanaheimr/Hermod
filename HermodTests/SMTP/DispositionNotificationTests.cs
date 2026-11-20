@@ -110,6 +110,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
+
+        /// <summary>
+        /// The message/disposition-notification of the receipt Build writes for the message.
+        /// </summary>
+        private static String Report(MimeMessage Message, String? OriginalRecipient = null)
+
+            => Encoding.ASCII.GetString(MimeMessage.Parse(DispositionNotification.Build(Message,
+                                                                                         new MailboxAddress(null, "anna@example.test"),
+                                                                                         "EMailWebApp",
+                                                                                         new DateTimeOffset(2026, 11, 20, 9, 30, 0, TimeSpan.FromHours(1)),
+                                                                                         OriginalRecipient).ToBytes()).
+                                                   Root.Children[1].GetContent());
+
+
+        [Test(Description = "RFC 8098 §3.2.3: \"If there is an Original-Recipient header field in the message ... then the Original-Recipient field MUST be included\"")]
+        public void A_confirmed_receipt_returns_the_Original_Recipient()
+        {
+
+            var message = MimeMessage.Parse(Encoding.UTF8.GetBytes("Original-Recipient: rfc822;team@example.test\r\n" +
+                                                                   "From: Bernd <bernd@example.net>\r\n" +
+                                                                   "To: team@example.test\r\n" +
+                                                                   "Subject: Termin\r\n" +
+                                                                   "Message-ID: <original@example.net>\r\n" +
+                                                                   "Disposition-Notification-To: bernd@example.net\r\n" +
+                                                                   "\r\nHallo\r\n"));
+
+            Assert.Multiple(() => {
+                Assert.That(Report(message),                                Does.Contain("Original-Recipient: rfc822;team@example.test\r\nFinal-Recipient: rfc822; anna@example.test\r\n"));
+                Assert.That(Report(message, "rfc822;sales@example.test"),   Does.Contain("Original-Recipient: rfc822;sales@example.test\r\n"), "one it is given");
+                Assert.That(Report(Message("bernd@example.net")),           Does.Not.Contain("Original-Recipient"), "§3.2.3: \"Otherwise ... MUST NOT be included\"");
+            });
+
+        }
+
         [Test]
         public void A_receipt_is_a_report_about_the_message_it_names()
         {

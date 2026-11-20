@@ -1410,7 +1410,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 // retry duplicates nothing.
                 try
                 {
-                    filePath = await storage.StoreAsync(stampedMessage, _mailFrom ?? "<>", _localRcptTo, ct);
+
+                    // RFC 8098 §2.3: "if the ORCPT information is available, the delivering MTA
+                    // SHOULD insert an Original-Recipient header field at the beginning of the
+                    // message (along with the Return-Path header field)" - the only way a mail
+                    // client learns the address to return in its MDN. The field names the original
+                    // address of one recipient, so the recipients are stored in groups of the same
+                    // ORCPT, each with its own field in front; those without one get the message as
+                    // it is, all together, as before.
+                    foreach (var group in _localRcptTo.GroupBy(OriginalRecipientField))
+                    {
+
+                        var delivered = group.Key is null
+                                            ? stampedMessage
+                                            : EMailMessage.Parse([ .. Encoding.UTF8.GetBytes(group.Key), .. stampedBytes ]);
+
+                        delivered.Verification = verification;
+
+                        var path = await storage.StoreAsync(delivered, _mailFrom ?? "<>", [ .. group ], ct);
+
+                        filePath ??= path;
+
+                    }
+
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
@@ -1506,6 +1528,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             await SendResponseAsync(250, "2.0.0 OK: Message accepted for delivery");
             ResetTransaction();
+
+        }
+
+
+        /// <summary>
+        /// The Original-Recipient header field (RFC 8098 §2.3) for a local recipient, from the
+        /// ORCPT its RCPT carried - "Original-Recipient" ":" address-type ";" generic-address,
+        /// the address xtext-decoded (RFC 3461 §4) - with its CRLF; null when it had no ORCPT,
+        /// or one that no header field can carry.
+        /// </summary>
+        private String? OriginalRecipientField(String Recipient)
+        {
+
+            if (_recipientDsns.FirstOrDefault(dsn => dsn.Recipient == Recipient)?.OriginalRecipient is not { } orcpt)
+                return null;
+
+            var semicolon = orcpt.IndexOf(';');
+
+            if (semicolon <= 0)
+                return null;
+
+            var addressType  = orcpt[..semicolon].Trim();
+            var address      = DsnParser.DecodeXtext(orcpt[(semicolon + 1)..].Trim());
+
+            // xtext carries any octet: a CR LF in it would end the field and begin one the client chose.
+            if (address.Length == 0 || address.Any(Char.IsControl))
+                return null;
+
+            return $"Original-Recipient: {addressType};{address}\r\n";
 
         }
 

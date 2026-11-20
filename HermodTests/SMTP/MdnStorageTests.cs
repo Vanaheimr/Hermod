@@ -277,6 +277,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+        #region Original-Recipient (RFC 8098 §3.2.3)
+
+        [Test(Description = "RFC 8098 §3.2.3: \"If there is an Original-Recipient header field in the message ... then the Original-Recipient field MUST be included\" - the one the delivering server wrote at the top (§2.3) from ORCPT")]
+        public async Task Original_Recipient_is_taken_from_the_message()
+        {
+
+            var queued = await Store("Original-Recipient: rfc822;team@example.org\r\n" + Raw("alice@example.com"));
+
+            Assert.That(queued.Single().MessageContent, Does.Contain("Original-Recipient: rfc822;team@example.org\r\nFinal-Recipient: rfc822; bob@example.org\r\n"));
+
+        }
+
+
+        [Test(Description = "RFC 8098 §3.2.3: \"Otherwise, the Original-Recipient field MUST NOT be included\"")]
+        public async Task Without_one_there_is_no_Original_Recipient_field()
+        {
+
+            var queued = await Store(Raw("alice@example.com"));
+
+            Assert.That(queued.Single().MessageContent, Does.Not.Contain("Original-Recipient"));
+
+        }
+
+        #endregion
+
         #region Hostile messages
 
         [TestCase(false, Description = "asking for no receipt")]

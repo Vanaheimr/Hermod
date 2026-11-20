@@ -344,6 +344,95 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+
+        #region Original-Recipient from ORCPT (RFC 8098 §2.3)
+
+        /// <summary>
+        /// One transaction from sender@client.example with the given RCPT TO lines - path and
+        /// parameters; asserts that the message was taken.
+        /// </summary>
+        private static async Task DeliverTo(Server Server, params String[] RcptTo)
+        {
+
+            using var wire = await Server.ConnectAsync();
+
+            Assert.That(await wire.CommandAsync("EHLO client.example"),               Is.EqualTo(250));
+            Assert.That(await wire.CommandAsync("MAIL FROM:<sender@client.example>"), Is.EqualTo(250));
+
+            foreach (var rcpt in RcptTo)
+                Assert.That(await wire.CommandAsync("RCPT TO:" + rcpt),               Is.EqualTo(250), rcpt);
+
+            Assert.That(await wire.CommandAsync("DATA"),                              Is.EqualTo(354));
+
+            await wire.SendAsync("From: sender@client.example\r\nTo: team@hermod.test\r\nSubject: Alias\r\n\r\nHello.\r\n.\r\n");
+            Assert.That((await wire.ReplyAsync()).Code, Is.EqualTo(250));
+
+        }
+
+
+        [Test(Description = "RFC 8098 §2.3: \"if the ORCPT information is available, the delivering MTA SHOULD insert an Original-Recipient header field at the beginning of the message\"")]
+        public async Task The_delivering_server_writes_Original_Recipient_from_ORCPT()
+        {
+
+            await using var server = new Server();
+
+            await DeliverTo(server, "<alice@hermod.test> ORCPT=rfc822;team@hermod.test");
+
+            Assert.That(server.Storage.Messages.Single(), Does.StartWith("Original-Recipient: rfc822;team@hermod.test\r\n"));
+
+        }
+
+
+        [Test(Description = "RFC 8098 §2.3 with RFC 3461 §4: ORCPT is xtext - \"+2B\" is the \"+\" of the address")]
+        public async Task Original_Recipient_is_the_ORCPT_xtext_decoded()
+        {
+
+            await using var server = new Server();
+
+            await DeliverTo(server, "<alice@hermod.test> ORCPT=rfc822;team+2Bsales@hermod.test");
+
+            Assert.That(server.Storage.Messages.Single(), Does.StartWith("Original-Recipient: rfc822;team+sales@hermod.test\r\n"));
+
+        }
+
+
+        [Test(Description = "RFC 8098 §2.3: Original-Recipient names one recipient's original address - each recipient's copy has its own, one without ORCPT none")]
+        public async Task Each_recipient_gets_its_own_Original_Recipient()
+        {
+
+            await using var server = new Server();
+
+            await DeliverTo(server, "<alice@hermod.test> ORCPT=rfc822;team@hermod.test",
+                                    "<bob@hermod.test> ORCPT=rfc822;sales@hermod.test",
+                                    "<carol@hermod.test>");
+
+            var stored = server.Storage.Envelopes.Zip(server.Storage.Messages).
+                                ToDictionary(store => String.Join(", ", store.First.To),
+                                             store => store.Second.StartsWith("Original-Recipient:") ? store.Second[..store.Second.IndexOf('\r')] : "(none)");
+
+            Assert.That(stored, Is.EquivalentTo(new Dictionary<String, String> {
+                                    { "alice@hermod.test", "Original-Recipient: rfc822;team@hermod.test"  },
+                                    { "bob@hermod.test",   "Original-Recipient: rfc822;sales@hermod.test" },
+                                    { "carol@hermod.test", "(none)"                                       }
+                                }));
+
+        }
+
+
+        [Test(Description = "RFC 5322 §2.2: a header field is one line, unfolded - an ORCPT whose xtext hides a CR LF writes no header field of the client's choosing")]
+        public async Task An_ORCPT_with_a_line_break_writes_no_header_field()
+        {
+
+            await using var server = new Server();
+
+            await DeliverTo(server, "<alice@hermod.test> ORCPT=rfc822;team@hermod.test+0D+0AX-Injected:+20yes");
+
+            Assert.That(server.Storage.Messages.Single(), Does.Not.Contain("X-Injected").And.Not.StartWith("Original-Recipient"));
+
+        }
+
+        #endregion
+
     }
 
 }

@@ -107,6 +107,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
+        [Test(Description = "RFC 8098 §3.2.3: the Original-Recipient field \"MUST be included\" \"if information about the original recipient is reliably available some other way\" - §5: the ORCPT of RFC 3461")]
+        public void CreateReadReceipt_returns_an_Original_Recipient_it_is_given()
+        {
+
+            var text = String.Join("\r\n", Incoming(RequestReceipt: true).CreateReadReceipt(Bob, OriginalRecipient: "rfc822;team@example.org")!.ToText());
+
+            Assert.That(text, Does.Contain("Original-Recipient: rfc822;team@example.org\r\nFinal-Recipient: rfc822; bob@example.org\r\n"));
+
+        }
+
+
         [Test(Description = "RFC 8098 §3.2.6.1: manual-action - \"in order to preserve the user's privacy, this MUST be the default for MUAs\"; MDN-sent-manually - \"this MUST be the default for MUAs\"")]
         public void CreateReadReceipt_defaults_to_manual_action_and_MDN_sent_manually()
         {

@@ -585,10 +585,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="Disposition">What happened to the message; defaults to manual-action/MDN-sent-manually; displayed.</param>
         /// <param name="ReportingUAProduct">The product name for the Reporting-UA field.</param>
         /// <param name="IncludeOriginalHeaders">Whether to append the original message headers.</param>
+        /// <param name="OriginalRecipient">The original recipient as known some other way than from the message's Original-Recipient header field - address-type ";" address, e.g. the xtext-decoded ORCPT of RFC 3461: "rfc822;alias@example.org".</param>
         public EMail? CreateReadReceipt(EMailAddress         ReportingAgent,
                                         MessageDisposition?  Disposition             = null,
                                         String?              ReportingUAProduct      = null,
-                                        Boolean              IncludeOriginalHeaders  = true)
+                                        Boolean              IncludeOriginalHeaders  = true,
+                                        String?              OriginalRecipient       = null)
         {
 
             var notifyTo = DispositionNotificationTo;
@@ -640,9 +642,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 "--" + boundary,
                 "Content-Type: message/disposition-notification",
                 "",
-                $"Reporting-UA: {reporterDomain}; {product}",
-                $"Final-Recipient: rfc822; {reporter}"
+                $"Reporting-UA: {reporterDomain}; {product}"
             };
+
+            // RFC 8098 §3.2.3: "If there is an Original-Recipient header field in the message, or
+            // if information about the original recipient is reliably available some other way,
+            // then the Original-Recipient field MUST be included. Otherwise, the
+            // Original-Recipient field MUST NOT be included." Of several such header fields the
+            // first - the one the delivering server wrote at the top (§2.3).
+            var originalRecipient = (OriginalRecipient ?? GetEMailHeader("Original-Recipient")).
+                                        Replace("\r", " ").Replace("\n", " ").Trim();
+
+            if (originalRecipient.Length > 0)
+                lines.Add($"Original-Recipient: {originalRecipient}");
+
+            lines.Add($"Final-Recipient: rfc822; {reporter}");
 
             var originalMessageId = GetEMailHeader("Message-ID");
             if (originalMessageId.IsNotNullOrEmpty())

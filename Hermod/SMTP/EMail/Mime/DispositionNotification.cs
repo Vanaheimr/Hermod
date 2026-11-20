@@ -45,6 +45,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     public static class DispositionNotification
     {
 
+        #region Data
+
+        private static readonly System.Text.RegularExpressions.Regex Whitespace = new (@"\s+", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        #endregion
+
         #region RequestedBy(Message)
 
         /// <summary>
@@ -188,12 +194,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="From">The reader: the address the message came to.</param>
         /// <param name="ReportingUA">The name of the reading program, for Reporting-UA.</param>
         /// <param name="Displayed">When it was read.</param>
+        /// <param name="OriginalRecipient">The original recipient as known some other way than from the message's Original-Recipient header field - address-type ";" address, e.g. the xtext-decoded ORCPT of RFC 3461: "rfc822;alias@example.org".</param>
         /// <returns>The notification - to be sent from MAIL FROM:&lt;&gt;.</returns>
         /// <exception cref="ArgumentException">The message asks for no read receipt.</exception>
         public static MimeMessageBuilder Build(MimeMessage     Message,
                                                MailboxAddress  From,
                                                String          ReportingUA,
-                                               DateTimeOffset  Displayed)
+                                               DateTimeOffset  Displayed,
+                                               String?         OriginalRecipient   = null)
         {
 
             // RFC 8098 §3: "The MDN MUST be addressed (in both the message header field and the
@@ -228,8 +236,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             // RFC 8098 §3.1, in the order it gives them.
             var report = new StringBuilder().
-                             Append($"Reporting-UA: {domain}; {ReportingUA}\r\n").
-                             Append($"Final-Recipient: rfc822; {From.Address}\r\n");
+                             Append($"Reporting-UA: {domain}; {ReportingUA}\r\n");
+
+            // §3.2.3: "If there is an Original-Recipient header field in the message, or if
+            // information about the original recipient is reliably available some other way, then
+            // the Original-Recipient field MUST be included." Of several header fields the first,
+            // the one the delivering server wrote at the top (§2.3); written only as 7-bit text,
+            // what message/disposition-notification is (§3.1).
+            var originalRecipient = Whitespace.Replace(OriginalRecipient ?? Message.Headers.Get("Original-Recipient") ?? "", " ").Trim();
+
+            if (originalRecipient.Length > 0 && MimeEncoding.IsPrintableAscii(originalRecipient))
+                report.Append($"Original-Recipient: {originalRecipient}\r\n");
+
+            report.Append($"Final-Recipient: rfc822; {From.Address}\r\n");
 
             if (Message.MessageId is { } messageId)
                 report.Append($"Original-Message-ID: <{messageId}>\r\n");
