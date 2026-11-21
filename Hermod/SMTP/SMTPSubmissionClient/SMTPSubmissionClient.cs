@@ -634,7 +634,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         /// <summary>
         /// Perform a client-side SCRAM-SHA-256 (RFC 7677 / RFC 5802) authentication exchange.
-        /// Returns true on a "235 Authentication successful", and verifies the server signature.
+        /// True when the server proved it knows the password - its server-final-message carries
+        /// the ServerSignature - and then said 235.
         /// </summary>
         private async Task<Boolean> ScramSha256AuthenticateAsync(String             Login,
                                                                  String             Password,
@@ -645,7 +646,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             // client-first
             var clientNonce      = B64(RandomNumberGenerator.GetBytes(18));
-            var clientFirstBare  = $"n={SaslPrep(Login)},r={clientNonce}";
+            var clientFirstBare  = $"n={EscapeSaslName(Login)},r={clientNonce}";
             var gs2Header        = "n,,";
 
             var first = await SendCommandAndWaitForResponseAsync("AUTH SCRAM-SHA-256 " + B64((gs2Header + clientFirstBare).ToUTF8Bytes()), CancellationToken).ConfigureAwait(false);
@@ -674,25 +675,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var final = await SendCommandAndWaitForResponseAsync(B64($"{clientFinalNoProof},p={B64(clientProof)}".ToUTF8Bytes()), CancellationToken).ConfigureAwait(false);
 
-            // The server may send its final message (v=…) as a 334 continuation (ack with an empty
-            // line) or fold it into the 235 success.
-            var expectedServerSig = B64(ScramSha256Client.ServerSignature(saltedPassword, authMessage));
+            // RFC 5802 §5: "the client authenticates the server by computing the ServerSignature
+            // and comparing it to the value sent by the server. If the two are different, the
+            // client MUST consider the authentication exchange to be unsuccessful". The
+            // server-final-message is a challenge, answered with an empty line (RFC 4422 §3,
+            // RFC 4954 §4: SMTP has no additional data with a successful outcome). A 235 without
+            // it is a server that never proved it knows the password. Hermod servers before this
+            // put it into the 235 text, base64 - taken there too.
+            var serverFinal       = "v=" + B64(ScramSha256Client.ServerSignature(saltedPassword, authMessage));
 
             if (final.StatusCode == SMTPStatusCodes.AuthenticationChallenge)
             {
-                var serverFinal = Convert.FromBase64String(final.Response).ToUTF8String();
-                if (!serverFinal.Contains("v=" + expectedServerSig))
+
+                if (DecodeBase64(final.Response)?.Split(',')[0] != serverFinal)
+                {
+                    // Not the server's signature: the exchange is cancelled (RFC 4954 §4).
+                    await SendCommandAndWaitForResponseAsync("*", CancellationToken).ConfigureAwait(false);
                     return false;
+                }
+
                 final = await SendCommandAndWaitForResponseAsync("", CancellationToken).ConfigureAwait(false);
+
+                return final.StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
+
             }
 
-            return final.StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
+            return final.StatusCode == SMTPStatusCodes.AuthenticationSuccessful &&
+                   final.Response.Split(' ', StringSplitOptions.RemoveEmptyEntries).
+                                  Any(word => DecodeBase64(word)?.Split(',')[0] == serverFinal);
 
         }
 
-        // Minimal SASLprep: reject characters that would break the SCRAM attribute syntax.
-        private static String SaslPrep(String value)
+        // A saslname (RFC 5802 §5.1, n): "The characters ',' or '=' in usernames are sent as
+        // '=2C' and '=3D' respectively".
+        private static String EscapeSaslName(String value)
             => value.Replace("=", "=3D").Replace(",", "=2C");
+
+        // The UTF-8 text of a base64 value, or null when it is none.
+        private static String? DecodeBase64(String value)
+        {
+            try
+            {
+                return Convert.FromBase64String(value.Trim()).ToUTF8String();
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
 
         #endregion
 

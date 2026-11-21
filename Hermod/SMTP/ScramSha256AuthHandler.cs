@@ -28,22 +28,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 {
 
     /// <summary>
-    /// SCRAM-SHA-256 authentication (RFC 7677)
-    /// Provides mutual authentication without transmitting the password.
+    /// SCRAM-SHA-256 authentication (RFC 7677, RFC 5802).
+    /// Provides mutual authentication without transmitting the password: the client proves it
+    /// knows the password, and the server proves it knows the user's keys with its
+    /// server-final-message - a challenge in SMTP, answered with an empty response (RFC 4422
+    /// §3, RFC 4954 §4).
     /// </summary>
     public sealed class ScramSha256AuthHandler(IUserStore userStore, ILogger logger) : AuthHandler
     {
         public override string MechanismName => "SCRAM-SHA-256";
 
-        private enum State { WaitingClientFirst, WaitingClientFinal, Complete }
+        private enum State { WaitingClientFirst, WaitingClientFinal, WaitingEmptyResponse, Complete }
         private State _state = State.WaitingClientFirst;
 
         private string? _username;
+        private string? _gs2Header;
         private string? _clientNonce;
         private string? _serverNonce;
         private string? _clientFirstBare;
         private string? _serverFirstMessage;
         private UserCredentials? _userCredentials;
+
+        private static AuthResponse Failed(string Reply = "535 5.7.8 Authentication failed")
+            => new (AuthResult.Fail, ErrorCode: Reply);
+
+        private static AuthResponse Invalid
+            => Failed("535 5.7.8 Invalid SCRAM message");
 
         public override async Task<AuthResponse> ProcessAsync(string? clientResponse, CancellationToken ct = default)
         {
@@ -51,15 +61,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             {
                 return _state switch
                 {
-                    State.WaitingClientFirst => await ProcessClientFirstAsync(clientResponse, ct),
-                    State.WaitingClientFinal => await ProcessClientFinalAsync(clientResponse, ct),
-                    _ => new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Authentication failed")
+                    State.WaitingClientFirst   => await ProcessClientFirstAsync(clientResponse, ct),
+                    State.WaitingClientFinal   => ProcessClientFinal(clientResponse),
+                    State.WaitingEmptyResponse => ProcessEmptyResponse(clientResponse),
+                    _                          => Failed()
                 };
             }
             catch (Exception ex)
             {
                 logger.Log(LogLevel.Warning, $"SCRAM-SHA-256 auth error: {ex.Message}");
-                return new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Authentication failed");
+                return Failed();
             }
         }
 
@@ -77,26 +88,73 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             logger.Log(LogLevel.Debug, $"SCRAM client-first: {decoded}");
 
-            // Parse: gs2-header, client-first-message-bare
-            // Format: n,,n=username,r=clientNonce
-            // Or with authzid: n,a=authzid,n=username,r=clientNonce
-        
-            var parts = decoded.Split(',');
-            if (parts.Length < 4 || parts[0] != "n")
+            // client-first-message = gs2-header client-first-message-bare
+            // gs2-header           = gs2-cbind-flag "," [ authzid ] ","
+            // gs2-cbind-flag       = ("p=" cb-name) / "n" / "y"
+            var firstComma  = decoded.IndexOf(',');
+            var secondComma = firstComma < 0 ? -1 : decoded.IndexOf(',', firstComma + 1);
+            if (secondComma < 0)
+                return Invalid;
+
+            var cbindFlag = decoded[..firstComma];
+            var authzid   = decoded[(firstComma + 1)..secondComma];
+
+            // RFC 5802 §6: "n" - the client does not support channel binding; "y" - it does, and
+            // thinks the server does not: "If the flag is set to "y" and the server supports
+            // channel binding, the server MUST fail authentication" - this one offers no
+            // SCRAM-SHA-256-PLUS, so "y" is no downgrade. "p=" asks for channel binding, which
+            // it does not support.
+            if (cbindFlag is not "n" and not "y")
             {
-                return new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Invalid SCRAM message");
+                logger.Log(LogLevel.Warning, $"SCRAM: channel binding '{cbindFlag}' requested - not supported");
+                return Failed();
             }
 
-            // Find client-first-message-bare (everything after gs2-header)
-            var gs2HeaderEnd = decoded.IndexOf(',', decoded.IndexOf(',') + 1) + 1;
-            _clientFirstBare = decoded[gs2HeaderEnd..];
+            _gs2Header       = decoded[..(secondComma + 1)];
+            _clientFirstBare = decoded[(secondComma + 1)..];
 
-            // Parse attributes
-            var attrs = ParseScramAttributes(_clientFirstBare);
-        
-            if (!attrs.TryGetValue("n", out _username) || !attrs.TryGetValue("r", out _clientNonce))
+            // client-first-message-bare = [reserved-mext ","] username "," nonce ["," extensions]
+            var attributes = _clientFirstBare.Split(',');
+
+            // RFC 5802 §5.1, m: "its presence in a client or a server message MUST cause
+            // authentication failure when the attribute is parsed by the other end."
+            if (attributes[0].StartsWith("m=", StringComparison.Ordinal))
             {
-                return new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Invalid SCRAM message");
+                logger.Log(LogLevel.Warning, "SCRAM: mandatory extension requested - not supported");
+                return Failed();
+            }
+
+            if (attributes.Length < 2                                    ||
+                !attributes[0].StartsWith("n=", StringComparison.Ordinal) ||
+                !attributes[1].StartsWith("r=", StringComparison.Ordinal) ||
+                attributes[1].Length == 2)
+                return Invalid;
+
+            // RFC 5802 §5.1, n: "The characters ',' or '=' in usernames are sent as '=2C' and
+            // '=3D' respectively. If the server receives a username that contains '=' not
+            // followed by either '2C' or '3D', then the server MUST fail the authentication."
+            _username = DecodeSaslName(attributes[0][2..]);
+            if (string.IsNullOrEmpty(_username))
+                return Failed();
+
+            _clientNonce = attributes[1][2..];
+
+            // RFC 5802 §5.1, a: "Upon the receipt of this value the server verifies its
+            // correctness according to the used SASL protocol profile. Failed verification
+            // results in failed authentication exchange." As with PLAIN: one may name oneself,
+            // and acting as somebody else is nothing this server grants.
+            if (authzid.Length > 0)
+            {
+                var requested = authzid.StartsWith("a=", StringComparison.Ordinal) ? DecodeSaslName(authzid[2..]) : null;
+
+                if (string.IsNullOrEmpty(requested))
+                    return Invalid;
+
+                if (!requested.Equals(_username, StringComparison.OrdinalIgnoreCase))
+                {
+                    logger.Log(LogLevel.Warning, $"SCRAM: '{_username}' asked to act as '{requested}' - refused");
+                    return Failed();
+                }
             }
 
             // Get user credentials
@@ -122,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             // Build server-first-message
             _serverFirstMessage = $"r={_serverNonce},s={_userCredentials.ScramSalt},i={_userCredentials.ScramIterations}";
-        
+
             logger.Log(LogLevel.Debug, $"SCRAM server-first: {_serverFirstMessage}");
 
             _state = State.WaitingClientFinal;
@@ -132,40 +190,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             );
         }
 
-        private Task<AuthResponse> ProcessClientFinalAsync(string? clientResponse, CancellationToken ct)
+        private AuthResponse ProcessClientFinal(string? clientResponse)
         {
             if (string.IsNullOrEmpty(clientResponse))
-            {
-                return Task.FromResult(new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Authentication failed"));
-            }
+                return Failed();
 
             // Decode client-final-message
             if (!TryDecode(clientResponse, out var decoded))
-                return Task.FromResult(Undecodable);
+                return Undecodable;
 
             logger.Log(LogLevel.Debug, $"SCRAM client-final: {decoded}");
 
-            // Parse: c=channel-binding,r=nonce,p=ClientProof
-            var attrs = ParseScramAttributes(decoded);
+            // client-final-message = client-final-message-without-proof "," proof
+            // client-final-message-without-proof = channel-binding "," nonce ["," extensions]
+            var proofAt = decoded.LastIndexOf(",p=", StringComparison.Ordinal);
+            if (proofAt < 0)
+                return Invalid;
 
-            if (!attrs.TryGetValue("r", out var nonce) || 
-                !attrs.TryGetValue("p", out var clientProofBase64) ||
-                !attrs.TryGetValue("c", out var channelBinding))
+            var clientFinalWithoutProof = decoded[..proofAt];
+            var clientProofBase64       = decoded[(proofAt + 3)..];
+            var attributes              = clientFinalWithoutProof.Split(',');
+
+            if (attributes.Any(attribute => attribute.StartsWith("m=", StringComparison.Ordinal)))
             {
-                return Task.FromResult(new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Invalid SCRAM message"));
+                logger.Log(LogLevel.Warning, "SCRAM: mandatory extension in the client-final-message - not supported");
+                return Failed();
+            }
+
+            if (attributes.Length < 2                                    ||
+                !attributes[0].StartsWith("c=", StringComparison.Ordinal) ||
+                !attributes[1].StartsWith("r=", StringComparison.Ordinal))
+                return Invalid;
+
+            // RFC 5802 §6: "The server MUST always validate the client's "c=" field. The server
+            // does this by constructing the value of the "c=" attribute and then checking that it
+            // matches the client's c= attribute value." Without channel binding data, c= is the
+            // GS2 header of the client-first-message.
+            byte[] channelBinding;
+            try
+            {
+                channelBinding = Convert.FromBase64String(attributes[0][2..]);
+            }
+            catch (FormatException)
+            {
+                return Invalid;
+            }
+
+            if (!channelBinding.AsSpan().SequenceEqual(Encoding.UTF8.GetBytes(_gs2Header!)))
+            {
+                logger.Log(LogLevel.Warning, "SCRAM: the channel binding does not match the GS2 header");
+                return Failed();
             }
 
             // Verify nonce
-            if (nonce != _serverNonce)
+            if (attributes[1][2..] != _serverNonce)
             {
                 logger.Log(LogLevel.Warning, "SCRAM: Nonce mismatch");
-                return Task.FromResult(new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Authentication failed"));
+                return Failed();
             }
 
             // Build AuthMessage
-            var clientFinalWithoutProof = $"c={channelBinding},r={nonce}";
             var authMessage = $"{_clientFirstBare},{_serverFirstMessage},{clientFinalWithoutProof}";
-        
+
             logger.Log(LogLevel.Debug, $"SCRAM AuthMessage: {authMessage}");
 
             // Compute ClientSignature = HMAC(StoredKey, AuthMessage)
@@ -174,6 +260,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             // Compute ClientKey = ClientProof XOR ClientSignature
             var clientProof = Convert.FromBase64String(clientProofBase64);
+            if (clientProof.Length != clientSignature.Length)
+                return Failed("535 5.7.8 Authentication credentials invalid");
+
             var clientKey = new byte[clientProof.Length];
             for (int i = 0; i < clientProof.Length; i++)
             {
@@ -185,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (!CryptographicOperations.FixedTimeEquals(computedStoredKey, storedKey))
             {
                 logger.Log(LogLevel.Warning, $"SCRAM: Authentication failed for '{_username}'");
-                return Task.FromResult(new AuthResponse(AuthResult.Fail, ErrorCode: "535 5.7.8 Authentication credentials invalid"));
+                return Failed("535 5.7.8 Authentication credentials invalid");
             }
 
             // Compute ServerSignature = HMAC(ServerKey, AuthMessage)
@@ -193,36 +282,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var serverSignature = HMACSHA256.HashData(serverKey, Encoding.UTF8.GetBytes(authMessage));
             var serverFinalMessage = $"v={Convert.ToBase64String(serverSignature)}";
 
+            // RFC 4954 §4: "the SMTP protocol doesn't support the SASL feature of returning
+            // additional data with a successful outcome"; RFC 4422 §3: "the additional data is
+            // sent as a challenge whose response is empty. After receiving this response, the
+            // server then indicates the successful outcome."
+            _state = State.WaitingEmptyResponse;
+
+            return new AuthResponse(
+                AuthResult.Continue,
+                Challenge: Convert.ToBase64String(Encoding.UTF8.GetBytes(serverFinalMessage))
+            );
+        }
+
+        private AuthResponse ProcessEmptyResponse(string? clientResponse)
+        {
+            // The response to the server-final-message is empty: an empty line, or "=".
+            if (!string.IsNullOrEmpty(clientResponse) && clientResponse != "=")
+            {
+                logger.Log(LogLevel.Warning, $"SCRAM: '{_username}' answered the server-final-message with data");
+                return Failed();
+            }
+
             logger.Log(LogLevel.Info, $"SCRAM-SHA-256 auth: User '{_username}' authenticated");
             _state = State.Complete;
 
-            return Task.FromResult(new AuthResponse(
-                AuthResult.Success,
-                Username: _username,
-                Message: Convert.ToBase64String(Encoding.UTF8.GetBytes(serverFinalMessage))
-            ));
+            return new AuthResponse(AuthResult.Success, Username: _username);
         }
 
-        private static Dictionary<string, string> ParseScramAttributes(string message)
+        /// <summary>
+        /// A saslname (RFC 5802 §7): "=2C" is ",", "=3D" is "=", and any other "=" makes it no
+        /// saslname - null.
+        /// </summary>
+        internal static string? DecodeSaslName(string value)
         {
-            var result = new Dictionary<string, string>();
-            foreach (var part in message.Split(','))
+            var name = new StringBuilder(value.Length);
+
+            for (var i = 0; i < value.Length; i++)
             {
-                var eqIndex = part.IndexOf('=');
-                if (eqIndex > 0)
+                if (value[i] != '=')
                 {
-                    var key = part[..eqIndex];
-                    var value = part[(eqIndex + 1)..];
-                    result[key] = value;
+                    name.Append(value[i]);
+                    continue;
                 }
+
+                var escape = value.Length >= i + 3 ? value.Substring(i + 1, 2) : "";
+
+                // Quoted strings of ABNF, which do not care about case.
+                if (escape.Equals("2C", StringComparison.OrdinalIgnoreCase))
+                    name.Append(',');
+                else if (escape.Equals("3D", StringComparison.OrdinalIgnoreCase))
+                    name.Append('=');
+                else
+                    return null;
+
+                i += 2;
             }
-            return result;
+
+            return name.ToString();
         }
 
         public override void Reset()
         {
             _state = State.WaitingClientFirst;
             _username = null;
+            _gs2Header = null;
             _clientNonce = null;
             _serverNonce = null;
             _clientFirstBare = null;

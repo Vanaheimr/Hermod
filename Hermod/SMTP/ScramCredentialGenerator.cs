@@ -37,9 +37,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // Generate random salt
             var salt = RandomNumberGenerator.GetBytes(SaltLength);
 
-            // SaltedPassword = PBKDF2(password, salt, iterations)
+            // SaltedPassword := Hi(Normalize(password), salt, i) (RFC 5802 §2.2, §3) - Normalize
+            // is SASLprep: the password a client that keeps to the RFC proves it knows.
             var saltedPassword = Rfc2898DeriveBytes.Pbkdf2(
-                Encoding.UTF8.GetBytes(password),
+                Encoding.UTF8.GetBytes(SaslPrep.Normalize(password)),
                 salt,
                 iterations,
                 HashAlgorithmName.SHA256,

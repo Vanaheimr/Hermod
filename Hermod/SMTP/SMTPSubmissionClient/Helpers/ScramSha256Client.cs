@@ -34,10 +34,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     {
 
         /// <summary>
-        /// SaltedPassword = PBKDF2-HMAC-SHA256(password, salt, iterations) (32 bytes).
+        /// SaltedPassword := Hi(Normalize(password), salt, i) = PBKDF2-HMAC-SHA256 (32 bytes), where
+        /// Normalize is SASLprep (RFC 5802 §2.2): "Normalize(str): Apply the SASLprep profile
+        /// [RFC4013] to the "str" string".
         /// </summary>
         public static Byte[] SaltedPassword(String password, Byte[] salt, Int32 iterations)
-            => Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password), salt, iterations, HashAlgorithmName.SHA256, 32);
+            => Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(SaslPrep.Normalize(password)), salt, iterations, HashAlgorithmName.SHA256, 32);
 
         /// <summary>
         /// ClientProof = ClientKey XOR HMAC(StoredKey, authMessage), where ClientKey = HMAC(SaltedPassword,
