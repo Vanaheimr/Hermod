@@ -133,8 +133,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         // (a, mx, ptr, exists, include, redirect) MUST NOT exceed 10.
         private const int MaxSpfDnsLookups = 10;
 
+        // RFC 7208 §4.6.4: "SPF implementations SHOULD limit "void lookups" to two" - terms whose
+        // query returns no records, or NXDOMAIN.
+        private const int MaxSpfVoidLookups = 2;
+
+        // RFC 7208 §4.6.4: the MX names of one "mx", the PTR names of one "ptr", each looked up.
+        private const int MaxSpfNamesPerTerm = 10;
+
         // Mutable lookup budget shared across the whole (recursive) evaluation.
-        private sealed class SpfLookupState { public int Lookups; }
+        private sealed class SpfLookupState { public int Lookups; public int VoidLookups; }
+
+        /// <summary>
+        /// The end of check_host() before a result is reached: a DNS error ("temperror", RFC 7208
+        /// §4.4, §5) or a record that cannot be evaluated ("permerror") - from wherever in the
+        /// evaluation, an include: or a redirect= among it, it is the topmost result (§5.2).
+        /// </summary>
+        private sealed class SpfAbort(SPFResult Result) : Exception($"SPF {Result}")
+        {
+            public SPFResult Result { get; } = Result;
+        }
 
         /// <summary>
         /// What the SPF record of a domain says about mail from the given address - asked
@@ -159,9 +176,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             string               heloHostname,
             CancellationToken    ct)
         {
+
+            string? spfRecord = null;
+
             try
             {
-                var spfRecord = await GetTxtRecordAsync(domain, "v=spf1", ct);
+
+                // RFC 7208 §5: "SPF implementations on IPv6 servers need to handle both "AAAA" and
+                // "A" records, for clients on IPv4-mapped IPv6 addresses" - ::ffff:192.0.2.1 is
+                // 192.0.2.1, for ip4, a, mx and the macros alike.
+                if (clientIp.IsIPv4MappedToIPv6)
+                    clientIp = clientIp.MapToIPv4();
+
+                spfRecord = await LookupSpfRecordAsync(domain, ct);
                 if (spfRecord is null)
                     return (SPFResult.None, null);
 
@@ -184,19 +211,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 var result = await EvaluateSpfAsync(spfRecord, clientIp, domain, ctx, new SpfLookupState(), ct);
                 return (result, spfRecord);
+
             }
-            catch (Exception ex)
+            catch (SpfAbort abort)
+            {
+                Logger.Log(LogLevel.Debug, $"SPF evaluation for {domain} ended with {abort.Result}");
+                return (abort.Result, spfRecord);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
             {
                 Logger.Log(LogLevel.Warning, $"SPF verification error for {domain}: {ex.Message}");
-                return (SPFResult.TempError, null);
+                return (SPFResult.TempError, spfRecord);
             }
+
         }
 
         /// <summary>
-        /// Evaluate an SPF record against the client IP (RFC 7208).
-        /// Handles the a/mx/ip4/ip6/include/exists/all mechanisms, the redirect modifier,
-        /// dual-CIDR lengths, and the shared 10-DNS-lookup limit across recursion.
+        /// Evaluate an SPF record against the client IP (RFC 7208): its syntax first, as a
+        /// whole, then its terms from left to right - the a/mx/ptr/ip4/ip6/include/exists/all
+        /// mechanisms, the redirect modifier, dual-CIDR lengths, and the shared limits of ten
+        /// DNS-querying terms and two void lookups across recursion.
         /// </summary>
+        /// <exception cref="SpfAbort">A DNS error, or a record or limit that ends check_host().</exception>
         private async Task<SPFResult> EvaluateSpfAsync(
             string                spfRecord,
             System.Net.IPAddress  clientIp,
@@ -206,21 +242,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             CancellationToken     ct)
         {
 
+            // RFC 7208 §4.6: "The syntax of the record is validated first, and if there are any
+            // syntax errors anywhere in the record, check_host() returns immediately with the
+            // result "permerror", without further interpretation or evaluation."
+            if (!IsValidSpfRecord(spfRecord))
+                throw new SpfAbort(SPFResult.PermError);
+
             var terms = spfRecord.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             string? redirectDomain = null;
 
-            foreach (var term in terms)
+            foreach (var term in terms.Skip(1))
             {
 
-                if (term.Equals("v=spf1", StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                // Modifiers are "name=value" (redirect=, exp=, unknown). Mechanisms never contain '='.
-                if (term.Contains('='))
+                // Modifiers are "name=value" (redirect=, exp=, unknown) - the syntax check told them apart.
+                if (IsModifier(term, out var modifierName, out var modifierValue))
                 {
-                    var eq = term.IndexOf('=');
-                    if (term[..eq].Equals("redirect", StringComparison.OrdinalIgnoreCase))
-                        redirectDomain = term[(eq + 1)..];
+                    if (modifierName.Equals("redirect", StringComparison.OrdinalIgnoreCase))
+                        redirectDomain = modifierValue;
                     // exp= and unknown modifiers are ignored (RFC 7208 §6)
                     continue;
                 }
@@ -234,94 +272,102 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     _   => SPFResult.Pass   // default qualifier
                 };
 
-                var mech = (term[0] is '+' or '-' or '~' or '?' ? term[1..] : term).ToLowerInvariant();
+                // The name of the mechanism without case; its argument as it was written -
+                // an upper-case macro is URL-escaped (RFC 7208 §7.3).
+                var mechanism   = term[0] is '+' or '-' or '~' or '?' ? term[1..] : term;
+                var split       = mechanism.IndexOfAny([ ':', '/' ]);
+                var name        = (split < 0 ? mechanism : mechanism[..split]).ToLowerInvariant();
+                var argument    = split < 0 ? "" : mechanism[split..];
 
-                if (mech == "all")
-                    return qualifier;
-
-                else if (mech.StartsWith("ip4:"))
+                switch (name)
                 {
-                    if (clientIp.AddressFamily == AddressFamily.InterNetwork && IpMatchesCidr(clientIp, mech[4..]))
+
+                    case "all":
                         return qualifier;
-                }
 
-                else if (mech.StartsWith("ip6:"))
-                {
-                    if (clientIp.AddressFamily == AddressFamily.InterNetworkV6 && IpMatchesCidr(clientIp, mech[4..]))
-                        return qualifier;
-                }
+                    case "ip4":
+                        if (clientIp.AddressFamily == AddressFamily.InterNetwork && IpMatchesCidr(clientIp, argument[1..]))
+                            return qualifier;
+                        break;
 
-                else if (mech == "a" || mech.StartsWith("a:") || mech.StartsWith("a/"))
-                {
-                    if (!CountLookup(state))
-                        return SPFResult.PermError;
+                    case "ip6":
+                        if (clientIp.AddressFamily == AddressFamily.InterNetworkV6 && IpMatchesCidr(clientIp, argument[1..]))
+                            return qualifier;
+                        break;
 
-                    var (rawTarget, ip4Cidr, ip6Cidr) = ParseTarget(StripName(mech, 1), domain);
-                    var target = SpfMacros.Expand(rawTarget, domain, clientIp, ctx);
-                    if (await MatchAAsync(clientIp, target, ip4Cidr, ip6Cidr, ct))
-                        return qualifier;
-                }
-
-                else if (mech == "mx" || mech.StartsWith("mx:") || mech.StartsWith("mx/"))
-                {
-                    if (!CountLookup(state))
-                        return SPFResult.PermError;
-
-                    var (rawTarget, ip4Cidr, ip6Cidr) = ParseTarget(StripName(mech, 2), domain);
-                    var target = SpfMacros.Expand(rawTarget, domain, clientIp, ctx);
-                    if (await MatchMxAsync(clientIp, target, ip4Cidr, ip6Cidr, ct))
-                        return qualifier;
-                }
-
-                else if (mech.StartsWith("include:"))
-                {
-                    if (!CountLookup(state))
-                        return SPFResult.PermError;
-
-                    var includeDomain = SpfMacros.Expand(mech[8..], domain, clientIp, ctx);
-
-                    var includeRecord = await GetTxtRecordAsync(includeDomain, "v=spf1", ct);
-                    if (includeRecord is null)
-                        return SPFResult.PermError;    // include target without SPF record (RFC 7208 §5.2)
-
-                    var includeResult = await EvaluateSpfAsync(includeRecord, clientIp, includeDomain, ctx, state, ct);
-                    switch (includeResult)
+                    case "a":
                     {
-                        case SPFResult.Pass:                          return qualifier;      // include matched
-                        case SPFResult.Fail or SPFResult.SoftFail
-                                             or SPFResult.Neutral:    break;                 // no match, keep going
-                        case SPFResult.TempError:                     return SPFResult.TempError;
-                        default:                                      return SPFResult.PermError;  // None/PermError
+                        CountLookup(state);
+
+                        var (rawTarget, ip4Cidr, ip6Cidr) = ParseTarget(StripColon(argument), domain);
+                        var target = SpfMacros.Expand(rawTarget, domain, clientIp, ctx);
+
+                        if (Matches(clientIp, await SpfAddressesAsync(target, clientIp.AddressFamily, state, true, ct), ip4Cidr, ip6Cidr))
+                            return qualifier;
+                        break;
                     }
-                }
 
-                else if (mech == "exists" || mech.StartsWith("exists:"))
-                {
-                    if (!CountLookup(state))
-                        return SPFResult.PermError;
+                    case "mx":
+                    {
+                        CountLookup(state);
 
-                    var existsDomain = SpfMacros.Expand(mech.StartsWith("exists:") ? mech[7..] : domain, domain, clientIp, ctx);
+                        var (rawTarget, ip4Cidr, ip6Cidr) = ParseTarget(StripColon(argument), domain);
+                        var target = SpfMacros.Expand(rawTarget, domain, clientIp, ctx);
 
-                    var ips = await ResolveIpsAsync(existsDomain, ct);
-                    // 'exists' matches if the name has any A record (RFC 7208 §5.7)
-                    if (ips.Any(ip => ip.AddressFamily == AddressFamily.InterNetwork))
-                        return qualifier;
-                }
+                        if (await MatchMxAsync(clientIp, target, ip4Cidr, ip6Cidr, state, ct))
+                            return qualifier;
+                        break;
+                    }
 
-                else if (mech == "ptr" || mech.StartsWith("ptr:"))
-                {
-                    if (!CountLookup(state))
-                        return SPFResult.PermError;
+                    case "ptr":
+                    {
+                        CountLookup(state);
 
-                    // 'ptr' is deprecated (RFC 7208 §5.5) and intentionally not evaluated; counts against the limit.
-                    Logger.Log(LogLevel.Debug, "SPF 'ptr' mechanism is deprecated and skipped");
-                }
+                        var target = argument.Length > 0
+                                         ? SpfMacros.Expand(StripColon(argument), domain, clientIp, ctx)
+                                         : domain;
 
-                else
-                {
-                    // Unknown mechanism => PermError (RFC 7208 §4.6.1)
-                    Logger.Log(LogLevel.Debug, $"SPF unknown mechanism '{mech}' => PermError");
-                    return SPFResult.PermError;
+                        if (await MatchPtrAsync(clientIp, target, state, ct))
+                            return qualifier;
+                        break;
+                    }
+
+                    case "include":
+                    {
+                        CountLookup(state);
+
+                        var includeDomain = SpfMacros.Expand(StripColon(argument), domain, clientIp, ctx);
+
+                        // RFC 7208 §5.2: the result of check_host() for the included domain - a
+                        // "temperror" or "permerror" there is the topmost result (thrown), and
+                        // "none" is a "permerror".
+                        var includeRecord = await LookupSpfRecordAsync(includeDomain, ct)
+                                                ?? throw new SpfAbort(SPFResult.PermError);
+
+                        var includeResult = await EvaluateSpfAsync(includeRecord, clientIp, includeDomain, ctx, state, ct);
+                        if (includeResult == SPFResult.Pass)
+                            return qualifier;
+                        break;   // fail, softfail, neutral: no match, keep going
+                    }
+
+                    case "exists":
+                    {
+                        CountLookup(state);
+
+                        var existsDomain = SpfMacros.Expand(StripColon(argument), domain, clientIp, ctx);
+
+                        // RFC 7208 §5.7: "The resulting domain name is used for a DNS A RR lookup
+                        // (even when the connection type is IPv6). If any A record is returned,
+                        // this mechanism matches."
+                        if ((await SpfAddressesAsync(existsDomain, AddressFamily.InterNetwork, state, true, ct)).Count > 0)
+                            return qualifier;
+                        break;
+                    }
+
+                    default:
+                        // Unknown mechanism: the syntax check refused it already (RFC 7208 §4.6.1).
+                        throw new SpfAbort(SPFResult.PermError);
+
                 }
 
             }
@@ -329,31 +375,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // No mechanism matched: apply redirect (if no 'all' was present), else default Neutral.
             if (redirectDomain is not null)
             {
-                if (!CountLookup(state))
-                    return SPFResult.PermError;
+
+                CountLookup(state);
 
                 var redirectTarget = SpfMacros.Expand(redirectDomain, domain, clientIp, ctx);
 
-                var redirectRecord = await GetTxtRecordAsync(redirectTarget, "v=spf1", ct);
-                if (redirectRecord is null)
-                    return SPFResult.PermError;    // RFC 7208 §6.1
+                // RFC 7208 §6.1: "if no SPF record is found, or if the <target-name> is malformed,
+                // the result is a "permerror" rather than "none"".
+                var redirectRecord = await LookupSpfRecordAsync(redirectTarget, ct)
+                                         ?? throw new SpfAbort(SPFResult.PermError);
 
                 return await EvaluateSpfAsync(redirectRecord, clientIp, redirectTarget, ctx, state, ct);
+
             }
 
             return SPFResult.Neutral;
 
         }
 
-        private static bool CountLookup(SpfLookupState state)
-            => ++state.Lookups <= MaxSpfDnsLookups;
-
-        // Strip the leading mechanism keyword (and an optional ':') from a mechanism term.
-        private static string StripName(string mech, int keywordLength)
+        private static void CountLookup(SpfLookupState state)
         {
-            var rest = mech[keywordLength..];
-            return rest.StartsWith(':') ? rest[1..] : rest;
+            if (++state.Lookups > MaxSpfDnsLookups)
+                throw new SpfAbort(SPFResult.PermError);
         }
+
+        /// <summary>
+        /// RFC 7208 §4.6.4: a term whose lookup returned no records, or NXDOMAIN - the third is a "permerror".
+        /// </summary>
+        private static void CountVoidLookup(SpfLookupState state)
+        {
+            if (++state.VoidLookups > MaxSpfVoidLookups)
+                throw new SpfAbort(SPFResult.PermError);
+        }
+
+        // ":domain-spec..." without its colon.
+        private static string StripColon(string argument)
+            => argument.StartsWith(':') ? argument[1..] : argument;
 
         // Parse "domain/ip4cidr//ip6cidr" (any part optional) into a target domain (still
         // possibly containing macros) + CIDR lengths.
@@ -375,57 +432,427 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             return (string.IsNullOrEmpty(domainPart) ? defaultDomain : domainPart, ip4Cidr, ip6Cidr);
         }
 
-        private async Task<bool> MatchAAsync(System.Net.IPAddress clientIp, string domain, int ip4Cidr, int ip6Cidr, CancellationToken ct)
+        private static bool Matches(System.Net.IPAddress clientIp, IEnumerable<System.Net.IPAddress> addresses, int ip4Cidr, int ip6Cidr)
         {
-            foreach (var ip in await ResolveIpsAsync(domain, ct))
-            {
-                if (ip.AddressFamily != clientIp.AddressFamily)
-                    continue;
-
-                var cidr = clientIp.AddressFamily == AddressFamily.InterNetwork ? ip4Cidr : ip6Cidr;
-                if (IpMatchesCidr(clientIp, $"{ip}/{cidr}"))
-                    return true;
-            }
-            return false;
+            var cidr = clientIp.AddressFamily == AddressFamily.InterNetwork ? ip4Cidr : ip6Cidr;
+            return addresses.Any(ip => ip.AddressFamily == clientIp.AddressFamily && IpMatchesCidr(clientIp, $"{ip}/{cidr}"));
         }
 
-        private async Task<bool> MatchMxAsync(System.Net.IPAddress clientIp, string domain, int ip4Cidr, int ip6Cidr, CancellationToken ct)
+        private async Task<bool> MatchMxAsync(System.Net.IPAddress clientIp, string domain, int ip4Cidr, int ip6Cidr, SpfLookupState state, CancellationToken ct)
         {
-            var mxHosts = await GetMxRecordsAsync(domain, ct);
 
-            // RFC 7208 §4.6.4: at most 10 MX names are processed.
-            foreach (var mx in mxHosts.Take(10))
+            var response = await SpfQueryAsync(domain, DNSResourceRecordTypes.MX, ct);
+            var mxHosts  = (response?.Answers.OfType<MX>() ?? []).
+                               OrderBy(mx => mx.Preference).
+                               Select (mx => mx.Exchange.FullName.TrimEnd('.')).
+                               Where  (host => host.Length > 0).
+                               ToList();
+
+            if (mxHosts.Count == 0)
             {
-                if (await MatchAAsync(clientIp, mx, ip4Cidr, ip6Cidr, ct))
+                CountVoidLookup(state);
+                return false;
+            }
+
+            // RFC 7208 §4.6.4: "the evaluation of each "MX" record MUST NOT result in querying more
+            // than 10 address records ... If this limit is exceeded, the "mx" mechanism MUST produce
+            // a "permerror" result."
+            if (mxHosts.Count > MaxSpfNamesPerTerm)
+                throw new SpfAbort(SPFResult.PermError);
+
+            foreach (var mx in mxHosts)
+            {
+                if (Matches(clientIp, await SpfAddressesAsync(mx, clientIp.AddressFamily, state, false, ct), ip4Cidr, ip6Cidr))
                     return true;
             }
+
             return false;
+
         }
 
-        private async Task<System.Net.IPAddress[]> ResolveIpsAsync(string domain, CancellationToken ct)
+        /// <summary>
+        /// RFC 7208 §5.5: the client's reverse names whose addresses include the client's
+        /// ("validated"), the first ten - and whether one of them is the target name or within
+        /// it. A DNS error of the PTR lookup is no match, one of an address lookup skips that name.
+        /// </summary>
+        private async Task<bool> MatchPtrAsync(System.Net.IPAddress clientIp, string target, SpfLookupState state, CancellationToken ct)
         {
+
+            IReadOnlyList<String> names;
+
             try
             {
-                var response = await DNSClient.Query(
-                                         DNSServiceName.Parse(domain),
-                                         [ DNSResourceRecordTypes.A, DNSResourceRecordTypes.AAAA ],
-                                         CancellationToken: ct
-                                     );
+                var response = await SpfQueryAsync(BuildReverseName(clientIp), DNSResourceRecordTypes.PTR, ct);
+                names = [ .. (response?.Answers.OfType<PTR>() ?? []).Select(ptr => ptr.Target.FullName.TrimEnd('.')) ];
+            }
+            catch (SpfAbort)
+            {
+                return false;
+            }
 
-                var addresses = new List<System.Net.IPAddress>();
-                foreach (var a in response.Answers.OfType<A>())
-                    addresses.Add(new System.Net.IPAddress(a.IPv4Address.GetBytes()));
-                foreach (var aaaa in response.Answers.OfType<AAAA>())
-                    addresses.Add(new System.Net.IPAddress(aaaa.IPv6Address.GetBytes()));
+            if (names.Count == 0)
+            {
+                CountVoidLookup(state);
+                return false;
+            }
 
-                return [.. addresses];
+            target = target.TrimEnd('.');
+
+            foreach (var name in names.Take(MaxSpfNamesPerTerm))
+            {
+
+                if (!name.Equals(target, StringComparison.OrdinalIgnoreCase) &&
+                    !name.EndsWith("." + target, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                try
+                {
+                    if ((await SpfAddressesAsync(name, clientIp.AddressFamily, state, false, ct)).Any(ip => ip.Equals(clientIp)))
+                        return true;
+                }
+                catch (SpfAbort)
+                {
+                    // A DNS error for this name: skipped.
+                }
+
+            }
+
+            return false;
+
+        }
+
+        /// <summary>
+        /// The A or AAAA records of a name, as the client's address family asks (RFC 7208 §5);
+        /// none counts as a void lookup when the term's own lookup is asked.
+        /// </summary>
+        private async Task<IReadOnlyList<System.Net.IPAddress>> SpfAddressesAsync(string                        name,
+                                                                                  AddressFamily                 family,
+                                                                                  SpfLookupState                state,
+                                                                                  bool                          countVoid,
+                                                                                  CancellationToken             ct)
+        {
+
+            var response  = await SpfQueryAsync(name,
+                                                 family == AddressFamily.InterNetwork ? DNSResourceRecordTypes.A : DNSResourceRecordTypes.AAAA,
+                                                 ct);
+
+            var addresses = new List<System.Net.IPAddress>();
+
+            if (response is not null)
+            {
+                if (family == AddressFamily.InterNetwork)
+                    foreach (var a in response.Answers.OfType<A>())
+                        addresses.Add(new System.Net.IPAddress(a.IPv4Address.GetBytes()));
+                else
+                    foreach (var aaaa in response.Answers.OfType<AAAA>())
+                        addresses.Add(new System.Net.IPAddress(aaaa.IPv6Address.GetBytes()));
+            }
+
+            if (addresses.Count == 0 && countVoid)
+                CountVoidLookup(state);
+
+            return addresses;
+
+        }
+
+        /// <summary>
+        /// One query of check_host(): its answer, or null for a name that does not exist (RCODE 3)
+        /// or is no domain name at all. RFC 7208 §5: "if the DNS server returns an error (RCODE
+        /// other than 0 or 3) or the query times out, the mechanism stops and the topmost
+        /// check_host() returns "temperror"".
+        /// </summary>
+        /// <exception cref="SpfAbort">"temperror".</exception>
+        private async Task<DNSInfo?> SpfQueryAsync(string name, DNSResourceRecordTypes type, CancellationToken ct)
+        {
+
+            if (DNSServiceName.TryParse(name.TrimEnd('.')) is not { } serviceName)
+                return null;
+
+            DNSInfo response;
+
+            try
+            {
+                response = await DNSClient.Query(serviceName, [ type ], CancellationToken: ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Debug, $"A/AAAA lookup failed for {domain}: {ex.Message}");
-                return [];
+                Logger.Log(LogLevel.Debug, $"SPF: {type} lookup of {name} failed: {ex.Message}");
+                throw new SpfAbort(SPFResult.TempError);
             }
+
+            if (response.IsTimeout)
+                throw new SpfAbort(SPFResult.TempError);
+
+            return response.ResponseCode switch {
+                DNSResponseCodes.NoError    => response,
+                DNSResponseCodes.NameError  => null,
+                _                           => throw new SpfAbort(SPFResult.TempError)
+            };
+
         }
+
+        /// <summary>
+        /// The SPF record of a domain, or null when it has none (RFC 7208 §4.4, §4.5): of its TXT
+        /// records those whose version section is exactly "v=spf1" - "terminated by either an SP
+        /// character or the end of the record", so "v=spf10" is none - and "If the resultant
+        /// record set includes more than one record, check_host() produces the "permerror"
+        /// result." A malformed domain or NXDOMAIN is "none" (§4.3).
+        /// </summary>
+        /// <exception cref="SpfAbort">"temperror" for a DNS error, "permerror" for two records.</exception>
+        private async Task<String?> LookupSpfRecordAsync(String domain, CancellationToken ct)
+        {
+
+            var response = await SpfQueryAsync(domain, DNSResourceRecordTypes.TXT, ct);
+            if (response is null)
+                return null;
+
+            var records  = response.Answers.
+                               OfType<TXT>().
+                               Select(txt => txt.Text).
+                               Where (IsSpfRecord).
+                               ToList();
+
+            return records.Count switch {
+                0 => null,
+                1 => records[0],
+                _ => throw new SpfAbort(SPFResult.PermError)
+            };
+
+        }
+
+        /// <summary>
+        /// Whether a TXT record is an SPF record: its version section is exactly "v=spf1",
+        /// followed by a space or nothing (RFC 7208 §4.5).
+        /// </summary>
+        internal static Boolean IsSpfRecord(String Record)
+
+            => Record.StartsWith("v=spf1", StringComparison.OrdinalIgnoreCase) &&
+               (Record.Length == 6 || Record[6] == ' ');
+
+        #region SPF syntax (RFC 7208 §4.6, §12)
+
+        private static readonly Regex SpfModifierName  = new (@"^[A-Za-z][A-Za-z0-9\-_.]*$",  RegexOptions.CultureInvariant);
+        private static readonly Regex SpfIp4Network    = new (@"^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}$", RegexOptions.CultureInvariant);
+        private static readonly Regex SpfDualCidr      = new (@"^(?:/(0|[1-9][0-9]?))?(?://(0|[1-9][0-9]{0,2}))?$", RegexOptions.CultureInvariant);
+        private static readonly Regex SpfTopLabel      = new (@"^(?:[A-Za-z0-9]*[A-Za-z][A-Za-z0-9]*|[A-Za-z0-9]+-[A-Za-z0-9\-]*[A-Za-z0-9])$", RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Whether an SPF record is free of syntax errors anywhere (RFC 7208 §4.6, the ABNF of
+        /// §12): the version, then directives - mechanisms with their arguments, addresses and
+        /// prefix lengths - and modifiers, redirect= and exp= at most once each (§6).
+        /// </summary>
+        internal static Boolean IsValidSpfRecord(String Record)
+        {
+
+            var terms = Record.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (terms.Length == 0 || !terms[0].Equals("v=spf1", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var redirects = 0;
+            var exps      = 0;
+
+            foreach (var term in terms.Skip(1))
+            {
+
+                if (IsModifier(term, out var name, out var value))
+                {
+
+                    // unknown-modifier = name "=" macro-string: any macro letter; redirect= and
+                    // exp= take a domain-spec, without c, r and t (RFC 7208 §7.2).
+                    if (!IsMacroString(value, ExplanationLetters: true))
+                        return false;
+
+                    if (name.Equals("redirect", StringComparison.OrdinalIgnoreCase) && (++redirects > 1 || !IsDomainSpec(value)))
+                        return false;
+
+                    if (name.Equals("exp",      StringComparison.OrdinalIgnoreCase) && (++exps      > 1 || !IsDomainSpec(value)))
+                        return false;
+
+                    continue;
+
+                }
+
+                if (!IsValidMechanism(term[0] is '+' or '-' or '~' or '?' ? term[1..] : term))
+                    return false;
+
+            }
+
+            return true;
+
+        }
+
+        /// <summary>
+        /// Whether a term is a modifier, name "=" value - with a name of a letter and letters,
+        /// digits, "-", "_" or ".", before any ":" or "/" of a mechanism.
+        /// </summary>
+        private static Boolean IsModifier(String Term, out String Name, out String Value)
+        {
+
+            Name  = "";
+            Value = "";
+
+            var equals = Term.IndexOf('=');
+            if (equals <= 0)
+                return false;
+
+            var stop   = Term.IndexOfAny([ ':', '/' ]);
+            if (stop >= 0 && stop < equals)
+                return false;
+
+            if (!SpfModifierName.IsMatch(Term[..equals]))
+                return false;
+
+            Name  = Term[..equals];
+            Value = Term[(equals + 1)..];
+            return true;
+
+        }
+
+        private static Boolean IsValidMechanism(String Mechanism)
+        {
+
+            var split    = Mechanism.IndexOfAny([ ':', '/' ]);
+            var name     = (split < 0 ? Mechanism : Mechanism[..split]).ToLowerInvariant();
+            var argument = split < 0 ? "" : Mechanism[split..];
+
+            switch (name)
+            {
+
+                case "all":
+                    return argument.Length == 0;
+
+                case "include":
+                case "exists":
+                    return argument.StartsWith(':') && IsDomainSpec(argument[1..]);
+
+                case "ptr":
+                    return argument.Length == 0 || (argument.StartsWith(':') && IsDomainSpec(argument[1..]));
+
+                case "a":
+                case "mx":
+                {
+                    var cidr = argument;
+                    if (argument.StartsWith(':'))
+                    {
+                        var slash = argument.IndexOf('/');
+                        if (!IsDomainSpec(slash < 0 ? argument[1..] : argument[1..slash]))
+                            return false;
+                        cidr = slash < 0 ? "" : argument[slash..];
+                    }
+                    var match = SpfDualCidr.Match(cidr);
+                    return match.Success &&
+                           (!match.Groups[1].Success || Int32.Parse(match.Groups[1].Value) <= 32) &&
+                           (!match.Groups[2].Success || Int32.Parse(match.Groups[2].Value) <= 128);
+                }
+
+                case "ip4":
+                {
+                    if (!argument.StartsWith(':'))
+                        return false;
+                    var slash   = argument.IndexOf('/');
+                    var network = slash < 0 ? argument[1..] : argument[1..slash];
+                    var cidr    = slash < 0 ? "" : argument[slash..];
+                    return SpfIp4Network.IsMatch(network) &&
+                           (cidr.Length == 0 || (Regex.IsMatch(cidr, "^/(0|[1-9][0-9]?)$") && Int32.Parse(cidr[1..]) <= 32));
+                }
+
+                case "ip6":
+                {
+                    if (!argument.StartsWith(':'))
+                        return false;
+                    var slash   = argument.IndexOf('/');
+                    var network = slash < 0 ? argument[1..] : argument[1..slash];
+                    var cidr    = slash < 0 ? "" : argument[slash..];
+                    return !network.Contains('%') &&
+                           System.Net.IPAddress.TryParse(network, out var address) &&
+                           address.AddressFamily == AddressFamily.InterNetworkV6 &&
+                           (cidr.Length == 0 || (Regex.IsMatch(cidr, "^/(0|[1-9][0-9]{0,2})$") && Int32.Parse(cidr[1..]) <= 128));
+                }
+
+                default:
+                    return false;
+
+            }
+
+        }
+
+        /// <summary>
+        /// domain-spec = macro-string domain-end; domain-end = ( "." toplabel [ "." ] ) / macro-expand.
+        /// </summary>
+        private static Boolean IsDomainSpec(String Spec)
+        {
+
+            if (Spec.Length == 0 || !IsMacroString(Spec, ExplanationLetters: false))
+                return false;
+
+            // Ends in a macro-expand: "%{d}", "%%", "%_", "%-".
+            if (Spec.EndsWith('}') || Regex.IsMatch(Spec, "%[%_-]$"))
+                return true;
+
+            var name = Spec.EndsWith('.') ? Spec[..^1] : Spec;
+            var dot  = name.LastIndexOf('.');
+
+            return dot >= 0 && SpfTopLabel.IsMatch(name[(dot + 1)..]);
+
+        }
+
+        /// <summary>
+        /// macro-string = *( macro-expand / macro-literal ); macro-expand = ( "%{" macro-letter
+        /// transformers *delimiter "}" ) / "%%" / "%_" / "%-"; macro-literal = %x21-24 / %x26-7E.
+        /// c, r and t are for explanations only (RFC 7208 §7.2).
+        /// </summary>
+        private static Boolean IsMacroString(String Text, Boolean ExplanationLetters)
+        {
+
+            for (var i = 0; i < Text.Length; i++)
+            {
+
+                var c = Text[i];
+
+                if (c != '%')
+                {
+                    if (c < 0x21 || c > 0x7E)
+                        return false;
+                    continue;
+                }
+
+                if (i + 1 >= Text.Length)
+                    return false;
+
+                var next = Text[i + 1];
+
+                if (next is '%' or '_' or '-')
+                {
+                    i++;
+                    continue;
+                }
+
+                if (next != '{')
+                    return false;
+
+                var end = Text.IndexOf('}', i + 2);
+                if (end < 0)
+                    return false;
+
+                var macro = Text[(i + 2)..end];
+                if (!Regex.IsMatch(macro, ExplanationLetters ? "^[slodiphcrtvSLODIPHCRTV][0-9]*[rR]?[.\\-+,/_=]*$"
+                                                             : "^[slodiphvSLODIPHV][0-9]*[rR]?[.\\-+,/_=]*$"))
+                    return false;
+
+                i = end;
+
+            }
+
+            return true;
+
+        }
+
+        #endregion
 
         /// <summary>
         /// Reverse (PTR) lookup for an IP address via the Hermod DNS client.
