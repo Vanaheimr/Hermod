@@ -82,6 +82,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             var proof            = ScramSha256Client.ClientProof(saltedPassword, authMessage);
 
             await wire.SendAsync($"{Base64($"{clientFinalBare},p={Convert.ToBase64String(proof)}")}\r\n");
+
+            // The server-final-message is a challenge, answered with an empty line (RFC 4422 §3).
+            var serverFinal      = await wire.ReplyAsync();
+            Assert.That(serverFinal.Code, Is.EqualTo(334));
+            Assert.That(Encoding.UTF8.GetString(Convert.FromBase64String(serverFinal.Text)),
+                        Is.EqualTo("v=" + Convert.ToBase64String(ScramSha256Client.ServerSignature(saltedPassword, authMessage))));
+
+            await wire.SendAsync("\r\n");
             Assert.That((await wire.ReplyAsync()).Code, Is.EqualTo(235));
 
         }

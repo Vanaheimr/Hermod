@@ -166,6 +166,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
+        [Test(Description = "RFC 4616 §2 and RFC 5802 §2.2: passwords are compared as SASLprep has them - the SCRAM keys are of the normalized password, and PLAIN checks the normalized password against them, whichever way it was typed")]
+        public async Task A_password_is_checked_as_SASLprep_has_it()
+        {
+
+            var store = new FileUserStore(UsersFile($"bjoern::{ScramColumns("Äpfelbaum")}:"));
+
+            Assert.That(await store.ValidatePasswordAsync("bjoern", "Äpfelbaum"),  Is.True,  "precomposed");
+            Assert.That(await store.ValidatePasswordAsync("bjoern", "Äpfelbaum"), Is.True,  "decomposed");
+            Assert.That(await store.ValidatePasswordAsync("bjoern", "Apfelbaum"),       Is.False);
+
+        }
+
+
         [Test]
         public async Task Without_SCRAM_keys_the_SHA256_column_still_works()
         {

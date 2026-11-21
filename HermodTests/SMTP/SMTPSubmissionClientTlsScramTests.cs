@@ -55,6 +55,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #region A STARTTLS + SCRAM-SHA-256 fake server
 
+        /// <summary>
+        /// How the fake server ends a SCRAM exchange whose proof holds.
+        /// </summary>
+        public enum ScramEnding
+        {
+            /// <summary>334 with the server-final-message, the client's empty line, 235 (RFC 4422 §3).</summary>
+            ServerFinalAsChallenge,
+            /// <summary>235 at once, without the server-final-message.</summary>
+            SuccessWithoutServerFinal,
+            /// <summary>235 with the server-final-message in its text, as Hermod servers before RFC 4954 §4 had it.</summary>
+            ServerFinalIn235,
+            /// <summary>334 with a server-final-message whose v= is not the ServerSignature.</summary>
+            WrongServerSignature
+        }
+
         private sealed class TlsScramServer : IDisposable
         {
 
@@ -67,8 +82,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             public Int32 Port => ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
 
-            public TlsScramServer(String password)
+            private readonly ScramEnding       ending;
+
+            public TlsScramServer(String password, ScramEnding Ending = ScramEnding.ServerFinalAsChallenge)
             {
+                ending       = Ending;
                 certificate  = SelfSignedCertificate();
                 credentials  = ScramCredentialGenerator.Generate(password);
                 listener     = new TcpListener(System.Net.IPAddress.Loopback, 0);
@@ -177,10 +195,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
                 // Server signature, then final success. (The client verifies v= before acking.)
                 var serverSignature = HMACSHA256.HashData(Un(credentials.ServerKeyBase64), authMessage);
-                await writer.WriteLineAsync($"334 {B64(Encoding.UTF8.GetBytes("v=" + B64(serverSignature)))}");
-                await reader.ReadLineAsync();   // client's empty ack
-                await writer.WriteLineAsync("235 2.7.0 Authentication successful");
-                return true;
+
+                if (ending == ScramEnding.WrongServerSignature)
+                    serverSignature = RandomNumberGenerator.GetBytes(serverSignature.Length);
+
+                var serverFinal     = B64(Encoding.UTF8.GetBytes("v=" + B64(serverSignature)));
+
+                switch (ending)
+                {
+
+                    case ScramEnding.SuccessWithoutServerFinal:
+                        await writer.WriteLineAsync("235 2.7.0 Authentication successful");
+                        return true;
+
+                    case ScramEnding.ServerFinalIn235:
+                        await writer.WriteLineAsync($"235 2.7.0 Authentication successful {serverFinal}");
+                        return true;
+
+                    default:
+                        await writer.WriteLineAsync($"334 {serverFinal}");
+                        if ((await reader.ReadLineAsync()) != "")   // the client's empty response - or "*"
+                        {
+                            await writer.WriteLineAsync("501 5.7.0 Authentication cancelled");
+                            return false;
+                        }
+                        await writer.WriteLineAsync("235 2.7.0 Authentication successful");
+                        return true;
+
+                }
 
             }
 
@@ -206,10 +248,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
-        private static SMTPSubmissionClient ClientFor(TlsScramServer server, String password)
+        private static SMTPSubmissionClient ClientFor(TlsScramServer server, String password, String Login = User)
             => new (DomainName.Parse("127.0.0.1"),
                     IPPort.Parse((UInt16) server.Port),
-                    Login:                       User,
+                    Login:                       Login,
                     Password:                    password,
                     UseTLS:                      TLSUsage.STARTTLS,
                     RemoteCertificateValidator:  (s, c, ch, cl, e) => TLSValidationResult.Success(),   // accept the self-signed cert
@@ -253,6 +295,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(result,               Is.EqualTo(MailSentStatus.InvalidLogin), "a wrong password must fail auth cleanly");
             Assert.That(server.Authenticated, Is.False);
             Assert.That(server.MessageStored, Is.False, "no message may be delivered without authentication");
+
+        }
+
+
+        [Test(Description = "RFC 5802 §5: the client authenticates the server by its ServerSignature, which comes in the server-final-message - a 334 in SMTP (RFC 4422 §3, RFC 4954 §4). A 235 without it is a server that never proved it knows the password: no message for it")]
+        public async Task SCRAM_without_the_servers_signature_does_not_authenticate()
+        {
+
+            using var server = new TlsScramServer(Password, ScramEnding.SuccessWithoutServerFinal);
+            using var client = ClientFor(server, Password);
+
+            var result = await client.Send(Message(), NumberOfRetries: 0);
+
+            Assert.That(result,               Is.EqualTo(MailSentStatus.InvalidLogin));
+            Assert.That(server.MessageStored, Is.False, "no message for a server that did not prove it knows the password");
+
+        }
+
+
+        [Test(Description = "RFC 5802 §5: \"If the two are different, the client MUST consider the authentication exchange to be unsuccessful\" - a wrong v= cancels the exchange with \"*\" (RFC 4954 §4)")]
+        public async Task SCRAM_with_a_wrong_server_signature_does_not_authenticate()
+        {
+
+            using var server = new TlsScramServer(Password, ScramEnding.WrongServerSignature);
+            using var client = ClientFor(server, Password);
+
+            var result = await client.Send(Message(), NumberOfRetries: 0);
+
+            Assert.That(result,               Is.EqualTo(MailSentStatus.InvalidLogin));
+            Assert.That(server.Authenticated, Is.False, "the client cancelled instead of acknowledging");
+            Assert.That(server.MessageStored, Is.False);
+
+        }
+
+
+        [Test(Description = "A Hermod server before RFC 4954 §4 was kept put the server-final-message into the 235 text - the signature holds, and the client takes it")]
+        public async Task SCRAM_with_the_servers_signature_in_the_235_text_authenticates()
+        {
+
+            using var server = new TlsScramServer(Password, ScramEnding.ServerFinalIn235);
+            using var client = ClientFor(server, Password);
+
+            var result = await client.Send(Message(), NumberOfRetries: 0);
+
+            Assert.That(result,               Is.EqualTo(MailSentStatus.ok));
+            Assert.That(server.MessageStored, Is.True);
+
+        }
+
+
+        [Test(Description = "RFC 5802 §2.2: SaltedPassword := Hi(Normalize(password), salt, i), \"Normalize(str): Apply the SASLprep profile [RFC4013] to the \"str\" string\" - \"A\" with a combining diaeresis is the \"\u00C4\" the server's keys were made of")]
+        public async Task SCRAM_normalizes_the_password_as_SASLprep_has_it()
+        {
+
+            using var server = new TlsScramServer("\u00C4pfelbaum");
+            using var client = ClientFor(server, "A\u0308pfelbaum");
+
+            var result = await client.Send(Message(), NumberOfRetries: 0);
+
+            Assert.That(result,               Is.EqualTo(MailSentStatus.ok));
+            Assert.That(server.MessageStored, Is.True);
 
         }
 

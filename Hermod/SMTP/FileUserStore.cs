@@ -164,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             {
                 try
                 {
-                    var saltedPassword = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password),
+                    var saltedPassword = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(SaslPrep.Normalize(password)),
                                                                    Convert.FromBase64String(user.ScramSalt),
                                                                    user.ScramIterations,
                                                                    HashAlgorithmName.SHA256,
