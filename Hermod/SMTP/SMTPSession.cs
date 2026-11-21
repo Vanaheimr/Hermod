@@ -1261,7 +1261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     if (!String.IsNullOrEmpty(dmarcEval.Ruf) && dmarcReportService is not null)
                     {
                         var headerBlock = ExtractHeaderBlock(rawMessage);
-                        var authResults = $"{config.Hostname}; dmarc={(dmarcEval.Failed ? "fail" : "pass")} header.from={dmarcEval.HeaderFromDomain}";
+                        var authResults = $"{config.Hostname}; dmarc={dmarcEval.Result switch { DmarcResult.Pass => "pass", DmarcResult.TempError => "temperror", _ => "fail" }} header.from={dmarcEval.HeaderFromDomain}";
                         // Fire-and-forget: forensic sending does a DNS consent lookup we don't
                         // want to block the inbound DATA acknowledgement on.
                         _ = dmarcReportService.SendForensicAsync(dmarcEval, _clientIp, headerBlock, _mailFrom ?? "", authResults, ct);
