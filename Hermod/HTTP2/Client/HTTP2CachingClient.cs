@@ -117,6 +117,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 return resp;
             }
 
+            // HEAD, Range and a caller's own preconditions go to the origin as
+            // they are: entries are keyed by path, so a stored GET would answer
+            // a HEAD with a body, and a stored 206 a GET with a part. This cache
+            // neither combines partial content nor evaluates the caller's
+            // conditions.
+            if (Method != HTTPMethod.GET ||
+                extraHeaders.Any(h => h.Name is "range" or "if-match" or "if-none-match" or "if-modified-since" or "if-unmodified-since" or "if-range"))
+                return await connection.SendRequestAsync(Method, scheme, authority, Path, extraHeaders, Body, CancellationToken: CancellationToken);
+
             // Request no-store: don't use or populate the cache.
             if (requestCC.NoStore)
                 return await OriginAndMaybeStore(Method, Path, extraHeaders, Body, requestCC, hasAuth, store: false, CancellationToken);
@@ -143,6 +152,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         return served;
 
                     case HTTPCacheUsability.MustRevalidate:
+                        // Section 5.2.1.7: only-if-cached never goes to the origin.
+                        if (requestCC.OnlyIfCached)
+                            return GatewayTimeout();
                         return await RevalidateAsync(Method, Path, extraHeaders, stored, requestCC, hasAuth, CancellationToken);
 
                 }
@@ -151,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             // Nothing cached.
             if (requestCC.OnlyIfCached)
-                return new HTTP2Response { Status = 504, Headers = [(":status", "504")], Body = [] };   // Section 5.2.1.7
+                return GatewayTimeout();   // Section 5.2.1.7
 
             return await OriginAndMaybeStore(Method, Path, extraHeaders, Body, requestCC, hasAuth, store: true, CancellationToken);
 
@@ -197,6 +209,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             var response     = await connection.SendRequestAsync(Method, scheme, authority, Path, conditional, null, CancellationToken: CancellationToken);
             var responseTime = timeProvider.GetUtcNow();
 
+            // Section 4.3.4: a 304 that names another representation updates
+            // nothing, and the request is sent again without conditions.
+            if (response.Status == 304 && !HTTPCache.Selects(Stored, response.Headers))
+                return await OriginAndMaybeStore(Method, Path, ExtraHeaders, null, RequestCC, HasAuth, store: true, CancellationToken);
+
             if (response.Status == 304)
             {
                 // Still valid — refresh the stored entry and serve it.
@@ -205,7 +222,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 return Serve(Stored, HTTPCache.CurrentAge(Stored, timeProvider.GetUtcNow()));
             }
 
-            // Changed — replace the stored entry with the new response.
+            // Changed — replace the stored entry with the new response, and drop
+            // it even where the new one may not be stored.
+            Remove(Path, ExtraHeaders);
             TryStore(Path, ExtraHeaders, RequestCC, HasAuth, Method, response, requestTime, responseTime);
             return response;
 
@@ -260,6 +279,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
 
         }
+
+        private void Remove(string Path, List<(string Name, string Value)> RequestHeaders)
+        {
+            lock (storeLock)
+                if (store.TryGetValue(Path, out var variants))
+                    variants.RemoveAll(v => HTTPCache.SelectionMatches(v, RequestHeaders));
+        }
+
+        private static HTTP2Response GatewayTimeout()
+            => new() { Status = 504, Headers = [(":status", "504")], Body = [] };
 
         private void Invalidate(string Path)
         {

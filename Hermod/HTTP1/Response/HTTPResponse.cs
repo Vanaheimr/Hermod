@@ -723,6 +723,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IReadOnlyList<String>        RedirectChain             { get; internal set; } = [];
 
         /// <summary>
+        /// Where the client's Cache took this response from (RFC 9111): a fresh
+        /// or a stale stored response, one the origin confirmed with a 304, the
+        /// origin itself, or the cache's own 504 for only-if-cached. Null when no
+        /// cache handled the request.
+        /// </summary>
+        public HTTPCacheStatus?             CacheStatus               { get; internal set; }
+
+        /// <summary>
         /// Why a body the client handed to a sink as it arrived broke off before
         /// its end, or null when it did not. Set by AHTTPClient for DownloadAsync,
         /// which resumes from where the body stopped.

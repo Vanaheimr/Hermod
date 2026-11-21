@@ -77,6 +77,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 "/auth-cacheable" => Cacheable("max-age=60",           "\"auth\"",  "auth-body"),
                 "/swr"            => Cacheable("max-age=0, stale-while-revalidate=60", "\"swr\"", "swr-body"),
                 "/invalidate"     => Cacheable("max-age=60",           "\"inv\"",   "inv-body"),
+                "/oic-stale"      => Cacheable("max-age=0",            "\"oic\"",   "oic-body"),
+                "/head"           => Cacheable("max-age=60",           "\"hd\"",    "head-body"),
+                "/mismatch"       => ifNoneMatch is not null
+                                         ? Make(304, null, ("cache-control", "max-age=0"), ("etag", "\"m2\""))
+                                         : OriginHits(path) == 1
+                                               ? Make(200, Encoding.UTF8.GetBytes("first"),  ("cache-control", "max-age=0"), ("etag", "\"m1\""))
+                                               : Make(200, Encoding.UTF8.GetBytes("second"), ("cache-control", "max-age=0"), ("etag", "\"m2\"")),
                 "/vary"           => Cacheable("max-age=60",           "\"vary-" + acceptLang + "\"",
                                                "lang=" + (acceptLang ?? "none"), ("vary", "accept-language")),
                 "/heuristic"      => Make(200, Encoding.UTF8.GetBytes("heur"),
@@ -199,6 +206,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var cache = await NewCache(HTTPCacheMode.Private);
             var oic = await cache.GetAsync("/never-seen", [("cache-control", "only-if-cached")]);
             Assert.That(oic.Status, Is.EqualTo(504), "only-if-cached with nothing stored -> 504");
+        }
+
+        #endregion
+
+        #region OnlyIfCached_Stale_504_WithoutOrigin()
+
+        /// <summary>
+        /// RFC 9111, Section 5.2.1.7: a stale response that needs revalidating
+        /// cannot answer only-if-cached, and the origin is not asked either.
+        /// </summary>
+        [Test]
+        public async Task OnlyIfCached_Stale_504_WithoutOrigin()
+        {
+            var cache = await NewCache(HTTPCacheMode.Private);
+            await cache.GetAsync("/oic-stale");
+            var oic = await cache.GetAsync("/oic-stale", [("cache-control", "only-if-cached")]);
+            Assert.Multiple(() =>
+            {
+                Assert.That(oic.Status,               Is.EqualTo(504));
+                Assert.That(OriginHits("/oic-stale"),  Is.EqualTo(1), "only-if-cached never reaches the origin");
+            });
+        }
+
+        #endregion
+
+        #region Head_NotAnsweredFromAStoredGet()
+
+        /// <summary>
+        /// Entries are keyed by path, so a HEAD looked up would be answered from
+        /// the stored GET, body and all.
+        /// </summary>
+        [Test]
+        public async Task Head_NotAnsweredFromAStoredGet()
+        {
+            var cache = await NewCache(HTTPCacheMode.Private);
+            await cache.GetAsync("/head");
+            await cache.SendRequestAsync(HTTPMethod.HEAD, "/head");
+            Assert.That(OriginHits("/head"), Is.EqualTo(2), "the HEAD went to the origin");
+        }
+
+        #endregion
+
+        #region Revalidation_304ForAnotherETag_NotApplied()
+
+        /// <summary>
+        /// RFC 9111, Section 4.3.4: a 304 whose entity tag is not the stored
+        /// one's updates nothing, and the request goes again without conditions.
+        /// </summary>
+        [Test]
+        public async Task Revalidation_304ForAnotherETag_NotApplied()
+        {
+            var cache = await NewCache(HTTPCacheMode.Private);
+            await cache.GetAsync("/mismatch");
+            var second = await cache.GetAsync("/mismatch");
+            Assert.Multiple(() =>
+            {
+                Assert.That(Encoding.UTF8.GetString(second.Body),  Is.EqualTo("second"));
+                Assert.That(OriginHits("/mismatch"),                Is.EqualTo(3));
+            });
         }
 
         #endregion

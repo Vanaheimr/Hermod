@@ -211,6 +211,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public Byte                    MaxRedirects     { get; set; }
 
+        /// <summary>
+        /// An RFC 9111 cache for this client's requests, or null, the default,
+        /// for none, as before. Each single request goes through it, the ones a
+        /// challenge or a redirection adds included: a GET is answered from it
+        /// where its rules allow, and a successful unsafe request invalidates
+        /// what it holds for that target. One cache may serve several clients.
+        /// See <see cref="HTTPClientCache"/> for what it leaves out.
+        ///
+        /// Off by default, as on the HTTP/2 client, where the cache is a class
+        /// of its own: a response from a cache is not the origin's answer of
+        /// this moment, and a caller who did not ask for one would not expect it.
+        /// </summary>
+        public HTTPClientCache?        Cache            { get; set; }
+
         public Boolean        Connected
             => IsHTTPConnected;
 
@@ -964,7 +978,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            Task<HTTPResponse> Send(HTTPRequest OneRequest)
+            Task<HTTPResponse> SendOne(HTTPRequest OneRequest)
 
                 => SendOneRequest(
                        OneRequest,
@@ -976,6 +990,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        MaxNumberOfRetries,
                        CancellationToken
                    );
+
+            var cache = Cache;
+
+            Task<HTTPResponse> Send(HTTPRequest OneRequest)
+
+                => cache is null
+                       ? SendOne(OneRequest)
+                       : cache.SendAsync(OneRequest, CacheOrigin(OneRequest), SendOne);
 
             return await SendAnsweringAndFollowing(Request, Send, CancellationToken).ConfigureAwait(false);
 
@@ -1288,6 +1310,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        : null;
 
         }
+
+        #endregion
+
+        #region (private) CacheOrigin               (Request)
+
+        /// <summary>
+        /// The scheme and authority a cache keys this request's responses by:
+        /// the scheme this client connects with and the request's Host.
+        /// </summary>
+        private String CacheOrigin(HTTPRequest Request)
+
+            => (EnforceTLS || RemoteURL.Scheme?.EnforcesTLS == true ? "https" : "http") +
+               "://" + Request.Host.ToString().ToLowerInvariant();
 
         #endregion
 
