@@ -18,13 +18,11 @@
 #region Usings
 
 using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 
 using Microsoft.Extensions.Logging;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
 #endregion
@@ -66,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="IPAddress">An optional IP address to listen on. Default: ATCPServer default.</param>
         /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
-        /// <param name="HTTPServiceName">An optional HTTP service name.</param>
+        /// <param name="HTTPServerName">An optional HTTP server name.</param>
         /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>

@@ -2209,18 +2209,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             break;
                                                         }
 
-                                                        await LogEvent(
-                                                                    OnTextMessageReceived,
-                                                                    loggingDelegate => loggingDelegate.Invoke(
-                                                                        Timestamp.Now,
-                                                                        this,
-                                                                        webSocketClientConnection,
-                                                                        frame,
-                                                                        EventTracking_Id.New,
-                                                                        textPayload.ToUTF8String(),
-                                                                        CancellationToken
-                                                                    )
-                                                                );
+                                                        await ProcessTextMessage(
+                                                                  Timestamp.Now,
+                                                                  webSocketClientConnection,
+                                                                  frame,
+                                                                  EventTracking_Id.New,
+                                                                  textPayload.ToUTF8String(),
+                                                                  CancellationToken
+                                                              );
 
                                                     }
                                                     else
@@ -2282,18 +2278,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             }
                                                         }
 
-                                                        await LogEvent(
-                                                                    OnBinaryMessageReceived,
-                                                                    loggingDelegate => loggingDelegate.Invoke(
-                                                                        Timestamp.Now,
-                                                                        this,
-                                                                        webSocketClientConnection,
-                                                                        frame,
-                                                                        EventTracking_Id.New,
-                                                                        binaryPayload,
-                                                                        CancellationToken
-                                                                    )
-                                                                );
+                                                        await ProcessBinaryMessage(
+                                                                  Timestamp.Now,
+                                                                  webSocketClientConnection,
+                                                                  frame,
+                                                                  EventTracking_Id.New,
+                                                                  binaryPayload,
+                                                                  CancellationToken
+                                                              );
 
                                                     }
                                                     else
@@ -2375,35 +2367,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         if (fragmentOpcode == WebSocketFrame.Opcodes.Text)
                                                         {
 
-                                                            await LogEvent(
-                                                                        OnTextMessageReceived,
-                                                                        loggingDelegate => loggingDelegate.Invoke(
-                                                                            Timestamp.Now,
-                                                                            this,
-                                                                            webSocketClientConnection,
-                                                                            frame,
-                                                                            EventTracking_Id.New,
-                                                                            completePayload.ToUTF8String(),
-                                                                            CancellationToken
-                                                                        )
-                                                                    );
+                                                            await ProcessTextMessage(
+                                                                      Timestamp.Now,
+                                                                      webSocketClientConnection,
+                                                                      frame,
+                                                                      EventTracking_Id.New,
+                                                                      completePayload.ToUTF8String(),
+                                                                      CancellationToken
+                                                                  );
 
                                                         }
                                                         else if (fragmentOpcode == WebSocketFrame.Opcodes.Binary)
                                                         {
 
-                                                            await LogEvent(
-                                                                        OnBinaryMessageReceived,
-                                                                        loggingDelegate => loggingDelegate.Invoke(
-                                                                            Timestamp.Now,
-                                                                            this,
-                                                                            webSocketClientConnection,
-                                                                            frame,
-                                                                            EventTracking_Id.New,
-                                                                            completePayload,
-                                                                            CancellationToken
-                                                                        )
-                                                                    );
+                                                            await ProcessBinaryMessage(
+                                                                      Timestamp.Now,
+                                                                      webSocketClientConnection,
+                                                                      frame,
+                                                                      EventTracking_Id.New,
+                                                                      completePayload,
+                                                                      CancellationToken
+                                                                  );
 
                                                         }
 
@@ -3344,6 +3328,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             { }
 
         }
+
+        #endregion
+
+
+        #region (virtual)   ProcessTextMessage   (Timestamp, Connection, TextFrame,   EventTrackingId, TextMessage,   CancellationToken)
+
+        /// <summary>
+        /// Process a text message received - the whole of it, put together where it came in
+        /// fragments: tell of it (OnTextMessageReceived). A client that reads its text messages
+        /// overrides this, and calls it first: who listens hears of the text before of what
+        /// the client reads in it - as of a text message a WebSocket server receives.
+        /// </summary>
+        /// <param name="Timestamp">When the message was received.</param>
+        /// <param name="Connection">The connection it was received over.</param>
+        /// <param name="TextFrame">The (last) frame of the message.</param>
+        /// <param name="EventTrackingId">An event tracking identification.</param>
+        /// <param name="TextMessage">The text message.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        public virtual Task ProcessTextMessage(DateTimeOffset             Timestamp,
+                                               WebSocketClientConnection  Connection,
+                                               WebSocketFrame             TextFrame,
+                                               EventTracking_Id           EventTrackingId,
+                                               String                     TextMessage,
+                                               CancellationToken          CancellationToken)
+
+            => LogEvent(
+                   OnTextMessageReceived,
+                   loggingDelegate => loggingDelegate.Invoke(
+                       Timestamp,
+                       this,
+                       Connection,
+                       TextFrame,
+                       EventTrackingId,
+                       TextMessage,
+                       CancellationToken
+                   )
+               );
+
+        #endregion
+
+        #region (virtual)   ProcessBinaryMessage (Timestamp, Connection, BinaryFrame, EventTrackingId, BinaryMessage, CancellationToken)
+
+        /// <summary>
+        /// Process a binary message received - the whole of it, put together where it came in
+        /// fragments: tell of it (OnBinaryMessageReceived). A client that reads its binary
+        /// messages overrides this, and calls it first: who listens hears of the bytes before
+        /// of what the client reads in them - as of a binary message a WebSocket server receives.
+        /// </summary>
+        /// <param name="Timestamp">When the message was received.</param>
+        /// <param name="Connection">The connection it was received over.</param>
+        /// <param name="BinaryFrame">The (last) frame of the message.</param>
+        /// <param name="EventTrackingId">An event tracking identification.</param>
+        /// <param name="BinaryMessage">The binary message.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        public virtual Task ProcessBinaryMessage(DateTimeOffset             Timestamp,
+                                                 WebSocketClientConnection  Connection,
+                                                 WebSocketFrame             BinaryFrame,
+                                                 EventTracking_Id           EventTrackingId,
+                                                 Byte[]                     BinaryMessage,
+                                                 CancellationToken          CancellationToken)
+
+            => LogEvent(
+                   OnBinaryMessageReceived,
+                   loggingDelegate => loggingDelegate.Invoke(
+                       Timestamp,
+                       this,
+                       Connection,
+                       BinaryFrame,
+                       EventTrackingId,
+                       BinaryMessage,
+                       CancellationToken
+                   )
+               );
 
         #endregion
 
