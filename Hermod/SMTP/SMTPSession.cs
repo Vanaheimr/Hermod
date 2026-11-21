@@ -589,7 +589,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
                     return ValueTask.FromResult(new SslServerAuthenticationOptions {
                                ServerCertificateContext   = context,
-                               ClientCertificateRequired  = false,  // Optional client cert for EXTERNAL auth
+                               // A client sends a certificate only when asked for one - a
+                               // CertificateRequest (RFC 8446 §4.3.2, §4.4.2; RFC 5246 §7.4.4) - and
+                               // SslStream sends that only with this set. The certificate is what
+                               // EXTERNAL authenticates by (RFC 4422 Appendix A); a client without
+                               // one goes on without, as ValidateClientCertificate accepts that.
+                               ClientCertificateRequired  = true,
                                EnabledSslProtocols        = System.Security.Authentication.SslProtocols.Tls12 |
                                                             System.Security.Authentication.SslProtocols.Tls13
                            });

@@ -225,13 +225,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             /// accepted, and returned.
             /// </summary>
             /// <param name="TargetHost">The name the client asks for (SNI).</param>
-            public async Task<X509Certificate2?> StartTlsAsync(String TargetHost = "mx.hermod.test")
+            public async Task<X509Certificate2?> StartTlsAsync(String             TargetHost         = "mx.hermod.test",
+                                                               X509Certificate2?  ClientCertificate  = null)
             {
 
                 Assert.That(pending.Length, Is.Zero, "nothing may follow the 220 to STARTTLS");
 
                 var tls = new SslStream(stream, leaveInnerStreamOpen: false, (_, _, _, _) => true);
-                await tls.AuthenticateAsClientAsync(TargetHost);
+                await tls.AuthenticateAsClientAsync(new SslClientAuthenticationOptions {
+                          TargetHost          = TargetHost,
+                          ClientCertificates  = ClientCertificate is null ? null : [ ClientCertificate ]
+                      });
                 stream  = tls;
 
                 return tls.RemoteCertificate is { } certificate
