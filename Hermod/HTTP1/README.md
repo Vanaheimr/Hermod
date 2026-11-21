@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-11-20**
+Last verified: **2026-11-21**
 
 ## Support levels
 
@@ -35,6 +35,7 @@ Last verified: **2026-11-20**
 | [RFC 7838](https://www.rfc-editor.org/rfc/rfc7838.html), HTTP Alternative Services | `Alt-Svc` is typed for responses and `Alt-Used` for requests, sent by handlers and read by the client, with the field's grammar shared with HTTP/2's ALTSVC frame. The client records alternatives and does not act on them. Announcing one is the application's decision. |
 | [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288.html), Web Linking | `Link` is typed on responses: `HTTPLinks`, a list of `HTTPLink`, each with its target, relation types, anchor and target attributes. A sender is held to the grammar, and parsing follows Appendix B. `title*` and other starred attributes are RFC 8187 values, through `HTTPExtendedValue`. Which links to send is the application's decision. Since 2026-10-29; see [Links](#links-rfc-8288). |
 | [RFC 8297](https://www.rfc-editor.org/rfc/rfc8297.html), 103 Early Hints | A handler sends a `103` with `request.SendEarlyHints(links)` while it is still working on the final response, and any other interim response with `SendInformationalResponse`. The client keeps the interim responses it receives on `HTTPResponse.InformationalResponses`, where a `103`'s `Link` fields can be read. Whether to send hints is the application's decision. Since 2026-10-29; see [Informational and bodyless responses](#informational-and-bodyless-responses). |
+| [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111.html), HTTP Caching; [RFC 5861](https://www.rfc-editor.org/rfc/rfc5861.html), stale content; [RFC 8246](https://www.rfc-editor.org/rfc/rfc8246.html), immutable | The client's opt-in `Cache` since 2026-11-21: storing, freshness, validation, `Vary`, invalidation, `stale-while-revalidate`, `stale-if-error` and `immutable`, private by default. The server is an origin and keeps no cache. See "The client: a cache" |
 | [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html), Problem Details for HTTP APIs | `HTTPProblemDetails` is the JSON object of Section 3, served as `application/problem+json`. Handlers send it with `SetProblemDetails`, which also sets the status code it names, and clients read it with `TryParseProblemDetails`. The server's own errors stay `application/json` unless a request's `Accept` prefers problem details. JSON only: the XML format of Appendix B is not implemented. Since 2026-10-29; see [Problem details](#problem-details-rfc-9457). |
 | [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), WebSocket | Implemented in Hermod's WebSocket client/server subsystem. The HTTP/1.1 server can also serve a WebSocket on a path of its own, beside ordinary HTTP on the same listener: `WebSocketUpgrade.For` hands a request that asks for an upgrade over to a WebSocket server, whose single implementation of the opening handshake (RFC 6455 §4.2) validates it and answers the `101` - the HTTP layer only decides whether a request is asking. Regression-tested by `WebSocketOnAnHTTPPathTests`; see [WebSocket/README.md](WebSocket/README.md#on-an-http-path). |
 | [WHATWG Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Implemented and regression-tested for `text/event-stream`, parsing, live streaming, reconnection, `Last-Event-ID`, retry intervals, comments/heartbeats, cancellation, and disconnect cleanup. |
@@ -810,6 +811,81 @@ that did not finish has the status `ClientError`, which no server sends, and
 says why in `Error`. Nothing is thrown, as nothing is by the rest of this
 client.
 
+## The client: a cache
+
+`AHTTPClient.Cache` is the fourth thing the HTTP/2 client had alone until
+2026-11-21 (H-5 in HTTP1ConformanceTests). Set it to an `HTTPClientCache`, and
+every single request goes through it, the hops of a redirect and the answer to
+a challenge included. Null, the default, is no cache, as before: a stored
+response is not the origin's answer of this moment, and a caller who did not
+ask for one would not expect it. One cache may serve several clients; entries
+are keyed by scheme, authority and request-target.
+
+The rules are `HTTPCache`'s, which moved from `HTTP2/Core/` to
+`HTTP/Caching/` for it, with `HTTPCacheControl`, `HTTPStoredResponse` and the
+rest. They lost eight deviations from RFC 9111 on the way, and the HTTP/2
+cache with them:
+
+- a fresh response with `must-revalidate` was revalidated anyway (§5.2.2.2);
+- a request's `max-age` was parsed and never read (§5.2.1.1);
+- an `Expires` of `0`, or any other invalid date, let the `Last-Modified`
+  heuristic make the response fresh, where §5.3 has it expired;
+- a validator alone made a response storable, which §3 does not;
+- a `206` was stored as the response to its target, and then answered a
+  request without `Range` with the part;
+- a `304` overwrote the stored `Content-Length` (§3.2);
+- a `304` updated the stored response whatever entity tag it carried
+  (§4.3.4);
+- `only-if-cached` sent a stale response's revalidation to the origin, which
+  §5.2.1.7 rules out.
+
+What the cache does:
+
+- **Stores** the responses to `GET` that §3 allows: not `no-store`, a final
+  status other than `206` and `304`, and something that says it may be kept.
+  A body still on the connection, an event stream, is not stored, nor one
+  larger than `MaxBodySize` (4 MiB by default). `MaxEntries` (1024) evicts
+  the response used least recently. Connection-specific fields are not
+  stored (§3.1).
+- **Serves** a fresh response without contacting the origin, with its `Age`
+  (§5.1). Freshness is `s-maxage` in a shared cache, `max-age`, `Expires`
+  minus `Date`, or a tenth of the time since `Last-Modified`. An invalid
+  `max-age` makes the response stale, and the first of two directives counts
+  (§4.2.1).
+- **Revalidates** a stale one with `If-None-Match` and `If-Modified-Since`. A
+  `304` that selects it updates its fields, except those describing the
+  octets held, and serves it; one that names another representation sends the
+  request again without conditions.
+- **Honours the request:** `no-cache` and, without a `Cache-Control`,
+  `Pragma: no-cache` revalidate (§5.4), `max-age` and `min-fresh` narrow what
+  is fresh, `max-stale` accepts stale, `only-if-cached` is answered `504`
+  when nothing stored can answer it, and `no-store` keeps the response out.
+  An `immutable` response is not revalidated by a `max-age` while it is fresh
+  (RFC 8246).
+- **Serves stale** where the response allows it: within
+  `stale-while-revalidate` it is served and revalidated in the background, and
+  within `stale-if-error` it stands in for a `500`, `502`, `503`, `504` or a
+  request that failed (RFC 5861). Not where `must-revalidate`, or in a shared
+  cache `proxy-revalidate` or `s-maxage`, forbids it (§4.2.4).
+- **Keys variants** by `Vary`, the lines of one field combined (§4.1), and
+  never reuses `Vary: *`.
+- **Invalidates** a target when an unsafe request to it gets a `2xx` or `3xx`
+  (§4.4). `Location` and `Content-Location` are not invalidated, which §4.4
+  allows.
+
+`HTTPResponse.CacheStatus` says where an answer came from: `Hit`, `Stale`,
+`Revalidated`, `Miss`, or `Unavailable` for the cache's own `504`, and null
+when no cache handled the request. A served response is rebuilt from the
+stored fields as `HTTP/1.1`, with a `Content-Length` for the stored octets.
+
+What goes past it, sent as it is: `HEAD`, which §4 would let a stored `GET`
+answer and which this cache does not; a request with `Range` or with a
+precondition of its own, since the cache neither combines partial content nor
+evaluates a caller's conditions; and `DownloadAsync`. Private is the default
+mode, the cache of one user agent. `HTTPCacheMode.Shared` gives a client that
+serves many users `s-maxage`, keeps `private` responses out, and stores a
+response to a request with `Authorization` only when §3.5 allows it.
+
 ## Server-Sent Events
 
 Hermod implements SSE as an HTTP streaming extension using
@@ -986,8 +1062,8 @@ The presence of a typed field does not imply an automatic policy engine:
 
 - Basic and Bearer credentials can be parsed and serialized; handlers decide
   whether credentials are valid and authorized.
-- Conditional fields and ETags are available to handlers; Hermod is not a
-  shared HTTP cache. A resource registered with `AddResource` has its
+- Conditional fields and ETags are available to handlers; Hermod's server is
+  not a shared HTTP cache, and its client has one only when given one. A resource registered with `AddResource` has its
   preconditions evaluated by the library instead, and so does a static file
   since 2026-11-21.
 - Range and `Content-Range` fields are modeled; handlers select and generate
@@ -1051,6 +1127,7 @@ and `DotNetHTTPClientTests_MinimalAPI`.
   `HTTP_TCPClientTests`, `ChunkedFramingTests`, `TransferCodingTests`,
   `BodilessResponseTests`, `HTTPLineEndingTests`, `HTTPClientPoolTests`,
   `NagleTests`, `HTTPClientDownloadTests`, `AbsoluteFormTests`
+- **Caching, the client's (RFC 9111):** `HTTPCacheTests`, `HTTPClientCacheTests`
 - **Methods and status codes, interim responses included:**
   `HTTPStatusCodeTests`, `HTTPHeadDerivedFromGetTests`,
   `HTTPServerTraceTests`, `HTTPCORSPreflightTests`, `EarlyHintsTests`,
@@ -1105,12 +1182,14 @@ same change put four cases into `MisdirectedRequestTests` and one more into
 `StaticFileValidatorsTests` came with finding H-43 and joined with it, which
 makes forty-five: **920**, the 904 and its 16. The static-content
 handlers' own fixtures stay outside, as said above. This one tests what RFC
-9110 asks of the answers they give.
+9110 asks of the answers they give. `HTTPCacheTests` and
+`HTTPClientCacheTests` came with finding H-5 and joined with it, which makes
+forty-seven: **963**, the 920 and their 43.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests|FullyQualifiedName~StaticFileValidatorsTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests|FullyQualifiedName~StaticFileValidatorsTests|FullyQualifiedName~HTTPCacheTests|FullyQualifiedName~HTTPClientCacheTests"
 ```
 
 ## Deliberate exclusions and qualification
@@ -1121,7 +1200,8 @@ scope, with these explicit boundaries:
 - It is not an HTTP forward proxy or gateway; `CONNECT`, forwarding a request
   in absolute form to another origin, proxy authentication, and intermediary transformations are out of
   scope.
-- It does not provide a shared RFC 9111 cache.
+- Its server does not provide an RFC 9111 cache: it is an origin. The client
+  has a private one, on request.
 - It applies conditional, range and QUERY semantics only to a resource
   registered with `AddResource`, and WebDAV semantics not at all.
 - WebSocket is tested and maintained as a separate subsystem; the HTTP/1.1

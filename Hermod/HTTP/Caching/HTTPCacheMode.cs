@@ -15,12 +15,20 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// The usability verdict plus the response's current age (added as the <c>Age</c> header when served).
+    /// Whether a cache is shared (a proxy/CDN serving many users) or private (a
+    /// browser-style single-user cache). RFC 9111 treats several directives
+    /// differently by mode: a shared cache honors <c>s-maxage</c> and must not
+    /// store <c>private</c> responses or (usually) responses to authenticated
+    /// requests, while a private cache may.
     /// </summary>
-    public readonly record struct HTTPCacheDecision(HTTPCacheUsability Usability, TimeSpan Age);
+    public enum HTTPCacheMode
+    {
+        Private,
+        Shared
+    }
 
 }
