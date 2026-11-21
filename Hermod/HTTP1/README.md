@@ -894,8 +894,38 @@ Two things stay the server's:
 It is opt-in. A handler registered with `AddHandler` still sees every
 precondition and range as typed fields and decides for itself. Before, the
 stack made this decision twice, in opposite directions: a library layer on
-HTTP/2, and every HTTP/1.x handler's own work. `HTTPStandardHandlers`' static
-files and `SinglePageAppHandler` do not use the layer yet.
+HTTP/2, and every HTTP/1.x handler's own work.
+
+### Static files
+
+Static files go through the same layer since 2026-11-21 (H-43 in
+HTTP1ConformanceTests). Before, `MapFileSystemFolder`,
+`MapResourceAssemblyFolder`, `MapResourceAssembliesFolder`,
+`RegisterFileSystemFile` and `RegisterResourcesFile` sent a `200` with neither
+`ETag` nor `Last-Modified`. So no request for a static file could be answered
+`304` or `206`, although RFC 9110, Sections 8.8.2.1 and 8.8.3 say an origin
+server SHOULD send both where it can determine them. `SinglePageAppHandler`
+answered `If-None-Match` itself and nothing else.
+
+- **Validators of a file on disk.** `Last-Modified` is the time of its last
+  write, never later than the response's `Date` (§8.8.2.1). The `ETag` is made
+  of that time and the length, as nginx and Apache httpd make theirs, so that
+  no request hashes the file.
+- **Validators of other content.** An embedded resource and a page through an
+  `HTMLTemplateHandler` get the entity tag of their content and no
+  `Last-Modified`.
+- **Files up to `HTTPStandardHandlers.MaxBufferedFileSize`** (16 MiB by default)
+  are read into memory and answered by the layer: `304`, `412`, `206` and `416`.
+- **Larger files** are streamed as before. They keep their validators and the
+  `304` and `412` of their preconditions. They get no ranges and no
+  `Accept-Ranges`, because ranges need the representation in hand.
+- **`SinglePageAppHandler`** still chooses the content coding itself, from the
+  encodings it caches per file, and hands the layer that one representation.
+  The entity tag names the coding, and `Vary: Accept-Encoding` stays on every
+  answer, the `304` included.
+- **Dating SPA files.** A `FileSystemContentSource` dates its files. An
+  `EmbeddedContentSource` does not, and neither does a transformed
+  `index.html`.
 
 ## Headers, authentication, and application semantics
 
@@ -958,7 +988,8 @@ The presence of a typed field does not imply an automatic policy engine:
   whether credentials are valid and authorized.
 - Conditional fields and ETags are available to handlers; Hermod is not a
   shared HTTP cache. A resource registered with `AddResource` has its
-  preconditions evaluated by the library instead.
+  preconditions evaluated by the library instead, and so does a static file
+  since 2026-11-21.
 - Range and `Content-Range` fields are modeled; handlers select and generate
   partial representations, or leave it to `AddResource`.
 - CORS fields are modeled, and the one part no handler can reach — the
@@ -1025,7 +1056,7 @@ and `DotNetHTTPClientTests_MinimalAPI`.
   `HTTPServerTraceTests`, `HTTPCORSPreflightTests`, `EarlyHintsTests`,
   `ProblemDetailsTests`, `HTTPClientRedirectTests`
 - **Resources — negotiation, preconditions and ranges:**
-  `HTTPResourceSemanticsTests`
+  `HTTPResourceSemanticsTests`, `StaticFileValidatorsTests`
 - **TLS, and the origin a connection is for:**
   `HTTPServerListenerMatrixTests`, `HTTPServerALPNTests`,
   `HTTPServerAllowedTLSProtocolsTests`, `HTTPSClientTLSByDefaultTests`,
@@ -1071,11 +1102,15 @@ it, which makes forty-three: **880**, the 833 and its 47. `AbsoluteFormTests`
 came with finding H-42 and joined with it, which makes forty-four, and the
 same change put four cases into `MisdirectedRequestTests` and one more into
 `HTTPServerSocketRegressionTests`: **904**, the 880 and their 24.
+`StaticFileValidatorsTests` came with finding H-43 and joined with it, which
+makes forty-five: **920**, the 904 and its 16. The static-content
+handlers' own fixtures stay outside, as said above. This one tests what RFC
+9110 asks of the answers they give.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests|FullyQualifiedName~StaticFileValidatorsTests"
 ```
 
 ## Deliberate exclusions and qualification

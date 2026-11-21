@@ -117,7 +117,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (!System.IO.File.Exists(fullPath))
                 return false;
 
-            File = StaticFile.Create(path, System.IO.File.ReadAllBytes(fullPath));
+            // Read before the time, so that a write in between makes the time
+            // later than the content, never earlier. RFC 9110, Section 8.8.2.1:
+            // a Last-Modified in the future is sent as the time of the response.
+            var content   = System.IO.File.ReadAllBytes(fullPath);
+            var modified  = new DateTimeOffset(System.IO.File.GetLastWriteTimeUtc(fullPath), TimeSpan.Zero);
+            var now       = DateTimeOffset.UtcNow;
+
+            File = StaticFile.Create(path, content) with {
+                       LastModified = modified > now ? now : modified
+                   };
 
             return true;
 

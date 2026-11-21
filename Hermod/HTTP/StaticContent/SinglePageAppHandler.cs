@@ -264,11 +264,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // 1) A file of the bundle?  ("assets/app.3f9c1a.js", "favicon.svg")
             //    The stub itself is always delivered transformed and revalidated.
             if (path.Length > 0 && Content.TryGet(path, out var file))
-                return Task.FromResult(
-                           String.Equals(path, Options.IndexFile, StringComparison.Ordinal)
-                               ? IndexResponse(Request, file)
-                               : Deliver(Request, file, CacheControlFor(file), IsDocument: false)
-                       );
+                return String.Equals(path, Options.IndexFile, StringComparison.Ordinal)
+                           ? IndexResponse(Request, file)
+                           : Deliver(Request, file, CacheControlFor(file), IsDocument: false);
 
             // 2) A page URL (the last segment does not end in an extension the
             //    bundle would ship) => the application stub
@@ -276,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 if (Content.TryGet(Options.IndexFile, out var index))
-                    return Task.FromResult(IndexResponse(Request, index));
+                    return IndexResponse(Request, index);
 
                 return Task.FromResult(
                            ErrorResponse(
@@ -330,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (private) IndexResponse(Request, Source)
 
-        private HTTPResponse IndexResponse(HTTPRequest  Request,
+        private Task<HTTPResponse> IndexResponse(HTTPRequest  Request,
                                            StaticFile   Source)
         {
 
@@ -362,14 +360,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (private) Deliver(Request, File, CacheControl, IsDocument)
 
         /// <summary>
-        /// The common delivery path: pick a content coding, answer 304 when the
-        /// client already has this representation, otherwise send it with the
-        /// caching and security header fields.
+        /// The common delivery path: pick a content coding, then let
+        /// HTTPResourceSemantics answer for the representation that coding makes,
+        /// with the caching and security header fields on every answer.
         /// </summary>
-        private HTTPResponse Deliver(HTTPRequest  Request,
-                                     StaticFile   File,
-                                     String       CacheControl,
-                                     Boolean      IsDocument)
+        /// <remarks>
+        /// Until H-43 (2026-11-21) this answered If-None-Match with a 304 itself and
+        /// nothing else: no If-Match and 412, no Last-Modified and If-Modified-Since,
+        /// no Range. The coding is still chosen here, from the encodings cached per
+        /// file, and the layer is handed that one representation, so it negotiates
+        /// nothing and compresses nothing of its own.
+        /// </remarks>
+        private Task<HTTPResponse> Deliver(HTTPRequest  Request,
+                                           StaticFile   File,
+                                           String       CacheControl,
+                                           Boolean      IsDocument)
         {
 
             var compressible  = Options.Compression && ContentNegotiation.IsCompressible(File.ContentType);
@@ -388,40 +393,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 body    = File.Content;
             }
 
-            var etag = ContentNegotiation.ETagForCoding(File.ETag, coding);
+            return HTTPResourceHandlers.Answer(
+                       Request,
+                       new HTTPResource {
+                           Body             = body,
+                           ContentType      = File.ContentType.ToString(),
+                           ContentEncoding  = coding,
+                           ETag             = ContentNegotiation.ETagForCoding(File.ETag, coding),
+                           LastModified     = File.LastModified
+                       },
+                       response => {
 
-            if (ContentNegotiation.IfNoneMatchMatches(Request.IfNoneMatch, etag))
-            {
+                           // RFC 9110, Section 15.4.5: a 304 carries the
+                           // Cache-Control and Vary the 200 would have.
+                           response.CacheControl  = CacheControl;
+                           response.Vary          = compressible ? "Accept-Encoding" : null;
 
-                var notModified = new HTTPResponse.Builder(Request) {
-                                      HTTPStatusCode  = HTTPStatusCode.NotModified,
-                                      ETag            = etag,
-                                      CacheControl    = CacheControl,
-                                      Vary            = compressible ? "Accept-Encoding" : null
-                                  };
+                           if (IsDocument &&
+                               (response.HTTPStatusCode == HTTPStatusCode.OK ||
+                                response.HTTPStatusCode == HTTPStatusCode.PartialContent))
+                               response.WithDocumentSecurityHeaders(Options.SecurityHeaders);
+                           else
+                               response.WithCommonSecurityHeaders(Options.SecurityHeaders);
 
-                return notModified.WithCommonSecurityHeaders(Options.SecurityHeaders).AsImmutable;
-
-            }
-
-            var response = new HTTPResponse.Builder(Request) {
-                               HTTPStatusCode  = HTTPStatusCode.OK,
-                               ContentType     = File.ContentType,
-                               Content         = body,
-                               ETag            = etag,
-                               CacheControl    = CacheControl,
-                               Vary            = compressible ? "Accept-Encoding" : null
-                           };
-
-            if (coding is not null)
-                response.ContentEncoding = [ coding ];
-
-            if (IsDocument)
-                response.WithDocumentSecurityHeaders(Options.SecurityHeaders);
-            else
-                response.WithCommonSecurityHeaders(Options.SecurityHeaders);
-
-            return response.AsImmutable;
+                       }
+                   );
 
         }
 

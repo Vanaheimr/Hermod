@@ -841,7 +841,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 412 or 304 if one of them fires. Returns null if none did (proceed
         /// with normal processing).
         /// </summary>
-        private static (List<(String Name, String Value)> Headers, Byte[]? Body)? EvaluateConditionalRequest(
+        /// <remarks>
+        /// Internal rather than private for a representation too large to hold as
+        /// a Byte[]: HTTPStandardHandlers streams such a file, and asks this for
+        /// its preconditions all the same (H-43).
+        /// </remarks>
+        internal static (List<(String Name, String Value)> Headers, Byte[]? Body)? EvaluateConditionalRequest(
             List<(String Name, String Value)>  RequestHeaders,
             HTTPMethod                         Method,
             String                             ETag,

@@ -37,6 +37,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     String           ETag)
     {
 
+        /// <summary>
+        /// When the file was last written, where its source knows: a file on
+        /// disk, and not a resource embedded in an assembly. Sent as Last-Modified
+        /// and compared with If-Modified-Since (RFC 9110, Section 8.8.2).
+        /// </summary>
+        public DateTimeOffset?  LastModified    { get; init; }
+
         #region (static) Create(RelativePath, Content)
 
         /// <summary>
