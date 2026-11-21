@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Reflection;
+using System.Security.Cryptography;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -37,6 +38,159 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         public static ILogger Logger { get; set; } = NullLogger.Instance;
+
+        /// <summary>
+        /// The largest static file read into memory to be answered by
+        /// HTTPResourceSemantics, with 304, 412, 206 and 416 (H-43). A larger one
+        /// is streamed as before, with its validators and the 304 and 412 of its
+        /// preconditions, but no ranges: those need the representation in hand.
+        /// 16 MiB by default.
+        /// </summary>
+        public static Int64 MaxBufferedFileSize { get; set; } = 16 * 1024 * 1024;
+
+        #region (private) StaticSource
+
+        /// <summary>
+        /// A static file about to be served: its content, and its validators where
+        /// they are known without reading it.
+        /// </summary>
+        /// <param name="Stream">The content.</param>
+        /// <param name="LastModified">When the file was last written, for a file on disk.</param>
+        /// <param name="ETag">A strong entity tag, for a file on disk; null to derive one from the content.</param>
+        private readonly record struct StaticSource(Stream           Stream,
+                                                    DateTimeOffset?  LastModified   = null,
+                                                    String?          ETag           = null);
+
+        #endregion
+
+        #region (private static) OpenFile   (FullPath)
+
+        /// <summary>
+        /// Open a file on disk, with its validators.
+        /// </summary>
+        /// <remarks>
+        /// The entity tag is the time of the last write and the length, as nginx
+        /// and Apache httpd make theirs, so that no request has to hash the file.
+        /// Both are read after the file is open. RFC 9110, Section 8.8.2.1: a
+        /// Last-Modified later than the response's Date is sent as that Date, so
+        /// a file stamped in the future is not dated there.
+        /// </remarks>
+        /// <param name="FullPath">The absolute path of an existing file.</param>
+        private static StaticSource OpenFile(String FullPath)
+        {
+
+            var stream     = File.OpenRead(FullPath);
+            var lastWrite  = File.GetLastWriteTimeUtc(FullPath);
+            var now        = Timestamp.Now;
+
+            var modified   = new DateTimeOffset(lastWrite, TimeSpan.Zero);
+
+            return new StaticSource(
+                       stream,
+                       modified > now ? now : modified,
+                       $"\"{lastWrite.Ticks:x}-{stream.Length:x}\""
+                   );
+
+        }
+
+        #endregion
+
+        #region (private static) ServeStatic(Request, Source, ContentType, CacheControl, ServerName)
+
+        /// <summary>
+        /// The answer for a static file. Up to MaxBufferedFileSize the file goes
+        /// through HTTPResourceSemantics, as a resource registered with AddResource
+        /// does; a larger one is streamed with its validators, and its
+        /// preconditions answered all the same.
+        /// </summary>
+        /// <remarks>
+        /// Until H-43 (2026-11-21) every static file was a 200 with no ETag and no
+        /// Last-Modified, so a client whose max-age had run out transferred the
+        /// whole file again, and a download broken off could not be resumed.
+        /// RFC 9110, Sections 8.8.2.1 and 8.8.3: an origin server SHOULD send both
+        /// where it can determine them, and for a file it can.
+        /// </remarks>
+        private static async Task<HTTPResponse> ServeStatic(HTTPRequest      Request,
+                                                            StaticSource     Source,
+                                                            HTTPContentType  ContentType,
+                                                            String           CacheControl,
+                                                            String           ServerName)
+        {
+
+            // Section 15.4.5: a 304 carries the Cache-Control a 200 would have.
+            void decorate(HTTPResponse.Builder response)
+            {
+                response.Server        = ServerName;
+                response.Date          = Timestamp.Now;
+                response.CacheControl  = CacheControl;
+                response.Connection    = ConnectionType.KeepAlive;
+            }
+
+            var stream = Source.Stream;
+
+            if (stream.CanSeek && stream.Length <= MaxBufferedFileSize)
+            {
+
+                Byte[] content;
+
+                await using (stream)
+                {
+                    using var memory = new MemoryStream();
+                    await stream.CopyToAsync(memory, Request.CancellationToken);
+                    content = memory.ToArray();
+                }
+
+                return await HTTPResourceHandlers.Answer(
+                                 Request,
+                                 new HTTPResource {
+                                     Body          = content,
+                                     ContentType   = ContentType.ToString(),
+                                     ETag          = Source.ETag,
+                                     LastModified  = Source.LastModified
+                                 },
+                                 decorate
+                             );
+
+            }
+
+            // Too large to hold: the entity tag of an embedded resource or a
+            // templated page is its content's, hashed as it streams past once.
+            var etag = Source.ETag;
+
+            if (etag is null && stream.CanSeek)
+            {
+                etag             = $"\"{Convert.ToHexString(await SHA256.HashDataAsync(stream, Request.CancellationToken))[..32].ToLowerInvariant()}\"";
+                stream.Position  = 0;
+            }
+
+            if (etag is not null)
+            {
+
+                var precondition = HTTPResourceHandlers.Preconditions(Request, etag, Source.LastModified, decorate);
+
+                if (precondition is not null)
+                {
+                    await stream.DisposeAsync();
+                    return precondition;
+                }
+
+            }
+
+            var response = new HTTPResponse.Builder(Request) {
+                               HTTPStatusCode  = HTTPStatusCode.OK,
+                               ContentType     = ContentType,
+                               ContentStream   = stream,
+                               ETag            = etag,
+                               LastModified    = Source.LastModified
+                           };
+
+            decorate(response);
+
+            return response.AsImmutable;
+
+        }
+
+        #endregion
 
         #region RegisterRAWRequestHandler       (this HTTPServer, HTTPAPI, Hostname, URLTemplate, Method = null)
 
@@ -178,7 +332,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        if (filePath.Contains("../"))
                            return null;
 
-                       return ResourceAssembly.GetManifestResourceStream($"{ResourcePath}{filePath.Replace('/', '.')}");
+                       var stream = ResourceAssembly.GetManifestResourceStream($"{ResourcePath}{filePath.Replace('/', '.')}");
+
+                       return stream is null
+                                  ? null
+                                  : new StaticSource(stream);
 
                    },
                    DefaultFilename,
@@ -212,7 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                var file = resourceAssembly.Item2.GetManifestResourceStream($"{resourceAssembly.Item1}{filePath.Replace('/', '.')}");
 
                                if (file is not null)
-                                   return file;
+                                   return new StaticSource(file);
 
                            }
                            catch
@@ -253,7 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            // File.Exists is false for a directory and for a device
                            // name as well, so both are a 404 like any other miss.
                            return fullPath is not null && File.Exists(fullPath)
-                                      ? File.OpenRead(fullPath)
+                                      ? OpenFile(fullPath)
                                       : null;
 
                        },
@@ -397,57 +555,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private static HTTPDelegate ExportFolderDelegate(HTTPPath                       URLTemplate,
                                                          String                         DefaultServerName,
-                                                         Func<String, Stream?>          FileStreamProvider,
+                                                         Func<String, StaticSource?>    FileStreamProvider,
                                                          String                         DefaultFilename       = "index.html",
                                                          Func<String, String, String>?  HTMLTemplateHandler   = null)
 
-            => (httpRequest) => {
+            => async (httpRequest) => {
 
                    try
                    {
 
-                       var filePath    = httpRequest.TryGetURLParameter(ResourceName) ?? DefaultFilename;
-                       var fileStream  = FileStreamProvider(filePath);
+                       var filePath  = httpRequest.TryGetURLParameter(ResourceName) ?? DefaultFilename;
+                       var source    = FileStreamProvider(filePath);
 
+                       // A page through a template is what the template makes of
+                       // it: neither the file's time nor its entity tag says
+                       // anything about that, so it gets the tag of its content.
                        if (HTMLTemplateHandler is not null &&
-                           fileStream          is not null &&
-                           fileStream.Length > 0 &&
+                           source              is not null &&
+                           source.Value.Stream.Length > 0 &&
                            filePath.EndsWith(".html"))
                        {
-                           fileStream = new MemoryStream(HTMLTemplateHandler(filePath, fileStream.ToByteArray().ToUTF8String()).ToUTF8Bytes());
+
+                           String page;
+
+                           await using (var original = source.Value.Stream)
+                               page = original.ToByteArray().ToUTF8String();
+
+                           source = new StaticSource(new MemoryStream(HTMLTemplateHandler(filePath, page).ToUTF8Bytes()));
+
                        }
 
-                       return Task.FromResult(
-                                  fileStream is null
+                       if (source is null)
+                           return new HTTPResponse.Builder(httpRequest) {
+                                      HTTPStatusCode   = HTTPStatusCode.NotFound,
+                                      Server           = DefaultServerName,
+                                      Date             = Timestamp.Now,
+                                      ContentLength    = 0,
+                                      CacheControl     = "no-cache",
+                                      Connection       = ConnectionType.KeepAlive
+                                  }.AsImmutable;
 
-                                      ? new HTTPResponse.Builder(httpRequest) {
-                                            HTTPStatusCode   = HTTPStatusCode.NotFound,
-                                            Server           = DefaultServerName,
-                                            Date             = Timestamp.Now,
-                                            ContentLength    = 0,
-                                            CacheControl     = "no-cache",
-                                            Connection       = ConnectionType.KeepAlive
-                                        }.AsImmutable
-
-                                      : new HTTPResponse.Builder(httpRequest) {
-                                            HTTPStatusCode   = HTTPStatusCode.OK,
-                                            Server           = DefaultServerName,
-                                            Date             = Timestamp.Now,
-                                            ContentType      = HTTPContentType.ForFileExtension(
-                                                                   filePath[(filePath.LastIndexOf('.') + 1)..],
-                                                                   () => HTTPContentType.Application.OCTETSTREAM
-                                                               ).FirstOrDefault(),
-                                            ContentStream    = fileStream,
-                                            CacheControl     = "public, max-age=300",
-                                            //Expires          = "Mon, 25 Jun 2015 21:31:12 GMT",
-                                            //KeepAlive        = new KeepAliveType(
-                                            //                       TimeSpan.FromMinutes(15),
-                                            //                       500
-                                            //                   ),
-                                            Connection       = ConnectionType.KeepAlive
-                                        }.AsImmutable
-
-                              );
+                       return await ServeStatic(
+                                        httpRequest,
+                                        source.Value,
+                                        HTTPContentType.ForFileExtension(
+                                            filePath[(filePath.LastIndexOf('.') + 1)..],
+                                            () => HTTPContentType.Application.OCTETSTREAM
+                                        ).FirstOrDefault() ?? HTTPContentType.Application.OCTETSTREAM,
+                                        "public, max-age=300",
+                                        DefaultServerName
+                                    );
 
                    }
 
@@ -460,16 +617,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        // I/O exception carries the absolute path on the server.
                        Logger.LogError(e, "Could not serve {Path}", httpRequest.Path);
 
-                       return Task.FromResult(
-                                  new HTTPResponse.Builder(httpRequest) {
-                                      HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                      Server          = DefaultServerName,
-                                      Date            = Timestamp.Now,
-                                      ContentLength   = 0,
-                                      CacheControl    = "no-cache",
-                                      Connection      = ConnectionType.KeepAlive
-                                  }.AsImmutable
-                              );
+                       return new HTTPResponse.Builder(httpRequest) {
+                                  HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                  Server          = DefaultServerName,
+                                  Date            = Timestamp.Now,
+                                  ContentLength   = 0,
+                                  CacheControl    = "no-cache",
+                                  Connection      = ConnectionType.KeepAlive
+                              }.AsImmutable;
 
                    }
 
@@ -1328,15 +1483,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var fileStream = ResourceAssembly.GetManifestResourceStream(ResourceFilename);
 
                     if (fileStream is not null)
-                        return new HTTPResponse.Builder(request) {
-                            HTTPStatusCode  = HTTPStatusCode.OK,
-                            Server          = HTTPAPI.HTTPServer.HTTPServerName,
-                            Date            = Timestamp.Now,
-                            ContentType     = ResponseContentType,
-                            ContentStream   = fileStream,
-                            CacheControl    = CacheControl,
-                            Connection      = ConnectionType.KeepAlive
-                        };
+                        return await ServeStatic(
+                                         request,
+                                         new StaticSource(fileStream),
+                                         ResponseContentType,
+                                         CacheControl,
+                                         HTTPAPI.HTTPServer.HTTPServerName
+                                     );
 
                     else
                     {
@@ -1445,7 +1598,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 URLTemplate,
                 HTTPMethod:       HTTPMethod.GET,
                 HTTPContentType:  ResponseContentType,
-                HTTPDelegate:     request => {
+                HTTPDelegate:     async request => {
 
                     var fileName = ResourceFilenameBuilder(request.ParsedURLParameters);
 
@@ -1455,15 +1608,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        : null;
 
                     if (fileName is null)
-                        return Task.FromResult(
-                                   new HTTPResponse.Builder(request) {
-                                       HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                       Server          = HTTPAPI.HTTPServer.HTTPServerName,
-                                       Date            = Timestamp.Now,
-                                       CacheControl    = "no-cache",
-                                       Connection      = ConnectionType.KeepAlive
-                                   }.AsImmutable
-                               );
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                   Server          = HTTPAPI.HTTPServer.HTTPServerName,
+                                   Date            = Timestamp.Now,
+                                   CacheControl    = "no-cache",
+                                   Connection      = ConnectionType.KeepAlive
+                               }.AsImmutable;
 
                     try
                     {
@@ -1472,21 +1623,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         // registration, from the builder's answer to empty
                         // parameters - a directory without an extension, so
                         // every file was application/octet-stream.
-                        return Task.FromResult(
-                                   new HTTPResponse.Builder(request) {
-                                       HTTPStatusCode  = HTTPStatusCode.OK,
-                                       Server          = HTTPAPI.HTTPServer.HTTPServerName,
-                                       Date            = Timestamp.Now,
-                                       ContentType     = ResponseContentType
-                                                             ?? HTTPContentType.ForFileExtension(
-                                                                    Path.GetExtension(fileName).TrimStart('.'),
-                                                                    () => HTTPContentType.Application.OCTETSTREAM
-                                                                ).FirstOrDefault(),
-                                       ContentStream   = File.OpenRead(fileName),
-                                       CacheControl    = CacheControl,
-                                       Connection      = ConnectionType.KeepAlive
-                                   }.AsImmutable
-                               );
+                        return await ServeStatic(
+                                         request,
+                                         OpenFile(fileName),
+                                         ResponseContentType
+                                             ?? HTTPContentType.ForFileExtension(
+                                                    Path.GetExtension(fileName).TrimStart('.'),
+                                                    () => HTTPContentType.Application.OCTETSTREAM
+                                                ).FirstOrDefault()
+                                             ?? HTTPContentType.Application.OCTETSTREAM,
+                                         CacheControl,
+                                         HTTPAPI.HTTPServer.HTTPServerName
+                                     );
 
                     }
                     catch (Exception e)
@@ -1496,16 +1644,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         // I/O exception carries the absolute path on the server.
                         Logger.LogError(e, "Could not serve {Path}", request.Path);
 
-                        return Task.FromResult(
-                                   new HTTPResponse.Builder(request) {
-                                       HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                       Server          = HTTPAPI.HTTPServer.HTTPServerName,
-                                       Date            = Timestamp.Now,
-                                       ContentLength   = 0,
-                                       CacheControl    = "no-cache",
-                                       Connection      = ConnectionType.KeepAlive
-                                   }.AsImmutable
-                               );
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                   Server          = HTTPAPI.HTTPServer.HTTPServerName,
+                                   Date            = Timestamp.Now,
+                                   ContentLength   = 0,
+                                   CacheControl    = "no-cache",
+                                   Connection      = ConnectionType.KeepAlive
+                               }.AsImmutable;
 
                     }
 

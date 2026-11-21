@@ -97,6 +97,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region (internal) Answer       (Request, Resource, Decorate = null)
+
+        /// <summary>
+        /// Answer a request for one representation already in hand: the
+        /// conditional requests and ranges of <see cref="HTTPResourceSemantics"/>,
+        /// without a route of its own. For handlers that find the representation
+        /// themselves, as the static-file handlers do (H-43).
+        /// </summary>
+        /// <param name="Request">The request.</param>
+        /// <param name="Resource">The representation.</param>
+        /// <param name="Decorate">Sets what the layer does not, Cache-Control say, on every answer.</param>
+        internal static async Task<HTTPResponse> Answer(HTTPRequest                    Request,
+                                                        HTTPResource                   Resource,
+                                                        Action<HTTPResponse.Builder>?  Decorate   = null)
+        {
+
+            var (headers, body) = await HTTPResourceSemantics.Answer(
+                                            Request.HTTPMethod,
+                                            PathOf(Request),
+                                            FieldsOf(Request),
+                                            Request.HTTPBody,
+                                            (path, requestHeaders, cancellationToken) => Task.FromResult<IReadOnlyList<HTTPResource>>([ Resource ]),
+                                            CancellationToken: Request.CancellationToken
+                                        );
+
+            return ResponseOf(Request, headers, body, Decorate);
+
+        }
+
+        #endregion
+
+        #region (internal) Preconditions(Request, ETag, LastModified, Decorate = null)
+
+        /// <summary>
+        /// The 304 or 412 that a request's preconditions call for (RFC 9110,
+        /// Section 13.2.2), or null when the request is to be answered in full.
+        /// For a representation too large to hold in memory, which is streamed and
+        /// so cannot go through <see cref="Answer"/>.
+        /// </summary>
+        /// <param name="Request">The request.</param>
+        /// <param name="ETag">The strong entity tag of the representation.</param>
+        /// <param name="LastModified">When it was last modified, if known.</param>
+        /// <param name="Decorate">Sets what the layer does not, on the answer.</param>
+        internal static HTTPResponse? Preconditions(HTTPRequest                    Request,
+                                                    String                         ETag,
+                                                    DateTimeOffset?                LastModified,
+                                                    Action<HTTPResponse.Builder>?  Decorate   = null)
+        {
+
+            var answer = HTTPResourceSemantics.EvaluateConditionalRequest(
+                             FieldsOf(Request),
+                             Request.HTTPMethod,
+                             ETag,
+                             LastModified
+                         );
+
+            return answer is null
+                       ? null
+                       : ResponseOf(Request, answer.Value.Headers, answer.Value.Body, Decorate);
+
+        }
+
+        #endregion
+
+
         #region AddResource(this API, URLTemplate, VariantHandler,  QueryHandler = null, CompressResponses = false, ContentDigests = false)
 
         /// <summary>
@@ -229,7 +294,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </remarks>
         private static HTTPResponse ResponseOf(HTTPRequest                        Request,
                                                List<(String Name, String Value)>  Headers,
-                                               Byte[]?                            Body)
+                                               Byte[]?                            Body,
+                                               Action<HTTPResponse.Builder>?      Decorate   = null)
         {
 
             var builder = new HTTPResponse.Builder(Request) {
@@ -259,6 +325,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             else if (contentLength is not null && UInt64.TryParse(contentLength, out var length))
                 builder.ContentLength = length;
+
+            Decorate?.Invoke(builder);
 
             return builder.AsImmutable;
 
