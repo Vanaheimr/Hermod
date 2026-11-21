@@ -1265,28 +1265,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     return (DmarcResult.None, null, null);
 
                 // DMARC record for the From domain itself, else the organizational domain
-                // (RFC 7489 §6.6.3). The org-domain record's sp= governs sub-domains.
-                var record        = await GetTxtRecordAsync($"_dmarc.{fromDomain}", "v=DMARC1", ct);
+                // (RFC 7489 §6.6.3). The org-domain record's sp= governs sub-domains. The
+                // Organizational Domain is asked "If the set is now empty": when the From domain
+                // answered that it has no record - a lookup that failed answered nothing, and its
+                // record, which may say otherwise, is not replaced by another one.
+                var lookup        = await LookupDmarcRecordsAsync($"_dmarc.{fromDomain}", ct);
                 var policyDomain  = fromDomain;
                 var usedOrgRecord = false;
 
-                if (record is null)
+                if (!lookup.Failed && lookup.Records.Length == 0)
                 {
                     var orgDomain = PublicSuffixList.GetOrganizationalDomain(fromDomain);
                     if (!orgDomain.Equals(fromDomain, StringComparison.OrdinalIgnoreCase))
                     {
-                        record        = await GetTxtRecordAsync($"_dmarc.{orgDomain}", "v=DMARC1", ct);
+                        lookup        = await LookupDmarcRecordsAsync($"_dmarc.{orgDomain}", ct);
                         policyDomain  = orgDomain;
                         usedOrgRecord = true;
                     }
                 }
 
-                if (record is null)
+                if (lookup.Failed)
+                {
+                    Logger.Log(LogLevel.Info, $"DMARC: the record of {policyDomain} could not be read - no policy applied");
+                    return (DmarcResult.TempError, null, null);
+                }
+
+                // "If the remaining set contains multiple records or no records, policy discovery
+                // terminates and DMARC processing is not applied to this message."
+                if (lookup.Records.Length != 1)
+                {
+                    if (lookup.Records.Length > 1)
+                        Logger.Log(LogLevel.Info, $"DMARC: {lookup.Records.Length} records at {policyDomain} - no policy applied");
                     return (DmarcResult.None, null, null);
+                }
+
+                var record = lookup.Records[0];
 
                 Logger.Log(LogLevel.Debug, $"DMARC record for {fromDomain}: {record}");
 
                 var dmarc  = ParseDmarcRecord(record);
+
+                // "If a retrieved policy record does not contain a valid "p" tag, or contains an
+                // "sp" tag that is not valid, then: 1. if a "rua" tag is present and contains at
+                // least one syntactically valid reporting URI, the Mail Receiver SHOULD act as if a
+                // record containing a valid "v" tag and "p=none" was retrieved, and continue
+                // processing; 2. otherwise, the Mail Receiver applies no DMARC processing to this
+                // message."
+                if (!dmarc.PolicyValid)
+                {
+
+                    if (!HasValidReportUri(dmarc.Rua))
+                    {
+                        Logger.Log(LogLevel.Info, $"DMARC: the record of {policyDomain} has no valid policy and no rua - no policy applied");
+                        return (DmarcResult.None, null, null);
+                    }
+
+                    dmarc = dmarc with { Policy = "none", SubdomainPolicy = null };
+
+                }
+
                 var policy = (usedOrgRecord && dmarc.SubdomainPolicy is not null)
                                  ? dmarc.SubdomainPolicy
                                  : dmarc.Policy;
@@ -1298,8 +1335,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var dkimAligned = dkimResult == DkimResult.Pass && IsAligned(dkimDomain,    fromDomain, dmarc.StrictDkim);
 
                 var pass            = spfAligned || dkimAligned;
-                var effectivePolicy = pass ? policy : ApplyPct(policy, dmarc.Percent);
-                var disposition     = !pass
+
+                // RFC 7489 §6.6.2: "If neither passes and one or both of them fail due to a
+                // temporary error, the Receiver evaluating the message is unable to conclude that
+                // the DMARC mechanism had a permanent failure; they therefore cannot apply the
+                // advertised DMARC policy." A temporary error of a check whose domain is not
+                // aligned changes nothing: it could not have passed DMARC.
+                var temporary       = !pass &&
+                                      ((spfResult == SPFResult.TempError && IsAligned(spfAuthDomain, fromDomain, dmarc.StrictSpf)) ||
+                                       dkimSignatures.Any(signature => signature.Result == DkimResult.TempError &&
+                                                                       IsAligned(signature.Domain, fromDomain, dmarc.StrictDkim)));
+
+                var effectivePolicy = pass || temporary ? policy : ApplyPct(policy, dmarc.Percent);
+                var disposition     = !pass && !temporary
                                           ? effectivePolicy switch {
                                                 "reject"     => DmarcDisposition.Reject,
                                                 "quarantine" => DmarcDisposition.Quarantine,
@@ -1325,7 +1373,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     DkimResult:       dkimResult,
                     DkimDomain:       dkimDomain,
                     DkimAligned:      dkimAligned,
-                    Result:           pass ? DmarcResult.Pass : DmarcResult.Fail,
+                    Result:           pass      ? DmarcResult.Pass
+                                    : temporary ? DmarcResult.TempError
+                                                : DmarcResult.Fail,
                     Disposition:      disposition,
                     EnvelopeFromDomain: envelopeFromDomain,
                     SpfOnHelo:          envelopeFromDomain.Length == 0,
@@ -1377,6 +1427,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         }
 
         private readonly record struct DmarcRecord(
+            bool    PolicyValid,
             string  Policy,
             string? SubdomainPolicy,
             bool    StrictSpf,
@@ -1418,7 +1469,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 return (true, null, null);
 
             var authName = $"{policyDomain}._report._dmarc.{destinationDomain}";
-            var record   = await GetTxtRecordAsync(authName, "v=DMARC1", ct);
+            var record   = (await LookupDmarcRecordsAsync(authName, ct)).Records.FirstOrDefault();
             if (record is null)
                 return (false, null, null);
 
@@ -1436,8 +1487,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     tags[part[..eq].Trim()] = part[(eq + 1)..].Trim();
             }
 
-            var policy = tags.GetValueOrDefault("p", "none").ToLowerInvariant();
+            // RFC 7489 §6.3, §6.4: p= is required, and p= and sp= are "none", "quarantine" or
+            // "reject" (dmarc-request).
+            static bool IsPolicy(string? value) => value?.ToLowerInvariant() is "none" or "quarantine" or "reject";
+
+            tags.TryGetValue("p",  out var requested);
             tags.TryGetValue("sp", out var subPolicy);
+
+            var valid  = IsPolicy(requested) && (subPolicy is null || IsPolicy(subPolicy));
+            var policy = IsPolicy(requested) ? requested!.ToLowerInvariant() : "none";
 
             var percent = 100;
             if (tags.TryGetValue("pct", out var pctStr) && int.TryParse(pctStr, out var pctVal))
@@ -1447,8 +1505,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                        v.Trim().Equals("s", StringComparison.OrdinalIgnoreCase);
 
             return new DmarcRecord(
+                valid,
                 policy,
-                subPolicy?.ToLowerInvariant(),
+                IsPolicy(subPolicy) ? subPolicy!.ToLowerInvariant() : null,
                 Strict("aspf"),
                 Strict("adkim"),
                 percent,
@@ -1458,35 +1517,73 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             );
         }
 
+        /// <summary>
+        /// Whether a rua value has at least one syntactically valid reporting URI (RFC 7489
+        /// §6.4: dmarc-uri = URI [ "!" 1*DIGIT [ "k" / "m" / "g" / "t" ] ], comma-separated).
+        /// </summary>
+        private static Boolean HasValidReportUri(String? Rua)
+
+            => Rua is not null &&
+               Rua.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).
+                   Select(uri => ReportUriSizeLimit.Replace(uri, "")).
+                   Any   (uri => Uri.TryCreate(uri, UriKind.Absolute, out _));
+
+        private static readonly Regex ReportUriSizeLimit = new (@"![0-9]+[kmgtKMGT]?$", RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Whether a TXT record is a DMARC record: it starts with a v= tag whose value is
+        /// "DMARC1" - precisely, RFC 7489 §6.3: "It MUST have the value of "DMARC1". The value
+        /// of this tag MUST match precisely", and §6.4: dmarc-version = "v" *WSP "=" *WSP %x44
+        /// %x4d %x41 %x52 %x43 %x31, followed by the separator or the end.
+        /// </summary>
+        internal static Boolean IsDmarcRecord(String Record)
+            => DmarcVersion.IsMatch(Record);
+
+        private static readonly Regex DmarcVersion = new (@"^[Vv][ \t]*=[ \t]*DMARC1[ \t]*(;|$)", RegexOptions.CultureInvariant);
+
         #endregion
 
         #region DNS Helpers
 
-        private async Task<String?> GetTxtRecordAsync(String domain, String prefix, CancellationToken ct)
+        /// <summary>
+        /// The DMARC records at a name (RFC 7489 §6.6.3): of its TXT records those that are
+        /// DMARC records - "Records that do not start with a "v=" tag that identifies the
+        /// current version of DMARC are discarded". Failed when the lookup failed - a DNS error
+        /// other than NXDOMAIN, or no answer at all: §6.6.3 sets "any indication that there is
+        /// no such record" apart from "a transient DNS error".
+        /// </summary>
+        private async Task<(Boolean Failed, String[] Records)> LookupDmarcRecordsAsync(String Name, CancellationToken ct)
         {
+
+            // DNSServiceName (not DomainName) so underscore labels like _dmarc.* validate.
+            if (DNSServiceName.TryParse(Name.TrimEnd('.')) is not { } serviceName)
+                return (false, []);
+
+            DNSInfo response;
+
             try
             {
-                // DNSServiceName (not DomainName) so underscore labels like
-                // _dmarc.* and *._domainkey.* validate (DMARC/DKIM lookups).
-                var response = await DNSClient.Query(
-                                         DNSServiceName.Parse(domain),
-                                         [ DNSResourceRecordTypes.TXT ],
-                                         CancellationToken: ct
-                                     );
-
-                foreach (var txt in response.Answers.OfType<TXT>())
-                {
-                    if (txt.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                        return txt.Text;
-                }
-
-                return null;
+                response = await DNSClient.Query(serviceName, [ DNSResourceRecordTypes.TXT ], CancellationToken: ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Debug, $"TXT lookup failed for {domain}: {ex.Message}");
-                return null;
+                Logger.Log(LogLevel.Debug, $"TXT lookup failed for {Name}: {ex.Message}");
+                return (true, []);
             }
+
+            if (response.IsTimeout)
+                return (true, []);
+
+            return response.ResponseCode switch {
+                DNSResponseCodes.NoError    => (false, response.Answers.OfType<TXT>().Select(txt => txt.Text).Where(IsDmarcRecord).ToArray()),
+                DNSResponseCodes.NameError  => (false, []),
+                _                           => (true,  [])
+            };
+
         }
 
         /// <summary>
