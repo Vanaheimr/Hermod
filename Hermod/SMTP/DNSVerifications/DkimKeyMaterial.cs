@@ -41,13 +41,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     public static class DkimKeyMaterial
     {
 
+        #region MinimumRsaKeySize
+
+        /// <summary>
+        /// The smallest RSA key DKIM signs with, in bits. RFC 8301 §3.2: "Signers MUST use RSA
+        /// keys of at least 1024 bits for all keys"; "Verifiers MUST NOT consider signatures using
+        /// RSA keys of less than 1024 bits as valid signatures".
+        /// </summary>
+        public const Int32 MinimumRsaKeySize = 1024;
+
+        #endregion
+
         #region NewRsaPem(Bits = 2048) / NewEd25519Pem()
 
         /// <summary>
         /// A new RSA key, PKCS#8 PEM.
         /// </summary>
+        /// <param name="Bits">The size of the key: at least 1024 bits, 2048 by default (RFC 8301 §3.2).</param>
+        /// <exception cref="ArgumentOutOfRangeException">A key size under 1024 bits.</exception>
         public static String NewRsaPem(Int32 Bits = 2048)
         {
+            ArgumentOutOfRangeException.ThrowIfLessThan(Bits, MinimumRsaKeySize);
             using var rsa = RSA.Create(Bits);
             return rsa.ExportPkcs8PrivateKeyPem();
         }
