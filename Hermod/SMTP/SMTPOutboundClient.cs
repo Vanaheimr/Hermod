@@ -155,11 +155,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     mxHosts = [new MxRecord(route.Host, 0)];
                     _logger.Log(LogLevel.Debug, $"Using smarthost: {route}");
                 }
+                else if (targetDomain.StartsWith('['))
+                {
+                    // An address literal (RFC 5321 §4.1.3) names the host itself: there is no MX
+                    // record to look up.
+                    mxHosts = [new MxRecord(targetDomain, 0)];
+                }
                 else
                 {
 
-                    // MX lookup
-                    mxHosts = await ResolveMxAsync(targetDomain, ct);
+                    // MX lookup. RFC 5321 §5.1: "If a non-existent domain error is returned, this
+                    // situation MUST be reported as an error. If a temporary error is returned, the
+                    // message MUST be queued and retried later" - the implicit MX below is for "an
+                    // empty list of MXs" only, and "applies only if there are no MX records present".
+                    var (lookup, records) = await ResolveMxAsync(targetDomain, ct);
+
+                    if (lookup == MxLookup.TemporaryError)
+                        return SendResult.TempFail(451, $"4.4.3 The MX lookup of {targetDomain} failed; the message is queued");
+
+                    if (lookup == MxLookup.NonExistentDomain)
+                        return SendResult.PermFail(550, $"5.1.2 The domain {targetDomain} does not exist");
+
+                    mxHosts = records;
 
                     // Null MX (RFC 7505): "MX 0 ." says the domain accepts no mail. Delivery
                     // MUST NOT be attempted (§4.1), so this is a bounce now - not a connection
@@ -180,6 +197,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     }
 
                     _logger.Log(LogLevel.Debug, $"MX records for {targetDomain}: {String.Join(", ", mxHosts.Select(m => $"{m.Host}:{m.Priority}"))}");
+
+                    // RFC 5321 §5.1: a relay "MUST then inspect the list for any of the names or
+                    // addresses by which it might be known in mail transactions. If a matching record
+                    // is found, all records at that preference level and higher-numbered ones MUST
+                    // be discarded from consideration. If there are no records left at that point, it
+                    // is an error condition, and the message MUST be returned as undeliverable."
+                    var own = mxHosts.Where(mx => IsOwnName(mx.Host)).ToList();
+                    if (own.Count > 0)
+                    {
+
+                        var level = own.Min(mx => mx.Priority);
+                        mxHosts   = [.. mxHosts.Where(mx => mx.Priority < level)];
+
+                        if (mxHosts.Count == 0)
+                        {
+                            _logger.Log(LogLevel.Warning, $"{_config.LocalHostname} is the best MX host of {targetDomain}; not delivering to itself");
+                            return SendResult.PermFail(550, $"5.4.6 {_config.LocalHostname} is the best MX host of {targetDomain}: a routing loop");
+                        }
+
+                    }
 
                 }
 
@@ -203,8 +240,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 Exception?  lastException  = null;
                 SendResult? lastResult     = null;
                 var         notPublic      = new List<String>();
+                var         noAddress      = new List<String>();
 
-                foreach (var mx in mxHosts.OrderBy(m => m.Priority))
+                // RFC 5321 §5.1: "If there are multiple destinations with the same preference and
+                // there is no clear reason to favor one ... then the sender-SMTP MUST randomize them
+                // to spread the load across multiple mail exchangers for a specific organization."
+                foreach (var mx in mxHosts.Select(mx => (MX: mx, Order: Random.Shared.Next())).
+                                           OrderBy(mx => mx.MX.Priority).
+                                           ThenBy (mx => mx.Order).
+                                           Select (mx => mx.MX))
                 {
                     try
                     {
@@ -250,6 +294,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         notPublic.Add(ex.Message);
                         _logger.Log(LogLevel.Warning, $"MX {ex.Message} - not connected to");
                     }
+                    catch (DNS.NameResolutionException ex)
+                    {
+                        lastException = ex;
+                        _logger.Log(LogLevel.Warning, $"MX {mx.Host}: {ex.Message}");
+
+                        // A name its name servers say has no address - not one they could not be asked about.
+                        if (await HasNoAddressAsync(mx.Host, ct))
+                            noAddress.Add(mx.Host);
+                    }
                     catch (Exception ex)
                     {
                         lastException = ex;
@@ -262,6 +315,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // its owner learns sooner from a bounce than after days of retries.
                 if (notPublic.Count == mxHosts.Count)
                     return SendResult.PermFail(550, $"5.4.4 No MX host of {targetDomain} has a public address: {String.Join("; ", notPublic)}");
+
+                // RFC 5321 §5.1: "If MX records are present, but none of them are usable, or the
+                // implicit MX is unusable, this situation MUST be reported as an error" - no MX host
+                // has an address, as its name servers say: not something a later attempt changes.
+                if (noAddress.Count > 0 && noAddress.Count + notPublic.Count == mxHosts.Count)
+                    return SendResult.PermFail(550, $"5.4.4 No MX host of {targetDomain} has an address: {String.Join(", ", noAddress)}");
 
                 // All MX hosts failed: the last answer as it was - with its recipients' answers.
                 return lastResult
@@ -790,27 +849,115 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region MX Resolution
 
-        private async Task<IReadOnlyList<MxRecord>> ResolveMxAsync(String domain, CancellationToken ct)
+        /// <summary>
+        /// How the MX lookup of a domain ended (RFC 5321 §5.1).
+        /// </summary>
+        private enum MxLookup
         {
+            Answered,
+            NonExistentDomain,
+            TemporaryError
+        }
+
+        /// <summary>
+        /// The MX records of a domain - none for "an empty list of MXs" - or that the domain does
+        /// not exist (NXDOMAIN), or that the lookup failed for now: another RCODE, a timeout, an
+        /// exception.
+        /// </summary>
+        private async Task<(MxLookup Lookup, IReadOnlyList<MxRecord> Records)> ResolveMxAsync(String domain, CancellationToken ct)
+        {
+
+            DNSInfo response;
+
             try
             {
-                var response = await _dnsClient.Query(
-                                         DomainName.Parse(domain),
-                                         [ DNSResourceRecordTypes.MX ],
-                                         CancellationToken: ct
-                                     );
-
-                return response.Answers.
-                           OfType<MX>().
-                           Select(mx => new MxRecord(mx.Exchange.FullName.TrimEnd('.'), mx.Preference)).
-                           ToList();
+                response = await _dnsClient.Query(
+                                     DomainName.Parse(domain),
+                                     [ DNSResourceRecordTypes.MX ],
+                                     CancellationToken: ct
+                                 );
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
                 _logger.Log(LogLevel.Warning, $"MX lookup failed for {domain}: {ex.Message}");
-                return [];
+                return (MxLookup.TemporaryError, []);
             }
+
+            if (response.IsTimeout)
+            {
+                _logger.Log(LogLevel.Warning, $"MX lookup for {domain} timed out");
+                return (MxLookup.TemporaryError, []);
+            }
+
+            switch (response.ResponseCode)
+            {
+
+                case DNSResponseCodes.NoError:
+                    return (MxLookup.Answered,
+                            [.. response.Answers.
+                                    OfType<MX>().
+                                    Select(mx => new MxRecord(mx.Exchange.FullName.TrimEnd('.'), mx.Preference))]);
+
+                case DNSResponseCodes.NameError:
+                    _logger.Log(LogLevel.Warning, $"{domain} does not exist (NXDOMAIN)");
+                    return (MxLookup.NonExistentDomain, []);
+
+                default:
+                    _logger.Log(LogLevel.Warning, $"MX lookup failed for {domain}: {response.ResponseCode}");
+                    return (MxLookup.TemporaryError, []);
+
+            }
+
         }
+
+        /// <summary>
+        /// Whether the name servers of a host say it has no address: its A and AAAA lookups both
+        /// answered, with no record or NXDOMAIN. A lookup that failed says nothing.
+        /// </summary>
+        private async Task<Boolean> HasNoAddressAsync(String host, CancellationToken ct)
+        {
+
+            if (!DomainName.TryParse(host.TrimEnd('.'), out var name, out _))
+                return true;
+
+            foreach (var type in new[] { DNSResourceRecordTypes.A, DNSResourceRecordTypes.AAAA })
+            {
+
+                try
+                {
+
+                    var response = await _dnsClient.Query(name, [ type ], CancellationToken: ct);
+
+                    if (response.IsTimeout ||
+                        response.ResponseCode is not (DNSResponseCodes.NoError or DNSResponseCodes.NameError) ||
+                        response.Answers.Any(answer => answer is A or AAAA))
+                        return false;
+
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch
+                {
+                    return false;
+                }
+
+            }
+
+            return true;
+
+        }
+
+        /// <summary>
+        /// Whether a host name is this relay's own: the name it greets with.
+        /// </summary>
+        private Boolean IsOwnName(String host)
+            => host.TrimEnd('.').Equals(_config.LocalHostname.TrimEnd('.'), StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
