@@ -321,6 +321,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     await SendResponseAsync(252, "2.0.0 Cannot verify user, but will accept message and attempt delivery");
                     break;
 
+                // RFC 5321 §4.1.1.8: "SMTP servers SHOULD support HELP without arguments and MAY
+                // support it with arguments"; it "may be issued at any time" and changes nothing.
+                case "HELP":
+                    await SendResponseAsync(214, "2.0.0 Commands: HELO EHLO MAIL RCPT DATA BDAT RSET NOOP QUIT VRFY HELP" +
+                                                 (_tlsActive || certificates?.Available != true ? "" : " STARTTLS") +
+                                                 (AuthOffered ? " AUTH" : ""));
+                    break;
+
+                // EXPN is a command of SMTP this server knows and does not carry out: §4.2.4, "502
+                // SHOULD be used when the command is actually recognized by the SMTP server, but
+                // not implemented" - and not listed in EHLO (§3.5.2: "if EXPN is supported, it MUST
+                // be listed"). Never 250: §3.5.3.
+                case "EXPN":
+                    await SendResponseAsync(502, "5.5.1 EXPN not implemented");
+                    break;
+
                 default:
                     _counters.InvalidCommands++;
                     await SendResponseAsync(500, "5.5.1 Unrecognized command");
@@ -683,16 +699,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
-            var match = Regex.Match(args, @"FROM:\s*<([^>]*)>", RegexOptions.IgnoreCase);
-            if (!match.Success)
+            // RFC 5321 §4.1.2: Reverse-path = Path / "<>", Path = "<" [ A-d-l ":" ] Mailbox ">".
+            // The path ends at the ">" after the mailbox - not at one in a quoted local part -
+            // and a source route "MUST BE accepted, SHOULD NOT be generated, and SHOULD be
+            // ignored": what remains is the mailbox bounces go to.
+            if (!SmtpPath.TryParse(args, "FROM:", out var reversePath, out var parameters))
             {
                 await SendResponseAsync(501, "5.5.4 Syntax error in MAIL command");
                 return;
             }
-
-            // Get everything after the closing >
-            var paramStart = args.IndexOf('>');
-            var parameters = paramStart > 0 ? args[(paramStart + 1)..].Trim() : "";
 
             // Unknown parameters are 555, malformed values 501 (RFC 5321 §4.1.1.11) - never
             // silently dropped, which would leave the client believing a request was honoured.
@@ -719,7 +734,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // for that sender/recipient" (RFC 6533 §6). Without the SMTPUTF8 parameter the client
             // has not asked for SMTPUTF8 handling, and the transaction must not need it - a relay
             // could pass the address on to a server that cannot take it.
-            if (!mailParameters.ContainsKey("SMTPUTF8") && !Ascii.IsValid(match.Groups[1].Value))
+            if (!mailParameters.ContainsKey("SMTPUTF8") && !Ascii.IsValid(reversePath))
             {
                 await SendResponseAsync(550, "5.6.7 Non-ASCII sender address requires SMTPUTF8");
                 return;
@@ -728,13 +743,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // A signed-in account sends from addresses that are its own (RFC 6409 §6.1):
             // the application says which - at MAIL already, so that the mail program hears it.
             if (_authManager.IsAuthenticated && mailSubmission is not null &&
-                await mailSubmission.CheckSenderAsync(_authManager.AuthenticatedUser ?? "", match.Groups[1].Value) is { } senderRefused)
+                await mailSubmission.CheckSenderAsync(_authManager.AuthenticatedUser ?? "", reversePath) is { } senderRefused)
             {
                 await SendResponseAsync(senderRefused.Code, senderRefused.Text);
                 return;
             }
 
-            _mailFrom = match.Groups[1].Value;
+            _mailFrom = reversePath;
             _smtpUtf8 = mailParameters.ContainsKey("SMTPUTF8");
 
             // Parse DSN parameters (RFC 3461)
@@ -797,8 +812,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
-            var match = Regex.Match(args, @"TO:\s*<([^>]+)>", RegexOptions.IgnoreCase);
-            if (!match.Success)
+            // RFC 5321 §4.1.2: Forward-path = Path - a mailbox, after a source route that is
+            // ignored (§4.1.1.3: "Receiving systems MUST recognize source route syntax but SHOULD
+            // strip off the source route specification and utilize the domain name associated
+            // with the mailbox as if the source route had not been provided").
+            if (!SmtpPath.TryParse(args, "TO:", out var forwardPath, out var parameters) || forwardPath.Length == 0)
             {
                 await SendResponseAsync(501, "5.5.4 Syntax error in RCPT command");
                 return;
@@ -812,7 +830,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
-            var recipient       = match.Groups[1].Value;
+            var recipient       = forwardPath;
 
             // RFC 6531 §3.5: "When messages are rejected because the RCPT command requires an ASCII
             // address, the reply-code 553 is returned".
@@ -831,10 +849,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 recipient = $"postmaster@{config.Hostname}";
 
             var recipientDomain = ExtractDomain(recipient);
-
-            // Parse DSN parameters (RFC 3461)
-            var paramStart = args.IndexOf('>');
-            var parameters = paramStart > 0 ? args[(paramStart + 1)..].Trim() : "";
 
             var (rcptParameters, rcptParametersError) = ESMTPParameters.Parse(parameters);
             if ((rcptParametersError ?? ESMTPParameters.ValidateRcpt(rcptParameters, _extendedSmtp)) is { } rcptError)
@@ -1728,11 +1742,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
         }
 
-        private static string ExtractDomain(string email)
-        {
-            var atIndex = email.IndexOf('@');
-            return atIndex > 0 ? email[(atIndex + 1)..] : "";
-        }
+        // The domain after the local part - which, quoted, may hold an "@" of its own (RFC 5321
+        // §4.1.2: "within a quoted string, any ASCII graphic or space is permitted").
+        private static String ExtractDomain(String email)
+            => SmtpPath.DomainOf(email);
 
         /// <summary>
         /// Whether the message names at most one author: no more than one From: field, and no
@@ -1922,6 +1935,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                    // RFC 3207 §4: "STARTTLS" CRLF, "501 Syntax error (no parameters allowed)".
                    // QUIT with an argument still ends the session: refusing it would only keep
                    // open a connection both sides are done with.
+                   // §4.1.1.6: vrfy = "VRFY" SP String CRLF - there is a string to verify.
+                   "VRFY"     when args.Trim().Length == 0  => "5.5.4 Syntax: VRFY user",
+
                    "DATA"     when args.Length > 0          => "5.5.4 Syntax: DATA takes no parameters",
                    "RSET"     when args.Length > 0          => "5.5.4 Syntax: RSET takes no parameters",
                    "STARTTLS" when args.Length > 0          => "5.5.4 Syntax error (no parameters allowed)",
