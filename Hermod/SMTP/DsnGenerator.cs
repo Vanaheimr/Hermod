@@ -207,7 +207,15 @@ public sealed partial class DsnGenerator
         Line($"Message-ID: <dsn.{unique}@{_config.Hostname}>");
         Line( "MIME-Version: 1.0");
         Line( "Auto-Submitted: auto-replied");
-        Line($"Content-Type: multipart/report; report-type=delivery-status; boundary=\"{boundary}\"");
+        // RFC 6533 §4: "the second part is a 7-bit-only message/delivery-status" (RFC 3464
+        // §2.1: ""7bit" encoding is sufficient and MUST be used"), and "the present standard DSN
+        // format does not permit the return of undeliverable SMTPUTF8 messages": a status that
+        // needs UTF-8 - an address, an ORCPT, a diagnostic in it - is message/global-delivery-status
+        // (§4.1); RFC 6522 §3: report-type "is the MIME subtype of the second body part".
+        var status       = Status(EnvId, ArrivalDate, Recipients);
+        var global       = status.Any(c => c > '\x7F');
+
+        Line($"Content-Type: multipart/report; report-type={(global ? "global-delivery-status" : "delivery-status")}; boundary=\"{boundary}\"");
         Line();
 
         // Part 1: for people
@@ -222,8 +230,64 @@ public sealed partial class DsnGenerator
 
         // Part 2: for programs (RFC 3464 §2.2, §2.3)
         Line($"--{boundary}");
-        Line( "Content-Type: message/delivery-status");
+        Line(global ? "Content-Type: message/global-delivery-status" : "Content-Type: message/delivery-status");
+        if (global)
+            Line("Content-Transfer-Encoding: 8bit");
         Line();
+        dsn.Append(status);
+        Line();
+
+        // Part 3: the message, or its header (RFC 3461 §4.3, §6.2; RFC 6522 §4): the whole message
+        // for a failure unless RET=HDRS asked otherwise, or it is too large; else the header.
+        // RFC 6532 §3.7: a message with "8-bit UTF-8 header values" is a message/global message -
+        // returned as message/global, its header as message/global-headers (RFC 6533 §4).
+        var message      = CrLf(OriginalMessage);
+        var headerEnd    = message.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+        var header       = headerEnd >= 0 ? message[..(headerEnd + 2)] : message.EndsWith("\r\n") ? message : message + "\r\n";
+        var wholeMessage = failed && Ret != DsnRet.Hdrs && message.Length <= MaxReturnedMessageSize;
+        var utf8Header   = header.Any(c => c > '\x7F');
+
+        Line($"--{boundary}");
+        Line((wholeMessage, utf8Header) switch {
+                 (true,  false) => "Content-Type: message/rfc822",
+                 (true,  true)  => "Content-Type: message/global",
+                 (false, false) => "Content-Type: text/rfc822-headers",
+                 (false, true)  => "Content-Type: message/global-headers"
+             });
+        if ((wholeMessage ? message : header).Any(c => c > '\x7F'))
+            Line("Content-Transfer-Encoding: 8bit");
+        Line();
+
+        var before   = dsn.ToString();
+        var returned = wholeMessage ? message : header;
+
+        dsn.Clear();
+
+        if (wholeMessage && !message.EndsWith("\r\n"))
+            Line();
+
+        Line($"--{boundary}--");
+
+        return (before, returned, dsn.ToString());
+
+    }
+
+
+    /// <summary>
+    /// The fields of the status part (RFC 3464 §2.2, §2.3): the per-message fields, then a block
+    /// for each recipient, with CR LF line ends; a recipient in UTF-8 is of the UTF-8 address
+    /// type (RFC 6533 §4.1: "systems generating a message/global-delivery-status body part SHOULD
+    /// use the utf-8-address form of the UTF-8 address type for all addresses containing
+    /// characters outside the ASCII repertoire").
+    /// </summary>
+    private String Status(String? EnvId, DateTimeOffset ArrivalDate, IReadOnlyList<DsnRecipient> Recipients)
+    {
+
+        var dsn = new StringBuilder();
+
+        void Line(String text = "")
+            => dsn.Append(text).Append("\r\n");
+
         Line($"Reporting-MTA: dns; {_config.Hostname}");
         if (EnvId is not null)
             Line($"Original-Envelope-Id: {OneLine(DsnParser.DecodeXtext(EnvId))}");     // RFC 3461 §6.3 (a)
@@ -243,7 +307,9 @@ public sealed partial class DsnGenerator
                          : $"Original-Recipient: unknown; {OneLine(DsnParser.DecodeXtext(orcpt))}");
             }
 
-            Line($"Final-Recipient: rfc822; {OneLine(recipient.Recipient)}");
+            Line(recipient.Recipient.Any(c => c > '\x7F')
+                     ? $"Final-Recipient: utf-8; {OneLine(recipient.Recipient)}"
+                     : $"Final-Recipient: rfc822; {OneLine(recipient.Recipient)}");
             Line($"Action: {recipient.Action.ToString().ToLowerInvariant()}");
             Line($"Status: {recipient.Status}");
 
@@ -261,32 +327,7 @@ public sealed partial class DsnGenerator
 
         }
 
-        Line();
-
-        // Part 3: the message, or its header (RFC 3461 §4.3, §6.2; RFC 6522 §4): the whole message
-        // for a failure unless RET=HDRS asked otherwise, or it is too large; else the header.
-        var message      = CrLf(OriginalMessage);
-        var headerEnd    = message.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-        var header       = headerEnd >= 0 ? message[..(headerEnd + 2)] : message.EndsWith("\r\n") ? message : message + "\r\n";
-        var wholeMessage = failed && Ret != DsnRet.Hdrs && message.Length <= MaxReturnedMessageSize;
-
-        Line($"--{boundary}");
-        Line(wholeMessage ? "Content-Type: message/rfc822" : "Content-Type: text/rfc822-headers");
-        if ((wholeMessage ? message : header).Any(c => c > '\x7F'))
-            Line("Content-Transfer-Encoding: 8bit");
-        Line();
-
-        var before   = dsn.ToString();
-        var returned = wholeMessage ? message : header;
-
-        dsn.Clear();
-
-        if (wholeMessage && !message.EndsWith("\r\n"))
-            Line();
-
-        Line($"--{boundary}--");
-
-        return (before, returned, dsn.ToString());
+        return dsn.ToString();
 
     }
 

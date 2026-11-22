@@ -73,12 +73,82 @@ public static class DsnCommands
     /// The NOTIFY/ORCPT parameter suffix for a RCPT TO command, or "" when the remote does not support
     /// DSN or nothing was requested. Append to an existing RCPT TO command.
     /// </summary>
-    public static string RcptToParams(DsnParameters dsn, string recipient, bool remoteSupportsDsn)
+    /// <param name="smtpUtf8">Whether the transaction is SMTPUTF8 (MAIL had the parameter): a UTF-8 address may then be written in UTF-8.</param>
+    public static string RcptToParams(DsnParameters dsn, string recipient, bool remoteSupportsDsn, bool smtpUtf8 = false)
     {
         if (!remoteSupportsDsn || dsn.Notify == DsnNotify.Never)
             return "";
 
-        return " NOTIFY=" + FormatNotify(dsn.Notify) + $" ORCPT=rfc822;{recipient}";
+        return " NOTIFY=" + FormatNotify(dsn.Notify) + " ORCPT=" + OriginalRecipientOf(recipient, smtpUtf8);
+    }
+
+    /// <summary>
+    /// The ORCPT value for an address (RFC 3461 §4.2): original-recipient-address = addr-type
+    /// ";" xtext. An ASCII address is "rfc822;" and its xtext - "+" is "+2B", "=" is "+3D" (§4);
+    /// one with UTF-8 in it is of the UTF-8 address type (RFC 6533 §3): "utf-8;" and the address
+    /// with "\x{HEXPOINT}" for each character outside QCHAR - for each character outside ASCII
+    /// too, unless the transaction is SMTPUTF8 ("When sending data to an SMTP server that does not
+    /// advertise SMTPUTF8, then the EmbeddedUnicodeChar syntax MUST be used instead of UTF-8").
+    /// </summary>
+    public static string OriginalRecipientOf(string address, bool smtpUtf8 = false)
+    {
+
+        if (address.All(c => c < 0x80))
+            return "rfc822;" + XText(address);
+
+        var value = new StringBuilder("utf-8;");
+
+        foreach (var rune in address.EnumerateRunes())
+        {
+            if (rune.Value is >= 0x21 and <= 0x7E and not ('+' or '=' or '\\') || rune.Value > 0x7F && smtpUtf8)
+                value.Append(rune.ToString());
+            else
+                value.Append(EmbeddedUnicodeChar(rune.Value));
+        }
+
+        return value.ToString();
+
+    }
+
+    /// <summary>
+    /// RFC 3461 §4: xtext - "!" to "~" as they are but "+" and "=", every other octet "+" and
+    /// two upper-case hex digits.
+    /// </summary>
+    public static string XText(string text)
+    {
+        var xtext = new StringBuilder();
+        foreach (var octet in Encoding.UTF8.GetBytes(text))
+            xtext.Append(octet is >= 0x21 and <= 0x7E and not ((byte) '+' or (byte) '=')
+                             ? ((char) octet).ToString()
+                             : $"+{octet:X2}");
+        return xtext.ToString();
+    }
+
+    // RFC 6533 §3: EmbeddedUnicodeChar = %x5C.78 "{" HEXPOINT "}", HEXPOINT 2 to 6 hex digits,
+    // two for what is below 0x100, no leading zero above.
+    private static string EmbeddedUnicodeChar(int codePoint)
+        => codePoint < 0x100 ? $"\\x{{{codePoint:X2}}}" : $"\\x{{{codePoint:X}}}";
+
+    /// <summary>
+    /// A received ORCPT as it may go to this next hop: as it came (RFC 3461 §5.2.1 (d): "an
+    /// ORCPT parameter with the same value MUST be specified"), except that the UTF-8 in one of
+    /// the UTF-8 address type becomes "\x{HEXPOINT}" when the transaction is not SMTPUTF8 (RFC
+    /// 6533 §3) - the same address in its 7-bit form.
+    /// </summary>
+    private static string Relayable(string orcpt, bool smtpUtf8)
+    {
+
+        if (smtpUtf8 || orcpt.All(c => c < 0x80))
+            return orcpt;
+
+        var semicolon = orcpt.IndexOf(';');
+        var value     = new StringBuilder(orcpt[..(semicolon + 1)]);
+
+        foreach (var rune in orcpt[(semicolon + 1)..].EnumerateRunes())
+            value.Append(rune.Value > 0x7F ? EmbeddedUnicodeChar(rune.Value) : rune.ToString());
+
+        return value.ToString();
+
     }
 
     /// <summary>
@@ -88,13 +158,16 @@ public static class DsnCommands
     /// up (§5.2.1 (c)); a received ORCPT is passed on unchanged, and only in its absence is one
     /// built from the recipient (§5.2.1 (d)).
     /// </summary>
-    public static string RcptToParams(RecipientDsn recipient, bool remoteSupportsDsn)
+    /// <param name="smtpUtf8">Whether the transaction is SMTPUTF8 (MAIL had the parameter).</param>
+    public static string RcptToParams(RecipientDsn recipient, bool remoteSupportsDsn, bool smtpUtf8 = false)
     {
         if (!remoteSupportsDsn)
             return "";
 
         return (recipient.Notify is { } notify ? " NOTIFY=" + FormatNotify(notify) : "") +
-               " ORCPT="  + (recipient.OriginalRecipient ?? $"rfc822;{recipient.Recipient}");
+               " ORCPT="  + (recipient.OriginalRecipient is { } orcpt
+                                 ? Relayable(orcpt, smtpUtf8)
+                                 : OriginalRecipientOf(recipient.Recipient, smtpUtf8));
     }
 
     /// <summary>
@@ -106,7 +179,7 @@ public static class DsnCommands
     /// <summary>
     /// Build a full RCPT TO command, appending NOTIFY/ORCPT when the remote supports DSN and one was requested.
     /// </summary>
-    public static string RcptTo(string recipient, DsnParameters dsn, bool remoteSupportsDsn)
-        => $"RCPT TO:<{recipient}>" + RcptToParams(dsn, recipient, remoteSupportsDsn);
+    public static string RcptTo(string recipient, DsnParameters dsn, bool remoteSupportsDsn, bool smtpUtf8 = false)
+        => $"RCPT TO:<{recipient}>" + RcptToParams(dsn, recipient, remoteSupportsDsn, smtpUtf8);
 
 }

@@ -837,7 +837,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var parameters = paramStart > 0 ? args[(paramStart + 1)..].Trim() : "";
 
             var (rcptParameters, rcptParametersError) = ESMTPParameters.Parse(parameters);
-            if ((rcptParametersError ?? ESMTPParameters.ValidateRcpt(rcptParameters, _extendedSmtp)) is { } rcptError)
+            if ((rcptParametersError ?? ESMTPParameters.ValidateRcpt(rcptParameters, _extendedSmtp, _smtpUtf8)) is { } rcptError)
             {
                 await SendResponseAsync(rcptError.Code, rcptError.Text);
                 return;

@@ -59,6 +59,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9-]*$")]
         private static partial Regex Keyword();
 
+        // RFC 6533 §3: utf-8-addr-unitext = 1*(QUCHAR / EmbeddedUnicodeChar), QUCHAR = QCHAR /
+        // UTF8-2 / UTF8-3 / UTF8-4, QCHAR = %x21-2a / %x2c-3c / %x3e-5b / %x5d-7e - "+", "=" and
+        // "\" only as EmbeddedUnicodeChar, "\x{" HEXPOINT "}".
+        [GeneratedRegex(@"^(?:[!-*,-<>-\[\]-~]|\\x\{[0-9A-Fa-f]{2,6}\}|[^\x00-\x7F])+$")]
+        private static partial Regex Utf8AddressUnitext();
+
         // xtext (RFC 3461 §4): xchar = "!".."~" except "+" and "="; hexchar = "+" 2(%x30-39 / %x41-46)
         [GeneratedRegex(@"^(?:[!-*,-<>-~]|\+[0-9A-F]{2})+$")]
         private static partial Regex XText();
@@ -191,8 +197,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         /// </summary>
         /// <param name="Parameters">The parsed parameters.</param>
         /// <param name="ExtendedSmtp">Whether the session began with EHLO.</param>
+        /// <param name="Smtputf8">Whether MAIL had SMTPUTF8: an ORCPT of the UTF-8 address type may then be in UTF-8 (RFC 6533 §3).</param>
         public static ESMTPParameterError? ValidateRcpt(IReadOnlyDictionary<String, String?> Parameters,
-                                                        Boolean                              ExtendedSmtp)
+                                                        Boolean                              ExtendedSmtp,
+                                                        Boolean                              Smtputf8   = false)
         {
 
             foreach (var (keyword, value) in Parameters)
@@ -216,7 +224,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     // RFC 3461 §4.2: ORCPT=addr-type;xtext
                     case "ORCPT":
                         var match = value is not null ? OriginalRecipient().Match(value) : null;
-                        if (match is null || !match.Success || !XText().IsMatch(match.Groups[1].Value))
+
+                        // RFC 6533 §3: "An SMTP server that advertises both the SMTPUTF8 extension
+                        // [RFC6531] and the DSN extension [RFC3461] MUST accept a UTF-8 address type
+                        // in the ORCPT parameter including 8-bit UTF-8 characters" - in a transaction
+                        // that is SMTPUTF8; in another one, utf-8-addr-xtext is ASCII and xtext.
+                        var utf8 = Smtputf8 &&
+                                   match is { Success: true } &&
+                                   value![..value.IndexOf(';')].Equals("utf-8", StringComparison.OrdinalIgnoreCase) &&
+                                   Utf8AddressUnitext().IsMatch(match.Groups[1].Value);
+
+                        if (!utf8 && (match is null || !match.Success || !XText().IsMatch(match.Groups[1].Value)))
                             return new (501, "5.5.4 Invalid ORCPT value");
                         break;
 
