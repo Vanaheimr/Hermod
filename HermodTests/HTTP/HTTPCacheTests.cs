@@ -120,19 +120,82 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-        #region Cache-Control: delta-seconds too large are 2^31, and a quoted argument is read
+        #region Cache-Control: delta-seconds too large are MaxDeltaSeconds, and a quoted argument is read
 
         /// <summary>
-        /// Section 1.2.2: a value too large to represent is 2147483648.
+        /// Section 1.2.2: a value too large to represent is read as the
+        /// greatest one the cache can conveniently represent.
         /// </summary>
         [Test]
-        public void DeltaSecondsTooLargeAre2To31()
+        public void DeltaSecondsTooLargeAreMaxDeltaSeconds()
         {
             Assert.Multiple(() => {
-                Assert.That(HTTPCacheControl.Parse("max-age=99999999999999999999999").MaxAge, Is.EqualTo(2147483648L));
-                Assert.That(HTTPCacheControl.Parse("max-age=9223372036854775808").MaxAge,     Is.EqualTo(2147483648L), "2^63, which wraps to a negative Int64");
+                Assert.That(HTTPCacheControl.Parse("max-age=99999999999999999999999").MaxAge, Is.EqualTo(HTTPCacheControl.MaxDeltaSeconds));
+                Assert.That(HTTPCacheControl.Parse("max-age=9223372036854775808").MaxAge,     Is.EqualTo(HTTPCacheControl.MaxDeltaSeconds), "2^63, which wraps to a negative Int64");
                 Assert.That(HTTPCacheControl.Parse("max-age=\"60\"").MaxAge,                  Is.EqualTo(60));
             });
+        }
+
+        #endregion
+
+        #region Delta-seconds: beyond 2^31, a value is what it says (H-46)
+
+        /// <summary>
+        /// Section 1.2.2 caps a value at 2^31 "or the greatest positive integer
+        /// it can conveniently represent", and a TimeSpan represents far more.
+        /// Every value was capped at 2^31: max-age=4294967295 lasted 68 years,
+        /// and a response whose Age was 2147483646 was stale three seconds
+        /// later.
+        /// </summary>
+        [Test]
+        public void BeyondTwoToThe31AValueIsWhatItSays()
+        {
+
+            var stored = Stored(200, ("cache-control", "max-age=4294967295"), ("age", "2147483646"));
+
+            Assert.Multiple(() => {
+                Assert.That(HTTPCacheControl.Parse("max-age=4294967295").MaxAge,                Is.EqualTo(4294967295L));
+                Assert.That(HTTPCacheControl.Parse("s-maxage=4294967296").SMaxAge,              Is.EqualTo(4294967296L));
+                Assert.That(HTTPCacheControl.Parse("stale-if-error=2147483649").StaleIfError,   Is.EqualTo(2147483649L));
+                Assert.That(HTTPCacheControl.Parse("max-stale=274877906944").MaxStale,          Is.EqualTo(274877906944L), "2^38, the cap itself");
+                Assert.That(HTTPCacheControl.Parse("min-fresh=274877906945").MinFresh,          Is.EqualTo(HTTPCacheControl.MaxDeltaSeconds));
+                Assert.That(Stored(200, ("age", "4294967296")).AgeValue,                        Is.EqualTo(4294967296L));
+                Assert.That(Stored(200, ("age", "274877906945")).AgeValue,                      Is.EqualTo(HTTPCacheControl.MaxDeltaSeconds));
+                Assert.That(Usability(stored, TimeSpan.FromSeconds(3)),                         Is.EqualTo(HTTPCacheUsability.Fresh));
+                Assert.That(HTTPCache.CurrentAge(stored, T0.AddSeconds(3)),                     Is.EqualTo(TimeSpan.FromSeconds(2147483649)));
+            });
+
+        }
+
+        /// <summary>
+        /// Section 1.2.2: what matters is that an overflow is detected, not
+        /// treated as a value. At the cap, with an Expires as far before its
+        /// Date as HTTP-dates go, the arithmetic of Section 4.2.3 still holds.
+        /// </summary>
+        [Test]
+        public void AtTheCapTheArithmeticDoesNotOverflow()
+        {
+
+            var stored = new HTTPStoredResponse() {
+                             Status          = 200,
+                             Headers         = [ ("date",    "Fri, 31 Dec 9999 23:59:59 GMT"),
+                                                 ("expires", "Mon, 01 Jan 0001 00:00:00 GMT"),
+                                                 ("age",     "99999999999999999999999") ],
+                             Body            = [],
+                             RequestTime     = T0,
+                             ResponseTime    = T0,
+                             VaryKeyHeaders  = []
+                         };
+
+            var request = HTTPCacheControl.Parse("max-stale=99999999999999999999, min-fresh=99999999999999999999, stale-if-error=99999999999999999999");
+
+            Assert.Multiple(() => {
+                Assert.That(stored.AgeValue,                                                      Is.EqualTo(HTTPCacheControl.MaxDeltaSeconds));
+                Assert.That(HTTPCache.FreshnessLifetime(stored, HTTPCacheMode.Shared),            Is.LessThan(-TimeSpan.FromDays(3_600_000)), "the Expires is read");
+                Assert.That(HTTPCache.Evaluate(stored, request, HTTPCacheMode.Shared, T0).Usability, Is.EqualTo(HTTPCacheUsability.MustRevalidate), "stale by more than any max-stale");
+                Assert.That(HTTPCache.ServesStaleOnError(stored, request, HTTPCacheMode.Shared, T0),  Is.False);
+            });
+
         }
 
         #endregion
@@ -256,7 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(HTTPCache.CurrentAge(stored, T0.AddSeconds(10)),             Is.EqualTo(TimeSpan.FromSeconds(42)));
                 Assert.That(Stored(200, ("age", "-5")).AgeValue,                         Is.EqualTo(0));
                 Assert.That(Stored(200, ("age", "1e3")).AgeValue,                        Is.EqualTo(0));
-                Assert.That(Stored(200, ("age", "99999999999999999999")).AgeValue,       Is.EqualTo(2147483648L));
+                Assert.That(Stored(200, ("age", "99999999999999999999")).AgeValue,       Is.EqualTo(HTTPCacheControl.MaxDeltaSeconds));
             });
 
         }
@@ -286,7 +349,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(Stored(200, ("age", ""), ("age", "7200")).AgeValue,          Is.EqualTo(7200), "RFC 9110, Section 5.6.1: an empty member is not one");
                 Assert.That(Stored(200, ("age", "abc, 7200")).AgeValue,                  Is.EqualTo(0),    "an invalid first member makes the field invalid");
                 Assert.That(Stored(200, ("age", "7200;foo=bar, 0")).AgeValue,            Is.EqualTo(0),    "a parameter is not delta-seconds");
-                Assert.That(Stored(200, ("age", "99999999999999999999, 0")).AgeValue,    Is.EqualTo(2147483648L));
+                Assert.That(Stored(200, ("age", "99999999999999999999, 0")).AgeValue,    Is.EqualTo(HTTPCacheControl.MaxDeltaSeconds));
             });
 
         }
