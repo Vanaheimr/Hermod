@@ -379,6 +379,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         #region Original-Recipient from ORCPT (RFC 8098 §2.3)
 
         /// <summary>
+        /// A delivered message after its first line, the Return-Path of sender@client.example
+        /// (RFC 5321 §4.4): the Original-Recipient comes next (RFC 8098 §2.3, "along with the
+        /// Return-Path header field").
+        /// </summary>
+        private static String AfterReturnPath(String Delivered)
+        {
+            Assert.That(Delivered, Does.StartWith("Return-Path: <sender@client.example>\r\n"));
+            return Delivered[(Delivered.IndexOf('\n') + 1)..];
+        }
+
+        /// <summary>
         /// One transaction from sender@client.example with the given RCPT TO lines - path and
         /// parameters; asserts that the message was taken.
         /// </summary>
@@ -409,7 +420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             await DeliverTo(server, "<alice@hermod.test> ORCPT=rfc822;team@hermod.test");
 
-            Assert.That(server.Storage.Messages.Single(), Does.StartWith("Original-Recipient: rfc822;team@hermod.test\r\n"));
+            Assert.That(AfterReturnPath(server.Storage.Messages.Single()), Does.StartWith("Original-Recipient: rfc822;team@hermod.test\r\n"));
 
         }
 
@@ -422,7 +433,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             await DeliverTo(server, "<alice@hermod.test> ORCPT=rfc822;team+2Bsales@hermod.test");
 
-            Assert.That(server.Storage.Messages.Single(), Does.StartWith("Original-Recipient: rfc822;team+sales@hermod.test\r\n"));
+            Assert.That(AfterReturnPath(server.Storage.Messages.Single()), Does.StartWith("Original-Recipient: rfc822;team+sales@hermod.test\r\n"));
 
         }
 
@@ -439,7 +450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             var stored = server.Storage.Envelopes.Zip(server.Storage.Messages).
                                 ToDictionary(store => String.Join(", ", store.First.To),
-                                             store => store.Second.StartsWith("Original-Recipient:") ? store.Second[..store.Second.IndexOf('\r')] : "(none)");
+                                             store => AfterReturnPath(store.Second) is var copy && copy.StartsWith("Original-Recipient:") ? copy[..copy.IndexOf('\r')] : "(none)");
 
             Assert.That(stored, Is.EquivalentTo(new Dictionary<String, String> {
                                     { "alice@hermod.test", "Original-Recipient: rfc822;team@hermod.test"  },
@@ -476,7 +487,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             await DeliverTo(server, "<bob@hermod.test> ORCPT=rfc822;Bob@hermod.test");
 
-            Assert.That(server.Storage.Messages.Single(), Does.StartWith("Original-Recipient: rfc822;Bob@hermod.test\r\n"));
+            Assert.That(AfterReturnPath(server.Storage.Messages.Single()), Does.StartWith("Original-Recipient: rfc822;Bob@hermod.test\r\n"));
 
         }
 
@@ -489,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             await DeliverTo(server, "<alice@hermod.test> ORCPT=rfc822;team@hermod.test+0D+0AX-Injected:+20yes");
 
-            Assert.That(server.Storage.Messages.Single(), Does.Not.Contain("X-Injected").And.Not.StartWith("Original-Recipient"));
+            Assert.That(AfterReturnPath(server.Storage.Messages.Single()), Does.Not.Contain("X-Injected").And.Not.StartWith("Original-Recipient"));
 
         }
 
