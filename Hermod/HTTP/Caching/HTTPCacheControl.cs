@@ -31,9 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// delta-seconds is read as 0, so that the response is stale rather than
     /// fresh on a guess (Section 4.2.1: "a cache SHOULD consider responses with
     /// invalid freshness information to be stale"), and an argument too large
-    /// to represent is read as 2^31 (Section 1.2.2). Commas inside a quoted
-    /// argument, as in <c>no-cache="Set-Cookie, Foo"</c>, do not end the
-    /// directive.
+    /// to represent is read as <see cref="MaxDeltaSeconds"/> (Section 1.2.2).
+    /// Commas inside a quoted argument, as in <c>no-cache="Set-Cookie, Foo"</c>,
+    /// do not end the directive.
     /// </summary>
     public sealed class HTTPCacheControl
     {
@@ -41,9 +41,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Data
 
         /// <summary>
-        /// What a delta-seconds value too large to represent is read as (RFC 9111, Section 1.2.2).
+        /// What a delta-seconds value too large to represent is read as: 2^38
+        /// seconds, some 8 700 years. RFC 9111, Section 1.2.2 lets a cache take
+        /// either 2^31 or "the greatest positive integer it can conveniently
+        /// represent". 2^31 is the limit of 32-bit arithmetic, which a TimeSpan
+        /// does not have, and with it max-age=4294967295 lasted 68 years, and a
+        /// response whose Age was already near 2^31 went stale seconds after it
+        /// arrived. The values become TimeSpans, and 2^38 is chosen so that
+        /// the arithmetic of Section 4.2.3 on them cannot overflow one: it adds
+        /// a response delay and a resident time, and subtracts a freshness
+        /// lifetime that an Expires before its Date can make as negative as the
+        /// span between the first and the last date a DateTimeOffset holds,
+        /// under 2^39 seconds. A TimeSpan holds more than 2^38 + 2^39 seconds,
+        /// which leaves some 3 000 years for the delay and the resident time.
         /// </summary>
-        public const Int64 MaxDeltaSeconds = 2147483648;
+        public const Int64 MaxDeltaSeconds = 274877906944;
 
         #endregion
 
@@ -232,13 +244,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (private) DeltaSeconds(Argument)
+        #region (internal) DeltaSeconds(Argument)
 
         /// <summary>
         /// delta-seconds = 1*DIGIT (RFC 9111, Section 1.2.2), or null when the
-        /// argument is missing or anything else. A value too large is 2^31.
+        /// argument is missing or anything else. A value too large is
+        /// <see cref="MaxDeltaSeconds"/>. The Age field's value is parsed here too.
         /// </summary>
-        private static Int64? DeltaSeconds(String? Argument)
+        internal static Int64? DeltaSeconds(String? Argument)
         {
 
             if (String.IsNullOrEmpty(Argument))

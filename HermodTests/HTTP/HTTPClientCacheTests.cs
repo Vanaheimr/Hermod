@@ -261,6 +261,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region Beyond 2^31, a max-age and an Age are what they say (H-46)
+
+        /// <summary>
+        /// RFC 9111, Section 1.2.2 caps delta-seconds at 2^31 only for a cache
+        /// that cannot represent more. Capped anyway, max-age=4294967295 was
+        /// 2147483648, and a response that arrived with Age 2147483646 was stale
+        /// three seconds later. It is served, with an Age past 2^31.
+        /// </summary>
+        [Test]
+        public async Task BeyondTwoToThe31AMaxAgeAndAnAgeAreWhatTheySay()
+        {
+
+            await using var origin = await Origin.Start();
+            origin.Respond = request => Answer(request, "old", ("Cache-Control", "max-age=4294967295"), ("Age", "2147483646"));
+
+            var clock        = origin.Clock;
+            var cache        = new HTTPClientCache(TimeProvider: clock);
+            using var client = origin.Client(cache);
+
+            await Get(client, "r");
+            clock.Advance(TimeSpan.FromSeconds(3));
+            var second = await Get(client, "r");
+
+            Assert.Multiple(() => {
+                Assert.That(second.CacheStatus,           Is.EqualTo(HTTPCacheStatus.Hit));
+                Assert.That(second.GetHeaderField("Age"), Is.EqualTo("2147483649"));
+                Assert.That(origin.Hits(HTTPMethod.GET),  Is.EqualTo(1));
+            });
+
+        }
+
+        #endregion
+
         #region Without a cache, every request goes to the origin
 
         [Test]

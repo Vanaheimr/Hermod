@@ -854,7 +854,11 @@ What the cache does:
   (§4.2.1). Of an `Age` that arrives as a list, the first member counts,
   `7200, 0` as 7200 on one field line as on two (§5.1), since 2026-11-22
   (H-44 in HTTP1ConformanceTests). Until then one line read as invalid, so as
-  0, and a response two hours old was served as fresh.
+  0, and a response two hours old was served as fresh. A `max-age`, an `Age`
+  or any other delta-seconds is what it says up to 2^38 seconds, some 8 700
+  years, and 2^38 beyond (§1.2.2), since 2026-11-22 (H-46). The cap was 2^31,
+  the least §1.2.2 allows: `max-age=4294967295` lasted 68 years, and a
+  response that arrived with an `Age` near 2^31 was stale seconds later.
 - **Revalidates** a stale one with `If-None-Match` and `If-Modified-Since`. A
   `304` that selects it updates its fields, except those describing the
   octets held, and serves it; one that names another representation sends the
@@ -1188,7 +1192,7 @@ handlers' own fixtures stay outside, as said above. This one tests what RFC
 9110 asks of the answers they give. `HTTPCacheTests` and
 `HTTPClientCacheTests` came with finding H-5 and joined with it, which makes
 forty-seven: **963**, the 920 and their 43. H-44 added one test to each:
-**965**.
+**965**. H-46 added two to the first and one to the second: **968**.
 
 Run it with:
 

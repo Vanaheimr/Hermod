@@ -64,7 +64,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         /// <summary>
         /// The Age field's value, 0 when there is none or it is not delta-seconds
-        /// (RFC 9111, Section 5.1), 2^31 when it is too large to represent.
+        /// (RFC 9111, Section 5.1), <see cref="HTTPCacheControl.MaxDeltaSeconds"/>
+        /// when it is larger (Section 1.2.2).
         /// Age is a singleton, and of a list Section 5.1 says a cache SHOULD use
         /// the first member and discard the rest: <c>Age: 7200, 0</c> is 7200,
         /// whether on one field line or on two. Empty members do not count
@@ -80,12 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  .SelectMany(header => header.Value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
                                  .FirstOrDefault();
 
-                if (String.IsNullOrEmpty(age) || !age.All(Char.IsAsciiDigit))
-                    return 0;
-
-                return age.Length > 10 || !Int64.TryParse(age, out var seconds)
-                           ? HTTPCacheControl.MaxDeltaSeconds
-                           : Math.Min(seconds, HTTPCacheControl.MaxDeltaSeconds);
+                return HTTPCacheControl.DeltaSeconds(age) ?? 0;
 
             }
         }
