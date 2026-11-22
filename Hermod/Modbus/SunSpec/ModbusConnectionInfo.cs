@@ -33,6 +33,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.Common;
 ///
 /// A connection whose handshake failed never becomes one of these: there is
 /// no certificate to name it by, and the frontend's log has what went wrong.
+///
+/// One that is no Modbus/TLS - Modbus over an SSH channel or a WebSocket, which
+/// <see cref="ModbusTlsFrontend.ServeAsync"/> serves - says so in its transport,
+/// is named by the login it signed in with rather than by a certificate, and has
+/// no TLS version of its own: its role is the one it had when it began, and is
+/// asked again at every request.
 /// </remarks>
 /// <param name="ConnectionId">The number the frontend gave it, as every request on it says.</param>
 /// <param name="Peer">Where it comes from.</param>
@@ -41,10 +47,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.Common;
 /// <param name="ClientFingerprint">The SHA-256 fingerprint of the client certificate, in upper-case hexadecimal.</param>
 /// <param name="Protocol">The TLS version the handshake agreed on.</param>
 /// <param name="Since">When the handshake held.</param>
+/// <param name="Transport">What it goes over: "Modbus/TLS", "SSH", "WebSocket".</param>
+/// <param name="Login">The login it signed in with, where it is no Modbus/TLS.</param>
 public sealed record ModbusConnectionInfo(Int64           ConnectionId,
                                           String?         Peer,
                                           String?         Role,
                                           String          ClientSubject,
                                           String          ClientFingerprint,
                                           SslProtocols    Protocol,
-                                          DateTimeOffset  Since);
+                                          DateTimeOffset  Since,
+                                          String          Transport  = ModbusConnectionInfo.ModbusTLS,
+                                          String?         Login      = null)
+{
+
+    /// <summary>
+    /// The transport of a connection to the Modbus/TLS port.
+    /// </summary>
+    public const String ModbusTLS = "Modbus/TLS";
+
+}

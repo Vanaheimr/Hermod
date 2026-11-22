@@ -38,14 +38,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.Common;
 public sealed class ModbusTCPClient : IAsyncDisposable
 {
 
-    private readonly TcpClient       tcpClient;
+    private readonly TcpClient?      tcpClient;
     private readonly Stream          stream;
     private readonly SslStream?      tlsStream;
     private readonly SemaphoreSlim   exchangeLock;
     private ushort                   txId;
 
 
-    private ModbusTCPClient(TcpClient   TCPClient,
+    private ModbusTCPClient(TcpClient?  TCPClient,
                             Stream      Stream,
                             SslStream?  TLSStream = null)
     {
@@ -61,6 +61,17 @@ public sealed class ModbusTCPClient : IAsyncDisposable
     public Boolean IsTLS
 
         => tlsStream is not null;
+
+
+    /// <summary>
+    /// A Modbus client over a stream somebody else opened and secured - an SSH
+    /// channel, a WebSocket: every frame goes over it as over a TCP connection,
+    /// and disposing the client disposes the stream.
+    /// </summary>
+    /// <param name="Stream">The stream the frames go over.</param>
+    public static ModbusTCPClient Over(Stream Stream)
+
+        => new (null, Stream);
 
 
     /// <summary>
@@ -378,9 +389,9 @@ public sealed class ModbusTCPClient : IAsyncDisposable
 
         try { tlsStream?.Dispose(); } catch { }
         try { stream.   Dispose(); } catch { }
-        try { tcpClient.Close();   } catch { }
+        try { tcpClient?.Close();  } catch { }
 
-        tcpClient.Dispose();
+        tcpClient?.Dispose();
         exchangeLock.Dispose();
 
         return ValueTask.CompletedTask;

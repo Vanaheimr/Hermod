@@ -393,7 +393,9 @@ public sealed class ModbusTlsFrontend : IDisposable
 
             backend = await _backendFactory.CreateAsync(connId, role, ct).ConfigureAwait(false);
 
-            await PumpModbusAsync(ssl, role, backend, connId, remote, ct).ConfigureAwait(false);
+            var certificateRole = role;
+
+            await PumpModbusAsync(ssl, () => certificateRole, backend, connId, remote, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -502,10 +504,106 @@ public sealed class ModbusTlsFrontend : IDisposable
     }
 
     /// <summary>
-    /// Read frames in a loop, authorize, dispatch to backend, write responses.
+    /// Serve Modbus over the given stream - an SSH channel, a WebSocket - as
+    /// over a Modbus/TLS connection after its handshake: frame by frame, each
+    /// request decided by the same policy and handed to a backend of its own,
+    /// until the stream ends, falls idle, or the frontend is disposed.
     /// </summary>
-    private async Task PumpModbusAsync(SslStream          ssl,
-                                       String?            role,
+    /// <remarks>
+    /// <para>
+    /// Whoever hands the stream over has decided who is at the other end - a
+    /// login of an SSH server or of a WebSocket port - and says which SunSpec
+    /// role that is. Asked at every request rather than once, because a login
+    /// can be put into another group while it is connected, and what it may do
+    /// is what its group says now.
+    /// </para>
+    /// <para>
+    /// The connection is said to be open before the first request is read, and
+    /// to be closed when this returns, as one of the port is - see
+    /// <see cref="OnConnectionOpened"/>.
+    /// </para>
+    /// </remarks>
+    /// <param name="Stream">The stream the frames come and go over.</param>
+    /// <param name="RoleOf">The SunSpec role of the other end now, or null for none.</param>
+    /// <param name="Peer">Where the other end is.</param>
+    /// <param name="Transport">What the stream goes over: "SSH", "WebSocket".</param>
+    /// <param name="Login">The login the other end signed in with.</param>
+    /// <param name="CancellationToken">Ends the connection.</param>
+    public async Task ServeAsync(Stream             Stream,
+                                 Func<String?>      RoleOf,
+                                 String             Peer,
+                                 String             Transport,
+                                 String             Login,
+                                 CancellationToken  CancellationToken = default)
+    {
+
+        using var linked  = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, _cts.Token);
+        var ct            = linked.Token;
+        var connId        = Interlocked.Increment(ref _connectionCounter);
+
+        using var logScope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["connection_id"] = connId,
+            ["peer"]          = Peer,
+        });
+
+        ServerMetrics.ActiveConnections.Add(1);
+
+        var opened = new ModbusConnectionInfo(
+                         connId,
+                         Peer,
+                         RoleOf(),
+                         Login,
+                         "",
+                         SslProtocols.None,
+                         DateTimeOffset.UtcNow,
+                         Transport,
+                         Login
+                     );
+
+        _logger.LogInformation("{Transport} up: login={Login} role={Role}", Transport, Login, opened.Role ?? "(none)");
+
+        IModbusBackend? backend = null;
+
+        Tell(OnConnectionOpened, opened);
+
+        try
+        {
+
+            backend = await _backendFactory.CreateAsync(connId, opened.Role, ct).ConfigureAwait(false);
+
+            await PumpModbusAsync(Stream, RoleOf, backend, connId, Peer, ct).ConfigureAwait(false);
+
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "connection error: {ExceptionType}", ex.GetType().Name);
+        }
+        finally
+        {
+
+            if (backend is not null)
+            {
+                try { await backend.DisposeAsync().ConfigureAwait(false); }
+                catch (Exception ex) { _logger.LogWarning(ex, "backend dispose failed"); }
+            }
+
+            ServerMetrics.ActiveConnections.Add(-1);
+            _logger.LogInformation("closed");
+
+            Tell(OnConnectionClosed, opened);
+
+        }
+
+    }
+
+    /// <summary>
+    /// Read frames in a loop, authorize, dispatch to backend, write responses.
+    /// The role is asked anew for every request.
+    /// </summary>
+    private async Task PumpModbusAsync(Stream             ssl,
+                                       Func<String?>      roleOf,
                                        IModbusBackend     backend,
                                        long               connId,
                                        String             peer,
@@ -547,7 +645,8 @@ public sealed class ModbusTlsFrontend : IDisposable
                 return;
             }
 
-            var fc = (ModbusFunctionCodes)req.Pdu[0];
+            var fc   = (ModbusFunctionCodes)req.Pdu[0];
+            var role = roleOf();
             byte[] respPdu;
             try
             {
