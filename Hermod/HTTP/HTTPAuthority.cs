@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// that already holds a connection to us MAY send a request for a *different*
     /// origin over it, as long as our certificate is valid for that origin too
     /// ("connection coalescing"). The origin it names travels in <c>:authority</c>,
-    /// which is therefore not guaranteed to be the name it dialed. A server that
+    /// which is therefore not guaranteed to be the name it connected to. A server that
     /// never looks at it answers for origins it may know nothing about; a server
     /// that does can decline with 421 and have the client retry elsewhere (RFC
     /// 9110, Section 15.5.20).

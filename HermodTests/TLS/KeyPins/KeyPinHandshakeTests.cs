@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
 
     /// <summary>
     /// Key pins over real handshakes: a peer with a self-signed certificate
-    /// that no CA vouches for, with a name that is not the one dialled, is
+    /// that no CA vouches for, with a name that is not the one connected to, is
     /// accepted by its key pin alone, and the same peer with another key is
     /// refused. For WebSockets over HTTP/1.1, for HTTP/2 and for HTTP/3, as
     /// server and as client certificates.
@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
 
         /// <summary>
         /// A self-signed carrier certificate for the given key: CA:FALSE, no
-        /// keyCertSign, a name nobody dials, and usable by SslStream on
+        /// keyCertSign, a name nobody connects to, and usable by SslStream on
         /// Windows (which needs a key it can find again).
         /// </summary>
         private static X509Certificate2 Carrier(ECDsa    Key,

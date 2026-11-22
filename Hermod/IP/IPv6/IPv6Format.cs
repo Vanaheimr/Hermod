@@ -23,7 +23,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// </summary>
     /// <remarks>
     /// Both forms are bare - no brackets, which belong to the authority of an
-    /// URL (see <see cref="IIPAddressExtensions.ToIPLiteral"/>) - and both end in
+    /// URL (see <see cref="IPAddressExtensions.ToIPLiteral"/>) - and both end in
     /// "%" and the interface where an address has one. Either one is read back
     /// by <see cref="IPv6Address.Parse(String)"/> as the same address.
     /// </remarks>

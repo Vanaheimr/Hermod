@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var line  = $"from=\"192.0.2.0/24\" {KeyLine(key)}";
 
             var api   = await StartAPI();
-            var hank  = await NewUser(api, "hank");
+            var hank  = await NewUser(api, User_Id.Parse("hank"));
             var added = await api.AddSSHKey(hank, line, "Hank's laptop", CurrentUserId: User_Id.Parse("root"));
 
             Assert.That(added.Outcome, Is.EqualTo(AddSSHKeyOutcome.Added), added.Reason);
@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var other = SshHostKey.GenerateEd25519();
 
             var api   = await StartAPI();
-            var hank  = await NewUser(api, "hank");
+            var hank  = await NewUser(api, User_Id.Parse("hank"));
 
             await api.AddSSHKey(hank, KeyLine(key));
             await api.AddSSHKey(hank, KeyLine(other));
@@ -161,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var key   = SshHostKey.GenerateEd25519();
 
             var api   = await StartAPI();
-            var hank  = await NewUser(api, "hank");
+            var hank  = await NewUser(api, User_Id.Parse("hank"));
 
             var permitopen  = await api.AddSSHKey(hank, $"permitopen=\"10.0.0.1:80\" {KeyLine(key)}");
             var privateKey  = await api.AddSSHKey(hank, OpenSshPrivateKey.Format(key));
@@ -190,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var key   = SshHostKey.GenerateEd25519();
 
             var api   = await StartAPI();
-            var hank  = await NewUser(api, "hank");
+            var hank  = await NewUser(api, User_Id.Parse("hank"));
 
             var first   = await api.AddSSHKey(hank, KeyLine(key), "first");
             var second  = await api.AddSSHKey(hank, $"no-pty {KeyLine(key)}", "second");
@@ -221,7 +221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var key   = SshHostKey.GenerateEd25519();
 
             var api   = await StartAPI();
-            var hank  = await NewUser(api, "hank");
+            var hank  = await NewUser(api, User_Id.Parse("hank"));
 
             await api.AddSSHKey(hank, KeyLine(key));
 
@@ -235,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             });
 
             var again = await StartAPI();
-            var newHank = await NewUser(again, "hank");
+            var newHank = await NewUser(again, User_Id.Parse("hank"));
 
             Assert.That(again.FindSSHKey(newHank.Id, key.PublicKeyBlob, DateTimeOffset.UtcNow), Is.Null, "the new hank signs in with the old hank's key");
 
@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var ca       = SshHostKey.GenerateEd25519();
 
             var api      = await StartAPI();
-            var hank     = await NewUser(api, "hank");
+            var hank     = await NewUser(api, User_Id.Parse("hank"));
             var now      = DateTimeOffset.UtcNow;
 
             await api.AddSSHKey(hank, $"expiry-time=\"{now.AddDays(-1):yyyyMMdd}\" {KeyLine(expired)}");
@@ -290,7 +290,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var fingerprint  = SshFingerprint.Sha256(key.PublicKeyBlob);
 
             var api          = await StartAPI();
-            var hank         = await NewUser(api, "hank");
+            var hank         = await NewUser(api, User_Id.Parse("hank"));
 
             await api.AddSSHKey(hank, KeyLine(key), "laptop");
             await api.AddSSHKey(hank, KeyLine(other));
@@ -353,7 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var key   = SshHostKey.GenerateEd25519();
 
             var api   = await StartAPI();
-            var hank  = await NewUser(api, "hank");
+            var hank  = await NewUser(api, User_Id.Parse("hank"));
 
             await api.AddSSHKey(hank, KeyLine(key), CurrentUserId: User_Id.Parse("root"));
             await api.RemoveSSHKey(hank.Id, SshFingerprint.Sha256(key.PublicKeyBlob), CurrentUserId: User_Id.Parse("hank"));
@@ -644,12 +644,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static async Task<User> NewUser(HTTPExtAPI  API,
-                                                String      Name)
+                                                User_Id     Name)
         {
 
             var user = await API.CreateUser(
-                                 User_Id.Parse(Name),
-                                 I18NString.Create(Name),
+                                 Name,
+                                 I18NString.Create(Name.ToString()),
                                  SimpleEMailAddress.Parse($"{Name}@example.test"),
                                  Password,
                                  SkipDefaultNotifications:  true,
@@ -660,7 +660,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                              );
 
             Assert.That(user, Is.Not.Null, $"'{Name}' could not be created");
-            Assert.That(API.TryGetUser(User_Id.Parse(Name), out var created) && created is User, Is.True, $"There is no user '{Name}'.");
+            Assert.That(API.TryGetUser(Name, out var created) && created is User, Is.True, $"There is no user '{Name}'.");
 
             return (User) created!;
 
@@ -674,7 +674,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                    String      Name)
         {
 
-            var user  = await NewUser(API, Name);
+            var user  = await NewUser(API, User_Id.Parse(Name));
             var acme  = API.GetOrganization(Organization_Id.Parse("acme")) as Organization
                             ?? new Organization(Organization_Id.Parse("acme"), I18NString.Create("ACME"));
 

@@ -112,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The optional login of the user information.
         /// </summary>
-        public String?       Login          { get; }
+        public User_Id?      Login          { get; }
 
         /// <summary>
         /// The optional password of the user information.
@@ -217,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Fragment">An optional fragment, without the leading '#'.</param>
         private URL(String        String,
                     URIScheme?    Protocol,
-                    String?       Login,
+                    User_Id?      Login,
                     String?       Password,
                     URLHost       Host,
                     IPPort?       Port,
@@ -227,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.InternalId   = String;
-            this.scheme     = Protocol;
+            this.scheme       = Protocol;
             this.Login        = Login;
             this.Password     = Password;
             this.Host         = Host;
@@ -382,7 +382,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region User information
 
-            String?  login       = null;
+            User_Id? login       = null;
             String?  password    = null;
             var      userInfoEnd = authority.LastIndexOf('@');
 
@@ -396,11 +396,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (colonIndex > 0)
                 {
-                    login     = userInfo[..colonIndex];
+                    login     = User_Id.TryParse(userInfo[..colonIndex]);
                     password  = userInfo[(colonIndex + 1)..];
                 }
                 else
-                    login     = userInfo;
+                    login     = User_Id.TryParse(userInfo);
 
             }
 
@@ -563,7 +563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => new (
                    InternalId.CloneString(),
                    Scheme,
-                   Login?.    CloneString(),
+                   Login?.    Clone(),
                    Password?. CloneString(),
                    Host.      Clone(),
                    Port?.     Clone(),
@@ -822,7 +822,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             c = Path.CompareTo(URL.Path);
             if (c != 0) return c;
 
-            c = String.CompareOrdinal(Login,    URL.Login);
+            c = String.CompareOrdinal(Login.ToString(), URL.Login.ToString());
             if (c != 0) return c;
 
             c = String.CompareOrdinal(Password, URL.Password);
@@ -866,15 +866,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                // section 6.2.2.1. URIScheme and URLHost both compare case-insensitively,
                // so both are covered by their own comparisons. The '==' of URIScheme also
                // copes with a missing scheme on either side.
-            => Scheme ==     URL.Scheme        &&
-               Host.    Equals(URL.Host)      &&
-               Port.    Equals(URL.Port)      &&
-               Path.    Equals(URL.Path)      &&
+            => Scheme == URL.Scheme &&
+               Host.Equals(URL.Host) &&
+               Port.Equals(URL.Port) &&
+               Path.Equals(URL.Path) &&
 
-               String.Equals(Login,                  URL.Login,                  StringComparison.Ordinal) &&
-               String.Equals(Password,               URL.Password,               StringComparison.Ordinal) &&
+               String.Equals(Login.       ToString(), URL.Login.       ToString(), StringComparison.Ordinal) &&
+               String.Equals(Password,                URL.Password,                StringComparison.Ordinal) &&
                String.Equals(QueryString?.ToString(), URL.QueryString?.ToString(), StringComparison.Ordinal) &&
-               String.Equals(Fragment,               URL.Fragment,               StringComparison.Ordinal);
+               String.Equals(Fragment,                URL.Fragment,                StringComparison.Ordinal);
 
         #endregion
 

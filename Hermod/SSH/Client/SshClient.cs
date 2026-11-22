@@ -20,10 +20,9 @@
 using System.Buffers;
 using System.IO.Pipelines;
 
-using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -31,24 +30,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 {
 
     /// <summary>
-    /// Options for a high-level <see cref="SshClient"/> connection: who to log in as, how to trust the host
+    /// Options for a high-level <see cref="SSHClient"/> connection: who to log in as, how to trust the host
     /// key, and which credentials to try - keys (<see cref="Credentials"/>), a one-time password bound to
-    /// the session (<see cref="SessionBoundTotp"/>), answers to <see cref="KeyboardInteractive"/> prompts
+    /// the session (<see cref="SessionBoundTOTP"/>), answers to <see cref="KeyboardInteractive"/> prompts
     /// and a <see cref="Password"/>, in that order and each only where the server takes it. Several of them together also complete a multi-factor chain such as OpenSSH's
     /// <c>AuthenticationMethods publickey,password</c>.
     /// </summary>
-    public sealed record SshClientOptions
+    public sealed record SSHClientOptions
     {
+
         /// <summary>
         /// The user to authenticate as.
         /// </summary>
-        public required String                    Username       { get; init; }
+        public required User_Id                   Username       { get; init; }
 
         /// <summary>
         /// The DNS client a host name is resolved with: the server's, the first jump host's, and the local
         /// target of a remote forward. An IP address, or "localhost", needs none; a host name without one is
         /// refused with an <see cref="SshNameResolutionException"/>. The resolver of the operating system is
-        /// never asked - a node whose names are resolved securely must not be dialled around them.
+        /// never asked - a node whose names are resolved securely must not be connected around them.
         /// </summary>
         public IDNSClient?                        DNSClient      { get; init; }
 
@@ -91,7 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// method out. Asked only where the server lists the method, and at the moment the request is
         /// sent: what it returns opens this session and no other.
         /// </summary>
-        public Func<Byte[], String>?              SessionBoundTotp   { get; init; }
+        public Func<Byte[], String>?              SessionBoundTOTP   { get; init; }
 
         /// <summary>
         /// Called when the server advertises its full host-key set via <c>hostkeys-00@openssh.com</c>
@@ -146,9 +146,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// side connects to the first, each one opens a <c>direct-tcpip</c> tunnel to the next, and the last
         /// one to the server. Every hop is a login of its own, end to end through the hops before it, so no
         /// jump host sees what passes through it - provided its successor's host key is verified. Empty (the
-        /// default) to connect directly. <see cref="SshJumpHost.ParseChain"/> reads <c>-J</c>'s syntax.
+        /// default) to connect directly. <see cref="SSHJumpHost.ParseChain"/> reads <c>-J</c>'s syntax.
         /// </summary>
-        public IReadOnlyList<SshJumpHost>          ProxyJump          { get; init; } = [];
+        public IReadOnlyList<SSHJumpHost>          ProxyJump          { get; init; } = [];
 
         /// <summary>
         /// The options to log in to a jump host with - its own host-key decision and credentials, since a
@@ -159,21 +159,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// Null (the default) lets every jump host borrow these options, with the user it names, if any.
         /// It borrows the <see cref="Credentials"/>, since a key login shows a jump host nothing it could use
         /// elsewhere, but not the <see cref="Password"/> or the <see cref="KeyboardInteractive"/> answers,
-        /// which it would read in the clear, nor the <see cref="SessionBoundTotp"/>, which is the server's; nor <see cref="HostKeysReceived"/>, which would take its keys
+        /// which it would read in the clear, nor the <see cref="SessionBoundTOTP"/>, which is the server's; nor <see cref="HostKeysReceived"/>, which would take its keys
         /// for the server's. Borrowing includes <see cref="VerifyHostKey"/>, which then has to accept the
         /// jump host's key too: a check that knows only the server's key turns the jump host away.
         /// </para>
         /// </summary>
-        public Func<SshJumpHost, SshClientOptions>? JumpHostOptions   { get; init; }
+        public Func<SSHJumpHost, SSHClientOptions>? JumpHostOptions   { get; init; }
     }
 
 
     /// <summary>
     /// A high-level SSH client over the connection multiplexer: connect and authenticate once, then run many
-    /// operations concurrently on the one connection — <see cref="ExecuteAsync"/> commands and
-    /// <see cref="OpenTcpStreamAsync"/> tunnels multiplex freely.
+    /// operations concurrently on the one connection — <see cref="Execute"/> commands and
+    /// <see cref="OpenTCPStream"/> tunnels multiplex freely.
     /// </summary>
-    public sealed class SshClient : IAsyncDisposable
+    public sealed class SSHClient : IAsyncDisposable
     {
 
         #region Data
@@ -186,8 +186,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         private readonly IDuplexPipe              pipe;
         private readonly SshTransport             transport;
-        private readonly SshChannelMultiplexer    mux;
-        private readonly SshClient?               through;
+        private readonly SshChannelMultiplexer    channelMultiplexer;
+        private readonly SSHClient?               through;
         private readonly IDNSClient?              dnsClient;
         private readonly CancellationTokenSource  stopping   = new ();
         private          Task                     keepAlive  = Task.CompletedTask;
@@ -201,22 +201,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// <summary>
         /// The underlying multiplexer, for advanced channel operations.
         /// </summary>
-        public SshChannelMultiplexer Multiplexer => mux;
+        public SshChannelMultiplexer Multiplexer => channelMultiplexer;
 
         /// <summary>
         /// Completes - never faults - once the connection has ended, for whatever reason: the server
         /// closed it, it failed, the keepalive gave up, or this client was disposed of.
         /// <see cref="EndReason"/> then says why.
         /// </summary>
-        public Task Closed => mux.Completion;
+        public Task Closed => channelMultiplexer.Completion;
 
         /// <summary>
         /// Why the connection ended, once it has; null while it lasts.
         /// </summary>
-        public Exception? EndReason => mux.EndReason;
+        public Exception? EndReason => channelMultiplexer.EndReason;
 
         /// <summary>
-        /// The host key the server proved itself with - the one <see cref="SshClientOptions.VerifyHostKey"/>
+        /// The host key the server proved itself with - the one <see cref="SSHClientOptions.VerifyHostKey"/>
         /// accepted.
         /// </summary>
         public Byte[] ServerHostKey => transport.ServerHostKey;
@@ -224,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// <summary>
         /// The user name this client signed in under.
         /// </summary>
-        public String Username { get; }
+        public User_Id Username { get; }
 
         /// <summary>
         /// The keying material exporter of the connection: the keys the server gets from
@@ -246,33 +246,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region Constructor(s)
 
-        private SshClient(IDuplexPipe Pipe, SshTransport Transport, SshChannelMultiplexer Mux, SshClient? Through, IDNSClient? DNSClient, String Username)
+        private SSHClient(IDuplexPipe            Pipe,
+                          SshTransport           Transport,
+                          SshChannelMultiplexer  ChannelMultiplexer,
+                          SSHClient?             Through,
+                          IDNSClient?            DNSClient,
+                          User_Id                Username)
         {
-            this.Username  = Username;
-            this.pipe      = Pipe;
-            this.transport = Transport;
-            this.mux       = Mux;
-            this.dnsClient = DNSClient;
-            this.through   = Through;
+
+            this.Username            = Username;
+            this.pipe                = Pipe;
+            this.transport           = Transport;
+            this.channelMultiplexer  = ChannelMultiplexer;
+            this.dnsClient           = DNSClient;
+            this.through             = Through;
+
         }
 
         #endregion
 
 
-        #region (static) ConnectAsync(Host, Port, Options, CancellationToken)
+        #region (static) Connect (Host, Port, Options, CancellationToken)
 
         /// <summary>
         /// Connect, verify the host key, authenticate with the first working credential and start multiplexing
-        /// - directly, or through the jump hosts of <see cref="SshClientOptions.ProxyJump"/>, which the client
+        /// - directly, or through the jump hosts of <see cref="SSHClientOptions.ProxyJump"/>, which the client
         /// then keeps open and closes after itself, the last one first.
         /// </summary>
-        /// <exception cref="TimeoutException">Connecting took longer than <see cref="SshClientOptions.ConnectTimeout"/>.</exception>
+        /// <exception cref="TimeoutException">Connecting took longer than <see cref="SSHClientOptions.ConnectTimeout"/>.</exception>
         /// <exception cref="SshAuthenticationException">None of the credentials was accepted.</exception>
         /// <exception cref="SshJumpHostException">A jump host could not be reached; the hops before it are closed again.</exception>
-        public static async ValueTask<SshClient> ConnectAsync(String host, UInt16 port, SshClientOptions Options, CancellationToken CancellationToken = default)
+        public static async ValueTask<SSHClient> Connect(String             host,
+                                                         IPPort             port,
+                                                         SSHClientOptions   Options,
+                                                         CancellationToken  CancellationToken = default)
         {
 
-            SshClient? through = null;
+            SSHClient? through = null;
 
             try
             {
@@ -284,7 +294,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
                     try
                     {
-                        through = await ConnectAsync(jumpHost.Host, jumpHost.Port, JumpHostOptionsFor(jumpHost, Options), through, CancellationToken).ConfigureAwait(false);
+
+                        through = await Connect(
+                                            jumpHost.Host,
+                                            jumpHost.Port,
+                                            JumpHostOptionsFor(
+                                                jumpHost,
+                                                Options
+                                            ),
+                                            through,
+                                            CancellationToken
+                                        ).ConfigureAwait(false);
+
                     }
                     catch (Exception exception) when (!CancellationToken.IsCancellationRequested)
                     {
@@ -293,7 +314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
                 }
 
-                return await ConnectAsync(host, port, Options, through, CancellationToken).ConfigureAwait(false);
+                return await Connect(host, port, Options, through, CancellationToken).ConfigureAwait(false);
 
             }
             catch
@@ -306,7 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         }
 
-        private static SshClientOptions JumpHostOptionsFor(SshJumpHost JumpHost, SshClientOptions Server)
+        private static SSHClientOptions JumpHostOptionsFor(SSHJumpHost JumpHost, SSHClientOptions Server)
         {
 
             var options = Server.JumpHostOptions?.Invoke(JumpHost)
@@ -314,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                                      Username             = JumpHost.Username ?? Server.Username,
                                      Password             = null,
                                      KeyboardInteractive  = null,
-                                     SessionBoundTotp     = null,
+                                     SessionBoundTOTP     = null,
                                      HostKeysReceived     = null
                                  };
 
@@ -329,11 +350,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         // One hop: over TCP, or - with Through - over a direct-tcpip tunnel of the hop before, which the
         // new client then owns.
-        private static async ValueTask<SshClient> ConnectAsync(String             host,
-                                                               UInt16             port,
-                                                               SshClientOptions   Options,
-                                                               SshClient?         Through,
-                                                               CancellationToken  CancellationToken)
+        private static async ValueTask<SSHClient> Connect(String             host,
+                                                          IPPort             port,
+                                                          SSHClientOptions   Options,
+                                                          SSHClient?         Through,
+                                                          CancellationToken  CancellationToken)
         {
 
             IDuplexPipe?  pipe = null;
@@ -347,13 +368,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
                 try
                 {
+
                     pipe      = Through is null
-                                    ? await SshTcp.ConnectAsync(host, IPPort.Parse(port), Options.DNSClient, connecting.Token).ConfigureAwait(false)
-                                    : DuplexPipe.FromStream(await Through.OpenTcpStreamAsync(host, port, connecting.Token).ConfigureAwait(false));
-                    transport = await SshTransport.ClientHandshakeAsync(pipe,
-                                                                        VerifyHostKey:     Options.VerifyHostKey,
-                                                                        RequireStrictKex:  Options.RequireStrictKex,
-                                                                        CancellationToken: connecting.Token).ConfigureAwait(false);
+
+                                    ? await SshTcp.ConnectAsync(
+                                                host,
+                                                port,
+                                                Options.DNSClient,
+                                                connecting.Token
+                                            ).ConfigureAwait(false)
+
+                                    : DuplexPipe.FromStream(
+                                          await Through.OpenTCPStream(
+                                                    host,
+                                                    port,
+                                                    connecting.Token
+                                                ).ConfigureAwait(false)
+                                      );
+
+                    transport = await SshTransport.ClientHandshakeAsync(
+                                          pipe,
+                                          VerifyHostKey:      Options.VerifyHostKey,
+                                          RequireStrictKex:   Options.RequireStrictKex,
+                                          CancellationToken:  connecting.Token
+                                      ).ConfigureAwait(false);
+
                 }
                 catch (Exception exception)
                 {
@@ -376,13 +415,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
             try
             {
-                authenticated = await UserAuthentication.ClientAuthenticateAsync(transport,
-                                                                                 Options.Username,
-                                                                                 Options.Credentials,
-                                                                                 Options.Password,
-                                                                                 Options.KeyboardInteractive,
-                                                                                 CancellationToken: CancellationToken,
-                                                                                 SessionBoundTotp:  Options.SessionBoundTotp).ConfigureAwait(false);
+
+                authenticated = await UserAuthentication.ClientAuthenticateAsync(
+                                          transport,
+                                          Options.Username,
+                                          Options.Credentials,
+                                          Options.Password,
+                                          Options.KeyboardInteractive,
+                                          CancellationToken:  CancellationToken,
+                                          SessionBoundTotp:   Options.SessionBoundTOTP
+                                      ).ConfigureAwait(false);
+
             }
             catch
             {
@@ -402,13 +445,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
             // A server announces its plain keys, so a host certificate is looked for as the key it certifies.
             if (Options.HostKeysReceived is not null)
-                WireHostKeyUpdates(mux,
-                                   SshCertificate.TryParse(transport.ServerHostKey, out var certificate)
-                                       ? certificate!.SubjectPublicKey
-                                       : transport.ServerHostKey,
-                                   Options.HostKeysReceived);
+                WireHostKeyUpdates(
+                    mux,
+                    SshCertificate.TryParse(transport.ServerHostKey, out var certificate)
+                        ? certificate!.SubjectPublicKey
+                        : transport.ServerHostKey,
+                    Options.HostKeysReceived
+                );
 
-            var client = new SshClient(pipe, transport, mux.Start(), Through, Options.DNSClient, Options.Username);
+            var client = new SSHClient(pipe, transport, mux.Start(), Through, Options.DNSClient, Options.Username);
 
             if (Options.KeepAliveInterval is TimeSpan interval)
                 client.keepAlive = client.KeepAliveAsync(interval, Math.Max(1, Options.KeepAliveCountMax));
@@ -472,7 +517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                     try
                     {
                         // The wait includes the send: on a network that is gone, a write can hang too.
-                        await mux.SendGlobalRequestWithReplyAsync(KeepAliveRequestName, true, [], token).
+                        await channelMultiplexer.SendGlobalRequestWithReplyAsync(KeepAliveRequestName, true, [], token).
                                   AsTask().
                                   WaitAsync(Interval, token).
                                   ConfigureAwait(false);
@@ -482,7 +527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                     {
                         if (++unanswered >= CountMax)
                         {
-                            mux.Abort(new TimeoutException(FormattableString.Invariant($"The server did not answer {unanswered} keepalive probe(s) in a row, {Interval.TotalSeconds:0.###} s apart.")));
+                            channelMultiplexer.Abort(new TimeoutException(FormattableString.Invariant($"The server did not answer {unanswered} keepalive probe(s) in a row, {Interval.TotalSeconds:0.###} s apart.")));
                             await CloseAsync(SayGoodbye: false).ConfigureAwait(false);
                             return;
                         }
@@ -499,72 +544,105 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #endregion
 
-        #region ExecuteAsync(Command, CancellationToken)
+
+        #region Execute              (Command, CancellationToken)
 
         /// <summary>
         /// Run a command on the server and capture its stdout/stderr + exit status (log in once, run, capture, log out).
         /// </summary>
-        public ValueTask<SshCommandResult> ExecuteAsync(String Command, CancellationToken CancellationToken = default)
-            => SshSessionChannel.ExecuteAsync(mux, Command, CancellationToken);
+        public ValueTask<SshCommandResult> Execute(String             Command,
+                                                   CancellationToken  CancellationToken = default)
+
+            => SshSessionChannel.ExecuteAsync(
+                   channelMultiplexer,
+                   Command,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region OpenShellAsync(Pty = null, Environment = null, CancellationToken = default)
+        #region OpenShellAsync       (Pty = null, Environment = null, CancellationToken = default)
 
         /// <summary>
         /// Start an interactive shell, with the given pseudo-terminal where there is one - what
         /// <c>ssh host</c> does at a terminal.
         /// </summary>
-        public ValueTask<SshClientShell> OpenShellAsync(SshPty?                               Pty                = null,
-                                                        IReadOnlyDictionary<String, String>?  Environment        = null,
-                                                        CancellationToken                     CancellationToken  = default)
+        public ValueTask<SshClientShell> OpenShell(SshPty?                               Pty                = null,
+                                                   IReadOnlyDictionary<String, String>?  Environment        = null,
+                                                   CancellationToken                     CancellationToken  = default)
 
-            => SshClientShell.OpenAsync(mux, Pty, Environment, CancellationToken);
+            => SshClientShell.OpenAsync(
+                   channelMultiplexer,
+                   Pty,
+                   Environment,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region OpenTcpStreamAsync(Host, Port, CancellationToken)
+        #region OpenTCPStream        (Host, Port, CancellationToken)
 
         /// <summary>
         /// Open a <c>direct-tcpip</c> tunnel to <paramref name="Host"/>:<paramref name="Port"/> through the server as a plain <see cref="Stream"/>.
         /// </summary>
-        public async ValueTask<Stream> OpenTcpStreamAsync(String Host, UInt16 Port, CancellationToken CancellationToken = default)
+        public async ValueTask<Stream> OpenTCPStream(String             Host,
+                                                     IPPort             Port,
+                                                     CancellationToken  CancellationToken = default)
         {
-            var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
-            w.WriteString(Host); w.WriteUInt32(Port); w.WriteString("127.0.0.1"); w.WriteUInt32(0);
-            var channel = await mux.OpenChannelAsync("direct-tcpip", abw.WrittenSpan.ToArray(), CancellationToken).ConfigureAwait(false);
+
+            var abw  = new ArrayBufferWriter<Byte>();
+            var w    = new SshPacketWriter(abw);
+
+            w.WriteString(Host);
+            w.WriteUInt32(Port.ToUInt16());
+            w.WriteString("127.0.0.1");
+            w.WriteUInt32(0);
+
+            var channel = await channelMultiplexer.OpenChannelAsync(
+                                    "direct-tcpip",
+                                    abw.WrittenSpan.ToArray(),
+                                    CancellationToken
+                                ).ConfigureAwait(false);
+
             return channel.AsStream();
+
         }
 
         #endregion
 
-        #region StartLocalForward(LocalSocket, RemoteHost, RemotePort)
+        #region StartLocalForward    (LocalSocket, RemoteHost, RemotePort)
 
         /// <summary>
         /// Local port forwarding (<c>ssh -L</c>): listen on <paramref name="LocalSocket"/>, and tunnel every
         /// connection made there through the server to <paramref name="RemoteHost"/>:<paramref name="RemotePort"/>.
         /// </summary>
         /// <param name="LocalSocket">Where this side listens, e.g. <see cref="IPv4Address.Localhost"/> with
-        /// <see cref="IPPort.Auto"/> to let the OS choose the port (<see cref="SshLocalForward.LocalEndPoint"/>
+        /// <see cref="IPPort.Auto"/> to let the OS choose the port (<see cref="SSHLocalForward.LocalEndPoint"/>
         /// says which). An IPv6 address listens for IPv4 too.</param>
         /// <param name="RemoteHost">The host the server connects to, as the server resolves it.</param>
         /// <param name="RemotePort">The port the server connects to.</param>
         /// <returns>The forward: it lives until it is disposed, or this client is.</returns>
         /// <exception cref="System.Net.Sockets.SocketException">The local socket cannot be bound (say, the port is taken).</exception>
-        public SshLocalForward StartLocalForward(IPSocket  LocalSocket,
+        public SSHLocalForward StartLocalForward(IPSocket  LocalSocket,
                                                  String    RemoteHost,
-                                                 UInt16    RemotePort)
+                                                 IPPort    RemotePort)
         {
 
             ObjectDisposedException.ThrowIf(disposed != 0, this);
 
-            return SshLocalForward.Start(mux, LocalSocket, RemoteHost, RemotePort, stopping.Token);
+            return SSHLocalForward.Start(
+                       channelMultiplexer,
+                       LocalSocket,
+                       RemoteHost,
+                       RemotePort,
+                       stopping.Token
+                   );
 
         }
 
         #endregion
 
-        #region RequestRemoteForwardAsync(BindHost, BindPort, LocalHost, LocalPort, CancellationToken)
+        #region RequestRemoteForward (BindHost, BindPort, LocalHost, LocalPort, CancellationToken)
 
         /// <summary>
         /// Remote port forwarding (<c>ssh -R BindHost:BindPort:LocalHost:LocalPort</c>): ask the server to
@@ -576,22 +654,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// <param name="BindPort">The port the server listens on, or 0 to let it choose;
         /// <see cref="SshRemoteForward.BoundPort"/> says which it chose.</param>
         /// <param name="LocalHost">The host each forwarded connection is relayed to - resolved, where it is a
-        /// host name, with <see cref="SshClientOptions.DNSClient"/>.</param>
+        /// host name, with <see cref="SSHClientOptions.DNSClient"/>.</param>
         /// <param name="LocalPort">The port each forwarded connection is relayed to.</param>
         /// <param name="CancellationToken">Cancels the request, not the forward: that lives until it is
         /// cancelled or disposed, or the connection ends.</param>
         /// <exception cref="SshForwardingException">The server refused the forward.</exception>
-        public ValueTask<SshRemoteForward> RequestRemoteForwardAsync(String             BindHost,
-                                                                     UInt16             BindPort,
-                                                                     String             LocalHost,
-                                                                     UInt16             LocalPort,
-                                                                     CancellationToken  CancellationToken = default)
+        public ValueTask<SshRemoteForward> RequestRemoteForward(String             BindHost,
+                                                                IPPort             BindPort,
+                                                                String             LocalHost,
+                                                                IPPort             LocalPort,
+                                                                CancellationToken  CancellationToken = default)
 
-            => SshRemoteForwarding.RequestRemoteForwardAsync(mux, BindHost, BindPort, LocalHost, LocalPort, CancellationToken, dnsClient);
+            => SshRemoteForwarding.RequestRemoteForward(
+                   channelMultiplexer,
+                   BindHost,
+                   BindPort,
+                   LocalHost,
+                   LocalPort,
+                   CancellationToken,
+                   dnsClient
+               );
 
         #endregion
 
-        #region OpenSubsystemAsync(Name, CancellationToken)
+        #region OpenSubsystem        (Name, CancellationToken)
 
         /// <summary>
         /// Open a session channel and ask for the given subsystem on it - <c>ssh -s host Name</c>. The
@@ -601,24 +687,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// <param name="Name">The subsystem, e.g. "sftp" or "ocpp@open.charging.cloud".</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
         /// <exception cref="SshSubsystemRefusedException">The server refused the subsystem; the channel is closed again.</exception>
-        public async ValueTask<SshMuxChannel> OpenSubsystemAsync(String             Name,
-                                                                 CancellationToken  CancellationToken   = default)
+        public async ValueTask<SshMuxChannel> OpenSubsystem(String             Name,
+                                                            CancellationToken  CancellationToken   = default)
         {
 
-            var channel = await mux.OpenChannelAsync("session", CancellationToken: CancellationToken).ConfigureAwait(false);
+            var channel = await channelMultiplexer.OpenChannelAsync(
+                                    "session",
+                                    CancellationToken: CancellationToken
+                                ).ConfigureAwait(false);
 
             try
             {
-                if (await channel.SendRequestAsync("subsystem", true, SshSessionChannel.EncodeString(Name), CancellationToken).ConfigureAwait(false))
+                if (await channel.SendRequestAsync(
+                              "subsystem",
+                              true,
+                              SshSessionChannel.EncodeString(Name),
+                              CancellationToken
+                          ).ConfigureAwait(false))
+                {
                     return channel;
+                }
             }
             catch
             {
-                try { await channel.CloseAsync(CancellationToken.None).ConfigureAwait(false); } catch { }
+
+                try
+                {
+                    await channel.CloseAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch { }
+
                 throw;
+
             }
 
-            try { await channel.CloseAsync(CancellationToken.None).ConfigureAwait(false); } catch { }
+            try
+            {
+                await channel.CloseAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch { }
 
             throw new SshSubsystemRefusedException(Name);
 
@@ -626,20 +733,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #endregion
 
-        #region OpenSftpClientAsync(CancellationToken)
+        #region OpenSFTPClient       (CancellationToken)
 
         /// <summary>
-        /// Open the <c>sftp</c> subsystem over a multiplexed channel and return an SFTP client (runs concurrently with exec/tunnels).
+        /// Open the <c>sftp</c> subsystem over a multiplexed channel
+        /// and return an SFTP client (runs concurrently with exec/tunnels).
         /// </summary>
-        public async ValueTask<SftpClient> OpenSftpClientAsync(CancellationToken CancellationToken = default)
+        public async ValueTask<SFTPClient> OpenSFTPClient(CancellationToken CancellationToken = default)
         {
-            var channel = await mux.OpenChannelAsync("session", CancellationToken: CancellationToken).ConfigureAwait(false);
-            if (!await channel.SendRequestAsync("subsystem", true, SshSessionChannel.EncodeString("sftp"), CancellationToken).ConfigureAwait(false))
+
+            var channel = await channelMultiplexer.OpenChannelAsync(
+                                    "session",
+                                    CancellationToken: CancellationToken
+                                ).ConfigureAwait(false);
+
+            if (!await channel.SendRequestAsync(
+                           "subsystem",
+                           true,
+                           SshSessionChannel.EncodeString("sftp"),
+                           CancellationToken
+                       ).ConfigureAwait(false))
+            {
                 throw new SshSubsystemRefusedException("sftp");
-            return await SftpClient.OpenAsync(new StreamSftpDuplex(channel.AsStream()), CancellationToken).ConfigureAwait(false);
+            }
+
+            return await SFTPClient.OpenAsync(
+                             new StreamSftpDuplex(
+                                 channel.AsStream()
+                             ),
+                             CancellationToken
+                         ).ConfigureAwait(false);
+
         }
 
         #endregion
+
 
         #region DisposeAsync()
 
@@ -690,7 +818,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                     w.WriteUInt32((UInt32) DisconnectReason.ByApplication);
                     w.WriteString("the client is closing the connection");
                     w.WriteString("");
-                    await mux.SendAsync(abw.WrittenSpan.ToArray()).AsTask().WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                    await channelMultiplexer.SendAsync(abw.WrittenSpan.ToArray()).AsTask().WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -704,7 +832,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                 catch { }
             }
 
-            await mux.DisposeAsync().ConfigureAwait(false);
+            await channelMultiplexer.DisposeAsync().ConfigureAwait(false);
             await CloseTransportAsync(transport, pipe).ConfigureAwait(false);
 
         }

@@ -60,8 +60,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             public List<String>  Requests     { get; } = [];
             public Int32         Connections  { get; private set; }
 
-            public Int32         Port
-                => ((IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort         Port
+                => IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
 
             public URL           URL
                 => URL.Parse($"http://127.0.0.1:{Port}");

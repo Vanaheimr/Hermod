@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <param name="Username">The login, if it wants one.</param>
     /// <param name="Password">The password of the login.</param>
     public sealed record SmartHostRoute(String?  Host,
-                                        UInt16   Port      = 25,
+                                        IPPort   Port,
                                         String?  Username  = null,
                                         String?  Password  = null)
     {
@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <summary>
         /// Directly to the MX of every recipient domain.
         /// </summary>
-        public static SmartHostRoute Direct { get; } = new (null);
+        public static SmartHostRoute Direct { get; } = new (null, IPPort.SMTP);
 
         /// <summary>
         /// The way of an outbound configuration.

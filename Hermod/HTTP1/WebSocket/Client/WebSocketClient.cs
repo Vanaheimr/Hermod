@@ -255,9 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Our local IP port.
         /// </summary>
         public IPPort                                                          LocalPort
-            => CurrentLocalPort.HasValue
-                   ? IPPort.Parse(CurrentLocalPort.Value)
-                   : IPPort.Zero;
+            => CurrentLocalPort ?? IPPort.Zero;
 
 
         public Int32? Available
@@ -427,7 +425,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// to in HTTP/2 from the first byte (prior knowledge, RFC 9113,
         /// Section 3.3). <see cref="WebSocketHTTPVersion.Auto"/> offers "h2"
         /// and "http/1.1" and takes what the server chooses; a server that
-        /// chooses "h2" and then does not offer WebSockets over it is dialled
+        /// chooses "h2" and then does not offer WebSockets over it is connected to
         /// again with "http/1.1" alone, and from then on at once.
         /// <see cref="WebSocketHTTPVersion.HTTP3"/> opens it by an extended
         /// CONNECT over QUIC (RFC 9220), on the UDP port of the number of the
@@ -589,7 +587,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
         /// <param name="HTTPLogger">An HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public WebSocketClient(IIPAddress                                                      IPAddress,
+        public WebSocketClient(IPAddress                                                      IPAddress,
                                IPPort                                                          TCPPort,
                                I18NString?                                                     Description                      = null,
 
@@ -1174,7 +1172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
 
                     // The server chose "h2" out of what was offered and cannot
-                    // open a WebSocket over it. It is dialled again with
+                    // open a WebSocket over it. It is connected to again with
                     // "http/1.1" alone - now, and whenever this client comes back.
                     extendedConnectNotOffered = true;
 
@@ -1224,7 +1222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// those of QUIC's TLS 1.3.
         /// </remarks>
         private async Task OpenHTTP3Connection(TimeSpan   RequestTimeout,
-                                               UInt16?    Port             = null,
+                                               IPPort?    Port             = null,
                                                TimeSpan?  ConnectWithin    = null)
         {
 
@@ -1236,7 +1234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var host        = RemoteURL.Host.ToString();
             // The UDP port of the number of the TCP port, unless the server said another (Alt-Svc).
-            var port        = Port ?? (RemoteURL.Port ?? IPPort.HTTPS).ToUInt16();
+            var port        = Port ?? RemoteURL.Port ?? IPPort.HTTPS;
 
             var validator   = RemoteCertificateValidator;
 

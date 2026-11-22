@@ -49,7 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Data
 
-        private static readonly ConcurrentDictionary<String, (UInt16 Port, DateTimeOffset Until)> overHTTP3 = new (StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<String, (IPPort Port, DateTimeOffset Until)> overHTTP3 = new (StringComparer.OrdinalIgnoreCase);
 
         private static readonly ConcurrentDictionary<String, DateTimeOffset>                      notFound  = new (StringComparer.OrdinalIgnoreCase);
 
@@ -69,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private static String? OriginOf(URL URL)
 
             => URL.Scheme == URIScheme.wss || URL.Scheme == URIScheme.https
-                   ? $"{URL.Host}:{(URL.Port ?? IPPort.HTTPS).ToUInt16()}"
+                   ? $"{URL.Host}:{URL.Port ?? IPPort.HTTPS}"
                    : null;
 
         #endregion
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             ? null
                             : AlternativeServices.Services.FirstOrDefault(
                                   service => service.ProtocolId == "h3" &&
-                                             service.Port       != 0    &&
+                                             !service.Port.IsZero       &&
                                              service.MaxAge     >  TimeSpan.Zero &&
                                             (service.Host.Length == 0 || service.Host.Equals(host, StringComparison.OrdinalIgnoreCase))
                               );
@@ -130,10 +130,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="URL">The URL of the server.</param>
         /// <param name="Port">The UDP port.</param>
-        public static Boolean TryGetHTTP3(URL URL, out UInt16 Port)
+        public static Boolean TryGetHTTP3(URL URL, out IPPort Port)
         {
 
-            Port = 0;
+            Port = IPPort.Zero;
 
             if (OriginOf(URL) is not { } origin ||
                 !overHTTP3.TryGetValue(origin, out var known))

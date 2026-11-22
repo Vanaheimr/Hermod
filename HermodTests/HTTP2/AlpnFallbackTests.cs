@@ -51,11 +51,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// <summary>
         /// Connect and complete a TLS handshake offering exactly these ALPN protocols.
         /// </summary>
-        private static async Task<SslStream> ConnectOfferingAsync(Int32 Port, params SslApplicationProtocol[] Protocols)
+        private static async Task<SslStream> ConnectOfferingAsync(IPPort Port, params SslApplicationProtocol[] Protocols)
         {
 
             var tcp = new TcpClient();
-            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, Port);
+            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, Port.ToInt32());
 
             var ssl  = new SslStream(tcp.GetStream(), false, (_, _, _, _) => true);
             var opts = new SslClientAuthenticationOptions { TargetHost = "localhost" };

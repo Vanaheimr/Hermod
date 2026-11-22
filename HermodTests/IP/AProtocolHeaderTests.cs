@@ -106,8 +106,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
                            };
 
             var udp      = new UdpHeader() {
-                               SourcePort          = 5683,
-                               DestinationPort     = 5684,
+                               SourcePort          = IPPort.Parse(5683),
+                               DestinationPort     = IPPort.Parse(5684),
                                Length              = (UInt16) (UdpHeader.UDPHeaderLength + payLoad.Length),
                                ipv6PacketHeader    = ipv6
                            };

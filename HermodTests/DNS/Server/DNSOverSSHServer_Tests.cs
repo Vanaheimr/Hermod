@@ -38,14 +38,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
 {
 
     /// <summary>
-    /// DNS over SSH, the server side: <see cref="DNSServer.ServeSSHSubsystemAsync"/> behind an
+    /// DNS-over-SSH, the server side: <see cref="DNSServer.ServeSSHSubsystemAsync"/> behind an
     /// <see cref="SshServer"/>, asked with raw octets on a channel of the subsystem
     /// "dns@open.charging.cloud" - the byte stream of DNS over TCP, unchanged.
     /// </summary>
     /// <remarks>
     /// No DNS client is used here, so that these tests say what the server does whatever a client of
     /// Hermod's does. The numbers T1 to T3 are those of the test criteria of the white paper
-    /// "DNS over SSH" (chapter 11), the queries those of its appendix A.
+    /// "DNS-over-SSH" (chapter 11), the queries those of its appendix A.
     /// </remarks>
     [TestFixture]
     public class DNSOverSSHServer_Tests
@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
         /// <summary>
         /// A login the SSH server knows, and does not offer the DNS subsystem to.
         /// </summary>
-        private const String OCPPOnly  = "ocpp-only";
+        private static readonly User_Id OCPPOnly  = User_Id.Parse("ocpp-only");
 
         /// <summary>
         /// How many TXT records "big.example.org" has: an answer of a little under 60,000 octets.
@@ -84,7 +84,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
         /// </summary>
         private sealed record Asked(String ServerType, String? ClientIdentity, String Name);
 
-        private sealed record Running(DNSServer DNS, SshServer SSH, UInt16 Port, Int32 TCPPort, CollectingAuditSink Audit, ConcurrentQueue<Asked> Requests) : IAsyncDisposable
+        private sealed record Running(DNSServer               DNS,
+                                      SshServer               SSH,
+                                      IPPort                  Port,
+                                      IPPort                  TCPPort,
+                                      CollectingAuditSink     Audit,
+                                      ConcurrentQueue<Asked>  Requests)
+
+            : IAsyncDisposable
+
         {
             public async ValueTask DisposeAsync()
             {
@@ -204,23 +212,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             return new Running(
                        dns,
                        ssh,
-                       (UInt16) ssh.LocalEndPoint.Port.ToInt32(),
-                       dns.ActiveTCPUnicastSocket!.Value.Port.ToInt32(),
+                       ssh.LocalEndPoint.Port,
+                       dns.ActiveTCPUnicastSocket!.Value.Port,
                        audit,
                        requests
                    );
 
         }
 
-        private ValueTask<SshClient> ConnectAsync(Running            Running,
+        private ValueTask<SSHClient> ConnectAsync(Running            Running,
                                                   CancellationToken  CancellationToken,
                                                   String             Username   = "cs001")
 
-            => SshClient.ConnectAsync(
+            => SSHClient.Connect(
                    "127.0.0.1",
                    Running.Port,
-                   new SshClientOptions {
-                       Username       = Username,
+                   new SSHClientOptions {
+                       Username       = User_Id.Parse(Username),
                        VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                        Credentials    = [ stationKey ]
                    },
@@ -341,10 +349,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
         /// Ask for "csms.example.org" on a new channel of the given connection: the address it has
         /// there, which shows that the connection goes on and that the DNS server is behind it.
         /// </summary>
-        private static async Task<String> AskOnANewChannelAsync(SshClient Ssh, UInt16 Id, CancellationToken CancellationToken)
+        private static async Task<String> AskOnANewChannelAsync(SSHClient Ssh, UInt16 Id, CancellationToken CancellationToken)
         {
 
-            var channel = await Ssh.OpenSubsystemAsync(DNSServer.SSHSubsystemName, CancellationToken);
+            var channel = await Ssh.OpenSubsystem(DNSServer.SSHSubsystemName, CancellationToken);
 
             await channel.SendDataAsync(Framed(PaddedQuery(Id, "csms.example.org", 1)), CancellationToken);
 
@@ -398,12 +406,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
 
             var query    = Convert.FromHexString(A1);
 
-            var channel  = await ssh.OpenSubsystemAsync(DNSServer.SSHSubsystemName, CancellationToken);
+            var channel  = await ssh.OpenSubsystem(DNSServer.SSHSubsystemName, CancellationToken);
             await channel.SendDataAsync(query, CancellationToken);
             var overSSH  = await ReadMessageAsync(channel.Input, CancellationToken);
 
             using var tcp = new TcpClient();
-            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, running.TCPPort, CancellationToken);
+            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, running.TCPPort.ToUInt16(), CancellationToken);
             await tcp.GetStream().WriteAsync(query, CancellationToken);
             var overTCP  = await ReadMessageAsync(tcp.GetStream(), CancellationToken);
 
@@ -448,7 +456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             await using var running = await StartAsync(CancellationToken);
             await using var ssh     = await ConnectAsync(running, CancellationToken);
 
-            var channel = await ssh.OpenSubsystemAsync(DNSServer.SSHSubsystemName, CancellationToken);
+            var channel = await ssh.OpenSubsystem(DNSServer.SSHSubsystemName, CancellationToken);
 
             Byte[] oneWrite = [
                 .. Convert.FromHexString(A1),
@@ -512,7 +520,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             await using var running = await StartAsync(CancellationToken);
             await using var ssh     = await ConnectAsync(running, CancellationToken);
 
-            var channel = await ssh.OpenSubsystemAsync(DNSServer.SSHSubsystemName, CancellationToken);
+            var channel = await ssh.OpenSubsystem(DNSServer.SSHSubsystemName, CancellationToken);
             var query   = Convert.FromHexString(A1);
 
             for (var i = 0; i < query.Length; i++)
@@ -554,7 +562,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             await using var running = await StartAsync(CancellationToken);
             await using var ssh     = await ConnectAsync(running, CancellationToken);
 
-            var channel = await ssh.OpenSubsystemAsync(DNSServer.SSHSubsystemName, CancellationToken);
+            var channel = await ssh.OpenSubsystem(DNSServer.SSHSubsystemName, CancellationToken);
 
             // Two of them and a short one behind: a long answer does not run into the next one either.
             Byte[] oneWrite = [
@@ -615,7 +623,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             Assert.That(await AskOnANewChannelAsync(cs002, 0x0022, CancellationToken), Is.EqualTo("192.0.2.10"));
 
             using var tcp = new TcpClient();
-            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, running.TCPPort, CancellationToken);
+            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, running.TCPPort.ToUInt16(), CancellationToken);
             await tcp.GetStream().WriteAsync(Framed(PaddedQuery(0x0023, "ns.example.org", 1)), CancellationToken);
 
             Assert.That(await ReadMessageAsync(tcp.GetStream(), CancellationToken), Is.Not.Null, "no answer over TCP");
@@ -646,7 +654,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             await using var running = await StartAsync(CancellationToken);
             await using var ssh     = await ConnectAsync(running, CancellationToken);
 
-            var channel = await ssh.OpenSubsystemAsync(DNSServer.SSHSubsystemName, CancellationToken);
+            var channel = await ssh.OpenSubsystem(DNSServer.SSHSubsystemName, CancellationToken);
 
             Byte[] oneWrite = [
                 .. Framed([ 0x00, 0x71, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ]),
@@ -691,7 +699,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             await using var running = await StartAsync(CancellationToken);
             await using var ssh     = await ConnectAsync(running, CancellationToken);
 
-            var channel = await ssh.OpenSubsystemAsync(DNSServer.SSHSubsystemName, CancellationToken);
+            var channel = await ssh.OpenSubsystem(DNSServer.SSHSubsystemName, CancellationToken);
 
             await channel.SendDataAsync(Convert.FromHexString(A1), CancellationToken);
             Assert.That(await ReadMessageAsync(channel.Input, CancellationToken), Is.Not.Null, "no answer before the EOF");
@@ -735,7 +743,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             await using var running = await StartAsync(CancellationToken);
             await using var ssh     = await ConnectAsync(running, CancellationToken);
 
-            var channel = await ssh.OpenSubsystemAsync(DNSServer.SSHSubsystemName, CancellationToken);
+            var channel = await ssh.OpenSubsystem(DNSServer.SSHSubsystemName, CancellationToken);
 
             await channel.SendDataAsync(Convert.FromHexString(A1), CancellationToken);
             Assert.That(await ReadMessageAsync(channel.Input, CancellationToken), Is.Not.Null, "the positive control: no answer before the protocol error");
@@ -777,7 +785,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
             await using var running = await StartAsync(CancellationToken, readTimeout);
             await using var ssh     = await ConnectAsync(running, CancellationToken);
 
-            var channel = await ssh.OpenSubsystemAsync(DNSServer.SSHSubsystemName, CancellationToken);
+            var channel = await ssh.OpenSubsystem(DNSServer.SSHSubsystemName, CancellationToken);
 
             await channel.SendDataAsync(Convert.FromHexString(A1), CancellationToken);
             Assert.That(await ReadMessageAsync(channel.Input, CancellationToken), Is.Not.Null, "the positive control: no answer on the channel that is then left idle");
@@ -820,16 +828,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Server
         {
 
             await using var running  = await StartAsync(CancellationToken);
-            await using var ocppOnly = await ConnectAsync(running, CancellationToken, OCPPOnly);
+            await using var ocppOnly = await ConnectAsync(running, CancellationToken, OCPPOnly.ToString());
             await using var cs001    = await ConnectAsync(running, CancellationToken, "cs001");
 
-            var refused = await Assert.ThrowsAsync<SshSubsystemRefusedException>(async () => await ocppOnly.OpenSubsystemAsync(DNSServer.SSHSubsystemName, CancellationToken));
+            var refused = await Assert.ThrowsAsync<SshSubsystemRefusedException>(async () => await ocppOnly.OpenSubsystem(DNSServer.SSHSubsystemName, CancellationToken));
 
             Assert.That(refused!.Subsystem,  Is.EqualTo(DNSServer.SSHSubsystemName));
             Assert.That(running.Requests,    Is.Empty);
 
             // The connection of the refused login goes on.
-            var echo = await ocppOnly.OpenSubsystemAsync(Echo, CancellationToken);
+            var echo = await ocppOnly.OpenSubsystem(Echo, CancellationToken);
             var (said, _) = await ToTheEndAsync(echo);
             Assert.That(System.Text.Encoding.UTF8.GetString(said), Is.EqualTo("echo\n"));
 

@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         private TcpListener listener   = null!;
         private Task        serverLoop = null!;
-        private Int32       port;
+        private IPPort       port;
 
         #region Echo server (server-role WebSocketConnection over a raw TCP tunnel)
 
@@ -57,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         {
             listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
-            port       = ((IPEndPoint) listener.LocalEndpoint).Port;
+            port       = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             serverLoop = Task.Run(ServerLoopAsync);
         }
 
@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private async Task<NetworkStream> Handshake()
         {
             var tcp = new TcpClient();
-            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, port);
+            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, port.ToInt32());
             var s = tcp.GetStream();
             var key = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
             await s.WriteAsync(Encoding.ASCII.GetBytes(
@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         private async Task<(NetworkStream Stream, Boolean Deflate)> HandshakeOfferingDeflate()
         {
             var tcp = new TcpClient();
-            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, port);
+            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, port.ToInt32());
             var s = tcp.GetStream();
             var key = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
             await s.WriteAsync(Encoding.ASCII.GetBytes(

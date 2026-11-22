@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The address this listener bound.
         /// </summary>
-        public IIPAddress            IPAddress     { get; }
+        public IPAddress            IPAddress     { get; }
 
         /// <summary>
         /// The port this listener bound. Known only once <see cref="Start"/> has
@@ -185,7 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </param>
         public DNSOverHTTP2Server(IDNSRequestHandler?  RequestHandler       = null,
                                   DNSServerOptions?    DNSServerOptions     = null,
-                                  IIPAddress?          IPAddress            = null,
+                                  IPAddress?          IPAddress            = null,
                                   IPPort?              TCPPort              = null,
                                   HTTPPath?            DNSQueryPath         = null,
                                   DNSMessagePipeline?  Pipeline             = null,
@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.http2Server  = new HTTP2Server(
                                     Address:             System.Net.IPAddress.Parse(this.IPAddress.ToString()),
-                                    Port:                this.TCPPort.ToUInt16(),
+                                    Port:                this.TCPPort,
                                     Certificate:         certificate,
                                     RequestHandler:      HandleHTTP2RequestAsync,
                                     Cleartext:           certificate is null,
@@ -267,7 +267,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             StartNew(IDNSRequestHandler?  RequestHandler       = null,
                      DNSServerOptions?    DNSServerOptions     = null,
-                     IIPAddress?          IPAddress            = null,
+                     IPAddress?          IPAddress            = null,
                      IPPort?              TCPPort              = null,
                      HTTPPath?            DNSQueryPath         = null,
                      DNSMessagePipeline?  Pipeline             = null,

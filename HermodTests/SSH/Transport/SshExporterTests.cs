@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -408,17 +409,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            async Task<SshClient> ConnectAsync()
-                => await SshClient.ConnectAsync("127.0.0.1", (UInt16) server.LocalEndPoint.Port.ToInt32(), new SshClientOptions {
-                       Username       = "cs001",
+            async Task<SSHClient> ConnectAsync()
+                => await SSHClient.Connect("127.0.0.1", server.LocalEndPoint.Port, new SSHClientOptions {
+                       Username       = User_Id.Parse("cs001"),
                        VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                        Credentials    = [ userKey ]
                    }, CancellationToken);
 
             // The server's key, and the one the client exports with the server's nonce.
-            static async Task<(Byte[] Server, Byte[] Client)> KeysAsync(SshClient Client, CancellationToken CancellationToken)
+            static async Task<(Byte[] Server, Byte[] Client)> KeysAsync(SSHClient Client, CancellationToken CancellationToken)
             {
-                var channel  = await Client.OpenSubsystemAsync(Subsystem, CancellationToken);
+                var channel  = await Client.OpenSubsystem(Subsystem, CancellationToken);
                 using var memory = new MemoryStream();
                 await channel.Input.CopyToAsync(memory, CancellationToken);
                 var received = memory.ToArray();

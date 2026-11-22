@@ -24,6 +24,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Server;
@@ -38,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
     /// <summary>
     /// A half-close crosses every forward, whichever side makes it: the bytes on their way in the other
     /// direction still arrive. Through <c>-L</c> it crosses the client's listener and the server's
-    /// <c>direct-tcpip</c> dial; through <c>-R</c>, the server's listener and the client's dial.
+    /// <c>direct-tcpip</c> connection; through <c>-R</c>, the server's listener and the client's connection.
     /// </summary>
     [TestFixture]
     public class HalfCloseForwardingTests
@@ -75,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await ThroughAForwardAsync(Direction, target.Port, async port => {
 
                 using var local = new TcpClient();
-                await local.ConnectAsync(IPAddress.Loopback, port, CancellationToken);
+                await local.ConnectAsync(IPAddress.Loopback, port.ToInt32(), CancellationToken);
 
                 var stream = local.GetStream();
                 await stream.WriteAsync(Encoding.UTF8.GetBytes(Question), CancellationToken);
@@ -119,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await ThroughAForwardAsync(Direction, target.Port, async port => {
 
                 using var local = new TcpClient();
-                await local.ConnectAsync(IPAddress.Loopback, port, CancellationToken);
+                await local.ConnectAsync(IPAddress.Loopback, port.ToInt32(), CancellationToken);
 
                 var stream = local.GetStream();
 
@@ -170,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             /// <summary>
             /// The port the target listens on.
             /// </summary>
-            public UInt16 Port { get; }
+            public IPPort Port { get; }
 
             /// <summary>
             /// Listen, and serve each connection with <paramref name="Serve"/>, which closes it when done.
@@ -179,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 listener.Start();
-                Port = (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port;
+                Port = IPPort.Parse((UInt16) ((IPEndPoint) listener.LocalEndpoint).Port);
 
                 accepting = Task.Run(async () => {
                     try
@@ -230,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         /// Our client and our server, with a forward to <paramref name="TargetPort"/> in the given
         /// direction; <paramref name="Exercise"/> gets the port to connect to.
         /// </summary>
-        private static async Task ThroughAForwardAsync(String Direction, UInt16 TargetPort, Func<Int32, Task> Exercise, CancellationToken CancellationToken)
+        private static async Task ThroughAForwardAsync(String Direction, IPPort TargetPort, Func<IPPort, Task> Exercise, CancellationToken CancellationToken)
         {
 
             var hostKey = SshHostKey.GenerateEd25519();
@@ -247,8 +248,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", (UInt16) server.LocalEndPoint.Port.ToInt32(), new SshClientOptions {
-                    Username      = "achim",
+                await using var client = await SSHClient.Connect("127.0.0.1", server.LocalEndPoint.Port, new SSHClientOptions {
+                    Username      = User_Id.Parse("achim"),
                     VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                     Credentials   = [ userKey ]
                 }, CancellationToken);
@@ -256,11 +257,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 if (Direction == "-L")
                 {
                     await using var forward = client.StartLocalForward(new IPSocket(IPv4Address.Localhost, IPPort.Auto), "127.0.0.1", TargetPort);
-                    await Exercise(forward.LocalEndPoint.Port.ToInt32());
+                    await Exercise(forward.LocalEndPoint.Port);
                 }
                 else
                 {
-                    await using var forward = await client.RequestRemoteForwardAsync("127.0.0.1", 0, "127.0.0.1", TargetPort, CancellationToken);
+                    await using var forward = await client.RequestRemoteForward("127.0.0.1", IPPort.Zero, "127.0.0.1", TargetPort, CancellationToken);
                     await Exercise(forward.BoundPort);
                 }
 

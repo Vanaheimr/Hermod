@@ -22,6 +22,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
@@ -111,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 var serving = Task.Run(async () => {
                                   var channel = await server.AcceptChannelAsync(CancellationToken);
                                   await SshSessionChannel.ServeAsync(
-                                            channel, "hermoduser",
+                                            channel, User_Id.Parse("hermoduser"),
                                             async (context, ct) => { await context.WriteAsync("done\n", ct); return 0; },
                                             null, CancellationToken);
                               }, CancellationToken);
@@ -160,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 var serving = Task.Run(async () => {
                                   var channel = await server.AcceptChannelAsync(CancellationToken);
                                   await SshSessionChannel.ServeAsync(
-                                            channel, "hermoduser",
+                                            channel, User_Id.Parse("hermoduser"),
                                             async (context, ct) => { await context.WriteAsync("done\n", ct); return 0; },
                                             null, CancellationToken);
                               }, CancellationToken);
@@ -228,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                                   var channel = await server.AcceptChannelAsync(CancellationToken);
                                   await SshSessionChannel.ServeAsync(
                                             channel,
-                                            new SshSessionInfo("", "hermoduser", "", null, null, null, null, SshSessionRestrictions.None),
+                                            new SshSessionInfo("", User_Id.Parse("hermoduser"), "", null, null, null, null, SshSessionRestrictions.None),
                                             async (context, ct) => { await context.WriteAsync("done", ct); return 0; },
                                             null,
                                             null,

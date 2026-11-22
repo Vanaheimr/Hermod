@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.TCP
         /// <summary>
         /// Gets the IPAddress on which the TCP server listens.
         /// </summary>
-        public IIPAddress                        IPAddress                              { get; }
+        public IPAddress                        IPAddress                              { get; }
 
         /// <summary>
         /// Gets the port on which the TCP server listens.

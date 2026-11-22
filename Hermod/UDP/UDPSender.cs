@@ -91,7 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// </summary>
         /// <param name="IPAddress">The IP address to send the UDP data.</param>
         /// <param name="Port">The IP port to send the UDP data.</param>
-        public UDPSender(IIPAddress IPAddress, IPPort Port)
+        public UDPSender(IPAddress IPAddress, IPPort Port)
             : base(Message => Message, IPAddress, Port)
         { }
 
@@ -165,12 +165,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #region IPAddress
 
-        private IIPAddress ipAddress;
+        private IPAddress ipAddress;
 
         /// <summary>
         /// The IP address to send the UDP data.
         /// </summary>
-        public IIPAddress IPAddress
+        public IPAddress IPAddress
         {
 
             get
@@ -330,7 +330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="IPAddress">The IP address to send the UDP data.</param>
         /// <param name="Port">The IP port to send the UDP data.</param>
         public UDPSender(Func<T, Byte[]>  MessageProcessor,
-                         IIPAddress       IPAddress,
+                         IPAddress       IPAddress,
                          IPPort           Port)
 
             : this(MessageProcessor, Port)
@@ -356,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="DNSClient">The DNS client a host name is resolved with.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
         /// <exception cref="NameResolutionException">A host name without a DNS client, or one it found no IPv4 address for.</exception>
-        public static async Task<IIPAddress> IPv4AddressOf(String             Hostname,
+        public static async Task<IPAddress> IPv4AddressOf(String             Hostname,
                                                            IDNSClient?        DNSClient,
                                                            CancellationToken  CancellationToken = default)
         {

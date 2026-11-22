@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
     ///
     /// <para>
     /// Two bypasses were found by the M9 security review, and both were invisible to the existing
-    /// profile tests because those drive the high-level <see cref="SftpClient"/>, which never emits the
+    /// profile tests because those drive the high-level <see cref="SFTPClient"/>, which never emits the
     /// packets an attacker would send:
     /// </para>
     /// <list type="number">

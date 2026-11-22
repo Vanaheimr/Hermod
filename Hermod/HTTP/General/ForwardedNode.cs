@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     ///    obfport   = "_" 1*( ALPHA / DIGIT / "." / "_" / "-" )
     ///
     /// Three of those four nodenames are not addresses, which is the whole
-    /// reason this type exists rather than an IIPAddress: a node may say
+    /// reason this type exists rather than an IPAddress: a node may say
     /// "unknown" when it has an address it cannot express, and it may send an
     /// obfuscated identifier when it has one it does not wish to disclose.
     /// Section 6.3 is explicit that an obfuscated identifier is opaque - it may
@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The address, when the node name is an IP literal; null for
         /// "unknown" and for obfuscated identifiers.
         /// </summary>
-        public IIPAddress?  IPAddress         { get; }
+        public IPAddress?  IPAddress         { get; }
 
         /// <summary>
         /// The port, when the node carries a numeric one.
@@ -87,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Constructor(s)
 
         private ForwardedNode(String       NodeName,
-                              IIPAddress?  IPAddress        = null,
+                              IPAddress?  IPAddress        = null,
                               IPPort?      Port             = null,
                               String?      ObfuscatedPort   = null)
         {
@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A node identified by an address, with an optional port.
         /// </summary>
-        public static ForwardedNode From(IIPAddress  IPAddress,
+        public static ForwardedNode From(IPAddress  IPAddress,
                                          IPPort?     Port   = null)
         {
 
@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region The node name: an address, "unknown", or something opaque
 
-            IIPAddress? ipAddress = null;
+            IPAddress? ipAddress = null;
 
             if (nodeName.StartsWith('[') && nodeName.EndsWith(']'))
             {

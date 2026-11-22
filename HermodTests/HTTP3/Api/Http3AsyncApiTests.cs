@@ -49,7 +49,7 @@ public class Http3AsyncApiTests
             if (request.Path == "/slow")
                 await gate.Task.WaitAsync(token).ConfigureAwait(false);
             return new Http3Response { Status = 200, Body = Encoding.UTF8.GetBytes($"ok {request.Path}") };
-        }, port: 0);
+        }, port: IPPort.Zero);
         server.Start();
 
         await using var slowClient = new Http3Client("localhost", server.Port, validation);
@@ -83,7 +83,7 @@ public class Http3AsyncApiTests
         new Random(7).NextBytes(payload);
 
         await using var server = new Http3Server(cert,
-            request => new Http3Response { Status = 200, Body = request.Body.Length > 0 ? [1] : payload }, port: 0);
+            request => new Http3Response { Status = 200, Body = request.Body.Length > 0 ? [1] : payload }, port: IPPort.Zero);
         server.Start();
         await using var client = new Http3Client("localhost", server.Port, validation);
         await client.ConnectAsync(TimeSpan.FromSeconds(10));
@@ -116,7 +116,7 @@ public class Http3AsyncApiTests
             {
                 Status = 200,
                 BodyStream = new MemoryStream(payload, writable: false),
-            }), port: 0);
+            }), port: IPPort.Zero);
         server.Start();
 
         await using var client = new Http3Client("localhost", server.Port, validation);
@@ -139,9 +139,9 @@ public class Http3AsyncApiTests
 
         await using var server = new Http3Server(cert,
             request => new Http3Response { Status = 200, Body = Encoding.UTF8.GetBytes($"hello {request.Path}") },
-            port: 0);
+            port: IPPort.Zero);
         server.Start();
-        Assert.That(server.Port, Is.GreaterThan(0));
+        Assert.That(server.Port.IsZero, Is.False);
 
         await using var client = new Http3Client("localhost", server.Port, validation);
         await client.ConnectAsync(TimeSpan.FromSeconds(10));
@@ -162,7 +162,7 @@ public class Http3AsyncApiTests
 
         await using var server = new Http3Server(cert,
             request => new Http3Response { Status = 200, Body = Encoding.UTF8.GetBytes(request.Path) },
-            port: 0);
+            port: IPPort.Zero);
         server.Start();
 
         await using var client = new Http3Client("localhost", server.Port, validation);
@@ -184,7 +184,7 @@ public class Http3AsyncApiTests
 
         await using var server = new Http3Server(cert,
             request => new Http3Response { Status = 200, Body = request.Body },
-            port: 0);
+            port: IPPort.Zero);
         server.Start();
 
         await using var client = new Http3Client("localhost", server.Port, validation);
@@ -200,7 +200,7 @@ public class Http3AsyncApiTests
     public async Task ConnectAsync_AgainstDeadPort_ThrowsTimeout()
     {
         // No server: the handshake can never be confirmed ⇒ TimeoutException instead of a hang.
-        await using var client = new Http3Client("localhost", 1, CertificateValidationOptions.Insecure);
+        await using var client = new Http3Client("localhost", IPPort.Parse(1), CertificateValidationOptions.Insecure);
         await Assert.ThrowsAsync<TimeoutException>(() => client.ConnectAsync(TimeSpan.FromMilliseconds(500)));
     }
 
@@ -210,7 +210,7 @@ public class Http3AsyncApiTests
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
 
-        await using var server = new Http3Server(cert, _ => new Http3Response { Status = 204 }, port: 0);
+        await using var server = new Http3Server(cert, _ => new Http3Response { Status = 204 }, port: IPPort.Zero);
         server.Start();
 
         await using var client = new Http3Client("localhost", server.Port, validation);
@@ -236,7 +236,7 @@ public class Http3AsyncApiTests
             if (request.Path == "/slow")
                 await gate.Task.WaitAsync(token).ConfigureAwait(false);
             return new Http3Response { Status = 200, Body = new byte[10_000] };
-        }, port: 0);
+        }, port: IPPort.Zero);
         server.Start();
 
         await using var client = new Http3Client("localhost", server.Port, validation);

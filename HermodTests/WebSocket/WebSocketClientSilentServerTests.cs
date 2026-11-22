@@ -198,9 +198,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #region (private) Port
 
-        private UInt16 Port
+        private IPPort Port
 
-            => (UInt16) ((IPEndPoint) listener!.LocalEndpoint).Port;
+            => IPPort.Parse((UInt16) ((IPEndPoint) listener!.LocalEndpoint).Port);
 
         #endregion
 

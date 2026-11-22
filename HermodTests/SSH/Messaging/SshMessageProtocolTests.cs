@@ -25,6 +25,7 @@ using NUnit.Framework;
 
 using Newtonsoft.Json.Linq;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -54,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         private readonly ISshHostKey  hostKey     = SshHostKey.GenerateEd25519();
         private readonly ISshHostKey  stationKey  = SshHostKey.GenerateEd25519();
 
-        private sealed record Running(SshServer Server, UInt16 Port, SshMessageServer Messages, CollectingAuditSink Audit) : IAsyncDisposable
+        private sealed record Running(SshServer Server, IPPort Port, SshMessageServer Messages, CollectingAuditSink Audit) : IAsyncDisposable
         {
             public ValueTask DisposeAsync() => Server.DisposeAsync();
         }
@@ -87,14 +88,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            return new Running(server, (UInt16) server.LocalEndPoint.Port.ToInt32(), messages, audit);
+            return new Running(server, server.LocalEndPoint.Port, messages, audit);
 
         }
 
-        private SshClientOptions Login(String Username = "cs001")
+        private SSHClientOptions Login(String Username = "cs001")
 
             => new () {
-                   Username       = Username,
+                   Username       = User_Id.Parse(Username),
                    VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                    Credentials    = [ stationKey ]
                };
@@ -139,10 +140,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         /// <summary>
         /// A raw channel to the subsystem, for frames no well-behaved client sends.
         /// </summary>
-        private async Task<(SshClient Ssh, SshMuxChannel Channel)> RawAsync(Running Running, CancellationToken CancellationToken)
+        private async Task<(SSHClient Ssh, SshMuxChannel Channel)> RawAsync(Running Running, CancellationToken CancellationToken)
         {
-            var ssh     = await SshClient.ConnectAsync("127.0.0.1", Running.Port, Login(), CancellationToken);
-            var channel = await ssh.OpenSubsystemAsync(OCPP, CancellationToken);
+            var ssh     = await SSHClient.Connect("127.0.0.1", Running.Port, Login(), CancellationToken);
+            var channel = await ssh.OpenSubsystem(OCPP, CancellationToken);
             return (ssh, channel);
         }
 
@@ -186,18 +187,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(connection.Role,           Is.EqualTo(ConnectionRole.Client));
                 Assert.That(connection.Subprotocol,    Is.EqualTo("ocpp2.1"), "the client's first choice, which the server speaks too");
                 Assert.That(connection.Subsystem,      Is.EqualTo(OCPP));
-                Assert.That(connection.Username,       Is.EqualTo("cs001"));
+                Assert.That(connection.Username,       Is.EqualTo(User_Id.Parse("cs001")));
                 Assert.That(connection.ServerHostKey,  Is.EqualTo(hostKey.PublicKeyBlob));
                 Assert.That(connection.Session,        Is.Null);
-                Assert.That(connection.RemoteSocket.Port.ToInt32(), Is.EqualTo(running.Port));
+                Assert.That(connection.RemoteSocket.Port,           Is.EqualTo(running.Port));
                 Assert.That(connection.TryGetSSH(out var ssh), Is.True);
                 Assert.That(ssh,                       Is.SameAs(connection));
                 Assert.That(connection.TryGetWebSocket(out _), Is.False);
 
                 Assert.That(serverSide.Role,               Is.EqualTo(ConnectionRole.Server));
                 Assert.That(serverSide.Subprotocol,        Is.EqualTo("ocpp2.1"));
-                Assert.That(serverSide.Username,           Is.EqualTo("cs001"));
-                Assert.That(serverSide.Session?.Username,  Is.EqualTo("cs001"));
+                Assert.That(serverSide.Username,           Is.EqualTo(User_Id.Parse("cs001")));
+                Assert.That(serverSide.Session?.Username,  Is.EqualTo(User_Id.Parse("cs001")));
                 Assert.That(serverSide.Session?.PublicKeyBlob, Is.EqualTo(stationKey.PublicKeyBlob));
                 Assert.That(serverSide.ServerHostKey,      Is.Null);
 
@@ -301,7 +302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await rogue.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            await using var client = Client(new Running(rogue, (UInt16) rogue.LocalEndPoint.Port.ToInt32(), null!, null!));
+            await using var client = Client(new Running(rogue, rogue.LocalEndPoint.Port, null!, null!));
 
             var error = await Assert.ThrowsAsync<SshMessageProtocolException>(async () => await client.ConnectAsync(CancellationToken));
 
@@ -345,10 +346,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var running = await StartAsync(CancellationToken, Validate: (server, context, hello, subprotocol, ct) =>
 
                 ValueTask.FromResult(
-                    hello.JSON["networkingNodeId"]?.Value<String>() is String asked && asked != context.Session.Username
+                    hello.JSON["networkingNodeId"]?.Value<String>() is String asked && User_Id.TryParse(asked) != context.Session.Username
                         ? SshHelloVerdict.Refuse("not-yours", $"'{context.Session.Username}' may not act for '{asked}'.")
-                        : SshHelloVerdict.Accept(new JObject { ["networkingNodeId"] = context.Session.Username },
-                                                 new Dictionary<String, Object?> { ["networkingNodeId"] = context.Session.Username })
+                        : SshHelloVerdict.Accept(new JObject { ["networkingNodeId"] = context.Session.Username.ToString() },
+                                                 new Dictionary<String, Object?> { ["networkingNodeId"] = context.Session.Username.ToString() })
                 )
 
             );
@@ -594,7 +595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             Assert.That(ssh, Is.Not.Null, "No SSH connection while the messages go over one.");
 
-            var channel    = await ssh!.OpenSubsystemAsync(Time, CancellationToken);
+            var channel    = await ssh!.OpenSubsystem(Time, CancellationToken);
             using var read = new MemoryStream();
             await channel.Input.CopyToAsync(read, CancellationToken);
 
@@ -871,7 +872,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            var running = new Running(server, (UInt16) server.LocalEndPoint.Port.ToInt32(), twoX, new CollectingAuditSink());
+            var running = new Running(server, server.LocalEndPoint.Port, twoX, new CollectingAuditSink());
 
             await using var old      = Client(running, o => o with { Subprotocols = [ "ocpp1.6" ] });
             await using var current  = Client(running, o => o with { Subprotocols = [ "ocpp2.1", "ocpp1.6" ] });
@@ -1106,16 +1107,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             async Task<String> Tick()
             {
-                var channel    = await (await shared.GetAsync(CancellationToken)).OpenSubsystemAsync(Time, CancellationToken);
+                var channel    = await (await shared.GetAsync(CancellationToken)).OpenSubsystem(Time, CancellationToken);
                 using var read = new MemoryStream();
                 await channel.Input.CopyToAsync(read, CancellationToken);
                 return Encoding.UTF8.GetString(read.ToArray());
             }
 
-            // The time, before there are any messages: it is the one that dials.
+            // The time, before there are any messages: it is the one that connects.
             var before      = shared.Current;
             var firstTick   = await Tick();
-            var dialled     = shared.Current;
+            var connected   = shared.Current;
 
             var client      = new SshMessageClient(new SshMessageClientOptions {
                                   Host          = "nowhere.invalid",
@@ -1144,11 +1145,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(before,                 Is.Null,              "A connection before anybody asked for one.");
                 Assert.That(firstTick,              Is.EqualTo("tick"));
                 Assert.That(text,                   Does.Contain("Heartbeat"));
-                Assert.That(overIt,                 Is.SameAs(dialled),   "The messages went over another connection than the one that was shared.");
-                Assert.That(serverSide.Username,      Is.EqualTo("cs001"),  "The login of the connection, which the options of the client did not name.");
-                Assert.That(connection.Username,      Is.EqualTo("cs001"));
+                Assert.That(overIt,                 Is.SameAs(connected),   "The messages went over another connection than the one that was shared.");
+                Assert.That(serverSide.Username,      Is.EqualTo(User_Id.Parse("cs001")),  "The login of the connection, which the options of the client did not name.");
+                Assert.That(connection.Username,      Is.EqualTo(User_Id.Parse("cs001")));
                 Assert.That(secondTick,             Is.EqualTo("tick"),   "The shared connection ended with the messages.");
-                Assert.That(shared.Current,         Is.SameAs(dialled));
+                Assert.That(shared.Current,         Is.SameAs(connected));
                 Assert.That(shared.Made,            Is.EqualTo(1),        "More than one connection was made.");
                 Assert.That(client.Ssh,             Is.Null,              "An SSH connection handed out after the messages ended.");
             });
@@ -1300,7 +1301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
-        #region SharedConnection_TwoThatAskAtOnceDialOnce
+        #region SharedConnection_TwoThatAskAtOnceConnectOnce
 
         /// <summary>
         /// Two users ask for the connection at the same moment: one connection is made, and both get it.
@@ -1308,25 +1309,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         /// </summary>
         [Test]
         [CancelAfter(30000)]
-        public async Task SharedConnection_TwoThatAskAtOnceDialOnce(CancellationToken CancellationToken)
+        public async Task SharedConnection_TwoThatAskAtOnceConnectOnce(CancellationToken CancellationToken)
         {
 
             await using var running = await StartAsync(CancellationToken);
 
-            var dials   = 0;
+            var tries   = 0;
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var fail    = true;
 
             await using var shared = new SshSharedConnection(async ct => {
 
-                                         Interlocked.Increment(ref dials);
+                                         Interlocked.Increment(ref tries);
 
                                          if (fail)
                                              throw new IOException("The server is not there yet.");
 
                                          await release.Task.WaitAsync(ct);
 
-                                         return await SshClient.ConnectAsync("127.0.0.1", running.Port, Login(), ct);
+                                         return await SSHClient.Connect("127.0.0.1", running.Port, Login(), ct);
 
                                      });
 
@@ -1346,7 +1347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             Assert.Multiple(() => {
                 Assert.That(afterTheFailure,  Is.Null);
                 Assert.That(second,           Is.SameAs(first));
-                Assert.That(dials,            Is.EqualTo(2),  "One dial that failed and one that did not.");
+                Assert.That(tries,            Is.EqualTo(2),  "One attempt that failed and one that did not.");
                 Assert.That(shared.Made,      Is.EqualTo(1));
             });
 

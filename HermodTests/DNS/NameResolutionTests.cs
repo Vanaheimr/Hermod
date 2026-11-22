@@ -82,14 +82,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
 
             private readonly TcpListener listener = new (System.Net.IPAddress.Loopback, 0);
 
-            public UInt16        Port      { get; }
+            public IPPort        Port      { get; }
             public Task<String>  Received  { get; }
 
             public OneConnection(String Answer = "")
             {
 
                 listener.Start();
-                Port      = (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+                Port      = IPPort.Parse((UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
                 Received  = Task.Run(async () => {
 
@@ -286,7 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
 
         [Test]
         [CancelAfter(20000)]
-        public async Task AnHTTP2ClientDialsAHostNameThroughItsDNSClient(CancellationToken CancellationToken)
+        public async Task AnHTTP2ClientConnectsToAHostNameThroughItsDNSClient(CancellationToken CancellationToken)
         {
 
             await using var server = await TestH2Server.StartAsync(
@@ -322,13 +322,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
 
         [Test]
         [CancelAfter(20000)]
-        public async Task AnHTTP3ClientDialsAHostNameThroughItsDNSClient(CancellationToken CancellationToken)
+        public async Task AnHTTP3ClientConnectsToAHostNameThroughItsDNSClient(CancellationToken CancellationToken)
         {
 
             using var certificate = ServerCertificate.CreateSelfSigned("h3.test");
             var validation        = new CertificateValidationOptions { CustomTrustRoots = [ certificate.Certificate ] };
 
-            await using var server = new Http3Server(certificate, request => new Http3Response { Status = 200, Body = Encoding.UTF8.GetBytes("here") }, port: 0);
+            await using var server = new Http3Server(certificate, request => new Http3Response { Status = 200, Body = Encoding.UTF8.GetBytes("here") }, port: IPPort.Zero);
             server.Start();
 
             var dnsClient = Loopback();
@@ -351,7 +351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
         #region SunSpec Modbus
 
         [Test]
-        public async Task AModbusClientDialsAHostNameThroughItsDNSClient()
+        public async Task AModbusClientConnectsToAHostNameThroughItsDNSClient()
         {
 
             using var server    = new OneConnection();
@@ -416,7 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Resolving
 
         [Test]
         [CancelAfter(20000)]
-        public async Task AnSMTPRelayDialsItsMXThroughItsDNSClient(CancellationToken CancellationToken)
+        public async Task AnSMTPRelayConnectsToItsMXThroughItsDNSClient(CancellationToken CancellationToken)
         {
 
             // No MX record: the domain is its own MX host (RFC 5321 §5.1), and only the DNS client knows it.

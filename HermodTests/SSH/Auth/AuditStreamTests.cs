@@ -19,6 +19,7 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
@@ -56,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var clientRun = Task.Run(async () =>
             {
                 using var t = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                return await UserAuthentication.ClientPublicKeyAuthenticateAsync(t, "achim", userKey, CancellationToken: CancellationToken);
+                return await UserAuthentication.ClientPublicKeyAuthenticateAsync(t, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
             }, CancellationToken);
 
             Assert.That(await clientRun, Is.True);
@@ -67,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             Assert.Multiple(() => {
                 Assert.That(events.OfType<BannerSentEvent>().Any(),                                             Is.True, "a BannerSent event");
                 Assert.That(events.OfType<AuthMethodSucceededEvent>().Any(e => e.Method == "publickey"),        Is.True, "a publickey success event");
-                Assert.That(events.OfType<AuthenticationSucceededEvent>().Any(e => e.Username == "achim"),      Is.True, "an overall success event");
+                Assert.That(events.OfType<AuthenticationSucceededEvent>().Any(e => e.Username == User_Id.Parse("achim")),      Is.True, "an overall success event");
                 Assert.That(events[^1],                                                                         Is.InstanceOf<AuthenticationSucceededEvent>());
             });
 
@@ -97,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             }, CancellationToken);
 
             using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            await UserAuthentication.ClientPasswordAuthenticateAsync(client, "achim", "wrong", CancellationToken: CancellationToken);
+            await UserAuthentication.ClientPasswordAuthenticateAsync(client, User_Id.Parse("achim"), "wrong", CancellationToken: CancellationToken);
 
             clientPipe.Output.Complete();
             await serverRun;

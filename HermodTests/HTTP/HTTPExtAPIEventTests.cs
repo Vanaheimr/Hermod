@@ -124,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 return Task.CompletedTask;
             };
 
-            var added = await AddUser(api, "alice");
+            var added = await AddUser(api, User_Id.Parse("alice"));
 
             order.Enqueue("added");
 
@@ -168,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 return Task.CompletedTask;
             };
 
-            var added = await AddUser(api, "alice");
+            var added = await AddUser(api, User_Id.Parse("alice"));
 
             Assert.Multiple(() => {
 
@@ -221,7 +221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 throw new InvalidOperationException("This subscriber failed after its first await.");
             };
 
-            var added = await AddUser(api, "alice", SkipNewUserEMail: false);
+            var added = await AddUser(api, User_Id.Parse("alice"), SkipNewUserEMail: false);
 
             Assert.Multiple(() => {
 
@@ -447,13 +447,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// unless asked for.
         /// </summary>
         private static Task<AddUserResult> AddUser(HTTPExtAPI  API,
-                                                   String      Name,
+                                                   User_Id     Name,
                                                    Boolean     SkipNewUserEMail   = true)
 
             => API.AddUser(
                    new User(
-                       Id:     User_Id.Parse(Name),
-                       Name:   I18NString.Create(Name),
+                       Id:     Name,
+                       Name:   I18NString.Create(Name.ToString()),
                        EMail:  SimpleEMailAddress.Parse($"{Name}@example.test")
                    ),
                    SkipDefaultNotifications:  true,

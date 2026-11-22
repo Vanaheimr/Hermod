@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Persist">Whether it survives a network change (the <c>persist=1</c> parameter).</param>
     public sealed record HTTPAlternativeService(String    ProtocolId,
                                                 String    Host,
-                                                UInt16    Port,
+                                                IPPort    Port,
                                                 TimeSpan  MaxAge,
                                                 Boolean   Persist)
     {
@@ -266,18 +266,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Split an alt-authority — <c>[host]:port</c>, where the host may be absent
         /// ("the same host") and an IPv6 literal is bracketed.
         /// </summary>
-        private static Boolean TrySplitAuthority(String Authority, out String Host, out UInt16 Port)
+        private static Boolean TrySplitAuthority(String Authority, out String Host, out IPPort Port)
         {
 
             Host = "";
-            Port = 0;
+            Port = IPPort.Zero;
 
             var colon = Authority.LastIndexOf(':');
 
             if (colon < 0 || colon == Authority.Length - 1)
                 return false;
 
-            if (!UInt16.TryParse(Authority[(colon + 1)..], out Port) || Port == 0)
+            if (!IPPort.TryParse(Authority[(colon + 1)..], out Port) || Port.IsZero)
                 return false;
 
             Host = Authority[..colon];

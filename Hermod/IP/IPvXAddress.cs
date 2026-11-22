@@ -21,8 +21,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An IPv4/IPv6 address.
     /// </summary>
-    public readonly struct IPvXAddress : IIPAddress,
-                                         IComparable<IPvXAddress>,
+    public readonly struct IPvXAddress : IComparable<IPvXAddress>,
                                          IEquatable<IPvXAddress>
     {
 
@@ -37,29 +36,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The length of an IPvX address.
         /// </summary>
-        public Byte     Length
+        public static Byte          Length
             => 1;
 
-        public Boolean  IsIPv4
+        public static Boolean       IsIPv4
             => true;
 
-        public Boolean  IsMappedIPv4
+        public static Boolean       IsMappedIPv4
             => true;
 
-        public Boolean  IsIPv6
+        public static Boolean       IsIPv6
             => true;
 
-        public Boolean  IsLocalhost
+        public        Boolean       IsLocalhost
             => ipAddressArray == 1;
 
-        public Boolean  IsAny
+        public        Boolean       IsAny
             => ipAddressArray == 0;
 
-        public Boolean  IsMulticast
+        public static Boolean       IsMulticast
             => false;
 
 
-        public IPv4Address?  AsIPv4
+        public static IPv4Address?  AsIPv4
             => null;
 
         #endregion
@@ -95,10 +94,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public static IPvXAddress Localhost
 
-            => new(1);
+            => new (1);
 
         #endregion
-
 
         #region GetBytes()
 
@@ -107,7 +105,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => [ ipAddressArray ];
 
         #endregion
-
 
 
         #region Operator overloading
@@ -173,24 +170,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region CompareTo(IIPAddress)
-
-        /// <summary>
-        /// Compares two IP addresses.
-        /// </summary>
-        /// <param name="IIPAddress">An IP address to compare with.</param>
-        public Int32 CompareTo(IIPAddress? IIPAddress)
-        {
-
-            if (IIPAddress is IPvXAddress ipvXAddress)
-                return CompareTo(ipvXAddress);
-
-            throw new ArgumentException("The given object is not an IPvX address!", nameof(IIPAddress));
-
-        }
-
-        #endregion
-
         #endregion
 
         #region IEquatable<IPvXAddress> Members
@@ -203,8 +182,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Object">An IPvX address to compare with.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is IPvXAddress ipvXAddress &&
-                   Equals(ipvXAddress);
+            // An IP address that is this one is this one, too: the union holds it.
+            => Object switch {
+                   IPvXAddress  ipvXAddress  => Equals(ipvXAddress),
+                   IPAddress    ipAddress    => ipAddress.TryGetValue(out IPvXAddress other) && Equals(other),
+                   _                         => false
+               };
 
         #endregion
 
@@ -213,31 +196,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Compares two IPvX addresses.
         /// </summary>
-        /// <param name="IIPAddress">An IPvX address to compare with.</param>
+        /// <param name="IPAddress">An IPvX address to compare with.</param>
         public Boolean Equals(IPvXAddress IPvXAddress)
 
             => ipAddressArray == IPvXAddress.ipAddressArray;
-
-        #endregion
-
-        #region Equals(IIPAddress)
-
-        /// <summary>
-        /// Compares two IP addresses.
-        /// </summary>
-        /// <param name="IIPAddress">An IP address to compare with.</param>
-        public Boolean Equals(IIPAddress? IIPAddress)
-        {
-
-            if (IIPAddress is null)
-                return false;
-
-            if (IIPAddress is IPvXAddress ipvXAddress)
-                return Equals(ipvXAddress);
-
-            return false;
-
-        }
 
         #endregion
 

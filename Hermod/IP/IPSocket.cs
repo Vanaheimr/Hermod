@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The IP address of this IP socket.
         /// </summary>
-        public IIPAddress  IPAddress    { get; }
+        public IPAddress  IPAddress    { get; }
 
         /// <summary>
         /// The port of this IP socket.
@@ -75,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="IPAddress">The IPAdress of the socket.</param>
         /// <param name="Port">The port of the socket.</param>
-        public IPSocket(IIPAddress  IPAddress,
+        public IPSocket(IPAddress  IPAddress,
                         IPPort      Port)
         {
 

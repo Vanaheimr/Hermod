@@ -292,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxHTTPChunkMetadataSize">The maximum size of all chunk-size lines and the trailer section of a chunked HTTP request body together, in bytes. If null, 64 KByte.</param>
         /// <param name="HeaderReadTimeout">The maximum time to wait for one complete HTTP request header section. It starts when the server starts waiting for the request - on a new connection, or once the previous response on a kept-alive connection has been sent - so it bounds the keep-alive idle wait and the header section together, and it does not start again with every read. If null, ReceiveTimeout.</param>
         /// <param name="BodyReadTimeout">The maximum time allowed to receive one complete HTTP request body. If null, ReceiveTimeout.</param>
-        public AHTTPServer(IIPAddress?                                               IPAddress                       = null,
+        public AHTTPServer(IPAddress?                                               IPAddress                       = null,
                            IPPort?                                                   TCPPort                         = null,
                            String?                                                   HTTPServerName                  = null,
                            I18NString?                                               Description                     = null,

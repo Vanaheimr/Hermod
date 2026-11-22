@@ -82,11 +82,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
-        private static UInt16 UnusedPort()
+        private static IPPort UnusedPort()
         {
             var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
-            var port = (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             listener.Stop();
             return port;
         }
@@ -200,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                                                     ServerCertificateSelector  = _ => new ServerCertificateChain(certificate)
                                                                 });
 
-            using var wire         = new Wire(new TcpClient("127.0.0.1", implicitTlsPort));
+            using var wire         = new Wire(new TcpClient("127.0.0.1", implicitTlsPort.ToInt32()));
 
             Assert.That((await wire.StartTlsAsync())?.Subject,          Is.EqualTo("CN=smtps.hermod.test"), "TLS from the first byte");
             Assert.That((await wire.ReplyAsync()).Code,                 Is.EqualTo(220),                    "and the greeting inside it");

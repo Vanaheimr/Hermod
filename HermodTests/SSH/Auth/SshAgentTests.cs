@@ -25,6 +25,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
@@ -112,9 +113,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         {
             var listener = new TcpListener(IPAddress.Loopback, 0);
             listener.Start();
-            var port = ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             var clientTask = new TcpClient();
-            await clientTask.ConnectAsync(IPAddress.Loopback, port, CancellationToken);
+            await clientTask.ConnectAsync(IPAddress.Loopback, port.ToInt32(), CancellationToken);
             var server = await listener.AcceptTcpClientAsync(CancellationToken);
             listener.Stop();
             return (clientTask.GetStream(), server.GetStream());
@@ -185,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             }, CancellationToken);
 
             using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            var ok = await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", agentKey, CancellationToken: CancellationToken);
+            var ok = await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), agentKey, CancellationToken: CancellationToken);
 
             await server;
 

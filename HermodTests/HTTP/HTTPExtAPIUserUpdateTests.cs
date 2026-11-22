@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api    = await StartAPI();
-            var alice  = await NewUser(api, "alice");
+            var alice  = await NewUser(api, User_Id.Parse("alice"));
 
             var saved  = new Looking(api, alice.Id, "Alice Liddell");
             var added  = await api.AddOrUpdateUser(saved, SkipUserUpdatedNotifications: true);
@@ -150,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api      = await StartAPI();
-            var alice    = await NewUser(api, "alice");
+            var alice    = await NewUser(api, User_Id.Parse("alice"));
             var stop     = 0;
             var missed   = 0;
             var asked    = 0L;
@@ -222,12 +222,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static async Task<IUser> NewUser(HTTPExtAPI  API,
-                                                 String      Name)
+                                                 User_Id     Name)
         {
 
             var user = await API.CreateUser(
-                                 User_Id.Parse(Name),
-                                 I18NString.Create(Name),
+                                 Name,
+                                 I18NString.Create(Name.ToString()),
                                  SimpleEMailAddress.Parse($"{Name}@example.test"),
                                  "Correct-Horse-1",
                                  SkipDefaultNotifications:  true,

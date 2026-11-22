@@ -449,7 +449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 var cleanUrl  = Check.URL.Replace("smtp://", "");
                 var parts     = cleanUrl.Split(':');
                 var host      = parts[0];
-                var port      = UInt16.Parse(parts[1]);
+                var port      = IPPort.Parse(parts[1]);
 
                 using (var client = new TcpClient())
                 {
@@ -554,7 +554,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 var cleanUrl  = Check.URL.Replace("imap://", "");
                 var parts     = cleanUrl.Split(':');
                 var host      = parts[0];
-                var port      = UInt16.Parse(parts[1]);
+                var port      = IPPort.Parse(parts[1]);
 
                 using (var client = new TcpClient())
                 {

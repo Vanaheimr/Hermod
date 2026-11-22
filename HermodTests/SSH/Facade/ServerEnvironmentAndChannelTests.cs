@@ -19,6 +19,7 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -166,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
                 await using var client = await ConnectAsync(port, userKey, CancellationToken);
-                await using var shell  = await client.OpenShellAsync(null, Sent, CancellationToken);
+                await using var shell  = await client.OpenShell(null, Sent, CancellationToken);
                 return (await seen.Task.WaitAsync(CancellationToken), audit);
             }
             finally
@@ -179,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         private static IEnumerable<String> Refused(CollectingAuditSink Audit)
             => Audit.Events.OfType<PolicyDeniedEvent>().Where(e => e.PolicyType == "env").Select(e => e.Target);
 
-        private static async Task<(SshServer Server, UInt16 Port, ISshHostKey UserKey, CollectingAuditSink Audit)>
+        private static async Task<(SshServer Server, IPPort Port, ISshHostKey UserKey, CollectingAuditSink Audit)>
             StartAsync(IReadOnlyList<String> AcceptEnv, SshShellHandler? ShellHandler, CancellationToken CancellationToken)
         {
 
@@ -196,13 +197,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            return (server, (UInt16) server.LocalEndPoint.Port.ToInt32(), userKey, audit);
+            return (server, server.LocalEndPoint.Port, userKey, audit);
 
         }
 
-        private static ValueTask<SshClient> ConnectAsync(UInt16 Port, ISshHostKey UserKey, CancellationToken CancellationToken)
-            => SshClient.ConnectAsync("127.0.0.1", Port, new SshClientOptions {
-                   Username       = "achim",
+        private static ValueTask<SSHClient> ConnectAsync(IPPort Port, ISshHostKey UserKey, CancellationToken CancellationToken)
+            => SSHClient.Connect("127.0.0.1", Port, new SSHClientOptions {
+                   Username       = User_Id.Parse("achim"),
                    VerifyHostKey  = SshHostKeyVerification.AcceptAnyUnsafe,
                    Credentials    = [ UserKey ]
                }, CancellationToken);

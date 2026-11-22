@@ -145,7 +145,7 @@ public sealed class ModbusTlsFrontend : IDisposable
         if (_defaultBinding is not null && !_defaultBinding.ServerCertWithKey.HasPrivateKey)
             throw new InvalidOperationException("Server cert PFX has no private key.");
 
-        _listener           = new TcpListener(opts.ListenAddress, opts.ListenPort);
+        _listener           = new TcpListener(opts.ListenAddress, opts.ListenPort.ToInt32());
 
     }
 

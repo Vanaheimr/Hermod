@@ -21,6 +21,7 @@ using System.Diagnostics;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -32,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
     /// <summary>
-    /// The <see cref="SshClient"/> façade's two ways of not waiting for ever: a <c>ConnectTimeout</c> for a
+    /// The <see cref="SSHClient"/> façade's two ways of not waiting for ever: a <c>ConnectTimeout</c> for a
     /// server that takes the connection and says nothing, and keepalive probes for one that goes silent
     /// later - as OpenSSH's <c>ConnectTimeout</c> and <c>ServerAliveInterval</c>/<c>ServerAliveCountMax</c>.
     /// </summary>
@@ -43,10 +44,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region (private) helpers
 
-        private static readonly IIPAddress Loopback = IPv4Address.Localhost;
+        private static readonly IPAddress Loopback = IPv4Address.Localhost;
 
         private static async Task WithServerAsync(ISshUserAuthenticator                     Authenticator,
-                                                  Func<UInt16, Func<Byte[], Boolean>, Task> Test,
+                                                  Func<IPPort, Func<Byte[], Boolean>, Task> Test,
                                                   CancellationToken                         CancellationToken)
         {
 
@@ -61,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
                 await server.StartAsync(new IPSocket(Loopback, IPPort.Auto), CancellationToken);
-                await Test((UInt16) server.LocalEndPoint.Port.ToInt32(), blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob));
+                await Test(server.LocalEndPoint.Port, blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob));
             }
             finally
             {
@@ -87,8 +88,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             public ISshHostKey  ClientKey   { get; } = SshHostKey.GenerateEd25519();
             public Int32        KeepAlives  => Volatile.Read(ref keepAlives);
 
-            public UInt16 Port
-                => (UInt16) listener.LocalEndPoint.Port.ToInt32();
+            public IPPort Port
+                => listener.LocalEndPoint.Port;
 
             public HandMadeServer(Boolean GoSilent)
             {
@@ -114,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                     await using var mux = new SshChannelMultiplexer(transport) {
                                               GlobalRequestHandler = info => {
-                                                  if (info.Name == SshClient.KeepAliveRequestName)
+                                                  if (info.Name == SSHClient.KeepAliveRequestName)
                                                       Interlocked.Increment(ref keepAlives);
                                                   return ValueTask.FromResult(false);   // as sshd: it does not know the request
                                               }
@@ -156,8 +157,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var accepting      = listener.AcceptAsync(CancellationToken);
             var watch          = Stopwatch.StartNew();
 
-            var connecting     = SshClient.ConnectAsync("127.0.0.1", (UInt16) listener.LocalEndPoint.Port.ToInt32(), new SshClientOptions {
-                                     Username        = "achim",
+            var connecting     = SSHClient.Connect("127.0.0.1", listener.LocalEndPoint.Port, new SSHClientOptions {
+                                     Username        = User_Id.Parse("achim"),
                                      VerifyHostKey   = SshHostKeyVerification.AcceptAnyUnsafe,
                                      ConnectTimeout  = TimeSpan.FromMilliseconds(500)
                                  }, CancellationToken).AsTask();
@@ -194,8 +195,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             using var caller   = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
             caller.CancelAfter(TimeSpan.FromMilliseconds(300));
 
-            Assert.That(async () => await SshClient.ConnectAsync("127.0.0.1", (UInt16) listener.LocalEndPoint.Port.ToInt32(), new SshClientOptions {
-                                              Username        = "achim",
+            Assert.That(async () => await SSHClient.Connect("127.0.0.1", listener.LocalEndPoint.Port, new SSHClientOptions {
+                                              Username        = User_Id.Parse("achim"),
                                               VerifyHostKey   = SshHostKeyVerification.AcceptAnyUnsafe,
                                               ConnectTimeout  = TimeSpan.FromSeconds(30)
                                           }, caller.Token),
@@ -221,8 +222,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await WithServerAsync(policy, async (port, verify) => {
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username             = "achim",
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username             = User_Id.Parse("achim"),
                     VerifyHostKey        = verify,
                     ConnectTimeout       = TimeSpan.FromMilliseconds(500),
                     KeyboardInteractive  = async (challenge, ct) => {
@@ -231,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                                            }
                 }, CancellationToken);
 
-                var result = await client.ExecuteAsync("whoami", CancellationToken);
+                var result = await client.Execute("whoami", CancellationToken);
                 Assert.That(result.StandardOutput, Is.EqualTo("ran: whoami\n"));
 
             }, CancellationToken);
@@ -260,8 +261,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await using var server = new HandMadeServer(GoSilent: false);
 
-            await using (var client = await SshClient.ConnectAsync("127.0.0.1", server.Port, new SshClientOptions {
-                                                         Username           = "achim",
+            await using (var client = await SSHClient.Connect("127.0.0.1", server.Port, new SSHClientOptions {
+                                                         Username           = User_Id.Parse("achim"),
                                                          VerifyHostKey      = blob => blob.AsSpan().SequenceEqual(server.HostKey.PublicKeyBlob),
                                                          Credentials        = [ server.ClientKey ],
                                                          KeepAliveInterval  = TimeSpan.FromMilliseconds(100),
@@ -291,8 +292,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await using var server = new HandMadeServer(GoSilent: false);
 
-            await using (var client = await SshClient.ConnectAsync("127.0.0.1", server.Port, new SshClientOptions {
-                                                         Username       = "achim",
+            await using (var client = await SSHClient.Connect("127.0.0.1", server.Port, new SSHClientOptions {
+                                                         Username       = User_Id.Parse("achim"),
                                                          VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(server.HostKey.PublicKeyBlob),
                                                          Credentials    = [ server.ClientKey ]
                                                      }, CancellationToken))
@@ -323,8 +324,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await using var server = new HandMadeServer(GoSilent: true);
 
-            var client = await SshClient.ConnectAsync("127.0.0.1", server.Port, new SshClientOptions {
-                             Username           = "achim",
+            var client = await SSHClient.Connect("127.0.0.1", server.Port, new SSHClientOptions {
+                             Username           = User_Id.Parse("achim"),
                              VerifyHostKey      = blob => blob.AsSpan().SequenceEqual(server.HostKey.PublicKeyBlob),
                              Credentials        = [ server.ClientKey ],
                              KeepAliveInterval  = TimeSpan.FromMilliseconds(200),
@@ -333,7 +334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             var watch = Stopwatch.StartNew();
 
-            Assert.That(async () => await client.ExecuteAsync("whoami", CancellationToken),
+            Assert.That(async () => await client.Execute("whoami", CancellationToken),
                         Throws.TypeOf<TimeoutException>().With.Message.Contains("2 keepalive probe(s)"));
 
             Assert.Multiple(() => {
@@ -341,7 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(watch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(10)));
 
                 // Given up for good: what comes after learns the same.
-                Assert.That(async () => await client.ExecuteAsync("whoami", CancellationToken),
+                Assert.That(async () => await client.Execute("whoami", CancellationToken),
                             Throws.TypeOf<TimeoutException>());
 
             });

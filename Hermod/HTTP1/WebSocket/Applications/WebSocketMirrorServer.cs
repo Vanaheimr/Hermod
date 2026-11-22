@@ -60,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
-        public WebSocketMirrorServer(IIPAddress?                                               IPAddress                    = null,
+        public WebSocketMirrorServer(IPAddress?                                               IPAddress                    = null,
                                      IPPort?                                                   HTTPPort                     = null,
                                      String?                                                   HTTPServerName               = null,
                                      I18NString?                                               Description                  = null,

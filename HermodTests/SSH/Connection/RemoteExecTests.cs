@@ -22,6 +22,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
@@ -53,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
                 using var t = await SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
                 await UserAuthentication.ServerAuthenticateAsync(t, authenticator, CancellationToken: CancellationToken);
-                await SshConnection.ServeExecAsync(t, "achim", async (context, ct) =>
+                await SshConnection.ServeExecAsync(t, User_Id.Parse("achim"), async (context, ct) =>
                 {
                     await context.WriteLineAsync($"you ran: {context.Command}", ct);
                     await context.WriteErrorAsync(Encoding.UTF8.GetBytes("a warning\n"), ct);
@@ -64,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var clientRun = Task.Run(async () =>
             {
                 using var t = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                Assert.That(await UserAuthentication.ClientPublicKeyAuthenticateAsync(t, "achim", userKey, CancellationToken: CancellationToken), Is.True);
+                Assert.That(await UserAuthentication.ClientPublicKeyAuthenticateAsync(t, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken), Is.True);
                 return await SshConnection.ExecuteAsync(t, "uname -a", CancellationToken);
             }, CancellationToken);
 
@@ -139,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
                 using var t = await SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
                 await UserAuthentication.ServerAuthenticateAsync(t, authenticator, CancellationToken: CancellationToken);
-                await SshConnection.ServeExecAsync(t, "achim", async (context, ct) =>
+                await SshConnection.ServeExecAsync(t, User_Id.Parse("achim"), async (context, ct) =>
                 {
                     await context.WriteAsync("done\n", ct);
                     return 42;
@@ -147,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             }, CancellationToken);
 
             using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            Assert.That(await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken), Is.True);
+            Assert.That(await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken), Is.True);
 
             await client.SendPacketAsync(OpenSessionChannel(0), CancellationToken);
 
@@ -203,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
                 using var t = await SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
                 await UserAuthentication.ServerAuthenticateAsync(t, authenticator, CancellationToken: CancellationToken);
-                await SshConnection.ServeExecAsync(t, "achim", async (context, ct) =>
+                await SshConnection.ServeExecAsync(t, User_Id.Parse("achim"), async (context, ct) =>
                 {
                     for (var i = 0; i < lineCount; i++)
                         await context.WriteAsync(line, ct);
@@ -214,7 +215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var clientRun = Task.Run(async () =>
             {
                 using var t = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                await UserAuthentication.ClientPublicKeyAuthenticateAsync(t, "achim", userKey, CancellationToken: CancellationToken);
+                await UserAuthentication.ClientPublicKeyAuthenticateAsync(t, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
                 return await SshConnection.ExecuteAsync(t, "generate", CancellationToken);
             }, CancellationToken);
 

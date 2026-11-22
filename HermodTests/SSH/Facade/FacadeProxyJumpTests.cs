@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -32,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 {
 
     /// <summary>
-    /// <see cref="SshClientOptions.ProxyJump"/>: the façade reaches a server through jump hosts of our own,
+    /// <see cref="SSHClientOptions.ProxyJump"/>: the façade reaches a server through jump hosts of our own,
     /// each a login of its own with its own host key and credentials.
     /// </summary>
     [TestFixture]
@@ -54,23 +55,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var second = await JumpHostAsync(CancellationToken);
             await using var server = await ServerAsync(CancellationToken);
 
-            var jumpHosts = new Dictionary<UInt16, Peer> { [first.Port] = first, [second.Port] = second };
+            var jumpHosts = new Dictionary<UInt16, Peer> { [first.Port.ToUInt16()] = first, [second.Port.ToUInt16()] = second };
 
-            await using (var client = await SshClient.ConnectAsync("127.0.0.1", server.Port, new SshClientOptions {
-                                                                       Username         = "achim",
+            await using (var client = await SSHClient.Connect("127.0.0.1", server.Port, new SSHClientOptions {
+                                                                       Username         = User_Id.Parse("achim"),
                                                                        VerifyHostKey    = server.Verify,
                                                                        Credentials      = [ server.UserKey ],
-                                                                       ProxyJump        = [ new SshJumpHost("127.0.0.1", first.Port,  "jumper"),
-                                                                                            new SshJumpHost("127.0.0.1", second.Port, "jumper") ],
-                                                                       JumpHostOptions  = jumpHost => new SshClientOptions {
-                                                                                              Username       = jumpHost.Username!,
-                                                                                              VerifyHostKey  = jumpHosts[jumpHost.Port].Verify,
-                                                                                              Credentials    = [ jumpHosts[jumpHost.Port].UserKey ]
+                                                                       ProxyJump        = [ new SSHJumpHost("127.0.0.1", first.Port,  User_Id.Parse("jumper")),
+                                                                                            new SSHJumpHost("127.0.0.1", second.Port, User_Id.Parse("jumper")) ],
+                                                                       JumpHostOptions  = jumpHost => new SSHClientOptions {
+                                                                                              Username       = jumpHost.Username!.Value,
+                                                                                              VerifyHostKey  = jumpHosts[jumpHost.Port.ToUInt16()].Verify,
+                                                                                              Credentials    = [ jumpHosts[jumpHost.Port.ToUInt16()].UserKey ]
                                                                                           }
                                                                    }, CancellationToken))
             {
 
-                var result = await client.ExecuteAsync("whoami", CancellationToken);
+                var result = await client.Execute("whoami", CancellationToken);
 
                 Assert.Multiple(() => {
                     Assert.That(result.StandardOutput,     Is.EqualTo("server ran: whoami\n"), "exec on the server, through both jump hosts");
@@ -107,13 +108,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var someoneElse = SshHostKey.GenerateEd25519().PublicKeyBlob;
 
             var failure = await Assert.ThrowsAsync<SshJumpHostException>(async () =>
-                              await SshClient.ConnectAsync("127.0.0.1", server.Port, new SshClientOptions {
-                                  Username         = "achim",
+                              await SSHClient.Connect("127.0.0.1", server.Port, new SSHClientOptions {
+                                  Username         = User_Id.Parse("achim"),
                                   VerifyHostKey    = server.Verify,
                                   Credentials      = [ server.UserKey ],
-                                  ProxyJump        = [ new SshJumpHost("127.0.0.1", first.Port), new SshJumpHost("127.0.0.1", second.Port) ],
-                                  JumpHostOptions  = jumpHost => new SshClientOptions {
-                                                         Username       = "jumper",
+                                  ProxyJump        = [ new SSHJumpHost("127.0.0.1", first.Port), new SSHJumpHost("127.0.0.1", second.Port) ],
+                                  JumpHostOptions  = jumpHost => new SSHClientOptions {
+                                                         Username       = User_Id.Parse("jumper"),
                                                          VerifyHostKey  = jumpHost.Port == first.Port ? first.Verify : blob => blob.AsSpan().SequenceEqual(someoneElse),
                                                          Credentials    = [ jumpHost.Port == first.Port ? first.UserKey : second.UserKey ]
                                                      }
@@ -137,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         #region Facade_ProxyJump_WithoutJumpHostOptions_BorrowsTheKeysAndTheUser
 
         /// <summary>
-        /// Without <see cref="SshClientOptions.JumpHostOptions"/> the jump host borrows the server's options:
+        /// Without <see cref="SSHClientOptions.JumpHostOptions"/> the jump host borrows the server's options:
         /// its key, and the user its <c>user@</c> names.
         /// </summary>
         [Test]
@@ -150,14 +151,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var jumpHost = await JumpHostAsync(CancellationToken, userKey);
             await using var server   = await ServerAsync(CancellationToken, userKey);
 
-            await using var client = await SshClient.ConnectAsync("127.0.0.1", server.Port, new SshClientOptions {
-                                                                      Username       = "achim",
+            await using var client = await SSHClient.Connect("127.0.0.1", server.Port, new SSHClientOptions {
+                                                                      Username       = User_Id.Parse("achim"),
                                                                       VerifyHostKey  = blob => jumpHost.Verify(blob) || server.Verify(blob),
                                                                       Credentials    = [ userKey ],
-                                                                      ProxyJump      = SshJumpHost.ParseChain($"jumper@127.0.0.1:{jumpHost.Port}")
+                                                                      ProxyJump      = SSHJumpHost.ParseChain($"jumper@127.0.0.1:{jumpHost.Port}")
                                                                   }, CancellationToken);
 
-            var result = await client.ExecuteAsync("id", CancellationToken);
+            var result = await client.Execute("id", CancellationToken);
 
             Assert.Multiple(() => {
                 Assert.That(result.StandardOutput,  Is.EqualTo("server ran: id\n"));
@@ -184,12 +185,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var server   = await ServerAsync(CancellationToken);
 
             var failure = await Assert.ThrowsAsync<SshJumpHostException>(async () =>
-                              await SshClient.ConnectAsync("127.0.0.1", server.Port, new SshClientOptions {
-                                  Username             = "achim",
+                              await SSHClient.Connect("127.0.0.1", server.Port, new SSHClientOptions {
+                                  Username             = User_Id.Parse("achim"),
                                   VerifyHostKey        = blob => jumpHost.Verify(blob) || server.Verify(blob),
                                   Credentials          = [ server.UserKey ],
                                   Password             = "the server's secret",
-                                  ProxyJump            = [ new SshJumpHost("127.0.0.1", jumpHost.Port) ]
+                                  ProxyJump            = [ new SSHJumpHost("127.0.0.1", jumpHost.Port) ]
                               }, CancellationToken));
 
             Assert.Multiple(() => {
@@ -207,10 +208,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         /// <summary>
         /// One of our servers: its port, its host key, the key it lets in, and what it saw.
         /// </summary>
-        private sealed class Peer(SshServer Server, UInt16 Port, ISshHostKey HostKey, ISshHostKey UserKey, CollectingAuditSink Audit, Recorder Recorder) : IAsyncDisposable
+        private sealed class Peer(SshServer Server, IPPort Port, ISshHostKey HostKey, ISshHostKey UserKey, CollectingAuditSink Audit, Recorder Recorder) : IAsyncDisposable
         {
 
-            public UInt16                 Port       { get; } = Port;
+            public IPPort                 Port       { get; } = Port;
             public ISshHostKey            UserKey    { get; } = UserKey;
             public CollectingAuditSink    Audit      { get; } = Audit;
             public IReadOnlyList<String>  Usernames  => Recorder.Usernames.Distinct().ToArray();
@@ -237,11 +238,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             public ValueTask<Boolean> AuthorizePublicKeyAsync(SshPublicKeyAuthRequest Request, CancellationToken CancellationToken = default)
             {
-                Usernames.Enqueue(Request.Username);
+                Usernames.Enqueue(Request.Username.ToString());
                 return ValueTask.FromResult(AcceptedKey is not null && Request.PublicKeyBlob.AsSpan().SequenceEqual(AcceptedKey));
             }
 
-            public ValueTask<Boolean> AuthorizePasswordAsync(String Username, String Password, CancellationToken CancellationToken = default)
+            public ValueTask<Boolean> AuthorizePasswordAsync(User_Id Username, String Password, CancellationToken CancellationToken = default)
             {
                 Passwords.Enqueue(Password);
                 return ValueTask.FromResult(false);
@@ -275,7 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            return new Peer(server, (UInt16) server.LocalEndPoint.Port.ToInt32(), hostKey, UserKey ?? SshHostKey.GenerateEd25519(), audit, recorder);
+            return new Peer(server, server.LocalEndPoint.Port, hostKey, UserKey ?? SshHostKey.GenerateEd25519(), audit, recorder);
 
         }
 

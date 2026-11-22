@@ -1684,7 +1684,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
 
             await using var server = new Http3Server(key,
                                                      (request, token) => Task.FromResult(Hello(request)),
-                                                     port:              0,
+                                                     port:              IPPort.Zero,
                                                      clientCertificate: ClientsPinnedTo(station, RawPublicKeyMode.Require, toldServer));
             server.Start();
 

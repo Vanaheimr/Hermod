@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="AutoStart">Start listening right away.</param>
         public DNSOverHTTPSServer(IDNSRequestHandler?  RequestHandler     = null,
                                   DNSServerOptions?    DNSServerOptions   = null,
-                                  IIPAddress?          IPAddress          = null,
+                                  IPAddress?          IPAddress          = null,
                                   IPPort?              TCPPort            = null,
                                   HTTPPath?            DNSQueryPath       = null,
                                   DNSMessagePipeline?  Pipeline           = null,
@@ -256,7 +256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             StartNew(IDNSRequestHandler?  RequestHandler     = null,
                      DNSServerOptions?    DNSServerOptions   = null,
-                     IIPAddress?          IPAddress          = null,
+                     IPAddress?          IPAddress          = null,
                      IPPort?              TCPPort            = null,
                      HTTPPath?            DNSQueryPath       = null,
                      DNSMessagePipeline?  Pipeline           = null,

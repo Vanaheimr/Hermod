@@ -87,8 +87,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             private readonly Channel<Connection>         accepted  = Channel.CreateUnbounded<Connection>();
             private readonly List<Connection>            all       = [];
 
-            public Int32 Port
-                => ((IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port
+                => IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
 
             public String Authority
                 => $"127.0.0.1:{Port}";

@@ -586,7 +586,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         /// <param name="Backlog">The TCP listen backlog.</param>
         /// <param name="UsedPorts">The TCP ports already used by this rendezvous.</param>
         /// <exception cref="SocketException">When no free TCP port could be found.</exception>
-        private SessionEndpoint BindRandomPort(IIPAddress      Address,
+        private SessionEndpoint BindRandomPort(IPAddress      Address,
                                                Int32           Backlog,
                                                HashSet<IPPort> UsedPorts)
         {

@@ -48,8 +48,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             private readonly TcpListener                          listener = new (System.Net.IPAddress.Loopback, 0);
             private readonly Func<Byte[], IEnumerable<Byte[]>>    split;
 
-            public UInt16 Port
-                => (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port
+                => IPPort.Parse((UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             public Server(Func<Byte[], IEnumerable<Byte[]>> Split)
             {
@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             using var client = new SMTPSubmissionClient(DomainName.Parse("127.0.0.1"),
-                                                        IPPort.Parse(Server.Port),
+                                                        Server.Port,
                                                         LocalDomain:                 "client.example",
                                                         UseTLS:                      TLSUsage.NoTLS,
                                                         RemoteCertificateValidator:  (_, _, _, _, _) => TLSValidationResult.Success(),

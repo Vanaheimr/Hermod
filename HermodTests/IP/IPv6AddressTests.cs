@@ -200,7 +200,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
             var systemIPAddress    = new System.Net.IPAddress(addressBytes, 17);
             var ipv6Address        = IPv6Address.From(systemIPAddress);
             var genericIPAddress   = IPAddress.FromDotNet(systemIPAddress);
-            var builtIPAddress     = IPAddress.Build(systemIPAddress);
 
             System.Net.IPAddress implicitRoundtrip = ipv6Address;
 
@@ -209,8 +208,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
                 Assert.That(implicitRoundtrip.ScopeId,                     Is.EqualTo(17));
                 Assert.That(((IPv6Address) genericIPAddress).InterfaceId,  Is.EqualTo("17"));
                 Assert.That(genericIPAddress.ToDotNet().ScopeId,           Is.EqualTo(17));
-                Assert.That(((IPv6Address) builtIPAddress).InterfaceId,    Is.EqualTo("17"));
-                Assert.That(builtIPAddress.ToDotNet().ScopeId,             Is.EqualTo(17));
             });
 
         }
@@ -318,7 +315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
             Assert.That(IPv4Address.Parse("10.0.0.1").ToIPLiteral(), Is.EqualTo("10.0.0.1"));
 
             // Whatever comes out is bracketed exactly once.
-            foreach (var address in new IIPAddress[] {
+            foreach (var address in new IPAddress[] {
                                         IPv6Address.Parse("2606:2800:220:1:248:1893:25c8:1946"),
                                         IPv6Address.Localhost,
                                         IPv6Address.Any
@@ -455,15 +452,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
         #region ToString_AsAnyIPAddress_TakesTheFormat()
 
         /// <summary>
-        /// Asked as an IIPAddress, an IPv6 address writes the format it is
+        /// Asked as an IPAddress, an IPv6 address writes the format it is
         /// asked for, and an IPv4 address writes the one text it has.
         /// </summary>
         [Test]
         public void ToString_AsAnyIPAddress_TakesTheFormat()
         {
 
-            IIPAddress ipv6 = IPv6Address.Parse("2001:db8::1");
-            IIPAddress ipv4 = IPv4Address.Parse("10.0.0.1");
+            IPAddress ipv6 = IPv6Address.Parse("2001:db8::1");
+            IPAddress ipv4 = IPv4Address.Parse("10.0.0.1");
 
             Assert.Multiple(() => {
                 Assert.That(ipv6.ToString(IPv6Format.Short),  Is.EqualTo("2001:db8::1"));

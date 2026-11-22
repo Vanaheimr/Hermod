@@ -220,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 // Brackets, or "2001:...:8844:443" is anyone's guess as to where
                 // the address stops and the port starts - RFC 3986 §3.2.2.
-                return $"{ipAddress.ToIPLiteral()}:{RemotePort ?? IPPort.HTTPS}";
+                return $"{ipAddress.Value.ToIPLiteral()}:{RemotePort ?? IPPort.HTTPS}";
 
             }
         }
@@ -248,7 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return ipAddress is not null
 
                        ? new DNSServerConfig(
-                             ipAddress,
+                             ipAddress.Value,
                              RemotePort ?? IPPort.HTTPS,
                              DNSTransport.HTTPS,
                              QueryTimeout
@@ -422,7 +422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DisableLogging">Disable logging of connection events and errors.</param>
         /// <param name="Logger">An optional logger.</param>
         /// <param name="LoggerFactory">An optional logger factory.</param>
-        public DNSHTTPSClient(IIPAddress                                                 IPAddress,
+        public DNSHTTPSClient(IPAddress                                                 IPAddress,
                               IPPort?                                                    TCPPort                              = null,
                               I18NString?                                                Description                          = null,
                               DNSHTTPSMode?                                              Mode                                 = null,
@@ -679,7 +679,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <returns>The new DNS HTTPS client, also when the connect failed, and the result of the connect.</returns>
         public static async Task<(DNSHTTPSClient?, TCPConnectionResult)>
 
-            ConnectNew(IIPAddress                                                 IPAddress,
+            ConnectNew(IPAddress                                                 IPAddress,
                        IPPort?                                                    TCPPort                              = null,
                        I18NString?                                                Description                          = null,
                        DNSHTTPSMode?                                              Mode                                 = null,

@@ -26,7 +26,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <remarks>
     /// Apart from <see cref="IDNSClientWithTransport"/>, which adds the socket
     /// end points and timeouts of a connection of the client's own: a client
-    /// on a channel of somebody else's connection - DNS over SSH on the SSH
+    /// on a channel of somebody else's connection - DNS-over-SSH on the SSH
     /// connection a node keeps to a peer - has none of them to show.
     /// </remarks>
     public interface IDNSClientWithEDNS : IDNSClientWithDNSSEC

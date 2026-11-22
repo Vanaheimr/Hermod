@@ -23,6 +23,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
@@ -53,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                    {
                        using var t = await SshTransport.ServerHandshakeAsync(ServerPipe, HostKey, CancellationToken: CancellationToken);
                        await UserAuthentication.ServerAuthenticateAsync(t, SshUserAuthenticator.ForAuthorizedKeys(UserPublicKey), CancellationToken: CancellationToken);
-                       await SshConnection.ServeCommandAsync(t, "achim", Handler, CancellationToken: CancellationToken);
+                       await SshConnection.ServeCommandAsync(t, User_Id.Parse("achim"), Handler, CancellationToken: CancellationToken);
                    }
                    catch { /* torn down with the client */ }
                }, CancellationToken);
@@ -61,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         private static async Task<SshTransport> ClientLogin(IDuplexPipe ClientPipe, ISshHostKey UserKey, CancellationToken CancellationToken)
         {
             var t = await SshTransport.ClientHandshakeAsync(ClientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            await UserAuthentication.ClientPublicKeyAuthenticateAsync(t, "achim", UserKey, CancellationToken: CancellationToken);
+            await UserAuthentication.ClientPublicKeyAuthenticateAsync(t, User_Id.Parse("achim"), UserKey, CancellationToken: CancellationToken);
             return t;
         }
 

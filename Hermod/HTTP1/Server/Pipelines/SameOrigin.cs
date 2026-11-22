@@ -126,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var text  = Host.Trim();
             var name  = text;
-            Int32? port = null;
+            IPPort? port = null;
 
             if (text.StartsWith('['))
             {
@@ -141,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (end + 1 < text.Length)
                 {
 
-                    if (text[end + 1] != ':' || !Int32.TryParse(text[(end + 2)..], out var number))
+                    if (text[end + 1] != ':' || !IPPort.TryParse(text[(end + 2)..], out var number))
                         return false;
 
                     port = number;
@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (colon >= 0)
                 {
 
-                    if (text.IndexOf(':') != colon || !Int32.TryParse(text[(colon + 1)..], out var number))
+                    if (text.IndexOf(':') != colon || !IPPort.TryParse(text[(colon + 1)..], out var number))
                         return false;
 
                     name = text[..colon];
@@ -171,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
 
             return port.HasValue
-                       ? port.Value == Origin.Port
+                       ? port.Value.ToInt32() == Origin.Port
                        : AnyPortWhereNoneIsNamed || Origin.IsDefaultPort;
 
         }

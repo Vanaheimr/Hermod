@@ -82,7 +82,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(Login(own),     Is.EqualTo("org"),    "with its own login");
                 Assert.That(Login(server),  Is.EqualTo("server"));
 
-                Assert.That(new SmartHostRoute("relay.example", 587, "org", "org-secret").ToString(), Does.Not.Contain("secret"), "no password in a log");
+                Assert.That(new SmartHostRoute("relay.example", IPPort.Parse(587), "org", "org-secret").ToString(), Does.Not.Contain("secret"), "no password in a log");
 
             });
 

@@ -21,6 +21,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -51,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region (private) Fixture
 
-        private sealed record Running(SshServer Server, UInt16 Port, ISshHostKey HostKey, CollectingAuditSink Audit) : IAsyncDisposable
+        private sealed record Running(SshServer Server, IPPort Port, ISshHostKey HostKey, CollectingAuditSink Audit) : IAsyncDisposable
         {
             public ValueTask DisposeAsync()
                 => Server.DisposeAsync();
@@ -109,14 +110,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            return new Running(server, (UInt16) server.LocalEndPoint.Port.ToInt32(), hostKey, audit);
+            return new Running(server, server.LocalEndPoint.Port, hostKey, audit);
 
         }
 
-        private static ValueTask<SshClient> ConnectAsync(Running Running, CertifiedKey Credential, CancellationToken CancellationToken)
+        private static ValueTask<SSHClient> ConnectAsync(Running Running, CertifiedKey Credential, CancellationToken CancellationToken)
 
-            => SshClient.ConnectAsync("127.0.0.1", Running.Port, new SshClientOptions {
-                   Username       = "achim",
+            => SSHClient.Connect("127.0.0.1", Running.Port, new SSHClientOptions {
+                   Username       = User_Id.Parse("achim"),
                    VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(Running.HostKey.PublicKeyBlob),
                    Credentials    = [ Credential ]
                }, CancellationToken);
@@ -234,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await using var running = await StartAsync(trust, PerSession, WithExec: true, CancellationToken);
             await using var client  = await ConnectAsync(running, credential, CancellationToken);
-            await using var sftp    = await client.OpenSftpClientAsync(CancellationToken);
+            await using var sftp    = await client.OpenSFTPClient(CancellationToken);
 
             await sftp.UploadAsync("/report.txt", Encoding.UTF8.GetBytes("served"), CancellationToken);
 

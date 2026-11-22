@@ -61,7 +61,7 @@ public class SunSpecModbusTLSTests
             using var frontend     = new ModbusTlsFrontend(
                                          new ModbusTlsFrontendOptions(
                                              NetIPAddress.Loopback,
-                                             0,  // any free port - the frontend says which
+                                             IPPort.Zero,  // any free port - the frontend says which
                                              Path.Combine(pkiDirectory, "server.pfx"),
                                              "demo",
                                              Path.Combine(pkiDirectory, "issuing-clients-ca.crt"),
@@ -126,7 +126,7 @@ public class SunSpecModbusTLSTests
             using var frontend     = new ModbusTlsFrontend(
                                          new ModbusTlsFrontendOptions(
                                              NetIPAddress.Loopback,
-                                             0,  // any free port - the frontend says which
+                                             IPPort.Zero,  // any free port - the frontend says which
                                              Path.Combine(rootA, "server.pfx"),
                                              "demo",
                                              Path.Combine(rootA, "issuing-clients-ca.crt"),
@@ -475,7 +475,7 @@ public class SunSpecModbusTLSTests
         using var frontend     = new ModbusTlsFrontend(
                                      new ModbusTlsFrontendOptions(
                                          NetIPAddress.Loopback,
-                                         ((System.Net.IPEndPoint) occupied.LocalEndpoint).Port,
+                                         IPPort.Parse(((System.Net.IPEndPoint) occupied.LocalEndpoint).Port),
                                          Path.Combine(pkiDirectory, "server.pfx"),
                                          "demo",
                                          Path.Combine(pkiDirectory, "issuing-clients-ca.crt"),
@@ -538,7 +538,7 @@ public class SunSpecModbusTLSTests
             using var frontend     = new ModbusTlsFrontend(
                                          new ModbusTlsFrontendOptions(
                                              NetIPAddress.Loopback,
-                                             0,  // any free port - the frontend says which
+                                             IPPort.Zero,  // any free port - the frontend says which
                                              Path.Combine(rootA, "server.pfx"),
                                              "demo",
                                              Path.Combine(rootA, "issuing-clients-ca.crt"),
@@ -623,7 +623,7 @@ public class SunSpecModbusTLSTests
             using var frontend     = new ModbusTlsFrontend(
                                          new ModbusTlsFrontendOptions(
                                              NetIPAddress.Loopback,
-                                             0,  // any free port - the frontend says which
+                                             IPPort.Zero,  // any free port - the frontend says which
                                              null,
                                              null,
                                              null,
@@ -692,7 +692,7 @@ public class SunSpecModbusTLSTests
         using var frontend     = new ModbusTlsFrontend(
                                      new ModbusTlsFrontendOptions(
                                          NetIPAddress.Loopback,
-                                         0,  // any free port - the frontend says which
+                                         IPPort.Zero,  // any free port - the frontend says which
                                          null,
                                          null,
                                          null,
@@ -746,7 +746,7 @@ public class SunSpecModbusTLSTests
         // bound when it fails.
         var probe              = new TcpListener(NetIPAddress.Loopback, 0);
         probe.Start();
-        var port               = ((System.Net.IPEndPoint) probe.LocalEndpoint).Port;
+        var port               = IPPort.Parse(((System.Net.IPEndPoint) probe.LocalEndpoint).Port);
         probe.Stop();
 
         using var meter        = new SunSpecMeterDevice("meter-test-disposed", SunSpecMeterMode.ImportOnly);
@@ -788,11 +788,11 @@ public class SunSpecModbusTLSTests
         // The port is free again: nobody answers on it, and another listener
         // can have it.
         using (var client = new TcpClient())
-            Assert.That(async () => await client.ConnectAsync(NetIPAddress.Loopback, port),
+            Assert.That(async () => await client.ConnectAsync(NetIPAddress.Loopback, port.ToInt32()),
                         Throws.InstanceOf<SocketException>(),
                         "something still accepts on the port of the frontend that failed");
 
-        var again = new TcpListener(NetIPAddress.Loopback, port);
+        var again = new TcpListener(NetIPAddress.Loopback, port.ToInt32());
 
         Assert.That(() => again.Start(), Throws.Nothing, "the port of the frontend that failed is still taken");
 
@@ -819,7 +819,7 @@ public class SunSpecModbusTLSTests
         using var frontend     = new ModbusTlsFrontend(
                                      new ModbusTlsFrontendOptions(
                                          NetIPAddress.Loopback,
-                                         0,  // any free port - the frontend says which
+                                         IPPort.Zero,  // any free port - the frontend says which
                                          null,
                                          null,
                                          null,
@@ -1004,7 +1004,7 @@ public class SunSpecModbusTLSTests
                 => new (
                        new ModbusTlsFrontendOptions(
                            NetIPAddress.Loopback,
-                           0,  // any free port - the frontend says which
+                           IPPort.Zero,  // any free port - the frontend says which
                            null,
                            null,
                            null,
@@ -1027,7 +1027,7 @@ public class SunSpecModbusTLSTests
 
             // A client as .NET makes one by default: one that resumes where it
             // can.
-            async Task<Byte[]> ReadMarker(Int32 Port, String Name)
+            async Task<Byte[]> ReadMarker(IPPort Port, String Name)
             {
 
                 using var pem    = X509Certificate2.CreateFromPemFile(Path.Combine(pkiDirectory, "client-ReadOnlySunSpec.crt"),
@@ -1037,7 +1037,7 @@ public class SunSpecModbusTLSTests
                 intermediates.ImportFromPemFile(Path.Combine(pkiDirectory, "client-ReadOnlySunSpec.chain.crt"));
 
                 using var tcp = new TcpClient();
-                await tcp.ConnectAsync(NetIPAddress.Loopback, Port, frontendCts.Token);
+                await tcp.ConnectAsync(NetIPAddress.Loopback, Port.ToInt32(), frontendCts.Token);
 
                 using var tls = new SslStream(tcp.GetStream(), false, (_, _, _, _) => true);
 
@@ -1127,8 +1127,8 @@ public class SunSpecModbusTLSTests
     /// The port the frontend was given for port 0 - known once it has bound
     /// its listener, which is also when a client may connect.
     /// </summary>
-    private static async Task<Int32> ListenPortOf(ModbusTlsFrontend Frontend)
-        => (await Frontend.BoundEndPoint.WaitAsync(TimeSpan.FromSeconds(5))).Port;
+    private static async Task<IPPort> ListenPortOf(ModbusTlsFrontend Frontend)
+        => IPPort.Parse((await Frontend.BoundEndPoint.WaitAsync(TimeSpan.FromSeconds(5))).Port);
 
     /// <summary>
     /// Take the certificate authorities of a test PKI out of the intermediate
@@ -1166,7 +1166,7 @@ public class SunSpecModbusTLSTests
 
     }
 
-    private static async Task ReadAndAssertEnergyMeterAsync(Int32              listenPort,
+    private static async Task ReadAndAssertEnergyMeterAsync(IPPort              listenPort,
                                                             String?            TLSHostname,
                                                             String             pkiDirectory,
                                                             CancellationToken  ct)
@@ -1184,7 +1184,7 @@ public class SunSpecModbusTLSTests
 
         using var client = new HermodModbusTCPClient(
                                IPv4Address.Localhost,
-                               IPPort.Parse(listenPort),
+                               listenPort,
                                UnitAddress:                1,
                                StartingAddressOffset:      1,
                                RemoteCertificateValidator: (sender,
@@ -1323,7 +1323,7 @@ public class SunSpecModbusTLSTests
         /// <summary>
         /// The port the frontend was given, once StartAsync() has returned.
         /// </summary>
-        public Int32                               ListenPort      { get; private set; }
+        public IPPort                               ListenPort      { get; private set; }
 
         /// <summary>
         /// Every Modbus request the frontend saw, refused ones included.
@@ -1374,7 +1374,7 @@ public class SunSpecModbusTLSTests
                                     new ModbusTlsFrontend(
                                         new ModbusTlsFrontendOptions(
                                             NetIPAddress.Loopback,
-                                            0,  // any free port - the frontend says which
+                                            IPPort.Zero,  // any free port - the frontend says which
                                             Path.Combine(pkiDirectory, "server.pfx"),
                                             "demo",
                                             Path.Combine(pkiDirectory, "issuing-clients-ca.crt"),
@@ -1438,7 +1438,7 @@ public class SunSpecModbusTLSTests
 
             var client                     = new HermodModbusTCPClient(
                                                  IPv4Address.Localhost,
-                                                 IPPort.Parse(ListenPort),
+                                                 ListenPort,
                                                  UnitAddress:                UnitAddress,
                                                  StartingAddressOffset:      StartingAddressOffset,
                                                  RemoteCertificateValidator: (sender,

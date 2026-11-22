@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </param>
         public HTTP2Server(
             IPAddress            Address,
-            int                  Port,
+            IPPort               Port,
             X509Certificate2?    Certificate,
             HTTP2RequestHandler  RequestHandler,
             HTTP2ConnectHandler? ConnectHandler = null,
@@ -259,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // be granted is the caller's mistake, not the client's.
             this.connectionWindowSize      = HTTP2FlowControl.CheckConnectionWindowSize(ConnectionWindowSize, nameof(ConnectionWindowSize));
 
-            this.endpoint                  = new IPEndPoint(Address, Port);
+            this.endpoint                  = new IPEndPoint(Address, Port.ToInt32());
             this.certificate               = Certificate;
             this.cleartext                 = Cleartext;
             this.requestHandler            = RequestHandler;

@@ -76,8 +76,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
         /// <summary>
-        /// DNS over SSH: the byte stream of DNS over TCP in a channel of an SSH connection, as the
-        /// subsystem "dns@open.charging.cloud" (the white paper "DNS over SSH"). Encrypted, and the
+        /// DNS-over-SSH: the byte stream of DNS over TCP in a channel of an SSH connection, as the
+        /// subsystem "dns@open.charging.cloud" (the white paper "DNS-over-SSH"). Encrypted, and the
         /// server knows the client by its SSH login.
         /// </summary>
         /// <remarks>

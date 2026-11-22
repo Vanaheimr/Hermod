@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
                                                                          ),
-                                                                         // the name the client dials, without which the server
+                                                                         // the name the client connects to, without which the server
                                                                          // refuses its requests (RFC 9110, Section 7.4)
                                                                          new GeneralName(
                                                                              GeneralName.DnsName,
@@ -500,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
                                                                          ),
-                                                                         // the name the client dials, without which the server
+                                                                         // the name the client connects to, without which the server
                                                                          // refuses its requests (RFC 9110, Section 7.4)
                                                                          new GeneralName(
                                                                              GeneralName.DnsName,
@@ -850,7 +850,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
                                                                          ),
-                                                                         // the name the client dials, without which the server
+                                                                         // the name the client connects to, without which the server
                                                                          // refuses its requests (RFC 9110, Section 7.4)
                                                                          new GeneralName(
                                                                              GeneralName.DnsName,
@@ -1216,7 +1216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
                                                                          ),
-                                                                         // the name the client dials, without which the server
+                                                                         // the name the client connects to, without which the server
                                                                          // refuses its requests (RFC 9110, Section 7.4)
                                                                          new GeneralName(
                                                                              GeneralName.DnsName,
@@ -1582,7 +1582,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
                                                                          ),
-                                                                         // the name the client dials, without which the server
+                                                                         // the name the client connects to, without which the server
                                                                          // refuses its requests (RFC 9110, Section 7.4)
                                                                          new GeneralName(
                                                                              GeneralName.DnsName,
@@ -1943,7 +1943,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                              GeneralName.DnsName,
                                                                              "server.example.org"
                                                                          ),
-                                                                         // the name the client dials, without which the server
+                                                                         // the name the client connects to, without which the server
                                                                          // refuses its requests (RFC 9110, Section 7.4)
                                                                          new GeneralName(
                                                                              GeneralName.DnsName,

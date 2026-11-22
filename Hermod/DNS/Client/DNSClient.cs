@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// certificate at every handshake, with the server it is about - or
         /// null for the machine's own judgement: a certificate is believed
         /// where its chain ends at a root this machine trusts and it is issued
-        /// for the address the server is dialled at, and refused otherwise.
+        /// for the address the server is reached at, and refused otherwise.
         /// </summary>
         /// <remarks>
         /// Asked when a handshake happens rather than when a transport client is
@@ -222,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The optional IP port of the DNS server.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout.</param>
         /// <param name="UseQueryCache">Whether to use the DNS query cache.</param>
-        public DNSClient(IIPAddress            DNSServer,
+        public DNSClient(IPAddress            DNSServer,
                          IPPort?               Port            = null,
                          TimeSpan?             QueryTimeout    = null,
                          Boolean?              UseQueryCache   = true,
@@ -255,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The optional common IP port of the DNS servers.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout.</param>
         /// <param name="UseQueryCache">Whether to use the DNS query cache.</param>
-        public DNSClient(IEnumerable<IIPAddress>  DNSServers,
+        public DNSClient(IEnumerable<IPAddress>  DNSServers,
                          IPPort?                  Port            = null,
                          TimeSpan?                QueryTimeout    = null,
                          Boolean?                 UseQueryCache   = true,
@@ -1322,7 +1322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <remarks>
         /// An address and a port do not make an SSH connection: it takes a login,
         /// credentials and a rule for the server's host key, or a connection that
-        /// exists already - what <see cref="DNSServerConfig.OverSSH(IIPAddress, SSH.Client.SshClientOptions, IPPort?, TimeSpan?, String?)"/>
+        /// exists already - what <see cref="DNSServerConfig.OverSSH(IPAddress, SSH.Client.SSHClientOptions, IPPort?, TimeSpan?, String?)"/>
         /// and its siblings put into a configuration. Said when the servers are
         /// named, not when the first query finds out: there a failure of one
         /// server is a line in the log and the others are asked, so a server
@@ -1355,7 +1355,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region (private static) AddressOf(DNSServer)
 
         /// <summary>
-        /// The address to dial for the given DNS server, or a refusal naming the
+        /// The address to connect to for the given DNS server, or a refusal naming the
         /// configuration that has none.
         /// </summary>
         /// <remarks>
@@ -1367,7 +1367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// built - or, before the field admitted it could be null, inside
         /// DNSServerConfig.ToString().
         /// </remarks>
-        private static IIPAddress AddressOf(DNSServerConfig DNSServer)
+        private static IPAddress AddressOf(DNSServerConfig DNSServer)
 
             => DNSServer.IPAddress
                    ?? throw new ArgumentException(
@@ -1442,7 +1442,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <remarks>
         /// A server asked over SSH on a connection somebody else keeps may be
-        /// known by the name of its host alone: nothing is dialled, so nothing
+        /// known by the name of its host alone: nothing is connected to, so nothing
         /// was resolved. It has an address made of its name then, which is all
         /// §4.1 needs - the same for every query to that server, and another
         /// for another server.
@@ -1450,7 +1450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private static (String Key, System.Net.IPAddress CookieAddress) CookieIdentityOf(DNSServerConfig DNSServer)
         {
 
-            if (DNSServer.IPAddress is IIPAddress ipAddress)
+            if (DNSServer.IPAddress is { } ipAddress)
                 return (ipAddress.ToString()!, System.Net.IPAddress.Parse(ipAddress.ToString()!));
 
             if (DNSServer.Transport == DNSTransport.SSH && DNSServer.DomainName is DomainName domainName)
@@ -1475,7 +1475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         /// <summary>
         /// The client of a DNS server asked over SSH: on the connection it is
-        /// handed, or on one of its own, dialled at the server's IP address
+        /// handed, or on one of its own, made to the server's IP address
         /// where the configuration has one and at its name otherwise.
         /// </summary>
         private DNSSSHClient SSHClientFor(DNSServerConfig  DNSServer,
@@ -1520,7 +1520,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             // Over SSH a server on somebody else's connection may be known by its
-            // name alone: there is nothing to dial.
+            // name alone: there is nothing to connect to.
             if (DNSServer.Transport == DNSTransport.SSH)
                 return transportClients.GetOrAdd(DNSServer, _ => SSHClientFor(DNSServer, Timeout));
 

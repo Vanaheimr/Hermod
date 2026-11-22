@@ -19,6 +19,7 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
@@ -150,13 +151,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 var authTask = Task.Run(async () => {
                                    await client.SendPacketAsync(Message(SshMessageNumber.Ignore, 2, 2), CancellationToken);
                                    return await UserAuthentication.ClientAuthenticateAsync(
-                                              client, "hermoduser", [ userKey ], CancellationToken: CancellationToken);
+                                              client, User_Id.Parse("hermoduser"), [ userKey ], CancellationToken: CancellationToken);
                                }, CancellationToken);
 
                 var result = await serverTask;
                 await authTask;
 
-                Assert.That(result.Username, Is.EqualTo("hermoduser"),
+                Assert.That(result.Username, Is.EqualTo(User_Id.Parse("hermoduser")),
                             "authentication must complete despite the SSH_MSG_IGNORE padding around it");
 
             }

@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
     /// opened and never the connection; <see cref="DisposeAsync"/> closes it for all of them.
     /// </para>
     /// <para>
-    /// Whoever asks while it is being made waits for that one connection: two users never dial twice.
+    /// Whoever asks while it is being made waits for that one connection: two users never connect twice.
     /// A connection that could not be made is the failure of whoever asked, and the next one asks again.
     /// </para>
     /// </remarks>
@@ -38,9 +38,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #region Data
 
-        private readonly Func<CancellationToken, ValueTask<SshClient>>  dial;
-        private readonly SemaphoreSlim                                  dialling  = new (1, 1);
-        private volatile SshClient?                                     client;
+        private readonly Func<CancellationToken, ValueTask<SSHClient>>  connect;
+        private readonly SemaphoreSlim                                  connecting = new (1, 1);
+        private volatile SSHClient?                                     client;
         private          Int64                                          made;
         private          Int32                                          disposed;
 
@@ -51,8 +51,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// <summary>
         /// The connection while it lasts; null where none was made yet, or the last one ended.
         /// </summary>
-        public SshClient? Current
-            => client is SshClient ssh && !ssh.Closed.IsCompleted
+        public SSHClient? Current
+            => client is SSHClient ssh && !ssh.Closed.IsCompleted
                    ? ssh
                    : null;
 
@@ -73,20 +73,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// <param name="Port">The server's SSH port.</param>
         /// <param name="Options">The SSH login: user name, credentials, how the server's host key is checked, keepalive.</param>
         public SshSharedConnection(String            Host,
-                                   UInt16            Port,
-                                   SshClientOptions  Options)
+                                   IPPort            Port,
+                                   SSHClientOptions  Options)
 
-            : this(cancellationToken => SshClient.ConnectAsync(Host, Port, Options, cancellationToken))
+            : this(cancellationToken => SSHClient.Connect(
+                                            Host,
+                                            Port,
+                                            Options,
+                                            cancellationToken
+                                        ))
 
         { }
 
         /// <summary>
         /// A connection made by the given delegate when it is first asked for, and again after it ended.
         /// </summary>
-        /// <param name="Dial">Makes a connection. What it returns becomes this object's, and is closed by it.</param>
-        public SshSharedConnection(Func<CancellationToken, ValueTask<SshClient>> Dial)
+        /// <param name="Connect">Makes a connection. What it returns becomes this object's, and is closed by it.</param>
+        public SshSharedConnection(Func<CancellationToken, ValueTask<SSHClient>> Connect)
         {
-            this.dial = Dial;
+            this.connect = Connect;
         }
 
         #endregion
@@ -98,29 +103,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// The connection: the one that lasts, or a new one where there is none.
         /// </summary>
         /// <exception cref="ObjectDisposedException">It was disposed of.</exception>
-        public async ValueTask<SshClient> GetAsync(CancellationToken CancellationToken = default)
+        public async ValueTask<SSHClient> GetAsync(CancellationToken CancellationToken = default)
         {
 
             ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed) != 0, this);
 
-            if (Current is SshClient lasting)
+            if (Current is SSHClient lasting)
                 return lasting;
 
-            await dialling.WaitAsync(CancellationToken).ConfigureAwait(false);
+            await connecting.WaitAsync(CancellationToken).ConfigureAwait(false);
 
             try
             {
 
                 // Made while this one waited.
-                if (Current is SshClient madeMeanwhile)
+                if (Current is SSHClient madeMeanwhile)
                     return madeMeanwhile;
 
                 ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed) != 0, this);
 
                 var before  = client;
-                var ssh     = await dial(CancellationToken).ConfigureAwait(false);
+                var ssh     = await connect(CancellationToken).ConfigureAwait(false);
 
-                // Disposed of while it was dialling: nobody is left to close it but this.
+                // Disposed of while it was connecting: nobody is left to close it but this.
                 if (Volatile.Read(ref disposed) != 0)
                 {
                     await ssh.DisposeAsync().ConfigureAwait(false);
@@ -139,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
             }
             finally
             {
-                dialling.Release();
+                connecting.Release();
             }
 
         }
@@ -157,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
             if (Interlocked.Exchange(ref disposed, 1) != 0)
                 return;
 
-            if (client is SshClient ssh)
+            if (client is SSHClient ssh)
                 await ssh.DisposeAsync().ConfigureAwait(false);
 
         }

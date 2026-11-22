@@ -22,6 +22,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 
@@ -68,8 +69,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 }, CancellationToken);
 
                 using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
-                var sftp = await SftpClient.OpenAsync(client, CancellationToken);
+                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
+                var sftp = await SFTPClient.OpenAsync(client, CancellationToken);
 
                 // The oversized upload is rejected …
                 var tooBig = RandomNumberGenerator.GetBytes(100_000);

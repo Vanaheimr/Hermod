@@ -21,6 +21,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -89,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        private static async Task<(SshServer Server, UInt16 Port, ISshHostKey HostKey)> StartServerAsync(
+        private static async Task<(SshServer Server, IPPort Port, ISshHostKey HostKey)> StartServerAsync(
             SshCertificateAuthorityTrust  Trust,
             CancellationToken             CancellationToken,
             ForwardingPolicy?             Policy = null)
@@ -108,13 +109,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             });
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
-            return (server, (UInt16) server.LocalEndPoint.Port.ToInt32(), hostKey);
+            return (server, server.LocalEndPoint.Port, hostKey);
 
         }
 
-        private static ValueTask<SshClient> ConnectAsync(UInt16 Port, ISshHostKey HostKey, CertifiedKey Credential, CancellationToken CancellationToken)
-            => SshClient.ConnectAsync("127.0.0.1", Port, new SshClientOptions {
-                   Username      = "achim",
+        private static ValueTask<SSHClient> ConnectAsync(IPPort Port, ISshHostKey HostKey, CertifiedKey Credential, CancellationToken CancellationToken)
+            => SSHClient.Connect("127.0.0.1", Port, new SSHClientOptions {
+                   Username      = User_Id.Parse("achim"),
                    VerifyHostKey = blob => blob.AsSpan().SequenceEqual(HostKey.PublicKeyBlob),
                    Credentials   = [ Credential ]
                }, CancellationToken);
@@ -141,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 await using var client = await ConnectAsync(port, hostKey, credential, CancellationToken);
 
-                var result = await client.ExecuteAsync("cat /etc/shadow", CancellationToken);
+                var result = await client.Execute("cat /etc/shadow", CancellationToken);
 
                 Assert.Multiple(() => {
 
@@ -183,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await using var client = await ConnectAsync(port, hostKey, credential, CancellationToken);
-                var result = await client.ExecuteAsync("uname -a", CancellationToken);
+                var result = await client.Execute("uname -a", CancellationToken);
 
                 Assert.Multiple(() => {
                     Assert.That(result.StandardOutput, Does.Contain("ran:uname -a"));
@@ -219,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 await Assert.CatchAsync(async () => {
                     await using var client = await ConnectAsync(port, hostKey, credential, CancellationToken);
-                    await client.ExecuteAsync("whoami", CancellationToken);
+                    await client.Execute("whoami", CancellationToken);
                 }, "a certificate restricted to 10.0.0.0/8 must not work from 127.0.0.1");
 
             }
@@ -246,7 +247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await using var client = await ConnectAsync(port, hostKey, credential, CancellationToken);
-                var result = await client.ExecuteAsync("whoami", CancellationToken);
+                var result = await client.Execute("whoami", CancellationToken);
 
                 Assert.That(result.StandardOutput, Does.Contain("ran:whoami"));
 
@@ -396,7 +397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                var targetPort = (UInt16) ((System.Net.IPEndPoint) target.LocalEndpoint).Port;
+                var targetPort = IPPort.Parse(((System.Net.IPEndPoint) target.LocalEndpoint).Port);
 
                 var granted    = await ForwardingAsync([ "permit-pty", "permit-port-forwarding" ], targetPort, CancellationToken);
                 var withheld   = await ForwardingAsync([ "permit-pty" ],                           targetPort, CancellationToken);
@@ -419,7 +420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        private static async Task<(Boolean Local, Boolean Remote)> ForwardingAsync(String[] Extensions, UInt16 TargetPort, CancellationToken CancellationToken)
+        private static async Task<(Boolean Local, Boolean Remote)> ForwardingAsync(String[] Extensions, IPPort TargetPort, CancellationToken CancellationToken)
         {
 
             var (credential, trust) = Issue(Extensions);
@@ -433,7 +434,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Boolean local;
                 try
                 {
-                    await using var stream = await client.OpenTcpStreamAsync("127.0.0.1", TargetPort, CancellationToken);
+                    await using var stream = await client.OpenTCPStream("127.0.0.1", TargetPort, CancellationToken);
                     local = true;
                 }
                 catch (SshChannelOpenException)
@@ -446,10 +447,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 {
                     var probe = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
                     probe.Start();
-                    var bindPort = (UInt16) ((System.Net.IPEndPoint) probe.LocalEndpoint).Port;
+                    var bindPort = IPPort.Parse(((System.Net.IPEndPoint) probe.LocalEndpoint).Port);
                     probe.Stop();
 
-                    var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client.Multiplexer, "127.0.0.1", bindPort,
+                    var forward = await SshRemoteForwarding.RequestRemoteForward(client.Multiplexer, "127.0.0.1", bindPort,
                                                                                        "127.0.0.1", TargetPort, CancellationToken);
                     await forward.DisposeAsync();
                     remote = true;

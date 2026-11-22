@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await client.   StartAsync();
 
             // The announcements fill the cache of the listening client.
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             Assert.That(client.CacheSize, Is.EqualTo(4));
 
@@ -168,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
             await client.   StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             // Age the cache: with less than half of its 120 s left, the cached A record travels
             // as known answer without suppressing the responder's answer (RFC 6762 §7.1).
@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
             await client.   StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             // Forget the announcements, so that the query really goes to the responder.
             client.ClearCache();
@@ -490,7 +490,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 return Task.CompletedTask;
             };
 
-            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             Assert.That(client.CacheSize, Is.EqualTo(4));
 
@@ -526,7 +526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
             await client.   StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             capture.Clear();
 
@@ -704,7 +704,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
             await client.   StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             var unicast = new RecordingDNSClient();
             var hybrid  = new HybridDNSClient(client, unicast);
@@ -938,7 +938,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
             await client.   StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             var byDomainName   = await client.Query(MyHost,     [ DNSResourceRecordTypes.A, DNSResourceRecordTypes.AAAA ]);
             var byServiceName  = await client.Query(MyHostName, [ DNSResourceRecordTypes.A, DNSResourceRecordTypes.AAAA ]);
@@ -970,7 +970,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
             await client.   StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             var responses  = new List<(MulticastDNSMessage Response, IPSocket Source)>();
             var records    = new List<(MulticastDNSRecord Record, IPSocket Source)>();

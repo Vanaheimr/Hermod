@@ -19,6 +19,7 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -58,13 +59,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                                                                          Username       = "achim",
-                                                                          VerifyHostKey  = HostKeyPolicy.HostCertificate(new SshCertificateAuthorityTrust().TrustCA(CA)).ForHost("127.0.0.1", IPPort.Parse(port)),
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                                                                          Username       = User_Id.Parse("achim"),
+                                                                          VerifyHostKey  = HostKeyPolicy.HostCertificate(new SshCertificateAuthorityTrust().TrustCA(CA)).ForHost("127.0.0.1", port),
                                                                           Credentials    = [ userKey ]
                                                                       }, CancellationToken);
 
-                Assert.That((await client.ExecuteAsync("hostname", CancellationToken)).StandardOutput, Is.EqualTo("ran: hostname\n"));
+                Assert.That((await client.Execute("hostname", CancellationToken)).StandardOutput, Is.EqualTo("ran: hostname\n"));
 
             }
             finally
@@ -94,13 +95,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 var shown = new List<Byte[]>();
 
-                await using (var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                                                                           Username       = "achim",
+                await using (var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                                                                           Username       = User_Id.Parse("achim"),
                                                                            VerifyHostKey  = blob => { shown.Add(blob); return blob.AsSpan().SequenceEqual(HostKey.PublicKeyBlob); },
                                                                            Credentials    = [ userKey ]
                                                                        }, CancellationToken))
                 {
-                    Assert.That((await client.ExecuteAsync("hostname", CancellationToken)).StandardOutput, Is.EqualTo("ran: hostname\n"));
+                    Assert.That((await client.Execute("hostname", CancellationToken)).StandardOutput, Is.EqualTo("ran: hostname\n"));
                 }
 
                 Assert.Multiple(() => {
@@ -112,8 +113,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 var somebodyElse = SshHostKey.GenerateEd25519();
 
                 await Assert.CatchAsync<SshWireException>(async () => {
-                    await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                                                                              Username       = "achim",
+                    await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                                                                              Username       = User_Id.Parse("achim"),
                                                                               VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(somebodyElse.PublicKeyBlob),
                                                                               Credentials    = [ userKey ]
                                                                           }, CancellationToken);
@@ -134,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         // The plain key and its certificate, in that order - the order of the server's offer is not what
         // decides, the client's preference is.
-        private static async Task<(SshServer Server, UInt16 Port, ISshHostKey UserKey)> StartAsync(CancellationToken CancellationToken)
+        private static async Task<(SshServer Server, IPPort Port, ISshHostKey UserKey)> StartAsync(CancellationToken CancellationToken)
         {
 
             var userKey     = SshHostKey.GenerateEd25519();
@@ -155,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            return (server, (UInt16) server.LocalEndPoint.Port.ToInt32(), userKey);
+            return (server, server.LocalEndPoint.Port, userKey);
 
         }
 

@@ -75,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Description">An optional description of this TCP server.</param>
         /// <param name="AutoStart">Whether to automatically start the TCP server.</param>
 
-        public TCPServer(IIPAddress?                                               IPAddress                    = null,
+        public TCPServer(IPAddress?                                               IPAddress                    = null,
                          IPPort?                                                   TCPPort                      = null,
                          I18NString?                                               Description                  = null,
 

@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                var cookies  = await SignIn(api, client, "hank");
+                var cookies  = await SignIn(api, client, User_Id.Parse("hank"));
                 var keyId    = APIKey_Id.Parse("hanks-first-key-0123456789abcdef");
 
                 var (status, body) = await AddOverHTTP(client, cookies, "hank", KeyJSON(keyId.ToString(), "hank", "readOnly"));
@@ -169,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api      = await StartAPI();
-            var alice    = await NewUser(api, "alice");
+            var alice    = await NewUser(api, User_Id.Parse("alice"));
 
             var valid    = new APIKey(APIKey_Id.Parse("alices-valid-key-0123456789abcdef"),    alice.Id);
             var expired  = new APIKey(APIKey_Id.Parse("alices-expired-key-0123456789abcdef"),  alice.Id, NotAfter: DateTimeOffset.UtcNow.AddDays(-1));
@@ -202,7 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api    = await StartAPI();
-            var alice  = await NewUser(api, "alice");
+            var alice  = await NewUser(api, User_Id.Parse("alice"));
             var keyId  = APIKey_Id.Parse("alices-only-key-0123456789abcdef");
 
             Assert.That((await api.AddAPIKey(new APIKey(keyId, alice.Id).AsKept())).Result,  Is.EqualTo(CommandResult.Success));
@@ -286,12 +286,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static async Task<IUser> NewUser(HTTPExtAPI  API,
-                                                 String      Name)
+                                                 User_Id     Name)
         {
 
             var user = await API.CreateUser(
-                                 User_Id.Parse(Name),
-                                 I18NString.Create(Name),
+                                 Name,
+                                 I18NString.Create(Name.ToString()),
                                  SimpleEMailAddress.Parse($"{Name}@example.test"),
                                  SkipDefaultNotifications:  true,
                                  SkipNewUserEMail:          true,
@@ -310,12 +310,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// </summary>
         private static async Task<String> SignIn(HTTPExtAPI  API,
                                                  HttpClient  Client,
-                                                 String      Name)
+                                                 User_Id     Name)
         {
 
             var user = await API.CreateUserIfNotExists(
-                                 User_Id.Parse(Name),
-                                 I18NString.Create(Name),
+                                 Name,
+                                 I18NString.Create(Name.ToString()),
                                  SimpleEMailAddress.Parse($"{Name}@example.test"),
                                  Password:                  Password,
                                  IsAuthenticated:           true,
@@ -335,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                            "accounts/auth/login",
                                            new StringContent(
                                                new JObject(
-                                                   new JProperty("login",     Name),
+                                                   new JProperty("login",     Name.ToString()),
                                                    new JProperty("password",  Password)
                                                ).ToString(),
                                                Encoding.UTF8,

@@ -160,7 +160,7 @@ public sealed class HTTPServerListenerMatrixTests
     // server binds it in Start() - rather than one that was free a moment
     // before, and with other test runs on the same machine was now and then
     // given to one of them in between. See ClosedPort.
-    private static HTTPServer CreateServer(IIPAddress ipAddress,
+    private static HTTPServer CreateServer(IPAddress ipAddress,
                                            ClosedPort port)
 
         => new (

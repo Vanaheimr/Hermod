@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             /// the client to that port.
             /// </summary>
             private static async Task<(T Client, Peer Peer)> RunAsync<T>(Boolean                                 Tls,
-                                                                         Func<Int32, Task<(T, RecordingStream?)>>  Connect,
+                                                                         Func<IPPort, Task<(T, RecordingStream?)>> Connect,
                                                                          Func<Stream, Task>                      Server,
                                                                          Boolean                                 Alpn = true)
             {
@@ -261,7 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
                 listener.Start();
 
-                var port      = ((IPEndPoint) listener.LocalEndpoint).Port;
+                var port      = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
                 var accepted  = listener.AcceptTcpClientAsync();
                 var client    = Connect(port);
 
@@ -327,7 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             /// </summary>
             public static async Task<(Exception? Failure, Peer Peer)> FailToConnectAsync(Boolean                                       Tls,
                                                                                          Func<Stream, Task>                            Server,
-                                                                                         Func<Int32, Task<HTTP2ClientConnection>>     Connect,
+                                                                                         Func<IPPort, Task<HTTP2ClientConnection>>    Connect,
                                                                                          Boolean                                       Alpn = true)
             {
 
@@ -350,11 +350,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             }
 
-            private static async Task<(HTTP2ClientConnection, RecordingStream?)> StartOnStreamAsync(Int32 Port, HTTP2ClientOptions? Options, Boolean OwnsTransport)
+            private static async Task<(HTTP2ClientConnection, RecordingStream?)> StartOnStreamAsync(IPPort Port, HTTP2ClientOptions? Options, Boolean OwnsTransport)
             {
 
                 var tcp = new TcpClient { NoDelay = true };
-                await tcp.ConnectAsync(System.Net.IPAddress.Loopback, Port);
+                await tcp.ConnectAsync(System.Net.IPAddress.Loopback, Port.ToInt32());
 
                 var recorded    = new RecordingStream(tcp.GetStream());
                 var connection  = new HTTP2ClientConnection(recorded, Options, OwnsTransport: OwnsTransport);

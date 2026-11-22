@@ -85,12 +85,12 @@ public sealed class DaneResolver
     /// <param name="Port">The SMTP port (25 for MX delivery).</param>
     /// <param name="CancellationToken">An optional cancellation token.</param>
     public async Task<DaneResult> ResolveTlsaAsync(String             MxHost,
-                                                   UInt16             Port                = 25,
+                                                   IPPort?            Port                = null,
                                                    CancellationToken  CancellationToken   = default)
     {
 
         var host  = MxHost.TrimEnd('.');
-        var owner = $"_{Port}._tcp.{host}";
+        var owner = $"_{Port ?? IPPort.SMTP}._tcp.{host}";
 
         #region The address records first (§2.2.2)
 

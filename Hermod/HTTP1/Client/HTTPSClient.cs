@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPSClient(IPAddress, ...)
 
-        public HTTPSClient(IIPAddress                                                IPAddress,
+        public HTTPSClient(IPAddress                                                IPAddress,
                            RemoteTLSServerCertificateValidationHandler<IHTTPClient>  RemoteCertificateValidator,
 
                            IPPort?                                                   TCPPort                               = null,
@@ -516,7 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>The new HTTPS client, also when the connect failed, and the result of the connect.</returns>
         public static async Task<(HTTPSClient?, TCPConnectionResult)>
 
-            ConnectNew(IIPAddress                                                IPAddress,
+            ConnectNew(IPAddress                                                IPAddress,
                        IPPort                                                    TCPPort,
                        RemoteTLSServerCertificateValidationHandler<IHTTPClient>  RemoteCertificateValidator,
 

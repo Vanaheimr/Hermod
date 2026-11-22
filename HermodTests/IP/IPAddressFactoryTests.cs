@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 
             var ipv4Address = IPAddress.Parse("141.24.12.2");
 
-            Assert.That(ipv4Address is IIPAddress,  Is.True);
+            Assert.That(ipv4Address.HasValue,      Is.True);
             Assert.That(ipv4Address is IPv4Address, Is.True);
             Assert.That(ipv4Address is IPv6Address, Is.False);
 
@@ -75,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 
             var ipv4Address = IPAddress.Parse([10, 0, 0, 0]);
 
-            Assert.That(ipv4Address is IIPAddress,  Is.True);
+            Assert.That(ipv4Address.HasValue,      Is.True);
             Assert.That(ipv4Address is IPv4Address, Is.True);
             Assert.That(ipv4Address is IPv6Address, Is.False);
 
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
 
             var ipv6Address = IPAddress.Parse([10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0]);
 
-            Assert.That(ipv6Address is IIPAddress,  Is.True);
+            Assert.That(ipv6Address.HasValue,      Is.True);
             Assert.That(ipv6Address is IPv4Address, Is.False);
             Assert.That(ipv6Address is IPv6Address, Is.True);
 
@@ -127,15 +127,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
         {
 
             var         parsed     = true;
-            IIPAddress? ipAddress  = null;
+            var         ipAddress  = IPAddress.Any;
 
             Assert.That(() => parsed = IPAddress.TryParse(Text, out ipAddress),  Throws.Nothing);
 
             Assert.Multiple(() => {
                 Assert.That(parsed,                  Is.False);
-                Assert.That(ipAddress,               Is.Null);
-                Assert.That(IPAddress.IsIPv4(Text),  Is.False);
-                Assert.That(IPAddress.IsIPv6(Text),  Is.False);
+                Assert.That(ipAddress.HasValue,      Is.False);
+                Assert.That(IPAddress.IsIPv4Address(Text),  Is.False);
+                Assert.That(IPAddress.IsIPv6Address(Text),  Is.False);
             });
 
         }
@@ -167,8 +167,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
                                 : ipAddress is IPv6Address,          Is.True);
 
                 Assert.That(Version == 4
-                                ? IPAddress.IsIPv4(Text)
-                                : IPAddress.IsIPv6(Text),            Is.True);
+                                ? IPAddress.IsIPv4Address(Text)
+                                : IPAddress.IsIPv6Address(Text),            Is.True);
 
             });
 
@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
                 Assert.That(IPAddress.IsIPv4Localhost("127.0.0.1"),              Is.True);
                 Assert.That(IPAddress.IsIPv4Localhost("127.0.0.1.example.com"),  Is.False);
                 Assert.That(IPAddress.IsIPv6Localhost("::1"),                    Is.True);
-                Assert.That(IPAddress.IsLocalhost    ("localhost"),              Is.True);
+                Assert.That(IPAddress.IsLocalhostAddress("localhost"),           Is.True);
             });
 
         }
@@ -210,10 +210,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
         {
 
             Assert.Multiple(() => {
-                Assert.That(IPAddress.IsIPv4(HTTPHostname.Parse("141.24.12.2:8080")),  Is.True);
-                Assert.That(IPAddress.IsIPv4(DomainName.  Parse("141.24.12.2")),       Is.True);
-                Assert.That(IPAddress.IsIPv4(DomainName.  Parse("10.0.0.1.nip.io")),   Is.False);
-                Assert.That(IPAddress.IsIPv6(HTTPHostname.Parse("[::1]:8080")),        Is.True);
+                Assert.That(IPAddress.IsIPv4Address(HTTPHostname.Parse("141.24.12.2:8080")),  Is.True);
+                Assert.That(IPAddress.IsIPv4Address(DomainName.  Parse("141.24.12.2")),       Is.True);
+                Assert.That(IPAddress.IsIPv4Address(DomainName.  Parse("10.0.0.1.nip.io")),   Is.False);
+                Assert.That(IPAddress.IsIPv6Address(HTTPHostname.Parse("[::1]:8080")),        Is.True);
             });
 
         }

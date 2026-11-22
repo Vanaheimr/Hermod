@@ -39,12 +39,12 @@ public class Http3MultipleClientsTests
 
     private static Http3Server StartServer(ServerCertificate cert)
     {
-        var server = new Http3Server(cert, _ => new Http3Response { Status = 200, Body = "ok"u8.ToArray() }, port: 0);
+        var server = new Http3Server(cert, _ => new Http3Response { Status = 200, Body = "ok"u8.ToArray() }, port: IPPort.Zero);
         server.Start();
         return server;
     }
 
-    private static async Task<int> RequestAsync(int port, CertificateValidationOptions validation)
+    private static async Task<int> RequestAsync(IPPort port, CertificateValidationOptions validation)
     {
         await using var client = new Http3Client("localhost", port, validation);
         await client.ConnectAsync(ConnectTimeout);
@@ -153,7 +153,7 @@ public class Http3MultipleClientsTests
             byte[] body = new byte[size];
             Array.Fill(body, fill);
             return new Http3Response { Status = 200, Body = body };
-        }, port: 0);
+        }, port: IPPort.Zero);
         server.Start();
 
         async Task<(int Fill, byte[] Body)> Fetch(int fill)
@@ -185,7 +185,7 @@ public class Http3MultipleClientsTests
 
         await using var server = new Http3Server(cert,
             request => new Http3Response { Status = 200, Body = System.Text.Encoding.UTF8.GetBytes(request.Path) },
-            port: 0);
+            port: IPPort.Zero);
         server.Start();
 
         await using var a = new Http3Client("localhost", server.Port, validation);

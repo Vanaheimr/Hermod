@@ -57,10 +57,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
     public sealed class HTTP2ClientPool : IAsyncDisposable
     {
 
-        #region Dialing parameters + configuration
+        #region Connection parameters + configuration
 
         private readonly string                               host;
-        private readonly int                                  port;
+        private readonly IPPort                               port;
         private readonly RemoteCertificateValidationCallback? validateServerCertificate;
         private readonly X509Certificate2?                    clientCertificate;
         private readonly HTTP2ClientOptions?                  options;
@@ -142,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         private HTTP2ClientPool(
             string                               Host,
-            int                                  Port,
+            IPPort                               Port,
             RemoteCertificateValidationCallback? ValidateServerCertificate,
             X509Certificate2?                    ClientCertificate,
             HTTP2ClientOptions?                  Options,
@@ -169,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Create a pool to Host:Port and open its first connection (so an
         /// unreachable origin fails fast, here), then fill up to
-        /// <paramref name="MaxConnections"/> in the background. The dialing
+        /// <paramref name="MaxConnections"/> in the background. The connection
         /// parameters mirror <see cref="HTTP2Client.ConnectAsync"/>.
         /// </summary>
         /// <param name="MaxConnections">Target number of warm connections to the origin (default 4).</param>
@@ -179,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </param>
         public static async Task<HTTP2ClientPool> ConnectAsync(
             string                               Host,
-            int                                  Port,
+            IPPort                               Port,
             RemoteCertificateValidationCallback? ValidateServerCertificate = null,
             X509Certificate2?                    ClientCertificate         = null,
             HTTP2ClientOptions?                  Options                   = null,
@@ -354,7 +354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         #region Connection lifecycle (open / watch / replenish)
 
         /// <summary>
-        /// Dial one new connection, register it, and start watching it for death. Throws if the dial fails.
+        /// Make one new connection, register it, and start watching it for death. Throws if the connection fails.
         /// </summary>
         private async Task<HTTP2ClientConnection> OpenConnectionAsync(CancellationToken CancellationToken)
         {
@@ -472,7 +472,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Bring the live-connection count back up to <see cref="maxConnections"/>.
         /// Serialized so concurrent triggers (a death + a request nudge) can't
-        /// over-open; a dial failure backs off and leaves the count to a later
+        /// over-open; a connection failure backs off and leaves the count to a later
         /// trigger / the maintenance loop.
         /// </summary>
         private async Task ReplenishAsync()

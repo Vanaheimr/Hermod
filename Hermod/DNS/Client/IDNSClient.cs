@@ -328,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Query_IPAddresses   (DomainName,             Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
-        public static async Task<IEnumerable<IIPAddress>>
+        public static async Task<IEnumerable<IPAddress>>
 
             Query_IPAddresses(this IDNSClient    IDNSClient,
                               DomainName         DomainName,
@@ -350,8 +350,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var ipv4Addresses = await ipv4AddressLookupTask.ConfigureAwait(false);
             var ipv6Addresses = await ipv6AddressLookupTask.ConfigureAwait(false);
 
-            return       ipv4Addresses.Distinct().Select(v => v as IIPAddress).
-                   Union(ipv6Addresses.Distinct().Select(v => v as IIPAddress));
+            return       ipv4Addresses.Distinct().Select(v => (IPAddress) v).
+                   Union(ipv6Addresses.Distinct().Select(v => (IPAddress) v));
 
         }
 
@@ -359,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Query_IPAddresses   (DNSServiceName,         Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
-        public static async Task<IEnumerable<IIPAddress>>
+        public static async Task<IEnumerable<IPAddress>>
 
             Query_IPAddresses(this IDNSClient    IDNSClient,
                               DNSServiceName     DNSServiceName,
@@ -381,8 +381,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var ipv4Addresses = await ipv4AddressLookupTask.ConfigureAwait(false);
             var ipv6Addresses = await ipv6AddressLookupTask.ConfigureAwait(false);
 
-            return       ipv4Addresses.Distinct().Select(v => v as IIPAddress).
-                   Union(ipv6Addresses.Distinct().Select(v => v as IIPAddress));
+            return       ipv4Addresses.Distinct().Select(v => (IPAddress) v).
+                   Union(ipv6Addresses.Distinct().Select(v => (IPAddress) v));
 
         }
 
@@ -390,7 +390,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Query_IPAddresses   (RemoteURL,              Timeout = null, RecursionDesired = null, ForceUpdate = false, ...)
 
-        public static async Task<IEnumerable<IIPAddress>>
+        public static async Task<IEnumerable<IPAddress>>
 
             Query_IPAddresses(this IDNSClient    IDNSClient,
                               URL                RemoteURL,
@@ -402,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             // When the URL already carries an IP address there is nothing to resolve.
-            if (RemoteURL.Host.IPAddress is IIPAddress ipAddress)
+            if (RemoteURL.Host.IPAddress is { } ipAddress)
                 return [ ipAddress ];
 
             if (RemoteURL.Host.DomainName is null)
@@ -419,8 +419,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var ipv4Addresses = await ipv4AddressLookupTask.ConfigureAwait(false);
             var ipv6Addresses = await ipv6AddressLookupTask.ConfigureAwait(false);
 
-            return       ipv4Addresses.Distinct().Select(v => v as IIPAddress).
-                   Union(ipv6Addresses.Distinct().Select(v => v as IIPAddress));
+            return       ipv4Addresses.Distinct().Select(v => (IPAddress) v).
+                   Union(ipv6Addresses.Distinct().Select(v => (IPAddress) v));
 
         }
 
@@ -464,7 +464,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="RecursionDesired">Whether recursion is desired.</param>
         /// <param name="ForceUpdate">Whether to ask the name servers rather than the cache.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
-        public static Task<IEnumerable<IIPAddress>>
+        public static Task<IEnumerable<IPAddress>>
 
             Query_IPAddressesToConnect(this IDNSClient    IDNSClient,
                                        DomainName         DomainName,
@@ -490,7 +490,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The addresses to connect to the given name, IPv6 first, with the Resolution Delay of RFC 8305 §3:
         /// see <see cref="Query_IPAddressesToConnect(IDNSClient, DomainName, TimeSpan?, TimeSpan?, Boolean?, Boolean?, CancellationToken)"/>.
         /// </summary>
-        public static async Task<IEnumerable<IIPAddress>>
+        public static async Task<IEnumerable<IPAddress>>
 
             Query_IPAddressesToConnect(this IDNSClient    IDNSClient,
                                        DNSServiceName     DNSServiceName,
@@ -558,7 +558,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// RFC 8305 §3: see <see cref="Query_IPAddressesToConnect(IDNSClient, DomainName, TimeSpan?, TimeSpan?, Boolean?, Boolean?, CancellationToken)"/>.
         /// A host that is an IP address is that address, without a query.
         /// </summary>
-        public static async Task<IEnumerable<IIPAddress>>
+        public static async Task<IEnumerable<IPAddress>>
 
             Query_IPAddressesToConnect(this IDNSClient    IDNSClient,
                                        URL                RemoteURL,
@@ -570,7 +570,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            if (RemoteURL.Host.IPAddress is IIPAddress ipAddress)
+            if (RemoteURL.Host.IPAddress is { } ipAddress)
                 return [ ipAddress ];
 
             if (RemoteURL.Host.DomainName is null)
@@ -587,18 +587,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (private static) AddressesOf<T>(Lookup)
+        #region (private static) AddressesOf(Lookup)
 
         /// <summary>
         /// The addresses the given lookup has ended with; none while it is running, or when it failed or was
         /// cancelled.
         /// </summary>
-        private static IEnumerable<IIPAddress> AddressesOf<T>(Task<IEnumerable<T>> Lookup)
-
-            where T : IIPAddress
+        private static IEnumerable<IPAddress> AddressesOf(Task<IEnumerable<IPv4Address>> Lookup)
 
             => Lookup.IsCompletedSuccessfully
-                   ? [ .. Lookup.Result.Cast<IIPAddress>() ]
+                   ? [ .. Lookup.Result.Select(address => (IPAddress) address) ]
+                   : [];
+
+        /// <summary>
+        /// The addresses the given lookup has ended with; none while it is running, or when it failed or was
+        /// cancelled.
+        /// </summary>
+        private static IEnumerable<IPAddress> AddressesOf(Task<IEnumerable<IPv6Address>> Lookup)
+
+            => Lookup.IsCompletedSuccessfully
+                   ? [ .. Lookup.Result.Select(address => (IPAddress) address) ]
                    : [];
 
         #endregion

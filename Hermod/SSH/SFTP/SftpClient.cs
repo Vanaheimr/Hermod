@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     /// requests may be outstanding at once — <see cref="UploadAsync"/> and <see cref="DownloadAsync"/>
     /// pipeline their WRITE/READ requests for throughput, and <see cref="SftpFileStream"/> can stream freely.
     /// </summary>
-    public sealed class SftpClient : IAsyncDisposable
+    public sealed class SFTPClient : IAsyncDisposable
     {
 
         #region Data
@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region Constructor(s)
 
-        private SftpClient(ISftpDuplex Channel, IReadOnlyDictionary<String, String> ServerExtensions)
+        private SFTPClient(ISftpDuplex Channel, IReadOnlyDictionary<String, String> ServerExtensions)
         {
             this.channel           = Channel;
             this.ServerExtensions  = ServerExtensions;
@@ -83,13 +83,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         /// <summary>
         /// Open the <c>sftp</c> subsystem on a single-channel transport and negotiate the protocol version.
         /// </summary>
-        public static async ValueTask<SftpClient> OpenAsync(SshTransport Transport, CancellationToken CancellationToken = default)
+        public static async ValueTask<SFTPClient> OpenAsync(SshTransport Transport, CancellationToken CancellationToken = default)
             => await OpenAsync(await SshConnection.OpenSubsystemAsync(Transport, "sftp", CancellationToken).ConfigureAwait(false), CancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Run the SFTP client over an already-established duplex channel (e.g. a multiplexed <c>sftp</c> subsystem channel).
         /// </summary>
-        public static async ValueTask<SftpClient> OpenAsync(ISftpDuplex channel, CancellationToken CancellationToken = default)
+        public static async ValueTask<SFTPClient> OpenAsync(ISftpDuplex channel, CancellationToken CancellationToken = default)
         {
 
             var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                 extensions[name] = data;
             }
 
-            return new SftpClient(channel, extensions);
+            return new SFTPClient(channel, extensions);
 
         }
 

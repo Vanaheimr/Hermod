@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// The remote IP address of the Modbus device to connect to.
         /// </summary>
-        public new IIPAddress?                                                RemoteIPAddress               { get; }
+        public new IPAddress?                                                RemoteIPAddress               { get; }
 
         /// <summary>
         /// The remote TCP port of the Modbus device to connect to.
@@ -475,7 +475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="UseRequestPipelining">Whether to pipeline multiple Modbus/TCP request through a single TCP/TLS connection.</param>
         /// <param name="Logger">A Modbus/TCP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public ModbusTCPClient(IIPAddress                                                     RemoteIPAddress,
+        public ModbusTCPClient(IPAddress                                                     RemoteIPAddress,
                                IPPort?                                                        RemoteTCPPort                = null,
                                Byte?                                                          UnitAddress                  = null,
                                Int16?                                                         StartingAddressOffset        = null,

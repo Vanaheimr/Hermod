@@ -23,6 +23,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -48,7 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         private readonly ISshHostKey  hostKey  = SshHostKey.GenerateEd25519();
         private readonly ISshHostKey  userKey  = SshHostKey.GenerateEd25519();
 
-        private sealed record Running(SshServer Server, UInt16 Port, CollectingAuditSink Audit, ConcurrentQueue<(IPSocket? Peer, IPSocket? Local)> Asked) : IAsyncDisposable
+        private sealed record Running(SshServer Server, IPPort Port, CollectingAuditSink Audit, ConcurrentQueue<(IPSocket? Peer, IPSocket? Local)> Asked) : IAsyncDisposable
         {
             public ValueTask DisposeAsync() => Server.DisposeAsync();
         }
@@ -77,14 +78,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Any, IPPort.Auto), CancellationToken);
 
-            return new Running(server, (UInt16) server.LocalEndPoint.Port.ToInt32(), audit, asked);
+            return new Running(server, server.LocalEndPoint.Port, audit, asked);
 
         }
 
-        private ValueTask<SshClient> ConnectAsync(Running Running, CancellationToken CancellationToken)
+        private ValueTask<SSHClient> ConnectAsync(Running Running, CancellationToken CancellationToken)
 
-            => SshClient.ConnectAsync("127.0.0.1", Running.Port, new SshClientOptions {
-                   Username       = "achim",
+            => SSHClient.Connect("127.0.0.1", Running.Port, new SSHClientOptions {
+                   Username       = User_Id.Parse("achim"),
                    VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                    Credentials    = [ userKey ]
                }, CancellationToken);
@@ -102,7 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             timeout.CancelAfter(TimeSpan.FromSeconds(10));
 
-            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, Running.Port, timeout.Token);
+            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, Running.Port.ToInt32(), timeout.Token);
 
             var buffer = new Byte[64];
 
@@ -143,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(heard,                               Is.Empty,                "a refused client heard from the server");
                 Assert.That(asked.Peer?.IPAddress.ToString(),    Is.EqualTo("127.0.0.1"));
                 Assert.That(asked.Local?.IPAddress.ToString(),   Is.EqualTo("127.0.0.1"), "the listener's 0.0.0.0, not the connection's address");
-                Assert.That(asked.Local?.Port.ToInt32(),         Is.EqualTo(running.Port));
+                Assert.That(asked.Local?.Port,                   Is.EqualTo(running.Port));
                 Assert.That(running.Audit.Events.OfType<PolicyDeniedEvent>().Select(e => (e.PolicyType, e.Target, e.Reason)),
                             Is.EqualTo(new[] { ("connection", "127.0.0.1", "not on the list") }));
                 Assert.That(running.Audit.Events.OfType<ConnectionOpenedEvent>(), Is.Empty, "a refused connection was opened");
@@ -170,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await using var client = await ConnectAsync(running, CancellationToken);
 
-            var result = await client.ExecuteAsync("uptime", CancellationToken);
+            var result = await client.Execute("uptime", CancellationToken);
 
             Assert.Multiple(() => {
                 Assert.That(heard,                  Does.StartWith("SSH-2.0-"));
@@ -226,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await using var client = await ConnectAsync(running, CancellationToken);
 
-            var result = await client.ExecuteAsync("uptime", CancellationToken);
+            var result = await client.Execute("uptime", CancellationToken);
 
             Assert.Multiple(() => {
                 Assert.That(result.StandardOutput, Is.EqualTo("ran\n"));

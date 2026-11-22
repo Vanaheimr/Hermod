@@ -21,6 +21,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 
@@ -514,7 +515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region (private) ConnectAsync(FileSystem, CancellationToken, Profile = null, Limits = null)
 
-        private static async Task<SftpClient> ConnectAsync(ISftpFileSystem    FileSystem,
+        private static async Task<SFTPClient> ConnectAsync(ISftpFileSystem    FileSystem,
                                                            CancellationToken  CancellationToken,
                                                            SshAccessProfile?  Profile  = null,
                                                            SftpLimits?        Limits   = null)
@@ -538,8 +539,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             }, CancellationToken);
 
             var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
-            return await SftpClient.OpenAsync(client, CancellationToken);
+            await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
+            return await SFTPClient.OpenAsync(client, CancellationToken);
 
         }
 

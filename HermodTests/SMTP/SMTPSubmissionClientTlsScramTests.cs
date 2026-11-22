@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public Boolean Authenticated { get; private set; }
             public Boolean MessageStored { get; private set; }
 
-            public Int32 Port => ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port => IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             private readonly ScramEnding       ending;
 
@@ -250,7 +250,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         private static SMTPSubmissionClient ClientFor(TlsScramServer server, String password, String Login = User)
             => new (DomainName.Parse("127.0.0.1"),
-                    IPPort.Parse((UInt16) server.Port),
+                    server.Port,
                     Login:                       Login,
                     Password:                    password,
                     UseTLS:                      TLSUsage.STARTTLS,

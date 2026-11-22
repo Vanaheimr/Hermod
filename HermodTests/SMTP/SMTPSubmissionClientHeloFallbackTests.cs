@@ -50,8 +50,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             public readonly ConcurrentQueue<String>   Commands = new();
 
-            public UInt16 Port
-                => (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port
+                => IPPort.Parse((UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             /// <param name="EhloRefusals">Per connection: the reply refusing EHLO, or null for an ESMTP server.</param>
             public Server(params String?[] EhloRefusals)
@@ -141,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         private static SMTPSubmissionClient ClientFor(Server Server, TLSUsage UseTLS = TLSUsage.NoTLS)
             => new (DomainName.Parse("127.0.0.1"),
-                    IPPort.Parse(Server.Port),
+                    Server.Port,
                     LocalDomain:                 "client.example",
                     UseTLS:                      UseTLS,
                     RemoteCertificateValidator:  (_, _, _, _, _) => TLSValidationResult.Success(),

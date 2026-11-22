@@ -169,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
         /// <summary>
         /// Resolves a forwarding target's hostname to addresses; by default with <see cref="DNSClient"/>. The
-        /// same seam <see cref="SshForwarding"/> uses — injectable so the ACL's dial-time binding can be tested.
+        /// same seam <see cref="SshForwarding"/> uses — injectable so the ACL's connect-time binding can be tested.
         /// </summary>
         public SshAddressResolver?                  AddressResolver   { get; init; }
 
@@ -594,14 +594,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                 }
 
-                var session = new SshSessionInfo(Connection.IdText,
-                                                 auth.Username,
-                                                 auth.Method,
-                                                 auth.PublicKeyBlob,
-                                                 Connection.Peer,
-                                                 Connection.Local ?? listener?.LocalEndPoint,
-                                                 transport.PeerIdentification,
-                                                 auth.Restrictions) {
+                var session = new SshSessionInfo(
+                                  Connection.IdText,
+                                  auth.Username,
+                                  auth.Method,
+                                  auth.PublicKeyBlob,
+                                  Connection.Peer,
+                                  Connection.Local ?? listener?.LocalEndPoint,
+                                  transport.PeerIdentification,
+                                  auth.Restrictions
+                              ) {
                                   Exporter = transport.Exporter
                               };
 
@@ -627,7 +629,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                     if (refusal is not null)
                     {
-                        await EmitAsync(audit, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "session", auth.Username, refusal)).ConfigureAwait(false);
+                        await EmitAsync(audit, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "session", auth.Username.ToString(), refusal)).ConfigureAwait(false);
                         await SendDisconnectAsync(transport, DisconnectReason.NoMoreAuthMethodsAvailable, "not permitted").ConfigureAwait(false);
                         return;
                     }
@@ -894,7 +896,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                 // An early refusal, so a forbidden target is rejected with CHANNEL_OPEN_FAILURE rather than
                 // being accepted and then dropped. This is *not* the authoritative check: the binding
-                // decision is made at dial time against the addresses actually dialed.
+                // decision is made at connect time against the addresses actually connected to.
                 return options.ForwardingPolicy.DirectTcpIp.AllowsAll(addresses, port, host);
 
             }
@@ -1135,8 +1137,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             {
                 var (host, port) = ParseDirectTcpIp(Channel.OpenData);
 
-                // Resolve ONCE and gate exactly what we are about to dial. Checking one resolution and then
-                // dialing a second lets an attacker-controlled name return an allowed address for the check
+                // Resolve ONCE and gate exactly what we are about to connect to. Checking one resolution and then
+                // connecting to a second lets an attacker-controlled name return an allowed address for the check
                 // and a forbidden one for the connection (DNS rebinding), which is precisely what
                 // AllowsAll's caller contract forbids.
                 var addresses = await ResolveAsync(host).ConfigureAwait(false);
@@ -1152,7 +1154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                 try
                 {
-                    await socket.ConnectAsync(new System.Net.IPEndPoint(addresses[0], port), CancellationToken).ConfigureAwait(false);
+                    await socket.ConnectAsync(new System.Net.IPEndPoint(addresses[0], port.ToInt32()), CancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -1352,11 +1354,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             try { await Pipe.Input. CompleteAsync().ConfigureAwait(false); } catch { }
         }
 
-        private static (String Host, UInt16 Port) ParseDirectTcpIp(Byte[] TypeData)
+        private static (String Host, IPPort Port) ParseDirectTcpIp(Byte[] TypeData)
         {
             var r    = new SshPacketReader(TypeData);
             var host = r.ReadString();
-            var port = (UInt16) r.ReadUInt32();
+            var port = IPPort.Parse((UInt16) r.ReadUInt32());
             return (host, port);
         }
 

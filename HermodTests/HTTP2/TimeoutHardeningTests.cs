@@ -242,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public async Task TlsHandshakeTimeout_RawTcpDropped()
         {
             using var tcp = new TcpClient();
-            await tcp.ConnectAsync("127.0.0.1", srv.Port);
+            await tcp.ConnectAsync("127.0.0.1", srv.Port.ToInt32());
             var raw = tcp.GetStream();
             // Never start TLS — the handshake timeout must drop the raw TCP.
             var closed = await ClosesWithinAsync(raw, Timeouts.Handshake + TimeSpan.FromSeconds(2));

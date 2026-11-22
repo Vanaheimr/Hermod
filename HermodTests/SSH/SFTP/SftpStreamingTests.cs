@@ -22,6 +22,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 
@@ -37,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
     public class SftpStreamingTests
     {
 
-        private static async Task<(SftpClient Sftp, SshTransport Client, Task Server)> ConnectAsync(ISftpFileSystem FileSystem, CancellationToken CancellationToken)
+        private static async Task<(SFTPClient Sftp, SshTransport Client, Task Server)> ConnectAsync(ISftpFileSystem FileSystem, CancellationToken CancellationToken)
         {
 
             var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
@@ -58,8 +59,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             }, CancellationToken);
 
             var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
-            var sftp = await SftpClient.OpenAsync(client, CancellationToken);
+            await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
+            var sftp = await SFTPClient.OpenAsync(client, CancellationToken);
             return (sftp, client, server);
 
         }

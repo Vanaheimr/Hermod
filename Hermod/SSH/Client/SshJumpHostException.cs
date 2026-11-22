@@ -25,7 +25,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 {
 
     /// <summary>
-    /// Reaching a jump host of <see cref="SshClientOptions.ProxyJump"/> failed: which one, and why
+    /// Reaching a jump host of <see cref="SSHClientOptions.ProxyJump"/> failed: which one, and why
     /// (<see cref="Exception.InnerException"/> - a refused host key, a refused login, a tunnel the
     /// previous hop would not open, a timeout). A failure at the server itself is not wrapped.
     /// </summary>
@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// <summary>
         /// The jump host that could not be reached.
         /// </summary>
-        public SshJumpHost  JumpHost    { get; }
+        public SSHJumpHost  JumpHost    { get; }
 
         /// <summary>
         /// Its place in the chain, from 1.
@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// <summary>
         /// Reaching <paramref name="JumpHost"/>, hop <paramref name="Hop"/> of <paramref name="Hops"/>, failed.
         /// </summary>
-        public SshJumpHostException(SshJumpHost  JumpHost,
+        public SshJumpHostException(SSHJumpHost  JumpHost,
                                     Int32        Hop,
                                     Int32        Hops,
                                     Exception    InnerException)

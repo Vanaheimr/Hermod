@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         private static SMTPOutboundClient PublicOnlyClient(IDNSClient                          DNS,
                                                            ILogger                             Logger,
                                                            Func<System.Net.IPAddress, Boolean>? CountsAsPublic  = null,
-                                                           UInt16                              MxPort          = 25,
+                                                           IPPort?                             MxPort          = null,
                                                            Boolean                             PublicOnly      = true)
 
             => new (new SmtpOutboundConfig {
@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                         ReadTimeoutMs        = 5_000,
                         PublicAddressesOnly  = PublicOnly,
                         IsPublicAddress      = CountsAsPublic ?? PublicAddresses.IsPublic,
-                        MxPort               = MxPort
+                        MxPort               = MxPort ?? IPPort.SMTP
                     },
                     null,
                     DNS,
@@ -329,7 +329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
-            var port     = ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            var port     = IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
             var accepted = listener.AcceptTcpClientAsync();
 
             using var http = new HttpClient(MtaStsResolver.CreateDefaultHandler(null, PublicAddresses.IsPublic));
@@ -357,7 +357,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
-            var port = ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            var port = IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             _ = Task.Run(async () => {
                 using var connection = await listener.AcceptTcpClientAsync();
@@ -378,11 +378,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         /// <summary>
         /// A port on the loopback where nothing listens.
         /// </summary>
-        private static UInt16 ClosedPort()
+        private static IPPort ClosedPort()
         {
             var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
-            var port = (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            var port = IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
             listener.Stop();
             return port;
         }

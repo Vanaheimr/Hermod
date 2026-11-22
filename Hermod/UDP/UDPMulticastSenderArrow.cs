@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="MulticastAddress">The multicast address to join.</param>
         /// <param name="IPPort">The outgoing IP port to use.</param>
         /// <param name="HopCount">The IPv6 hop-count or IPv4 time-to-live field of the outgoing IP multicast packets.</param>
-        public UDPMulticastSenderArrow(IIPAddress  MulticastAddress,
+        public UDPMulticastSenderArrow(IPAddress  MulticastAddress,
                                        IPPort      IPPort,
                                        Byte        HopCount = 255)
         {

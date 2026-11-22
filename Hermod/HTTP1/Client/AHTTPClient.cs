@@ -241,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AHTTPClient(IPAddress, ...)
 
-        protected AHTTPClient(IIPAddress                                                 IPAddress,
+        protected AHTTPClient(IPAddress                                                 IPAddress,
                               IPPort?                                                    TCPPort                               = null,
                               I18NString?                                                Description                           = null,
                               String?                                                    HTTPUserAgent                         = null,
@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.DefaultRequestBuilder                = DefaultRequestBuilder
                                                             ?? ((httpClient) => new HTTPRequest.Builder(this, CancellationToken.None) {
-                                                                          Host                                       = HTTPHostname.From(IPAddress, TCPPort),
+                                                                          Host                                       = HTTPHostname.From(URLHost.From(IPAddress), TCPPort),
                                                                           Accept                                     = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                           UserAgent                                  = httpClient.HTTPUserAgent,
                                                                           ConsumeChunkedTransferEncodingImmediately  = ConsumeRequestChunkedTEImmediately,

@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return ipAddress is not null
 
                        ? new DNSServerConfig(
-                             ipAddress,
+                             ipAddress.Value,
                              RemotePort ?? IPPort.DNS,
                              DNSTransport.TCP,
                              QueryTimeout
@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new DNS TCP client for the given DNS server.
         /// </summary>
         /// <param name="IPAddress">The DNS server to query.</param>
-        public DNSTCPClient(IIPAddress                       IPAddress,
+        public DNSTCPClient(IPAddress                       IPAddress,
                             IPPort?                          Port                     = null,
                             I18NString?                      Description              = null,
                             Boolean?                         RecursionDesired         = null,

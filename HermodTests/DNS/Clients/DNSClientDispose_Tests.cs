@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         /// reconnect is asked about too, as a second connection left waiting
         /// on the listener.
         /// </remarks>
-        private static async Task AbandonMany(Func<Int32, IDNSClient> NewClient)
+        private static async Task AbandonMany(Func<IPPort, IDNSClient> NewClient)
         {
 
             const Int32 rounds = 50;
@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                                        try
                                        {
 
-                                           var result = await Abandon(NewClient(((IPEndPoint) listener.LocalEndpoint).Port), arrived);
+                                           var result = await Abandon(NewClient(IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port)), arrived);
 
                                            return (Result: result, Reconnected: listener.Pending());
 
@@ -240,7 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             try
             {
 
-                var port    = ((IPEndPoint) listener.LocalEndpoint).Port;
+                var port    = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
                 var client  = new DNSHTTPSClient(URL.Parse($"http://127.0.0.1:{port}/dns-query"), QueryTimeout: Deadline);
 
                 AssertAFailureAtOnce(await Abandon(client, arrived));
@@ -261,7 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         [Test]
         public Task ManyQueriesOverTCP_EndWithTheirClients()
 
-            => AbandonMany(port => new DNSTCPClient(IPv4Address.Localhost, Port: IPPort.Parse(port), QueryTimeout: Deadline));
+            => AbandonMany(port => new DNSTCPClient(IPv4Address.Localhost, Port: port, QueryTimeout: Deadline));
 
         #endregion
 

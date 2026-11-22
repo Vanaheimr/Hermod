@@ -54,8 +54,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public readonly ConcurrentQueue<String>               Commands        = new();
             public readonly TaskCompletionSource<Boolean>         ClosedByClient  = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            public UInt16 Port
-                => (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port
+                => IPPort.Parse((UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             /// <param name="Replies">Replies by verb ("MAIL", "RCPT", "DATA", "STARTTLS", "QUIT", and "." for the end of data), instead of the defaults.</param>
             /// <param name="Extensions">The EHLO keywords.</param>
@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             using var client = new SMTPSubmissionClient(DomainName.Parse("127.0.0.1"),
-                                                        IPPort.Parse(Server.Port),
+                                                        Server.Port,
                                                         LocalDomain:                 "client.example",
                                                         UseTLS:                      UseTLS,
                                                         RemoteCertificateValidator:  (_, _, _, _, _) => TLSValidationResult.Success(),

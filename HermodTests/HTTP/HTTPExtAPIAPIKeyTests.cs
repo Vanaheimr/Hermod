@@ -102,7 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api       = await StartAPI();
-            var alice     = await NewUser(api, "alice");
+            var alice     = await NewUser(api, User_Id.Parse("alice"));
             var key       = APIKey_Id.Parse("alices-secret-key-0123456789abcdef");
 
             var raw       = await api.AddAPIKey(new APIKey(key, alice.Id));
@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api        = await StartAPI();
-            var alice      = await NewUser(api, "alice");
+            var alice      = await NewUser(api, User_Id.Parse("alice"));
             var anHourAgo  = FromNow(TimeSpan.FromHours(-1));
             var inADay     = FromNow(TimeSpan.FromDays(1));
 
@@ -179,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api        = await StartAPI();
-            var alice      = await NewUser(api, "alice");
+            var alice      = await NewUser(api, User_Id.Parse("alice"));
             var anHourAgo  = FromNow(TimeSpan.FromHours(-1));
             var inAnHour   = FromNow(TimeSpan.FromHours(1));
 
@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api    = await StartAPI();
-            var alice  = await NewUser(api, "alice");
+            var alice  = await NewUser(api, User_Id.Parse("alice"));
             var from   = FromNow(TimeSpan.FromHours(-1));
             var until  = FromNow(TimeSpan.FromDays(1));
 
@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api       = await StartAPI();
-            var alice     = await NewUser(api, "alice");
+            var alice     = await NewUser(api, User_Id.Parse("alice"));
             var inADay    = FromNow(TimeSpan.FromDays(1));
             var keyId     = await NewAPIKey(api, new APIKey(APIKey_Id.Parse("alices-key-0123456789abcdef"), alice.Id, NotAfter: inADay));
 
@@ -287,7 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api        = await StartAPI();
-            var alice      = await NewUser(api, "alice");
+            var alice      = await NewUser(api, User_Id.Parse("alice"));
             var keyId      = await NewAPIKey(api, new APIKey(APIKey_Id.Parse("alices-key-0123456789abcdef"), alice.Id));
 
             var restarted  = await StartAPI();
@@ -323,7 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api             = await StartAPI();
-            var alice           = await NewUser(api, "alice");
+            var alice           = await NewUser(api, User_Id.Parse("alice"));
 
             var added           = await NewAPIKey(api, new APIKey(APIKey_Id.Parse("added-key-0123456789abcdef"),     alice.Id));
             var replaced        = await NewAPIKey(api, new APIKey(APIKey_Id.Parse("replaced-key-0123456789abcdef"),  alice.Id));
@@ -364,7 +364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api      = await StartAPI();
-            var alice    = await NewUser(api, "alice");
+            var alice    = await NewUser(api, User_Id.Parse("alice"));
             var keyId    = await NewAPIKey(api, new APIKey(APIKey_Id.Parse("alices-key-0123456789abcdef"), alice.Id));
 
             await Rename(api, keyId, "renamed");
@@ -757,12 +757,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static async Task<User> NewUser(HTTPExtAPI  API,
-                                                String      Name)
+                                                User_Id     Name)
         {
 
             var user = await API.CreateUser(
-                                 User_Id.Parse(Name),
-                                 I18NString.Create(Name),
+                                 Name,
+                                 I18NString.Create(Name.ToString()),
                                  SimpleEMailAddress.Parse($"{Name}@example.test"),
                                  Password,
                                  SkipDefaultNotifications:  true,
@@ -774,7 +774,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                              );
 
             Assert.That(user, Is.Not.Null, $"'{Name}' could not be created");
-            Assert.That(API.TryGetUser(User_Id.Parse(Name), out var created) && created is User, Is.True, $"There is no user '{Name}'.");
+            Assert.That(API.TryGetUser(Name, out var created) && created is User, Is.True, $"There is no user '{Name}'.");
 
             return (User) created!;
 
@@ -788,7 +788,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                    String      Name)
         {
 
-            var user  = await NewUser(API, Name);
+            var user  = await NewUser(API, User_Id.Parse(Name));
             var acme  = API.GetOrganization(Organization_Id.Parse("acme")) as Organization
                             ?? new Organization(Organization_Id.Parse("acme"), I18NString.Create("ACME"));
 

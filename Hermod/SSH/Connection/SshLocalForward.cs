@@ -35,12 +35,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// A connection the server refuses to tunnel is closed, as <c>ssh</c> does; the listener stays.
     /// Either side may half-close (see <see cref="SshTcpRelay"/>).
     /// </remarks>
-    public sealed class SshLocalForward : IAsyncDisposable
+    public sealed class SSHLocalForward : IAsyncDisposable
     {
 
         #region Data
 
-        private readonly SshChannelMultiplexer    mux;
+        private readonly SshChannelMultiplexer    channelMultiplexer;
         private readonly Socket                   listener;
         private readonly CancellationTokenSource  cts;
         private readonly Task                     acceptLoop;
@@ -63,45 +63,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The port the server connects each tunnelled connection to.
         /// </summary>
-        public UInt16    RemotePort       { get; }
+        public IPPort    RemotePort       { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        private SshLocalForward(SshChannelMultiplexer    Mux,
+        private SSHLocalForward(SshChannelMultiplexer    ChannelMultiplexer,
                                 Socket                   Listener,
                                 CancellationTokenSource  CTS,
                                 String                   RemoteHost,
-                                UInt16                   RemotePort)
+                                IPPort                   RemotePort)
         {
 
-            this.mux            = Mux;
-            this.listener       = Listener;
-            this.cts            = CTS;
+            this.channelMultiplexer  = ChannelMultiplexer;
+            this.listener            = Listener;
+            this.cts                 = CTS;
 
-            this.LocalEndPoint  = IPSocket.FromIPEndPoint((System.Net.IPEndPoint) Listener.LocalEndPoint!);
-            this.RemoteHost     = RemoteHost;
-            this.RemotePort     = RemotePort;
+            this.LocalEndPoint       = IPSocket.FromIPEndPoint((System.Net.IPEndPoint) Listener.LocalEndPoint!);
+            this.RemoteHost          = RemoteHost;
+            this.RemotePort          = RemotePort;
 
-            this.acceptLoop     = AcceptLoopAsync(CTS.Token);
+            this.acceptLoop          = AcceptLoop(CTS.Token);
 
         }
 
         #endregion
 
 
-        #region (internal static) Start(Mux, LocalSocket, RemoteHost, RemotePort, Lifetime)
+        #region (internal static) Start (ChannelMultiplexer, LocalSocket, RemoteHost, RemotePort, Lifetime)
 
         /// <summary>
         /// Listen on <paramref name="LocalSocket"/> and tunnel what arrives there through
-        /// <paramref name="Mux"/>, until disposed or until <paramref name="Lifetime"/> ends.
+        /// <paramref name="ChannelMultiplexer"/>, until disposed or until <paramref name="Lifetime"/> ends.
         /// </summary>
         /// <exception cref="SocketException">The local socket cannot be bound.</exception>
-        internal static SshLocalForward Start(SshChannelMultiplexer  Mux,
+        internal static SSHLocalForward Start(SshChannelMultiplexer  ChannelMultiplexer,
                                               IPSocket               LocalSocket,
                                               String                 RemoteHost,
-                                              UInt16                 RemotePort,
+                                              IPPort                 RemotePort,
                                               CancellationToken      Lifetime)
         {
 
@@ -125,13 +125,114 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 throw;
             }
 
-            return new SshLocalForward(Mux,
-                                       socket,
-                                       CancellationTokenSource.CreateLinkedTokenSource(Lifetime),
-                                       RemoteHost,
-                                       RemotePort);
+            return new SSHLocalForward(
+                       ChannelMultiplexer,
+                       socket,
+                       CancellationTokenSource.CreateLinkedTokenSource(Lifetime),
+                       RemoteHost,
+                       RemotePort
+                   );
 
         }
+
+        #endregion
+
+
+        #region (private) AcceptLoop    (CancellationToken)
+
+        private async Task AcceptLoop(CancellationToken CancellationToken)
+        {
+            try
+            {
+                while (true)
+                {
+                    var connection = await listener.AcceptAsync(CancellationToken).ConfigureAwait(false);
+                    connection.NoDelay = true;
+                    _ = Task.Run(() => Tunnel(connection, CancellationToken), CancellationToken);
+                }
+            }
+            catch
+            { }
+            finally
+            {
+                // Whoever ended the loop - DisposeAsync, or the end of the client - the port is free again.
+                listener.Dispose();
+            }
+        }
+
+        #endregion
+
+        #region (private) Tunnel        (Connection, CancellationToken)
+
+        private async Task Tunnel(Socket             Connection,
+                                  CancellationToken  CancellationToken)
+        {
+
+            SshMuxChannel channel;
+
+            try
+            {
+
+                var origin  = (System.Net.IPEndPoint) Connection.RemoteEndPoint!;
+                var address = origin.Address.IsIPv4MappedToIPv6 ? origin.Address.MapToIPv4() : origin.Address;
+
+                channel = await channelMultiplexer.OpenChannelAsync(
+                                    "direct-tcpip",
+                                    DirectTCP_IP(
+                                        RemoteHost,
+                                        RemotePort,
+                                        address.ToString(),
+                                        IPPort.Parse(origin.Port)
+                                    ),
+                                    CancellationToken
+                                ).ConfigureAwait(false);
+
+            }
+            catch
+            {
+                // Refused by the server, or the connection is gone: this one is dropped, the listener stays.
+                Connection.Dispose();
+                return;
+            }
+
+            await SshTcpRelay.RelayAsync(
+                      channel,
+                      Connection,
+                      CancellationToken
+                  ).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region (private) DirectTCP_IP  (Host, Port, OriginAddress, OriginPort)
+
+        private static Byte[] DirectTCP_IP(String  Host,
+                                           IPPort  Port,
+                                           String  OriginAddress,
+                                           IPPort  OriginPort)
+        {
+
+            var abw = new ArrayBufferWriter<Byte>();
+            var w   = new SshPacketWriter(abw);
+
+            w.WriteString(Host);
+            w.WriteUInt32(Port.      ToUInt16());
+            w.WriteString(OriginAddress);
+            w.WriteUInt32(OriginPort.ToUInt16());
+
+            return abw.WrittenSpan.ToArray();
+
+        }
+
+        #endregion
+
+
+        #region (override) ToString()
+
+        /// <inheritdoc/>
+        public override String ToString()
+            => $"-L {LocalEndPoint}:{RemoteHost}:{RemotePort}";
 
         #endregion
 
@@ -157,82 +258,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
-
-        #region (private) AcceptLoopAsync(CancellationToken)
-
-        private async Task AcceptLoopAsync(CancellationToken CancellationToken)
-        {
-            try
-            {
-                while (true)
-                {
-                    var connection = await listener.AcceptAsync(CancellationToken).ConfigureAwait(false);
-                    connection.NoDelay = true;
-                    _ = Task.Run(() => TunnelAsync(connection, CancellationToken), CancellationToken);
-                }
-            }
-            catch
-            { }
-            finally
-            {
-                // Whoever ended the loop - DisposeAsync, or the end of the client - the port is free again.
-                listener.Dispose();
-            }
-        }
-
-        #endregion
-
-        #region (private) TunnelAsync(Connection, CancellationToken)
-
-        private async Task TunnelAsync(Socket Connection, CancellationToken CancellationToken)
-        {
-
-            SshMuxChannel channel;
-
-            try
-            {
-
-                var origin  = (System.Net.IPEndPoint) Connection.RemoteEndPoint!;
-                var address = origin.Address.IsIPv4MappedToIPv6 ? origin.Address.MapToIPv4() : origin.Address;
-
-                channel = await mux.OpenChannelAsync("direct-tcpip",
-                                                     DirectTcpIp(RemoteHost, RemotePort, address.ToString(), (UInt16) origin.Port),
-                                                     CancellationToken).ConfigureAwait(false);
-
-            }
-            catch
-            {
-                // Refused by the server, or the connection is gone: this one is dropped, the listener stays.
-                Connection.Dispose();
-                return;
-            }
-
-            await SshTcpRelay.RelayAsync(channel, Connection, CancellationToken).ConfigureAwait(false);
-
-        }
-
-        #endregion
-
-        #region (private) DirectTcpIp(Host, Port, OriginAddress, OriginPort)
-
-        private static Byte[] DirectTcpIp(String Host, UInt16 Port, String OriginAddress, UInt16 OriginPort)
-        {
-            var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
-            w.WriteString(Host);          w.WriteUInt32(Port);
-            w.WriteString(OriginAddress); w.WriteUInt32(OriginPort);
-            return abw.WrittenSpan.ToArray();
-        }
-
-        #endregion
-
-
-        #region (override) ToString()
-
-        /// <inheritdoc/>
-        public override String ToString()
-            => $"-L {LocalEndPoint}:{RemoteHost}:{RemotePort}";
-
-        #endregion
 
     }
 

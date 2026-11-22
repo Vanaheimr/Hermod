@@ -55,8 +55,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public readonly ConcurrentQueue<String>   Commands  = new();
             public readonly ConcurrentQueue<Byte[]>   DataLines = new();
 
-            public UInt16 Port
-                => (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port
+                => IPPort.Parse((UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             public Server(params String[] Extensions)
             {
@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                                       String?   LocalDomain  = "client.example")
 
             => new (DomainName.Parse("127.0.0.1"),
-                    IPPort.Parse(Server.Port),
+                    Server.Port,
                     LocalDomain:                 LocalDomain,
                     UseTLS:                      UseTLS,
                     RemoteCertificateValidator:  (_, _, _, _, _) => TLSValidationResult.Success(),

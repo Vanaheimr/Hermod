@@ -57,8 +57,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             // Whether the client sent anything (its ClientHello) after the server's 220 to STARTTLS.
             public volatile Boolean                   HandshakeStarted;
 
-            public Int32 Port
-                => ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port
+                => IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             public DowngradingServer(Attack Attack)
             {
@@ -148,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             using var server = new DowngradingServer(Attack);
             using var client = new SMTPSubmissionClient(DomainName.Parse("127.0.0.1"),
-                                                        IPPort.Parse((UInt16) server.Port),
+                                                        server.Port,
                                                         Login:                       WithCredentials ? "app"    : null,
                                                         Password:                    WithCredentials ? "secret" : null,
                                                         LocalDomain:                 "client.example",
@@ -200,8 +200,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             public readonly TaskCompletionSource      ClientHelloReceived = new (TaskCreationOptions.RunContinuationsAsynchronously);
 
-            public Int32 Port
-                => ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port
+                => IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             public SilentHandshakeServer(Boolean StartTls)
             {
@@ -282,7 +282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                                       Boolean                WithCredentials)
 
             => new (DomainName.Parse("127.0.0.1"),
-                    IPPort.Parse((UInt16) Server.Port),
+                    Server.Port,
                     Login:                       WithCredentials ? "app"    : null,
                     Password:                    WithCredentials ? "secret" : null,
                     LocalDomain:                 "client.example",

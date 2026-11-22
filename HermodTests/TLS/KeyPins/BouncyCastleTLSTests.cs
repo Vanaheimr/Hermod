@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
 
         /// <summary>
         /// A key in a self-signed carrier certificate that nobody vouches
-        /// for, with a name nobody dials.
+        /// for, with a name nobody connects to.
         /// </summary>
         internal static X509Certificate2 Carrier(String Subject = "CN=carrier.invalid", ECCurve? Curve = null)
         {
@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
             using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
 
-            var port = ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
 
             async Task<(TLSSession?, Exception?)> serve()
             {
@@ -131,10 +131,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
                 }
             }
 
-            async Task<(TLSSession?, Exception?)> dial()
+            async Task<(TLSSession?, Exception?)> connect()
             {
                 var tcpClient = new TcpClient();
-                await tcpClient.ConnectAsync(System.Net.IPAddress.Loopback, port).WaitAsync(Guard);
+                await tcpClient.ConnectAsync(System.Net.IPAddress.Loopback, port.ToInt32()).WaitAsync(Guard);
                 try
                 {
                     return (await BouncyCastleTLS.AuthenticateAsClientAsync(tcpClient.GetStream(), ClientParameters).WaitAsync(Guard), null);
@@ -147,9 +147,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
             }
 
             var serving = serve();
-            var dialled = dial();
+            var connecting = connect();
 
-            var (client, clientFailed) = await dialled;
+            var (client, clientFailed) = await connecting;
             var (server, serverFailed) = await serving;
 
             return (client, clientFailed, server, serverFailed);
@@ -422,7 +422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
                 using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
                 listener.Start();
 
-                var port = ((IPEndPoint) listener.LocalEndpoint).Port;
+                var port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
 
                 var serving = Task.Run(async () => {
 
@@ -446,7 +446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
                 var told = new Told();
 
                 using var tcpClient = new TcpClient();
-                await tcpClient.ConnectAsync(System.Net.IPAddress.Loopback, port).WaitAsync(Guard);
+                await tcpClient.ConnectAsync(System.Net.IPAddress.Loopback, port.ToInt32()).WaitAsync(Guard);
 
                 var failed = await Assert.ThrowsAsync<TLSHandshakeFailedException>(
                                  async () => await BouncyCastleTLS.AuthenticateAsClientAsync(

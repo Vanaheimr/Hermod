@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     using IPAddress = System.Net.IPAddress;
 
     /// <summary>
-    /// Resolves a forwarding target host name to the addresses that will actually be dialed.
+    /// Resolves a forwarding target host name to the addresses that will actually be connected to.
     /// </summary>
     public delegate ValueTask<IReadOnlyList<IPAddress>> SshAddressResolver(String Host, CancellationToken CancellationToken);
 
@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// TCP/IP port forwarding over the SSH connection protocol (RFC 4254 §7). The client opens a
     /// <c>direct-tcpip</c> channel (the <c>ssh -L</c> / in-process tunnel primitive) as a plain
     /// <see cref="Stream"/>; the server accepts such channels, gates them against a
-    /// <see cref="ForwardingPolicy"/> (DNS-rebinding safe — resolve once, dial exactly the checked
+    /// <see cref="ForwardingPolicy"/> (DNS-rebinding safe — resolve once, connect to exactly the checked
     /// addresses), and relays the bytes to the real destination. Denials answer
     /// <c>SSH_MSG_CHANNEL_OPEN_FAILURE (ADMINISTRATIVELY_PROHIBITED)</c> and leave the session healthy.
     /// </summary>
@@ -64,13 +64,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public static async ValueTask<SshChannelStream> OpenTcpStreamAsync(SshTransport       Transport,
                                                                            String             Host,
-                                                                           UInt16             Port,
+                                                                           IPPort             Port,
                                                                            CancellationToken  CancellationToken = default)
         {
 
             const UInt32 localChannel = 0;
 
-            await Transport.SendPacketAsync(BuildDirectTcpIpOpen(localChannel, Host, Port), CancellationToken).ConfigureAwait(false);
+            await Transport.SendPacketAsync(BuildDirectTCPIPOpen(localChannel, Host, Port), CancellationToken).ConfigureAwait(false);
 
             while (true)
             {
@@ -140,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     continue;
                 }
 
-                // Resolve once, gate every resolved address, then dial exactly those (no re-resolve).
+                // Resolve once, gate every resolved address, then connect to exactly those (no re-resolve).
                 IReadOnlyList<IPAddress> addresses;
                 try   { addresses = await Resolver(open.Host, CancellationToken).ConfigureAwait(false); }
                 catch { addresses = []; }
@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 try
                 {
                     socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-                    await socket.ConnectAsync(new System.Net.IPEndPoint(addresses[0], open.Port), CancellationToken).ConfigureAwait(false);
+                    await socket.ConnectAsync(new System.Net.IPEndPoint(addresses[0], open.Port.ToInt32()), CancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -247,15 +247,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (private) message builders / parsers
 
-        private static Byte[] BuildDirectTcpIpOpen(UInt32 Sender, String Host, UInt16 Port)
+        private static Byte[] BuildDirectTCPIPOpen(UInt32  Sender,
+                                                   String  Host,
+                                                   IPPort  Port)
         {
-            var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
+
+            var abw = new ArrayBufferWriter<Byte>();
+            var w   = new SshPacketWriter(abw);
+
             w.WriteByte((Byte) SshMessageNumber.ChannelOpen);
             w.WriteString("direct-tcpip");
-            w.WriteUInt32(Sender); w.WriteUInt32(InitialWindow); w.WriteUInt32(MaxPacket);
-            w.WriteString(Host); w.WriteUInt32(Port);
-            w.WriteString("127.0.0.1"); w.WriteUInt32(0);       // originator
+            w.WriteUInt32(Sender);
+            w.WriteUInt32(InitialWindow);
+            w.WriteUInt32(MaxPacket);
+            w.WriteString(Host);
+            w.WriteUInt32(Port.ToUInt16());
+            w.WriteString("127.0.0.1");
+            w.WriteUInt32(0);       // originator
+
             return abw.WrittenSpan.ToArray();
+
         }
 
         private static Byte[] BuildChannelOpenConfirmation(UInt32 Recipient, UInt32 Sender, UInt32 Window, UInt32 MaxPacketSize)
@@ -274,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return abw.WrittenSpan.ToArray();
         }
 
-        private readonly record struct DirectTcpIpOpen(String ChannelType, UInt32 SenderChannel, UInt32 InitialWindow, UInt32 MaxPacketSize, String Host, UInt16 Port);
+        private readonly record struct DirectTcpIpOpen(String ChannelType, UInt32 SenderChannel, UInt32 InitialWindow, UInt32 MaxPacketSize, String Host, IPPort Port);
 
         private static DirectTcpIpOpen ParseChannelOpen(ReadOnlySpan<Byte> Payload)
         {
@@ -285,11 +296,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var window = reader.ReadUInt32();
             var maxPkt = reader.ReadUInt32();
             var host   = "";
-            UInt16 port = 0;
+            var port   = IPPort.Zero;
             if (type == "direct-tcpip")
             {
                 host = reader.ReadString();
-                port = (UInt16) reader.ReadUInt32();
+                port = IPPort.Parse((UInt16) reader.ReadUInt32());
             }
             return new DirectTcpIpOpen(type, sender, window, maxPkt, host, port);
         }
@@ -304,10 +315,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// </summary>
     public sealed class SshForwardingException : Exception
     {
+
         /// <summary>
         /// Create a new forwarding exception.
         /// </summary>
         public SshForwardingException(String Message) : base(Message) { }
+
     }
 
 }

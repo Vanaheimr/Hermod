@@ -154,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.IP
             var roundtrip     = ipSocket.ToIPEndPoint();
 
             Assert.Multiple(() => {
-                Assert.That(ipSocket.IPAddress,                              Is.TypeOf<IPv6Address>());
+                Assert.That(ipSocket.IPAddress.Value,                        Is.TypeOf<IPv6Address>());
                 Assert.That(((IPv6Address) ipSocket.IPAddress).InterfaceId,  Is.EqualTo("17"));
                 Assert.That(roundtrip.Address.GetAddressBytes(),             Is.EqualTo(addressBytes));
                 Assert.That(roundtrip.Address.ScopeId,                       Is.EqualTo(17));

@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
@@ -25,34 +27,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <param name="Host">The bastion host.</param>
     /// <param name="Port">The bastion port (default 22).</param>
     /// <param name="Username">The user on the bastion, if specified.</param>
-    public sealed record SshJumpHost(String Host, UInt16 Port = 22, String? Username = null)
+    public sealed record SSHJumpHost(String    Host,
+                                     IPPort    Port,
+                                     User_Id?  Username   = null)
     {
 
         /// <summary>
         /// Parse a single <c>[user@]host[:port]</c> (bracket form <c>[::1]:22</c> for IPv6 literals).
         /// </summary>
-        public static SshJumpHost Parse(String Text)
+        public static SSHJumpHost Parse(String Text)
         {
 
-            var rest      = Text.Trim();
-            String? user  = null;
+            var rest       = Text.Trim();
+            User_Id? user  = null;
 
             var at = rest.IndexOf('@');
             if (at >= 0)
             {
-                user = rest[..at];
+                user = User_Id.TryParse(rest[..at]);
                 rest = rest[(at + 1)..];
             }
 
-            var host  = rest;
-            UInt16 port = 22;
+            var host = rest;
+            var port = IPPort.SSH;
 
             if (rest.StartsWith('['))
             {
                 var close = rest.IndexOf(']');
                 host = rest[1..close];
                 if (close + 1 < rest.Length && rest[close + 1] == ':')
-                    port = UInt16.Parse(rest[(close + 2)..]);
+                    port = IPPort.Parse(UInt16.Parse(rest[(close + 2)..]));
             }
             else
             {
@@ -61,18 +65,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 if (colon >= 0 && rest.IndexOf(':') == colon)
                 {
                     host = rest[..colon];
-                    port = UInt16.Parse(rest[(colon + 1)..]);
+                    port = IPPort.Parse(UInt16.Parse(rest[(colon + 1)..]));
                 }
             }
 
-            return new SshJumpHost(host, port, user);
+            return new SSHJumpHost(
+                           host,
+                           port,
+                           user
+                       );
 
         }
 
         /// <summary>
         /// Parse a comma-separated jump chain (<c>-J host1,host2</c>), in traversal order.
         /// </summary>
-        public static IReadOnlyList<SshJumpHost> ParseChain(String Text)
+        public static IReadOnlyList<SSHJumpHost> ParseChain(String Text)
+
             => Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                    .Select(Parse)
                    .ToList();
@@ -139,26 +148,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// with a key of its own and read everything meant to pass through it.
         /// </para>
         /// </summary>
-        public static async ValueTask<SshTunneledConnection> ConnectThroughAsync(SshTransport             Bastion,
-                                                                                 String                   Host,
-                                                                                 UInt16                   Port,
-                                                                                 Func<Byte[], Boolean>    VerifyHostKey,
-                                                                                 String[]?                KeyExchanges       = null,
-                                                                                 String[]?                HostKeyAlgorithms  = null,
-                                                                                 CancellationToken        CancellationToken   = default)
+        public static async ValueTask<SshTunneledConnection> ConnectThrough(SshTransport           Bastion,
+                                                                            String                 Host,
+                                                                            IPPort                 Port,
+                                                                            Func<Byte[], Boolean>  VerifyHostKey,
+                                                                            String[]?              KeyExchanges        = null,
+                                                                            String[]?              HostKeyAlgorithms   = null,
+                                                                            CancellationToken      CancellationToken   = default)
         {
 
-            var tunnel = await SshForwarding.OpenTcpStreamAsync(Bastion, Host, Port, CancellationToken).ConfigureAwait(false);
+            var tunnel = await SshForwarding.OpenTcpStreamAsync(
+                                   Bastion,
+                                   Host,
+                                   Port,
+                                   CancellationToken
+                               ).ConfigureAwait(false);
 
             try
             {
-                var pipe      = DuplexPipe.FromStream(tunnel);
-                var transport = await SshTransport.ClientHandshakeAsync(pipe,
-                                                                        VerifyHostKey:      VerifyHostKey,
-                                                                        KeyExchanges:       KeyExchanges,
-                                                                        HostKeyAlgorithms:  HostKeyAlgorithms,
-                                                                        CancellationToken:  CancellationToken).ConfigureAwait(false);
+
+                var pipe       = DuplexPipe.FromStream(tunnel);
+
+                var transport  = await SshTransport.ClientHandshakeAsync(
+                                           pipe,
+                                           VerifyHostKey:      VerifyHostKey,
+                                           KeyExchanges:       KeyExchanges,
+                                           HostKeyAlgorithms:  HostKeyAlgorithms,
+                                           CancellationToken:  CancellationToken
+                                       ).ConfigureAwait(false);
+
                 return new SshTunneledConnection(transport, tunnel);
+
             }
             catch
             {
@@ -169,15 +189,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         }
 
         /// <summary>
-        /// Open a tunnel to a <see cref="SshJumpHost"/>'s host/port through the bastion.
+        /// Open a tunnel to a <see cref="SSHJumpHost"/>'s host/port through the bastion.
         /// </summary>
-        public static ValueTask<SshTunneledConnection> ConnectThroughAsync(SshTransport             Bastion,
-                                                                           SshJumpHost              Target,
-                                                                           Func<Byte[], Boolean>    VerifyHostKey,
-                                                                           String[]?                KeyExchanges       = null,
-                                                                           String[]?                HostKeyAlgorithms  = null,
-                                                                           CancellationToken        CancellationToken   = default)
-            => ConnectThroughAsync(Bastion, Target.Host, Target.Port, VerifyHostKey, KeyExchanges, HostKeyAlgorithms, CancellationToken);
+        public static ValueTask<SshTunneledConnection> ConnectThrough(SshTransport           Bastion,
+                                                                      SSHJumpHost            Target,
+                                                                      Func<Byte[], Boolean>  VerifyHostKey,
+                                                                      String[]?              KeyExchanges        = null,
+                                                                      String[]?              HostKeyAlgorithms   = null,
+                                                                      CancellationToken      CancellationToken   = default)
+
+            => ConnectThrough(
+                   Bastion,
+                   Target.Host,
+                   Target.Port,
+                   VerifyHostKey,
+                   KeyExchanges,
+                   HostKeyAlgorithms,
+                   CancellationToken
+               );
 
         #endregion
 

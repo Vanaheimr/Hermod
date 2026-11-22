@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             using var tcp  = new TcpClient();
-            await tcp.ConnectAsync("127.0.0.1", Server.Port);
+            await tcp.ConnectAsync("127.0.0.1", Server.Port.ToInt32());
 
             var stream     = tcp.GetStream();
             var received   = new MemoryStream();
@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             await using var server = BlacklistingServer();
-            using var wire         = new Wire(new TcpClient("127.0.0.1", server.Port));
+            using var wire         = new Wire(new TcpClient("127.0.0.1", server.Port.ToInt32()));
 
             var greeting           = await wire.ReplyAsync();
             Assert.That(greeting.Code,                                  Is.EqualTo(554));
@@ -276,7 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             await using var server = BlacklistingServer();
-            using var wire         = new Wire(new TcpClient("127.0.0.1", server.Port));
+            using var wire         = new Wire(new TcpClient("127.0.0.1", server.Port.ToInt32()));
 
             Assert.That((await wire.ReplyAsync()).Code, Is.EqualTo(554));
 
@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                                                 WhitelistedIps               = []
                                                             });
             using var first        = await server.ConnectAsync();
-            using var wire         = new Wire(new TcpClient("127.0.0.1", server.Port));
+            using var wire         = new Wire(new TcpClient("127.0.0.1", server.Port.ToInt32()));
 
             Assert.That((await wire.ReplyAsync()).Code, Is.EqualTo(421));
             Assert.That(await ClosedAsync(wire),        Is.True, "421 closes the connection");

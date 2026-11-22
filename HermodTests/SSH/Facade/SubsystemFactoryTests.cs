@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
@@ -73,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        private sealed record Running(SshServer Server, UInt16 Port, CollectingAuditSink Audit, ConcurrentQueue<(String User, String Name)> Asked, ConcurrentQueue<String> Served) : IAsyncDisposable
+        private sealed record Running(SshServer Server, IPPort Port, CollectingAuditSink Audit, ConcurrentQueue<(User_Id User, String Name)> Asked, ConcurrentQueue<String> Served) : IAsyncDisposable
         {
             public ValueTask DisposeAsync() => Server.DisposeAsync();
         }
@@ -87,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         {
 
             var audit   = new CollectingAuditSink();
-            var asked   = new ConcurrentQueue<(String, String)>();
+            var asked   = new ConcurrentQueue<(User_Id, String)>();
             var served  = new ConcurrentQueue<String>();
 
             var server  = new SshServer(new SshServerOptions {
@@ -134,14 +135,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            return new Running(server, (UInt16) server.LocalEndPoint.Port.ToInt32(), audit, asked, served);
+            return new Running(server, server.LocalEndPoint.Port, audit, asked, served);
 
         }
 
-        private ValueTask<SshClient> ConnectAsync(Running Running, CancellationToken CancellationToken)
+        private ValueTask<SSHClient> ConnectAsync(Running Running, CancellationToken CancellationToken)
 
-            => SshClient.ConnectAsync("127.0.0.1", Running.Port, new SshClientOptions {
-                   Username       = "cs001",
+            => SSHClient.Connect("127.0.0.1", Running.Port, new SSHClientOptions {
+                   Username       = User_Id.Parse("cs001"),
                    VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                    Credentials    = [ userKey ]
                }, CancellationToken);
@@ -153,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             return await reader.ReadToEndAsync(within.Token);
         }
 
-        private static async Task<Boolean> Asks(SshClient Client, String Type, Byte[] Payload, CancellationToken CancellationToken)
+        private static async Task<Boolean> Asks(SSHClient Client, String Type, Byte[] Payload, CancellationToken CancellationToken)
         {
             var channel = await Client.Multiplexer.OpenChannelAsync("session", CancellationToken: CancellationToken);
             return await channel.SendRequestAsync(Type, true, Payload, CancellationToken);
@@ -192,17 +193,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var running = await StartAsync(null, CancellationToken);
             await using var client  = await ConnectAsync(running, CancellationToken);
 
-            var ocpp      = await client.OpenSubsystemAsync(OCPP, CancellationToken);
+            var ocpp      = await client.OpenSubsystem(OCPP, CancellationToken);
             var ocppText  = await ReadToTheEndAsync(ocpp);
 
-            var wwcp      = await client.OpenSubsystemAsync(WWCP, CancellationToken);
+            var wwcp      = await client.OpenSubsystem(WWCP, CancellationToken);
             var wwcpText  = await ReadToTheEndAsync(wwcp);
 
             Assert.Multiple(() => {
                 Assert.That(ocppText,                     Is.EqualTo($"{OCPP} for cs001\n"), "the handler was not given the session, or the channel was not closed after it");
                 Assert.That(wwcpText,                     Is.EqualTo($"{WWCP} for cs001\n"));
                 Assert.That(running.Asked.Select(a => a.Name), Is.EqualTo(new[] { OCPP, WWCP }));
-                Assert.That(running.Asked.Select(a => a.User), Is.All.EqualTo("cs001"));
+                Assert.That(running.Asked.Select(a => a.User), Is.All.EqualTo(User_Id.Parse("cs001")));
             });
 
         }
@@ -223,8 +224,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var running = await StartAsync(null, CancellationToken);
             await using var client  = await ConnectAsync(running, CancellationToken);
 
-            var ocpp   = await RunToTheEndAsync(await client.OpenSubsystemAsync(OCPP,  CancellationToken));
-            var fails  = await RunToTheEndAsync(await client.OpenSubsystemAsync(Fails, CancellationToken));
+            var ocpp   = await RunToTheEndAsync(await client.OpenSubsystem(OCPP,  CancellationToken));
+            var fails  = await RunToTheEndAsync(await client.OpenSubsystem(Fails, CancellationToken));
 
             Assert.Multiple(() => {
                 Assert.That(ocpp. Text,          Is.EqualTo($"{OCPP} for cs001\n"));
@@ -252,8 +253,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var running = await StartAsync(null, CancellationToken);
             await using var client  = await ConnectAsync(running, CancellationToken);
 
-            var own  = await RunToTheEndAsync(await client.OpenSubsystemAsync(Own, CancellationToken));
-            var raw  = await RunToTheEndAsync(await client.OpenSubsystemAsync(Raw, CancellationToken));
+            var own  = await RunToTheEndAsync(await client.OpenSubsystem(Own, CancellationToken));
+            var raw  = await RunToTheEndAsync(await client.OpenSubsystem(Raw, CancellationToken));
 
             Assert.Multiple(() => {
                 Assert.That(own.Text,              Is.EqualTo("done\n"));
@@ -277,9 +278,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var running = await StartAsync(null, CancellationToken);
             await using var client  = await ConnectAsync(running, CancellationToken);
 
-            var refused = await Assert.ThrowsAsync<SshSubsystemRefusedException>(async () => await client.OpenSubsystemAsync("nothing@open.charging.cloud", CancellationToken));
+            var refused = await Assert.ThrowsAsync<SshSubsystemRefusedException>(async () => await client.OpenSubsystem("nothing@open.charging.cloud", CancellationToken));
 
-            await using var sftp = await client.OpenSftpClientAsync(CancellationToken);
+            await using var sftp = await client.OpenSFTPClient(CancellationToken);
             await sftp.UploadAsync("/served.txt", [ 1 ], CancellationToken);
 
             Assert.Multiple(() => {
@@ -309,7 +310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var running = await StartAsync(new SshSessionRestrictions(PermittedSubsystems: new HashSet<String> { OCPP }), CancellationToken);
             await using var client  = await ConnectAsync(running, CancellationToken);
 
-            var ocpp   = await ReadToTheEndAsync(await client.OpenSubsystemAsync(OCPP, CancellationToken));
+            var ocpp   = await ReadToTheEndAsync(await client.OpenSubsystem(OCPP, CancellationToken));
             var wwcp   = await Asks(client, "subsystem", SshSessionChannel.EncodeString(WWCP),   CancellationToken);
             var sftp   = await Asks(client, "subsystem", SshSessionChannel.EncodeString("sftp"), CancellationToken);
             var shell  = await Asks(client, "shell",     [],                                     CancellationToken);
@@ -390,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             Assert.Multiple(() => {
                 Assert.That(client.Closed.IsCompleted,    Is.False);
                 Assert.That(client.EndReason,             Is.Null);
-                Assert.That(client.RemoteSocket?.Port.ToInt32(), Is.EqualTo(running.Port));
+                Assert.That(client.RemoteSocket?.Port,           Is.EqualTo(running.Port));
                 Assert.That(client.ServerHostKey,         Is.EqualTo(hostKey.PublicKeyBlob));
             });
 

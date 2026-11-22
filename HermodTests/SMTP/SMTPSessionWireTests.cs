@@ -111,8 +111,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             public readonly MemoryStorage  Storage = new();
-            public readonly UInt16         Port;
-            public readonly UInt16         SubmissionPort;
+            public readonly IPPort         Port;
+            public readonly IPPort         SubmissionPort;
 
             /// <summary>
             /// The queue of relayed mail - and of the reports the server sends - if it has one.
@@ -173,23 +173,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             }
 
-            private static UInt16 FreePort()
+            private static IPPort FreePort()
             {
                 var listener = new TcpListener(System.Net.IPAddress.Any, 0);
                 listener.Start();
-                var port = (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port;
+                var port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
                 listener.Stop();
                 return port;
             }
 
-            public async Task<Wire> ConnectAsync(UInt16? Port = null)
+            public async Task<Wire> ConnectAsync(IPPort? Port = null)
             {
 
                 for (var attempt = 0; ; attempt++)
                 {
                     try
                     {
-                        var wire = new Wire(new TcpClient("127.0.0.1", Port ?? this.Port));
+                        var wire = new Wire(new TcpClient("127.0.0.1", (Port ?? this.Port).ToInt32()));
                         Assert.That((await wire.ReplyAsync()).Code, Is.EqualTo(220));
                         return wire;
                     }

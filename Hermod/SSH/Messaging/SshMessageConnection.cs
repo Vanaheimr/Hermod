@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The SSH login: who signed in, as a server sees it; who this client signed in as.
         /// </summary>
-        String                Username           { get; }
+        User_Id               Username           { get; }
 
         /// <summary>
         /// On a server: who signed in - method, key, restrictions, peer. Null on a client.
@@ -338,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public String                Subsystem          { get; }
 
         /// <inheritdoc/>
-        public String                Username           { get; }
+        public User_Id               Username           { get; }
 
         /// <inheritdoc/>
         public SshSessionInfo?       Session            { get; }
@@ -406,7 +406,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         internal SshMessageConnection(ASshMessageEndpoint  Endpoint,
                                       ConnectionRole       Role,
                                       String               Subsystem,
-                                      String               Username,
+                                      User_Id              Username,
                                       SshSessionInfo?      Session,
                                       Byte[]?              ServerHostKey,
                                       SshMuxChannel        Channel,

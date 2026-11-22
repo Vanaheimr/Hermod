@@ -69,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The source IP address of this resource record, if available.
         /// </summary>
         [NoDNSPaketInformation]
-        public IIPAddress?             Source        { get; }
+        public IPAddress?             Source        { get; }
 
         /// <summary>
         /// The text representation of this resource record, if available.

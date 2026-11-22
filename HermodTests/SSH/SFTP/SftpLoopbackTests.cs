@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 
@@ -62,9 +63,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var content = RandomNumberGenerator.GetBytes(100_000);
 
             using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            Assert.That(await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken), Is.True);
+            Assert.That(await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken), Is.True);
 
-            var sftp = await SftpClient.OpenAsync(client, CancellationToken);
+            var sftp = await SFTPClient.OpenAsync(client, CancellationToken);
 
             await sftp.UploadAsync("/hello.bin", content, CancellationToken);
             var downloaded = await sftp.DownloadAsync("/hello.bin", CancellationToken);
@@ -116,8 +117,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             }, CancellationToken);
 
             using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
-            var sftp = await SftpClient.OpenAsync(client, CancellationToken);
+            await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
+            var sftp = await SFTPClient.OpenAsync(client, CancellationToken);
 
             var error = await Assert.CatchAsync<SftpException>(async () => await sftp.DownloadAsync("/does-not-exist", CancellationToken));
             Assert.That(error!.Code, Is.EqualTo(SftpStatusCode.NoSuchFile));

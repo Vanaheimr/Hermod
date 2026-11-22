@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -173,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var withPassword = URL.Parse("https://user:pw@example.org:8443/a");
 
-            Assert.That(withPassword.Login,             Is.EqualTo("user"));
+            Assert.That(withPassword.Login,             Is.EqualTo(User_Id.Parse("user")));
             Assert.That(withPassword.Password,          Is.EqualTo("pw"));
             Assert.That(withPassword.Host.ToString(),   Is.EqualTo("example.org"));
             Assert.That(withPassword.Host.IsDomainName, Is.True);
@@ -181,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var withoutPassword = URL.Parse("https://user@example.org/a");
 
-            Assert.That(withoutPassword.Login,          Is.EqualTo("user"));
+            Assert.That(withoutPassword.Login,          Is.EqualTo(User_Id.Parse("user")));
             Assert.That(withoutPassword.Password,       Is.Null);
 
         }
@@ -201,7 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var cloned = url.Clone();
 
             Assert.That(cloned.Scheme,                 Is.EqualTo(url.Scheme));
-            Assert.That(cloned.Login,                    Is.EqualTo("user"));
+            Assert.That(cloned.Login,                    Is.EqualTo(User_Id.Parse("user")));
             Assert.That(cloned.Password,                 Is.EqualTo("pw"));
             Assert.That(cloned.Host.ToString(),          Is.EqualTo("example.org"));
             Assert.That(cloned.Port,                     Is.EqualTo(IPPort.Parse(8443)));
@@ -249,7 +250,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var url = URL.Parse("https://user:pw@example.org/a") + "b";
 
-            Assert.That(url.Login,              Is.EqualTo("user"));
+            Assert.That(url.Login,              Is.EqualTo(User_Id.Parse("user")));
             Assert.That(url.Password,           Is.EqualTo("pw"));
             Assert.That(url.Path.ToString(),    Is.EqualTo("/a/b"));
             Assert.That(url.ToString(),         Is.EqualTo("https://user:pw@example.org/a/b"));

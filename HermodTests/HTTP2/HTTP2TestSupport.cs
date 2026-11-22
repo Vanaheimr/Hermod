@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// the stand-alone harnesses used.
         /// </summary>
         [Obsolete("Ask the listener instead: HTTP2Server.BoundEndPoint completes when the socket is bound. Polling cannot tell this server apart from whatever else answers on that port.")]
-        public static async Task WaitUntilListeningAsync(Int32 Port, CancellationToken CancellationToken = default)
+        public static async Task WaitUntilListeningAsync(IPPort Port, CancellationToken CancellationToken = default)
         {
 
             for (var i = 0; i < 100; i++)
@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 try
                 {
                     using var c = new TcpClient();
-                    await c.ConnectAsync(System.Net.IPAddress.Loopback, Port, CancellationToken);
+                    await c.ConnectAsync(System.Net.IPAddress.Loopback, Port.ToInt32(), CancellationToken);
                     return;
                 }
                 catch (OperationCanceledException)
@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// <summary>
         /// The ephemeral loopback port the server is listening on.
         /// </summary>
-        public Int32 Port { get; }
+        public IPPort Port { get; }
 
         /// <summary>
         /// The server itself, for what is set on it after its construction.
@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// </summary>
         public Task Running => runTask;
 
-        private TestH2Server(HTTP2Server Server, Int32 Port, Task RunTask)
+        private TestH2Server(HTTP2Server Server, IPPort Port, Task RunTask)
         {
             this.server  = Server;
             this.Port    = Port;
@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             // between the probe and the bind the port can be taken by anything
             // else on the machine, and then the server fails to bind while the
             // test happily connects to whatever took it.
-            var server = new HTTP2Server(System.Net.IPAddress.Loopback, 0, cert, Handler,
+            var server = new HTTP2Server(System.Net.IPAddress.Loopback, IPPort.Zero, cert, Handler,
                                          ConnectHandler, RequireClientCertificate, ValidateClientCertificate,
                                          Timeouts, StreamingHandler, Cleartext, MaxRequestBodySize,
                                          IsBlocklistedCipherSuite, IsAuthorityServed, OriginSet, AlternativeServices,
@@ -245,8 +245,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             // connection: it is done when the socket is bound, not when it
             // happens to answer, and a failed bind arrives here as that
             // exception rather than as a timeout.
-            var port    = (await server.BoundEndPoint.
-                                     WaitAsync(TimeSpan.FromSeconds(5))).Port;
+            var port    = IPPort.Parse((await server.BoundEndPoint.
+                                                  WaitAsync(TimeSpan.FromSeconds(5))).Port);
 
             return new TestH2Server(server, port, runTask);
 
@@ -279,11 +279,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// TCP-connect to a loopback port and complete the TLS handshake (with
         /// ALPN <c>h2</c> unless disabled). Nothing HTTP/2 is sent yet.
         /// </summary>
-        public static async Task<SslStream> ConnectTlsAsync(Int32 Port, String Host = "localhost", Boolean Alpn = true, SslProtocols? Protocols = null, CancellationToken CancellationToken = default)
+        public static async Task<SslStream> ConnectTlsAsync(IPPort Port, String Host = "localhost", Boolean Alpn = true, SslProtocols? Protocols = null, CancellationToken CancellationToken = default)
         {
 
             var tcp = new TcpClient();
-            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, Port, CancellationToken);
+            await tcp.ConnectAsync(System.Net.IPAddress.Loopback, Port.ToInt32(), CancellationToken);
 
             var ssl  = new SslStream(tcp.GetStream(), false, (_, _, _, _) => true);
             var opts = new SslClientAuthenticationOptions { TargetHost = Host };
@@ -393,7 +393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// <summary>
         /// The ephemeral loopback port the mock is listening on.
         /// </summary>
-        public Int32 Port => ((IPEndPoint) listener.LocalEndpoint).Port;
+        public IPPort Port => IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
 
         private MockH2Server(Int32 Mcs, Func<Int32, SslStream, HTTP2Frame, HPACKEncoder, Task> OnFrame)
         {

@@ -96,8 +96,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public readonly ConcurrentQueue<String>   DataLines = new();
             public volatile Boolean                   ClosedByClient;
 
-            public UInt16 Port
-                => (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port
+                => IPPort.Parse((UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             /// <param name="Reply">The reply to a command line (or "." for the end of data), or null for the default.</param>
             /// <param name="Greeting">The greeting.</param>

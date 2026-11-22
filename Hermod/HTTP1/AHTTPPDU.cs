@@ -124,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An additional enumeration of IP addresses, when the message has been forwarded between HTTP servers.
         /// </summary>
-        public IEnumerable<IIPAddress>  ForwardedFor
+        public IEnumerable<IPAddress>  ForwardedFor
                    => HTTPSource.ForwardedFor;
 
         /// <summary>

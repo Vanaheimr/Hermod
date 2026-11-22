@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Text;
 
 #endregion
@@ -63,48 +64,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <c>force-command</c> restriction this is the CA's command instead, and what the client asked
         /// for is in <see cref="OriginalCommand"/>. A handler should therefore run <b>this</b>.
         /// </summary>
-        public String   Command         { get; }
+        public String   Command            { get; }
 
         /// <summary>
         /// What the client actually asked to run, when a <c>force-command</c> replaced it; otherwise
         /// null. Equivalent to OpenSSH's <c>SSH_ORIGINAL_COMMAND</c>. Purely informational — a forced
         /// command must not be talked out of running by it.
         /// </summary>
-        public String?  OriginalCommand { get; }
+        public String?  OriginalCommand    { get; }
 
         /// <summary>
         /// The authenticated user name.
         /// </summary>
-        public String   Username        { get; }
+        public User_Id  Username           { get; }
 
         /// <summary>
         /// Whether the client requested a pseudo-terminal (<c>pty-req</c>) for this session.
         /// </summary>
-        public Boolean  HasPty         { get; }
+        public Boolean  HasPty             { get; }
 
         /// <summary>
         /// The remote standard input — bytes the client pipes to the command's stdin. Reaches end-of-stream
         /// when the client sends EOF or closes the channel. For the one-shot (non-streaming) server this is
         /// an immediately-empty <see cref="Stream.Null"/>.
         /// </summary>
-        public Stream   StandardInput  { get; }
+        public Stream   StandardInput      { get; }
 
         /// <summary>
         /// Create an exec/shell context (advanced; usually supplied by the server to a handler).
         /// </summary>
         public SshExecContext(String                                                             command,
-                              String                                                             username,
+                              User_Id                                                            username,
                               Func<ReadOnlyMemory<Byte>, Boolean, CancellationToken, ValueTask>  write,
-                              Stream?                                                            standardInput    = null,
-                              Boolean                                                            hasPty           = false,
-                              String?                                                            originalCommand  = null)
+                              Stream?                                                            standardInput     = null,
+                              Boolean                                                            hasPty            = false,
+                              String?                                                            originalCommand   = null)
         {
+
             this.Command          = command;
             this.OriginalCommand  = originalCommand;
             this.Username         = username;
             this.write            = write;
             this.StandardInput    = standardInput ?? Stream.Null;
             this.HasPty           = hasPty;
+
         }
 
         /// <summary>

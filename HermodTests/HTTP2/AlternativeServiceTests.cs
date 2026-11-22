@@ -63,7 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(single,               Has.Count.EqualTo(1));
                 Assert.That(single[0].ProtocolId, Is.EqualTo("h3"));
                 Assert.That(single[0].Host,       Is.Empty,                                  "an empty host means the same host");
-                Assert.That(single[0].Port,       Is.EqualTo(443));
+                Assert.That(single[0].Port,       Is.EqualTo(IPPort.HTTPS));
                 Assert.That(single[0].MaxAge,     Is.EqualTo(HTTPAlternativeService.DefaultMaxAge), "ma defaults to 24 h");
                 Assert.That(single[0].Persist,    Is.False);
             });
@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(many,                Has.Count.EqualTo(2));
                 Assert.That(many[0].ProtocolId,  Is.EqualTo("h3"));
                 Assert.That(many[0].Host,        Is.EqualTo("alt.example"));
-                Assert.That(many[0].Port,        Is.EqualTo(8443));
+                Assert.That(many[0].Port,        Is.EqualTo(IPPort.Parse(8443)));
                 Assert.That(many[0].MaxAge,      Is.EqualTo(TimeSpan.FromHours(1)));
                 Assert.That(many[0].Persist,     Is.True);
                 Assert.That(many[1].ProtocolId,  Is.EqualTo("h2"));
@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
                 Assert.That(ipv6,               Has.Count.EqualTo(1));
                 Assert.That(ipv6[0].Host,       Is.EqualTo("[2001:db8::1]"));
-                Assert.That(ipv6[0].Port,       Is.EqualTo(443));
+                Assert.That(ipv6[0].Port,       Is.EqualTo(IPPort.HTTPS));
 
                 Assert.That(mixed,              Has.Count.EqualTo(1),             "only the well-formed entry");
                 Assert.That(mixed[0].ProtocolId, Is.EqualTo("h2"));
@@ -137,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         public void FieldValue_RoundTrips()
         {
 
-            var original = new HTTPAlternativeService("h3", "alt.example", 8443, TimeSpan.FromHours(1), true);
+            var original = new HTTPAlternativeService("h3", "alt.example", IPPort.Parse(8443), TimeSpan.FromHours(1), true);
             var reparsed = HTTPAlternativeService.Parse(original.ToFieldValue());
 
             Assert.Multiple(() =>
@@ -147,7 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(reparsed[0],             Is.EqualTo(original));
 
                 // The default max-age is omitted rather than spelled out.
-                Assert.That(new HTTPAlternativeService("h3", "", 443, HTTPAlternativeService.DefaultMaxAge, false).ToFieldValue(),
+                Assert.That(new HTTPAlternativeService("h3", "", IPPort.Parse(443), HTTPAlternativeService.DefaultMaxAge, false).ToFieldValue(),
                             Is.EqualTo("h3=\":443\""));
             });
 
@@ -212,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             {
                 Assert.That(announced,               Has.Count.EqualTo(1));
                 Assert.That(announced[0].ProtocolId, Is.EqualTo("h3"));
-                Assert.That(announced[0].Port,       Is.EqualTo(443));
+                Assert.That(announced[0].Port,       Is.EqualTo(IPPort.HTTPS));
                 Assert.That(announced[0].MaxAge,     Is.EqualTo(TimeSpan.FromHours(1)));
                 Assert.That(announced[0].Persist,    Is.True);
             });

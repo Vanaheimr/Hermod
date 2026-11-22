@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// <summary>
         /// Start an upload to this path.
         /// </summary>
-        private static Task<HTTP2ClientStream> StartUploadAsync(HTTP2ClientConnection Connection, Int32 Port, String Path)
+        private static Task<HTTP2ClientStream> StartUploadAsync(HTTP2ClientConnection Connection, IPPort Port, String Path)
 
             => Connection.StartStreamingRequestAsync(HTTPMethod.POST, URIScheme.https, $"localhost:{Port}", Path);
 
@@ -949,7 +949,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             Assert.Multiple(() =>
             {
 
-                Assert.That(() => new HTTP2Server(System.Net.IPAddress.Loopback, 0, null, NoRequests, Cleartext: true, ConnectionWindowSize: ConnectionWindowSize),
+                Assert.That(() => new HTTP2Server(System.Net.IPAddress.Loopback, IPPort.Zero, null, NoRequests, Cleartext: true, ConnectionWindowSize: ConnectionWindowSize),
                             Throws.TypeOf<ArgumentOutOfRangeException>().With.Property(nameof(ArgumentOutOfRangeException.ParamName)).EqualTo("ConnectionWindowSize"),
                             "the server");
 

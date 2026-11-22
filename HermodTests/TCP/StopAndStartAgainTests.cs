@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
         /// <param name="IPAddress">The address the server is given.</param>
         /// <param name="Endpoints">Where the server binds for it.</param>
         public sealed record Kind(String      Name,
-                                  IIPAddress  IPAddress,
+                                  IPAddress  IPAddress,
                                   Endpoint[]  Endpoints)
         {
 

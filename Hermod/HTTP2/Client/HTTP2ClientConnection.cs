@@ -586,8 +586,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         ///
         /// Following stops at the origin boundary, and that is a deliberate
         /// architectural line rather than a shortcut: a connection speaks to the
-        /// origin it dialed, and this stack's pooling is single-origin *by design*
-        /// (see the README). Dialing a second origin from inside a connection would
+        /// origin it connected to, and this stack's pooling is single-origin *by design*
+        /// (see the README). Connecting to a second origin from inside a connection would
         /// quietly turn <see cref="HTTP2ClientConnection"/> into a multi-origin
         /// client. A cross-origin redirect is therefore returned to the caller
         /// unfollowed — the 3xx and its <c>Location</c> intact, so a layer that does
@@ -3547,7 +3547,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// RFC 7838: alternative services the server has advertised, keyed by the
         /// origin they apply to. Like <see cref="OriginSet"/> this is informational
-        /// — acting on an alternative means dialling a different protocol or port,
+        /// — acting on an alternative means connecting over a different protocol or port,
         /// which this single-origin, HTTP/2-only client does not do. It is surfaced
         /// because it is the input such a decision would need, and because the
         /// obvious future use (an HTTP/3 endpoint) is exactly what RFC 7838 exists

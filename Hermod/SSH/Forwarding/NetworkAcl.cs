@@ -136,9 +136,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     public readonly struct PortSet
     {
 
-        private readonly (UInt16 Lo, UInt16 Hi)[] ranges;
+        private readonly (IPPort Lo, IPPort Hi)[] ranges;
 
-        private PortSet((UInt16, UInt16)[] Ranges)
+        private PortSet((IPPort, IPPort)[] Ranges)
         {
             this.ranges = Ranges;
         }
@@ -148,19 +148,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public static PortSet Parse(String Text)
         {
-            var ranges = new List<(UInt16, UInt16)>();
+            var ranges = new List<(IPPort, IPPort)>();
             foreach (var part in Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
                 var dash = part.IndexOf('-');
                 if (dash < 0)
                 {
-                    var p = UInt16.Parse(part);
+                    var p = IPPort.Parse(part);
                     ranges.Add((p, p));
                 }
                 else
                 {
-                    var lo = UInt16.Parse(part[..dash]);
-                    var hi = UInt16.Parse(part[(dash + 1)..]);
+                    var lo = IPPort.Parse(part[..dash]);
+                    var hi = IPPort.Parse(part[(dash + 1)..]);
                     ranges.Add(lo <= hi ? (lo, hi) : (hi, lo));
                 }
             }
@@ -170,13 +170,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// A port set from explicit ports.
         /// </summary>
-        public static PortSet Of(params UInt16[] Ports)
+        public static PortSet Of(params IPPort[] Ports)
             => new (Ports.Select(p => (p, p)).ToArray());
 
         /// <summary>
         /// Whether the given port is in the set.
         /// </summary>
-        public Boolean Contains(UInt16 Port)
+        public Boolean Contains(IPPort Port)
         {
             foreach (var (lo, hi) in ranges)
                 if (Port >= lo && Port <= hi)
@@ -229,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Whether this rule matches the given target.
         /// </summary>
-        public Boolean Matches(IPAddress? Address, UInt16 Port, String? Host)
+        public Boolean Matches(IPAddress? Address, IPPort Port, String? Host)
         {
             if (Cidr is { } cidr && (Address is null || !cidr.Contains(Address)))
                 return false;
@@ -399,16 +399,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Whether a single resolved target is permitted.
         /// </summary>
-        public Boolean Allows(IIPAddress Address, UInt16 Port, String? Host = null)
+        public Boolean Allows(Hermod.IPAddress Address, IPPort Port, String? Host = null)
             => Allows(Address.ToDotNet(), Port, Host);
 
         /// <summary>
         /// Whether a single resolved target is permitted.
         /// </summary>
-        public Boolean Allows(IPAddress Address, UInt16 Port, String? Host = null)
+        public Boolean Allows(IPAddress Address, IPPort Port, String? Host = null)
         {
 
-            // ::ffff:10.0.0.1 is 10.0.0.1: dialled, it reaches that address, and an IPv4 prefix has to match it.
+            // ::ffff:10.0.0.1 is 10.0.0.1: connected to, it reaches that address, and an IPv4 prefix has to match it.
             if (Address.IsIPv4MappedToIPv6)
                 Address = Address.MapToIPv4();
 
@@ -420,10 +420,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         /// <summary>
         /// DNS-rebinding-safe evaluation: a hostname target is permitted only when <b>every</b> resolved
-        /// address is permitted (and at least one address resolved). The caller must then dial exactly these
+        /// address is permitted (and at least one address resolved). The caller must then connect to exactly these
         /// addresses without re-resolving.
         /// </summary>
-        public Boolean AllowsAll(IEnumerable<IIPAddress> Addresses, UInt16 Port, String? Host = null)
+        public Boolean AllowsAll(IEnumerable<Hermod.IPAddress> Addresses, IPPort Port, String? Host = null)
         {
             var any = false;
             foreach (var address in Addresses)
@@ -438,7 +438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// DNS-rebinding-safe evaluation over already-resolved <see cref="IPAddress"/>es.
         /// </summary>
-        public Boolean AllowsAll(IEnumerable<IPAddress> Addresses, UInt16 Port, String? Host = null)
+        public Boolean AllowsAll(IEnumerable<IPAddress> Addresses, IPPort Port, String? Host = null)
         {
             var any = false;
             foreach (var address in Addresses)

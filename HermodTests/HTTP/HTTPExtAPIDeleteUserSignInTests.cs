@@ -93,8 +93,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api            = await StartAPI();
-            var alice          = await NewUser(api, "alice", OldPassword);
-            var bob            = await NewUser(api, "bob");
+            var alice          = await NewUser(api, User_Id.Parse("alice"), OldPassword);
+            var bob            = await NewUser(api, User_Id.Parse("bob"));
 
             var alicesSession  = api.Sessions.Create(alice.Id);
             var bobsSession    = api.Sessions.Create(bob.  Id);
@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(SignedInAs(api, alicesSession), Is.EqualTo("alice"));
 
             await Delete(api, alice);
-            await NewUser(api, "alice");
+            await NewUser(api, User_Id.Parse("alice"));
 
             Assert.Multiple(() => {
                 Assert.That(SignedInAs (api, alicesSession),                   Is.Null,            "the deleted account's session signs the new one in");
@@ -142,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api            = await StartAPI();
-            var alice          = await NewUser(api, "alice", OldPassword);
+            var alice          = await NewUser(api, User_Id.Parse("alice"), OldPassword);
             var alicesSession  = api.Sessions.Create(alice.Id);
 
             await Delete(api, alice);
@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.That(restarted.Sessions.TryGet(alicesSession.Token, out _),  Is.False,  "the next start brought the deleted account's session back");
 
-            await NewUser(restarted, "alice");
+            await NewUser(restarted, User_Id.Parse("alice"));
 
             Assert.That(SignedInAs(restarted, alicesSession),                   Is.Null,   "the deleted account's session signs the new one in");
 
@@ -167,8 +167,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api    = await StartAPI();
-            var alice  = await NewUser(api, "alice", OldPassword);
-            var bob    = await NewUser(api, "bob");
+            var alice  = await NewUser(api, User_Id.Parse("alice"), OldPassword);
+            var bob    = await NewUser(api, User_Id.Parse("bob"));
 
             Assert.That(await api.AddPasskey(alice, NewPasskey("alices-phone")),   Is.True);
             Assert.That(await api.AddPasskey(alice, NewPasskey("alices-laptop")),  Is.True);
@@ -178,7 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             await Delete(api, alice);
 
-            var again = await NewUser(api, "alice");
+            var again = await NewUser(api, User_Id.Parse("alice"));
 
             Assert.Multiple(() => {
                 Assert.That(OwnerOf(api, "alices-phone"),   Is.Null,            "the deleted account's passkey signs the new one in");
@@ -219,8 +219,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api          = await StartAPI();
-            var alice        = await NewUser(api, "alice", OldPassword);
-            var bob          = await NewUser(api, "bob");
+            var alice        = await NewUser(api, User_Id.Parse("alice"), OldPassword);
+            var bob          = await NewUser(api, User_Id.Parse("bob"));
 
             var alicesKey    = await NewAPIKey(api, alice, "alices-key-0123456789abcdef");
             var alicesOther  = await NewAPIKey(api, alice, "alices-other-key-0123456789");
@@ -230,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             await Delete(api, alice);
 
-            var again = await NewUser(api, "alice");
+            var again = await NewUser(api, User_Id.Parse("alice"));
 
             Assert.Multiple(() => {
                 Assert.That(KeyedInAs(api, alicesKey),     Is.Null,            "the deleted account's API key signs the new one in");
@@ -273,14 +273,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api        = await StartAPI();
-            var alice      = await NewUser(api, "alice");
+            var alice      = await NewUser(api, User_Id.Parse("alice"));
 
             Assert.That(await api.AddPasskey(alice, NewPasskey("alices-phone")), Is.True);
 
             var alicesKey  = await NewAPIKey(api, alice, "alices-key-0123456789abcdef");
 
             await Delete(api, alice);
-            await NewUser(api, "alice");
+            await NewUser(api, User_Id.Parse("alice"));
 
             // As it would have been written before: without the lines.
             var databaseFile = Path.Combine(directory, "UsersAPI", HTTPExtAPI.DefaultHTTPExtAPI_DatabaseFileName);
@@ -313,12 +313,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api    = await StartAPI();
-            var alice  = await NewUser(api, "alice", OldPassword);
+            var alice  = await NewUser(api, User_Id.Parse("alice"), OldPassword);
             var token  = await NewPasswordReset(api, alice);
 
             await Delete(api, alice);
 
-            var again  = await NewUser(api, "alice", NewPassword);
+            var again  = await NewUser(api, User_Id.Parse("alice"), NewPassword);
             var reset  = await api.ResetPassword(token, ResetTo);
 
             Assert.Multiple(() => {
@@ -357,15 +357,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api     = await StartAPI();
-            var alice   = await NewUser(api, "alice", OldPassword);
-            var bob     = await NewUser(api, "bob",   OldPassword);
+            var alice   = await NewUser(api, User_Id.Parse("alice"), OldPassword);
+            var bob     = await NewUser(api, User_Id.Parse("bob"),   OldPassword);
 
             var first   = await NewPasswordReset(api, alice, bob);
             var second  = await NewPasswordReset(api, alice, bob);
 
             await Delete(api, alice);
 
-            var again   = await NewUser(api, "alice", NewPassword);
+            var again   = await NewUser(api, User_Id.Parse("alice"), NewPassword);
             var reset   = await api.ResetPassword(first, ResetTo);
 
             Assert.Multiple(() => {
@@ -411,7 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api            = await StartAPI();
-            var alice          = await NewUser(api, "alice", OldPassword);
+            var alice          = await NewUser(api, User_Id.Parse("alice"), OldPassword);
             var alicesSession  = api.Sessions.Create(alice.Id);
             var alicesKey      = await NewAPIKey(api, alice, "alices-key-0123456789abcdef");
             var firstToken     = await NewPasswordReset(api, alice);
@@ -430,9 +430,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(restarted.VerifyPassword(alice.Id, "Horse-Battery-4"),  Is.True);
             });
 
-            await Delete(restarted, UserOf(restarted, "alice"));
+            await Delete(restarted, UserOf(restarted, User_Id.Parse("alice")));
 
-            var again          = await NewUser(restarted, "alice", NewPassword);
+            var again          = await NewUser(restarted, User_Id.Parse("alice"), NewPassword);
 
             reset              = await restarted.ResetPassword(secondToken, ResetTo);
 
@@ -499,13 +499,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static async Task<User> NewUser(HTTPExtAPI  API,
-                                                String      Name,
+                                                User_Id     Name,
                                                 String?     Password   = null)
         {
 
             var user = await API.CreateUser(
-                                 User_Id.Parse(Name),
-                                 I18NString.Create(Name),
+                                 Name,
+                                 I18NString.Create(Name.ToString()),
                                  SimpleEMailAddress.Parse($"{Name}@example.test"),
                                  Password,
                                  SkipDefaultNotifications:  true,
@@ -520,10 +520,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static User UserOf(HTTPExtAPI  API,
-                                   String      Name)
+                                   User_Id     Name)
         {
 
-            Assert.That(API.TryGetUser(User_Id.Parse(Name), out var user) && user is User, Is.True, $"There is no user '{Name}'.");
+            Assert.That(API.TryGetUser(Name, out var user) && user is User, Is.True, $"There is no user '{Name}'.");
 
             return (User) user!;
 

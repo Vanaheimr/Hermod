@@ -262,6 +262,125 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+
+        #region AUnion_IsADomainNameAnIPv4OrAnIPv6Address()
+
+        /// <summary>
+        /// What an URL host is, said by a switch the compiler checks for all three cases.
+        /// </summary>
+        private static String KindOf(URLHost Host)
+
+            => Host switch {
+                   DomainName   => "domain name",
+                   IPv4Address  => "IPv4",
+                   IPv6Address  => "IPv6"
+               };
+
+        /// <summary>
+        /// An URL host is one of a domain name, an IPv4 and an IPv6 address: each of them
+        /// is one without a From, and a switch over it sees which, together with its value.
+        /// </summary>
+        [Test]
+        public void AUnion_IsADomainNameAnIPv4OrAnIPv6Address()
+        {
+
+            URLHost name = DomainName.Parse("example.org");
+            URLHost ipv4 = IPv4Address.Parse("10.0.0.1");
+            URLHost ipv6 = IPv6Address.Localhost;
+
+            Assert.That(KindOf(name),                  Is.EqualTo("domain name"));
+            Assert.That(KindOf(ipv4),                  Is.EqualTo("IPv4"));
+            Assert.That(KindOf(ipv6),                  Is.EqualTo("IPv6"));
+
+            Assert.That(KindOf(URLHost.Parse("www.example.org")), Is.EqualTo("domain name"));
+            Assert.That(KindOf(URLHost.Parse("192.168.1.1")),     Is.EqualTo("IPv4"));
+            Assert.That(KindOf(URLHost.Parse("[::1]")),           Is.EqualTo("IPv6"));
+
+            Assert.That(ipv4 is IPv4Address address && address == IPv4Address.Parse("10.0.0.1"), Is.True);
+            Assert.That(name is DomainName domain   && domain.FullName.StartsWith("example.org"), Is.True);
+
+            Assert.That(ipv4,                          Is.EqualTo(URLHost.From(IPv4Address.Parse("10.0.0.1"))));
+            Assert.That(ipv6.ToString(),               Is.EqualTo("[::1]"));
+
+        }
+
+        #endregion
+
+        #region AUnion_WithoutAValue_IsNoneOfItsCases()
+
+        /// <summary>
+        /// default(URLHost) holds nothing, so it is none of the three.
+        /// </summary>
+        [Test]
+        public void AUnion_WithoutAValue_IsNoneOfItsCases()
+        {
+
+            var host = default(URLHost);
+
+            Assert.That(host.HasValue,                 Is.False);
+            Assert.That(host.Value,                    Is.Null);
+            Assert.That(host is DomainName,            Is.False);
+            Assert.That(host is IPv4Address,           Is.False);
+            Assert.That(host is IPv6Address,           Is.False);
+
+        }
+
+        #endregion
+
+        #region AUnion_IsMatchedWithoutAllocating()
+
+        /// <summary>
+        /// The union is written out by hand, so that the IP addresses in it are never boxed:
+        /// neither by keeping one, nor by matching it.
+        /// </summary>
+        [Test]
+        public void AUnion_IsMatchedWithoutAllocating()
+        {
+
+            var hosts = new URLHost[] { IPv4Address.Parse("10.0.0.1"), IPv6Address.Localhost };
+            var sum   = 0;
+
+            for (var i = 0; i < 100; i++)
+                foreach (var host in hosts)
+                    sum += host switch { DomainName => 1, IPv4Address => 2, IPv6Address => 3 };
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+
+            for (var i = 0; i < 10_000; i++)
+            {
+                URLHost ipv4 = IPv4Address.Localhost;
+                foreach (var host in hosts)
+                    sum += host switch { DomainName => 1, IPv4Address => 2, IPv6Address => 3 };
+                sum += ipv4 is IPv4Address ? 1 : 0;
+            }
+
+            Assert.That(GC.GetAllocatedBytesForCurrentThread() - before, Is.Zero);
+            Assert.That(sum,                                             Is.GreaterThan(0));
+
+        }
+
+        #endregion
+
+        #region AnIPvXAddress_IsNoBracketedLiteral()
+
+        /// <summary>
+        /// An IPvXAddress stands for IPv4 and IPv6 at once, and its text is "localhost" or
+        /// "any": it used to come out bracketed as if it were IPv6, "[localhost]".
+        /// </summary>
+        [Test]
+        public void AnIPvXAddress_IsNoBracketedLiteral()
+        {
+
+            Assert.That(URLHost.From(IPvXAddress.Localhost),              Is.EqualTo(URLHost.Localhost));
+            Assert.That(URLHost.From(IPvXAddress.Localhost).ToString(),   Is.EqualTo("localhost"));
+            Assert.That(URLHost.From(IPvXAddress.Any).      ToString(),   Is.EqualTo("0.0.0.0"));
+
+            Assert.That(HTTPHostname.From(URLHost.From(IPvXAddress.Localhost), IPPort.Parse(8080)).ToString(),
+                        Is.EqualTo("localhost:8080"));
+
+        }
+
+        #endregion
     }
 
 }

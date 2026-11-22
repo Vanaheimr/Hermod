@@ -93,13 +93,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api    = await StartAPI();
-            var alice  = await NewUser(api, "alice", OldPassword);
+            var alice  = await NewUser(api, User_Id.Parse("alice"), OldPassword);
 
             Assert.That(api.VerifyPassword(alice.Id, OldPassword), Is.True);
 
             await Delete(api, alice);
 
-            var again  = await NewUser(api, "alice");
+            var again  = await NewUser(api, User_Id.Parse("alice"));
 
             Assert.That(api.VerifyPassword(again.Id, OldPassword), Is.False, "the deleted account's password signs the new one in");
 
@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api    = await StartAPI();
-            var alice  = await NewUser(api, "alice", OldPassword);
+            var alice  = await NewUser(api, User_Id.Parse("alice"), OldPassword);
 
             await Delete(api, alice);
 
@@ -147,7 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.That(restarted.TryGetUser(alice.Id, out _), Is.False, "the deleted account came back");
 
-            var again      = await NewUser(restarted, "alice");
+            var again      = await NewUser(restarted, User_Id.Parse("alice"));
 
             Assert.That(restarted.VerifyPassword(again.Id, OldPassword), Is.False, "the next start gave the old password back");
 
@@ -181,11 +181,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api    = await StartAPI();
-            var alice  = await NewUser(api, "alice", OldPassword);
+            var alice  = await NewUser(api, User_Id.Parse("alice"), OldPassword);
 
             await Delete(api, alice);
 
-            var again  = await NewUser(api, "alice", NewPassword);
+            var again  = await NewUser(api, User_Id.Parse("alice"), NewPassword);
 
             Assert.Multiple(() => {
                 Assert.That(api.VerifyPassword(again.Id, NewPassword),  Is.True,   "the new account's own password did not take");
@@ -213,8 +213,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var api     = await StartAPI();
             var admins  = await NewGroup(api, "admins");
             var viewer  = await NewGroup(api, "viewer");
-            var alice   = await NewUser (api, "alice", OldPassword);
-            var bob     = await NewUser (api, "bob");
+            var alice   = await NewUser (api, User_Id.Parse("alice"), OldPassword);
+            var bob     = await NewUser (api, User_Id.Parse("bob"));
 
             Assert.That((await api.AddUserToUserGroup(alice, User2UserGroupEdgeLabel.IsAdmin,  admins)).IsSuccess,  Is.True);
             Assert.That((await api.AddUserToUserGroup(alice, User2UserGroupEdgeLabel.IsMember, viewer)).IsSuccess,  Is.True);
@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(api.IsMember(bob, admins.Id),     Is.True,   "and nobody else goes with it");
             });
 
-            var again = await NewUser(api, "alice");
+            var again = await NewUser(api, User_Id.Parse("alice"));
 
             Assert.Multiple(() => {
                 Assert.That(api.IsMember(again, admins.Id),   Is.False,  "the new account is an administrator at once");
@@ -251,9 +251,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var restarted = await StartAPI();
 
             Assert.Multiple(() => {
-                Assert.That(restarted.IsMember(UserOf(restarted, "alice"), admins.Id),  Is.False,  "the next start made the new account an administrator");
-                Assert.That(restarted.IsMember(UserOf(restarted, "alice"), viewer.Id),  Is.True,   "the next start lost the group it was given");
-                Assert.That(restarted.IsMember(UserOf(restarted, "bob"),   admins.Id),  Is.True);
+                Assert.That(restarted.IsMember(UserOf(restarted, User_Id.Parse("alice")), admins.Id),  Is.False,  "the next start made the new account an administrator");
+                Assert.That(restarted.IsMember(UserOf(restarted, User_Id.Parse("alice")), viewer.Id),  Is.True,   "the next start lost the group it was given");
+                Assert.That(restarted.IsMember(UserOf(restarted, User_Id.Parse("bob")),   admins.Id),  Is.True);
             });
 
         }
@@ -272,20 +272,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var api     = await StartAPI();
             var admins  = await NewGroup(api, "admins");
-            var alice   = await NewUser (api, "alice", OldPassword);
+            var alice   = await NewUser (api, User_Id.Parse("alice"), OldPassword);
 
             await api.AddUserToUserGroup(alice, User2UserGroupEdgeLabel.IsAdmin, admins);
 
             await Delete(api, alice);
 
             var restarted  = await StartAPI();
-            var again      = await NewUser(restarted, "alice");
+            var again      = await NewUser(restarted, User_Id.Parse("alice"));
 
             Assert.That(restarted.IsMember(again, admins.Id), Is.False, "the next start gave the new account the old one's groups");
 
             var once_more  = await StartAPI();
 
-            Assert.That(once_more.IsMember(UserOf(once_more, "alice"), admins.Id), Is.False);
+            Assert.That(once_more.IsMember(UserOf(once_more, User_Id.Parse("alice")), admins.Id), Is.False);
 
         }
 
@@ -304,12 +304,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var api     = await StartAPI();
             var admins  = await NewGroup(api, "admins");
-            var alice   = await NewUser (api, "alice");
+            var alice   = await NewUser (api, User_Id.Parse("alice"));
 
             await api.AddUserToUserGroup(alice, User2UserGroupEdgeLabel.IsAdmin, admins);
 
             await Delete(api, alice);
-            await NewUser(api, "alice");
+            await NewUser(api, User_Id.Parse("alice"));
 
             // As it would have been written before: without the lines.
             var databaseFile = Path.Combine(directory, "UsersAPI", HTTPExtAPI.DefaultHTTPExtAPI_DatabaseFileName);
@@ -323,7 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var restarted = await StartAPI();
 
-            Assert.That(restarted.IsMember(UserOf(restarted, "alice"), admins.Id), Is.False, "the next start gave the new account the old one's groups");
+            Assert.That(restarted.IsMember(UserOf(restarted, User_Id.Parse("alice")), admins.Id), Is.False, "the next start gave the new account the old one's groups");
 
         }
 
@@ -343,8 +343,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var api    = await StartAPI(MembersMayBeDeleted: true);
             var acme   = await NewOrganization(api, "acme");
-            var alice  = await NewUser(api, "alice", OldPassword);
-            var bob    = await NewUser(api, "bob");
+            var alice  = await NewUser(api, User_Id.Parse("alice"), OldPassword);
+            var bob    = await NewUser(api, User_Id.Parse("bob"));
 
             Assert.That((await api.AddUserToOrganization(alice, User2OrganizationEdgeLabel.IsAdmin, acme)).IsSuccess,  Is.True);
             Assert.That((await api.AddUserToOrganization(bob,   User2OrganizationEdgeLabel.IsAdmin, acme)).IsSuccess,  Is.True);
@@ -359,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.That(CommandsIn(HTTPExtAPI.DefaultHTTPExtAPI_DatabaseFileName).Count(command => command == "removeUserFromOrganization"),  Is.EqualTo(1));
 
-            var again = await NewUser(api, "alice");
+            var again = await NewUser(api, User_Id.Parse("alice"));
 
             Assert.Multiple(() => {
                 Assert.That(acme.User2OrganizationInEdges(again),                     Is.Empty,  "the new account is an administrator of the organization at once");
@@ -371,7 +371,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(restarted.TryGetOrganization(acme.Id, out var reloaded), Is.True);
 
             Assert.Multiple(() => {
-                Assert.That(reloaded!.User2OrganizationInEdges(UserOf(restarted, "alice")),  Is.Empty);
+                Assert.That(reloaded!.User2OrganizationInEdges(UserOf(restarted, User_Id.Parse("alice"))),  Is.Empty);
                 Assert.That(reloaded. Admins.Select(admin => admin.Id.ToString()),           Is.EqualTo(new[] { "bob" }));
             });
 
@@ -440,13 +440,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static async Task<User> NewUser(HTTPExtAPI  API,
-                                                String      Name,
+                                                User_Id     Name,
                                                 String?     Password   = null)
         {
 
             var user = await API.CreateUser(
-                                 User_Id.Parse(Name),
-                                 I18NString.Create(Name),
+                                 Name,
+                                 I18NString.Create(Name.ToString()),
                                  SimpleEMailAddress.Parse($"{Name}@example.test"),
                                  Password,
                                  SkipDefaultNotifications:  true,
@@ -461,10 +461,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static User UserOf(HTTPExtAPI  API,
-                                   String      Name)
+                                   User_Id     Name)
         {
 
-            Assert.That(API.TryGetUser(User_Id.Parse(Name), out var user) && user is User, Is.True, $"There is no user '{Name}'.");
+            Assert.That(API.TryGetUser(Name, out var user) && user is User, Is.True, $"There is no user '{Name}'.");
 
             return (User) user!;
 

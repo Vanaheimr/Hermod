@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
             try
             {
 
-                var port      = (UInt16) ((IPEndPoint) occupied.LocalEndpoint).Port;
+                var port      = IPPort.Parse(((IPEndPoint) occupied.LocalEndpoint).Port);
                 var response  = host.Execute($"ConnectPorts([{port}, ?])");
 
                 Assert.Multiple(() => {
@@ -181,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Rendezvous
             try
             {
 
-                var occupiedPort  = (UInt16) ((IPEndPoint) occupied.LocalEndpoint).Port;
+                var occupiedPort  = IPPort.Parse(((IPEndPoint) occupied.LocalEndpoint).Port);
 
                 TestNet.HandOver(port);
 

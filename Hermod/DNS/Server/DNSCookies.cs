@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Secret">The server's secret. Never leaves the server and never goes on the wire.</param>
         /// <param name="Timestamp">When the cookie is issued; now when omitted.</param>
         public static Byte[] Create(Byte[]            ClientCookie,
-                                    IIPAddress        ClientAddress,
+                                    IPAddress        ClientAddress,
                                     Byte[]            Secret,
                                     DateTimeOffset?   Timestamp   = null)
         {
@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="ClockSkew">How far into the future a timestamp may sit.</param>
         public static Boolean Validate(Byte[]           ServerCookie,
                                        Byte[]           ClientCookie,
-                                       IIPAddress       ClientAddress,
+                                       IPAddress       ClientAddress,
                                        Byte[]           Secret,
                                        DateTimeOffset?  Now         = null,
                                        TimeSpan?        Validity    = null,
@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </para>
         /// </remarks>
         private static Byte[] Hash(Byte[]              ClientCookie,
-                                   IIPAddress          ClientAddress,
+                                   IPAddress          ClientAddress,
                                    Byte[]              Secret,
                                    ReadOnlySpan<Byte>  Preamble)
         {

@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
                 Assert.That(result.IsSuccess,  Is.False);
 
-                // Not "connection refused": that would mean it dialled the IPv4
+                // Not "connection refused": that would mean it connected to the IPv4
                 // address the caller ruled out and merely found nobody home.
                 Assert.That(result.Errors.Any(error => error.ToString().Contains("IPv6Only", StringComparison.Ordinal)),
                             Is.True,
@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
         /// <remarks>
         /// The choice tells the families apart by type, and IPvXAddress is
         /// neither an IPv4Address nor an IPv6Address. IPv4Only and IPv6Only found
-        /// no address of their family and failed without dialling. PreferIPv4
+        /// no address of their family and failed without connecting. PreferIPv4
         /// fell back to the IPvX address itself, which ToDotNet() turns into
         /// [::1], and never reached 127.0.0.1.
         /// </remarks>
@@ -168,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
                                                System.Net.IPAddress.Loopback);
 
             using var client    = await TCPClient.ConnectNew(
-                                            IPPort.Parse(listeners.Port),
+                                            listeners.Port,
                                             PreferIPv4:      Preference,
                                             ConnectTimeout:  TimeSpan.FromSeconds(5)
                                         );
@@ -193,7 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
         /// client that names no preference has PreferIPv6, and its "localhost"
         /// has always reached the servers that listen on 127.0.0.1 or 0.0.0.0
         /// alone - among them S2ConformanceTests' reference servers, which a
-        /// WWCP_S2 client dials as https://localhost.
+        /// WWCP_S2 client connects to as https://localhost.
         /// </remarks>
         [TestCase(null,                            "127.0.0.1")]
         [TestCase(IPVersionPreference.PreferIPv6,  "127.0.0.1")]
@@ -221,19 +221,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
         #endregion
 
-        #region AnotherLoopbackAddress_IsDialledAsItself()
+        #region AnotherLoopbackAddress_IsConnectedAsItself()
 
         /// <summary>
-        /// A host that is an IP address is dialled as that address, a loopback
+        /// A host that is an IP address is connected to as that address, a loopback
         /// address other than 127.0.0.1 included.
         /// </summary>
         /// <remarks>
-        /// Every host starting with "127." was taken for localhost and dialled
+        /// Every host starting with "127." was taken for localhost and connected to
         /// as 127.0.0.1, so the listener there took the connection meant for
         /// 127.0.0.2.
         /// </remarks>
         [Test]
-        public async Task AnotherLoopbackAddress_IsDialledAsItself()
+        public async Task AnotherLoopbackAddress_IsConnectedAsItself()
         {
 
             using var listeners = Listeners.On(System.Net.IPAddress.Parse("127.0.0.2"),
@@ -263,7 +263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
         /// followed by the others in the list, one at a time."
         /// </summary>
         /// <remarks>
-        /// The client dialled one address and gave up when it failed. On a host
+        /// The client connected to one address and gave up when it failed. On a host
         /// without an IPv6 route that was every connection to a server with an
         /// AAAA record - DoH to dns.google and to cloudflare-dns.com failed in a
         /// few milliseconds on every GitHub runner, "Network is unreachable".
@@ -344,7 +344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
         #region (private) AssertReached(Client, Listeners, Expected, Errors = null)
 
         /// <summary>
-        /// The client dialled the expected address, and the listener there took
+        /// The client connected to the expected address, and the listener there took
         /// the connection.
         /// </summary>
         private static async Task AssertReached(TCPClient  Client,
@@ -362,7 +362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
                             Is.EqualTo(Expected),
                             $"The listener that took the connection. {Errors}");
 
-                // As ToDotNet() has it, because that is what is dialled - and
+                // As ToDotNet() has it, because that is what is connected to - and
                 // IPvXAddress.Localhost writes itself "localhost".
                 Assert.That(Client.ResolvedIPAddress?.ToDotNet().ToString(),
                             Is.EqualTo(Expected),
@@ -385,10 +385,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
             private readonly TcpListener[] listeners;
 
-            public UInt16 Port { get; }
+            public IPPort Port { get; }
 
             private Listeners(TcpListener[]  Listeners,
-                              UInt16         Port)
+                              IPPort         Port)
             {
                 this.listeners  = Listeners;
                 this.Port       = Port;
@@ -434,7 +434,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
 
                         return new Listeners(
                                    [.. started],
-                                   (UInt16) ((IPEndPoint) started[0].LocalEndpoint).Port
+                                   IPPort.Parse(((IPEndPoint) started[0].LocalEndpoint).Port)
                                );
 
                     }

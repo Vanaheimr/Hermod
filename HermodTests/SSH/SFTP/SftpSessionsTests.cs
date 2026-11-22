@@ -22,6 +22,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -119,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         private readonly ISshHostKey  hostKey  = SshHostKey.GenerateEd25519();
         private readonly ISshHostKey  userKey  = SshHostKey.GenerateEd25519();
 
-        private async Task<(SshServer Server, UInt16 Port)> StartAsync(SftpSessionFactory  Factory,
+        private async Task<(SshServer Server, IPPort Port)> StartAsync(SftpSessionFactory  Factory,
                                                                        CancellationToken   CancellationToken,
                                                                        ISshAuditSink?      AuditSink       = null,
                                                                        ISftpFileSystem?    SftpFileSystem  = null)
@@ -136,16 +137,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            return (server, (UInt16) server.LocalEndPoint.Port.ToInt32());
+            return (server, server.LocalEndPoint.Port);
 
         }
 
-        private ValueTask<SshClient> ConnectAsync(UInt16             Port,
+        private ValueTask<SSHClient> ConnectAsync(IPPort             Port,
                                                   String             Username,
                                                   CancellationToken  CancellationToken)
 
-            => SshClient.ConnectAsync("127.0.0.1", Port, new SshClientOptions {
-                   Username       = Username,
+            => SSHClient.Connect("127.0.0.1", Port, new SSHClientOptions {
+                   Username       = User_Id.Parse(Username),
                    VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                    Credentials    = [ userKey ]
                }, CancellationToken);
@@ -171,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var everybody = new InMemorySftpFileSystem();
 
             var (server, port) = await StartAsync((session, _) => {
-                                                      var fileSystem = made.GetOrAdd(session.Username, name => new SessionFileSystem(name));
+                                                      var fileSystem = made.GetOrAdd(session.Username.ToString(), name => new SessionFileSystem(name));
                                                       return ValueTask.FromResult<SftpSessionOptions?>(new SftpSessionOptions(fileSystem));
                                                   },
                                                   CancellationToken,
@@ -183,8 +184,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 await using var alice = await ConnectAsync(port, "alice", CancellationToken);
                 await using var bob   = await ConnectAsync(port, "bob",   CancellationToken);
 
-                var aliceSftp = await alice.OpenSftpClientAsync(CancellationToken);
-                var bobSftp   = await bob.  OpenSftpClientAsync(CancellationToken);
+                var aliceSftp = await alice.OpenSFTPClient(CancellationToken);
+                var bobSftp   = await bob.  OpenSFTPClient(CancellationToken);
 
                 await aliceSftp.UploadAsync("/alice.txt", Encoding.UTF8.GetBytes("alice's"), CancellationToken);
                 await bobSftp.  UploadAsync("/bob.txt",   Encoding.UTF8.GetBytes("bob's"),   CancellationToken);
@@ -243,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 await using var client = await ConnectAsync(port, "achim", CancellationToken);
 
-                var result = await client.ExecuteAsync("status", CancellationToken);
+                var result = await client.Execute("status", CancellationToken);
 
                 Assert.Multiple(() => {
                     Assert.That(result.StandardOutput, Is.EqualTo("ran: status\n"));
@@ -278,8 +279,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 await using var client = await ConnectAsync(port, "achim", CancellationToken);
 
-                var refused = await Assert.CatchAsync<SshWireException>(async () => await client.OpenSftpClientAsync(CancellationToken));
-                var result  = await client.ExecuteAsync("status", CancellationToken);
+                var refused = await Assert.CatchAsync<SshWireException>(async () => await client.OpenSFTPClient(CancellationToken));
+                var result  = await client.Execute("status", CancellationToken);
 
                 Assert.Multiple(() => {
                     Assert.That(refused!.Message,      Does.Contain("refused the 'sftp' subsystem"));
@@ -319,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 await using var client = await ConnectAsync(port, "achim", CancellationToken);
 
-                await Assert.CatchAsync<SshWireException>(async () => await client.OpenSftpClientAsync(CancellationToken));
+                await Assert.CatchAsync<SshWireException>(async () => await client.OpenSFTPClient(CancellationToken));
 
                 Assert.That(audited.OfType<PolicyDeniedEvent>().Select(denied => (denied.PolicyType, denied.Target, denied.Reason)),
                             Does.Contain(("subsystem", "sftp", "not served: the accounts cannot be read")),
@@ -345,7 +346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var made = new ConcurrentQueue<(SessionFileSystem FileSystem, CancellationTokenSource Ends)>();
 
             var (server, port) = await StartAsync((session, _) => {
-                                                      var fileSystem = new SessionFileSystem(session.Username);
+                                                      var fileSystem = new SessionFileSystem(session.Username.ToString());
                                                       var ends       = new CancellationTokenSource();
                                                       made.Enqueue((fileSystem, ends));
                                                       return ValueTask.FromResult<SftpSessionOptions?>(new SftpSessionOptions(fileSystem) { Ends = ends.Token });
@@ -357,7 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 await using var client = await ConnectAsync(port, "achim", CancellationToken);
 
-                var first = await client.OpenSftpClientAsync(CancellationToken);
+                var first = await client.OpenSFTPClient(CancellationToken);
                 await first.UploadAsync("/before.txt", Encoding.UTF8.GetBytes("before"), CancellationToken);
 
                 var (firstFileSystem, firstEnds) = made.Single();
@@ -373,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 var afterwards = await Assert.CatchAsync<Exception>(async () => await first.StatAsync("/before.txt", shortly.Token));
 
                 // Only the session ended: the connection opens another one.
-                var second = await client.OpenSftpClientAsync(CancellationToken);
+                var second = await client.OpenSFTPClient(CancellationToken);
                 await second.UploadAsync("/again.txt", Encoding.UTF8.GetBytes("again"), CancellationToken);
                 var again  = await second.DownloadAsync("/again.txt", CancellationToken);
                 await second.DisposeAsync();
@@ -414,7 +415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 await using var client = await ConnectAsync(port, "achim", CancellationToken);
 
-                var sftp = await client.OpenSftpClientAsync(CancellationToken);
+                var sftp = await client.OpenSFTPClient(CancellationToken);
 
                 using var shortly = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
                 shortly.CancelAfter(TimeSpan.FromSeconds(10));

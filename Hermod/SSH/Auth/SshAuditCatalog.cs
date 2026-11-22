@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Threading.Channels;
 
 #endregion
@@ -64,22 +65,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <summary>
     /// An authentication attempt was made with a given method and identity.
     /// </summary>
-    public sealed record AuthAttemptEvent(DateTimeOffset Timestamp, String Username, String Method, String? Identity) : SshAuditEvent(Timestamp);
+    public sealed record AuthAttemptEvent(DateTimeOffset Timestamp, User_Id Username, String Method, String? Identity) : SshAuditEvent(Timestamp);
 
     /// <summary>
     /// Authentication succeeded and an access profile was assigned.
     /// </summary>
-    public sealed record AuthorizedEvent(DateTimeOffset Timestamp, String Username, String? AccessProfile) : SshAuditEvent(Timestamp);
+    public sealed record AuthorizedEvent(DateTimeOffset Timestamp, User_Id Username, String? AccessProfile) : SshAuditEvent(Timestamp);
 
     /// <summary>
     /// A session channel was opened.
     /// </summary>
-    public sealed record SessionOpenedEvent(DateTimeOffset Timestamp, String Username) : SshAuditEvent(Timestamp);
+    public sealed record SessionOpenedEvent(DateTimeOffset Timestamp, User_Id Username) : SshAuditEvent(Timestamp);
 
     /// <summary>
     /// A session channel was closed.
     /// </summary>
-    public sealed record SessionClosedEvent(DateTimeOffset Timestamp, String Username) : SshAuditEvent(Timestamp);
+    public sealed record SessionClosedEvent(DateTimeOffset Timestamp, User_Id Username) : SshAuditEvent(Timestamp);
 
     /// <summary>
     /// A channel of the given type was opened (session / direct-tcpip / tcpip-forward).

@@ -45,8 +45,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// <summary>
         /// The ephemeral loopback port Kestrel is listening on.
         /// </summary>
-        public Int32 Port
-            => port.Number.ToInt32();
+        public IPPort Port
+            => port.Number;
 
         private KestrelH2Server(WebApplication App, ClosedPort Port)
         {
@@ -63,7 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// <remarks>
         /// Kestrel could choose a port itself and say which, but only on one
         /// address: ListenLocalhost, which binds 127.0.0.1 and [::1] alike, wants
-        /// a port given in advance. The tests dial "localhost", which resolves
+        /// a port given in advance. The tests connect to "localhost", which resolves
         /// to [::1] first, and a connection refused there costs two seconds on
         /// Windows before 127.0.0.1 is tried. So the port is chosen in advance
         /// after all, but held by the test from then on - see ClosedPort -

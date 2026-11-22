@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The remote IP address.
         /// </summary>
-        IIPAddress  RemoteIPAddress    { get; }
+        IPAddress  RemoteIPAddress    { get; }
 
         /// <summary>
         /// The remote port.

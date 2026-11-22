@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -264,10 +265,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
-                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+                var port = server.LocalEndPoint.Port;
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username         = "achim",
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username         = User_Id.Parse("achim"),
                     VerifyHostKey    = blob => blob.AsSpan().SequenceEqual(currentKey.PublicKeyBlob),
                     Credentials      = [ userKey ],
                     HostKeysReceived = (update, ct) => { received.TrySetResult(update); return ValueTask.CompletedTask; }
@@ -291,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 });
 
                 // The connection stays fully usable while all of that happens on the side.
-                var result = await client.ExecuteAsync("status", CancellationToken);
+                var result = await client.Execute("status", CancellationToken);
                 Assert.That(result.StandardOutput, Is.EqualTo("ok\n"));
 
             }
@@ -343,11 +344,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
-                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+                var port = server.LocalEndPoint.Port;
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username         = "achim",
-                    VerifyHostKey    = HostKeyPolicy.HostCertificate(new SshCertificateAuthorityTrust().TrustCA(ca)).ForHost("127.0.0.1", IPPort.Parse(port)),
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username         = User_Id.Parse("achim"),
+                    VerifyHostKey    = HostKeyPolicy.HostCertificate(new SshCertificateAuthorityTrust().TrustCA(ca)).ForHost("127.0.0.1", port),
                     Credentials      = [ userKey ],
                     HostKeysReceived = (update, ct) => { received.TrySetResult(update); return ValueTask.CompletedTask; }
                 }, CancellationToken);

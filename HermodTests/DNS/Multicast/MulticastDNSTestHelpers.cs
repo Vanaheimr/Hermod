@@ -335,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
         /// <param name="PTRTimeToLive">The time-to-live of the PTR record (default: 4500 s).</param>
         public static IDNSResourceRecord[] ServiceRecords(String                Host,
                                                           String                Address,
-                                                          UInt16                Port,
+                                                          IPPort                Port,
                                                           String                ServiceType     = "_test._tcp.local.",
                                                           String?               Instance        = null,
                                                           IEnumerable<String>?  TXTStrings      = null,
@@ -348,7 +348,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             return [
                 new A  (hostName,     DNSQueryClasses.IN, TimeSpan.FromSeconds(120),                     IPv4Address.Parse(Address)),
-                new SRV(instanceName, DNSQueryClasses.IN, TimeSpan.FromSeconds(120),                     0, 0, IPPort.Parse(Port), hostName),
+                new SRV(instanceName, DNSQueryClasses.IN, TimeSpan.FromSeconds(120),                     0, 0, Port, hostName),
                 new TXT(instanceName, DNSQueryClasses.IN, TimeSpan.FromSeconds(4500),                    TXTStrings ?? new[] { "txtver=1", $"url=https://{Host}:{Port}/" }),
                 new PTR(serviceName,  DNSQueryClasses.IN, PTRTimeToLive ?? TimeSpan.FromSeconds(4500),   instanceName)
             ];

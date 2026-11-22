@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using org.GraphDefined.Vanaheimr.Illias;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
@@ -103,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 {
                     // The restrictions a certificate carries are applied by the session layer, which
                     // reads them straight off the authenticated blob — so declare them enforced here.
-                    var validation = SshCertificateValidator.Validate(certificate!, SshCertType.User, request.Username, Trust, clock.GetUtcNow(),
+                    var validation = SshCertificateValidator.Validate(certificate!, SshCertType.User, request.Username.ToString(), Trust, clock.GetUtcNow(),
                                                                       SshSessionRestrictions.EnforcedCriticalOptions);
                     return ValueTask.FromResult(validation.IsValid);
                 }
@@ -182,19 +188,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public ValueTask<Boolean> AuthorizePublicKeyAsync(SshPublicKeyAuthRequest Request, CancellationToken CancellationToken = default)
             => publicKey?.Invoke(Request, CancellationToken) ?? ValueTask.FromResult(false);
 
-        public ValueTask<Boolean> AuthorizePasswordAsync(String Username, String Password, CancellationToken CancellationToken = default)
-            => password?.Invoke(Username, Password, CancellationToken) ?? ValueTask.FromResult(false);
+        public ValueTask<Boolean> AuthorizePasswordAsync(User_Id Username, String Password, CancellationToken CancellationToken = default)
+            => password?.Invoke(Username.ToString(), Password, CancellationToken) ?? ValueTask.FromResult(false);
 
-        public ValueTask<Boolean> AuthorizeSessionBoundTotpAsync(String Username, String Totp, ReadOnlyMemory<Byte> SessionId, System.Net.IPAddress? Client, CancellationToken CancellationToken = default)
-            => sessionBoundTotp?.Invoke(Username, Totp, SessionId, CancellationToken) ?? ValueTask.FromResult(false);
+        public ValueTask<Boolean> AuthorizeSessionBoundTotpAsync(User_Id Username, String Totp, ReadOnlyMemory<Byte> SessionId, System.Net.IPAddress? Client, CancellationToken CancellationToken = default)
+            => sessionBoundTotp?.Invoke(Username.ToString(), Totp, SessionId, CancellationToken) ?? ValueTask.FromResult(false);
 
-        public ISshKeyboardInteractiveFactor? GetKeyboardInteractive(String Username)
-            => keyboardInteractive?.Invoke(Username);
+        public ISshKeyboardInteractiveFactor? GetKeyboardInteractive(User_Id Username)
+            => keyboardInteractive?.Invoke(Username.ToString());
 
-        public IReadOnlyList<String> RemainingMethods(String Username, IReadOnlySet<String> CompletedMethods)
+        public IReadOnlyList<String> RemainingMethods(User_Id Username, IReadOnlySet<String> CompletedMethods)
         {
 
-            var required = requiredMethods?.Invoke(Username);
+            var required = requiredMethods?.Invoke(Username.ToString());
 
             // No explicit chain: any single successful method fully authenticates.
             if (required is null || required.Count == 0)

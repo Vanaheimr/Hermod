@@ -56,23 +56,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The server's SSH port.
         /// </summary>
-        public UInt16                                    Port               { get; init; } = 22;
+        public IPPort                                    Port               { get; init; } = IPPort.SSH;
 
         /// <summary>
         /// The SSH login of a connection of the client's own: user name, credentials, how the server's
         /// host key is checked, keepalive. Null where the client takes its connection from
         /// <see cref="Connection"/>.
         /// </summary>
-        public SshClientOptions?                         Ssh                { get; init; }
+        public SSHClientOptions?                         Ssh                { get; init; }
 
         /// <summary>
         /// The SSH connection the messages go over, where it is not the client's own: a connection that
         /// others share - an <see cref="SshSharedConnection"/>, mostly - asked for at every connect and
         /// reconnect. The client opens its subsystem as one more channel of it and closes that channel,
         /// never the connection; <see cref="Host"/>, <see cref="Port"/> and <see cref="Ssh"/> then say
-        /// nothing about where it goes. Null where the client dials a connection of its own.
+        /// nothing about where it goes. Null where the client makes a connection of its own.
         /// </summary>
-        public Func<CancellationToken, ValueTask<SshClient>>?  Connection   { get; init; }
+        public Func<CancellationToken, ValueTask<SSHClient>>?  Connection   { get; init; }
 
         /// <summary>
         /// The subsystem asked for, e.g. "ocpp@open.charging.cloud".
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly CancellationTokenSource  stopping  = new ();
         private readonly SemaphoreSlim            connectLock = new (1, 1);
         private volatile SshMessageConnection?    connection;
-        private volatile SshClient?               sshClient;
+        private volatile SSHClient?               sshClient;
         private volatile Boolean                  sshClientIsOwn;
         private          Task                     supervising = Task.CompletedTask;
         private          Int32                    stopped;
@@ -174,8 +174,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// client's own ends with the messages, and the next one a reconnect makes is a connection of
         /// its own.
         /// </remarks>
-        public SshClient?               Ssh
-            => connection?.IsAlive == true && sshClient is SshClient ssh && !ssh.Closed.IsCompleted
+        public SSHClient?               Ssh
+            => connection?.IsAlive == true && sshClient is SSHClient ssh && !ssh.Closed.IsCompleted
                    ? ssh
                    : null;
 
@@ -255,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             { }
 
             // A connection of its own; one it was given goes on for whoever else is on it.
-            if (sshClientIsOwn && sshClient is SshClient ssh)
+            if (sshClientIsOwn && sshClient is SSHClient ssh)
                 await ssh.DisposeAsync().ConfigureAwait(false);
 
         }
@@ -288,16 +288,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 // A connection of its own, or the one it is given - which is somebody else's to close.
                 var own = Options.Connection is null;
 
-                var ssh = Options.Connection is Func<CancellationToken, ValueTask<SshClient>> given
+                var ssh = Options.Connection is Func<CancellationToken, ValueTask<SSHClient>> given
                               ? await given(CancellationToken).ConfigureAwait(false)
-                              : await SshClient.ConnectAsync(Options.Host, Options.Port, Options.Ssh!, CancellationToken).ConfigureAwait(false);
+                              : await SSHClient.Connect(Options.Host, Options.Port, Options.Ssh!, CancellationToken).ConfigureAwait(false);
 
                 SshMuxChannel? opened = null;
 
                 try
                 {
 
-                    var channel = opened = await ssh.OpenSubsystemAsync(Options.Subsystem, CancellationToken).ConfigureAwait(false);
+                    var channel = opened = await ssh.OpenSubsystem(Options.Subsystem, CancellationToken).ConfigureAwait(false);
                     var hello   = SshMessageHello.Create(Options.Subprotocols, Options.MaxMessageSizeIn, Options.HelloProperties);
 
                     await channel.SendDataAsync(SshMessageFraming.Encode(SshMessageFrameType.Hello, hello.ToBytes()), CancellationToken).ConfigureAwait(false);
@@ -338,19 +338,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     if (welcome.Subprotocol is String chosen && !hello.Subprotocols.Contains(chosen, StringComparer.Ordinal))
                         throw new SshMessageProtocolException(MessageCloseCode.ProtocolError, $"The server chose the subprotocol '{chosen}', which was not offered.");
 
-                    var made = new SshMessageConnection(this,
-                                                        ConnectionRole.Client,
-                                                        Options.Subsystem,
-                                                        ssh.Username,
-                                                        null,
-                                                        ssh.ServerHostKey,
-                                                        channel,
-                                                        ssh.LocalSocket  ?? IPSocket.Zero,
-                                                        ssh.RemoteSocket ?? IPSocket.Zero,
-                                                        hello,
-                                                        welcome,
-                                                        Options.MaxMessageSizeIn,
-                                                        Math.Min(Options.MaxMessageSizeOut, welcome.MaxMessageSize ?? Options.MaxMessageSizeOut));
+                    var made = new SshMessageConnection(
+                                   this,
+                                   ConnectionRole.Client,
+                                   Options.Subsystem,
+                                   ssh.Username,
+                                   null,
+                                   ssh.ServerHostKey,
+                                   channel,
+                                   ssh.LocalSocket  ?? IPSocket.Zero,
+                                   ssh.RemoteSocket ?? IPSocket.Zero,
+                                   hello,
+                                   welcome,
+                                   Options.MaxMessageSizeIn,
+                                   Math.Min(Options.MaxMessageSizeOut, welcome.MaxMessageSize ?? Options.MaxMessageSizeOut)
+                               );
 
                     // The connection before - ended, or it would not be replaced - and its SSH client go.
                     var previous    = sshClient;
@@ -410,7 +412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="Ssh">The SSH connection it goes over.</param>
         /// <param name="Own">Whether that is the client's own, to close when the messages end.</param>
         private async Task SuperviseAsync(SshMessageConnection  Connection,
-                                          SshClient             Ssh,
+                                          SSHClient             Ssh,
                                           Boolean               Own)
         {
 

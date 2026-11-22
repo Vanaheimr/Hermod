@@ -25,7 +25,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
 
     /// <summary>
-    /// Dials an HTTP/2 server over TLS with ALPN `h2` and returns a ready
+    /// Connects to an HTTP/2 server over TLS with ALPN `h2` and returns a ready
     /// <see cref="HTTP2ClientConnection"/> — the client-side counterpart of
     /// <see cref="HTTP2Server"/>'s accept path. Everything protocol-level lives in
     /// <see cref="HTTP2ClientConnection"/>; this type only owns the TCP connect and
@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// </param>
         public static async Task<HTTP2ClientConnection> ConnectAsync(
             string                                Host,
-            int                                   Port,
+            IPPort                                Port,
             RemoteCertificateValidationCallback?  ValidateServerCertificate = null,
             X509Certificate2?                     ClientCertificate         = null,
             HTTP2ClientOptions?                   Options                   = null,

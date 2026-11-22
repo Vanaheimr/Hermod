@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <summary>
     /// Adapts TCP sockets to the <see cref="IDuplexPipe"/> the SSH transport is written against.
     /// The public surface uses Hermod's networking types (<see cref="IPSocket"/>, <see cref="IPPort"/>,
-    /// <see cref="IIPAddress"/>); the conversion to the <c>System.Net</c> socket types happens here at
+    /// <see cref="IPAddress"/>); the conversion to the <c>System.Net</c> socket types happens here at
     /// the lowest layer. IPv6 is first-class: an IPv6 endpoint yields a dual-stack listener.
     /// </summary>
     public static class SshTcp
@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         /// <remarks>
         /// The resolver of the operating system is never asked. A node whose names are resolved securely - its
-        /// own name servers, DNS over TLS or HTTPS, DNSSEC - must not be dialled around them: a name resolved
+        /// own name servers, DNS over TLS or HTTPS, DNSSEC - must not be connected around them: a name resolved
         /// by the operating system is one an attacker on the local network, or a name server nobody chose, may
         /// have answered. So a host name without a DNS client is refused rather than looked up some other way.
         /// </remarks>

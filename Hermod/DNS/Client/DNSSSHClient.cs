@@ -32,13 +32,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
     /// <summary>
     /// A DNS client for a single DNS server over SSH: the byte stream of DNS over TCP in a channel of
-    /// an SSH connection, as the subsystem "dns@open.charging.cloud" of the white paper "DNS over SSH".
+    /// an SSH connection, as the subsystem "dns@open.charging.cloud" of the white paper "DNS-over-SSH".
     /// Keeps the channel open across queries, and pipelines concurrent queries on it
     /// (RFC 7766 §6.2.1.1, RFC 7858 §3.3).
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The SSH connection is either this client's own - a host, a port and an SSH login, dialled at the
+    /// The SSH connection is either this client's own - a host, a port and an SSH login, connected at the
     /// first query and closed when the client is disposed of - or one it is handed: a connection that
     /// others share (an <see cref="SshSharedConnection"/>, mostly), on which this client opens its
     /// channel and nothing else. It never closes a connection it was handed.
@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// It is not an <see cref="IDNSClientWithTransport"/>: that interface speaks of the local and
     /// remote end points of a socket of the client's own, a URL, and connect, send and receive
     /// timeouts. A channel of a connection somebody else made has none of them to tell, and a client
-    /// with a connection of its own has them in its <see cref="SshClientOptions"/>.
+    /// with a connection of its own has them in its <see cref="SSHClientOptions"/>.
     /// </para>
     /// </remarks>
     public sealed class DNSSSHClient : IDNSClientWithEDNS
@@ -102,7 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
                 catch (Exception e) when (e is not OperationCanceledException and not IOException and not ObjectDisposedException)
                 {
-                    throw new IOException("The channel of DNS over SSH ended.", e);
+                    throw new IOException("The channel of DNS-over-SSH ended.", e);
                 }
             }
 
@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 }
                 catch (Exception e) when (e is not OperationCanceledException and not IOException)
                 {
-                    throw new IOException("The channel of DNS over SSH ended.", e);
+                    throw new IOException("The channel of DNS-over-SSH ended.", e);
                 }
             }
 
@@ -146,7 +146,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(23.5);
 
         /// <summary>
-        /// The name of the SSH subsystem of DNS over SSH.
+        /// The SSH default port for DNS-over-SSH clients.
+        /// </summary>
+        public readonly static IPPort DefaultPort = IPPort.SSH;
+
+        /// <summary>
+        /// The name of the SSH subsystem of DNS-over-SSH.
         /// </summary>
         public const String DefaultSubsystem = DNSServer.SSHSubsystemName;
 
@@ -190,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// A channel by its number, the SSH connection it is on, and its stream.
         /// </summary>
-        private sealed record Opened(Int32 Number, SshClient Ssh, SshMuxChannel Channel, Stream Stream);
+        private sealed record Opened(Int32 Number, SSHClient Ssh, SshMuxChannel Channel, Stream Stream);
 
         /// <summary>
         /// The channel last opened, as one object: a reader asks for a stream or a close by number,
@@ -201,22 +206,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The login of a connection of this client's own; null where it is handed its connection.
         /// </summary>
-        private readonly SshClientOptions? sshOptions;
+        private readonly SSHClientOptions? sshOptions;
 
         /// <summary>
-        /// Hands this client its connection; null where it dials one of its own.
+        /// Hands this client its connection; null where it makes one of its own.
         /// </summary>
-        private readonly Func<CancellationToken, ValueTask<SshClient>>? connectionOf;
+        private readonly Func<CancellationToken, ValueTask<SSHClient>>? connectionOf;
 
         /// <summary>
         /// The SSH connection last made or handed - which may have ended since.
         /// </summary>
-        private volatile SshClient? sshConnection;
+        private volatile SSHClient? sshConnection;
 
         /// <summary>
         /// Where an SSH connection went to.
         /// </summary>
-        private sealed record Remote(IIPAddress IPAddress, IPPort Port);
+        private sealed record Remote(IPAddress IPAddress, IPPort Port);
 
         /// <summary>
         /// Where the SSH connection last made or handed went to, where that could be told. One
@@ -251,7 +256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public String            Subsystem                 { get; }
 
         /// <summary>
-        /// Whether the SSH connection is this client's own: dialled by it, and closed with it. False
+        /// Whether the SSH connection is this client's own: made by it, and closed with it. False
         /// for a connection it is handed, of which it opens and closes its channel only.
         /// </summary>
         public Boolean           OwnsConnection
@@ -330,8 +335,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// It stays this client's, or whose it is. Whoever opens a further channel on it closes that
         /// channel, never the connection.
         /// </remarks>
-        public SshClient?        Connection
-            => sshConnection is SshClient ssh && !ssh.Closed.IsCompleted
+        public SSHClient?        Connection
+            => sshConnection is SSHClient ssh && !ssh.Closed.IsCompleted
                    ? ssh
                    : null;
 
@@ -342,7 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => Interlocked.Read(ref channelsOpened);
 
         /// <summary>
-        /// How many SSH connections this client dialled, or was handed, so far: one, as long as the
+        /// How many SSH connections this client made, or was handed, so far: one, as long as the
         /// first one lasts - however many channels were opened on it.
         /// </summary>
         public Int64             ConnectionsMade
@@ -381,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         /// <param name="LoggerFactory">An optional logger factory.</param>
         public DNSSSHClient(String            Host,
-                            SshClientOptions  SSHOptions,
+                            SSHClientOptions  SSHOptions,
                             IPPort?           Port               = null,
                             String?           Subsystem          = null,
                             Boolean?          RecursionDesired   = null,
@@ -422,7 +427,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         /// <param name="LoggerFactory">An optional logger factory.</param>
-        public DNSSSHClient(Func<CancellationToken, ValueTask<SshClient>>  Connection,
+        public DNSSSHClient(Func<CancellationToken, ValueTask<SSHClient>>  Connection,
                             String?                                        Subsystem          = null,
                             Boolean?                                       RecursionDesired   = null,
                             TimeSpan?                                      QueryTimeout       = null,
@@ -472,8 +477,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <remarks>
         /// For whoever has to tell one failure from another before it asks, or after a query failed:
-        /// the exceptions are those of <see cref="SshClient.ConnectAsync(String, UInt16, SshClientOptions, CancellationToken)"/>,
-        /// of the delegate that hands out the connection, and of <see cref="SshClient.OpenSubsystemAsync"/>.
+        /// the exceptions are those of <see cref="SSHClient.ConnectAsync(String, UInt16, SSHClientOptions, CancellationToken)"/>,
+        /// of the delegate that hands out the connection, and of <see cref="SSHClient.OpenSubsystem"/>.
         /// </remarks>
         /// <param name="CancellationToken">An optional cancellation token.</param>
         /// <exception cref="SshSubsystemRefusedException">The server answered SSH_MSG_CHANNEL_FAILURE: it does not offer the subsystem to this login. The SSH connection stays open.</exception>
@@ -821,7 +826,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 try
                 {
-                    channel = await ssh.OpenSubsystemAsync(Subsystem, CancellationToken).ConfigureAwait(false);
+                    channel = await ssh.OpenSubsystem(Subsystem, CancellationToken).ConfigureAwait(false);
                 }
                 // The connection ended between being got and being used: once more, on
                 // the next one. A refusal is an answer of a connection that lasts, and
@@ -832,7 +837,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                           !CancellationToken.IsCancellationRequested)
                 {
                     ssh      = await ConnectionAsync(CancellationToken).ConfigureAwait(false);
-                    channel  = await ssh.OpenSubsystemAsync(Subsystem, CancellationToken).ConfigureAwait(false);
+                    channel  = await ssh.OpenSubsystem(Subsystem, CancellationToken).ConfigureAwait(false);
                 }
 
                 var made = new Opened(number, ssh, channel, new ChannelStream(channel));
@@ -857,10 +862,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region (private) ConnectionAsync(CancellationToken)
 
         /// <summary>
-        /// The SSH connection that lasts, or a new one: dialled, or asked for from whoever hands it
+        /// The SSH connection that lasts, or a new one: made, or asked for from whoever hands it
         /// out. Called under the stream lock.
         /// </summary>
-        private async ValueTask<SshClient> ConnectionAsync(CancellationToken CancellationToken)
+        private async ValueTask<SSHClient> ConnectionAsync(CancellationToken CancellationToken)
         {
 
             var current = sshConnection;
@@ -868,7 +873,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (current is not null && !current.Closed.IsCompleted)
                 return current;
 
-            SshClient next;
+            SSHClient next;
 
             if (connectionOf is not null)
             {
@@ -882,16 +887,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             else
             {
 
-                // Its own: what the one that ended still holds goes, before the next one is dialled.
+                // Its own: what the one that ended still holds goes, before the next one is made.
                 if (current is not null)
                 {
                     sshConnection = null;
                     try { await current.DisposeAsync().ConfigureAwait(false); } catch { }
                 }
 
-                next = await SshClient.ConnectAsync(
+                next = await SSHClient.Connect(
                                  Host!,
-                                 Port!.Value.ToUInt16(),
+                                 Port ?? DefaultPort,
                                  sshOptions!,
                                  CancellationToken
                              ).ConfigureAwait(false);
@@ -975,7 +980,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 logger.LogWarning(
-                    "Discarding a DNS over SSH response from {DNSServer} that failed transaction-signature verification: {Reason}",
+                    "Discarding a DNS-over-SSH response from {DNSServer} that failed transaction-signature verification: {Reason}",
                     DNSServerLabel,
                     reason
                 );
@@ -1077,7 +1082,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Where an answer from this client came from.
         /// </summary>
         /// <remarks>
-        /// The host this client dials, by address or by name; for a connection it is handed, where
+        /// The host this client connects to, by address or by name; for a connection it is handed, where
         /// that connection goes - and the unspecified address where none was handed out yet, or it
         /// runs over something that has no address: an origin has to be named, and there is none.
         /// </remarks>
@@ -1161,7 +1166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             await lifetime.CancelAsync().ConfigureAwait(false);
 
             // Under the lock, so that a query that was getting a connection is
-            // through with it: a connection dialled meanwhile would otherwise be
+            // through with it: a connection made meanwhile would otherwise be
             // nobody's to close. Not for ever - whoever hands out the connection may
             // not heed the token.
             var held = await streamLock.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
@@ -1173,7 +1178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     await CloseConnectionOf(current.Number).ConfigureAwait(false);
 
                 // A connection of its own; one it was handed goes on.
-                if (OwnsConnection && sshConnection is SshClient own)
+                if (OwnsConnection && sshConnection is SSHClient own)
                 {
                     sshConnection = null;
                     try { await own.DisposeAsync().ConfigureAwait(false); } catch { }

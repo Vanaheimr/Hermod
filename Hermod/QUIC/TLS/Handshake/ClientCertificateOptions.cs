@@ -55,7 +55,7 @@ public sealed record ClientCertificateOptions
 
     /// <summary>
     /// Trust policy applied to the presented chain. Hostname verification is always off — a client
-    /// certificate identifies a client, not a host we dialled.
+    /// certificate identifies a client, not a host we connected to.
     /// </summary>
     public CertificateValidationOptions Validation { get; init; } = CertificateValidationOptions.Default;
 

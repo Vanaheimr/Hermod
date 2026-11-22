@@ -92,10 +92,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <summary>
         /// The port of an MX host - 25 (RFC 5321 §4.5.4.2); another only for tests, which cannot listen there.
         /// </summary>
-        internal        UInt16   MxPort               { get; init; } = 25;
+        internal        IPPort   MxPort               { get; init; } = IPPort.SMTP;
 
         public          String?  SmartHost            { get; init; }  // Optional relay host
-        public          UInt16   SmartHostPort        { get; init; } = 25;
+        public          IPPort   SmartHostPort        { get; init; } = IPPort.SMTP;
         public          String?  SmartHostUsername    { get; init; }
         public          String?  SmartHostPassword    { get; init; }
 

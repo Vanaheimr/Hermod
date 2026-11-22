@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Buffers;
 using System.Text;
 
@@ -207,7 +208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <param name="ClientIdentification">What the client said it is in its identification string.</param>
     /// <param name="Restrictions">What the credential confines the session to.</param>
     public sealed record SshSessionInfo(String                    ConnectionId,
-                                        String                    Username,
+                                        User_Id                   Username,
                                         String                    Method,
                                         Byte[]?                   PublicKeyBlob,
                                         IPSocket?                 Peer,

@@ -54,8 +54,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public          Int32                      RcptsBeforeMailReply;
             public          Byte[]?                    BdatContent;
 
-            public UInt16 Port
-                => (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port
+                => IPPort.Parse((UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             /// <param name="Reply">The reply to a command line, or null for the default.</param>
             /// <param name="Extensions">The EHLO keywords.</param>
@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             using var client = new SMTPSubmissionClient(DomainName.Parse("127.0.0.1"),
-                                                        IPPort.Parse(Server.Port),
+                                                        Server.Port,
                                                         LocalDomain:                 "client.example",
                                                         UseTLS:                      TLSUsage.NoTLS,
                                                         RemoteCertificateValidator:  (_, _, _, _, _) => TLSValidationResult.Success(),

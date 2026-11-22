@@ -40,8 +40,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP3.Security;
 [TestFixture]
 public class StatelessRetryTests
 {
-    private static IPEndPoint Client(string address = "192.0.2.10", int port = 4711)
-        => new(System.Net.IPAddress.Parse(address), port);
+    private static IPEndPoint Client(string address = "192.0.2.10", IPPort? port = null)
+        => new(System.Net.IPAddress.Parse(address), (port ?? IPPort.Parse(4711)).ToInt32());
 
     private static ConnectionId Cid(params byte[] bytes) => new(bytes);
 
@@ -66,13 +66,13 @@ public class StatelessRetryTests
     {
         // RFC 9000 §8.1.4: a Retry token SHOULD prove that source address AND port are unchanged.
         var tokens = new RetryTokenGenerator();
-        byte[] token = tokens.Issue(Client("192.0.2.10", 4711), Cid(1, 2), Cid(3, 4));
+        byte[] token = tokens.Issue(Client("192.0.2.10", IPPort.Parse(4711)), Cid(1, 2), Cid(3, 4));
 
-        Assert.That(tokens.TryValidate(token, Client("192.0.2.11", 4711), out _, out _), Is.False,
+        Assert.That(tokens.TryValidate(token, Client("192.0.2.11", IPPort.Parse(4711)), out _, out _), Is.False,
                     "A token stolen from another client must not work at a different address.");
-        Assert.That(tokens.TryValidate(token, Client("192.0.2.10", 4712), out _, out _), Is.False,
+        Assert.That(tokens.TryValidate(token, Client("192.0.2.10", IPPort.Parse(4712)), out _, out _), Is.False,
                     "Nor at a different port.");
-        Assert.That(tokens.TryValidate(token, Client("192.0.2.10", 4711), out _, out _), Is.True);
+        Assert.That(tokens.TryValidate(token, Client("192.0.2.10", IPPort.Parse(4711)), out _, out _), Is.True);
     }
 
     [Test]
@@ -136,7 +136,7 @@ public class StatelessRetryTests
         // The single-use set must not become the memory leak that the connection cap closed.
         var tokens = new RetryTokenGenerator();
         for (int i = 0; i < RetryTokenGenerator.MaxTrackedTokens + 500; i++)
-            tokens.TryConsume(tokens.Issue(Client(port: 1000 + i), Cid(1, 2), Cid(3, 4)));
+            tokens.TryConsume(tokens.Issue(Client(port: IPPort.Parse(1000 + i)), Cid(1, 2), Cid(3, 4)));
 
         Assert.That(tokens.TrackedTokenCount, Is.LessThanOrEqualTo(RetryTokenGenerator.MaxTrackedTokens),
                     "Remembering spent tokens must be bounded, even under a flood of valid returns.");
@@ -148,7 +148,7 @@ public class StatelessRetryTests
         var clock = new FakeTimeProvider();
         var tokens = new RetryTokenGenerator(lifetime: TimeSpan.FromSeconds(10), timeProvider: clock);
         for (int i = 0; i < RetryTokenGenerator.MaxTrackedTokens; i++)
-            tokens.TryConsume(tokens.Issue(Client(port: 1000 + (i % 60000)), Cid(1, 2), Cid(3, 4)));
+            tokens.TryConsume(tokens.Issue(Client(port: IPPort.Parse(1000 + (i % 60000))), Cid(1, 2), Cid(3, 4)));
 
         clock.Advance(TimeSpan.FromSeconds(30));
         tokens.TryConsume(tokens.Issue(Client(), Cid(1, 2), Cid(3, 4)));
@@ -184,7 +184,7 @@ public class StatelessRetryTests
 
         await using var server = new Http3Server(cert,
             request => new Http3Response { Status = 200, Body = "validated"u8.ToArray() },
-            port: 0, addressValidation: new RetryTokenGenerator());
+            port: IPPort.Zero, addressValidation: new RetryTokenGenerator());
         server.Start();
 
         await using var client = new Http3Client("localhost", server.Port, validation);
@@ -209,7 +209,7 @@ public class StatelessRetryTests
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
 
         await using var server = new Http3Server(cert,
-            _ => new Http3Response { Status = 200 }, port: 0, addressValidation: new RetryTokenGenerator());
+            _ => new Http3Response { Status = 200 }, port: IPPort.Zero, addressValidation: new RetryTokenGenerator());
         server.Start();
 
         List<UdpClient> sources = await FloodAsync(server.Port, attempts);
@@ -233,7 +233,7 @@ public class StatelessRetryTests
         const int attempts = 128;
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
 
-        await using var server = new Http3Server(cert, _ => new Http3Response { Status = 200 }, port: 0);
+        await using var server = new Http3Server(cert, _ => new Http3Response { Status = 200 }, port: IPPort.Zero);
         server.Start();
 
         List<UdpClient> sources = await FloodAsync(server.Port, attempts);
@@ -251,9 +251,9 @@ public class StatelessRetryTests
     /// the OS answer the server's reply with an ICMP port-unreachable, and that noise would land in
     /// the middle of the measurement.
     /// </summary>
-    private static async Task<List<UdpClient>> FloodAsync(int serverPort, int attempts)
+    private static async Task<List<UdpClient>> FloodAsync(IPPort serverPort, int attempts)
     {
-        var target = new IPEndPoint(System.Net.IPAddress.Loopback, serverPort);
+        var target = new IPEndPoint(System.Net.IPAddress.Loopback, serverPort.ToInt32());
         var sockets = new List<UdpClient>(attempts);
         for (int i = 0; i < attempts; i++)
         {
@@ -282,11 +282,11 @@ public class StatelessRetryTests
         var tokens = new RetryTokenGenerator();
 
         await using var server = new Http3Server(cert,
-            _ => new Http3Response { Status = 200 }, port: 0, addressValidation: tokens);
+            _ => new Http3Response { Status = 200 }, port: IPPort.Zero, addressValidation: tokens);
         server.Start();
 
         using var client = new UdpClient(new IPEndPoint(System.Net.IPAddress.Loopback, 0));
-        var target = new IPEndPoint(System.Net.IPAddress.Loopback, server.Port);
+        var target = new IPEndPoint(System.Net.IPAddress.Loopback, server.Port.ToInt32());
 
         byte[] initial = FakeInitial(token: tokens.IssueNewToken(System.Net.IPAddress.Loopback));
         client.Send(initial, initial.Length, target);
@@ -307,11 +307,11 @@ public class StatelessRetryTests
         var tokens = new RetryTokenGenerator();
 
         await using var server = new Http3Server(cert,
-            _ => new Http3Response { Status = 200 }, port: 0, addressValidation: tokens);
+            _ => new Http3Response { Status = 200 }, port: IPPort.Zero, addressValidation: tokens);
         server.Start();
 
         using var client = new UdpClient(new IPEndPoint(System.Net.IPAddress.Loopback, 0));
-        var target = new IPEndPoint(System.Net.IPAddress.Loopback, server.Port);
+        var target = new IPEndPoint(System.Net.IPAddress.Loopback, server.Port.ToInt32());
         byte[] token = tokens.IssueNewToken(System.Net.IPAddress.Loopback);
 
         byte[] first = FakeInitial(token: token);
@@ -341,11 +341,11 @@ public class StatelessRetryTests
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
 
         await using var server = new Http3Server(cert,
-            _ => new Http3Response { Status = 200 }, port: 0, addressValidation: new RetryTokenGenerator());
+            _ => new Http3Response { Status = 200 }, port: IPPort.Zero, addressValidation: new RetryTokenGenerator());
         server.Start();
 
         using var attacker = new UdpClient(new IPEndPoint(System.Net.IPAddress.Loopback, 0));
-        var target = new IPEndPoint(System.Net.IPAddress.Loopback, server.Port);
+        var target = new IPEndPoint(System.Net.IPAddress.Loopback, server.Port.ToInt32());
         byte[] initial = FakeInitial(token: RandomNumberGenerator.GetBytes(48));
         attacker.Send(initial, initial.Length, target);
 
@@ -375,11 +375,11 @@ public class StatelessRetryTests
         var tokens = new RetryTokenGenerator();
 
         await using var server = new Http3Server(cert,
-            _ => new Http3Response { Status = 200 }, port: 0, addressValidation: tokens);
+            _ => new Http3Response { Status = 200 }, port: IPPort.Zero, addressValidation: tokens);
         server.Start();
 
         using var attacker = new UdpClient(new IPEndPoint(System.Net.IPAddress.Loopback, 0));
-        var target = new IPEndPoint(System.Net.IPAddress.Loopback, server.Port);
+        var target = new IPEndPoint(System.Net.IPAddress.Loopback, server.Port.ToInt32());
         var source = (IPEndPoint)attacker.Client.LocalEndPoint!;
 
         byte[] retryToken = tokens.Issue(source,
@@ -409,7 +409,7 @@ public class StatelessRetryTests
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
 
-        await using var server = new Http3Server(cert, _ => new Http3Response { Status = 200 }, port: 0);
+        await using var server = new Http3Server(cert, _ => new Http3Response { Status = 200 }, port: IPPort.Zero);
         server.Start();
 
         await using var client = new Http3Client("localhost", server.Port, validation);

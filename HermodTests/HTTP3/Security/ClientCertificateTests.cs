@@ -328,7 +328,7 @@ public class ClientCertificateTests
 
         await using var server = new Http3Server(serverCert,
             _ => new Http3Response { Status = 200, Body = "mutually authenticated"u8.ToArray() },
-            port: 0, clientCertificate: Policy(ClientCertificateMode.Require, clientCert));
+            port: IPPort.Zero, clientCertificate: Policy(ClientCertificateMode.Require, clientCert));
         server.Start();
 
         await using var client = new Http3Client("localhost", server.Port, validation, clientCertificate: clientCert);
@@ -348,7 +348,7 @@ public class ClientCertificateTests
 
         await using var server = new Http3Server(serverCert,
             _ => new Http3Response { Status = 200 },
-            port: 0, clientCertificate: Policy(ClientCertificateMode.Require, clientCert));
+            port: IPPort.Zero, clientCertificate: Policy(ClientCertificateMode.Require, clientCert));
         server.Start();
 
         await using var anonymous = new Http3Client("localhost", server.Port, validation);

@@ -179,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             var channel = new ScriptedChannel(Version, Length(PacketLength));
 
-            await using var sftp = await SftpClient.OpenAsync(channel);
+            await using var sftp = await SFTPClient.OpenAsync(channel);
 
             Assert.That(async () => await sftp.ListDirectoryAsync("/"), Throws.Exception);
 

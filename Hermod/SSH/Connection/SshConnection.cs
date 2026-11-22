@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Buffers;
 using System.IO.Pipelines;
 
@@ -161,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// lifetime — begin/complete — is owned by the caller).
         /// </summary>
         public static async ValueTask ServeCommandAsync(SshTransport       Transport,
-                                                        String             Username,
+                                                        User_Id            Username,
                                                         SshExecHandler     Handler,
                                                         SessionRecorder?   Recorder           = null,
                                                         CancellationToken  CancellationToken   = default)
@@ -472,7 +473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <c>shell</c> request to <paramref name="Handler"/>, stream its output, and report the exit status.
         /// </summary>
         public static async ValueTask ServeExecAsync(SshTransport       Transport,
-                                                     String             Username,
+                                                     User_Id            Username,
                                                      SshExecHandler     Handler,
                                                      CancellationToken  CancellationToken = default)
         {

@@ -55,7 +55,7 @@ public class Http3ServerHardeningTests
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
 
-        await using var server = new Http3Server(0,
+        await using var server = new Http3Server(IPPort.Zero,
             () => new Http3ServerConnection(cert, _ => new Http3Response { Status = 200, Body = "ok"u8.ToArray() }),
             maxConnections: 2);
         server.Start();
@@ -89,7 +89,7 @@ public class Http3ServerHardeningTests
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
 
         await using var server = new Http3Server(cert,
-            request => new Http3Response { Status = 200, Body = Encoding.UTF8.GetBytes(request.Path) }, port: 0);
+            request => new Http3Response { Status = 200, Body = Encoding.UTF8.GetBytes(request.Path) }, port: IPPort.Zero);
         server.Start();
 
         var connections = new List<Http3Client>();
@@ -127,7 +127,7 @@ public class Http3ServerHardeningTests
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
 
         await using var server = new Http3Server(cert,
-            _ => new Http3Response { Status = 200, Body = "ok"u8.ToArray() }, port: 0);
+            _ => new Http3Response { Status = 200, Body = "ok"u8.ToArray() }, port: IPPort.Zero);
         int receives = 0;
         server.ReceiveForTest = (udp, cancellationToken) =>
             Interlocked.Increment(ref receives) == 1
@@ -158,7 +158,7 @@ public class Http3ServerHardeningTests
         {
             await Task.Delay(200, token).ConfigureAwait(false);
             return new Http3Response { Status = 200, Body = "late"u8.ToArray() };
-        }, port: 0);
+        }, port: IPPort.Zero);
         server.Start();
 
         using var client = new HandDrivenClient(server.Port, validation);
@@ -194,7 +194,7 @@ public class Http3ServerHardeningTests
         var validation = new CertificateValidationOptions { CustomTrustRoots = [cert.Certificate] };
 
         var clock = new FakeTimeProvider();
-        await using var server = new Http3Server(0, () => new Http3ServerConnection(cert,
+        await using var server = new Http3Server(IPPort.Zero, () => new Http3ServerConnection(cert,
             _ => new Http3Response { Status = 204 },
             timeProvider: clock));
         server.Start();
@@ -225,7 +225,7 @@ public class Http3ServerHardeningTests
 
         var clock = new FakeTimeProvider();
         Http3ServerConnection? connection = null;
-        await using var server = new Http3Server(0, () => connection = new Http3ServerConnection(cert,
+        await using var server = new Http3Server(IPPort.Zero, () => connection = new Http3ServerConnection(cert,
             _ => new Http3Response { Status = 204 },
             timeProvider: clock));
         server.Start();
@@ -302,12 +302,12 @@ public class Http3ServerHardeningTests
         private volatile bool _stop;
         private int _sent;
 
-        public Chatter(int port)
+        public Chatter(IPPort port)
         {
             byte[] datagram = new byte[40];
             RandomNumberGenerator.Fill(datagram);
             datagram[0] = 0x40; // short header, fixed bit set
-            var server = new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, port);
+            var server = new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, port.ToInt32());
 
             // Ahead of the machine's other work. After 20 ms without a datagram, even a loop that runs
             // its timers only when the socket is quiet runs them, and the test passes without proving
@@ -334,7 +334,7 @@ public class Http3ServerHardeningTests
         /// before a test relies on it. On a loaded machine that can take a second or two: checked
         /// at the end instead, it failed tests whose server had already done its part.
         /// </summary>
-        public static async Task<Chatter> Steady(int port)
+        public static async Task<Chatter> Steady(IPPort port)
         {
             var chatter = new Chatter(port);
             if (!await Within(Patience, () => chatter.Sent >= 50))
@@ -357,10 +357,10 @@ public class Http3ServerHardeningTests
     /// A client on a socket of its own that sends only when told to, so it can fall silent, which
     /// Http3Client never does: its pump answers and probes on its own.
     /// </summary>
-    private sealed class HandDrivenClient(int port, CertificateValidationOptions validation) : IDisposable
+    private sealed class HandDrivenClient(IPPort port, CertificateValidationOptions validation) : IDisposable
     {
         private readonly System.Net.Sockets.UdpClient _udp = new(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
-        private readonly System.Net.IPEndPoint _server = new(System.Net.IPAddress.Loopback, port);
+        private readonly System.Net.IPEndPoint _server = new(System.Net.IPAddress.Loopback, port.ToInt32());
 
         public Http3ClientConnection Connection { get; } = new("localhost", certificateValidation: validation);
 

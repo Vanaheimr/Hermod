@@ -38,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region (private) RunOverTcpAsync(LoopbackAddress, CancellationToken)
 
-        private static async Task RunOverTcpAsync(IIPAddress LoopbackAddress, CancellationToken CancellationToken)
+        private static async Task RunOverTcpAsync(IPAddress LoopbackAddress, CancellationToken CancellationToken)
         {
 
             var hostKey = Ed25519KeyPair.Generate();

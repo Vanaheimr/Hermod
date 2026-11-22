@@ -186,7 +186,7 @@ var server = new HTTP2Server(IPAddress.Any, 8443, certificate, MyRequestHandler,
 
 ## Using the client
 
-`HTTP2Client` dials a server, negotiates TLS + ALPN `h2`, and returns a
+`HTTP2Client` connects to a server, negotiates TLS + ALPN `h2`, and returns a
 connection you can send concurrent requests on:
 
 ```csharp
@@ -806,7 +806,7 @@ catching up. What it has so far:
 Still open on the client: a cookie jar.
 
 **Why redirect following stops at the origin.** A connection speaks to the origin
-it dialed, and pooling here is single-origin *by design*. Dialing a second origin
+it connected to, and pooling here is single-origin *by design*. Connecting to a second origin
 from inside `HTTP2ClientConnection` would quietly make it a multi-origin client,
 contradicting that decision — so a cross-origin `Location` is handed back
 unfollowed, 3xx and `Location` intact, for a layer that does own connection
@@ -957,7 +957,7 @@ down to `StartRequestAsync` to observe the refusal at all.
 
 - A client may reuse an existing connection for *any* origin our certificate
   covers (§9.1.1, "connection coalescing"), so `:authority` is not necessarily
-  the name the peer dialed. Requests naming an origin we are not authoritative
+  the name the peer connected to. Requests naming an origin we are not authoritative
   for are answered **421 (Misdirected Request)** — a stream-level answer, so the
   connection stays usable for the origins we do serve.
 - The default origin set is derived from the server certificate (SAN dNSNames
@@ -982,7 +982,7 @@ down to `StartRequestAsync` to observe the refusal at all.
   `HTTP2ClientConnection.AlternativeServices`. §4's two shapes are enforced on
   receipt — an origin is required on stream 0 and forbidden on a request stream,
   and either mismatch means *ignore the frame*, since the RFC defines no error
-  code for a bad ALTSVC. Recorded but not acted on: acting means dialling HTTP/3,
+  code for a bad ALTSVC. Recorded but not acted on: acting means connecting over HTTP/3,
   which is a different transport and a different project (see "Explicitly out of
   scope"). The grammar, `HTTPAlternativeService`, moved to `Hermod/HTTP/` on
   2026-10-28, so that the HTTP/1.x stack can send and read the `Alt-Svc` field

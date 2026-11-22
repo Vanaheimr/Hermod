@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The addresses of the host, when known.
         /// </summary>
-        public IReadOnlyList<IIPAddress>  Addresses       { get; internal set; } = [];
+        public IReadOnlyList<IPAddress>  Addresses       { get; internal set; } = [];
 
         /// <summary>
         /// When the instance was first seen.

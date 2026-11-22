@@ -60,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <summary>
         /// Gets the IPAddress on which the UDP receiver listens.
         /// </summary>
-        public IIPAddress IPAddress
+        public IPAddress IPAddress
             => IPSocket.IPAddress;
 
         /// <summary>
@@ -356,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IIPAddress                       IPAddress,
+        public UDPReceiver(IPAddress                       IPAddress,
                            IPPort                           Port,
                            String                           ServiceBanner                = DefaultServiceBanner,
                            MapperDelegate?                  Mapper                       = null,
@@ -810,7 +810,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IIPAddress                       IPAddress,
+        public UDPReceiver(IPAddress                       IPAddress,
                            IPPort                           Port,
                            String                           ServiceBanner                = DefaultServiceBanner,
                            MapperDelegate?                   Mapper                       = null,

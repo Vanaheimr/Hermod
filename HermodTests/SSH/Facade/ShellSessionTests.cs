@@ -22,6 +22,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -80,12 +81,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        private static ValueTask<SshClient> Connect(Running Running, CancellationToken CancellationToken)
+        private static ValueTask<SSHClient> Connect(Running Running, CancellationToken CancellationToken)
 
-            => SshClient.ConnectAsync("127.0.0.1",
-                                      (UInt16) Running.Server.LocalEndPoint.Port.ToInt32(),
-                                      new SshClientOptions {
-                                          Username       = "achim",
+            => SSHClient.Connect("127.0.0.1",
+                                      Running.Server.LocalEndPoint.Port,
+                                      new SSHClientOptions {
+                                          Username       = User_Id.Parse("achim"),
                                           VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(Running.HostKey.PublicKeyBlob),
                                           Credentials    = [ Running.UserKey ]
                                       },
@@ -156,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                                       }, CancellationToken);
 
             await using var client  = await Connect(running, CancellationToken);
-            await using var shell   = await client.OpenShellAsync(Xterm, new Dictionary<String, String> { ["LANG"] = "de_DE.UTF-8" }, CancellationToken);
+            await using var shell   = await client.OpenShell(Xterm, new Dictionary<String, String> { ["LANG"] = "de_DE.UTF-8" }, CancellationToken);
 
             await shell.WriteAsync("hello\r", CancellationToken);
 
@@ -170,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(seen.Size,                            Is.EqualTo(new SshWindowSize(100, 30)));
                 Assert.That(seen.Pty.Modes[SshPty.VERASE],        Is.EqualTo(127));
                 Assert.That(seen.Environment["LANG"],             Is.EqualTo("de_DE.UTF-8"));
-                Assert.That(seen.Session.Username,                Is.EqualTo("achim"));
+                Assert.That(seen.Session.Username,                Is.EqualTo(User_Id.Parse("achim")));
                 Assert.That(seen.Session.Method,                  Is.EqualTo("publickey"));
                 Assert.That(seen.Session.PublicKeyType,           Is.EqualTo("ssh-ed25519"));
                 Assert.That(seen.Session.PublicKeyFingerprint,    Is.EqualTo(SshFingerprint.Sha256(running.UserKey.PublicKeyBlob)));
@@ -209,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                                       }, CancellationToken);
 
             await using var client  = await Connect(running, CancellationToken);
-            await using var shell   = await client.OpenShellAsync(Xterm, CancellationToken: CancellationToken);
+            await using var shell   = await client.OpenShell(Xterm, CancellationToken: CancellationToken);
 
             await ReadUntil(shell, "ready", CancellationToken);
 
@@ -254,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                                       }, CancellationToken);
 
             await using var client  = await Connect(running, CancellationToken);
-            var shell               = await client.OpenShellAsync(Xterm, CancellationToken: CancellationToken);
+            var shell               = await client.OpenShell(Xterm, CancellationToken: CancellationToken);
 
             await ReadUntil(shell, "ready", CancellationToken);
             await shell.CloseAsync(CancellationToken);
@@ -298,7 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                           }, CancellationToken);
 
             await using var client  = await Connect(running, CancellationToken);
-            await using var shell   = await client.OpenShellAsync(Xterm, CancellationToken: CancellationToken);
+            await using var shell   = await client.OpenShell(Xterm, CancellationToken: CancellationToken);
 
             await ReadUntil(shell, "ready", CancellationToken);
 
@@ -348,7 +349,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(sftpOk,  Is.False, "sftp was served");
             });
 
-            Assert.That(async () => await client.OpenTcpStreamAsync("127.0.0.1", 22, CancellationToken),
+            Assert.That(async () => await client.OpenTCPStream("127.0.0.1", IPPort.Parse(22), CancellationToken),
                         Throws.TypeOf<SshChannelOpenException>(), "a tunnel was opened");
 
             var denied = running.Audit.Events.OfType<PolicyDeniedEvent>().Select(e => e.PolicyType).ToArray();
@@ -380,7 +381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await using var client = await Connect(running, CancellationToken);
 
-            Assert.That(async () => await client.OpenShellAsync(Xterm, CancellationToken: CancellationToken),
+            Assert.That(async () => await client.OpenShell(Xterm, CancellationToken: CancellationToken),
                         Throws.TypeOf<InvalidOperationException>());
 
             Assert.That(shellRan, Is.False);
@@ -405,9 +406,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                                       }, CancellationToken);
 
             await using var client  = await Connect(running, CancellationToken);
-            await using var first   = await client.OpenShellAsync(Xterm, CancellationToken: CancellationToken);
+            await using var first   = await client.OpenShell(Xterm, CancellationToken: CancellationToken);
 
-            Assert.That(async () => await client.OpenShellAsync(Xterm, CancellationToken: CancellationToken),
+            Assert.That(async () => await client.OpenShell(Xterm, CancellationToken: CancellationToken),
                         Throws.TypeOf<SshChannelOpenException>());
 
             Assert.That(running.Audit.Events.OfType<LimitExceededEvent>().Select(e => e.Limit), Does.Contain("sessions"));
@@ -508,7 +509,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await using var client  = await Connect(running, CancellationToken);
 
-            var first = await client.ExecuteAsync("true", CancellationToken);
+            var first = await client.Execute("true", CancellationToken);
             Assert.That(first.ExitCode, Is.Zero, "the connection works before it goes idle");
 
             var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
@@ -518,7 +519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             Assert.That(running.Audit.Events.OfType<LimitExceededEvent>().Select(e => e.Limit), Does.Contain("idle timeout"),
                         "an idle connection must be closed, and say so in the audit stream");
 
-            Assert.That(async () => await client.ExecuteAsync("true", CancellationToken), Throws.Exception,
+            Assert.That(async () => await client.Execute("true", CancellationToken), Throws.Exception,
                         "the connection is gone once the idle timeout has closed it");
 
         }
@@ -545,7 +546,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             for (var i = 0; i < 8; i++)
             {
-                var result = await client.ExecuteAsync("true", CancellationToken);
+                var result = await client.Execute("true", CancellationToken);
                 Assert.That(result.ExitCode, Is.Zero, $"command {i + 1} of 8, {i * 0.5:0.0} s in");
                 await Task.Delay(500, CancellationToken);
             }
@@ -577,7 +578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await using var client  = await Connect(running, CancellationToken);
 
-            var result  = await client.ExecuteAsync("produce", CancellationToken);
+            var result  = await client.Execute("produce", CancellationToken);
 
             var rekeys  = running.Audit.Events.OfType<RekeyedEvent>().Select(e => e.KeyExchangeCount).ToArray();
 
@@ -616,7 +617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(await client.Multiplexer.SendGlobalRequestAsync("large@hermod.test", true, large, CancellationToken), Is.False,
                             "control: under the default limit a 60 000-byte request is just one nobody knows");
 
-                Assert.That((await client.ExecuteAsync("true", CancellationToken)).ExitCode, Is.Zero,
+                Assert.That((await client.Execute("true", CancellationToken)).ExitCode, Is.Zero,
                             "control: and the connection carries on");
 
             }
@@ -629,7 +630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 await using var client = await Connect(running, CancellationToken);
 
-                Assert.That((await client.ExecuteAsync("true", CancellationToken)).ExitCode, Is.Zero,
+                Assert.That((await client.Execute("true", CancellationToken)).ExitCode, Is.Zero,
                             "packets under the limit pass");
 
                 Assert.That(async () => await client.Multiplexer.SendGlobalRequestAsync("large@hermod.test", true, large, CancellationToken),
@@ -693,7 +694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                                       }, CancellationToken);
 
             var client = await Connect(running, CancellationToken);
-            await using (var shell = await client.OpenShellAsync(Xterm, CancellationToken: CancellationToken))
+            await using (var shell = await client.OpenShell(Xterm, CancellationToken: CancellationToken))
                 await shell.ExitStatus;
 
             await client.DisposeAsync();
@@ -738,7 +739,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             // The DISCONNECT has to have arrived; until it has, the open would rightly be sent.
             await Task.Delay(500, CancellationToken);
 
-            var opening = client.OpenShellAsync(Xterm, CancellationToken: CancellationToken).AsTask();
+            var opening = client.OpenShell(Xterm, CancellationToken: CancellationToken).AsTask();
 
             Assert.That(await Task.WhenAny(opening, Task.Delay(TimeSpan.FromSeconds(5), CancellationToken)), Is.SameAs(opening),
                         "the channel is still waiting for its confirmation");

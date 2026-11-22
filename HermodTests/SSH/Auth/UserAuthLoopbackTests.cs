@@ -20,6 +20,7 @@
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -48,6 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
             var hostKey = Ed25519KeyPair.Generate();
             var userKey = HostKeyMatrixTests.MakeHostKey(UserKeyAlgorithm);
+            var login   = User_Id.Parse("achim");
 
             var authenticator = SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob);
 
@@ -57,12 +59,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 return await UserAuthentication.ServerAuthenticateAsync(transport, authenticator, Banner: "Authorized use only.", CancellationToken: CancellationToken);
             }, CancellationToken);
 
-            var clientRun = Task.Run(async () =>
-            {
+            var clientRun = Task.Run(async () => {
                 using var transport = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
                 String? banner = null;
                 var ok = await UserAuthentication.ClientPublicKeyAuthenticateAsync(
-                             transport, "achim", userKey, BannerCallback: (text, _) => banner = text, CancellationToken: CancellationToken);
+                                   transport,
+                                   login,
+                                   userKey,
+                                   BannerCallback: (text, _) => banner = text,
+                                   CancellationToken: CancellationToken
+                               );
                 return (ok, banner);
             }, CancellationToken);
 
@@ -70,8 +76,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var serverResult             = await serverRun;
 
             Assert.Multiple(() => {
-                Assert.That(clientOk,             Is.True,             "the client must authenticate successfully");
-                Assert.That(serverResult.Username, Is.EqualTo("achim"));
+                Assert.That(clientOk,              Is.True,             "the client must authenticate successfully");
+                Assert.That(serverResult.Username, Is.EqualTo(login));
                 Assert.That(serverResult.Method,   Is.EqualTo("publickey"));
                 Assert.That(clientBanner,          Is.EqualTo("Authorized use only."));
             });
@@ -91,6 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var hostKey       = Ed25519KeyPair.Generate();
             var userKey       = SshHostKey.GenerateEd25519();
             var strangersKey  = SshHostKey.GenerateEd25519();
+            var login         = User_Id.Parse("achim");
 
             // The server only trusts a different key than the one the client will present.
             var authenticator = SshUserAuthenticator.ForAuthorizedKeys(strangersKey.PublicKeyBlob);
@@ -104,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var clientRun = Task.Run(async () =>
             {
                 using var transport = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                return await UserAuthentication.ClientPublicKeyAuthenticateAsync(transport, "achim", userKey, CancellationToken: CancellationToken);
+                return await UserAuthentication.ClientPublicKeyAuthenticateAsync(transport, login, userKey, CancellationToken: CancellationToken);
             }, CancellationToken);
 
             Assert.That(await clientRun, Is.False, "an untrusted key must be rejected at the query stage");
@@ -126,16 +133,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             // A sanity check that the signature is bound to the request: the server authorizes the key,
             // and the same username round-trips through the signed data on both sides.
-            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
-            var hostKey = Ed25519KeyPair.Generate();
-            var userKey = SshHostKey.GenerateEcdsa("ecdsa-sha2-nistp384");
+            var (clientPipe, serverPipe)  = DuplexPipe.CreateConnectedPair();
+            var hostKey                   = Ed25519KeyPair.Generate();
+            var userKey                   = SshHostKey.GenerateEcdsa("ecdsa-sha2-nistp384");
+            var operatorUser              = User_Id.Parse("operator");
 
             var authenticator = new SshUserAuthenticator((request, _) =>
-                ValueTask.FromResult(request.Username == "operator" &&
+                ValueTask.FromResult(request.Username == operatorUser &&
                                      request.PublicKeyBlob.AsSpan().SequenceEqual(userKey.PublicKeyBlob)));
 
-            var serverRun = Task.Run(async () =>
-            {
+            var serverRun = Task.Run(async () => {
                 using var transport = await SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
                 return await UserAuthentication.ServerAuthenticateAsync(transport, authenticator, CancellationToken: CancellationToken);
             }, CancellationToken);
@@ -143,11 +150,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var clientRun = Task.Run(async () =>
             {
                 using var transport = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                return await UserAuthentication.ClientPublicKeyAuthenticateAsync(transport, "operator", userKey, CancellationToken: CancellationToken);
+                return await UserAuthentication.ClientPublicKeyAuthenticateAsync(transport, operatorUser, userKey, CancellationToken: CancellationToken);
             }, CancellationToken);
 
-            Assert.That(await clientRun,        Is.True);
-            Assert.That((await serverRun).Username, Is.EqualTo("operator"));
+            Assert.That(await clientRun,            Is.True);
+            Assert.That((await serverRun).Username, Is.EqualTo(operatorUser));
 
         }
 

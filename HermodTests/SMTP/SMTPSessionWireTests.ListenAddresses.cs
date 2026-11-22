@@ -45,8 +45,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             var server     = new SMTPServer(new SMTPServerConfig {
                                                 Hostname           = "mx.hermod.test",
                                                 ListenAddresses    = Addresses,
-                                                Port               = 0,
-                                                SubmissionPort     = 0,
+                                                Port               = IPPort.Zero,
+                                                SubmissionPort     = IPPort.Zero,
                                                 EnableImplicitTls  = false,
                                                 MailStoragePath    = directory,
                                                 LocalDomains       = [ "hermod.test" ]

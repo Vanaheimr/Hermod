@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
-        public UDPCSVReceiver(IIPAddress                                    IPAddress,
+        public UDPCSVReceiver(IPAddress                                    IPAddress,
                               IPPort                                        Port,
                               String                                        ServiceBanner               = DefaultServiceBanner,
                               IEnumerable<String>?                           Splitter                    = null,

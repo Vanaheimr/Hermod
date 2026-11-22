@@ -112,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 {
 
                     webSocketServer = new WebSocketMirrorServer(
-                                          HTTPPort:                    IPPort.Parse(port),
+                                          HTTPPort:                    port,
                                           RequireAuthentication:       false,
                                           ServerCertificateSelector:   (tcpServer, tcpClient) => serverCertificate!,
                                           SecWebSocketProtocols:       SecWebSocketProtocols,
@@ -150,29 +150,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         /// ranges of ports for itself, for UDP and TCP apart, and the UDP port of
         /// the number of a TCP port the system handed out may be a client's.
         /// </summary>
-        private static UInt16 APortFreeForBoth()
+        private static IPPort APortFreeForBoth()
         {
 
             for (var attempt = 0; attempt < 200; attempt++)
             {
 
-                var port = Random.Shared.Next(20000, 32768);
+                var port = IPPort.Parse(Random.Shared.Next(20000, 32768));
 
                 try
                 {
 
-                    using var udp4 = new System.Net.Sockets.UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback,     port));
-                    using var udp6 = new System.Net.Sockets.UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.IPv6Loopback, port));
+                    using var udp4 = new System.Net.Sockets.UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback,     port.ToInt32()));
+                    using var udp6 = new System.Net.Sockets.UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.IPv6Loopback, port.ToInt32()));
 
-                    var tcp4 = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback,     port);
+                    var tcp4 = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback,     port.ToInt32());
                     tcp4.Start();
                     tcp4.Stop();
 
-                    var tcp6 = new System.Net.Sockets.TcpListener(System.Net.IPAddress.IPv6Loopback, port);
+                    var tcp6 = new System.Net.Sockets.TcpListener(System.Net.IPAddress.IPv6Loopback, port.ToInt32());
                     tcp6.Start();
                     tcp6.Stop();
 
-                    return (UInt16) port;
+                    return port;
 
                 }
                 catch (System.Net.Sockets.SocketException)
@@ -269,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 {
 
                     webSocketServer = new WebSocketMirrorServer(
-                                          HTTPPort:                IPPort.Parse(port),
+                                          HTTPPort:                port,
                                           RequireAuthentication:   false,
                                           SecWebSocketProtocols:   SecWebSocketProtocols,
                                           AutoStart:               false
@@ -346,7 +346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 {
 
                     webSocketServer = new WebSocketMirrorServer(
-                                          HTTPPort:                    IPPort.Parse(port),
+                                          HTTPPort:                    port,
                                           RequireAuthentication:       false,
                                           ServerCertificateSelector:   (tcpServer, tcpClient) => serverCertificate!,
                                           ClientCertificateValidator:  (sender, certificate, chain, server, policyErrors) => {
@@ -470,7 +470,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                     Assert.That(client.HTTPVersionInUse,              Is.EqualTo(inUse),                              version.ToString());
                     Assert.That(response.AltSvc?.Services.
                                     Select(service => (service.ProtocolId, service.Host, service.Port)),
-                                Is.EqualTo(new[] { ("h3", "", HTTPPort.ToUInt16()) }),
+                                Is.EqualTo(new[] { ("h3", "", HTTPPort) }),
                                 $"what a client over {version} is told of HTTP/3");
                 });
 
@@ -556,7 +556,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             await first.Close();
 
             Assert.That(WebSocketAlternativeServices.TryGetHTTP3(URL.Parse($"wss://127.0.0.1:{HTTPPort}/"), out var port), Is.True);
-            Assert.That(port, Is.EqualTo(HTTPPort.ToUInt16()));
+            Assert.That(port, Is.EqualTo(HTTPPort));
 
             // The server stops taking HTTP/3, and tells nobody.
             webSocketServer.AcceptHTTP3 = false;

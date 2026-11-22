@@ -57,30 +57,30 @@ public class UdpHeader : AProtocolHeader
     /// <summary>
     /// Gets and sets the destination port. Performs the necessary byte order conversion.
     /// </summary>
-    public ushort SourcePort
+    public IPPort SourcePort
     {
         get
         {
-            return (ushort) NetworkingHelpers.NetworkToHostOrder((short) srcPort);
+            return IPPort.Parse((UInt16) NetworkingHelpers.NetworkToHostOrder((short) srcPort));
         }
         set
         {
-            srcPort = (ushort) NetworkingHelpers.HostToNetworkOrder((short) value);
+            srcPort = (ushort) NetworkingHelpers.HostToNetworkOrder((short) value.ToUInt16());
         }
     }
 
     /// <summary>
     /// Gets and sets the destination port. Performs the necessary byte order conversion.
     /// </summary>
-    public ushort DestinationPort
+    public IPPort DestinationPort
     {
         get
         {
-            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)destPort);
+            return IPPort.Parse((UInt16) NetworkingHelpers.NetworkToHostOrder((short)destPort));
         }
         set
         {
-            destPort = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
+            destPort = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value.ToUInt16());
         }
     }
 

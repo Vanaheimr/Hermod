@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The API key is only valid when sent from one of the given remote IP addresses.
         /// </summary>
-        public IEnumerable<IIPAddress>  ValidRemoteIPAddresses      { get; }
+        public IEnumerable<IPAddress>  ValidRemoteIPAddresses      { get; }
 
         /// <summary>
         /// The API key is currently disabled.
@@ -187,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                       DateTimeOffset?           Created                  = null,
                       DateTimeOffset?           NotBefore                = null,
                       DateTimeOffset?           NotAfter                 = null,
-                      IEnumerable<IIPAddress>?  ValidRemoteIPAddresses   = null,
+                      IEnumerable<IPAddress>?  ValidRemoteIPAddresses   = null,
                       Boolean?                  IsDisabled               = false,
 
                       CustomDataNew?            CustomData               = default,
@@ -427,7 +427,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (JSON.ParseOptionalHashSet("validRemoteIPAddresses",
                                               "valid remote IP addresses",
                                               IPAddress.TryParse,
-                                              out HashSet<IIPAddress> ValidRemoteIPAddresses,
+                                              out HashSet<IPAddress> ValidRemoteIPAddresses,
                                               out ErrorResponse))
                 {
                     if (ErrorResponse is not null)
@@ -856,7 +856,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The API key is only valid when sent from one of the given remote IP addresses.
             /// </summary>
-            public HashSet<IIPAddress>  ValidRemoteIPAddresses    { get; }
+            public HashSet<IPAddress>  ValidRemoteIPAddresses    { get; }
 
             /// <summary>
             /// The API key is currently disabled.
@@ -904,7 +904,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            DateTimeOffset?           Created                  = null,
                            DateTimeOffset?           NotBefore                = null,
                            DateTimeOffset?           NotAfter                 = null,
-                           IEnumerable<IIPAddress>?  ValidRemoteIPAddresses   = null,
+                           IEnumerable<IPAddress>?  ValidRemoteIPAddresses   = null,
                            Boolean?                  IsDisabled               = false,
 
                            CustomDataNew?            CustomData               = null,
@@ -930,7 +930,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.Created                 = Created     ?? Timestamp.Now;
                 this.NotBefore               = NotBefore;
                 this.NotAfter                = NotAfter;
-                this.ValidRemoteIPAddresses  = ValidRemoteIPAddresses.SafeAny() ? new HashSet<IIPAddress>(ValidRemoteIPAddresses) : new HashSet<IIPAddress>();
+                this.ValidRemoteIPAddresses  = ValidRemoteIPAddresses.SafeAny() ? new HashSet<IPAddress>(ValidRemoteIPAddresses) : new HashSet<IPAddress>();
                 this.IsDisabled              = IsDisabled  ?? false;
                 this.Hint                    = Hint;
 

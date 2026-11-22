@@ -132,9 +132,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await responder.StartAsync();
             await client.   StartAsync();
 
-            var address      = serverTransport.LocalAddresses.OfType<IPv4Address>().First();
+            var address      = serverTransport.LocalAddresses.Select(address => address.Value).OfType<IPv4Address>().First();
             var publication  = await responder.PublishAsync(
-                                   MulticastDNS_SmokeTests.ServiceRecords("mdnstest-host.local.", address.ToString(), 8443, "_mdnstest._tcp.local.")
+                                   MulticastDNS_SmokeTests.ServiceRecords("mdnstest-host.local.", address.ToString(), IPPort.Parse(8443), "_mdnstest._tcp.local.")
                                );
 
             Assert.That(publication.State, Is.EqualTo(MulticastDNSPublicationState.Published));

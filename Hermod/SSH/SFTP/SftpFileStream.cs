@@ -22,7 +22,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     /// A seekable <see cref="Stream"/> over a remote SFTP file. Reads and writes are mapped to offset-based
     /// SFTP READ/WRITE requests at the current position, so a caller can stream a large file (e.g.
     /// <c>CopyToAsync</c>) without materializing it in memory. Obtained from
-    /// <see cref="SftpClient.OpenFileStreamAsync"/>.
+    /// <see cref="SFTPClient.OpenFileStreamAsync"/>.
     /// </summary>
     public sealed class SftpFileStream : Stream
     {
@@ -31,7 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         private const Int32 TransferChunk = 30 * 1024;
 
-        private readonly SftpClient  client;
+        private readonly SFTPClient  client;
         private readonly String      handle;
         private readonly Boolean     readable;
         private readonly Boolean     writable;
@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         #region Constructor(s)
 
-        internal SftpFileStream(SftpClient Client, String Handle, Boolean Readable, Boolean Writable, Int64 InitialLength)
+        internal SftpFileStream(SFTPClient Client, String Handle, Boolean Readable, Boolean Writable, Int64 InitialLength)
         {
             this.client    = Client;
             this.handle    = Handle;

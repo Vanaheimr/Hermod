@@ -19,6 +19,7 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
@@ -162,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             }, CancellationToken);
 
             using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            var ok = await UserAuthentication.ClientAuthenticateAsync(client, User, Password: Password, CancellationToken: CancellationToken, SessionBoundTotp: Totp);
+            var ok = await UserAuthentication.ClientAuthenticateAsync(client, User_Id.Parse(User), Password: Password, CancellationToken: CancellationToken, SessionBoundTotp: Totp);
 
             clientPipe.Output.Complete();
             try { await serverRun; } catch { }

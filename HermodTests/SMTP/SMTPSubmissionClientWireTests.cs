@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public readonly List<String>  Commands  = [];   // received SMTP commands
             public readonly List<String>  DataLines = [];   // received DATA body lines (verbatim, incl. dot-stuffing)
 
-            public Int32 Port        => ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port        => IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
             public Int32 Connections => connections;
 
             public FakeSmtpServer(Mode Mode, Int32 DropFirstConnections = 0)
@@ -159,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         private static SMTPSubmissionClient ClientFor(FakeSmtpServer server)
             => new (DomainName.Parse("127.0.0.1"),
-                    IPPort.Parse((UInt16) server.Port),
+                    server.Port,
                     UseTLS:             TLSUsage.NoTLS,
                     ConnectionTimeout:  TimeSpan.FromSeconds(3),
                     CommandTimeout:     TimeSpan.FromSeconds(2));

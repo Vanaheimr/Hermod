@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
     /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
     /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-    public class HTTPTestServer(IIPAddress?                                               IPAddress                    = null,
+    public class HTTPTestServer(IPAddress?                                               IPAddress                    = null,
                                 IPPort?                                                   TCPPort                      = null,
                                 String?                                                   HTTPServerName               = null,
                                 I18NString?                                               Description                  = null,
@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static async Task<HTTPTestServer>
 
-            StartNew(IIPAddress?              IPAddress        = null,
+            StartNew(IPAddress?              IPAddress        = null,
                      IPPort?                  TCPPort          = null,
                      String?                  HTTPServerName   = null,
                      I18NString?              Description      = null,

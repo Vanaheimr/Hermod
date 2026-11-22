@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The listening IP address.
         /// </summary>
-        IIPAddress  IPAddress        { get; }
+        IPAddress  IPAddress        { get; }
 
         /// <summary>
         /// The listening IP port.

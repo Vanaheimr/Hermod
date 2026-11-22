@@ -294,13 +294,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 var bound  = new List<T>();
-                var port   = LocalSocket.Port.ToUInt16();
+                var port   = LocalSocket.Port;
                 var retry  = false;
 
                 foreach (var endPoint in endPoints)
                 {
 
-                    var target = new System.Net.IPEndPoint(endPoint.Address, port);
+                    var target = new System.Net.IPEndPoint(endPoint.Address, port.ToInt32());
 
                     try
                     {
@@ -312,8 +312,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         // have to use: two families on two ports would be two
                         // servers, and a client falling back from UDP to TCP
                         // (RFC 7766 §5) would find nothing at the second.
-                        if (port == 0)
-                            port = (UInt16) (EndPointOf(listener)?.Port ?? 0);
+                        if (port.IsZero)
+                            port = IPPort.Parse((UInt16) (EndPointOf(listener)?.Port ?? 0));
 
                     }
                     catch (SocketException e) when (e.SocketErrorCode == SocketError.AddressFamilyNotSupported ||
@@ -1064,7 +1064,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region ServeSSHSubsystemAsync(Context, CancellationToken)
 
         /// <summary>
-        /// The name of the SSH subsystem of DNS over SSH.
+        /// The name of the SSH subsystem of DNS-over-SSH.
         /// </summary>
         public const String SSHSubsystemName = "dns@open.charging.cloud";
 
@@ -1074,8 +1074,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public const String SSHServerType    = "SSH";
 
         /// <summary>
-        /// Serve DNS over SSH on a channel of somebody's SSH server: the subsystem
-        /// <see cref="SSHSubsystemName"/> of the white paper "DNS over SSH", which carries the byte
+        /// Serve DNS-over-SSH on a channel of somebody's SSH server: the subsystem
+        /// <see cref="SSHSubsystemName"/> of the white paper "DNS-over-SSH", which carries the byte
         /// stream of DNS over TCP unchanged. An <see cref="SshSubsystemHandler"/>.
         /// </summary>
         /// <remarks>
@@ -1107,7 +1107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                           Context.Session.Peer  ?? IPSocket.Zero,
                           SSHServerType,
                           CancellationToken,
-                          Context.Session.Username,
+                          Context.Session.Username.ToString(),
                           EndOnProtocolError: true
                       ).ConfigureAwait(false);
 
@@ -1119,12 +1119,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             catch (Exception e) when (e is InvalidDataException or EndOfStreamException)
             {
                 exitStatus = 1;
-                logger.LogDebug("DNS over SSH for '{Login}' ended after a protocol error: {Message}", Context.Session.Username, e.Message);
+                logger.LogDebug("DNS-over-SSH for '{Login}' ended after a protocol error: {Message}", Context.Session.Username, e.Message);
             }
             catch (Exception e)
             {
                 exitStatus = 1;
-                logger.LogError(e, "Error handling DNS over SSH for '{Login}'", Context.Session.Username);
+                logger.LogError(e, "Error handling DNS-over-SSH for '{Login}'", Context.Session.Username);
             }
 
             try
@@ -1143,12 +1143,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region (private) HandleFramedDNSStreamAsync(Stream, LocalSocket, RemoteSocket, ServerType, CancellationToken, ...)
 
         private async Task HandleFramedDNSStreamAsync(Stream             Stream,
-                                                      IPSocket          LocalSocket,
-                                                      IPSocket          RemoteSocket,
-                                                      String            ServerType,
-                                                      CancellationToken CancellationToken,
-                                                      String?           ClientIdentity       = null,
-                                                      Boolean           EndOnProtocolError   = false)
+                                                      IPSocket           LocalSocket,
+                                                      IPSocket           RemoteSocket,
+                                                      String             ServerType,
+                                                      CancellationToken  CancellationToken,
+                                                      String?            ClientIdentity       = null,
+                                                      Boolean            EndOnProtocolError   = false)
         {
 
             var sharedBuffer = ArrayPool<Byte>.Shared.Rent(UInt16.MaxValue);
@@ -1228,7 +1228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         // message ends, so the stream is still aligned and the next
                         // query can follow: an unreadable message is no reason to end a
                         // connection - or a channel - that may hold queries of others
-                        // (the white paper "DNS over SSH", §3.5: "A message whose header
+                        // (the white paper "DNS-over-SSH", §3.5: "A message whose header
                         // can be read but whose rest cannot is answered with FORMERR").
                         logger.LogDebug(
                             parseException,
@@ -1274,7 +1274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         // Length and message in one write. RFC 7766 §8 asks for it over TCP,
                         // where two writes may leave as two segments; and on a channel of an
                         // SSH connection one write is what keeps a message whole between
-                        // those of another writer (the white paper "DNS over SSH", §3.2).
+                        // those of another writer (the white paper "DNS-over-SSH", §3.2).
                         await Stream.WriteAsync(FramedDNSMessage(responseBytes), CancellationToken).ConfigureAwait(false);
                         await Stream.FlushAsync(CancellationToken).ConfigureAwait(false);
 

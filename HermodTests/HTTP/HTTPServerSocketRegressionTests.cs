@@ -2118,7 +2118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region Helpers
 
-        private static HTTPServer CreateHTTPServer(IIPAddress?      ListenAddress                 = null,
+        private static HTTPServer CreateHTTPServer(IPAddress?      ListenAddress                 = null,
                                                    ConnectionType?   ResponseConnection            = null,
                                                    UInt64?           MaxHTTPBodySize              = null,
                                                    UInt32?           MaxHTTPHeaderSize            = null,

@@ -307,7 +307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             browser.OnInstanceUpdated += (_, _, _, _) => { Interlocked.Increment(ref updates); return Task.CompletedTask; };
 
-            var records  = ServiceRecords("myhost.local.", "10.0.0.7", 8443);
+            var records  = ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443));
 
             await peerTransport.SendAsync(Answer([.. records.Where(record => record is not TXT)]));
             await WaitUntil(() => browser.Instances.Count == 1);

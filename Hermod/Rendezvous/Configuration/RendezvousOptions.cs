@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         /// <summary>
         /// The parsed IP address of the control endpoint.
         /// </summary>
-        public IIPAddress ControlIPAddress
+        public IPAddress ControlIPAddress
             => IPAddress.Parse(ControlAddress);
 
         #endregion
@@ -162,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         /// <summary>
         /// The parsed IP address of the rendezvous listeners.
         /// </summary>
-        public IIPAddress DataIPAddress
+        public IPAddress DataIPAddress
             => IPAddress.Parse(DataAddress);
 
         #endregion

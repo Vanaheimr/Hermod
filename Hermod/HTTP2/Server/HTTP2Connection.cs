@@ -3312,7 +3312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 return;
 
             // RFC 9113, Section 9.1.1 / RFC 9110, Section 15.5.20: the origin this
-            // request names need not be the one the client dialed — a client may
+            // request names need not be the one the client connected to — a client may
             // reuse ("coalesce") this connection for any origin our certificate
             // covers. If we are not authoritative for it, decline with 421 so the
             // client retries on a connection to the right server, rather than

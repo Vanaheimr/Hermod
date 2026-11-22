@@ -63,7 +63,7 @@ public sealed class Http3Server : IAsyncDisposable
     private readonly RetryTokenGenerator? _addressValidation;
     private readonly StatelessResetTokenGenerator? _statelessResetTokens;
     private readonly TimeProvider _timeProvider;
-    private readonly int _requestedPort;
+    private readonly IPPort _requestedPort;
     private readonly int _maxConnections;
     private readonly List<ServerConn> _connections = [];
 
@@ -84,11 +84,11 @@ public sealed class Http3Server : IAsyncDisposable
     /// Simplest entry point: certificate + request handler; every new connection receives a
     /// default <see cref="Http3ServerConnection"/>.
     /// </summary>
-    public Http3Server(ServerCertificate certificate, Func<Http3Request, Http3Response> handler, int port = 443,
+    public Http3Server(ServerCertificate certificate, Func<Http3Request, Http3Response> handler, IPPort? port = null,
                        TimeProvider? timeProvider = null, KeyLog? keyLog = null,
                        RetryTokenGenerator? addressValidation = null,
                        ClientCertificateOptions? clientCertificate = null)
-        : this(port, retry => new Http3ServerConnection(certificate, handler, timeProvider: timeProvider,
+        : this(port ?? IPPort.HTTPS, retry => new Http3ServerConnection(certificate, handler, timeProvider: timeProvider,
                                                        keyLog: keyLog, validatedRetry: retry,
                                                        clientCertificate: clientCertificate),
                timeProvider: timeProvider, addressValidation: addressValidation)
@@ -100,10 +100,10 @@ public sealed class Http3Server : IAsyncDisposable
     /// connections. The token is cancelled when the client aborts the request or the server stops.
     /// </summary>
     public Http3Server(ServerCertificate certificate, Func<Http3Request, CancellationToken, Task<Http3Response>> handler,
-                       int port = 443, TimeProvider? timeProvider = null, KeyLog? keyLog = null,
+                       IPPort? port = null, TimeProvider? timeProvider = null, KeyLog? keyLog = null,
                        RetryTokenGenerator? addressValidation = null,
                        ClientCertificateOptions? clientCertificate = null)
-        : this(port, retry => new Http3ServerConnection(certificate, handler, timeProvider: timeProvider,
+        : this(port ?? IPPort.HTTPS, retry => new Http3ServerConnection(certificate, handler, timeProvider: timeProvider,
                                                        keyLog: keyLog, validatedRetry: retry,
                                                        clientCertificate: clientCertificate),
                timeProvider: timeProvider, addressValidation: addressValidation)
@@ -116,10 +116,10 @@ public sealed class Http3Server : IAsyncDisposable
     /// </summary>
     public Http3Server(ServerCertificate certificate,
                        Func<Http3Request, Http3RequestBody, CancellationToken, Task<Http3Response>> handler,
-                       int port = 443, TimeProvider? timeProvider = null, KeyLog? keyLog = null,
+                       IPPort? port = null, TimeProvider? timeProvider = null, KeyLog? keyLog = null,
                        RetryTokenGenerator? addressValidation = null,
                        ClientCertificateOptions? clientCertificate = null)
-        : this(port, retry => new Http3ServerConnection(certificate, handler, timeProvider: timeProvider,
+        : this(port ?? IPPort.HTTPS, retry => new Http3ServerConnection(certificate, handler, timeProvider: timeProvider,
                                                        keyLog: keyLog, validatedRetry: retry,
                                                        clientCertificate: clientCertificate),
                timeProvider: timeProvider, addressValidation: addressValidation)
@@ -134,7 +134,7 @@ public sealed class Http3Server : IAsyncDisposable
     /// SILENTLY — every answer would be an amplification vector, and a handshake costs a signature.
     /// See <see cref="ConnectionsRefused"/>.
     /// </param>
-    public Http3Server(int port, Func<Http3ServerConnection> connectionFactory,
+    public Http3Server(IPPort port, Func<Http3ServerConnection> connectionFactory,
                        StatelessResetTokenGenerator? statelessResetTokens = null,
                        TimeProvider? timeProvider = null,
                        int maxConnections = DefaultMaxConnections)
@@ -155,7 +155,7 @@ public sealed class Http3Server : IAsyncDisposable
     /// seal per packet instead of a connection object, and the answer goes to the forged address,
     /// where it dies. <c>null</c> disables address validation.
     /// </param>
-    public Http3Server(int port, Func<QuicServerConnection.ValidatedRetry?, Http3ServerConnection> connectionFactory,
+    public Http3Server(IPPort port, Func<QuicServerConnection.ValidatedRetry?, Http3ServerConnection> connectionFactory,
                        StatelessResetTokenGenerator? statelessResetTokens = null,
                        TimeProvider? timeProvider = null,
                        int maxConnections = DefaultMaxConnections,
@@ -179,7 +179,7 @@ public sealed class Http3Server : IAsyncDisposable
     /// address.
     /// </summary>
     /// <param name="address">The address to listen on; the IPv4 any address where not given.</param>
-    public Http3Server(int port,
+    public Http3Server(IPPort port,
                        Func<IPEndPoint, QuicServerConnection.ValidatedRetry?, Http3ServerConnection> connectionFactory,
                        System.Net.IPAddress? address = null,
                        StatelessResetTokenGenerator? statelessResetTokens = null,
@@ -210,7 +210,7 @@ public sealed class Http3Server : IAsyncDisposable
     /// <summary>
     /// The actually bound UDP port (with 0 in the constructor: the one assigned by the OS).
     /// </summary>
-    public int Port { get; private set; }
+    public IPPort Port { get; private set; }
 
     /// <summary>
     /// Number of currently held connections (informational).
@@ -235,12 +235,12 @@ public sealed class Http3Server : IAsyncDisposable
             }
             catch (Exception e) when (e is SocketException or NotSupportedException)
             { }
-            _udp.Client.Bind(new IPEndPoint(_address, _requestedPort));
+            _udp.Client.Bind(new IPEndPoint(_address, _requestedPort.ToInt32()));
         }
         else
-            _udp = new UdpClient(new IPEndPoint(_address, _requestedPort));
+            _udp = new UdpClient(new IPEndPoint(_address, _requestedPort.ToInt32()));
         DisableIcmpUnreachableException(_udp);
-        Port = ((IPEndPoint)_udp.Client.LocalEndPoint!).Port;
+        Port = IPPort.Parse(((IPEndPoint)_udp.Client.LocalEndPoint!).Port);
         _loopTask = Task.Run(LoopAsync, CancellationToken.None);
     }
 

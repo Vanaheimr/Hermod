@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     ///
     /// A client that already holds a connection to us may reuse it for any origin
     /// our certificate covers (RFC 9113, Section 9.1.1), so the <c>:authority</c> a
-    /// request names is not necessarily the name it dialed. The server therefore
+    /// request names is not necessarily the name it connected to. The server therefore
     /// checks it, and declines with 421 (RFC 9110, Section 15.5.20) when it is not
     /// authoritative. The ORIGIN frame (RFC 8336) is the other direction: the
     /// server stating the set up front instead of leaving the client to infer it.
@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         // The default predicate comes from the certificate, which covers localhost
         // and the loopback addresses — so a request naming any other origin is
-        // misdirected, while the one we actually dialed is served as usual.
+        // misdirected, while the one we actually connected to is served as usual.
         [Test]
         public async Task ForeignAuthority_Gets421()
         {
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             Assert.Multiple(() =>
             {
-                Assert.That(ours.Status,                            Is.EqualTo(200), "the origin we dialed");
+                Assert.That(ours.Status,                            Is.EqualTo(200), "the origin we connected to");
                 Assert.That(Encoding.UTF8.GetString(ours.Body),     Is.EqualTo("served"));
                 Assert.That(loopback.Status,                        Is.EqualTo(200), "covered by an iPAddress SAN");
                 Assert.That(foreign.Status,                         Is.EqualTo(421), "not covered by the certificate");
@@ -241,13 +241,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             var alpha   = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "alpha.example",       "/");
             var beta    = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, "beta.example:8443",   "/");
-            var dialed  = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/");
+            var direct  = await conn.SendRequestAsync(HTTPMethod.GET, URIScheme.https, $"localhost:{srv.Port}", "/");
 
             Assert.Multiple(() =>
             {
                 Assert.That(alpha. Status, Is.EqualTo(200), "announced origin");
                 Assert.That(beta.  Status, Is.EqualTo(200), "announced origin, non-default port");
-                Assert.That(dialed.Status, Is.EqualTo(421), "the announcement outranks the certificate");
+                Assert.That(direct.Status, Is.EqualTo(421), "the announcement outranks the certificate");
             });
 
         }

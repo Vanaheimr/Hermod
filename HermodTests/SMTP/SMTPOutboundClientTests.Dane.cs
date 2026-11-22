@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
-        private static TLSA Tlsa(UInt16 Port, TLSA_CertificateUsage Usage, X509Certificate2 Certificate)
+        private static TLSA Tlsa(IPPort Port, TLSA_CertificateUsage Usage, X509Certificate2 Certificate)
             => new (DomainName.ParseLenient($"_{Port}._tcp.localhost"), DNSQueryClasses.IN, TimeSpan.FromHours(1),
                     (Byte) Usage, (Byte) TLSA_Selector.SubjectPublicKeyInfo, (Byte) TLSA_MatchingType.SHA256,
                     SHA256.HashData(Certificate.PublicKey.ExportSubjectPublicKeyInfo()));

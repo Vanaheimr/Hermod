@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-        public TCPEchoTestServer(IIPAddress?              IPAddress        = null,
+        public TCPEchoTestServer(IPAddress?              IPAddress        = null,
                                  IPPort?                  TCPPort          = null,
                                  UInt32?                  BufferSize       = null,
                                  TimeSpan?                ReceiveTimeout   = null,
@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
         public static async Task<TCPEchoTestServer>
 
-            StartNew(IIPAddress?              IPAddress        = null,
+            StartNew(IPAddress?              IPAddress        = null,
                      IPPort?                  TCPPort          = null,
                      UInt32?                  BufferSize       = null,
                      TimeSpan?                ReceiveTimeout   = null,

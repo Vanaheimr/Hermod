@@ -109,13 +109,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             using var tcp      = new TcpClient();
             await tcp.ConnectAsync(System.Net.IPAddress.Loopback, server.IPPort.ToUInt16());
 
-            var clientPort     = ((IPEndPoint) tcp.Client.LocalEndPoint!).Port;
+            var clientPort     = IPPort.Parse(((IPEndPoint) tcp.Client.LocalEndPoint!).Port);
             var statusCode     = await Upgrade(tcp.GetStream());
 
             Assert.Multiple(() => {
                 Assert.That(statusCode,                                  Is.EqualTo(101));
                 Assert.That(request,                                     Is.Not.Null);
-                Assert.That(request?.RemoteSocket.Port.ToUInt16(),       Is.EqualTo(clientPort),
+                Assert.That(request?.RemoteSocket.Port,       Is.EqualTo(clientPort),
                             "The request does not say where it came from.");
                 Assert.That(request?.LocalSocket. Port.ToUInt16(),       Is.EqualTo(server.IPPort.ToUInt16()),
                             "The request does not say where it arrived.");
@@ -216,13 +216,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             using var tcp   = new TcpClient();
             await tcp.ConnectAsync(System.Net.IPAddress.Loopback, httpServer.TCPPort.ToUInt16());
 
-            var clientPort  = ((IPEndPoint) tcp.Client.LocalEndPoint!).Port;
+            var clientPort  = IPPort.Parse(((IPEndPoint) tcp.Client.LocalEndPoint!).Port);
             var statusCode  = await Upgrade(tcp.GetStream());
 
             Assert.Multiple(() => {
                 Assert.That(statusCode,                                  Is.EqualTo(101));
                 Assert.That(request,                                     Is.Not.Null);
-                Assert.That(request?.RemoteSocket.Port.ToUInt16(),       Is.EqualTo(clientPort),
+                Assert.That(request?.RemoteSocket.Port,       Is.EqualTo(clientPort),
                             "The request does not say where it came from.");
                 Assert.That(request?.LocalSocket. Port.ToUInt16(),       Is.EqualTo(httpServer.TCPPort.ToUInt16()),
                             "The request does not say where it arrived.");

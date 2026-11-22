@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
         public static IDNSResourceRecord[] ServiceRecords(String   Host,
                                                           String   Address,
-                                                          UInt16   Port,
+                                                          IPPort   Port,
                                                           String   ServiceType   = "_test._tcp.local.",
                                                           String?  Instance      = null)
         {
@@ -72,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             return [
                 new A  (hostName,     DNSQueryClasses.IN, TimeSpan.FromSeconds(120),  IPv4Address.Parse(Address)),
-                new SRV(instanceName, DNSQueryClasses.IN, TimeSpan.FromSeconds(120),  0, 0, IPPort.Parse(Port), hostName),
+                new SRV(instanceName, DNSQueryClasses.IN, TimeSpan.FromSeconds(120),  0, 0, Port, hostName),
                 new TXT(instanceName, DNSQueryClasses.IN, TimeSpan.FromSeconds(4500), [ "txtver=1", $"url=https://{Host}:{Port}/" ]),
                 new PTR(serviceName,  DNSQueryClasses.IN, TimeSpan.FromSeconds(4500), instanceName)
             ];
@@ -213,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             browser.OnInstanceAdded   += (ts, b, instance, ct) => { lock (added)   added.  Add(instance); return Task.CompletedTask; };
             browser.OnInstanceRemoved += (ts, b, instance, ct) => { lock (removed) removed.Add(instance); return Task.CompletedTask; };
 
-            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443));
+            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)));
 
             Assert.That(publication.State, Is.EqualTo(MulticastDNSPublicationState.Published));
 
@@ -241,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             });
 
             await WaitUntil(() => instance.Addresses.Count > 0);
-            Assert.That(instance.Addresses, Is.EqualTo(new IIPAddress[] { IPv4Address.Parse("10.0.0.7") }));
+            Assert.That(instance.Addresses, Is.EqualTo(new IPAddress[] { IPv4Address.Parse("10.0.0.7") }));
 
             lock (added)
                 Assert.That(added, Has.Count.EqualTo(1));
@@ -270,7 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder       = new MulticastDNSResponder(serverTransport, FastResponderOptions());
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             var sent = new List<(ReadOnlyMemory<Byte> Payload, IPSocket? Destination)>();
             network.OnDatagramSent += (ts, sender, payload, destination) => { lock (sent) sent.Add((payload, destination)); return Task.CompletedTask; };
@@ -346,7 +346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
             await client.   StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             var unicast  = new RecordingDNSClient();
             var hybrid   = new HybridDNSClient(client, unicast);

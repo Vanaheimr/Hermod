@@ -322,7 +322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
                                             ConcurrentQueue<Http3ServerConnection>  Connections,
                                             ClientCertificateOptions?               ClientCertificate = null)
 
-            => new (0,
+            => new (IPPort.Zero,
                     retry => {
                         var connection = new Http3ServerConnection(Key, Hello, validatedRetry: retry, clientCertificate: ClientCertificate);
                         Connections.Enqueue(connection);
@@ -442,7 +442,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
             using var key     = ServerCertificate.CreateSelfSigned("carrier.invalid");
             key.RawPublicKeys = RawPublicKeyMode.Prefer;
 
-            String[] arguments(Int32 port) => [ "s_client", "-quic", "-alpn", "h3",
+            String[] arguments(IPPort port) => [ "s_client", "-quic", "-alpn", "h3",
                                                 "-connect", $"127.0.0.1:{port}",
                                                 "-enable_server_rpk", "-enable_client_rpk",
                                                 "-key", station.KeyFile, "-cert", station.CertificateFile ];

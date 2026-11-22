@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 {
 
     /// <summary>
-    /// DNS over SSH, the client side: a <see cref="DNSSSHClient"/> against
+    /// DNS-over-SSH, the client side: a <see cref="DNSSSHClient"/> against
     /// <see cref="DNSServer.ServeSSHSubsystemAsync"/> behind an <see cref="SshServer"/> - and, where a
     /// server has to misbehave on purpose, against a subsystem that answers by a script.
     /// </summary>
@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         /// <summary>
         /// A login the SSH server knows, and does not offer the DNS subsystem to.
         /// </summary>
-        private const String OCPPOnly  = "ocpp-only";
+        private static readonly User_Id OCPPOnly  = User_Id.Parse("ocpp-only");
 
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
 
@@ -72,7 +72,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             public DNSServer                   DNS       { get; } = DNS;
             public SshServer                   SSH       { get; } = SSH;
             public CollectingAuditSink         Audit     { get; } = Audit;
-            public UInt16                      Port      => (UInt16) SSH.LocalEndPoint.Port.ToInt32();
+            public IPPort                      Port
+                => SSH.LocalEndPoint.Port;
 
             /// <summary>
             /// What the DNS server was asked, and by whom.
@@ -228,10 +229,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         }
 
-        private SshClientOptions Login(String Username = "cs001")
+        private SSHClientOptions Login(String Username = "cs001")
 
             => new () {
-                   Username       = Username,
+                   Username       = User_Id.Parse(Username),
                    VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                    Credentials    = [ stationKey ]
                };
@@ -244,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             => new (
                    "127.0.0.1",
                    Login(Username),
-                   IPPort.Parse(Running.Port),
+                   Running.Port,
                    QueryTimeout: Timeout
                );
 
@@ -298,10 +299,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         /// What an "echo" channel of the given connection says: that the connection carries other
         /// subsystems, still.
         /// </summary>
-        private static async Task<String> EchoAsync(SshClient Ssh, CancellationToken CancellationToken)
+        private static async Task<String> EchoAsync(SSHClient Ssh, CancellationToken CancellationToken)
         {
 
-            var channel  = await Ssh.OpenSubsystemAsync(Echo, CancellationToken);
+            var channel  = await Ssh.OpenSubsystem(Echo, CancellationToken);
 
             using var within = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
             within.CancelAfter(TimeSpan.FromSeconds(10));
@@ -341,7 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                 Assert.That(answer.ResponseCode,               Is.EqualTo(DNSResponseCodes.NoError));
                 Assert.That(AddressesOf(answer),               Is.EqualTo(new[] { "192.0.2.10" }));
                 Assert.That(answer.Origin.Transport,           Is.EqualTo(DNSTransport.SSH));
-                Assert.That(answer.Origin.Port,                Is.EqualTo(IPPort.Parse(running.Port)));
+                Assert.That(answer.Origin.Port,                Is.EqualTo(running.Port));
 
                 Assert.That(running.Requests.Count,            Is.EqualTo(1));
                 Assert.That(running.Requests.Select(request => request.ClientIdentity),          Is.EqualTo(new[] { "cs001" }));
@@ -351,7 +352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                 Assert.That(client.ConnectionsMade,            Is.EqualTo(1));
                 Assert.That(client.OwnsConnection,             Is.True);
                 Assert.That(client.LastConnectionError,        Is.Null);
-                Assert.That(client.Connection?.Username,       Is.EqualTo("cs001"));
+                Assert.That(client.Connection?.Username,       Is.EqualTo(User_Id.Parse("cs001")));
 
             });
 
@@ -656,7 +657,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         #region AnOwnConnectionThatEnded_IsMadeAgainAtTheNextQuery(...)
 
         /// <summary>
-        /// The SSH connection of the client's own ends between two queries. The next query dials a new
+        /// The SSH connection of the client's own ends between two queries. The next query makes a new
         /// one: two connections and two authentications at the server.
         /// </summary>
         [Test]
@@ -746,8 +747,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             Assert.Multiple(() => {
                 Assert.That(AddressesOf(answer),         Is.EqualTo(new[] { "192.0.2.101" }));
                 Assert.That(answer.Origin.Transport,     Is.EqualTo(DNSTransport.SSH));
-                Assert.That(answer.Origin.Port,          Is.EqualTo(IPPort.Parse(running.Port)), "the origin of an answer over a handed connection is not where that connection goes");
-                Assert.That(shared.Made,                 Is.EqualTo(1),   "the query did not have the shared connection made");
+                Assert.That(answer.Origin.Port,          Is.EqualTo(running.Port), "the origin of an answer over a handed connection is not where that connection goes");
+                Assert.That(shared.Made,                 Is.EqualTo(1),            "the query did not have the shared connection made");
                 Assert.That(ssh,                         Is.Not.Null);
                 Assert.That(client.Connection,           Is.SameAs(ssh));
                 Assert.That(client.OwnsConnection,       Is.False);
@@ -850,7 +851,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         {
 
             await using var running  = await StartAsync(CancellationToken);
-            await using var refused  = Client(running, OCPPOnly);
+            await using var refused  = Client(running, OCPPOnly.ToString());
             await using var admitted = Client(running, "cs001");
 
             var asked  = Stopwatch.GetTimestamp();
@@ -922,7 +923,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
                                                   return false;
                                               }
                                           },
-                                          IPPort.Parse(running.Port),
+                                          running.Port,
                                           QueryTimeout: Timeout
                                       );
 
@@ -1002,7 +1003,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
         /// <summary>
         /// A server over SSH is a server of a <see cref="DNSClient"/> like one over UDP, TCP or TLS:
-        /// named by <see cref="DNSServerConfig.OverSSH(IIPAddress, SshClientOptions, IPPort?, TimeSpan?, String?)"/>,
+        /// named by <see cref="DNSServerConfig.OverSSH(IPAddress, SSHClientOptions, IPPort?, TimeSpan?, String?)"/>,
         /// asked like the others, and its channel kept for the next query.
         /// </summary>
         [Test]
@@ -1012,7 +1013,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
 
             await using var running = await StartAsync(CancellationToken);
 
-            var overSSH = DNSServerConfig.OverSSH(IPv4Address.Localhost, Login(), IPPort.Parse(running.Port));
+            var overSSH = DNSServerConfig.OverSSH(IPv4Address.Localhost, Login(), running.Port);
 
             using var dnsClient = new DNSClient(
                                       [ overSSH ],
@@ -1057,7 +1058,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             listener.Stop();
 
             var overTCP = new DNSServerConfig(IPv4Address.Localhost, nobodysPort, DNSTransport.TCP);
-            var overSSH = DNSServerConfig.OverSSH(IPv4Address.Localhost, Login(), IPPort.Parse(running.Port));
+            var overSSH = DNSServerConfig.OverSSH(IPv4Address.Localhost, Login(), running.Port);
 
             using var mixed = new DNSClient(
                                   [ overTCP, overSSH ],

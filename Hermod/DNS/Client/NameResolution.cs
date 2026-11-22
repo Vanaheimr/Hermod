@@ -31,7 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// </summary>
     /// <remarks>
     /// An application that resolves its names securely - its own name servers, DNS over TLS or HTTPS,
-    /// DNSSEC - must not be dialled around them: a name resolved by the operating system is one an
+    /// DNSSEC - must not be connected around them: a name resolved by the operating system is one an
     /// attacker on the local network, or a name server nobody chose, may have answered, and nothing
     /// would say so. So an IP address is itself, "localhost" and every name below it the loopback
     /// addresses, an "invalid" name and a .onion name nothing, a host name what the DNS client given finds
@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var host = Host.Trim();
 
-            if (IPAddress.IsIPv4(host))
+            if (IPAddress.IsIPv4Address(host))
             {
                 Addresses = [ IPv4Address.Parse(host).ToDotNet() ];
                 return true;
@@ -186,14 +186,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <exception cref="NameResolutionException">A host name without a DNS client, or one it found no address for.</exception>
         public static async Task ConnectAsync(Socket             Socket,
                                               String             Host,
-                                              Int32              Port,
+                                              IPPort             Port,
                                               IDNSClient?        DNSClient,
                                               CancellationToken  CancellationToken = default)
         {
 
             var addresses = await ResolveAsync(Host, DNSClient, CancellationToken).ConfigureAwait(false);
 
-            await Socket.ConnectAsync([.. addresses], Port, CancellationToken).ConfigureAwait(false);
+            await Socket.ConnectAsync([.. addresses], Port.ToInt32(), CancellationToken).ConfigureAwait(false);
 
         }
 
@@ -212,14 +212,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <exception cref="NameResolutionException">A host name without a DNS client, or one it found no address for.</exception>
         public static async Task ConnectAsync(TcpClient          TCPClient,
                                               String             Host,
-                                              Int32              Port,
+                                              IPPort             Port,
                                               IDNSClient?        DNSClient,
                                               CancellationToken  CancellationToken = default)
         {
 
             var addresses = await ResolveAsync(Host, DNSClient, CancellationToken).ConfigureAwait(false);
 
-            await TCPClient.ConnectAsync([.. addresses], Port, CancellationToken).ConfigureAwait(false);
+            await TCPClient.ConnectAsync([.. addresses], Port.ToInt32(), CancellationToken).ConfigureAwait(false);
 
         }
 

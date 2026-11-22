@@ -339,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="stsPolicy">The MTA-STS policy of the Policy Domain.</param>
         private async Task<SendResult> TrySendToMxAsync(String              mxHost,
                                                         SmartHostRoute      route,
-                                                        UInt16              port,
+                                                        IPPort              port,
                                                         String              envelopeFrom,
                                                         String[]            recipients,
                                                         String              messageContent,
@@ -436,7 +436,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             _logger.Log(LogLevel.Debug, $"Connecting to {mxHost}:{port}");
 
-            await client.ConnectAsync(addresses, port, connectCts.Token);
+            await client.ConnectAsync(addresses, port.ToInt32(), connectCts.Token);
 
             // TLS-RPT session context (RFC 8460): remember the peer/local IPs and record the
             // outcome under the policy type that governs this session.

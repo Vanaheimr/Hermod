@@ -1134,7 +1134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// indicate the real IP address of the HTTP client.
         /// </summary>
         /// <example>X-Real-IP: 95.91.73.30</example>
-        public IIPAddress? X_Real_IP
+        public IPAddress? X_Real_IP
 
             => GetHeaderField(HTTPRequestHeaderField.X_Real_IP);
 
@@ -1147,7 +1147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// indicate the real IP address of the HTTP client.
         /// </summary>
         /// <example>X-Forwarded-For: client, proxy1, proxy2</example>
-        public IEnumerable<IIPAddress> X_Forwarded_For
+        public IEnumerable<IPAddress> X_Forwarded_For
 
             => GetHeaderFields(HTTPRequestHeaderField.X_Forwarded_For) ?? [];
 
@@ -2892,7 +2892,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 // the peer address and never instead of it.
                 var forwardedFor = HTTPRequest.Forwarded.
                                        Where (element => element.For?.IPAddress is not null).
-                                       Select(element => element.For!.IPAddress!).
+                                       Select(element => element.For!.IPAddress!.Value).
                                        ToArray();
 
                 if (forwardedFor.Length == 0)

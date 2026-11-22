@@ -57,8 +57,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         private static readonly AlternativeServices announced
             = AlternativeServices.Of(
-                  new HTTPAlternativeService("h3", "",            443,  TimeSpan.FromHours(1), false),
-                  new HTTPAlternativeService("h2", "alt.example", 8443, HTTPAlternativeService.DefaultMaxAge, true)
+                  new HTTPAlternativeService("h3", "",            IPPort.Parse(443),  TimeSpan.FromHours(1), false),
+                  new HTTPAlternativeService("h2", "alt.example", IPPort.Parse(8443), HTTPAlternativeService.DefaultMaxAge, true)
               );
 
         #endregion
@@ -206,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public void AnALPNNameOutsideTheTokenAlphabetIsPercentEncoded(String ALPN, String Encoded)
         {
 
-            var service   = new HTTPAlternativeService(ALPN, "", 443, HTTPAlternativeService.DefaultMaxAge, false);
+            var service   = new HTTPAlternativeService(ALPN, "", IPPort.Parse(443), HTTPAlternativeService.DefaultMaxAge, false);
             var reparsed  = HTTPAlternativeService.Parse(service.ToFieldValue());
 
             Assert.Multiple(() => {

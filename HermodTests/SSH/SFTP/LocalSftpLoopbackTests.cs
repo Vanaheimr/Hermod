@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 
@@ -67,9 +68,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 var content = RandomNumberGenerator.GetBytes(80_000);   // multi-chunk
 
                 using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
+                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
 
-                var sftp = await SftpClient.OpenAsync(client, CancellationToken);
+                var sftp = await SFTPClient.OpenAsync(client, CancellationToken);
 
                 await sftp.MakeDirectoryAsync("/incoming", CancellationToken);
                 await sftp.UploadAsync("/incoming/device.bin", content, CancellationToken);

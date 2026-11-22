@@ -41,12 +41,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The local port.
         /// </summary>
-        UInt16?      CurrentLocalPort          { get; }
+        IPPort?      CurrentLocalPort          { get; }
 
         /// <summary>
         /// The local IP address.
         /// </summary>
-        IIPAddress?  CurrentLocalIPAddress     { get; }
+        IPAddress?  CurrentLocalIPAddress     { get; }
 
 
         /// <summary>
@@ -57,16 +57,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The remote port.
         /// </summary>
-        UInt16?      CurrentRemotePort         { get; }
+        IPPort?      CurrentRemotePort         { get; }
 
         /// <summary>
         /// The remote IP address.
         /// </summary>
-        IIPAddress?  CurrentRemoteIPAddress    { get; }
+        IPAddress?  CurrentRemoteIPAddress    { get; }
 
 
         URL          RemoteURL                 { get; }
-        IIPAddress?  RemoteIPAddress           { get; }
+        IPAddress?  RemoteIPAddress           { get; }
         IPPort?      RemotePort                { get; }
 
 

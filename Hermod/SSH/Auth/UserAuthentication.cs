@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Buffers;
 
 #endregion
@@ -237,7 +238,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        private static async ValueTask<Boolean> EvaluateKeyboardInteractiveAsync(SshTransport Transport, ISshUserAuthenticator Authenticator, String Username, CancellationToken CancellationToken)
+        private static async ValueTask<Boolean> EvaluateKeyboardInteractiveAsync(SshTransport           Transport,
+                                                                                 ISshUserAuthenticator  Authenticator,
+                                                                                 User_Id                Username,
+                                                                                 CancellationToken      CancellationToken)
         {
 
             var factor = Authenticator.GetKeyboardInteractive(Username);
@@ -272,7 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="CancellationToken">An optional cancellation token.</param>
         /// <returns>True on success; false if the server rejected the key.</returns>
         public static async ValueTask<Boolean> ClientPublicKeyAuthenticateAsync(SshTransport             Transport,
-                                                                                String                   Username,
+                                                                                User_Id                  Username,
                                                                                 ISshHostKey              Key,
                                                                                 String?                  Algorithm       = null,
                                                                                 Action<String, String>?  BannerCallback  = null,
@@ -290,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Run the client side of <c>password</c> authentication (RFC 4252 §8).
         /// </summary>
         public static async ValueTask<Boolean> ClientPasswordAuthenticateAsync(SshTransport             Transport,
-                                                                               String                   Username,
+                                                                               User_Id                  Username,
                                                                                String                   Password,
                                                                                Action<String, String>?  BannerCallback  = null,
                                                                                CancellationToken        CancellationToken = default)
@@ -307,11 +311,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Run the client side of <c>keyboard-interactive</c> authentication (RFC 4256): the
         /// <paramref name="Responder"/> answers each challenge (e.g. supplies a TOTP code).
         /// </summary>
-        public static async ValueTask<Boolean> ClientKeyboardInteractiveAuthenticateAsync(SshTransport                                                                Transport,
-                                                                                          String                                                                      Username,
+        public static async ValueTask<Boolean> ClientKeyboardInteractiveAuthenticateAsync(SshTransport                                                                   Transport,
+                                                                                          User_Id                                                                        Username,
                                                                                           Func<SshKeyboardInteractiveChallenge, CancellationToken, ValueTask<String[]>>  Responder,
-                                                                                          Action<String, String>?                                                     BannerCallback  = null,
-                                                                                          CancellationToken                                                           CancellationToken = default)
+                                                                                          Action<String, String>?                                                        BannerCallback      = null,
+                                                                                          CancellationToken                                                              CancellationToken   = default)
         {
             await EnsureAuthServiceAsync(Transport, BannerCallback, CancellationToken).ConfigureAwait(false);
             return (await TryKeyboardInteractiveAsync(Transport, Username, Responder, BannerCallback, CancellationToken).ConfigureAwait(false)).Outcome == AttemptOutcome.Success;
@@ -342,7 +346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </para>
         /// </remarks>
         public static async ValueTask<Boolean> ClientAuthenticateAsync(SshTransport                                                                  Transport,
-                                                                       String                                                                        Username,
+                                                                       User_Id                                                                       Username,
                                                                        IEnumerable<ISshHostKey>?                                                     Keys                 = null,
                                                                        String?                                                                       Password             = null,
                                                                        Func<SshKeyboardInteractiveChallenge, CancellationToken, ValueTask<String[]>>?  KeyboardInteractive  = null,
@@ -483,13 +487,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         }
 
         // The "none" request (RFC 4252 §5.2): asks which methods the server takes - or lets the user in.
-        private static async ValueTask<Attempt> TryNoneAsync(SshTransport Transport, String Username, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
+        private static async ValueTask<Attempt> TryNoneAsync(SshTransport Transport, User_Id Username, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
         {
             await Transport.SendPacketAsync(BuildNoneRequest(Username), CancellationToken).ConfigureAwait(false);
             return await ReadOutcomeAsync(Transport, BannerCallback, CancellationToken).ConfigureAwait(false);
         }
 
-        private static async ValueTask<Attempt> TryPublicKeyAsync(SshTransport Transport, String Username, ISshHostKey Key, String? Algorithm, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
+        private static async ValueTask<Attempt> TryPublicKeyAsync(SshTransport Transport, User_Id Username, ISshHostKey Key, String? Algorithm, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
         {
 
             var algorithm      = Algorithm ?? ChooseAlgorithm(Key, Transport.PeerServerSignatureAlgorithms);
@@ -513,7 +517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        private static async ValueTask<Attempt> TryPasswordAsync(SshTransport Transport, String Username, String Password, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
+        private static async ValueTask<Attempt> TryPasswordAsync(SshTransport Transport, User_Id Username, String Password, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
         {
 
             await Transport.SendPacketAsync(BuildPasswordRequest(Username, Password), CancellationToken).ConfigureAwait(false);
@@ -530,13 +534,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        private static async ValueTask<Attempt> TrySessionBoundTotpAsync(SshTransport Transport, String Username, String Totp, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
+        private static async ValueTask<Attempt> TrySessionBoundTotpAsync(SshTransport Transport, User_Id Username, String Totp, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
         {
             await Transport.SendPacketAsync(BuildSessionBoundTotpRequest(Username, Totp), CancellationToken).ConfigureAwait(false);
             return await ReadOutcomeAsync(Transport, BannerCallback, CancellationToken).ConfigureAwait(false);
         }
 
-        private static async ValueTask<Attempt> TryKeyboardInteractiveAsync(SshTransport Transport, String Username, Func<SshKeyboardInteractiveChallenge, CancellationToken, ValueTask<String[]>> Responder, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
+        private static async ValueTask<Attempt> TryKeyboardInteractiveAsync(SshTransport Transport, User_Id Username, Func<SshKeyboardInteractiveChallenge, CancellationToken, ValueTask<String[]>> Responder, Action<String, String>? BannerCallback, CancellationToken CancellationToken)
         {
 
             await Transport.SendPacketAsync(BuildKeyboardInteractiveRequest(Username), CancellationToken).ConfigureAwait(false);
@@ -631,7 +635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (private) ParseAuthRequest(Payload)
 
-        private readonly record struct AuthRequest(String   Username,
+        private readonly record struct AuthRequest(User_Id  Username,
                                                    String   Method,
                                                    Boolean  HasSignature,
                                                    String   Algorithm,
@@ -649,7 +653,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (messageNumber != (Byte) SshMessageNumber.UserAuthRequest)
                 throw new SshWireException($"Expected SSH_MSG_USERAUTH_REQUEST (50) during authentication, but found {(SshMessageNumber) messageNumber} ({messageNumber}).");
 
-            var username  = reader.ReadString();
+            var username  = User_Id.Parse(reader.ReadString());
             _             = reader.ReadString();   // service name ("ssh-connection")
             var method    = reader.ReadString();
 
@@ -771,14 +775,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return abw.WrittenSpan.ToArray();
         }
 
-        private static Byte[] BuildPublicKeyRequest(String Username, String Algorithm, ReadOnlySpan<Byte> PublicKeyBlob, ReadOnlySpan<Byte> Signature)
+        private static Byte[] BuildPublicKeyRequest(User_Id Username, String Algorithm, ReadOnlySpan<Byte> PublicKeyBlob, ReadOnlySpan<Byte> Signature)
         {
 
             var abw     = new ArrayBufferWriter<Byte>();
             var writer  = new SshPacketWriter(abw);
 
             writer.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
-            writer.WriteString(Username);
+            writer.WriteString(Username.ToString());
             writer.WriteString(ConnectionService);
             writer.WriteString(PublicKeyMethod);
             writer.WriteBoolean(!Signature.IsEmpty);
@@ -792,23 +796,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        private static Byte[] BuildNoneRequest(String Username)
+        private static Byte[] BuildNoneRequest(User_Id Username)
         {
             var abw     = new ArrayBufferWriter<Byte>();
             var writer  = new SshPacketWriter(abw);
             writer.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
-            writer.WriteString(Username);
+            writer.WriteString(Username.ToString());
             writer.WriteString(ConnectionService);
             writer.WriteString(NoneMethod);
             return abw.WrittenSpan.ToArray();
         }
 
-        private static Byte[] BuildPasswordRequest(String Username, String Password)
+        private static Byte[] BuildPasswordRequest(User_Id Username, String Password)
         {
             var abw     = new ArrayBufferWriter<Byte>();
             var writer  = new SshPacketWriter(abw);
             writer.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
-            writer.WriteString(Username);
+            writer.WriteString(Username.ToString());
             writer.WriteString(ConnectionService);
             writer.WriteString(PasswordMethod);
             writer.WriteBoolean(false);        // not a password change
@@ -816,24 +820,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return abw.WrittenSpan.ToArray();
         }
 
-        private static Byte[] BuildSessionBoundTotpRequest(String Username, String Totp)
+        private static Byte[] BuildSessionBoundTotpRequest(User_Id Username, String Totp)
         {
             var abw     = new ArrayBufferWriter<Byte>();
             var writer  = new SshPacketWriter(abw);
             writer.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
-            writer.WriteString(Username);
+            writer.WriteString(Username.ToString());
             writer.WriteString(ConnectionService);
             writer.WriteString(SessionBoundTotpMethod);
             writer.WriteString(Totp);
             return abw.WrittenSpan.ToArray();
         }
 
-        private static Byte[] BuildKeyboardInteractiveRequest(String Username)
+        private static Byte[] BuildKeyboardInteractiveRequest(User_Id Username)
         {
             var abw     = new ArrayBufferWriter<Byte>();
             var writer  = new SshPacketWriter(abw);
             writer.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
-            writer.WriteString(Username);
+            writer.WriteString(Username.ToString());
             writer.WriteString(ConnectionService);
             writer.WriteString(KeyboardInteractiveMethod);
             writer.WriteString("");            // language tag
@@ -879,7 +883,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         }
 
         // The data a publickey signature covers (RFC 4252 §7): session id + the request up to the key blob.
-        private static Byte[] BuildPublicKeySignedData(ReadOnlySpan<Byte> SessionId, String Username, String Algorithm, ReadOnlySpan<Byte> PublicKeyBlob)
+        private static Byte[] BuildPublicKeySignedData(ReadOnlySpan<Byte> SessionId, User_Id Username, String Algorithm, ReadOnlySpan<Byte> PublicKeyBlob)
         {
 
             var abw     = new ArrayBufferWriter<Byte>();
@@ -887,7 +891,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             writer.WriteBinaryString(SessionId);
             writer.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
-            writer.WriteString(Username);
+            writer.WriteString(Username.ToString());
             writer.WriteString(ConnectionService);
             writer.WriteString(PublicKeyMethod);
             writer.WriteBoolean(true);

@@ -21,6 +21,7 @@ using System.IO.Pipelines;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
@@ -37,10 +38,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
     {
 
         // A TCP-listening SSH server that runs an exec handler echoing the command.
-        private static (SshTcpListener Listener, Int32 Port, Task Run) StartTargetSshServer(ISshHostKey HostKey, Byte[] UserPublicKey, String Label, CancellationToken CancellationToken)
+        private static (SshTcpListener Listener, IPPort Port, Task Run) StartTargetSshServer(ISshHostKey HostKey, Byte[] UserPublicKey, String Label, CancellationToken CancellationToken)
         {
             var listener = SshTcpListener.Start(new IPSocket(IPv4Address.Localhost, IPPort.Auto));
-            var port     = listener.LocalEndPoint.Port.ToInt32();
+            var port     = listener.LocalEndPoint.Port;
             var run = Task.Run(async () =>
             {
                 try
@@ -48,7 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                     var pipe = await listener.AcceptAsync(CancellationToken);
                     using var t = await SshTransport.ServerHandshakeAsync(pipe, HostKey, CancellationToken: CancellationToken);
                     await UserAuthentication.ServerAuthenticateAsync(t, SshUserAuthenticator.ForAuthorizedKeys(UserPublicKey), CancellationToken: CancellationToken);
-                    await SshConnection.ServeExecAsync(t, "achim", async (ctx, ct) =>
+                    await SshConnection.ServeExecAsync(t, User_Id.Parse("achim"), async (ctx, ct) =>
                     {
                         await ctx.WriteAsync($"{Label} ran: {ctx.Command}\n", ct);
                         return 0;
@@ -95,15 +96,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 var bastion  = StartBastion(bastionPipe, bastionHostKey, bastionUserKey.PublicKeyBlob, policy, CancellationToken);
 
                 using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", bastionUserKey, CancellationToken: CancellationToken);
+                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), bastionUserKey, CancellationToken: CancellationToken);
 
                 // Tunnel to the target through the bastion; verify the TARGET's host key end-to-end.
-                await using var hop = await SshProxyJump.ConnectThroughAsync(
-                                          client, "127.0.0.1", (UInt16) targetPort,
+                await using var hop = await SshProxyJump.ConnectThrough(
+                                          client, "127.0.0.1", targetPort,
                                           VerifyHostKey: blob => blob.AsSpan().SequenceEqual(targetHostKey.PublicKeyBlob),
                                           CancellationToken: CancellationToken);
 
-                await UserAuthentication.ClientPublicKeyAuthenticateAsync(hop.Transport, "achim", targetUserKey, CancellationToken: CancellationToken);
+                await UserAuthentication.ClientPublicKeyAuthenticateAsync(hop.Transport, User_Id.Parse("achim"), targetUserKey, CancellationToken: CancellationToken);
                 var result = await SshConnection.ExecuteAsync(hop.Transport, "whoami", CancellationToken);
 
                 Assert.Multiple(() => {
@@ -143,11 +144,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 _ = StartBastion(bastionPipe, bastionHostKey, bastionUserKey.PublicKeyBlob, policy, CancellationToken);
 
                 using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", bastionUserKey, CancellationToken: CancellationToken);
+                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), bastionUserKey, CancellationToken: CancellationToken);
 
                 // The target presents a key we do NOT trust → the tunneled handshake must fail.
-                await Assert.CatchAsync(async () => await SshProxyJump.ConnectThroughAsync(
-                                                  client, "127.0.0.1", (UInt16) targetPort,
+                await Assert.CatchAsync(async () => await SshProxyJump.ConnectThrough(
+                                                  client, "127.0.0.1", targetPort,
                                                   VerifyHostKey: _ => false,
                                                   CancellationToken: CancellationToken));
 
@@ -167,17 +168,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         public void JumpHost_Parse()
         {
             Assert.Multiple(() => {
-                var a = SshJumpHost.Parse("achim@bastion:2222");
-                Assert.That(a.Username, Is.EqualTo("achim"));
+                var a = SSHJumpHost.Parse("achim@bastion:2222");
+                Assert.That(a.Username, Is.EqualTo(User_Id.Parse("achim")));
                 Assert.That(a.Host,     Is.EqualTo("bastion"));
-                Assert.That(a.Port,     Is.EqualTo(2222));
+                Assert.That(a.Port,     Is.EqualTo(IPPort.Parse(2222)));
 
-                var b = SshJumpHost.Parse("gateway");
+                var b = SSHJumpHost.Parse("gateway");
                 Assert.That(b.Username, Is.Null);
                 Assert.That(b.Host,     Is.EqualTo("gateway"));
-                Assert.That(b.Port,     Is.EqualTo(22));
+                Assert.That(b.Port,     Is.EqualTo(IPPort.SSH));
 
-                var chain = SshJumpHost.ParseChain("achim@b1:22, b2");
+                var chain = SSHJumpHost.ParseChain("achim@b1:22, b2");
                 Assert.That(chain.Select(h => h.Host), Is.EqualTo(new[] { "b1", "b2" }));
             });
         }

@@ -97,12 +97,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
                           RawPublicKeyMode                                          ClientRawPublicKeys          = RawPublicKeyMode.Off,
                           RemoteTLSClientKeyValidationHandler<ITCPServer>?          ClientKeyValidator           = null,
                           Boolean                                                   AcceptHTTP2                  = false,
-                          UInt16?                                                   Port                         = null,
+                          IPPort?                                                   Port                         = null,
                           Boolean                                                   AcceptHTTP3                  = false)
             {
 
                 Server = new WebSocketMirrorServer(
-                             HTTPPort:                    Port.HasValue ? IPPort.Parse(Port.Value) : IPPort.Zero,
+                             HTTPPort:                    Port.HasValue ? Port.Value : IPPort.Zero,
                              RequireAuthentication:       false,
                              ServerCertificateSelector:   (tcpServer, tcpClient) => Certificate,
                              ClientCertificateValidator:  ClientCertificateValidator,
@@ -674,7 +674,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
         /// A port that is free for TCP and for UDP: a WebSocket server takes
         /// HTTP/3 on the UDP port of the number of its TCP port.
         /// </summary>
-        private static UInt16 APortFreeForBoth()
+        private static IPPort APortFreeForBoth()
         {
 
             for (var attempt = 0; attempt < 50; attempt++)
@@ -683,12 +683,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
                 using var tcp = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
                 tcp.Start();
 
-                var port = ((System.Net.IPEndPoint) tcp.LocalEndpoint).Port;
+                var port = IPPort.Parse(((System.Net.IPEndPoint) tcp.LocalEndpoint).Port);
 
                 try
                 {
-                    using var udp = new System.Net.Sockets.UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.Any, port));
-                    return (UInt16) port;
+                    using var udp = new System.Net.Sockets.UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.Any, port.ToInt32()));
+                    return port;
                 }
                 catch (System.Net.Sockets.SocketException)
                 { }

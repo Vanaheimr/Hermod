@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public String?                  RText       => throw new NotImplementedException();
 
-        public IIPAddress?              Source      => throw new NotImplementedException();
+        public IPAddress?              Source      => throw new NotImplementedException();
 
         public TimeSpan                 TimeToLive        { get; }
 

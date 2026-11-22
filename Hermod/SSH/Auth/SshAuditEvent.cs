@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Collections.Concurrent;
 
 #endregion
@@ -29,14 +30,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// </summary>
     public enum SshRole
     {
+
         /// <summary>
         /// The client side.
         /// </summary>
         Client,
+
         /// <summary>
         /// The server side.
         /// </summary>
         Server
+
     }
 
 
@@ -83,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <summary>
     /// A single authentication method succeeded for the user (may be one factor of several).
     /// </summary>
-    public sealed record AuthMethodSucceededEvent(DateTimeOffset Timestamp, String Username, String Method) : SshAuditEvent(Timestamp)
+    public sealed record AuthMethodSucceededEvent(DateTimeOffset Timestamp, User_Id Username, String Method) : SshAuditEvent(Timestamp)
     {
         /// <summary>
         /// What authenticated, where it can be named: the SHA-256 fingerprint of a public key.
@@ -94,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <summary>
     /// A single authentication attempt failed. The reason is for the audit log only, never the wire.
     /// </summary>
-    public sealed record AuthMethodFailedEvent(DateTimeOffset Timestamp, String Username, String Method, String Reason) : SshAuditEvent(Timestamp)
+    public sealed record AuthMethodFailedEvent(DateTimeOffset Timestamp, User_Id Username, String Method, String Reason) : SshAuditEvent(Timestamp)
     {
         /// <summary>
         /// What was tried, where it can be named: the SHA-256 fingerprint of a public key.
@@ -105,12 +109,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <summary>
     /// Authentication completed successfully (all required factors satisfied).
     /// </summary>
-    public sealed record AuthenticationSucceededEvent(DateTimeOffset Timestamp, String Username, IReadOnlyList<String> Methods) : SshAuditEvent(Timestamp);
+    public sealed record AuthenticationSucceededEvent(DateTimeOffset Timestamp, User_Id Username, IReadOnlyList<String> Methods) : SshAuditEvent(Timestamp);
 
     /// <summary>
     /// Authentication failed and the connection is being torn down (attempt budget exhausted).
     /// </summary>
-    public sealed record AuthenticationFailedEvent(DateTimeOffset Timestamp, String Username, Int32 FailedAttempts) : SshAuditEvent(Timestamp);
+    public sealed record AuthenticationFailedEvent(DateTimeOffset Timestamp, User_Id Username, Int32 FailedAttempts) : SshAuditEvent(Timestamp);
 
 
     /// <summary>

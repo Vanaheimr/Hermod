@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var api = await StartAPI();
 
-            await NewUser (api, "hank", Password);
+            await NewUser (api, User_Id.Parse("hank"), Password);
             await NewGroup(api, "admins");
 
             Assert.That(CommandsIn(HTTPExtAPI.DefaultHTTPExtAPI_DatabaseFileName),
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var api = await StartAPI();
 
-            await NewUser (api, "hank", Password);
+            await NewUser (api, User_Id.Parse("hank"), Password);
             await NewGroup(api, "admins");
 
             var before    = ChainOf(HTTPExtAPI.DefaultHTTPExtAPI_DatabaseFileName);
@@ -162,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api   = await StartAPI();
-            var hank  = await NewUser(api, "hank", Password);
+            var hank  = await NewUser(api, User_Id.Parse("hank"), Password);
             var key   = SshHostKey.GenerateEd25519();
 
             var added = await api.AddSSHKey(hank, SshPublicKey.FromHostKey(key, "tester").ToAuthorizedKeyLine());
@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var restarted = await StartAPI();
 
-            added = await restarted.AddSSHKey(UserOf(restarted, "hank"), SshPublicKey.FromHostKey(SshHostKey.GenerateEd25519(), "tester").ToAuthorizedKeyLine());
+            added = await restarted.AddSSHKey(UserOf(restarted, User_Id.Parse("hank")), SshPublicKey.FromHostKey(SshHostKey.GenerateEd25519(), "tester").ToAuthorizedKeyLine());
             Assert.That(added.Outcome, Is.EqualTo(AddSSHKeyOutcome.Added), added.Reason);
 
             Assert.That(CommandsIn(HTTPExtAPI.DefaultHTTPExtAPI_DatabaseFileName),
@@ -196,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api   = await StartAPI();
-            var hank  = await NewUser(api, "hank", Password);
+            var hank  = await NewUser(api, User_Id.Parse("hank"), Password);
 
             await NewGroup(api, "admins");
 
@@ -207,7 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             await NewGroup(restarted, "staff");
 
-            changed = await restarted.ChangePassword(UserOf(restarted, "hank"), Password, NewPassword);
+            changed = await restarted.ChangePassword(UserOf(restarted, User_Id.Parse("hank")), Password, NewPassword);
             Assert.That(changed.Result, Is.EqualTo(CommandResult.Success), changed.Description.FirstText());
 
             Assert.That(CommandsIn(HTTPExtAPI.DefaultPasswordFile),
@@ -231,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var api   = await StartAPI();
-            var hank  = await NewUser(api, "hank", Password);
+            var hank  = await NewUser(api, User_Id.Parse("hank"), Password);
 
             await AddReset(api, hank);
             await NewGroup(api, "admins");
@@ -239,7 +239,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var restarted = await StartAPI();
 
             await NewGroup(restarted, "staff");
-            await AddReset(restarted, UserOf(restarted, "hank"));
+            await AddReset(restarted, UserOf(restarted, User_Id.Parse("hank")));
 
             Assert.That(CommandsIn(HTTPExtAPI.DefaultPasswordResetsFile),
                         Is.EqualTo(new[] { "add", "add" }));
@@ -418,7 +418,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var api = await StartAPI();
 
-            await NewUser (api, "hank", Password);
+            await NewUser (api, User_Id.Parse("hank"), Password);
             await NewGroup(api, "admins");
 
             // Linked as one shared chain did: addUser, addPassword, addUserGroup.
@@ -438,7 +438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             await NewGroup(restarted, "staff");
 
-            var changed = await restarted.ChangePassword(UserOf(restarted, "hank"), NewPassword, Password);
+            var changed = await restarted.ChangePassword(UserOf(restarted, User_Id.Parse("hank")), NewPassword, Password);
             Assert.That(changed.Result, Is.EqualTo(CommandResult.Success), changed.Description.FirstText());
 
             Assert.Multiple(() => {
@@ -485,13 +485,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static async Task<User> NewUser(HTTPExtAPI  API,
-                                                String      Name,
+                                                User_Id     Name,
                                                 String?     Password   = null)
         {
 
             var user = await API.CreateUser(
-                                 User_Id.Parse(Name),
-                                 I18NString.Create(Name),
+                                 Name,
+                                 I18NString.Create(Name.ToString()),
                                  SimpleEMailAddress.Parse($"{Name}@example.test"),
                                  Password,
                                  SkipDefaultNotifications:  true,
@@ -506,10 +506,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static User UserOf(HTTPExtAPI  API,
-                                   String      Name)
+                                   User_Id     Name)
         {
 
-            Assert.That(API.TryGetUser(User_Id.Parse(Name), out var user) && user is User, Is.True, $"There is no user '{Name}'.");
+            Assert.That(API.TryGetUser(Name, out var user) && user is User, Is.True, $"There is no user '{Name}'.");
 
             return (User) user!;
 

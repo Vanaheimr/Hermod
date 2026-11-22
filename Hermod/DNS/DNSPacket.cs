@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         /// <summary>
         /// Who asked, where the transport the request arrived over knows its client by more than an
-        /// address: the login of the SSH connection of DNS over SSH. Null over every other transport.
+        /// address: the login of the SSH connection of DNS-over-SSH. Null over every other transport.
         /// </summary>
         /// <remarks>
         /// Authenticated by the transport, not claimed in the message: a request handler may answer

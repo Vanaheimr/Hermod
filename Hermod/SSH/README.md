@@ -67,7 +67,7 @@ Console.WriteLine($"[{result.ExitCode}] {result.StandardOutput}");
 A host name is resolved with `DNSClient` - the server's, the first jump host's, the local target of
 a remote forward - and **never with the resolver of the operating system**: an application that
 resolves its names securely, with name servers of its own, DNS over TLS or HTTPS and DNSSEC, must not
-be dialled around them. An IP address, or `localhost`, needs no DNS client; a host name without one is
+be connected around them. An IP address, or `localhost`, needs no DNS client; a host name without one is
 refused with an `SshNameResolutionException`. On the server, a forwarding target is resolved with
 `SshServerOptions.DNSClient` where there is no `AddressResolver`, and is otherwise reached by IP
 address only. `SshTcp.ResolveAsync` and `SshTcp.ResolverOf` are where all of them resolve, through

@@ -61,14 +61,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                     TimeSpan.FromSeconds(4500),
                     Strings);
 
-        private static SRV SRVRecord(UInt16 Port = 8443)
+        private static SRV SRVRecord(IPPort? Port = null)
 
             => new (InstanceName,
                     DNSQueryClasses.IN,
                     TimeSpan.FromSeconds(120),
                     0,
                     0,
-                    IPPort.Parse(Port),
+                    Port ?? IPPort.Parse(8443),
                     DomainName.Parse("myhost.local."));
 
         private static PTR PTRRecord()

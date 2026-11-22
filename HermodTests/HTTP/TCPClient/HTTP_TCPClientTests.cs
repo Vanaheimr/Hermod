@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         private TCPClientRequest NewTCPClientRequest()
 
-            => new ("localhost", httpServer?.TCPPort.ToInt32() ?? throw new InvalidOperationException("HTTP server was not initialized!"));
+            => new ("localhost", IPPort.Parse(httpServer?.TCPPort.ToInt32() ?? throw new InvalidOperationException("HTTP server was not initialized!")));
 
         #endregion
 

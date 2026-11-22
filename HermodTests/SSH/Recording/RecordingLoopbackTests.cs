@@ -19,6 +19,7 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
@@ -64,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                     var handle   = await sink.BeginAsync(meta, RecordingFormat.AsciicastV2, CancellationToken);
                     var recorder = new SessionRecorder(handle, meta);
 
-                    await SshConnection.ServeCommandAsync(t, "achim", async (context, ct) =>
+                    await SshConnection.ServeCommandAsync(t, User_Id.Parse("achim"), async (context, ct) =>
                     {
                         await context.WriteLineAsync("boot: ok", ct);
                         await context.WriteLineAsync("temp: 41C", ct);
@@ -77,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             }, CancellationToken);
 
             using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
+            await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
 
             await using var cmd = await SshConnection.StartCommandAsync(client, new SshCommand("status --all"), CancellationToken: CancellationToken);
 

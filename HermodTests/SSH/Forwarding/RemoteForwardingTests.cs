@@ -23,6 +23,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Server;
@@ -42,11 +43,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
     public class RemoteForwardingTests
     {
 
-        private static (TcpListener Listener, Int32 Port) StartEchoServer(CancellationToken CancellationToken)
+        private static (TcpListener Listener, IPPort Port) StartEchoServer(CancellationToken CancellationToken)
         {
             var listener = new TcpListener(IPAddress.Loopback, 0);
             listener.Start();
-            var port = ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             _ = Task.Run(async () =>
             {
                 try
@@ -116,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 }, CancellationToken);
 
                 using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
+                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
                 await using var clientMux = new SshChannelMultiplexer(client).Start();
 
                 await serverReady.Task.WaitAsync(CancellationToken);
@@ -126,8 +127,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 bindPort.HandOver();
 
                 // ssh -R bindPort:127.0.0.1:echoPort — the server listens, we relay to our local echo service.
-                await using var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(
-                                              clientMux, "127.0.0.1", bindPort.Number.ToUInt16(), "127.0.0.1", (UInt16) echoPort, CancellationToken);
+                await using var forward = await SshRemoteForwarding.RequestRemoteForward(
+                                              clientMux, "127.0.0.1", bindPort.Number, "127.0.0.1", echoPort, CancellationToken);
 
                 // An external client connects to the SERVER's forwarded port and must reach our echo service.
                 using var external = new TcpClient();
@@ -159,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         // A real SshServer, so the remote-forward responder sits next to the host-key proofs exactly as in
         // production, and a client whose multiplexer the tests drive by hand to see the raw replies.
-        private static async Task<(SshServer Server, SshClient Client)> ConnectAsync(CancellationToken CancellationToken)
+        private static async Task<(SshServer Server, SSHClient Client)> ConnectAsync(CancellationToken CancellationToken)
         {
 
             var userKey = SshHostKey.GenerateEd25519();
@@ -174,8 +175,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            var client  = await SshClient.ConnectAsync("127.0.0.1", (UInt16) server.LocalEndPoint.Port.ToInt32(), new SshClientOptions {
-                Username       = "achim",
+            var client  = await SSHClient.Connect("127.0.0.1", server.LocalEndPoint.Port, new SSHClientOptions {
+                Username       = User_Id.Parse("achim"),
                 VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                 Credentials    = [ userKey ]
             }, CancellationToken);
@@ -184,12 +185,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        private static Byte[] AddressAndPort(String Address, UInt32 Port)
+        private static Byte[] AddressAndPort(String Address, IPPort Port)
         {
             var abw = new System.Buffers.ArrayBufferWriter<Byte>();
             var w   = new SshPacketWriter(abw);
             w.WriteString(Address);
-            w.WriteUInt32(Port);
+            w.WriteUInt32(Port.ToUInt16());
             return abw.WrittenSpan.ToArray();
         }
 
@@ -197,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         /// Connect to the server's forwarded port and return the address and port the server named in the
         /// resulting <c>forwarded-tcpip</c> channel.
         /// </summary>
-        private static async Task<(String Address, UInt32 Port)> ForwardedChannelForAsync(SshChannelMultiplexer Mux, Int32 Port, CancellationToken CancellationToken)
+        private static async Task<(String Address, IPPort Port)> ForwardedChannelForAsync(SshChannelMultiplexer Mux, IPPort Port, CancellationToken CancellationToken)
         {
 
             var opened = new TaskCompletionSource<Byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -209,12 +210,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             };
 
             using var external = new TcpClient();
-            await external.ConnectAsync(IPAddress.Loopback, Port, CancellationToken);
+            await external.ConnectAsync(IPAddress.Loopback, Port.ToInt32(), CancellationToken);
 
             var typeData = await opened.Task.WaitAsync(CancellationToken);
             var reader   = new SshPacketReader(typeData);
 
-            return (reader.ReadString(), reader.ReadUInt32());
+            return (reader.ReadString(), IPPort.Parse((UInt16) reader.ReadUInt32()));
 
         }
 
@@ -238,15 +239,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                var reply = await client.Multiplexer.SendGlobalRequestWithReplyAsync("tcpip-forward", true, AddressAndPort("127.0.0.1", 0), CancellationToken);
+                var reply = await client.Multiplexer.SendGlobalRequestWithReplyAsync("tcpip-forward", true, AddressAndPort("127.0.0.1", IPPort.Zero), CancellationToken);
 
                 Assert.That(reply.Success,     Is.True,              "a loopback forward on a chosen port is permitted");
                 Assert.That(reply.Data.Length, Is.EqualTo(4),        "the reply to port 0 carries the allocated port");
 
-                var allocated = new SshPacketReader(reply.Data).ReadUInt32();
-                Assert.That(allocated,         Is.InRange(1u, 65535u));
+                var chosen    = new SshPacketReader(reply.Data).ReadUInt32();
+                Assert.That(chosen,            Is.InRange(1u, 65535u));
 
-                var (address, port) = await ForwardedChannelForAsync(client.Multiplexer, (Int32) allocated, CancellationToken);
+                var allocated = IPPort.Parse((UInt16) chosen);
+
+                var (address, port) = await ForwardedChannelForAsync(client.Multiplexer, allocated, CancellationToken);
 
                 Assert.Multiple(() => {
                     Assert.That(address, Is.EqualTo("127.0.0.1"), "the channel names the address as the client spelled it");
@@ -281,11 +284,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                var reply = await client.Multiplexer.SendGlobalRequestWithReplyAsync("tcpip-forward", true, AddressAndPort("localhost", 0), CancellationToken);
+                var reply = await client.Multiplexer.SendGlobalRequestWithReplyAsync("tcpip-forward", true, AddressAndPort("localhost", IPPort.Zero), CancellationToken);
                 Assert.That(reply.Success, Is.True, "'localhost' is what ssh -R sends without a bind address");
 
-                var allocated       = new SshPacketReader(reply.Data).ReadUInt32();
-                var (address, port) = await ForwardedChannelForAsync(client.Multiplexer, (Int32) allocated, CancellationToken);
+                var allocated       = IPPort.Parse((UInt16) new SshPacketReader(reply.Data).ReadUInt32());
+                var (address, port) = await ForwardedChannelForAsync(client.Multiplexer, allocated, CancellationToken);
 
                 Assert.Multiple(() => {
                     Assert.That(address, Is.EqualTo("localhost"));
@@ -322,7 +325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 foreach (var bindAddress in new[] { "example.com", "", "*", "0.0.0.0" })
                 {
-                    var reply = await client.Multiplexer.SendGlobalRequestWithReplyAsync("tcpip-forward", true, AddressAndPort(bindAddress, 0), CancellationToken);
+                    var reply = await client.Multiplexer.SendGlobalRequestWithReplyAsync("tcpip-forward", true, AddressAndPort(bindAddress, IPPort.Zero), CancellationToken);
                     Assert.That(reply.Success, Is.False, $"bind address '{bindAddress}' must be refused under a loopback-only policy");
                 }
 
@@ -354,8 +357,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 var mux       = client.Multiplexer;
-                var reply     = await mux.SendGlobalRequestWithReplyAsync("tcpip-forward", true, AddressAndPort("127.0.0.1", 0), CancellationToken);
-                var allocated = new SshPacketReader(reply.Data).ReadUInt32();
+                var reply     = await mux.SendGlobalRequestWithReplyAsync("tcpip-forward", true, AddressAndPort("127.0.0.1", IPPort.Zero), CancellationToken);
+                var allocated = IPPort.Parse((UInt16) new SshPacketReader(reply.Data).ReadUInt32());
 
                 Assert.That(await mux.SendGlobalRequestAsync("cancel-tcpip-forward", true, AddressAndPort("127.0.0.1", allocated), CancellationToken),
                             Is.True, "an existing forward can be cancelled");
@@ -364,7 +367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                             Is.False, "a forward that is gone cannot be cancelled twice");
 
                 using var external = new TcpClient();
-                await Assert.CatchAsync<SocketException>(async () => await external.ConnectAsync(IPAddress.Loopback, (Int32) allocated, CancellationToken),
+                await Assert.CatchAsync<SocketException>(async () => await external.ConnectAsync(IPAddress.Loopback, allocated.ToInt32(), CancellationToken),
                                                    "nothing listens on a cancelled forward");
 
             }
@@ -399,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             }, CancellationToken);
 
             var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
+            await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
 
             return (await serverTask, new SshChannelMultiplexer(client).Start());
 
@@ -408,7 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         /// <summary>
         /// A local target that says who it is and hangs up.
         /// </summary>
-        private static (TcpListener Listener, UInt16 Port) StartNamedServer(String Name, CancellationToken CancellationToken)
+        private static (TcpListener Listener, IPPort Port) StartNamedServer(String Name, CancellationToken CancellationToken)
         {
             var listener = new TcpListener(IPAddress.Loopback, 0);
             listener.Start();
@@ -423,13 +426,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 }
                 catch { }
             }, CancellationToken);
-            return (listener, (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port);
+            return (listener, IPPort.Parse((UInt16) ((IPEndPoint) listener.LocalEndpoint).Port));
         }
 
-        private static async Task<String> ReadAllFromAsync(UInt16 Port, CancellationToken CancellationToken)
+        private static async Task<String> ReadAllFromAsync(IPPort Port, CancellationToken CancellationToken)
         {
             using var external = new TcpClient();
-            await external.ConnectAsync(IPAddress.Loopback, Port, CancellationToken);
+            await external.ConnectAsync(IPAddress.Loopback, Port.ToInt32(), CancellationToken);
             using var reader = new StreamReader(external.GetStream(), Encoding.UTF8);
             return await reader.ReadToEndAsync(CancellationToken);
         }
@@ -453,12 +456,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                await using var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", targetPort, CancellationToken);
+                await using var forward = await SshRemoteForwarding.RequestRemoteForward(client, "127.0.0.1", IPPort.Zero, "127.0.0.1", targetPort, CancellationToken);
 
                 Assert.Multiple(() => {
                     Assert.That(forward.BindHost,  Is.EqualTo("127.0.0.1"));
-                    Assert.That(forward.BoundPort, Is.Not.Zero, "the port the server chose");
-                    Assert.That(forward.LocalPort, Is.EqualTo(targetPort));
+                    Assert.That(forward.BoundPort.IsZero, Is.False, "the port the server chose");
+                    Assert.That(forward.LocalPort,        Is.EqualTo(targetPort));
                 });
 
                 Assert.That(await ReadAllFromAsync(forward.BoundPort, CancellationToken), Is.EqualTo("the target"));
@@ -523,10 +526,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         /// One round: a forward on a port the server chooses, cancelled, asked for again on that port,
         /// disposed, and asked for once more.
         /// </summary>
-        private static async Task CancelAndAskAgain(SshChannelMultiplexer Client, UInt16 TargetPort, CancellationToken CancellationToken)
+        private static async Task CancelAndAskAgain(SshChannelMultiplexer Client, IPPort TargetPort, CancellationToken CancellationToken)
         {
 
-            var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(Client, "127.0.0.1", 0, "127.0.0.1", TargetPort, CancellationToken);
+            var forward = await SshRemoteForwarding.RequestRemoteForward(Client, "127.0.0.1", IPPort.Zero, "127.0.0.1", TargetPort, CancellationToken);
             var port    = forward.BoundPort;
 
             Assert.That(await ReadAllFromAsync(port, CancellationToken), Is.EqualTo("the target"));
@@ -535,18 +538,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             Assert.That(await forward.CancelAsync(CancellationToken), Is.False, "a forward is cancelled once");
 
             using var external = new TcpClient();
-            await Assert.CatchAsync<SocketException>(async () => await external.ConnectAsync(IPAddress.Loopback, port, CancellationToken),
+            await Assert.CatchAsync<SocketException>(async () => await external.ConnectAsync(IPAddress.Loopback, port.ToInt32(), CancellationToken),
                                                      "nothing listens on a disposed forward");
 
             // The same port, asked for again, is free on the server's side. Disposing does not wait for
             // the server's answer, but the server takes requests in order: once the next one is
             // answered, the disposed forward is gone, and its port can be asked for once more.
-            var again = await SshRemoteForwarding.RequestRemoteForwardAsync(Client, "127.0.0.1", port, "127.0.0.1", TargetPort, CancellationToken);
+            var again = await SshRemoteForwarding.RequestRemoteForward(Client, "127.0.0.1", port, "127.0.0.1", TargetPort, CancellationToken);
             Assert.That(again.BoundPort, Is.EqualTo(port));
 
             await again.DisposeAsync();
 
-            await using var thrice = await SshRemoteForwarding.RequestRemoteForwardAsync(Client, "127.0.0.1", port, "127.0.0.1", TargetPort, CancellationToken);
+            await using var thrice = await SshRemoteForwarding.RequestRemoteForward(Client, "127.0.0.1", port, "127.0.0.1", TargetPort, CancellationToken);
             Assert.That(await ReadAllFromAsync(port, CancellationToken), Is.EqualTo("the target"), "a disposed forward is cancelled, too");
 
         }
@@ -579,12 +582,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 for (var round = 1; round <= 200; round++)
                 {
 
-                    var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", targetPort, CancellationToken);
+                    var forward = await SshRemoteForwarding.RequestRemoteForward(client, "127.0.0.1", IPPort.Zero, "127.0.0.1", targetPort, CancellationToken);
                     var port    = forward.BoundPort;
 
                     Assert.That(await forward.CancelAsync(CancellationToken), Is.True, "the server stopped listening");
 
-                    var probe = new TcpListener(IPAddress.Loopback, port);
+                    var probe = new TcpListener(IPAddress.Loopback, port.ToInt32());
 
                     try
                     {
@@ -633,8 +636,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                await using var toAlpha = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", alphaPort, CancellationToken);
-                await using var toBeta  = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", betaPort,  CancellationToken);
+                await using var toAlpha = await SshRemoteForwarding.RequestRemoteForward(client, "127.0.0.1", IPPort.Zero, "127.0.0.1", alphaPort, CancellationToken);
+                await using var toBeta  = await SshRemoteForwarding.RequestRemoteForward(client, "127.0.0.1", IPPort.Zero, "127.0.0.1", betaPort,  CancellationToken);
 
                 for (var i = 0; i < 4; i++)
                 {
@@ -673,11 +676,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                await using var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client, "127.0.0.1", 0, "127.0.0.1", targetPort, CancellationToken);
+                await using var forward = await SshRemoteForwarding.RequestRemoteForward(client, "127.0.0.1", IPPort.Zero, "127.0.0.1", targetPort, CancellationToken);
 
-                foreach (var (address, port) in new[] { ("127.0.0.1",  (UInt16) (forward.BoundPort ^ 1)),
-                                                        ("localhost",  forward.BoundPort),
-                                                        ("127.0.0.1 ", forward.BoundPort) })
+                foreach (var (address, port) in new[] { ("127.0.0.1",  (UInt16) (forward.BoundPort.ToUInt16() ^ 1)),
+                                                        ("localhost",  forward.BoundPort.ToUInt16()),
+                                                        ("127.0.0.1 ", forward.BoundPort.ToUInt16()) })
                 {
 
                     var abw = new System.Buffers.ArrayBufferWriter<Byte>();

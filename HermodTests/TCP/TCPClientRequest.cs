@@ -46,9 +46,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 
         #endregion
 
-        public TCPClientRequest(String Hostname, Int32 Port)
+        public TCPClientRequest(String Hostname, IPPort Port)
         {
-            TCPClient = new TcpClient(Hostname, Port);
+            TCPClient = new TcpClient(Hostname, Port.ToInt32());
             TCPStream = TCPClient.GetStream();
         }
 

@@ -189,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // Bind a port on every listen address. Done before the first await, so the end points
             // are known as soon as Start returns its task. An IPv6 listener is IPv6 only: with
             // both Any and IPv6Any listed, a dual-mode socket would collide with the IPv4 one.
-            IReadOnlyList<System.Net.IPEndPoint> Listen(UInt16 port, Boolean isSubmissionPort, Boolean implicitTls)
+            IReadOnlyList<System.Net.IPEndPoint> Listen(IPPort port, Boolean isSubmissionPort, Boolean implicitTls)
             {
 
                 var endPoints = new List<System.Net.IPEndPoint>();
@@ -197,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 foreach (var address in serverConfig.ListenAddresses)
                 {
 
-                    var listener = new TcpListener(address, port);
+                    var listener = new TcpListener(address, port.ToInt32());
 
                     if (address.AddressFamily == AddressFamily.InterNetworkV6)
                         listener.Server.DualMode = false;

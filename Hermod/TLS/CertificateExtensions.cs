@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// is for the interface this one returns.
         /// </remarks>
         /// <param name="Certificate">A certificate.</param>
-        public static IEnumerable<IIPAddress> GetIIPAddresses(this X509Certificate2 Certificate)
+        public static IEnumerable<IPAddress> GetIIPAddresses(this X509Certificate2 Certificate)
 
             => Certificate.SubjectAlternativeNameExtension()?.EnumerateIPAddresses().Select(IPAddress.FromDotNet) ?? [];
 

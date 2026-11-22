@@ -171,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HeaderReadTimeout">The maximum time to wait for one complete HTTP request header section. It starts when the server starts waiting for the request - on a new connection, or once the previous response on a kept-alive connection has been sent - so it bounds the keep-alive idle wait and the header section together, and it does not start again with every read. If null, ReceiveTimeout.</param>
         /// <param name="BodyReadTimeout">The maximum time allowed to receive one complete HTTP request body. If null, ReceiveTimeout.</param>
         /// <param name="IncludeStackTracesInErrorResponses">Whether internal exception details and stack traces are included in HTTP error responses.</param>
-        public HTTPServer(IIPAddress?                                               IPAddress                    = null,
+        public HTTPServer(IPAddress?                                               IPAddress                    = null,
                           IPPort?                                                   TCPPort                      = null,
                           String?                                                   HTTPServerName               = null,
                           I18NString?                                               Description                  = null,
@@ -356,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static async Task<HTTPServer>
 
-            StartNew(IIPAddress?                                               IPAddress                    = null,
+            StartNew(IPAddress?                                               IPAddress                    = null,
                      IPPort?                                                   TCPPort                      = null,
                      String?                                                   HTTPServerName               = null,
                      I18NString?                                               Description                  = null,

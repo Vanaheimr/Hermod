@@ -277,7 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
             try
             {
 
-                var port = ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+                var port = IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
                 var serving = Task.Run(async () => {
                                   using var accepted = await listener.AcceptTcpClientAsync(deadline.Token);
@@ -291,7 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.PKI
                               }, deadline.Token);
 
                 using var client = new TcpClient();
-                await client.ConnectAsync(System.Net.IPAddress.Loopback, port, deadline.Token);
+                await client.ConnectAsync(System.Net.IPAddress.Loopback, port.ToInt32(), deadline.Token);
 
                 // Accepts anything: what is being asked is whether the server
                 // can present the certificate at all, not whether it is

@@ -47,8 +47,8 @@ public class PreferredAddressTests
     [Test]
     public void ARoundTripPreservesEverything()
     {
-        var original = new PreferredAddress(System.Net.IPAddress.Parse("198.51.100.7"), 4433,
-                                            System.Net.IPAddress.Parse("2001:db8::1"), 8443,
+        var original = new PreferredAddress(System.Net.IPAddress.Parse("198.51.100.7"), IPPort.Parse(4433),
+                                            System.Net.IPAddress.Parse("2001:db8::1"), IPPort.Parse(8443),
                                             Cid, Token);
 
         Assert.That(PreferredAddress.TryParse(original.Encode(), out PreferredAddress? parsed), Is.True);
@@ -235,7 +235,7 @@ public class PreferredAddressTests
         // §18.2 forbids it, and the client would have to kill the connection over it — so it never
         // reaches the wire.
         using var cert = ServerCertificate.CreateSelfSigned("localhost");
-        var broken = new PreferredAddress(System.Net.IPAddress.Loopback, 4433, null, 0, ConnectionId.Empty, Token);
+        var broken = new PreferredAddress(System.Net.IPAddress.Loopback, IPPort.Parse(4433), null, IPPort.Zero, ConnectionId.Empty, Token);
 
         Assert.Throws<ArgumentException>(() => _ = new QuicServerConnection(cert, preferredAddress: broken));
     }

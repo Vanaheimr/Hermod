@@ -80,7 +80,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The IP address of the DNS server to query.
         /// </summary>
-        public IIPAddress  RemoteIPAddress     { get; }
+        public IPAddress  RemoteIPAddress     { get; }
+
+        IPAddress? IDNSClientWithTransport.RemoteIPAddress
+            => RemoteIPAddress;
 
         /// <summary>
         /// The TSIG key to sign queries with, or null to leave them unsigned
@@ -165,12 +168,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Always null for UDP (connectionless, no persistent endpoint).
         /// </summary>
-        public UInt16?      CurrentLocalPort         => null;
+        public IPPort?      CurrentLocalPort         => null;
 
         /// <summary>
         /// Always null for UDP (connectionless, no persistent endpoint).
         /// </summary>
-        public IIPAddress?  CurrentLocalIPAddress    => null;
+        public IPAddress?  CurrentLocalIPAddress    => null;
 
         /// <summary>
         /// Always null for UDP (connectionless, no persistent endpoint).
@@ -180,12 +183,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Always null for UDP (connectionless, no persistent endpoint).
         /// </summary>
-        public UInt16?      CurrentRemotePort        => null;
+        public IPPort?      CurrentRemotePort        => null;
 
         /// <summary>
         /// Always null for UDP (connectionless, no persistent endpoint).
         /// </summary>
-        public IIPAddress?  CurrentRemoteIPAddress   => null;
+        public IPAddress?  CurrentRemoteIPAddress   => null;
 
         public  URL                      RemoteURL          { get; }
 
@@ -208,7 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The UDP port of the DNS server to query.</param>
         /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
         /// <param name="QueryTimeout">An optional DNS query timeout. Default is 23.5 seconds.</param>
-        public DNSUDPClient(IIPAddress              IPAddress,
+        public DNSUDPClient(IPAddress              IPAddress,
                             IPPort?                 Port               = null,
                             Boolean?                RecursionDesired   = null,
                             TimeSpan?               QueryTimeout       = null,

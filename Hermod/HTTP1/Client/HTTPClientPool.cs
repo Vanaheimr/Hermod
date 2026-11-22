@@ -708,7 +708,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The IP Address to connect to.
         /// </summary>
-        public IIPAddress?                                                RemoteIPAddress               { get; private set; }
+        public IPAddress?                                                RemoteIPAddress               { get; private set; }
 
         /// <summary>
         /// The HTTP/TCP port to connect to.
@@ -889,7 +889,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPClientPool(IPAddress, ...)
 
-        public HTTPClientPool(IIPAddress                                                 IPAddress,
+        public HTTPClientPool(IPAddress                                                 IPAddress,
                               IPPort?                                                    TCPPort                               = null,
                               I18NString?                                                Description                           = null,
                               String?                                                    HTTPUserAgent                         = null,
@@ -946,7 +946,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.MaxConnectionLifetime            = MaxConnectionLifetime;
 
             this.DefaultRequestBuilder            = DefaultRequestBuilder  ?? ((httpClient) => new HTTPRequest.Builder(httpClient) {
-                                                                                                   Host               = HTTPHostname.From(IPAddress, TCPPort),
+                                                                                                   Host               = HTTPHostname.From(URLHost.From(IPAddress), TCPPort),
                                                                                                    Accept             = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
                                                                                                    UserAgent          = httpClient.HTTPUserAgent,
                                                                                                    Connection         = ConnectionType.KeepAlive,

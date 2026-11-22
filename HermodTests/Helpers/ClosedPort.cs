@@ -126,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
         public ClosedPort()
         {
 
-            holder  = Bind(0, Exclusively: true);
+            holder  = Bind(IPPort.Zero, Exclusively: true);
 
             Number  = IPPort.Parse((UInt16) ((IPEndPoint) holder.LocalEndPoint!).Port);
 
@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
             // At once, with nothing to wait for in between.
             try
             {
-                anchor = Bind(Number.ToUInt16(), Exclusively: false);
+                anchor = Bind(Number, Exclusively: false);
             }
             catch (SocketException e)
             {
@@ -196,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 
             try
             {
-                holder = Bind(Number.ToUInt16(), Exclusively: true);
+                holder = Bind(Number, Exclusively: true);
             }
             catch (SocketException e)
             {
@@ -216,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
         /// otherwise the test's own server can, on 127.0.0.1 and [::1]. Port 0
         /// lets the operating system choose one.
         /// </summary>
-        private static Socket Bind(UInt16   Port,
+        private static Socket Bind(IPPort   Port,
                                    Boolean  Exclusively)
         {
 
@@ -237,7 +237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
                 socket.Bind(new IPEndPoint(dualMode
                                                ? System.Net.IPAddress.IPv6Any
                                                : System.Net.IPAddress.Any,
-                                           Port));
+                                           Port.ToInt32()));
 
                 // After Bind(), because Bind() is where .NET sets it.
                 if (Exclusively && !OperatingSystem.IsWindows())

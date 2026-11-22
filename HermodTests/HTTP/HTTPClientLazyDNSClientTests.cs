@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
     /// 1.06 ms. The same loop with one shared DNS client took 0.449 ms, which
     /// is what named the constructor rather than the connection as the cost.
     ///
-    /// Dialling a literal IP address resolves nothing at all, so for those
+    /// Connecting to a literal IP address resolves nothing at all, so for those
     /// clients the work was not merely early but never needed. Measured by
     /// `tests/h1bench -- connect` in HTTP1ConformanceTests, where this is H-27.
     /// </summary>
@@ -248,7 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         /// <summary>
         /// The request, and not merely the construction: an URL that already
-        /// carries an address is resolved by nobody, so a client dialling one
+        /// carries an address is resolved by nobody, so a client connecting to one
         /// must get all the way through without ever making a resolver.
         /// </summary>
         [Test]

@@ -48,9 +48,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Quic;
 /// <param name="ConnectionId">Alternative connection ID with sequence number 1.</param>
 /// <param name="StatelessResetToken">The 16-byte token belonging to that connection ID.</param>
 public sealed record PreferredAddress(System.Net.IPAddress?          IPv4,
-                                      UInt16              IPv4Port,
+                                      IPPort              IPv4Port,
                                       System.Net.IPAddress?          IPv6,
-                                      UInt16              IPv6Port,
+                                      IPPort              IPv6Port,
                                       ConnectionId        ConnectionId,
                                       ReadOnlyMemory<Byte> StatelessResetToken)
 {
@@ -93,13 +93,13 @@ public sealed record PreferredAddress(System.Net.IPAddress?          IPv4,
     /// sends an all-zero address and port for the other.
     /// </summary>
     public static PreferredAddress ForIPv4(IPEndPoint endpoint, ConnectionId connectionId, ReadOnlyMemory<Byte> token)
-        => new(endpoint.Address, (UInt16)endpoint.Port, null, 0, connectionId, token);
+        => new(endpoint.Address, IPPort.Parse(endpoint.Port), null, IPPort.Zero, connectionId, token);
 
     /// <summary>
     /// Builds the parameter for a single IPv6 endpoint.
     /// </summary>
     public static PreferredAddress ForIPv6(IPEndPoint endpoint, ConnectionId connectionId, ReadOnlyMemory<Byte> token)
-        => new(null, 0, endpoint.Address, (UInt16)endpoint.Port, connectionId, token);
+        => new(null, IPPort.Zero, endpoint.Address, IPPort.Parse(endpoint.Port), connectionId, token);
 
     /// <summary>
     /// The endpoint of the given family, or <c>null</c> when the server did not offer that family.
@@ -107,8 +107,8 @@ public sealed record PreferredAddress(System.Net.IPAddress?          IPv4,
     public IPEndPoint? EndPointFor(AddressFamily family)
         => family switch
         {
-            AddressFamily.InterNetwork   when IPv4 is { } v4 => new IPEndPoint(v4, IPv4Port),
-            AddressFamily.InterNetworkV6 when IPv6 is { } v6 => new IPEndPoint(v6, IPv6Port),
+            AddressFamily.InterNetwork   when IPv4 is { } v4 => new IPEndPoint(v4, IPv4Port.ToInt32()),
+            AddressFamily.InterNetworkV6 when IPv6 is { } v6 => new IPEndPoint(v6, IPv6Port.ToInt32()),
             _ => null,
         };
 
@@ -123,13 +123,13 @@ public sealed record PreferredAddress(System.Net.IPAddress?          IPv4,
 
         if (IPv4 is { } v4 && v4.AddressFamily == AddressFamily.InterNetwork)
             v4.TryWriteBytes(span[..4], out _);
-        span[4] = (Byte)(IPv4Port >> 8);
-        span[5] = (Byte)IPv4Port;
+        span[4] = (Byte)(IPv4Port.ToUInt16() >> 8);
+        span[5] = (Byte)IPv4Port.ToUInt16();
 
         if (IPv6 is { } v6 && v6.AddressFamily == AddressFamily.InterNetworkV6)
             v6.TryWriteBytes(span.Slice(6, 16), out _);
-        span[22] = (Byte)(IPv6Port >> 8);
-        span[23] = (Byte)IPv6Port;
+        span[22] = (Byte)(IPv6Port.ToUInt16() >> 8);
+        span[23] = (Byte)IPv6Port.ToUInt16();
 
         span[24] = (Byte)ConnectionId.Length;
         ConnectionId.Span.CopyTo(span.Slice(25, ConnectionId.Length));
@@ -158,17 +158,17 @@ public sealed record PreferredAddress(System.Net.IPAddress?          IPv4,
             return false;
 
         var v4 = new System.Net.IPAddress(value[..4]);
-        UInt16 v4Port = (UInt16)((value[4] << 8) | value[5]);
+        IPPort v4Port = IPPort.Parse((UInt16)((value[4] << 8) | value[5]));
         var v6 = new System.Net.IPAddress(value.Slice(6, 16));
-        UInt16 v6Port = (UInt16)((value[22] << 8) | value[23]);
+        IPPort v6Port = IPPort.Parse((UInt16)((value[22] << 8) | value[23]));
 
         // An all-zero address and port means "this family is not offered" (§18.2) — reported as
         // null rather than as 0.0.0.0:0, so a caller cannot accidentally migrate to nowhere.
-        Boolean hasV4 = v4Port != 0 && !v4.Equals(System.Net.IPAddress.Any);
-        Boolean hasV6 = v6Port != 0 && !v6.Equals(System.Net.IPAddress.IPv6Any);
+        Boolean hasV4 = !v4Port.IsZero && !v4.Equals(System.Net.IPAddress.Any);
+        Boolean hasV6 = !v6Port.IsZero && !v6.Equals(System.Net.IPAddress.IPv6Any);
 
-        address = new PreferredAddress(hasV4 ? v4 : null, hasV4 ? v4Port : (UInt16)0,
-                                       hasV6 ? v6 : null, hasV6 ? v6Port : (UInt16)0,
+        address = new PreferredAddress(hasV4 ? v4 : null, hasV4 ? v4Port : IPPort.Zero,
+                                       hasV6 ? v6 : null, hasV6 ? v6Port : IPPort.Zero,
                                        new ConnectionId(value.Slice(25, cidLength).ToArray()),
                                        value.Slice(25 + cidLength, 16).ToArray());
         return true;

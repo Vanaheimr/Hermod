@@ -22,6 +22,7 @@ using System.Security.Cryptography;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
@@ -213,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var clientRun = Task.Run(async () =>
             {
                 using var transport = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                return await UserAuthentication.ClientPublicKeyAuthenticateAsync(transport, "achim", userKey, CancellationToken: CancellationToken);
+                return await UserAuthentication.ClientPublicKeyAuthenticateAsync(transport, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
             }, CancellationToken);
 
             Assert.That(await clientRun, Is.False, "an expired authorized key must be rejected");

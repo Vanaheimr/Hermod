@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         Boolean                                       DisableWebSocketPings           { get; set; }
         IDNSClient                                    DNSClient                       { get; }
         String                                        HTTPServiceName                 { get; }
-        IIPAddress                                    IPAddress                       { get; }
+        IPAddress                                    IPAddress                       { get; }
         IPPort                                        IPPort                          { get; }
         IPSocket                                      IPSocket                        { get; }
         Boolean                                       IsRunning                       { get; }

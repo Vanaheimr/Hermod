@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         HTTPHostname?                                             Hostname                     = null,
                         I18NString?                                               Description                  = null,
 
-                        IIPAddress?                                               IPAddress                    = null,
+                        IPAddress?                                               IPAddress                    = null,
                         IPPort?                                                   TCPPort                      = null,
                         String?                                                   HTTPServerName               = null,
                         UInt32?                                                   BufferSize                   = null,

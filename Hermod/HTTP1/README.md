@@ -118,7 +118,7 @@ reference is. There was a seventh, inside commented-out code under
 - A client makes the DNS client it was handed none of when it first asks for
   one. Since 2026-10-03: the default searches the machine's network
   configuration for resolvers, which was 38.3 ms of the 39.4 ms a fresh client
-  per request cost - for a request taking 1.06 ms - and a client dialling a
+  per request cost - for a request taking 1.06 ms - and a client connecting to a
   literal IP address resolves nothing at all. Long-lived clients never noticed;
   one per request paid it every time.
 

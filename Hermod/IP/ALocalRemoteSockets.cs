@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// <summary>
         /// The local IP address.
         /// </summary>
-        public IIPAddress   LocalIPAddress
+        public IPAddress   LocalIPAddress
             => LocalSocket.IPAddress;
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// <summary>
         /// The remote IP address.
         /// </summary>
-        public IIPAddress   RemoteIPAddress
+        public IPAddress   RemoteIPAddress
             => RemoteSocket.IPAddress;
 
         /// <summary>

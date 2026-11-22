@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
         {
 
             var config = new DNSServerConfig(
-                             (IIPAddress) null!,
+                             default(IPAddress),
                              IPPort.HTTPS,
                              DNSTransport.HTTPS
                          );
@@ -136,8 +136,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
             var byName     = new DNSServerConfig(DomainName.Parse("dns.example"), Transport: Transport);
 
             Assert.Multiple(() => {
-                Assert.That(byAddress.Port.ToUInt16(),  Is.EqualTo(ExpectedPort),  $"{Transport} by address");
-                Assert.That(byName.   Port.ToUInt16(),  Is.EqualTo(ExpectedPort),  $"{Transport} by name");
+                Assert.That(byAddress.Port,  Is.EqualTo(IPPort.Parse(ExpectedPort)),  $"{Transport} by address");
+                Assert.That(byName.   Port,  Is.EqualTo(IPPort.Parse(ExpectedPort)),  $"{Transport} by name");
             });
 
         }

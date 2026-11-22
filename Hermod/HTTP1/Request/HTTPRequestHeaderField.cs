@@ -1557,7 +1557,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// indicate the real IP address of the HTTP client.
         /// </summary>
         /// <example>X-Real-IP: 95.91.73.30</example>
-        public static readonly HTTPRequestHeaderField<IIPAddress> X_Real_IP = new ("X-Real-IP",
+        public static readonly HTTPRequestHeaderField<IPAddress> X_Real_IP = new ("X-Real-IP",
                                                                                    RequestPathSemantic.HopToHop,
                                                                                    StringParser: IPAddress.TryParse);
 
@@ -1570,10 +1570,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// indicate the real IP address of the HTTP client.
         /// </summary>
         /// <example>X-Forwarded-For: client, proxy1, proxy2</example>
-        public static readonly HTTPRequestHeaderField<IEnumerable<IIPAddress>> X_Forwarded_For = new ("X-Forwarded-For",
+        public static readonly HTTPRequestHeaderField<IEnumerable<IPAddress>> X_Forwarded_For = new ("X-Forwarded-For",
                                                                                                       RequestPathSemantic.HopToHop,
                                                                                                       MultipleValuesAsList:  true,
-                                                                                                      StringParser:         (String s, [NotNullWhen(true)] out IEnumerable<IIPAddress>? o) => StringParsers.NullableListOf(s, IPAddress.TryParse, out o));
+                                                                                                      StringParser:         (String s, [NotNullWhen(true)] out IEnumerable<IPAddress>? o) => StringParsers.NullableListOf(s, IPAddress.TryParse, out o));
 
         #endregion
 

@@ -52,7 +52,7 @@ public class ModbusTCPClientWriteTests
     private static ModbusTCPClient NewClient(ModbusFrameRecorder Peer)
 
         => new (IPv4Address.Localhost,
-                IPPort.Parse(Peer.Port),
+                Peer.Port,
                 UnitAddress:            7,
                 StartingAddressOffset:  100,
                 PreferIPv4:             true,
@@ -337,7 +337,7 @@ public class ModbusTCPClientWriteTests
         /// <summary>
         /// The TCP port this peer listens on.
         /// </summary>
-        public Int32                                               Port         { get; }
+        public IPPort                                               Port         { get; }
 
         /// <summary>
         /// Every request frame, whole, and the frame that answered it.
@@ -350,7 +350,7 @@ public class ModbusTCPClientWriteTests
             listener  = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
 
-            Port      = ((IPEndPoint) listener.LocalEndpoint).Port;
+            Port      = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             peerTask  = RunAsync(cancellationTokenSource.Token);
 
         }

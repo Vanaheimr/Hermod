@@ -19,6 +19,7 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
@@ -46,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var collecting = new CollectingAuditSink();
             var context    = new SshAuditContext(collecting, "conn-42", "203.0.113.7:22", SshRole.Server);
 
-            await context.WriteAsync(new AuthAttemptEvent(Now, "achim", "publickey", "SHA256:abc"), CancellationToken);
+            await context.WriteAsync(new AuthAttemptEvent(Now, User_Id.Parse("achim"), "publickey", "SHA256:abc"), CancellationToken);
 
             var e = collecting.Events.Single();
             Assert.Multiple(() => {

@@ -200,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 // Brackets, or "2001:...:8844:853" is anyone's guess as to where
                 // the address stops and the port starts - RFC 3986 §3.2.2.
-                return $"{ipAddress.ToIPLiteral()}:{RemotePort ?? IPPort.DNS_TLS}";
+                return $"{ipAddress.Value.ToIPLiteral()}:{RemotePort ?? IPPort.DNS_TLS}";
 
             }
         }
@@ -226,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return ipAddress is not null
 
                        ? new DNSServerConfig(
-                             ipAddress,
+                             ipAddress.Value,
                              RemotePort ?? IPPort.DNS_TLS,
                              DNSTransport.TLS,
                              QueryTimeout
@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new DNS TLS client for the given DNS server.
         /// </summary>
         /// <param name="IPAddress">The IP address of the DNS server to query.</param>
-        public DNSTLSClient(IIPAddress                                                  IPAddress,
+        public DNSTLSClient(IPAddress                                                  IPAddress,
                             IPPort?                                                     TCPPort                          = null,
                             I18NString?                                                 Description                      = null,
                             Boolean?                                                    RecursionDesired                 = null,

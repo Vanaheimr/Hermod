@@ -25,7 +25,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         DNSServiceName   DomainName    { get; }
         DateTimeOffset   EndOfLife     { get; }
         String?          RText         { get; }
-        IIPAddress?      Source        { get; }
+        IPAddress?      Source        { get; }
         TimeSpan         TimeToLive    { get; }
 
 

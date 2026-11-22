@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Whether an explicit list of local addresses replaces the interface addresses (default: null).
         /// </summary>
-        public IEnumerable<IIPAddress>?  LocalAddresses          { get; init; }
+        public IEnumerable<IPAddress>?  LocalAddresses          { get; init; }
 
     }
 
@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private          Socket?                   socket4;
         private          Socket?                   socket6;
         private          CancellationTokenSource?  cancellationTokenSource;
-        private          IReadOnlyList<IIPAddress> localAddresses    = [];
+        private          IReadOnlyList<IPAddress> localAddresses    = [];
         private          Boolean                   isDisposed;
 
         private static readonly IPEndPoint anyV4 = new(System.Net.IPAddress.Any,     0);
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The unicast addresses of the selected interfaces (or the configured local addresses).
         /// </summary>
-        public IReadOnlyList<IIPAddress>        LocalAddresses
+        public IReadOnlyList<IPAddress>        LocalAddresses
             => localAddresses;
 
         /// <summary>
@@ -660,7 +660,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (private static) ToHermod(Address)
 
-        private static IIPAddress ToHermod(System.Net.IPAddress Address)
+        private static IPAddress ToHermod(System.Net.IPAddress Address)
 
             => Address.AddressFamily == AddressFamily.InterNetworkV6
                    ? IPv6Address.From(Address)
@@ -697,7 +697,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// link-local addresses, which multicasts to FF02::FB are sent from.
         /// </summary>
         /// <param name="Address">The source address of a datagram.</param>
-        public Boolean IsOwnAddress(IIPAddress Address)
+        public Boolean IsOwnAddress(IPAddress Address)
         {
 
             var bytes = Address.GetBytes();

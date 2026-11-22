@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SunSpecModbusTLS.Common;
 /// <param name="ClientTrustAnchors">Asked at every handshake which CAs a client certificate may chain to. More than one, because a meter can be reached by peers from more than one PKI.</param>
 public sealed record ModbusTlsFrontendOptions(
     System.Net.IPAddress  ListenAddress,
-    Int32                 ListenPort,
+    IPPort                ListenPort,
     String?               ServerPfxPath,
     String?               ServerPfxPassword,
     String?               CaCertPath,

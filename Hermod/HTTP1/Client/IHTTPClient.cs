@@ -1305,7 +1305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The IP Address to connect to.
         /// </summary>
-        IIPAddress?                                                RemoteIPAddress               { get; }
+        IPAddress?                                                RemoteIPAddress               { get; }
 
         /// <summary>
         /// An optional HTTP virtual hostname.

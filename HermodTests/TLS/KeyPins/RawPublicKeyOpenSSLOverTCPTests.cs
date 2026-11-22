@@ -45,17 +45,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
 
         private static readonly TimeSpan Guard = TimeSpan.FromSeconds(30);
 
-        private static Int32 FreePort()
+        private static IPPort FreePort()
         {
             using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
-            return ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            return IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
         }
 
-        private static async Task<TcpClient> Dial(Int32 Port)
+        private static async Task<TcpClient> ConnectTo(IPPort Port)
         {
             var tcpClient = new TcpClient();
-            await tcpClient.ConnectAsync(System.Net.IPAddress.Loopback, Port).WaitAsync(Guard);
+            await tcpClient.ConnectAsync(System.Net.IPAddress.Loopback, Port.ToInt32()).WaitAsync(Guard);
             return tcpClient;
         }
 
@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
 
             var told = new ConcurrentQueue<KeyPinValidation>();
 
-            using var tcpClient = await Dial(port);
+            using var tcpClient = await ConnectTo(port);
 
             var session = await BouncyCastleTLS.AuthenticateAsClientAsync(
                                     tcpClient.GetStream(),
@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
 
             var told = new ConcurrentQueue<KeyPinValidation>();
 
-            using var tcpClient = await Dial(port);
+            using var tcpClient = await ConnectTo(port);
 
             var e = await Assert.ThrowsAsync<TLSHandshakeFailedException>(
                         async () => await BouncyCastleTLS.AuthenticateAsClientAsync(
@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
             Assert.That(await server.Says("ACCEPT", Guard), Is.True, server.Output);
 
             // Prefer: the certificate, by the pin of its key.
-            using (var tcpClient = await Dial(port))
+            using (var tcpClient = await ConnectTo(port))
             {
 
                 var session = await BouncyCastleTLS.AuthenticateAsClientAsync(
@@ -226,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
             }
 
             // Require: no connection.
-            using (var tcpClient = await Dial(port))
+            using (var tcpClient = await ConnectTo(port))
             {
 
                 var e = await Assert.ThrowsAsync<TLSHandshakeFailedException>(
@@ -318,7 +318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
             using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
 
-            var port = ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            var port = IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             async Task<(TLSSession?, Exception?)> serve()
             {

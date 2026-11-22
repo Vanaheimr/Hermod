@@ -22,6 +22,7 @@ using System.Security.Cryptography;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
@@ -126,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             }, CancellationToken);
 
             using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            var ok = await UserAuthentication.ClientPasswordAuthenticateAsync(client, User, Password, CancellationToken: CancellationToken);
+            var ok = await UserAuthentication.ClientPasswordAuthenticateAsync(client, User_Id.Parse(User), Password, CancellationToken: CancellationToken);
 
             clientPipe.Output.Complete();
             try { await serverRun; } catch { }
@@ -167,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
                 using var t = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
                 return await UserAuthentication.ClientAuthenticateAsync(
-                           t, "achim",
+                           t, User_Id.Parse("achim"),
                            Keys: [ userKey ],
                            KeyboardInteractive: (challenge, _) =>
                            {
@@ -182,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             Assert.Multiple(() => {
                 Assert.That(clientOk,          Is.True, "publickey + TOTP must complete the 2FA chain");
-                Assert.That(result.Username,   Is.EqualTo("achim"));
+                Assert.That(result.Username,   Is.EqualTo(User_Id.Parse("achim")));
                 Assert.That(result.Method,     Is.EqualTo("keyboard-interactive"), "the final method that completed the chain");
             });
 
@@ -215,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
             var ok = await UserAuthentication.ClientAuthenticateAsync(
-                         client, "achim",
+                         client, User_Id.Parse("achim"),
                          Keys: [ userKey ],
                          KeyboardInteractive: (_, _) => ValueTask.FromResult(new[] { "000000" }),   // wrong code
                          CancellationToken: CancellationToken);

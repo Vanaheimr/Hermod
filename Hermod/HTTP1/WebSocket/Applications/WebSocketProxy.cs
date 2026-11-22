@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public WebSocketProxy(URL                                                       UpstreamServerURL,
                               Boolean                                                   AutoConnect                  = true,
 
-                              IIPAddress?                                               IPAddress                    = null,
+                              IPAddress?                                               IPAddress                    = null,
                               IPPort?                                                   HTTPPort                     = null,
                               String?                                                   HTTPServerName               = null,
                               I18NString?                                               Description                  = null,

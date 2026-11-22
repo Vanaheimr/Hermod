@@ -19,6 +19,7 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -36,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
     /// </summary>
     /// <remarks>
     /// The client used to hand a host name to the socket, which asked the operating system. A node whose
-    /// names are resolved securely - its own name servers, DNS over TLS, DNSSEC - was dialled around them,
+    /// names are resolved securely - its own name servers, DNS over TLS, DNSSEC - was connected around them,
     /// and nothing said so. A host name without a DNS client is now refused.
     /// </remarks>
     [TestFixture]
@@ -108,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
-        #region TheClientDialsAHostNameThroughItsDNSClient
+        #region TheClientConnectsToAHostNameThroughItsDNSClient
 
         /// <summary>
         /// The whole way: an SshClient told to connect to a host name connects to the address its DNS client
@@ -116,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         /// </summary>
         [Test]
         [CancelAfter(25000)]
-        public async Task TheClientDialsAHostNameThroughItsDNSClient(CancellationToken CancellationToken)
+        public async Task TheClientConnectsToAHostNameThroughItsDNSClient(CancellationToken CancellationToken)
         {
 
             var hostKey  = SshHostKey.GenerateEd25519();
@@ -133,13 +134,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-                var port       = (UInt16) server.LocalEndPoint.Port.ToInt32();
+                var port       = server.LocalEndPoint.Port;
                 var dnsClient  = new FakeDNSClient();
 
                 dnsClient.IPv4Addresses.Add(IPv4Address.Localhost);
 
-                var login      = new SshClientOptions {
-                                     Username       = "cs001",
+                var login      = new SSHClientOptions {
+                                     Username       = User_Id.Parse("cs001"),
                                      VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                                      Credentials    = [ userKey ],
                                      DNSClient      = dnsClient
@@ -147,16 +148,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 // .test is a name no public name server answers, and one a resolver sends to its
                 // configured server like any other (RFC 6761 §6.2) - here, the stand-in DNS client.
-                await using (var client = await SshClient.ConnectAsync("csms.test", port, login, CancellationToken))
+                await using (var client = await SSHClient.Connect("csms.test", port, login, CancellationToken))
                 {
-                    var result = await client.ExecuteAsync("where", CancellationToken);
+                    var result = await client.Execute("where", CancellationToken);
                     Assert.That(result.StandardOutput, Is.EqualTo("here\n"));
                 }
 
                 Assert.That(dnsClient.QueryCount, Is.GreaterThan(0), "The DNS client was not asked.");
 
                 await Assert.ThrowsAsync<SshNameResolutionException>(async () =>
-                    await SshClient.ConnectAsync("csms.test", port, login with { DNSClient = null }, CancellationToken));
+                    await SSHClient.Connect("csms.test", port, login with { DNSClient = null }, CancellationToken));
 
             }
             finally

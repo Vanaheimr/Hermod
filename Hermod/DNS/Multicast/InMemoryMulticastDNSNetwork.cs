@@ -127,11 +127,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="Address">An optional host address (default: 10.53.0.n).</param>
         /// <param name="LoggerFactory">An optional logger factory.</param>
-        public InMemoryMulticastDNSTransport CreateTransport(IIPAddress?      Address         = null,
+        public InMemoryMulticastDNSTransport CreateTransport(IPAddress?      Address         = null,
                                                              ILoggerFactory?  LoggerFactory   = null)
         {
 
-            IIPAddress address;
+            IPAddress address;
 
             lock (transportsLock)
             {
@@ -240,7 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The host address of this transport.
         /// </summary>
-        public IIPAddress                   Address           { get; }
+        public IPAddress                   Address           { get; }
 
         /// <summary>
         /// The Multicast DNS port of the network.
@@ -257,7 +257,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The host address as the only local address.
         /// </summary>
-        public IReadOnlyList<IIPAddress>    LocalAddresses    { get; }
+        public IReadOnlyList<IPAddress>    LocalAddresses    { get; }
 
         #endregion
 
@@ -273,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Constructor(s)
 
         internal InMemoryMulticastDNSTransport(InMemoryMulticastDNSNetwork  Network,
-                                               IIPAddress                   Address,
+                                               IPAddress                   Address,
                                                ILoggerFactory?              LoggerFactory)
         {
 
@@ -350,7 +350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Task InjectAsync(ReadOnlyMemory<Byte>  Payload,
                                 IPSocket              RemoteSocket,
                                 CancellationToken     CancellationToken      = default,
-                                IIPAddress?           DestinationAddress     = null,
+                                IPAddress?           DestinationAddress     = null,
                                 Boolean               SourceIsOnLocalLink    = true)
 
             => ReceiveAsync(

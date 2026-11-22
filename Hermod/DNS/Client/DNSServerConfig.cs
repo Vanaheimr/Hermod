@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// one needs an address, and DNSClient.GetOrCreateTransportClient says so
         /// rather than failing somewhere further down.
         /// </remarks>
-        public IIPAddress?   IPAddress       { get; }
+        public IPAddress?   IPAddress       { get; }
 
         /// <summary>
         /// The DNS server port.
@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         /// <summary>
         /// How the SSH connection of a server asked over <see cref="DNSTransport.SSH"/>
-        /// is had: see <see cref="OverSSH(IIPAddress, SSH.Client.SshClientOptions, IPPort?, TimeSpan?, String?)"/>.
+        /// is had: see <see cref="OverSSH(IPAddress, SSH.Client.SSHClientOptions, IPPort?, TimeSpan?, String?)"/>.
         /// Null for every other transport.
         /// </summary>
         public DNSServerSSH? SSH             { get; private init; }
@@ -86,13 +86,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The optional port of the DNS server.</param>
         /// <param name="Transport">The DNS transport protocol to use (UDP, TCP, ...). Default is UDP.</param>
         /// <param name="QueryTimeout">The optional query timeout for this DNS server.</param>
-        public DNSServerConfig(IIPAddress     IPAddress,
+        public DNSServerConfig(IPAddress     IPAddress,
                                IPPort?        Port           = null,
                                DNSTransport?  Transport      = null,
                                TimeSpan?      QueryTimeout   = null)
         {
 
-            this.IPAddress     = IPAddress;
+            // default(IPAddress) is no address at all - what a null was, before
+            // an IP address was a union.
+            this.IPAddress     = IPAddress.HasValue ? IPAddress : null;
             this.Transport     = Transport ?? DNSTransport.UDP;
             this.QueryTimeout  = QueryTimeout;
 
@@ -113,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Transport">The DNS transport protocol to use (UDP, TCP, ...). Default is UDP.</param>
         /// <param name="QueryTimeout">The optional query timeout for this DNS server.</param>
         public DNSServerConfig(DomainName     DomainName,
-                               IIPAddress     IPAddress,
+                               IPAddress     IPAddress,
                                IPPort?        Port           = null,
                                DNSTransport?  Transport      = null,
                                TimeSpan?      QueryTimeout   = null)
@@ -174,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         /// <summary>
         /// A DNS server asked over SSH - the subsystem "dns@open.charging.cloud" of the white paper
-        /// "DNS over SSH" - on an SSH connection of its own: a server among the others of a
+        /// "DNS-over-SSH" - on an SSH connection of its own: a server among the others of a
         /// <see cref="DNSClient"/>, as one over UDP, TCP or TLS is.
         /// </summary>
         /// <param name="IPAddress">The IP address of the SSH server.</param>
@@ -182,8 +184,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The SSH port; 22 by default.</param>
         /// <param name="QueryTimeout">An optional timeout of a query to this server.</param>
         /// <param name="Subsystem">The subsystem, where it is not "dns@open.charging.cloud".</param>
-        public static DNSServerConfig OverSSH(IIPAddress                    IPAddress,
-                                              SSH.Client.SshClientOptions   SSHOptions,
+        public static DNSServerConfig OverSSH(IPAddress                    IPAddress,
+                                              SSH.Client.SSHClientOptions   SSHOptions,
                                               IPPort?                       Port           = null,
                                               TimeSpan?                     QueryTimeout   = null,
                                               String?                       Subsystem      = null)
@@ -193,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                };
 
         /// <summary>
-        /// A DNS server asked over SSH on an SSH connection of its own, dialled by its name.
+        /// A DNS server asked over SSH on an SSH connection of its own, made to it by its name.
         /// </summary>
         /// <param name="DomainName">The name of the SSH server - which another server has to resolve.</param>
         /// <param name="SSHOptions">Who signs in, with what, and what the server's host key is held to.</param>
@@ -201,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="QueryTimeout">An optional timeout of a query to this server.</param>
         /// <param name="Subsystem">The subsystem, where it is not "dns@open.charging.cloud".</param>
         public static DNSServerConfig OverSSH(DomainName                    DomainName,
-                                              SSH.Client.SshClientOptions   SSHOptions,
+                                              SSH.Client.SSHClientOptions   SSHOptions,
                                               IPPort?                       Port           = null,
                                               TimeSpan?                     QueryTimeout   = null,
                                               String?                       Subsystem      = null)
@@ -220,8 +222,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The SSH port of that connection; 22 by default.</param>
         /// <param name="QueryTimeout">An optional timeout of a query to this server.</param>
         /// <param name="Subsystem">The subsystem, where it is not "dns@open.charging.cloud".</param>
-        public static DNSServerConfig OverSSH(IIPAddress                                                IPAddress,
-                                              Func<CancellationToken, ValueTask<SSH.Client.SshClient>>  Connection,
+        public static DNSServerConfig OverSSH(IPAddress                                                IPAddress,
+                                              Func<CancellationToken, ValueTask<SSH.Client.SSHClient>>  Connection,
                                               IPPort?                                                   Port           = null,
                                               TimeSpan?                                                 QueryTimeout   = null,
                                               String?                                                   Subsystem      = null)
@@ -239,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="QueryTimeout">An optional timeout of a query to this server.</param>
         /// <param name="Subsystem">The subsystem, where it is not "dns@open.charging.cloud".</param>
         public static DNSServerConfig OverSSH(DomainName                                                DomainName,
-                                              Func<CancellationToken, ValueTask<SSH.Client.SshClient>>  Connection,
+                                              Func<CancellationToken, ValueTask<SSH.Client.SSHClient>>  Connection,
                                               IPPort?                                                   Port           = null,
                                               TimeSpan?                                                 QueryTimeout   = null,
                                               String?                                                   Subsystem      = null)
@@ -374,7 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 // RFC 3986 §3.2.2: brackets, or the colon before the port is
                 // indistinguishable from the ones inside the address.
-                return IPAddress.ToIPLiteral();
+                return IPAddress.Value.ToIPLiteral();
 
             }
         }
@@ -385,14 +387,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
     /// <summary>
-    /// How the SSH connection of a DNS server asked over SSH is had: dialled with the given options,
+    /// How the SSH connection of a DNS server asked over SSH is had: made with the given options,
     /// or handed out by whoever keeps it.
     /// </summary>
     /// <param name="Options">Who signs in, with what, and what the server's host key is held to - for a connection of the server's own.</param>
     /// <param name="Connection">Hands out a connection somebody else keeps, which is never closed for DNS.</param>
     /// <param name="Subsystem">The subsystem, where it is not "dns@open.charging.cloud".</param>
-    public sealed record DNSServerSSH(SSH.Client.SshClientOptions?                               Options,
-                                      Func<CancellationToken, ValueTask<SSH.Client.SshClient>>?  Connection,
+    public sealed record DNSServerSSH(SSH.Client.SSHClientOptions?                               Options,
+                                      Func<CancellationToken, ValueTask<SSH.Client.SSHClient>>?  Connection,
                                       String?                                                    Subsystem = null);
 
 }

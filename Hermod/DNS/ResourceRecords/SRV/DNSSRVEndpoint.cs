@@ -62,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// An enumeration of resolved IP addresses (A/AAAA) for this SRV endpoint.
         /// </summary>
-        public IEnumerable<IIPAddress>  ResolvedAddresses   { get; }
+        public IEnumerable<IPAddress>  ResolvedAddresses   { get; }
 
         /// <summary>
         /// The optional health status for this SRV endpoint.
@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               UInt16                    Weight,
                               IPPort                    Port,
                               TimeSpan                  TTL,
-                              IEnumerable<IIPAddress>?  ResolvedAddresses   = null,
+                              IEnumerable<IPAddress>?  ResolvedAddresses   = null,
                               Boolean                   IsHealthy           = true)
         {
 

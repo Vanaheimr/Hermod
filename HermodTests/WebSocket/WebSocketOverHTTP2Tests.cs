@@ -360,22 +360,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
-        #region AServerOfHTTP2WithoutWebSocketsIsDialledAgainWithHTTP11Alone()
+        #region AServerOfHTTP2WithoutWebSocketsIsConnectedAgainWithHTTP11Alone()
 
         /// <summary>
         /// A server that chooses "h2" and does not announce the extended
         /// CONNECT cannot open a WebSocket over it. Where the server chooses,
-        /// the client dials it again and offers "http/1.1" alone; where
+        /// the client connects to it again and offers "http/1.1" alone; where
         /// nothing but HTTP/2 will do, it does not.
         /// </summary>
         [Test]
-        public async Task AServerOfHTTP2WithoutWebSocketsIsDialledAgainWithHTTP11Alone()
+        public async Task AServerOfHTTP2WithoutWebSocketsIsConnectedAgainWithHTTP11Alone()
         {
 
             var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
 
-            var port     = ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port     = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             var offered  = new ConcurrentQueue<String>();
             using var stop = new CancellationTokenSource();
 
@@ -438,7 +438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 var (_, response)  = await whatever.Connect();
 
                 Assert.That(SpinWait.SpinUntil(() => offered.Count >= 2, TimeSpan.FromSeconds(10)), Is.True,
-                            "The server was not dialled again: " + offered.AggregateCSV());
+                            "The server was not connected to again: " + offered.AggregateCSV());
 
                 Assert.Multiple(() => {
                     Assert.That(offered.Take(2),             Is.EqualTo(new[] { "h2", "http/1.1" }),  "what the two attempts agreed on");
@@ -451,7 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
                 Assert.Multiple(() => {
                     Assert.That(refusal.HTTPStatusCode,          Is.Not.EqualTo(HTTPStatusCode.SwitchingProtocols));
-                    Assert.That(offered.Skip(before),            Has.None.EqualTo("http/1.1"),  "It was dialled over HTTP/1.1 although nothing but HTTP/2 would do.");
+                    Assert.That(offered.Skip(before),            Has.None.EqualTo("http/1.1"),  "It was connected to over HTTP/1.1 although nothing but HTTP/2 would do.");
                 });
 
             }

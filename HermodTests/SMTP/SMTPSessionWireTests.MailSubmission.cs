@@ -95,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         /// <summary>
         /// A connection to the given port, inside TLS, after EHLO: the EHLO keywords.
         /// </summary>
-        private static async Task<(Wire Wire, List<String> Keywords)> SecureAsync(Server Server, UInt16 Port)
+        private static async Task<(Wire Wire, List<String> Keywords)> SecureAsync(Server Server, IPPort Port)
         {
 
             var wire = await Server.ConnectAsync(Port);

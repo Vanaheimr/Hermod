@@ -101,7 +101,7 @@ public class ModbusPKI
     /// <remarks>
     /// The defaults produce a certificate for a meter on the same machine. A
     /// meter reached over the network needs the name or the address that its
-    /// clients dial, because everything but Hermod's own client - PLC4x among
+    /// clients connect to, because everything but Hermod's own client - PLC4x among
     /// them - checks the subject alternative names.
     /// </remarks>
     public Task BuildPKI(String                             outputDirectory   = "pki",

@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Buffers;
 
 #endregion
@@ -84,12 +85,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <paramref name="Handler"/>, dispatch a <c>subsystem</c> request to a matching handler in
         /// <paramref name="Subsystems"/> (e.g. <c>sftp</c>), stream output and report the exit status.
         /// </summary>
-        public static ValueTask ServeAsync(SshMuxChannel                                                              Channel,
-                                           String                                                                     Username,
-                                           SshExecHandler?                                                            Handler,
-                                           IReadOnlyDictionary<String, Func<SshMuxChannel, CancellationToken, ValueTask>>?  Subsystems = null,
-                                           CancellationToken                                                          CancellationToken = default,
-                                           SshSessionRestrictions?                                                    Restrictions = null)
+        public static ValueTask ServeAsync(SshMuxChannel                                                                    Channel,
+                                           User_Id                                                                          Username,
+                                           SshExecHandler?                                                                  Handler,
+                                           IReadOnlyDictionary<String, Func<SshMuxChannel, CancellationToken, ValueTask>>?  Subsystems          = null,
+                                           CancellationToken                                                                CancellationToken   = default,
+                                           SshSessionRestrictions?                                                          Restrictions        = null)
 
             => ServeAsync(Channel,
                           new SshSessionInfo("", Username, "", null, null, null, null, Restrictions ?? SshSessionRestrictions.None),
@@ -436,10 +437,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (WantReply)
                 await Channel.ReplyAsync(true, CancellationToken).ConfigureAwait(false);
 
-            var context = new SshExecContext(Command, Session.Username,
-                                             (data, isErr, ct) => isErr ? Channel.SendErrorAsync(data, ct) : Channel.SendDataAsync(data, ct),
-                                             hasPty: HasPty,
-                                             originalCommand: OriginalCommand);
+            var context = new SshExecContext(
+                              Command,
+                              Session.Username,
+                              (data, isErr, ct) => isErr
+                                                       ? Channel.SendErrorAsync(data, ct)
+                                                       : Channel.SendDataAsync (data, ct),
+                              hasPty:           HasPty,
+                              originalCommand:  OriginalCommand
+                          );
 
             var exit = await Handler(context, CancellationToken).ConfigureAwait(false);
 

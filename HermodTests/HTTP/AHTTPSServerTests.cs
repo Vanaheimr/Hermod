@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
             serverCA                    = serverCA_X509v3.ToDotNet()!;
 
             // Valid for the origins the clients use. Without subjectAltNames the
-            // CN became the one DNS name, which no client ever dialled: the
+            // CN became the one DNS name, which no client ever connected to: the
             // validators below accept the name mismatch, and the server answered
             // anyway until it learned to refuse a request for an origin its
             // certificate does not cover (RFC 9110, Section 7.4).

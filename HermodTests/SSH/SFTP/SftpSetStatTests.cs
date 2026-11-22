@@ -111,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        private static async Task<SftpClient> OpenAsync(ISftpFileSystem FileSystem, SshAccessProfile? Profile, CancellationToken CancellationToken)
+        private static async Task<SFTPClient> OpenAsync(ISftpFileSystem FileSystem, SshAccessProfile? Profile, CancellationToken CancellationToken)
         {
 
             var (client, server) = PipeDuplex.CreatePair();
@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 catch { /* torn down with the test */ }
             }, CancellationToken);
 
-            return await SftpClient.OpenAsync(client, CancellationToken);
+            return await SFTPClient.OpenAsync(client, CancellationToken);
 
         }
 

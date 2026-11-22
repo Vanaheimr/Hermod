@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The IP address this TCP EchoTest server is listening on.
         /// </summary>
-        public IIPAddress   IPAddress         { get; }
+        public IPAddress   IPAddress         { get; }
 
         /// <summary>
         /// The TCP port this TCP EchoTest server is listening on.
@@ -399,7 +399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// 
         /// <param name="AutoStart">Whether to automatically start the TCP server.</param>
 
-        public ATCPServer(IIPAddress?                                               IPAddress                    = null,
+        public ATCPServer(IPAddress?                                               IPAddress                    = null,
                           IPPort?                                                   TCPPort                      = null,
                           I18NString?                                               Description                  = null,
                           TimeSpan?                                                 ReceiveTimeout               = null,

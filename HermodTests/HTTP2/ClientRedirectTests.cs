@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
     /// exist because the older codes cannot be trusted to preserve anything.
     ///
     /// Following deliberately stops at the origin boundary: a connection speaks to
-    /// the origin it dialed, and pooling here is single-origin by design, so a
+    /// the origin it connected to, and pooling here is single-origin by design, so a
     /// cross-origin Location comes back unfollowed rather than turning the connection
     /// into a multi-origin client. That same boundary is what keeps credentials from
     /// travelling to an origin that never asked for them.
@@ -308,7 +308,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #region CrossOriginRedirect_IsReturnedUnfollowed()
 
-        // The architectural boundary: a connection does not dial a second origin.
+        // The architectural boundary: a connection does not connect to a second origin.
         [Test]
         public async Task CrossOriginRedirect_IsReturnedUnfollowed()
         {

@@ -167,12 +167,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #endregion
 
-        #region TCPCSVServer(IIPAddress, Port, ...)
+        #region TCPCSVServer(IPAddress, Port, ...)
 
         /// <summary>
         /// Initialize the TCP server using the given parameters.
         /// </summary>
-        /// <param name="IIPAddress">The listening IP address(es)</param>
+        /// <param name="IPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
@@ -186,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="AutoStart">Start the TCP/CSV server thread immediately (default: no).</param>
-        public TCPCSVServer(IIPAddress                                                  IIPAddress,
+        public TCPCSVServer(IPAddress                                                  IPAddress,
                             IPPort                                                      Port,
                             I18NString?                                                 Description                  = null,
 
@@ -211,7 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             IDNSClient?                                                 DNSClient                    = null,
                             Boolean                                                     AutoStart                    = false)
 
-            : base(IIPAddress,
+            : base(IPAddress,
                    Port,
                    ReceiveTimeout:              ConnectionTimeout,
                    SendTimeout:                 ConnectionTimeout,

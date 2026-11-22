@@ -36,11 +36,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Data
 
-        private readonly SshChannelMultiplexer                                                   mux;
-        private readonly ConcurrentDictionary<(String Address, UInt16 Port), SshRemoteForward>  registry;
-        private readonly CancellationTokenSource                                                 cts = new ();
-        private readonly DNS.IDNSClient?                                                         dnsClient;
-        private          Int32                                                                   disposed;
+        private readonly SshChannelMultiplexer                                                  mux;
+        private readonly ConcurrentDictionary<(String Address, IPPort Port), SshRemoteForward>  registry;
+        private readonly CancellationTokenSource                                                cts = new ();
+        private readonly DNS.IDNSClient?                                                        dnsClient;
+        private          Int32                                                                  disposed;
 
         #endregion
 
@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The port the server listens on: the one asked for, or the one the server chose when asked for 0.
         /// </summary>
-        public UInt16  BoundPort    { get; }
+        public IPPort  BoundPort    { get; }
 
         /// <summary>
         /// The host each forwarded connection is relayed to on this side.
@@ -64,19 +64,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The port each forwarded connection is relayed to on this side.
         /// </summary>
-        public UInt16  LocalPort    { get; }
+        public IPPort  LocalPort    { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        internal SshRemoteForward(SshChannelMultiplexer                                                   Mux,
-                                  ConcurrentDictionary<(String Address, UInt16 Port), SshRemoteForward>  Registry,
-                                  String                                                                  BindHost,
-                                  UInt16                                                                  BoundPort,
-                                  String                                                                  LocalHost,
-                                  UInt16                                                                  LocalPort,
-                                  DNS.IDNSClient?                                                         DNSClient)
+        internal SshRemoteForward(SshChannelMultiplexer                                                  Mux,
+                                  ConcurrentDictionary<(String Address, IPPort Port), SshRemoteForward>  Registry,
+                                  String                                                                 BindHost,
+                                  IPPort                                                                 BoundPort,
+                                  String                                                                 LocalHost,
+                                  IPPort                                                                 LocalPort,
+                                  DNS.IDNSClient?                                                        DNSClient)
         {
 
             this.mux        = Mux;
@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (Interlocked.Exchange(ref disposed, 1) != 0)
                 return false;
 
-            registry.TryRemove(new KeyValuePair<(String, UInt16), SshRemoteForward>((BindHost, BoundPort), this));
+            registry.TryRemove(new KeyValuePair<(String, IPPort), SshRemoteForward>((BindHost, BoundPort), this));
             return true;
 
         }

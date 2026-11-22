@@ -112,11 +112,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
-        private static UInt16 FreePort()
+        private static IPPort FreePort()
         {
             var listener = new TcpListener(System.Net.IPAddress.Any, 0);
             listener.Start();
-            var port = (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             listener.Stop();
             return port;
         }
@@ -217,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 TcpClient? tcp = null;
                 for (var attempt = 0; tcp is null; attempt++)
                 {
-                    try                                          { tcp = new TcpClient("127.0.0.1", port); }
+                    try                                          { tcp = new TcpClient("127.0.0.1", port.ToInt32()); }
                     catch (SocketException) when (attempt < 50) { await Task.Delay(20); }
                 }
 
@@ -315,7 +315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 TcpClient? tcp = null;
                 for (var attempt = 0; tcp is null; attempt++)
                 {
-                    try                                          { tcp = new TcpClient("127.0.0.1", port); }
+                    try                                          { tcp = new TcpClient("127.0.0.1", port.ToInt32()); }
                     catch (SocketException) when (attempt < 50) { await Task.Delay(20); }
                 }
 
@@ -360,8 +360,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             public readonly ConcurrentQueue<String> Commands = new();
 
-            public UInt16 Port
-                => (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port
+                => IPPort.Parse((UInt16) ((IPEndPoint) listener.LocalEndpoint).Port);
 
             public NextHop()
             {

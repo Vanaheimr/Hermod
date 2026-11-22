@@ -219,7 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) ATLSClient(IPAddress,  TCPPort, ...)
 
-        protected ATLSClient(IIPAddress                                                IPAddress,
+        protected ATLSClient(IPAddress                                                IPAddress,
                              IPPort                                                    TCPPort,
                              I18NString?                                               Description                      = null,
 

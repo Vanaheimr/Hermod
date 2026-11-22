@@ -262,7 +262,7 @@ client.WebSocketOver = WebSocketHTTPVersion.Auto;     // HTTP1_1 by default
 |---|---|
 | `HTTP1_1` | the Upgrade of HTTP/1.1, as always |
 | `HTTP2`   | the extended CONNECT of HTTP/2 and nothing else: with TLS the server has to agree to `h2` (ALPN), without TLS it is spoken to in HTTP/2 from the first byte (prior knowledge) |
-| `Auto`    | `h2` and `http/1.1` are offered and the server chooses; a server that chooses `h2` and does not announce `SETTINGS_ENABLE_CONNECT_PROTOCOL` is dialled again with `http/1.1` alone; without TLS it is HTTP/1.1 |
+| `Auto`    | `h2` and `http/1.1` are offered and the server chooses; a server that chooses `h2` and does not announce `SETTINGS_ENABLE_CONNECT_PROTOCOL` is connected to again with `http/1.1` alone; without TLS it is HTTP/1.1 |
 
 `client.HTTPVersionInUse` and `connection.HTTPVersion` (server) say which one
 it came to.

@@ -204,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var api     = await StartAPI(mailer);
 
             var added   = await api.AddUser(
-                                    NewUser("alice"),
+                                    NewUser(User_Id.Parse("alice")),
                                     SkipDefaultNotifications:  true,
                                     SkipNewUserEMail:          false,
                                     SkipNewUserNotifications:  true,
@@ -260,7 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var api    = await StartAPI();
 
             var added  = await api.AddUser(
-                                   NewUser("alice"),
+                                   NewUser(User_Id.Parse("alice")),
                                    SkipDefaultNotifications:  true,
                                    SkipNewUserEMail:          true,
                                    SkipNewUserNotifications:  true,
@@ -363,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             yield return Place("AddUser(User)",
                                "addUser.OnAdded",
                                async (api, body) => await api.AddUser(
-                                                              NewUser("alice"),
+                                                              NewUser(User_Id.Parse("alice")),
                                                               SkipDefaultNotifications:  true,
                                                               SkipNewUserEMail:          true,
                                                               SkipNewUserNotifications:  true,
@@ -373,7 +373,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             yield return Place("AddUser(User, AccessRight, Organization)",
                                "AddUser.OnAdded",
                                async (api, body) => await api.AddUser(
-                                                              NewUser("alice"),
+                                                              NewUser(User_Id.Parse("alice")),
                                                               User2OrganizationEdgeLabel.IsMember,
                                                               await AddOrganization(api),
                                                               SkipDefaultNotifications:  true,
@@ -385,7 +385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             yield return Place("AddUser(User, AccessRights)",
                                "AddUser.OnAdded",
                                async (api, body) => await api.AddUser(
-                                                              NewUser("alice"),
+                                                              NewUser(User_Id.Parse("alice")),
                                                               [ Tuple.Create<User2OrganizationEdgeLabel, IOrganization>(User2OrganizationEdgeLabel.IsMember, await AddOrganization(api)) ],
                                                               SkipDefaultNotifications:  true,
                                                               SkipNewUserEMail:          true,
@@ -396,7 +396,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             yield return Place("AddUserIfNotExists(User)",
                                "addUserIfNotExists.OnAdded",
                                async (api, body) => await api.AddUserIfNotExists(
-                                                              NewUser("alice"),
+                                                              NewUser(User_Id.Parse("alice")),
                                                               SkipDefaultNotifications:  true,
                                                               SkipNewUserEMail:          true,
                                                               SkipNewUserNotifications:  true,
@@ -406,7 +406,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             yield return Place("AddUserIfNotExists(User, AccessRight, Organization)",
                                "AddUserIfNotExists.OnAdded",
                                async (api, body) => await api.AddUserIfNotExists(
-                                                              NewUser("alice"),
+                                                              NewUser(User_Id.Parse("alice")),
                                                               User2OrganizationEdgeLabel.IsMember,
                                                               await AddOrganization(api),
                                                               SkipDefaultNotifications:  true,
@@ -418,7 +418,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             yield return Place("AddUserIfNotExists(User, AccessRights)",
                                "AddUserIfNotExists.OnAdded",
                                async (api, body) => await api.AddUserIfNotExists(
-                                                              NewUser("alice"),
+                                                              NewUser(User_Id.Parse("alice")),
                                                               [ Tuple.Create<User2OrganizationEdgeLabel, IOrganization>(User2OrganizationEdgeLabel.IsMember, await AddOrganization(api)) ],
                                                               SkipDefaultNotifications:  true,
                                                               SkipNewUserEMail:          true,
@@ -429,7 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             yield return Place("AddOrUpdateUser(User), adding",
                                "addOrUpdateUser.OnAdded",
                                async (api, body) => await api.AddOrUpdateUser(
-                                                              NewUser("alice"),
+                                                              NewUser(User_Id.Parse("alice")),
                                                               SkipDefaultNotifications:  true,
                                                               SkipNewUserEMail:          true,
                                                               SkipNewUserNotifications:  true,
@@ -443,7 +443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                    await AddUser(api, "alice");
 
                                    return await api.AddOrUpdateUser(
-                                                    NewUser("alice", "Alice L."),
+                                                    NewUser(User_Id.Parse("alice"), "Alice L."),
                                                     SkipUserUpdatedNotifications:  true,
                                                     OnUpdated:                     Updated(body)
                                                 );
@@ -453,7 +453,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             yield return Place("AddOrUpdateUser(User, AccessRight, Organization), adding",
                                "AddOrUpdateUser.OnAdded",
                                async (api, body) => await api.AddOrUpdateUser(
-                                                              NewUser("alice"),
+                                                              NewUser(User_Id.Parse("alice")),
                                                               User2OrganizationEdgeLabel.IsMember,
                                                               await AddOrganization(api),
                                                               SkipDefaultNotifications:  true,
@@ -469,7 +469,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                    await AddUser(api, "alice");
 
                                    return await api.UpdateUser(
-                                                    NewUser("alice", "Alice L."),
+                                                    NewUser(User_Id.Parse("alice"), "Alice L."),
                                                     SkipUserUpdatedNotifications:  true,
                                                     OnUpdated:                     Updated(body)
                                                 );
@@ -683,12 +683,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-        private static User NewUser(String   Id,
+        private static User NewUser(User_Id  Id,
                                     String?  Name   = null)
 
             => new (
-                   Id:     User_Id.Parse(Id),
-                   Name:   I18NString.Create(Name ?? Id),
+                   Id:     Id,
+                   Name:   I18NString.Create(Name ?? Id.ToString()),
                    EMail:  SimpleEMailAddress.Parse($"{Id}@example.test")
                );
 
@@ -702,7 +702,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var added = await API.AddUser(
-                                  NewUser(Id),
+                                  NewUser(User_Id.Parse(Id)),
                                   SkipDefaultNotifications:  true,
                                   SkipNewUserEMail:          true,
                                   SkipNewUserNotifications:  true

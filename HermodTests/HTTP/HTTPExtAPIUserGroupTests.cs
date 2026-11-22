@@ -89,8 +89,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var api    = await StartAPI();
             var group  = await NewGroup(api, "viewer");
-            var alice  = await NewUser (api, "alice");
-            var bob    = await NewUser (api, "bob");
+            var alice  = await NewUser (api, User_Id.Parse("alice"));
+            var bob    = await NewUser (api, User_Id.Parse("bob"));
 
             Assert.That((await api.AddUserToUserGroup(alice, User2UserGroupEdgeLabel.IsMember, group)).IsSuccess,  Is.True);
             Assert.That((await api.AddUserToUserGroup(bob,   User2UserGroupEdgeLabel.IsMember, group)).IsSuccess,  Is.True);
@@ -114,12 +114,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(RemovalsWritten(), Is.EqualTo(1));
 
             var restarted  = await StartAPI();
-            var aliceAgain = UserOf(restarted, "alice");
+            var aliceAgain = UserOf(restarted, User_Id.Parse("alice"));
 
             Assert.Multiple(() => {
                 Assert.That(restarted.IsMember(aliceAgain, group.Id),                 Is.False,  "the next start put her back in");
                 Assert.That(aliceAgain.User2Group_OutEdges,                           Is.Empty,  "the next start gave her the group's edge back");
-                Assert.That(restarted.IsMember(UserOf(restarted, "bob"), group.Id),   Is.True,   "the group and its other member came back");
+                Assert.That(restarted.IsMember(UserOf(restarted, User_Id.Parse("bob")), group.Id),   Is.True,   "the group and its other member came back");
             });
 
         }
@@ -134,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var api    = await StartAPI();
             var group  = await NewGroup(api, "systemadmin");
-            var alice  = await NewUser (api, "alice");
+            var alice  = await NewUser (api, User_Id.Parse("alice"));
 
             await api.AddUserToUserGroup(alice, User2UserGroupEdgeLabel.IsAdmin,  group);
             await api.AddUserToUserGroup(alice, User2UserGroupEdgeLabel.IsMember, group);
@@ -153,8 +153,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(restarted.TryGetUserGroup(group.Id, out var reloaded), Is.True);
 
             Assert.Multiple(() => {
-                Assert.That(reloaded!.HasEdge(User2UserGroupEdgeLabel.IsAdmin,  UserOf(restarted, "alice")),  Is.False);
-                Assert.That(reloaded. HasEdge(User2UserGroupEdgeLabel.IsMember, UserOf(restarted, "alice")),  Is.True);
+                Assert.That(reloaded!.HasEdge(User2UserGroupEdgeLabel.IsAdmin,  UserOf(restarted, User_Id.Parse("alice"))),  Is.False);
+                Assert.That(reloaded. HasEdge(User2UserGroupEdgeLabel.IsMember, UserOf(restarted, User_Id.Parse("alice"))),  Is.True);
             });
 
         }
@@ -177,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var api    = await StartAPI();
             var group  = await NewGroup(api, "auditor");
-            var alice  = await NewUser (api, "alice");
+            var alice  = await NewUser (api, User_Id.Parse("alice"));
 
             await api.AddUserToUserGroup     (alice, User2UserGroupEdgeLabel.IsMember, group);
             await api.RemoveUserFromUserGroup(alice, group);
@@ -192,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var restarted = await StartAPI();
 
-            Assert.That(restarted.IsMember(UserOf(restarted, "alice"), group.Id), Is.True);
+            Assert.That(restarted.IsMember(UserOf(restarted, User_Id.Parse("alice")), group.Id), Is.True);
 
         }
 
@@ -251,12 +251,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static async Task<User> NewUser(HTTPExtAPI  API,
-                                                String      Name)
+                                                User_Id     Name)
         {
 
             var user = await API.CreateUser(
-                                 User_Id.Parse(Name),
-                                 I18NString.Create(Name),
+                                 Name,
+                                 I18NString.Create(Name.ToString()),
                                  SimpleEMailAddress.Parse($"{Name}@example.test"),
                                  "Correct-Horse-1",
                                  SkipDefaultNotifications:  true,
@@ -271,10 +271,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static User UserOf(HTTPExtAPI  API,
-                                   String      Name)
+                                   User_Id     Name)
         {
 
-            Assert.That(API.TryGetUser(User_Id.Parse(Name), out var user) && user is User, Is.True, $"There is no user '{Name}'.");
+            Assert.That(API.TryGetUser(Name, out var user) && user is User, Is.True, $"There is no user '{Name}'.");
 
             return (User) user!;
 

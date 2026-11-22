@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var listener  = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
 
-            var port      = ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            var port      = IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
             var received  = new TaskCompletionSource<String>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             // A "server" reading the upgrade request and closing the connection without any response.

@@ -172,9 +172,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         private static IUser UserOf(HTTPExtAPI  API,
-                                    String      Username)
+                                    User_Id     Username)
 
-            => API.TryGetUser(User_Id.Parse(Username), out var user) && user is not null
+            => API.TryGetUser(Username, out var user) && user is not null
                    ? user
                    : throw new InvalidOperationException($"Unknown user '{Username}'!");
 
@@ -195,13 +195,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// organization, which auth/login does not ask.
         /// </summary>
         private static async Task AUserWhoSignsInAtTheForm(HTTPExtAPI  API,
-                                                           String      Username,
+                                                           User_Id     Username,
                                                            String      Password)
         {
 
             var user = await API.CreateUserIfNotExists(
-                                 User_Id.Parse(Username),
-                                 I18NString.Create(Username),
+                                 Username,
+                                 I18NString.Create(Username.ToString()),
                                  SimpleEMailAddress.Parse($"{Username}@example.test"),
                                  Password:                  Password,
                                  IsAuthenticated:           true,
@@ -398,7 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(status,                          Is.EqualTo(HttpStatusCode.Created));
                 Assert.That(signedUp?.Id.ToString(),         Is.EqualTo("alice"));
                 Assert.That(browser.HasSession,              Is.True);
-                Assert.That(UserOf(api, "alice").User2Organization_OutEdges.Count(),  Is.EqualTo(1),
+                Assert.That(UserOf(api, User_Id.Parse("alice")).User2Organization_OutEdges.Count(),  Is.EqualTo(1),
                             "the delegate ran before the answer, and the account is in its organization");
 
                 // A refusal is a 500 that says what the delegate said, with an
@@ -833,7 +833,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "judy", "Correct-Horse-11");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("judy"), "Correct-Horse-11");
 
                 for (var attempt = 1; attempt <= 10; attempt++)
                     Assert.That(await AtTheForm(client, "judy", "Wrong-Horse-" + attempt),
@@ -870,7 +870,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "kate", "Correct-Horse-12");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("kate"), "Correct-Horse-12");
 
                 var browser = new Browser(client);
 
@@ -931,7 +931,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "liam", "Correct-Horse-13");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("liam"), "Correct-Horse-13");
 
                 while (verifiers.Wait(0))
                     taken++;
@@ -977,7 +977,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "nina", "Correct-Horse-15");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("nina"), "Correct-Horse-15");
 
                 for (var attempt = 1; attempt <= 10; attempt++)
                     Assert.That((await AtAuthUsers(client, "nina", "Wrong-Horse-" + attempt)).Status,
@@ -1018,7 +1018,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "olga", "Correct-Horse-16");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("olga"), "Correct-Horse-16");
 
                 taken = TakeEveryTurn(api, out verifiers);
 
@@ -1066,7 +1066,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "paul", "Correct-Horse-17");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("paul"), "Correct-Horse-17");
 
                 var unknown  = await AnswerAtTheForm(client, "nobody-here", "Wrong-Horse-1");
                 var wrong    = await AnswerAtTheForm(client, "paul",        "Wrong-Horse-1");
@@ -1099,7 +1099,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "quinn", "Correct-Horse-18");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("quinn"), "Correct-Horse-18");
 
                 var unknown  = await AtAuthUsers(client, "nobody-here", "Wrong-Horse-1");
                 var wrong    = await AtAuthUsers(client, "quinn",       "Wrong-Horse-1");
@@ -1143,7 +1143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "tina", "Correct-Horse-21");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("tina"), "Correct-Horse-21");
 
                 Assert.That(api.PasswordQualityCheck("not-it"),  Is.LessThan(1.0f),  "below the bar");
 
@@ -1177,7 +1177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "uwe", "Correct-Horse-22");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("uwe"), "Correct-Horse-22");
 
                 Assert.That(api.PasswordQualityCheck("not-it"),  Is.LessThan(1.0f),  "below the bar");
 
@@ -1220,7 +1220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "vera", "Correct-Horse-23");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("vera"), "Correct-Horse-23");
 
                 Assert.That("ab".Length,  Is.LessThan(api.MinUserIdLength),  "too short");
 
@@ -1254,7 +1254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "walt", "Correct-Horse-24");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("walt"), "Correct-Horse-24");
 
                 Assert.That("ab".Length,  Is.LessThan(api.MinUserIdLength),  "too short");
 
@@ -1300,7 +1300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "xena", "Correct-Horse-25");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("xena"), "Correct-Horse-25");
 
                 taken = TakeEveryTurn(api, out verifiers);
 
@@ -1342,7 +1342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "yuri", "Correct-Horse-26");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("yuri"), "Correct-Horse-26");
 
                 taken = TakeEveryTurn(api, out verifiers);
 
@@ -1396,7 +1396,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "zack", "Correct-Horse-27");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("zack"), "Correct-Horse-27");
 
                 bar = 20;
 
@@ -1432,7 +1432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "zora", "Correct-Horse-28");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("zora"), "Correct-Horse-28");
 
                 bar = 20;
 
@@ -1511,7 +1511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "rosa", "Correct-Horse-19");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("rosa"), "Correct-Horse-19");
 
                 var (unknown, wrong) = await Timed((login, password) => AtTheForm(client, login, password), "rosa");
 
@@ -1538,7 +1538,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             try
             {
 
-                await AUserWhoSignsInAtTheForm(api, "sven", "Correct-Horse-20");
+                await AUserWhoSignsInAtTheForm(api, User_Id.Parse("sven"), "Correct-Horse-20");
 
                 var (unknown, wrong) = await Timed((login, password) => AtAuthUsers(client, login, password), "sven");
 
@@ -2017,7 +2017,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 var acme = new Organization(Organization_Id.Parse("acme"), I18NString.Create("ACME"));
 
                 Assert.That((await api.AddOrganization(acme)).Result,                                                                    Is.EqualTo(CommandResult.Success));
-                Assert.That((await api.AddUserToOrganization(UserOf(api, "hank"), User2OrganizationEdgeLabel.IsMember, acme)).IsSuccess,  Is.True);
+                Assert.That((await api.AddUserToOrganization(UserOf(api, User_Id.Parse("hank")), User2OrganizationEdgeLabel.IsMember, acme)).IsSuccess,  Is.True);
 
                 var keyId = APIKey_Id.Parse("hanks-first-key-0123456789abcdef");
 
@@ -2059,7 +2059,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 var acme = new Organization(Organization_Id.Parse("acme"), I18NString.Create("ACME"));
 
                 Assert.That((await api.AddOrganization(acme)).Result,                                                                   Is.EqualTo(CommandResult.Success));
-                Assert.That((await api.AddUserToOrganization(UserOf(api, "hank"), User2OrganizationEdgeLabel.IsAdmin, acme)).IsSuccess,  Is.True);
+                Assert.That((await api.AddUserToOrganization(UserOf(api, User_Id.Parse("hank")), User2OrganizationEdgeLabel.IsAdmin, acme)).IsSuccess,  Is.True);
 
                 Assert.That((await hank.Call(new HttpMethod("ADD"), "accounts/organizations/acme/members/paula")).Status,   Is.EqualTo(HttpStatusCode.OK),        hank.LastBody);
                 Assert.That((await hank.Call(new HttpMethod("ADD"), "accounts/organizations/acme/members/nobody")).Status,  Is.EqualTo(HttpStatusCode.NotFound),  hank.LastBody);
@@ -2261,7 +2261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 var acme = new Organization(Organization_Id.Parse("acme"), I18NString.Create("ACME"));
 
                 Assert.That((await api.AddOrganization(acme)).Result,                                                                     Is.EqualTo(CommandResult.Success));
-                Assert.That((await api.AddUserToOrganization(UserOf(api, "alice"), User2OrganizationEdgeLabel.IsAdmin, acme)).IsSuccess,   Is.True);
+                Assert.That((await api.AddUserToOrganization(UserOf(api, User_Id.Parse("alice")), User2OrganizationEdgeLabel.IsAdmin, acme)).IsSuccess,   Is.True);
 
                 var body = new JObject(
                                new JProperty("@id",         "alice"),
@@ -2284,7 +2284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 Assert.Multiple(() =>
                 {
-                    Assert.That(UserOf(api, "alice").IsDisabled,  Is.False);
+                    Assert.That(UserOf(api, User_Id.Parse("alice")).IsDisabled,  Is.False);
                     Assert.That(stillSignedIn,                    Is.EqualTo(HttpStatusCode.OK));
                 });
 

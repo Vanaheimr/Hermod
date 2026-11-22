@@ -31,7 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                               IPSocket              RemoteSocket,
                                               Int32?                InterfaceIndex,
                                               DateTimeOffset        Timestamp,
-                                              IIPAddress?           DestinationAddress    = null,
+                                              IPAddress?           DestinationAddress    = null,
                                               Boolean               SourceIsOnLocalLink   = false)
     {
 
@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The unicast addresses of this host that may be advertised in A and AAAA records.
         /// </summary>
-        IReadOnlyList<IIPAddress>  LocalAddresses    { get; }
+        IReadOnlyList<IPAddress>  LocalAddresses    { get; }
 
         /// <summary>
         /// An event fired whenever a datagram was received.
@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// FF02::FB leaves from the interface's IPv6 link-local address.
         /// </summary>
         /// <param name="Address">The source address of a datagram.</param>
-        Boolean IsOwnAddress(IIPAddress Address)
+        Boolean IsOwnAddress(IPAddress Address)
             => LocalAddresses.Any(local => local.Equals(Address));
 
     }

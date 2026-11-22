@@ -336,12 +336,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 var acme = (Organization) created!;
 
-                async Task<IUser> AdminCalled(String Name)
+                async Task<IUser> AdminCalled(User_Id Name)
                 {
 
                     var user = await api.CreateUser(
-                                         User_Id.Parse(Name),
-                                         I18NString.Create(Name),
+                                         Name,
+                                         I18NString.Create(Name.ToString()),
                                          SimpleEMailAddress.Parse($"{Name}@example.test"),
                                          User2OrganizationEdgeLabel.IsAdmin,
                                          acme,
@@ -359,10 +359,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 // Always the account as this API holds it: the organization edges
                 // hang on that one, and an update returns a new object each time.
-                async Task<UpdateUserResult> Disable(String Name)
+                async Task<UpdateUserResult> Disable(User_Id Name)
                 {
 
-                    Assert.That(api.TryGetUser(User_Id.Parse(Name), out var current) && current is not null,  Is.True);
+                    Assert.That(api.TryGetUser(Name, out var current) && current is not null,  Is.True);
 
                     return await api.UpdateUser(
                                      current!,
@@ -372,48 +372,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 }
 
-                Boolean IsDisabled(String Name)
-                    => api.TryGetUser(User_Id.Parse(Name), out var user) &&
+                Boolean IsDisabled(User_Id Name)
+                    => api.TryGetUser(Name, out var user) &&
                        user is not null &&
                        user.IsDisabled;
 
                 #region The only administrator stays
 
-                await AdminCalled("alice");
+                await AdminCalled(User_Id.Parse("alice"));
 
-                var refused = await Disable("alice");
+                var refused = await Disable(User_Id.Parse("alice"));
 
                 Assert.Multiple(() =>
                 {
                     Assert.That(refused.Result,                   Is.Not.EqualTo(CommandResult.Success),  "the only administrator was disabled");
                     Assert.That(refused.Description.FirstText(),  Does.Contain("acme"),                   "the refusal names the organization that would have been left without one");
-                    Assert.That(IsDisabled("alice"),              Is.False,                               "and nothing was written");
+                    Assert.That(IsDisabled(User_Id.Parse("alice")),              Is.False,                               "and nothing was written");
                 });
 
                 #endregion
 
                 #region With somebody else to administer it, the first one may go
 
-                await AdminCalled("bernd");
+                await AdminCalled(User_Id.Parse("bernd"));
 
-                var allowed = await Disable("alice");
+                var allowed = await Disable(User_Id.Parse("alice"));
 
                 Assert.Multiple(() =>
                 {
                     Assert.That(allowed.Result,       Is.EqualTo(CommandResult.Success),  allowed.Description.FirstText());
-                    Assert.That(IsDisabled("alice"),  Is.True);
+                    Assert.That(IsDisabled(User_Id.Parse("alice")),  Is.True);
                 });
 
                 #endregion
 
                 #region Which makes the other one the last, and it stays
 
-                var refusedToo = await Disable("bernd");
+                var refusedToo = await Disable(User_Id.Parse("bernd"));
 
                 Assert.Multiple(() =>
                 {
                     Assert.That(refusedToo.Result,  Is.Not.EqualTo(CommandResult.Success),  "a disabled administrator still counted as one");
-                    Assert.That(IsDisabled("bernd"),  Is.False);
+                    Assert.That(IsDisabled(User_Id.Parse("bernd")),  Is.False);
                 });
 
                 #endregion

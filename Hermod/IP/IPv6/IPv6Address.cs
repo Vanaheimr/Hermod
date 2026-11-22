@@ -36,8 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct IPv6Address : IComparable<IPv6Address>,
-                                         IEquatable<IPv6Address>,
-                                         IIPAddress
+                                         IEquatable<IPv6Address>
     {
 
         #region Data
@@ -69,35 +68,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Returns the IPv6 address as ReadOnlySpan&lt;byte&gt;.
         /// </summary>
-        public ReadOnlySpan<Byte>  AsSpan
+        public ReadOnlySpan<Byte>   AsSpan
             => MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in byte0), length);
 
         /// <summary>
         /// The length of an IPv6 address.
         /// </summary>
-        public Byte     Length
+        public static Byte          Length
             => length;
 
         /// <summary>
         /// Whether the IP address is an IPv6 multicast address.
         /// </summary>
-        public Boolean  IsMulticast
+        public        Boolean       IsMulticast
             => byte0 == 0xFF;
 
-        public Boolean  IsIPv4
+        public static Boolean       IsIPv4
             => false;
 
-        public Boolean  IsIPv6
+        public static Boolean       IsIPv6
             => true;
 
-        public Boolean  IsLocalhost
+        public        Boolean       IsLocalhost
 
             => byte0  == 0 && byte1  == 0 && byte2  == 0 && byte3  == 0 &&
                byte4  == 0 && byte5  == 0 && byte6  == 0 && byte7  == 0 &&
                byte8  == 0 && byte9  == 0 && byte10 == 0 && byte11 == 0 &&
                byte12 == 0 && byte13 == 0 && byte14 == 0 && byte15 == 1;
 
-        public Boolean  IsAny
+        public        Boolean       IsAny
 
             => byte0  == 0 && byte1  == 0 && byte2  == 0 && byte3  == 0 &&
                byte4  == 0 && byte5  == 0 && byte6  == 0 && byte7  == 0 &&
@@ -107,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// If this is an IPv4-mapped IPv6 (::ffff:w.x.y.z) address, returns "w.x.y.z".
         /// </summary>
-        public IPv4Address?  MappedIPv4
+        public        IPv4Address?  MappedIPv4
         {
             get
             {
@@ -127,20 +126,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
         }
 
-        IPv4Address? IIPAddress.AsIPv4
-            => MappedIPv4;
-
         /// <summary>
         /// True, when this is an IPv4-mapped IPv6 (::ffff:w.x.y.z) address.
         /// </summary>
-        public Boolean IsMappedIPv4
+        public        Boolean       IsMappedIPv4
 
             => MappedIPv4.HasValue;
 
         /// <summary>
         /// The interface identification for local IPv6 addresses, e.g. .
         /// </summary>
-        public String   InterfaceId    { get; }
+        public        String        InterfaceId    { get; }
 
         #endregion
 
@@ -748,7 +744,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv6Address">The IPv6 address.</param>
         public static implicit operator System.Net.IPAddress(IPv6Address IPv6Address)
 
-            => IPAddress.ToDotNet(IPv6Address);
+            => new IPAddress(IPv6Address).ToDotNet();
 
         #endregion
 
@@ -1008,30 +1004,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region CompareTo(IIPAddress)
-
-        /// <summary>
-        /// Compares two IP addresses.
-        /// </summary>
-        /// <param name="IIPAddress">An IP address to compare with.</param>
-        public Int32 CompareTo(IIPAddress? IIPAddress)
-        {
-
-            if (IIPAddress is null)
-                return 1;
-
-            if (Length != IIPAddress.Length)
-                return Length.CompareTo(IIPAddress.Length);
-
-            if (IIPAddress is IPv6Address ipv6Address)
-                return CompareTo(ipv6Address);
-
-            throw new ArgumentException("The given object is not an IPv6 address!", nameof(IIPAddress));
-
-        }
-
-        #endregion
-
         #endregion
 
         #region IEquatable<IPAddress> Members
@@ -1044,8 +1016,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Object">An IPv6 address to compare with.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is IPv6Address ipv6Address &&
-                   Equals(ipv6Address);
+            // An IP address that is this one is this one, too: the union holds it.
+            => Object switch {
+                   IPv6Address  ipv6Address  => Equals(ipv6Address),
+                   IPAddress    ipAddress    => ipAddress.TryGetValue(out IPv6Address other) && Equals(other),
+                   _                         => false
+               };
 
         #endregion
 
@@ -1058,30 +1034,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean Equals(IPv6Address IPv6Address)
 
             => AsSpan.SequenceEqual(IPv6Address.AsSpan);
-
-        #endregion
-
-        #region Equals(IIPAddress)
-
-        /// <summary>
-        /// Compares two IP addresses.
-        /// </summary>
-        /// <param name="IIPAddress">An IP address to compare with.</param>
-        public Boolean Equals(IIPAddress? IIPAddress)
-        {
-
-            if (IIPAddress is null)
-                return false;
-
-            if (length != IIPAddress.Length)
-                return false;
-
-            if (IIPAddress is IPv6Address ipv6Address)
-                return Equals(ipv6Address);
-
-            return false;
-
-        }
 
         #endregion
 

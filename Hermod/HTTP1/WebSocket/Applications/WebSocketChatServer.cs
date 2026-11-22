@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
-        public WebSocketChatServer(IIPAddress?                                               IPAddress                    = null,
+        public WebSocketChatServer(IPAddress?                                               IPAddress                    = null,
                                    IPPort?                                                   HTTPPort                     = null,
                                    String?                                                   HTTPServerName               = null,
                                    I18NString?                                               Description                  = null,

@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public static void ServeRemoteForwards(SshChannelMultiplexer Mux, ForwardingPolicy Policy, CancellationToken CancellationToken = default)
         {
 
-            var forwards = new ConcurrentDictionary<(String Address, UInt16 Port), RemoteForwardListener>();
+            var forwards = new ConcurrentDictionary<(String Address, IPPort Port), RemoteForwardListener>();
             var previous = Mux.GlobalRequestResponder;
 
             // A connection that ends takes its listeners with it.
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         private static SshGlobalRequestReply Listen(SshChannelMultiplexer                                                   Mux,
                                                     ForwardingPolicy                                                        Policy,
-                                                    ConcurrentDictionary<(String Address, UInt16 Port), RemoteForwardListener>  Forwards,
+                                                    ConcurrentDictionary<(String Address, IPPort Port), RemoteForwardListener>  Forwards,
                                                     Byte[]                                                                  Data,
                                                     CancellationToken                                                       CancellationToken)
         {
@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 return SshGlobalRequestReply.Failed;
 
             // A named port is checked before anything is bound; a chosen one can only be checked after.
-            if (requestedPort != 0 && !addresses.All(address => Policy.TcpIpForward.Allows(address, requestedPort)))
+            if (!requestedPort.IsZero && !addresses.All(address => Policy.TcpIpForward.Allows(address, requestedPort)))
                 return SshGlobalRequestReply.Failed;
 
             // "localhost" and the wildcard are two addresses. Bind what can be bound, on one port: the first
@@ -119,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             foreach (var address in addresses)
             {
 
-                var listener = new TcpListener(address, port);
+                var listener = new TcpListener(address, port.ToInt32());
 
                 try
                 {
@@ -132,8 +132,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                 listeners.Add(listener);
 
-                if (port == 0)
-                    port = (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+                if (port.IsZero)
+                    port = IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             }
 
@@ -150,16 +150,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             foreach (var listener in listeners)
                 forward.Runs(AcceptLoopAsync(Mux, listener, bindAddress, port, forward.Token));
 
-            if (requestedPort != 0)
+            if (!requestedPort.IsZero)
                 return SshGlobalRequestReply.Ok;
 
             var abw = new ArrayBufferWriter<Byte>();
-            new SshPacketWriter(abw).WriteUInt32(port);
+            new SshPacketWriter(abw).WriteUInt32(port.ToUInt16());
             return SshGlobalRequestReply.WithData(abw.WrittenSpan.ToArray());
 
         }
 
-        private static async ValueTask<SshGlobalRequestReply?> CancelAsync(ConcurrentDictionary<(String Address, UInt16 Port), RemoteForwardListener>  Forwards,
+        private static async ValueTask<SshGlobalRequestReply?> CancelAsync(ConcurrentDictionary<(String Address, IPPort Port), RemoteForwardListener>  Forwards,
                                                                            Byte[]                                                                  Data)
         {
 
@@ -183,11 +183,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         private static readonly TimeSpan StopWait = TimeSpan.FromSeconds(5);
 
-        private static Boolean TryReadAddressAndPort(Byte[] Data, out String Address, out UInt16 Port)
+        private static Boolean TryReadAddressAndPort(Byte[] Data, out String Address, out IPPort Port)
         {
 
             Address = "";
-            Port    = 0;
+            Port    = IPPort.Zero;
 
             try
             {
@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 if (port > UInt16.MaxValue)
                     return false;
 
-                Port = (UInt16) port;
+                Port = IPPort.Parse((UInt16) port);
                 return true;
 
             }
@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         }
 
-        private static async Task AcceptLoopAsync(SshChannelMultiplexer Mux, TcpListener Listener, String BindAddress, UInt16 Port, CancellationToken CancellationToken)
+        private static async Task AcceptLoopAsync(SshChannelMultiplexer Mux, TcpListener Listener, String BindAddress, IPPort Port, CancellationToken CancellationToken)
         {
             try
             {
@@ -238,7 +238,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                         {
                             var origin = (System.Net.IPEndPoint) socket.Client.RemoteEndPoint!;
                             var ch     = await Mux.OpenChannelAsync("forwarded-tcpip",
-                                                                   ForwardedTcpIp(BindAddress, Port, origin.Address.ToString(), (UInt16) origin.Port),
+                                                                   ForwardedTcpIp(BindAddress, Port, origin.Address.ToString(), IPPort.Parse(origin.Port)),
                                                                    CancellationToken).ConfigureAwait(false);
                             await SshTcpRelay.RelayAsync(ch, socket.Client, CancellationToken).ConfigureAwait(false);
                         }
@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region RequestRemoteForwardAsync(Mux, BindHost, BindPort, LocalHost, LocalPort)
 
-        private static readonly ConditionalWeakTable<SshChannelMultiplexer, ConcurrentDictionary<(String Address, UInt16 Port), SshRemoteForward>> clientForwards = new ();
+        private static readonly ConditionalWeakTable<SshChannelMultiplexer, ConcurrentDictionary<(String Address, IPPort Port), SshRemoteForward>> clientForwards = new ();
 
         /// <summary>
         /// Request the client side (<c>ssh -R</c>): ask the server to listen on <paramref name="BindHost"/>:
@@ -272,13 +272,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </remarks>
         /// <exception cref="SshForwardingException">The server refused, or did not say which port it chose.</exception>
         /// <param name="DNSClient">The DNS client <paramref name="LocalHost"/> is resolved with, where it is a host name; without one only an IP address or "localhost" is reached.</param>
-        public static async ValueTask<SshRemoteForward> RequestRemoteForwardAsync(SshChannelMultiplexer  Mux,
-                                                                                 String                 BindHost,
-                                                                                 UInt16                 BindPort,
-                                                                                 String                 LocalHost,
-                                                                                 UInt16                 LocalPort,
-                                                                                 CancellationToken      CancellationToken  = default,
-                                                                                 DNS.IDNSClient?        DNSClient          = null)
+        public static async ValueTask<SshRemoteForward> RequestRemoteForward(SshChannelMultiplexer  Mux,
+                                                                             String                 BindHost,
+                                                                             IPPort                 BindPort,
+                                                                             String                 LocalHost,
+                                                                             IPPort                 LocalPort,
+                                                                             CancellationToken      CancellationToken   = default,
+                                                                             DNS.IDNSClient?        DNSClient           = null)
         {
 
             var forwards = ClientForwards(Mux);
@@ -287,7 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             // server may open a channel for it before its reply has been read here.
             SshRemoteForward? forward = null;
 
-            if (BindPort != 0)
+            if (!BindPort.IsZero)
             {
                 forward = new SshRemoteForward(Mux, forwards, BindHost, BindPort, LocalHost, LocalPort, DNSClient);
                 if (!forwards.TryAdd((BindHost, BindPort), forward))
@@ -328,9 +328,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (chosen is 0 or > UInt16.MaxValue)
                 throw new SshForwardingException($"The server accepted the remote forward on {BindHost}:0, but did not say which port it chose.");
 
-            forward = new SshRemoteForward(Mux, forwards, BindHost, (UInt16) chosen, LocalHost, LocalPort, DNSClient);
+            forward = new SshRemoteForward(Mux, forwards, BindHost, IPPort.Parse((UInt16) chosen), LocalHost, LocalPort, DNSClient);
 
-            if (!forwards.TryAdd((BindHost, (UInt16) chosen), forward))
+            if (!forwards.TryAdd((BindHost, forward.BoundPort), forward))
                 throw new SshForwardingException($"The server chose {BindHost}:{chosen}, which this connection already forwards.");
 
             return forward;
@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// The forwards this connection asked for - and, once per connection, the responder that hands
         /// each of their channels to its relay.
         /// </summary>
-        private static ConcurrentDictionary<(String Address, UInt16 Port), SshRemoteForward> ClientForwards(SshChannelMultiplexer Mux)
+        private static ConcurrentDictionary<(String Address, IPPort Port), SshRemoteForward> ClientForwards(SshChannelMultiplexer Mux)
         {
             lock (clientForwards)
             {
@@ -353,7 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 if (clientForwards.TryGetValue(Mux, out var existing))
                     return existing;
 
-                var forwards = new ConcurrentDictionary<(String Address, UInt16 Port), SshRemoteForward>();
+                var forwards = new ConcurrentDictionary<(String Address, IPPort Port), SshRemoteForward>();
                 var previous = Mux.ChannelResponder;
 
                 Mux.ChannelResponder = info =>
@@ -376,7 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Connect to the local target of a remote forward and relay one forwarded channel to it.
         /// </summary>
-        internal static async Task ConnectAndRelayAsync(SshMuxChannel Channel, String LocalHost, UInt16 LocalPort, DNS.IDNSClient? DNSClient, CancellationToken CancellationToken)
+        internal static async Task ConnectAndRelayAsync(SshMuxChannel Channel, String LocalHost, IPPort LocalPort, DNS.IDNSClient? DNSClient, CancellationToken CancellationToken)
         {
 
             // Resolved as every host is here: never by the operating system.
@@ -396,7 +396,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             try
             {
-                await socket.ConnectAsync([.. addresses], LocalPort, CancellationToken).ConfigureAwait(false);
+                await socket.ConnectAsync([.. addresses], LocalPort.ToUInt16(), CancellationToken).ConfigureAwait(false);
             }
             catch
             {
@@ -415,10 +415,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The body of <c>tcpip-forward</c> and <c>cancel-tcpip-forward</c>.
         /// </summary>
-        internal static Byte[] AddressAndPort(String Address, UInt32 Port)
+        internal static Byte[] AddressAndPort(String Address, IPPort Port)
         {
             var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
-            w.WriteString(Address); w.WriteUInt32(Port);
+            w.WriteString(Address); w.WriteUInt32(Port.ToUInt16());
             return abw.WrittenSpan.ToArray();
         }
 
@@ -427,11 +427,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (private) ForwardedTcpIp / RemoteForwardListener
 
-        private static Byte[] ForwardedTcpIp(String ConnectedAddress, UInt16 ConnectedPort, String OriginAddress, UInt16 OriginPort)
+        private static Byte[] ForwardedTcpIp(String ConnectedAddress, IPPort ConnectedPort, String OriginAddress, IPPort OriginPort)
         {
             var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
-            w.WriteString(ConnectedAddress); w.WriteUInt32(ConnectedPort);
-            w.WriteString(OriginAddress);    w.WriteUInt32(OriginPort);
+            w.WriteString(ConnectedAddress); w.WriteUInt32(ConnectedPort.ToUInt16());
+            w.WriteString(OriginAddress);    w.WriteUInt32(OriginPort.   ToUInt16());
             return abw.WrittenSpan.ToArray();
         }
 

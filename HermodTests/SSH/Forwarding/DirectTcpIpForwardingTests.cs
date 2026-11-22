@@ -23,6 +23,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
 #endregion
@@ -40,11 +41,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
     {
 
         // A tiny in-process TCP echo server on loopback; returns its port.
-        private static (TcpListener Listener, Int32 Port) StartEchoServer(CancellationToken CancellationToken)
+        private static (TcpListener Listener, IPPort Port) StartEchoServer(CancellationToken CancellationToken)
         {
             var listener = new TcpListener(IPAddress.Loopback, 0);
             listener.Start();
-            var port = ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
 
             _ = Task.Run(async () =>
             {
@@ -106,14 +107,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 }, CancellationToken);
 
                 using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "achim", userKey, CancellationToken: CancellationToken);
+                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
 
                 // A destination outside the ACL is refused — and the session stays usable.
                 var refused = await Assert.CatchAsync<SshForwardingException>(async () =>
-                    await SshForwarding.OpenTcpStreamAsync(client, "127.0.0.1", (UInt16) (echoPort + 1), CancellationToken));
+                    await SshForwarding.OpenTcpStreamAsync(client, "127.0.0.1", IPPort.Parse(echoPort.ToUInt16() + 1), CancellationToken));
 
                 // The permitted destination tunnels through to the echo server.
-                var stream  = await SshForwarding.OpenTcpStreamAsync(client, "127.0.0.1", (UInt16) echoPort, CancellationToken);
+                var stream  = await SshForwarding.OpenTcpStreamAsync(client, "127.0.0.1", echoPort, CancellationToken);
                 var sent    = Encoding.UTF8.GetBytes("ping through the tunnel");
                 await stream.WriteAsync(sent, CancellationToken);
 

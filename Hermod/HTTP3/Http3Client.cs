@@ -54,7 +54,7 @@ public sealed class Http3Client : IAsyncDisposable
     private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(20);
 
     private readonly string _host;
-    private readonly int _port;
+    private readonly IPPort _port;
     private readonly IDNSClient? _dnsClient;
     private readonly TimeProvider _timeProvider;
     private readonly Http3ClientConnection _connection;
@@ -68,7 +68,7 @@ public sealed class Http3Client : IAsyncDisposable
     private bool _disposed;
 
     public Http3Client(string host,
-                       int port = 443,
+                       IPPort? port = null,
                        CertificateValidationOptions? certificateValidation = null,
                        bool enableDatagrams = false,
                        ulong webTransportMaxSessions = 0,
@@ -79,7 +79,7 @@ public sealed class Http3Client : IAsyncDisposable
                        string? serverName = null)
     {
         _host = host;
-        _port = port;
+        _port = port ?? IPPort.HTTPS;
         _dnsClient = dnsClient;
         _timeProvider = timeProvider ?? TimeProvider.System;
         // The name the server is asked for (SNI) and its certificate is held to: the host, unless
@@ -130,7 +130,7 @@ public sealed class Http3Client : IAsyncDisposable
                                     ?? addresses[0];
         _udp = new UdpClient(address.AddressFamily);
         DisableIcmpUnreachableException(_udp);
-        _udp.Connect(new IPEndPoint(address, _port));
+        _udp.Connect(new IPEndPoint(address, _port.ToInt32()));
 
         await _mutex.WaitAsync(cancellationToken).ConfigureAwait(false);
         try

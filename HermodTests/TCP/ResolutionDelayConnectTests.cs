@@ -126,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
             try
             {
 
-                var port       = ((IPEndPoint) listener.LocalEndpoint).Port;
+                var port       = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
                 var accepted   = listener.AcceptTcpClientAsync();
                 var resolver   = new AOnlyResolver();
 
@@ -174,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TCP
             try
             {
 
-                var port       = ((IPEndPoint) listener.LocalEndpoint).Port;
+                var port       = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
                 var accepted   = listener.AcceptTcpClientAsync();
                 var resolver   = new AOnlyResolver();
 

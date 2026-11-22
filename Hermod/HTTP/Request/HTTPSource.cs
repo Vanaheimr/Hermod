@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The IP address of the HTTP source.
         /// </summary>
-        public IIPAddress  IPAddress
+        public IPAddress  IPAddress
                    => Socket.IPAddress;
 
         /// <summary>
@@ -52,12 +52,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    => Socket.Port;
 
 
-        private readonly IIPAddress[] ForwardedForList;
+        private readonly IPAddress[] ForwardedForList;
 
         /// <summary>
         /// An additional enumeration of IP addresses, when the message had been forwarded between HTTP servers.
         /// </summary>
-        public IEnumerable<IIPAddress>  ForwardedFor
+        public IEnumerable<IPAddress>  ForwardedFor
                    => ForwardedForList;
 
         #endregion
@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Socket">The IP socket of the HTTP source.</param>
         /// <param name="ForwardedFor">An additional enumeration of IP addresses, when the message had been forwarded between HTTP servers.</param>
         public HTTPSource(IPSocket                  Socket,
-                          IEnumerable<IIPAddress>?  ForwardedFor = null)
+                          IEnumerable<IPAddress>?  ForwardedFor = null)
         {
 
             this.Socket            = Socket;

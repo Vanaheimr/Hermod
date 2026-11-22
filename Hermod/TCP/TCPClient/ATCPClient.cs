@@ -155,16 +155,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The local TCP port.
         /// </summary>
-        public UInt16?                          CurrentLocalPort
+        public IPPort?                          CurrentLocalPort
 
             => CurrentLocalEndPoint is not null
-                   ? (UInt16) CurrentLocalEndPoint.Port
+                   ? IPPort.Parse(CurrentLocalEndPoint.Port)
                    : null;
 
         /// <summary>
         /// The local IP address.
         /// </summary>
-        public IIPAddress?                      CurrentLocalIPAddress
+        public IPAddress?                      CurrentLocalIPAddress
 
             => CurrentLocalEndPoint is not null
                    ? IPAddress.Parse(CurrentLocalEndPoint.Address.GetAddressBytes())
@@ -187,16 +187,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The remote TCP port.
         /// </summary>
-        public UInt16?                          CurrentRemotePort
+        public IPPort?                          CurrentRemotePort
 
             => CurrentRemoteEndPoint is not null
-                   ? (UInt16) CurrentRemoteEndPoint.Port
+                   ? IPPort.Parse(CurrentRemoteEndPoint.Port)
                    : null;
 
         /// <summary>
         /// The remote IP address.
         /// </summary>
-        public IIPAddress?                      CurrentRemoteIPAddress
+        public IPAddress?                      CurrentRemoteIPAddress
 
             => CurrentRemoteEndPoint is not null
                    ? IPAddress.Parse(CurrentRemoteEndPoint.Address.GetAddressBytes())
@@ -206,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         public  URL                             RemoteURL                 { get; }
-        public  IIPAddress?                     RemoteIPAddress           { get; private set; }
+        public  IPAddress?                     RemoteIPAddress           { get; private set; }
         public  IPPort?                         RemotePort                { get; protected set; }
 
 
@@ -221,12 +221,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public  SRV_Spec?                       DNSService                { get; }
 
 
-        public  IIPAddress?                     ResolvedIPAddress         { get; protected set; }
-        public  HashSet<IIPAddress>             ResolvedIPAddresses       { get; } = [];
+        public  IPAddress?                     ResolvedIPAddress         { get; protected set; }
+        public  HashSet<IPAddress>             ResolvedIPAddresses       { get; } = [];
 
         /// <summary>
         /// Which remote addresses this client may connect to, or null for any: checked against every address the
-        /// remote resolved to, after the resolution and before one of them is dialled - and none is resolved again in
+        /// remote resolved to, after the resolution and before one of them is connected to - and none is resolved again in
         /// between. A remote with one address the list refuses is refused as a whole, so that a name resolving to a
         /// public and a private address, or rebound to a private one, does not reach it. For URLs somebody else hands
         /// in, as the versions URL of an OCPI peer: see SSH.NetworkAcl.DenyNonPublicNetworks().
@@ -320,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// none has been built yet. The default searches the machine's network
         /// configuration for resolvers, which costs ~38 ms - more than thirty
         /// times a request on loopback - so a client that never resolves a name
-        /// must never pay for it. Dialling a literal IP address resolves
+        /// must never pay for it. Connecting to a literal IP address resolves
         /// nothing: see where ResolvedIPAddresses is filled in Connect.
         /// </remarks>
         public  IDNSClient?                     DNSClient
@@ -405,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) ATCPClient(IPAddress,  TCPPort,           ...)
 
-        protected ATCPClient(IIPAddress                       IPAddress,
+        protected ATCPClient(IPAddress                       IPAddress,
                              IPPort                           TCPPort,
                              I18NString?                      Description              = null,
                              IPVersionPreference?             IPVersionPreference      = null,
@@ -737,8 +737,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 // preference picks one of them below, as it does for a host name
                 // with both an A and an AAAA record. As itself it was neither an
                 // IPv4Address nor an IPv6Address to that choice: IPv4Only and
-                // IPv6Only found nothing and failed without dialling, and
-                // PreferIPv4 fell back to it and dialled what ToDotNet() makes
+                // IPv6Only found nothing and failed without connecting, and
+                // PreferIPv4 fell back to it and connected to what ToDotNet() makes
                 // of it, [::1].
                 if (RemoteIPAddress is IPvXAddress { IsLocalhost: true })
                 {
@@ -747,7 +747,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
 
                 else if (RemoteIPAddress is not null)
-                    ResolvedIPAddresses.Add(RemoteIPAddress);
+                    ResolvedIPAddresses.Add(RemoteIPAddress.Value);
 
                 if (ResolvedIPAddresses.Count == 0)
                 {
@@ -757,9 +757,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     #region URL looks like an IP address / Localhost...
 
                     // An address is itself. Every one starting with "127." used
-                    // to be taken for localhost, and 127.0.0.2 was dialled as
+                    // to be taken for localhost, and 127.0.0.2 was connected to as
                     // 127.0.0.1.
-                    if      (IPAddress.IsIPv4(hostname))
+                    if      (IPAddress.IsIPv4Address(hostname))
                         ResolvedIPAddresses.Add(IPv4Address.Parse(hostname));
 
                     // TryParseURIHost rather than TryParse, because this text came
@@ -767,7 +767,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     // percent-encoded there, so fe80::a%en1 is written
                     // http://[fe80::a%25en1]. The plain parser splits at the first
                     // "%" and read the zone of that URL as "25en1" — a link-local
-                    // address dialled through an interface that does not exist, and
+                    // address connected to through an interface that does not exist, and
                     // a success rather than a failure, which is the worse of the
                     // two.
                     else if (IPv6Address.TryParseURIHost(hostname, out var ipv6FromURI))
@@ -855,21 +855,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         // the other waited for 50 ms and no longer. Waiting for both, a name server that never
                         // answered for one family - an AAAA query dropped on the way - kept every connection
                         // for the whole DNS timeout, the addresses of the other family long known.
-                        IEnumerable<IIPAddress> addresses = IPVersionPreference switch {
+                        IEnumerable<IPAddress> addresses = IPVersionPreference switch {
 
                             IPVersionPreference.IPv6Only  => (await DNSClient.Query_IPv6Addresses(
                                                                         remote,
                                                                         RecursionDesired:   true,
                                                                         ForceUpdate:        forceDNSCacheUpdate,
                                                                         CancellationToken:  CancellationToken
-                                                                    ).ConfigureAwait(false)).Cast<IIPAddress>(),
+                                                                    ).ConfigureAwait(false)).Select(address => (IPAddress) address),
 
                             IPVersionPreference.IPv4Only  => (await DNSClient.Query_IPv4Addresses(
                                                                         remote,
                                                                         RecursionDesired:   true,
                                                                         ForceUpdate:        forceDNSCacheUpdate,
                                                                         CancellationToken:  CancellationToken
-                                                                    ).ConfigureAwait(false)).Cast<IIPAddress>(),
+                                                                    ).ConfigureAwait(false)).Select(address => (IPAddress) address),
 
                             _                             =>  await DNSClient.Query_IPAddressesToConnect(
                                                                         remote,
@@ -901,9 +901,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     RemotePort     ??= remotePort;
 
-                    // Every address, not only the first: any of them may be dialled below.
+                    // Every address, not only the first: any of them may be connected to below.
                     if (RemoteNetworkAcl is SSH.NetworkAcl remoteNetworkAcl &&
-                        !remoteNetworkAcl.AllowsAll(ResolvedIPAddresses, remotePort.Value.ToUInt16()))
+                        !remoteNetworkAcl.AllowsAll(ResolvedIPAddresses, remotePort.Value))
                     {
                         ResolvedIPAddresses.Clear();
                         return TCPConnectionResult.Failed($"{nameof(ATCPClient)}: the remote address is none this client may connect to!");
@@ -969,9 +969,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     // previous attempts". The next one starts when the last one
                     // failed, or when it has had the Connection Attempt Delay
                     // without getting through.
-                    var attempts                  = new List<(TcpClient Client, IIPAddress Address, Task Connect)>();
-                    var pending                   = new List<(TcpClient Client, IIPAddress Address, Task Connect)>();
-                    (TcpClient Client, IIPAddress Address)? connected = null;
+                    var attempts                  = new List<(TcpClient Client, IPAddress Address, Task Connect)>();
+                    var pending                   = new List<(TcpClient Client, IPAddress Address, Task Connect)>();
+                    (TcpClient Client, IPAddress Address)? connected = null;
                     Exception?                    lastError       = null;
                     var                           closed          = false;
                     var                           timedOut        = false;
@@ -1197,7 +1197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// preferred family first and the families interleaved, or the one
         /// family alone that IPv4Only or IPv6Only allow.
         /// </summary>
-        private List<IIPAddress> ConnectionCandidates()
+        private List<IPAddress> ConnectionCandidates()
         {
 
             var ipv6    = ResolvedIPAddresses.Where(ipAddress => ipAddress is IPv6Address).OrderBy(_ => Random.Shared.Next()).ToList();
@@ -1214,7 +1214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                       ? (ipv4, ipv6)
                                       : (ipv6, ipv4);
 
-            var ordered = new List<IIPAddress>(ResolvedIPAddresses.Count);
+            var ordered = new List<IPAddress>(ResolvedIPAddresses.Count);
 
             for (var i = 0; i < Math.Max(first.Count, second.Count); i++)
             {

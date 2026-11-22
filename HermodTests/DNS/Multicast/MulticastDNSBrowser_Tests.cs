@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             });
 
             // SRV, TXT and A complete it.
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443).Where(record => record is not PTR), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)).Where(record => record is not PTR), Probe: false);
 
             var resolved = await WaitFor(() => { lock (added) return added.FirstOrDefault(); });
 
@@ -117,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await WaitUntil(() => resolved.Addresses.Count > 0);
 
             Assert.Multiple(() => {
-                Assert.That(resolved.Addresses,  Is.EqualTo(new IIPAddress[] { ServerAddress }));
+                Assert.That(resolved.Addresses,  Is.EqualTo(new IPAddress[] { ServerAddress }));
                 lock (added)
                     Assert.That(added,           Has.Count.EqualTo(1), "reported exactly once");
             });
@@ -150,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             browser.OnInstanceAdded   += (timestamp, sender, instance, ct) => { lock (added)   added.  Add(instance); return Task.CompletedTask; };
             browser.OnInstanceUpdated += (timestamp, sender, instance, ct) => { lock (updated) updated.Add(instance); return Task.CompletedTask; };
 
-            var serviceRecords = ServiceRecords("myhost.local.", "10.0.0.7", 8443);
+            var serviceRecords = ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443));
 
             await responder.PublishAsync(serviceRecords.Where(record => record is not TXT), Probe: false);
 
@@ -166,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 Assert.That(instance.HostName?.FullName,          Is.EqualTo("myhost.local."));
                 Assert.That(instance.Port?.ToUInt16(),            Is.EqualTo((UInt16) 8443));
                 Assert.That(instance.TXT,                         Is.Null);
-                Assert.That(instance.Addresses,                   Is.EqualTo(new IIPAddress[] { ServerAddress }));
+                Assert.That(instance.Addresses,                   Is.EqualTo(new IPAddress[] { ServerAddress }));
                 Assert.That(browser.Instances,                    Is.EqualTo(new[] { instance }));
                 Assert.That(capture.Queries.Any(query => query.Message.Questions.Any(question => question.Name.Equals(MyInstance) &&
                                                                                               question.Type == DNSResourceRecordTypes.TXT)),
@@ -219,8 +219,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             browser.OnInstanceAdded   += (timestamp, sender, instance, ct) => { lock (added)   added.  Add(instance); return Task.CompletedTask; };
             browser.OnInstanceRemoved += (timestamp, sender, instance, ct) => { lock (removed) removed.Add(instance); return Task.CompletedTask; };
 
-            var first   = await responder1.PublishAsync(ServiceRecords("host1.local.", "10.0.0.7", 8443), Probe: false);
-            var second  = await responder2.PublishAsync(ServiceRecords("host2.local.", "10.0.0.9", 8444), Probe: false);
+            var first   = await responder1.PublishAsync(ServiceRecords("host1.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
+            var second  = await responder2.PublishAsync(ServiceRecords("host2.local.", "10.0.0.9", IPPort.Parse(8444)), Probe: false);
 
             await WaitUntil(() => browser.Instances.Count == 2);
 
@@ -275,14 +275,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             browser.OnInstanceAdded   += (timestamp, sender, instance, ct) => { lock (added)   added.  Add(instance); return Task.CompletedTask; };
             browser.OnInstanceUpdated += (timestamp, sender, instance, ct) => { lock (updated) updated.Add(instance); return Task.CompletedTask; };
 
-            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443, TXTStrings: [ "txtver=1", "state=idle" ]), Probe: false);
+            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443), TXTStrings: [ "txtver=1", "state=idle" ]), Probe: false);
 
             var instance = await WaitFor(() => { lock (added) return added.FirstOrDefault(); });
             await WaitUntil(() => instance.Addresses.Count > 0);
 
             Assert.That(instance.TXT?.KeyValues["state"], Is.EqualTo("idle"));
 
-            await publication.UpdateAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443, TXTStrings: [ "txtver=1", "state=charging" ]));
+            await publication.UpdateAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443), TXTStrings: [ "txtver=1", "state=charging" ]));
 
             await WaitUntil(() => { lock (updated) return updated.Count >= 1; });
             await Task.Delay(50);
@@ -296,7 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 Assert.That(instance.TXT?.KeyValues["state"],     Is.EqualTo("charging"));
                 Assert.That(instance.TXT?.KeyValues["txtver"],    Is.EqualTo("1"));
                 Assert.That(instance.HostName?.FullName,          Is.EqualTo("myhost.local."));
-                Assert.That(instance.Addresses,                   Is.EqualTo(new IIPAddress[] { ServerAddress }));
+                Assert.That(instance.Addresses,                   Is.EqualTo(new IPAddress[] { ServerAddress }));
                 Assert.That(browser.Instances,                    Has.Count.EqualTo(1));
                 lock (added)
                     Assert.That(added,                            Has.Count.EqualTo(1));
@@ -330,24 +330,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             browser.OnInstanceAdded   += (timestamp, sender, instance, ct) => { lock (added)   added.  Add(instance); return Task.CompletedTask; };
             browser.OnInstanceUpdated += (timestamp, sender, instance, ct) => { lock (updated) updated.Add(instance); return Task.CompletedTask; };
 
-            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             var instance = await WaitFor(() => { lock (added) return added.FirstOrDefault(); });
             await WaitUntil(() => instance.Addresses.Count > 0);
 
-            Assert.That(instance.Addresses, Is.EqualTo(new IIPAddress[] { IPv4Address.Parse("10.0.0.7") }));
+            Assert.That(instance.Addresses, Is.EqualTo(new IPAddress[] { IPv4Address.Parse("10.0.0.7") }));
 
             // RFC 6762 §10.2: a cache-flush only retires records received more than one second
             // ago, so the cached A record is aged beyond that before the host changes its address.
             clock.Shift(TimeSpan.FromSeconds(2));
 
-            await publication.UpdateAsync(ServiceRecords("myhost.local.", "10.0.0.9", 8443));
+            await publication.UpdateAsync(ServiceRecords("myhost.local.", "10.0.0.9", IPPort.Parse(8443)));
 
             await WaitUntil(() => { lock (updated) return updated.Count >= 1; });
 
             Assert.Multiple(() => {
-                Assert.That(instance.Addresses,  Does.Contain(IPv4Address.Parse("10.0.0.9")), "the new address is known at once");
-                Assert.That(instance.Addresses,  Does.Contain(IPv4Address.Parse("10.0.0.7")), "the old one lives one more second");
+                Assert.That(instance.Addresses,  Does.Contain((IPAddress) IPv4Address.Parse("10.0.0.9")), "the new address is known at once");
+                Assert.That(instance.Addresses,  Does.Contain((IPAddress) IPv4Address.Parse("10.0.0.7")), "the old one lives one more second");
             });
 
             // One second later the old record expires and leaves the instance.
@@ -356,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await WaitUntil(() => { lock (updated) return updated.Count >= 2; });
 
             Assert.Multiple(() => {
-                Assert.That(instance.Addresses,             Is.EqualTo(new IIPAddress[] { IPv4Address.Parse("10.0.0.9") }));
+                Assert.That(instance.Addresses,             Is.EqualTo(new IPAddress[] { IPv4Address.Parse("10.0.0.9") }));
                 Assert.That(instance.HostName?.FullName,    Is.EqualTo("myhost.local."));
                 Assert.That(browser.Instances,              Has.Count.EqualTo(1));
                 lock (updated)
@@ -387,7 +387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await responder.StartAsync();
             await client.   StartAsync();
 
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443).
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)).
                                                Where(record => record is not TXT),
                                            Probe: false);
 
@@ -434,7 +434,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await responder.StartAsync();
 
             // Published before the client listens: its cache starts empty.
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             await client.StartAsync();
 
@@ -463,7 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 Assert.That(instance.HostName?.FullName,      Is.EqualTo("myhost.local."));
                 Assert.That(instance.Port?.ToUInt16(),        Is.EqualTo((UInt16) 8443));
                 Assert.That(instance.TXT?.KeyValues["txtver"], Is.EqualTo("1"));
-                Assert.That(instance.Addresses,               Is.EqualTo(new IIPAddress[] { ServerAddress }));
+                Assert.That(instance.Addresses,               Is.EqualTo(new IPAddress[] { ServerAddress }));
             });
 
             await Task.Delay(150);
@@ -508,7 +508,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             // RFC 6763 §7.1: the instance is also a member of the "_cem" subtype.
             await responder.PublishAsync([
-                      .. ServiceRecords("myhost.local.", "10.0.0.7", 8443),
+                      .. ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)),
                       new PTR(cemSubtype, DNSQueryClasses.IN, TimeSpan.FromSeconds(4500), MyInstance)
                   ], Probe: false);
 
@@ -522,7 +522,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 Assert.That(instance.HostName?.FullName,      Is.EqualTo("myhost.local."));
                 Assert.That(instance.Port?.ToUInt16(),        Is.EqualTo((UInt16) 8443));
                 Assert.That(instance.TXT,                     Is.Not.Null);
-                Assert.That(instance.Addresses,               Is.EqualTo(new IIPAddress[] { ServerAddress }));
+                Assert.That(instance.Addresses,               Is.EqualTo(new IPAddress[] { ServerAddress }));
                 Assert.That(cemBrowser.Instances,             Has.Count.EqualTo(1));
                 Assert.That(rmBrowser. Instances,             Is.Empty, "no PTR record names the _rm subtype");
                 Assert.That(rmBrowser. AllInstances,          Is.Empty);
@@ -559,7 +559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             browser.OnInstanceAdded   += (timestamp, sender, instance, ct) => { lock (added)   added.  Add(instance); return Task.CompletedTask; };
             browser.OnInstanceRemoved += (timestamp, sender, instance, ct) => { lock (removed) removed.Add(instance); return Task.CompletedTask; };
 
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443, PTRTimeToLive: TimeSpan.FromSeconds(1)), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443), PTRTimeToLive: TimeSpan.FromSeconds(1)), Probe: false);
 
             var instance  = await WaitFor(() => { lock (added) return added.FirstOrDefault(); });
             var silenced  = DateTimeOffset.UtcNow;
@@ -611,7 +611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             // The query loop's first query.
             await WaitUntil(() => capture.PTRQueriesFor(TestService).Count == 1);
 
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443, PTRTimeToLive: TimeSpan.FromSeconds(2)), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443), PTRTimeToLive: TimeSpan.FromSeconds(2)), Probe: false);
 
             var published = DateTimeOffset.UtcNow;
 
@@ -799,7 +799,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             var browser = await client.BrowseAsync(TestService);
 
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             await WaitUntil(() => browser.Instances.Count == 1);
 
@@ -849,7 +849,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             browser.OnInstanceAdded   += (timestamp, sender, instance, ct) => { lock (added)   added.  Add(instance); return Task.CompletedTask; };
             browser.OnInstanceRemoved += (timestamp, sender, instance, ct) => { lock (removed) removed.Add(instance); return Task.CompletedTask; };
 
-            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             await WaitUntil(() => { lock (added) return added.Count == 1; });
 
@@ -866,7 +866,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             // Neither a goodbye nor a new instance reaches a stopped browser, and it sends no more queries.
             await publication.WithdrawAsync();
-            await responder.PublishAsync(ServiceRecords("other.local.", "10.0.0.7", 8444), Probe: false);
+            await responder.PublishAsync(ServiceRecords("other.local.", "10.0.0.7", IPPort.Parse(8444)), Probe: false);
 
             await Task.Delay(200);
 
@@ -907,7 +907,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             browser.OnInstanceAdded += (timestamp, sender, instance, ct) => { lock (added) added.Add(instance); return Task.CompletedTask; };
 
             // A printer of another service type on the same link.
-            await responder.PublishAsync(ServiceRecords("printer.local.", "10.0.0.7", 631, "_ipp._tcp.local."), Probe: false);
+            await responder.PublishAsync(ServiceRecords("printer.local.", "10.0.0.7", IPPort.Parse(631), "_ipp._tcp.local."), Probe: false);
 
             await Task.Delay(100);
 
@@ -919,7 +919,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 Assert.That(client.CacheSize,      Is.EqualTo(4), "the client caches the records nevertheless");
             });
 
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             await WaitUntil(() => browser.Instances.Count == 1);
 

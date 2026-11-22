@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPClient(IPAddress, ...)
 
-        public HTTPClient(IIPAddress                                                 IPAddress,
+        public HTTPClient(IPAddress                                                 IPAddress,
                           IPPort?                                                    TCPPort                               = null,
                           I18NString?                                                Description                           = null,
                           String?                                                    HTTPUserAgent                         = null,
@@ -519,7 +519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>The new HTTP client, also when the connect failed, and the result of the connect.</returns>
         public static async Task<(HTTPClient?, TCPConnectionResult)>
 
-            ConnectNew(IIPAddress                                                 IPAddress,
+            ConnectNew(IPAddress                                                 IPAddress,
                        IPPort                                                     TCPPort,
                        I18NString?                                                Description                           = null,
                        String?                                                    HTTPUserAgent                         = null,

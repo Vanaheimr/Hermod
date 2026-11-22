@@ -24,6 +24,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -44,11 +45,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
     public class ClientServerFacadeTests
     {
 
-        private static (TcpListener Listener, Int32 Port) StartEchoServer(CancellationToken CancellationToken)
+        private static (TcpListener Listener, IPPort Port) StartEchoServer(CancellationToken CancellationToken)
         {
             var listener = new TcpListener(IPAddress.Loopback, 0);
             listener.Start();
-            var port = ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             _ = Task.Run(async () =>
             {
                 try
@@ -99,18 +100,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
-                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+                var port = server.LocalEndPoint.Port;
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username      = "achim",
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username      = User_Id.Parse("achim"),
                     VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                     Credentials   = [ userKey ]
                 }, CancellationToken);
 
                 // Kick off an exec and a tunnel at the same time — they must multiplex on the one connection.
-                var execTask = client.ExecuteAsync("uname -a", CancellationToken).AsTask();
+                var execTask = client.Execute("uname -a", CancellationToken).AsTask();
 
-                await using var tunnel = await client.OpenTcpStreamAsync("127.0.0.1", (UInt16) echoPort, CancellationToken);
+                await using var tunnel = await client.OpenTCPStream("127.0.0.1", echoPort, CancellationToken);
                 var sent = Encoding.UTF8.GetBytes("through the multiplexed tunnel");
                 await tunnel.WriteAsync(sent, CancellationToken);
                 var back = new Byte[sent.Length];
@@ -125,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 });
 
                 // A second exec on the same live connection still works.
-                var second = await client.ExecuteAsync("whoami", CancellationToken);
+                var second = await client.Execute("whoami", CancellationToken);
                 Assert.That(second.StandardOutput, Is.EqualTo("ran: whoami\n"));
 
             }
@@ -167,24 +168,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
-                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+                var port = server.LocalEndPoint.Port;
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username      = "achim",
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username      = User_Id.Parse("achim"),
                     VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                     Credentials   = [ userKey ]
                 }, CancellationToken);
 
-                var forward = await client.RequestRemoteForwardAsync("localhost", 0, "127.0.0.1", (UInt16) echoPort, CancellationToken);
+                var forward = await client.RequestRemoteForward("localhost", IPPort.Zero, "127.0.0.1", echoPort, CancellationToken);
 
                 Assert.That(forward.BoundPort, Is.Not.Zero, "the port the server chose");
 
-                var execTask = client.ExecuteAsync("uname -a", CancellationToken).AsTask();
+                var execTask = client.Execute("uname -a", CancellationToken).AsTask();
 
                 using (var external = new TcpClient())
                 {
 
-                    await external.ConnectAsync(IPAddress.Loopback, forward.BoundPort, CancellationToken);
+                    await external.ConnectAsync(IPAddress.Loopback, forward.BoundPort.ToInt32(), CancellationToken);
 
                     var stream = external.GetStream();
                     var sent   = Encoding.UTF8.GetBytes("through the reverse tunnel");
@@ -202,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(await forward.CancelAsync(CancellationToken), Is.True, "the server stopped listening");
 
                 using var late = new TcpClient();
-                await Assert.CatchAsync<SocketException>(async () => await late.ConnectAsync(IPAddress.Loopback, forward.BoundPort, CancellationToken),
+                await Assert.CatchAsync<SocketException>(async () => await late.ConnectAsync(IPAddress.Loopback, forward.BoundPort.ToInt32(), CancellationToken),
                                                          "nothing listens on a cancelled forward");
 
             }
@@ -243,15 +244,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
-                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+                var port = server.LocalEndPoint.Port;
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username      = "achim",
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username      = User_Id.Parse("achim"),
                     VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                     Credentials   = [ userKey ]
                 }, CancellationToken);
 
-                var forward   = client.StartLocalForward(new IPSocket(IPv4Address.Localhost, IPPort.Auto), "127.0.0.1", (UInt16) echoPort);
+                var forward   = client.StartLocalForward(new IPSocket(IPv4Address.Localhost, IPPort.Auto), "127.0.0.1", echoPort);
                 var localPort = forward.LocalEndPoint.Port.ToInt32();
 
                 Assert.That(localPort, Is.Not.Zero, "the port the OS chose");
@@ -318,15 +319,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
-                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+                var port = server.LocalEndPoint.Port;
 
-                var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username      = "achim",
+                var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username      = User_Id.Parse("achim"),
                     VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                     Credentials   = [ userKey ]
                 }, CancellationToken);
 
-                var localPort = client.StartLocalForward(new IPSocket(IPv4Address.Localhost, IPPort.Auto), "127.0.0.1", 9).LocalEndPoint.Port.ToInt32();
+                var localPort = client.StartLocalForward(new IPSocket(IPv4Address.Localhost, IPPort.Auto), "127.0.0.1", IPPort.Parse(9)).LocalEndPoint.Port.ToInt32();
 
                 await client.DisposeAsync();
 
@@ -346,7 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                     }
                 }
 
-                Assert.Throws<ObjectDisposedException>(() => client.StartLocalForward(new IPSocket(IPv4Address.Localhost, IPPort.Auto), "127.0.0.1", 9),
+                Assert.Throws<ObjectDisposedException>(() => client.StartLocalForward(new IPSocket(IPv4Address.Localhost, IPPort.Auto), "127.0.0.1", IPPort.Parse(9)),
                                                        "a disposed client starts no forward");
 
             }
@@ -381,10 +382,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
-                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+                var port = server.LocalEndPoint.Port;
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username      = "achim",
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username      = User_Id.Parse("achim"),
                     VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                     Credentials   = [ userKey ]
                 }, CancellationToken);
@@ -392,9 +393,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 var content = RandomNumberGenerator.GetBytes(60_000);   // multi-chunk
 
                 // SFTP subsystem multiplexed alongside a concurrent exec on the same connection.
-                var execTask = client.ExecuteAsync("status", CancellationToken).AsTask();
+                var execTask = client.Execute("status", CancellationToken).AsTask();
 
-                var sftp = await client.OpenSftpClientAsync(CancellationToken);
+                var sftp = await client.OpenSFTPClient(CancellationToken);
                 await sftp.UploadAsync("/device.bin", content, CancellationToken);
                 var downloaded = await sftp.DownloadAsync("/device.bin", CancellationToken);
                 var listing    = await sftp.ListDirectoryAsync("/", CancellationToken);
@@ -439,17 +440,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
-                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+                var port = server.LocalEndPoint.Port;
 
                 // The key the server does not know comes first: the ssh-userauth service is asked
                 // for once, and the second key goes straight to its USERAUTH_REQUEST.
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username      = "achim",
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username      = User_Id.Parse("achim"),
                     VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                     Credentials   = [ otherKey, userKey ]
                 }, CancellationToken);
 
-                var result = await client.ExecuteAsync("whoami", CancellationToken);
+                var result = await client.Execute("whoami", CancellationToken);
                 Assert.That(result.StandardOutput, Is.EqualTo("ran: whoami\n"));
 
             }
@@ -481,13 +482,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
-                var port = (UInt16) server.LocalEndPoint.Port.ToInt32();
+                var port = server.LocalEndPoint.Port;
 
                 // Two keys, both unknown: both are tried, and what comes back is that none was
                 // accepted - not a wire error about the second.
                 await Assert.ThrowsAsync<SshAuthenticationException>(async () =>
-                    await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                        Username      = "achim",
+                    await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                        Username      = User_Id.Parse("achim"),
                         VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                         Credentials   = [ SshHostKey.GenerateEd25519(), SshHostKey.GenerateEd25519() ]
                     }, CancellationToken));

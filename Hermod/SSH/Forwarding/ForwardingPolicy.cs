@@ -80,19 +80,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Whether a <c>direct-tcpip</c> to the given resolved addresses / port / host is permitted
         /// (DNS-rebinding safe — every resolved address must pass).
         /// </summary>
-        public Boolean AllowsDirectTcpIp(IEnumerable<IIPAddress> ResolvedAddresses, UInt16 Port, String? Host = null)
+        public Boolean AllowsDirectTcpIp(IEnumerable<IPAddress> ResolvedAddresses, IPPort Port, String? Host = null)
             => DirectTcpIp?.AllowsAll(ResolvedAddresses, Port, Host) ?? false;
 
         /// <summary>
         /// Whether a single resolved <c>direct-tcpip</c> destination is permitted.
         /// </summary>
-        public Boolean AllowsDirectTcpIp(IIPAddress Address, UInt16 Port, String? Host = null)
+        public Boolean AllowsDirectTcpIp(IPAddress Address, IPPort Port, String? Host = null)
             => DirectTcpIp?.Allows(Address, Port, Host) ?? false;
 
         /// <summary>
         /// Whether a <c>tcpip-forward</c> listen on the given bind address / port is permitted.
         /// </summary>
-        public Boolean AllowsListen(IIPAddress BindAddress, UInt16 Port)
+        public Boolean AllowsListen(IPAddress BindAddress, IPPort Port)
             => TcpIpForward?.Allows(BindAddress, Port) ?? false;
 
         #endregion

@@ -34,8 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct IPv4Address : IComparable<IPv4Address>,
-                                         IEquatable<IPv4Address>,
-                                         IIPAddress
+                                         IEquatable<IPv4Address>
     {
 
         #region Data
@@ -55,54 +54,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Returns the IPv4 address as ReadOnlySpan&lt;byte&gt;.
         /// </summary>
-        public ReadOnlySpan<Byte>  AsSpan
+        public        ReadOnlySpan<Byte>  AsSpan
             => MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in byte0), length);
 
         /// <summary>
         /// The length of an IPv4 address.
         /// </summary>
-        public Byte     Length
+        public static Byte                Length
             => length;
 
         /// <summary>
         /// Whether the IP address is an IPv4 multicast address.
         /// 224.0.0.0 - 239.255.255.255
         /// </summary>
-        public Boolean  IsMulticast
+        public        Boolean             IsMulticast
 
             => byte0 >= 224 &&
                byte0 <= 239;
 
-        public Boolean  IsIPv4
+        public static Boolean             IsIPv4
             => true;
 
-        Boolean  IIPAddress.IsMappedIPv4
+        public static Boolean             IsMappedIPv4
             => false;
 
-        public Boolean  IsIPv6
+        public static Boolean             IsIPv6
             => false;
 
-        public Boolean  IsLocalhost
+        public        Boolean             IsLocalhost
 
             => byte0 == 127 &&
                byte1 ==   0 &&
                byte2 ==   0 &&
                byte3 ==   1;
 
-        public Boolean  IsAny
+        public        Boolean             IsAny
 
             => byte0 == 0 &&
                byte1 == 0 &&
                byte2 == 0 &&
                byte3 == 0;
 
-        public Boolean  IsLoopback
+        public        Boolean             IsLoopback
 
             => byte0 == 127;
-
-
-        IPv4Address? IIPAddress.AsIPv4
-            => this;
 
         #endregion
 
@@ -641,30 +636,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region CompareTo(IIPAddress)
-
-        /// <summary>
-        /// Compares two IP addresses.
-        /// </summary>
-        /// <param name="IIPAddress">An IP address to compare with.</param>
-        public Int32 CompareTo(IIPAddress? IIPAddress)
-        {
-
-            if (IIPAddress is null)
-                return 1;
-
-            if (Length != IIPAddress.Length)
-                return Length.CompareTo(IIPAddress.Length);
-
-            if (IIPAddress is IPv4Address ipv4Address)
-                return CompareTo(ipv4Address);
-
-            throw new ArgumentException("The given object is not an IPv4 address!", nameof(IIPAddress));
-
-        }
-
-        #endregion
-
         #endregion
 
         #region IEquatable<IPv4Address> Members
@@ -677,8 +648,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Object">An IPv4 address to compare with.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is IPv4Address ipv4Address &&
-                   Equals(ipv4Address);
+            // An IP address that is this one is this one, too: the union holds it.
+            => Object switch {
+                   IPv4Address  ipv4Address  => Equals(ipv4Address),
+                   IPAddress    ipAddress    => ipAddress.TryGetValue(out IPv4Address other) && Equals(other),
+                   _                         => false
+               };
 
         #endregion
 
@@ -694,30 +669,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                byte1 == IPv4Address.byte1 &&
                byte2 == IPv4Address.byte2 &&
                byte3 == IPv4Address.byte3;
-
-        #endregion
-
-        #region Equals(IIPAddress)
-
-        /// <summary>
-        /// Compares two IP addresses.
-        /// </summary>
-        /// <param name="IIPAddress">An IP address to compare with.</param>
-        public Boolean Equals(IIPAddress? IIPAddress)
-        {
-
-            if (IIPAddress is null)
-                return false;
-
-            if (Length != IIPAddress.Length)
-                return false;
-
-            if (IIPAddress is IPv4Address ipv4Address)
-                return Equals(ipv4Address);
-
-            return false;
-
-        }
 
         #endregion
 

@@ -64,12 +64,12 @@
 
 //        #region IPAddress
 
-//        private readonly IIPAddress _MulticastAddress;
+//        private readonly IPAddress _MulticastAddress;
 
 //        /// <summary>
 //        /// Gets the IPAddress on which the TCPServer listens.
 //        /// </summary>
-//        public IIPAddress IPAddress
+//        public IPAddress IPAddress
 //        {
 //            get
 //            {
@@ -195,7 +195,7 @@
 //        /// <param name="MulticastAddress">The multicast address to join.</param>
 //        /// <param name="IPPort">The outgoing IP port to use.</param>
 //        /// <param name="HopCountThreshold">The minimal acceptable IPv6 hop-count or IPv4 time-to-live value of the incoming IP Multicast packets.</param>
-//        public MulticastReceiver(IIPAddress      MulticastAddress,
+//        public MulticastReceiver(IPAddress      MulticastAddress,
 //                                 IPPort          Port,
 //                                 Byte            HopCountThreshold  = 255,
 //                                 MapperDelegate  Mapper             = null,

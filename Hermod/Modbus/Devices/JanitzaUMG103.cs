@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="IPAddress">An remote IP address.</param>
         /// <param name="RemotePort">An optional remote TCP/IP port [default: 502].</param>
         /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
-        public JanitzaUMG103(IIPAddress  IPAddress,
+        public JanitzaUMG103(IPAddress  IPAddress,
                              IPPort?     RemotePort    = null,
                              Byte?       UnitAddress   = null)
         {

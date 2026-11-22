@@ -19,6 +19,7 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -54,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             return entry!;
         }
 
-        private static async Task<(SshServer Server, UInt16 Port, ISshHostKey HostKey)> StartServerAsync(
+        private static async Task<(SshServer Server, IPPort Port, ISshHostKey HostKey)> StartServerAsync(
             AuthorizedKey      Entry,
             CancellationToken  CancellationToken,
             ForwardingPolicy?  Policy = null)
@@ -73,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             });
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
-            return (server, (UInt16) server.LocalEndPoint.Port.ToInt32(), hostKey);
+            return (server, server.LocalEndPoint.Port, hostKey);
 
         }
 
@@ -95,13 +96,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username      = "device",
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username      = User_Id.Parse("device"),
                     VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                     Credentials   = [ userKey ]
                 }, CancellationToken);
 
-                var result = await client.ExecuteAsync("rm -rf /", CancellationToken);
+                var result = await client.Execute("rm -rf /", CancellationToken);
 
                 Assert.Multiple(() => {
                     Assert.That(result.StandardOutput, Does.Contain("ran:/usr/local/bin/report"), "the administrator's command must run");
@@ -137,12 +138,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
                 await Assert.CatchAsync(async () => {
-                    await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                        Username      = "device",
+                    await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                        Username      = User_Id.Parse("device"),
                         VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                         Credentials   = [ userKey ]
                     }, CancellationToken);
-                    await client.ExecuteAsync("whoami", CancellationToken);
+                    await client.Execute("whoami", CancellationToken);
                 });
             }
             finally
@@ -173,17 +174,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username      = "device",
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username      = User_Id.Parse("device"),
                     VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                     Credentials   = [ userKey ]
                 }, CancellationToken);
 
-                await Assert.CatchAsync(async () => await client.OpenTcpStreamAsync("127.0.0.1", 9, CancellationToken),
+                await Assert.CatchAsync(async () => await client.OpenTCPStream("127.0.0.1", IPPort.Parse(9), CancellationToken),
                                   "no-port-forwarding must refuse the channel even under a permissive server policy");
 
                 // The session itself still works.
-                var result = await client.ExecuteAsync("hello", CancellationToken);
+                var result = await client.Execute("hello", CancellationToken);
                 Assert.That(result.StandardOutput, Does.Contain("ran:hello"));
 
             }
@@ -232,16 +233,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
 
-                await using var client = await SshClient.ConnectAsync("127.0.0.1", port, new SshClientOptions {
-                    Username      = "device",
+                await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username      = User_Id.Parse("device"),
                     VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                     Credentials   = [ userKey ]
                 }, CancellationToken);
 
                 try
                 {
-                    var forward = await SshRemoteForwarding.RequestRemoteForwardAsync(client.Multiplexer, "127.0.0.1", FreeLoopbackPort(),
-                                                                                       "127.0.0.1", 9, CancellationToken);
+                    var forward = await SshRemoteForwarding.RequestRemoteForward(client.Multiplexer, "127.0.0.1", IPPort.Parse((FreeLoopbackPort()).ToUInt16()),
+                                                                                       "127.0.0.1", IPPort.Parse(9), CancellationToken);
                     await forward.DisposeAsync();
                     return true;
                 }
@@ -258,11 +259,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
-        private static UInt16 FreeLoopbackPort()
+        private static IPPort FreeLoopbackPort()
         {
             var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
-            var port = (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            var port = IPPort.Parse(((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
             listener.Stop();
             return port;
         }

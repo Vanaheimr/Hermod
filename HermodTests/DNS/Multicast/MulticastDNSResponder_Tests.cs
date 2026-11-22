@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
 
-            var publication  = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: true);
+            var publication  = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: true);
             var probes       = capture.Queries;
 
             Assert.Multiple(() => {
@@ -323,7 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 return Task.CompletedTask;
             };
 
-            var publication    = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            var publication    = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
             var announcements  = capture.Responses;
 
             Assert.Multiple(() => {
@@ -378,7 +378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 return Task.CompletedTask;
             };
 
-            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: true);
+            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: true);
 
             Assert.Multiple(() => {
                 Assert.That(publication.State,     Is.EqualTo(MulticastDNSPublicationState.Published));
@@ -416,7 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 return Task.CompletedTask;
             };
 
-            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             Assert.Multiple(() => {
                 Assert.That(publication.State,  Is.EqualTo(MulticastDNSPublicationState.Published));
@@ -446,7 +446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions(MinRecordMulticastInterval: TimeSpan.Zero));
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             var received = new List<(MulticastDNSMessage Query, IPSocket Source)>();
             responder.OnQueryReceived += (timestamp, sender, query, datagram, ct) => {
@@ -500,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions());
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             var sent = new List<(MulticastDNSMessage Response, IPSocket? Destination)>();
             responder.OnResponseSent += (timestamp, sender, response, destination, ct) => {
@@ -551,7 +551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions(MinRecordMulticastInterval: TimeSpan.Zero));
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             capture.Clear();
 
@@ -588,7 +588,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions(MinRecordMulticastInterval: TimeSpan.Zero));
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             var received = 0;
             responder.OnQueryReceived += (timestamp, sender, query, datagram, ct) => {
@@ -631,7 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions());
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             capture.Clear();
 
@@ -668,7 +668,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions());
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             capture.Clear();
 
@@ -707,7 +707,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions());
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             capture.Clear();
 
@@ -749,7 +749,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions());
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             capture.Clear();
 
@@ -790,7 +790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions());
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             capture.Clear();
 
@@ -826,7 +826,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions(MinRecordMulticastInterval: TimeSpan.FromMilliseconds(100)));
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             // Let the announcements fall out of the rate-limit window.
             await Task.Delay(200);
@@ -876,7 +876,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions());
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             capture.Clear();
 
@@ -922,7 +922,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions());
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             capture.Clear();
 
@@ -963,7 +963,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
             await using var responder  = new MulticastDNSResponder(transport, FastResponderOptions(SendNegativeResponses: false));
 
             await responder.StartAsync();
-            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             capture.Clear();
 
@@ -1002,7 +1002,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
                 return Task.CompletedTask;
             };
 
-            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443), Probe: false);
+            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
 
             capture.Clear();
 
@@ -1065,8 +1065,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
 
-            var first   = await responder.PublishAsync(ServiceRecords("host1.local.", "10.0.0.7", 8443), Probe: false);
-            var second  = await responder.PublishAsync(ServiceRecords("host2.local.", "10.0.0.7", 8444), Probe: false);
+            var first   = await responder.PublishAsync(ServiceRecords("host1.local.", "10.0.0.7", IPPort.Parse(8443)), Probe: false);
+            var second  = await responder.PublishAsync(ServiceRecords("host2.local.", "10.0.0.7", IPPort.Parse(8444)), Probe: false);
 
             Assert.That(responder.Publications, Has.Count.EqualTo(2));
 
@@ -1109,11 +1109,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
 
-            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", 8443, TXTStrings: [ "txtver=1" ]), Probe: false);
+            var publication = await responder.PublishAsync(ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443), TXTStrings: [ "txtver=1" ]), Probe: false);
 
             capture.Clear();
 
-            var updated = ServiceRecords("myhost.local.", "10.0.0.7", 8443, TXTStrings: [ "txtver=2", "url=https://myhost.local.:8443/v2/" ]);
+            var updated = ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443), TXTStrings: [ "txtver=2", "url=https://myhost.local.:8443/v2/" ]);
 
             await publication.UpdateAsync(updated);
 
@@ -1170,7 +1170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
 
-            var records      = ServiceRecords("myhost.local.", "10.0.0.7", 8443);
+            var records      = ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443));
             var publication  = await responder.PublishAsync(records, Probe: false);
 
             capture.Clear();
@@ -1208,7 +1208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await responder.StartAsync();
 
-            var records      = ServiceRecords("myhost.local.", "10.0.0.7", 8443);
+            var records      = ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443));
             var publication  = await responder.PublishAsync(records, Probe: false);
 
             await Assert.ThrowsAsync<ArgumentException>(() => publication.UpdateAsync([]));
@@ -1641,7 +1641,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Multicast
 
             await Assert.CatchAsync<OperationCanceledException>(
                 () => responder.PublishAsync(
-                          ServiceRecords("myhost.local.", "10.0.0.7", 8443),
+                          ServiceRecords("myhost.local.", "10.0.0.7", IPPort.Parse(8443)),
                           Probe:             true,
                           CancellationToken: new CancellationToken(canceled: true)
                       )

@@ -166,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// Zero (the default) returns the 3xx to the caller.
         ///
         /// Only redirects that stay on this connection's own origin are followed: a
-        /// connection speaks to the origin it dialed, and pooling here is
+        /// connection speaks to the origin it connected to, and pooling here is
         /// single-origin by design, so a cross-origin <c>Location</c> is handed back
         /// unfollowed rather than turning the connection into a multi-origin client.
         /// That boundary is also what makes automatic following safe with

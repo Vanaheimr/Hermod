@@ -23,6 +23,7 @@ using System.Text;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -40,14 +41,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
     ///
     /// <para>
     /// The M9 security review found that the façade resolved the client-supplied hostname twice: once in
-    /// the channel acceptor (where the ACL was checked) and again at dial time (where it was not). That
-    /// breaks the contract <c>NetworkAcl.AllowsAll</c> documents — "the caller must then dial exactly
+    /// the channel acceptor (where the ACL was checked) and again at connect time (where it was not). That
+    /// breaks the contract <c>NetworkAcl.AllowsAll</c> documents — "the caller must then connect to exactly
     /// these addresses without re-resolving" — and lets an attacker-controlled name answer with an
     /// allowed address for the check and a forbidden one for the connection.
     /// </para>
     ///
     /// <para>
-    /// The binding decision now happens at the dial site, against the addresses actually dialed. These
+    /// The binding decision now happens at the connect site, against the addresses actually connected to. These
     /// tests pin that: a forbidden target must never be connected to, whichever resolution said what.
     /// </para>
     /// </summary>
@@ -63,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             private readonly TcpListener listener;
 
-            public Int32 Port       { get; }
+            public IPPort Port       { get; }
             public Boolean Reached  { get; private set; }
 
             public Canary(CancellationToken CancellationToken)
@@ -71,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 listener = new TcpListener(IPAddress.Loopback, 0);
                 listener.Start();
-                Port = ((IPEndPoint) listener.LocalEndpoint).Port;
+                Port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
 
                 _ = Task.Run(async () => {
                     try
@@ -100,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region (private) start a server with the given forwarding policy
 
-        private static async Task<(SshServer Server, UInt16 Port, ISshHostKey HostKey, ISshHostKey UserKey)>
+        private static async Task<(SshServer Server, IPPort Port, ISshHostKey HostKey, ISshHostKey UserKey)>
             StartServerAsync(ForwardingPolicy Policy, CancellationToken CancellationToken, SshAddressResolver? Resolver = null)
         {
 
@@ -117,13 +118,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
 
-            return (server, (UInt16) server.LocalEndPoint.Port.ToInt32(), hostKey, userKey);
+            return (server, server.LocalEndPoint.Port, hostKey, userKey);
 
         }
 
-        private static ValueTask<SshClient> ConnectAsync(UInt16 Port, ISshHostKey HostKey, ISshHostKey UserKey, CancellationToken CancellationToken)
-            => SshClient.ConnectAsync("127.0.0.1", Port, new SshClientOptions {
-                   Username      = "achim",
+        private static ValueTask<SSHClient> ConnectAsync(IPPort Port, ISshHostKey HostKey, ISshHostKey UserKey, CancellationToken CancellationToken)
+            => SSHClient.Connect("127.0.0.1", Port, new SSHClientOptions {
+                   Username      = User_Id.Parse("achim"),
                    VerifyHostKey = blob => blob.AsSpan().SequenceEqual(HostKey.PublicKeyBlob),
                    Credentials   = [ UserKey ]
                }, CancellationToken);
@@ -135,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         /// <summary>
         /// The decisive property: a target outside the ACL must never receive a connection. The canary
-        /// listens on a port the policy does not permit; if the relay ever dials it, <c>Reached</c> flips.
+        /// listens on a port the policy does not permit; if the relay ever connects to it, <c>Reached</c> flips.
         /// </summary>
         [Test]
         [CancelAfter(25000)]
@@ -145,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             using var canary = new Canary(CancellationToken);
 
             // Permit loopback, but only on a port the canary is NOT listening on.
-            var allowedPort = canary.Port == 65535 ? 65534 : canary.Port + 1;
+            var allowedPort = IPPort.Parse(canary.Port.ToUInt16() == 65535 ? 65534 : canary.Port.ToUInt16() + 1);
             var policy      = ForwardingPolicy.Custom(NetworkAcl.DenyByDefault()
                                                                 .Allow(Cidr: "127.0.0.1/32", Ports: allowedPort.ToString()));
 
@@ -159,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 // Opening a tunnel to the forbidden port must fail, and must not reach the canary.
                 try
                 {
-                    await using var tunnel = await client.OpenTcpStreamAsync("127.0.0.1", (UInt16) canary.Port, CancellationToken);
+                    await using var tunnel = await client.OpenTCPStream("127.0.0.1", canary.Port, CancellationToken);
                     var buffer = new Byte[16];
                     await tunnel.ReadAsync(buffer, CancellationToken);
                 }
@@ -171,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                             "the server must not connect to a target the forwarding ACL forbids");
 
                 // The connection must survive the refusal.
-                var result = await client.ExecuteAsync("still alive", CancellationToken);
+                var result = await client.Execute("still alive", CancellationToken);
                 Assert.That(result.StandardOutput, Is.EqualTo("ok\n"));
 
             }
@@ -221,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
                 try
                 {
-                    await using var tunnel = await client.OpenTcpStreamAsync("rebind.example", (UInt16) canary.Port, CancellationToken);
+                    await using var tunnel = await client.OpenTCPStream("rebind.example", canary.Port, CancellationToken);
                     var buffer = new Byte[16];
                     await tunnel.ReadAsync(buffer, CancellationToken);
                 }
@@ -232,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.Multiple(() => {
 
                     Assert.That(canary.Reached, Is.False,
-                                "the forbidden address must never be dialed, however many times the name resolves");
+                                "the forbidden address must never be connected to, however many times the name resolves");
 
                     Assert.That(calls, Is.GreaterThan(0), "the resolver must actually have been consulted");
 
@@ -269,7 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             {
 
                 await using var client = await ConnectAsync(port, hostKey, userKey, CancellationToken);
-                await using var tunnel = await client.OpenTcpStreamAsync("127.0.0.1", (UInt16) canary.Port, CancellationToken);
+                await using var tunnel = await client.OpenTCPStream("127.0.0.1", canary.Port, CancellationToken);
 
                 var buffer = new Byte[7];
                 await tunnel.ReadExactlyAsync(buffer, CancellationToken);

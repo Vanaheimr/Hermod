@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The IP address to listen on.
         /// </summary>
-        public IIPAddress                                               IPAddress
+        public IPAddress                                               IPAddress
             => listener.IPAddress;
 
         /// <summary>
@@ -367,7 +367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public IPPort?                                                  HTTP3Port
             => http3Server is { } server
-                   ? IPPort.Parse((UInt16) server.Port)
+                   ? server.Port
                    : null;
 
         /// <summary>
@@ -537,7 +537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPServerName">An optional HTTP service name.</param>
         /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
-        public AWebSocketServer(IIPAddress?                                               IPAddress                    = null,
+        public AWebSocketServer(IPAddress?                                               IPAddress                    = null,
                                 IPPort?                                                   TCPPort                      = null,
                                 String?                                                   HTTPServerName               = null,
                                 I18NString?                                               Description                  = null,
@@ -825,7 +825,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                new HTTPAlternativeService(
                                    "h3",
                                    "",
-                                   (UInt16) server.Port,
+                                   server.Port,
                                    HTTPAlternativeService.DefaultMaxAge,
                                    false
                                )
@@ -1122,7 +1122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                      };
 
             var cancellation       = new CancellationTokenSource();
-            var port               = IPSocket.Port.ToUInt16();
+            var port               = IPSocket.Port;
 
             // Where the listener listens: "localhost" is both loopback addresses, and
             // any address of both families is one socket of both (Http3Server).
@@ -1831,7 +1831,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 => activeClients;
 
             public Listener(AWebSocketServer                    WebSocketServer,
-                            IIPAddress?                         IPAddress,
+                            IPAddress?                         IPAddress,
                             IPPort?                             TCPPort,
                             I18NString?                         Description,
                             TimeSpan?                           ReceiveTimeout,

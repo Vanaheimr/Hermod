@@ -506,7 +506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
 
-            var port   = ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port   = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
 
             var server = Task.Run(async () => {
 

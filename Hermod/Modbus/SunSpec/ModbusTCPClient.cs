@@ -69,7 +69,7 @@ public sealed class ModbusTCPClient : IAsyncDisposable
     /// one is refused with a <see cref="NameResolutionException"/>.
     /// </summary>
     public static async Task<ModbusTCPClient> ConnectAsync(String             host,
-                                                           UInt16             port,
+                                                           IPPort             port,
                                                            IDNSClient?        dnsClient,
                                                            TimeSpan           connectTimeout,
                                                            CancellationToken  ct)
@@ -109,7 +109,7 @@ public sealed class ModbusTCPClient : IAsyncDisposable
     /// one is refused with a <see cref="NameResolutionException"/>.
     /// </summary>
     public static async Task<ModbusTCPClient> ConnectTLSAsync(String             host,
-                                                              UInt16             port,
+                                                              IPPort             port,
                                                               IDNSClient?        dnsClient,
                                                               X509Certificate2   clientCertificate,
                                                               X509Certificate2   trustedCA,

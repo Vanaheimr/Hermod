@@ -175,7 +175,7 @@ DNS client (RFC 6761 §6.4), and so are a name below `onion.`, which only Tor re
 and a host name without a DNS client, each with a
 `NameResolutionException`; the resolver of the
 operating system is **never** asked. An application that resolves its names securely — its own
-name servers, DNS over TLS or HTTPS, DNSSEC — must not be dialled around them.
+name servers, DNS over TLS or HTTPS, DNSSEC — must not be connected around them.
 
 `NameResolution.ConnectAsync` connects a `Socket` or `TcpClient` that way, and
 `NameResolution.HTTPHandler` is a `SocketsHttpHandler` whose `ConnectCallback` does it (and which

@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
 
-            var port      = ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port      = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             var accepted  = listener.AcceptTcpClientAsync();
 
             client = new WebSocketClient(
@@ -546,7 +546,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
             listener.Start();
 
-            var port      = ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port      = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             var accepted  = listener.AcceptTcpClientAsync();
 
             using var httpClient = new HTTPClient(URL.Parse($"http://127.0.0.1:{port}")) {

@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Rendezvous
         /// <param name="RequestedPort">The originally requested port specification.</param>
         /// <param name="Backlog">The TCP listen backlog.</param>
         /// <exception cref="SocketException">When the TCP port could not be bound.</exception>
-        internal static SessionEndpoint Bind(IIPAddress         Address,
+        internal static SessionEndpoint Bind(IPAddress         Address,
                                              IPPort             Port,
                                              PortSpecification  RequestedPort,
                                              Int32              Backlog)

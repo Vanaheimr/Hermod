@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region TCPClient(IPAddress,  TCPPort,           ...)
 
-        public TCPClient(IIPAddress                       IPAddress,
+        public TCPClient(IPAddress                       IPAddress,
                          IPPort                           TCPPort,
                          I18NString?                      Description              = null,
 
@@ -223,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <returns>The new TCP client, also when the connect failed: see <see cref="ATCPClient.IsConnected"/>.</returns>
         public static async Task<TCPClient>
 
-            ConnectNew(IIPAddress                       IPAddress,
+            ConnectNew(IPAddress                       IPAddress,
                        IPPort                           TCPPort,
                        I18NString?                      Description              = null,
 

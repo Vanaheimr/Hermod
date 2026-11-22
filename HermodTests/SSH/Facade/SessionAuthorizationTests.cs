@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
@@ -45,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         private readonly ISshHostKey  hostKey  = SshHostKey.GenerateEd25519();
         private readonly ISshHostKey  userKey  = SshHostKey.GenerateEd25519();
 
-        private sealed record Running(SshServer Server, UInt16 Port, CollectingAuditSink Audit, ConcurrentQueue<SshSessionInfo> Asked, ConcurrentQueue<String> Ran) : IAsyncDisposable
+        private sealed record Running(SshServer Server, IPPort Port, CollectingAuditSink Audit, ConcurrentQueue<SshSessionInfo> Asked, ConcurrentQueue<String> Ran) : IAsyncDisposable
         {
             public ValueTask DisposeAsync() => Server.DisposeAsync();
         }
@@ -72,14 +73,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             await server.StartAsync(new IPSocket(IPv4Address.Any, IPPort.Auto), CancellationToken);
 
-            return new Running(server, (UInt16) server.LocalEndPoint.Port.ToInt32(), audit, asked, ran);
+            return new Running(server, server.LocalEndPoint.Port, audit, asked, ran);
 
         }
 
-        private ValueTask<SshClient> ConnectAsync(Running Running, CancellationToken CancellationToken)
+        private ValueTask<SSHClient> ConnectAsync(Running Running, CancellationToken CancellationToken)
 
-            => SshClient.ConnectAsync("127.0.0.1", Running.Port, new SshClientOptions {
-                   Username       = "achim",
+            => SSHClient.Connect("127.0.0.1", Running.Port, new SSHClientOptions {
+                   Username       = User_Id.Parse("achim"),
                    VerifyHostKey  = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
                    Credentials    = [ userKey ]
                }, CancellationToken);
@@ -101,16 +102,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var running = await StartAsync(session => null, CancellationToken);
             await using var client  = await ConnectAsync(running, CancellationToken);
 
-            var result  = await client.ExecuteAsync("uptime", CancellationToken);
+            var result  = await client.Execute("uptime", CancellationToken);
 
             Assert.That(running.Asked.TryPeek(out var session), Is.True, "the authorizer was not asked");
 
             Assert.Multiple(() => {
                 Assert.That(result.StandardOutput,              Is.EqualTo("ran\n"));
-                Assert.That(session!.Username,                  Is.EqualTo("achim"));
+                Assert.That(session!.Username,                  Is.EqualTo(User_Id.Parse("achim")));
                 Assert.That(session!.PublicKeyBlob,             Is.EqualTo(userKey.PublicKeyBlob));
                 Assert.That(session!.Local?.IPAddress.ToString(), Is.EqualTo("127.0.0.1"), "the listener's 0.0.0.0, not the connection's address");
-                Assert.That(session!.Local?.Port.ToInt32(),     Is.EqualTo(running.Port));
+                Assert.That(session!.Local?.Port,               Is.EqualTo(running.Port));
                 Assert.That(session!.Peer?.IPAddress.ToString(), Is.EqualTo("127.0.0.1"));
             });
 
@@ -132,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
                 await using var client = await ConnectAsync(running, CancellationToken);
-                await client.ExecuteAsync("uptime", CancellationToken);
+                await client.Execute("uptime", CancellationToken);
             }
             catch (Exception exception) when (exception is not OperationCanceledException || !CancellationToken.IsCancellationRequested)
             {
@@ -162,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             try
             {
                 await using var client = await ConnectAsync(running, CancellationToken);
-                await client.ExecuteAsync("uptime", CancellationToken);
+                await client.Execute("uptime", CancellationToken);
             }
             catch (Exception exception) when (exception is not OperationCanceledException || !CancellationToken.IsCancellationRequested)
             { }
@@ -186,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var running = await StartAsync(null, CancellationToken);
             await using var client  = await ConnectAsync(running, CancellationToken);
 
-            Assert.That((await client.ExecuteAsync("uptime", CancellationToken)).StandardOutput, Is.EqualTo("ran\n"));
+            Assert.That((await client.Execute("uptime", CancellationToken)).StandardOutput, Is.EqualTo("ran\n"));
 
         }
 

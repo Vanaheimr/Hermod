@@ -49,8 +49,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public readonly ConcurrentQueue<String>   Commands  = new();
             public readonly ConcurrentQueue<Byte[]>   DataLines = new();
 
-            public UInt16 Port
-                => (UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port;
+            public IPPort Port
+                => IPPort.Parse((UInt16) ((System.Net.IPEndPoint) listener.LocalEndpoint).Port);
 
             public Server(Boolean EightBitMime)
             {
@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             using var server = new Server(EightBitMime);
             using var client = new SMTPSubmissionClient(DomainName.Parse("127.0.0.1"),
-                                                        IPPort.Parse(server.Port),
+                                                        server.Port,
                                                         LocalDomain:                 "client.example",
                                                         UseTLS:                      TLSUsage.NoTLS,
                                                         RemoteCertificateValidator:  (_, _, _, _, _) => TLSValidationResult.Success(),

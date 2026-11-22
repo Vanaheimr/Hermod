@@ -26,7 +26,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     /// <summary>
     /// The relay between a forwarding channel and its TCP connection, for every kind of forward: the
-    /// client's <c>-L</c> listener, the server's <c>direct-tcpip</c> dial, and both ends of a <c>-R</c>.
+    /// client's <c>-L</c> listener, the server's <c>direct-tcpip</c> connection, and both ends of a <c>-R</c>.
     /// </summary>
     /// <remarks>
     /// Either side may half-close. A direction that ends passes its end on - a channel EOF, or a shutdown

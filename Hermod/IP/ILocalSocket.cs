@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The local IP address.
         /// </summary>
-        IIPAddress  LocalIPAddress    { get; }
+        IPAddress  LocalIPAddress    { get; }
 
         /// <summary>
         /// The local port.

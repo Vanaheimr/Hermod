@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 {
 
@@ -22,9 +24,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// A public-key authentication request the server evaluates before verifying the signature: the login
     /// name, the offered signature algorithm and the SSH public-key blob (RFC 4252 §7).
     /// </summary>
-    public sealed record SshPublicKeyAuthRequest(String  Username,
-                                                 String  Algorithm,
-                                                 Byte[]  PublicKeyBlob);
+    public sealed record SshPublicKeyAuthRequest(User_Id  Username,
+                                                 String   Algorithm,
+                                                 Byte[]   PublicKeyBlob);
 
 
     /// <summary>
@@ -43,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// otherwise null. Which key it was is what a log of who signed in needs beside the name: an account
     /// may have several, and one of them may be the one that leaked.
     /// </param>
-    public sealed record SshAuthResult(String                  Username,
+    public sealed record SshAuthResult(User_Id                 Username,
                                        String                  Method,
                                        SshSessionRestrictions  Restrictions,
                                        Byte[]?                 PublicKeyBlob  = null)
@@ -97,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// Whether the given password authenticates the user (RFC 4252 §8). Default: no.
         /// </summary>
-        ValueTask<Boolean> AuthorizePasswordAsync(String             Username,
+        ValueTask<Boolean> AuthorizePasswordAsync(User_Id            Username,
                                                   String             Password,
                                                   CancellationToken  CancellationToken = default)
             => ValueTask.FromResult(false);
@@ -111,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="Password">The password guessed.</param>
         /// <param name="Client">The address of the client, or null where it can not be told.</param>
         /// <param name="CancellationToken">An optional token to cancel this request.</param>
-        ValueTask<Boolean> AuthorizePasswordAsync(String                 Username,
+        ValueTask<Boolean> AuthorizePasswordAsync(User_Id                Username,
                                                   String                 Password,
                                                   System.Net.IPAddress?  Client,
                                                   CancellationToken      CancellationToken = default)
@@ -126,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="SessionId">The session identifier it has to be bound to: the exchange hash of the first key exchange (RFC 4253 §7.2).</param>
         /// <param name="Client">The address of the client, or null where it can not be told.</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
-        ValueTask<Boolean> AuthorizeSessionBoundTotpAsync(String                 Username,
+        ValueTask<Boolean> AuthorizeSessionBoundTotpAsync(User_Id                Username,
                                                           String                 Totp,
                                                           ReadOnlyMemory<Byte>   SessionId,
                                                           System.Net.IPAddress?  Client,
@@ -136,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The keyboard-interactive factor for the user (e.g. a TOTP prompt), or null. Default: none.
         /// </summary>
-        ISshKeyboardInteractiveFactor? GetKeyboardInteractive(String Username)
+        ISshKeyboardInteractiveFactor? GetKeyboardInteractive(User_Id Username)
             => null;
 
         /// <summary>
@@ -148,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="Username">The login name.</param>
         /// <param name="Method">The method that authenticated: "password", "keyboard-interactive", "totp@open.charging.cloud".</param>
         /// <param name="CancellationToken">An optional token to cancel this request.</param>
-        ValueTask<SshSessionRestrictions> GetRestrictionsAsync(String             Username,
+        ValueTask<SshSessionRestrictions> GetRestrictionsAsync(User_Id            Username,
                                                                String             Method,
                                                                CancellationToken  CancellationToken = default)
             => ValueTask.FromResult(SshSessionRestrictions.None);
@@ -158,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// this is what drives multi-factor chains via partial success. An empty result means the user is
         /// fully authenticated. Default: any single successful method completes authentication.
         /// </summary>
-        IReadOnlyList<String> RemainingMethods(String                Username,
+        IReadOnlyList<String> RemainingMethods(User_Id               Username,
                                                IReadOnlySet<String>  CompletedMethods)
             => [];
 

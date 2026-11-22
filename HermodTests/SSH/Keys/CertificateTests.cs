@@ -19,6 +19,7 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 
@@ -233,12 +234,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var clientRun = Task.Run(async () =>
             {
                 using var t = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-                return await UserAuthentication.ClientPublicKeyAuthenticateAsync(t, "achim", certifiedKey, CancellationToken: CancellationToken);
+                return await UserAuthentication.ClientPublicKeyAuthenticateAsync(t, User_Id.Parse("achim"), certifiedKey, CancellationToken: CancellationToken);
             }, CancellationToken);
 
             await Assert.MultipleAsync(async () => {
                 Assert.That(await clientRun,              Is.True, "certificate auth must succeed");
-                Assert.That((await serverRun).Username,   Is.EqualTo("achim"));
+                Assert.That((await serverRun).Username,   Is.EqualTo(User_Id.Parse("achim")));
             });
 
         }
@@ -316,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             }, CancellationToken);
 
             using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
-            var ok = await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, "bob", certifiedKey, CancellationToken: CancellationToken);
+            var ok = await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("bob"), certifiedKey, CancellationToken: CancellationToken);
 
             Assert.That(ok, Is.False, "a certificate must be rejected for a principal it does not list");
 

@@ -44,11 +44,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.Clients
     {
 
         /// <summary>A loopback port nothing listens on.</summary>
-        private static Int32 ClosedPort()
+        private static IPPort ClosedPort()
         {
             var probe = new TcpListener(System.Net.IPAddress.Loopback, 0);
             probe.Start();
-            var port  = ((IPEndPoint) probe.LocalEndpoint).Port;
+            var port  = IPPort.Parse(((IPEndPoint) probe.LocalEndpoint).Port);
             probe.Stop();
             return port;
         }
