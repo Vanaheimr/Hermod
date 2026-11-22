@@ -700,8 +700,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     var recipientDsn = recipientDsns.FirstOrDefault(r => r.Recipient == recipient);
 
                     await connection.WriteLineAsync(recipientDsn is not null
-                                                        ? $"RCPT TO:<{recipient}>" + DsnCommands.RcptToParams(recipientDsn, supportsDsn)
-                                                        : DsnCommands.RcptTo(recipient, dsn, supportsDsn),
+                                                        ? $"RCPT TO:<{recipient}>" + DsnCommands.RcptToParams(recipientDsn, supportsDsn, needsSmtpUtf8)
+                                                        : DsnCommands.RcptTo(recipient, dsn, supportsDsn, needsSmtpUtf8),
                                                     ct);
                     var rcptResponse = await connection.ReadReplyAsync(ct);
 
