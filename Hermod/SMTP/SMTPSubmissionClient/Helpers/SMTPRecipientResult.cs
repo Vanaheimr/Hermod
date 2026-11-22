@@ -62,11 +62,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public String?             EnhancedStatusCode    { get; } = EnhancedStatusCode;
 
         /// <summary>
-        /// Whether the server accepted this recipient (a 250 or a 251 "will forward").
+        /// Whether the server accepted this recipient: a 2yz - a 250, a 251 "will forward", or any
+        /// other, read by its first digit (RFC 5321 §4.2.1).
         /// </summary>
         public Boolean             Accepted
-            => StatusCode is SMTPStatusCodes.Ok
-                          or SMTPStatusCodes.UserNotLocalWillForward;
+            => StatusCode.IsPositiveCompletion();
 
         #endregion
 
