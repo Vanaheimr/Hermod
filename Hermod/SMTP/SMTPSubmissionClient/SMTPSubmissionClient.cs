@@ -55,6 +55,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         // Per-command read/response timeout — bounds how long a silent server can stall us.
         private readonly TimeSpan              commandTimeout;
 
+        // How long the server may take to answer the end of the message (RFC 5321 §4.5.3.2.6).
+        private readonly TimeSpan              dataTerminationTimeout;
+
         // What was read from the server and not yet taken as a reply: the start of the next one, or,
         // with commands pipelined (RFC 2920), the next replies. Octets, so that a UTF-8 character
         // split across TCP segments is decoded whole.
@@ -146,7 +149,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="UseTLS">Whether Transport Layer Security should be used or not.</param>
         /// <param name="RemoteCertificateValidator">A callback for validating the remote server certificate.</param>
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
-        /// <param name="CommandTimeout">How long the server may take to answer a command, and how long a TLS handshake may take. Default is 30 seconds.</param>
+        /// <param name="CommandTimeout">How long the server may take to answer a command, and how long a TLS handshake may take. Default is 5 minutes, RFC 5321 §4.5.3.2's minimum for the greeting, MAIL and RCPT.</param>
+        /// <param name="DataTerminationTimeout">How long the server may take to answer the end of the message. Default is 10 minutes, RFC 5321 §4.5.3.2.6: "A spurious timeout at this point ... would typically result in delivery of multiple copies of the message".</param>
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         /// <param name="CancellationToken"></param>
@@ -165,7 +169,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     IDNSClient?                                                         DNSClient                    = null,
                                     Boolean                                                             AutoConnect                  = false,
                                     CancellationToken?                                                  CancellationToken            = null,
-                                    ILoggerFactory?                                                     LoggerFactory                = null)
+                                    ILoggerFactory?                                                     LoggerFactory                = null,
+                                    TimeSpan?                                                           DataTerminationTimeout       = null)
 
             : base(BuildSMTPURL(RemoteHost, RemotePort, UseTLS),
 
@@ -197,7 +202,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this.UnknownAuthMethods  = [];
             this.RemoteHost          = RemoteHost;
             this.UseTLS              = UseTLS;
-            this.commandTimeout      = CommandTimeout ?? TimeSpan.FromSeconds(30);
+            // RFC 5321 §4.5.3.2: "the minimum per-command timeout values SHOULD be as follows" -
+            // 5 minutes for the greeting, MAIL and RCPT, 10 for the reply to the end of data.
+            this.commandTimeout          = CommandTimeout         ?? TimeSpan.FromMinutes(5);
+            this.dataTerminationTimeout  = DataTerminationTimeout ?? TimeSpan.FromMinutes(10);
             this.smtpLogger          = (LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger<SMTPSubmissionClient>();
 
             if (AutoConnect)
@@ -373,7 +381,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region (private)   ReadSMTPResponsesAsync              (CancellationToken = default)
 
-        private async Task<IEnumerable<SMTPExtendedResponse>> ReadSMTPResponsesAsync(CancellationToken CancellationToken = default)
+        private async Task<IEnumerable<SMTPExtendedResponse>> ReadSMTPResponsesAsync(CancellationToken  CancellationToken   = default,
+                                                                                    TimeSpan?          Timeout             = null)
         {
 
             var stream = ActiveStream ?? throw new SMTPConnectionClosedException("SMTP client is not connected.");
@@ -403,7 +412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 using (var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken))
                 {
 
-                    cts.CancelAfter(commandTimeout);
+                    cts.CancelAfter(Timeout ?? commandTimeout);
 
                     try
                     {
@@ -1475,7 +1484,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                               $"BDAT {messageBytes} LAST",
                                                               cancellationToken).ConfigureAwait(false);
 
-                                        _FinishedResponse = (await ReadSMTPResponsesAsync(cancellationToken).ConfigureAwait(false)).First();
+                                        // The reply to BDAT LAST is the reply to the end of data (RFC 5321 §4.5.3.2.6).
+                                        _FinishedResponse = (await ReadSMTPResponsesAsync(cancellationToken, dataTerminationTimeout).ConfigureAwait(false)).First();
                                         if (_FinishedResponse.StatusCode != SMTPStatusCodes.Ok)
                                             throw new SMTPClientException("SMTP BDAT command error: " + _FinishedResponse.ToString());
 
@@ -1495,7 +1505,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         // .
                                         // 250 2.0.0 Ok: queued as 83398728027
-                                        _FinishedResponse = await SendCommandAndWaitForResponseAsync(".", cancellationToken).ConfigureAwait(false);
+                                        // The server delivers now: 10 minutes, RFC 5321 §4.5.3.2.6. Given up on
+                                        // sooner, the message is sent again on the next try - and is there twice.
+                                        await SendCommandAsync(".", cancellationToken).ConfigureAwait(false);
+                                        _FinishedResponse = (await ReadSMTPResponsesAsync(cancellationToken, dataTerminationTimeout).ConfigureAwait(false)).First();
                                         if (_FinishedResponse.StatusCode != SMTPStatusCodes.Ok)
                                             throw new SMTPClientException("SMTP DATA '.' command error: " + _FinishedResponse.ToString());
 

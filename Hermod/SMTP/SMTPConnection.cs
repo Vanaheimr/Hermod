@@ -99,9 +99,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <summary>
         /// Read one complete reply: lines up to the one without a '-' after its code.
         /// </summary>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        /// <param name="Timeout">How long each read may take, when not the read timeout - the reply to the end of data has a longer one (RFC 5321 §4.5.3.2.6).</param>
         /// <exception cref="TimeoutException">The server did not send it within the read timeout.</exception>
         /// <exception cref="IOException">The connection closed first.</exception>
-        public async Task<SMTPReply> ReadReplyAsync(CancellationToken CancellationToken)
+        public async Task<SMTPReply> ReadReplyAsync(CancellationToken  CancellationToken,
+                                                    TimeSpan?          Timeout   = null)
         {
 
             var lines = new List<String>();
@@ -109,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             while (true)
             {
 
-                var line = await ReadLineAsync(CancellationToken).ConfigureAwait(false)
+                var line = await ReadLineAsync(Timeout ?? ReadTimeout, CancellationToken).ConfigureAwait(false)
                                ?? throw new IOException(lines.Count == 0
                                                             ? "The connection closed instead of a reply."
                                                             : "The connection closed in the middle of a reply.");
@@ -131,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// One line, without its CR LF (a bare LF is taken as a line end too: what the server says
         /// is read leniently); null when the connection closed before any octet of it.
         /// </summary>
-        private async Task<String?> ReadLineAsync(CancellationToken CancellationToken)
+        private async Task<String?> ReadLineAsync(TimeSpan Timeout, CancellationToken CancellationToken)
         {
 
             var line = new MemoryStream();
@@ -158,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     throw new IOException($"A reply line longer than {MaxLineLength} octets.");
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-                cts.CancelAfter(ReadTimeout);
+                cts.CancelAfter(Timeout);
 
                 try
                 {
@@ -168,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
                 {
                     end = 0;
-                    throw new TimeoutException($"No reply within {ReadTimeout.TotalSeconds:0.#} s.");
+                    throw new TimeoutException($"No reply within {Timeout.TotalSeconds:0.#} s.");
                 }
 
                 if (end == 0)
@@ -188,20 +191,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             => WriteAsync(Encoding.UTF8.GetBytes(Line + "\r\n"), CancellationToken);
 
 
+        // RFC 5321 §4.5.3.2.5: the write timeout is "for each TCP SEND call transmitting a chunk of
+        // data", so that "the overall timeout is inherently proportional to the size of the message".
+        private const Int32 WriteBlockSize = 64 * 1024;
+
         /// <summary>
-        /// Write octets as they are, within the write timeout.
+        /// Write octets as they are, each block of them within the write timeout.
         /// </summary>
-        /// <exception cref="TimeoutException">The server did not take them within the write timeout.</exception>
+        /// <exception cref="TimeoutException">The server did not take a block within the write timeout.</exception>
         public async Task WriteAsync(Byte[] Octets, CancellationToken CancellationToken)
         {
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-            cts.CancelAfter(WriteTimeout);
 
             try
             {
-                await stream.WriteAsync(Octets, cts.Token).ConfigureAwait(false);
+
+                for (var offset = 0; offset < Octets.Length; offset += WriteBlockSize)
+                {
+                    cts.CancelAfter(WriteTimeout);
+                    await stream.WriteAsync(Octets.AsMemory(offset, Math.Min(WriteBlockSize, Octets.Length - offset)), cts.Token).ConfigureAwait(false);
+                }
+
+                cts.CancelAfter(WriteTimeout);
                 await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+
             }
             catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
             {
