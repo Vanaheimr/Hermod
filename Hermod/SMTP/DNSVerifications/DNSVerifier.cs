@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                 ? VerifyDkimSignaturesAsync(message, ct)
                                 : Task.FromResult<(DkimResult Result, String? Details, String? Domain, IReadOnlyList<String> Passing, IReadOnlyList<DkimSignatureOutcome> Signatures)>((DkimResult.None, null, null, [], []));
             var mxTask    = !String.IsNullOrEmpty(senderDomain)
-                                ? GetMxRecordsAsync(senderDomain, ct)
+                                ? GetMxRecordsAsync(Idna.ToAscii(senderDomain), ct)
                                 : Task.FromResult<String[]>([]);
             var arcTask   = VerifyArcAsync(message, ct);
 
@@ -178,6 +178,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
 
             string? spfRecord = null;
+
+            // RFC 8616 §4: "An IDN in MAIL FROM can be either U-labels or A-labels. All U-labels
+            // MUST be converted to A-labels before being used for an SPF validation. This includes
+            // both the labels in the name used for the original DNS lookup, described in Section 3
+            // of [RFC7208], and those used in the macro expansion of domain-spec, described in
+            // Section 7 of [RFC7208]." The domain, the HELO identity and the sender's domain - the
+            // %{d}, %{h}, %{o} and %{s} of the macros - are in A-labels from here on.
+            domain        = Idna.ToAscii(domain);
+            heloHostname  = Idna.ToAscii(heloHostname);
+
+            if (mailFrom.LastIndexOf('@') is var mailFromAt and > 0)
+                mailFrom  = mailFrom[..(mailFromAt + 1)] + Idna.ToAscii(mailFrom[(mailFromAt + 1)..]);
 
             try
             {
@@ -1068,8 +1080,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // header field MUST be ignored".
             var identity        = dkimParams.GetValueOrDefault("i", "@" + domain);
             var at              = identity.LastIndexOf('@');
-            var identityDomain  = at < 0 ? "" : identity[(at + 1)..].Trim().TrimEnd('.');
-            var signingDomain   = domain.Trim().TrimEnd('.');
+            var identityDomain  = at < 0 ? "" : Idna.ToAscii(identity[(at + 1)..].Trim().TrimEnd('.'));
+            var signingDomain   = Idna.ToAscii(domain.Trim().TrimEnd('.'));
             var sameDomain      = identityDomain.Equals(signingDomain, StringComparison.OrdinalIgnoreCase);
 
             if (!sameDomain && !identityDomain.EndsWith("." + signingDomain, StringComparison.OrdinalIgnoreCase))
@@ -1082,8 +1094,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 !algorithm.Equals("ed25519-sha256", StringComparison.OrdinalIgnoreCase))
                 return (DkimResult.Fail, $"The signature algorithm {algorithm} is not verified (RFC 8301 §3.1)");
 
-            // Get public key from DNS
-            var dkimDomain = $"{selector}._domainkey.{domain}";
+            // Get public key from DNS. RFC 8616 §5 allows U-labels in d= and s= of an EAI
+            // message; §3: "When a domain name found in a mail header field ... includes U-labels,
+            // those labels MUST be translated to A-labels before being looked up in the DNS".
+            var dkimDomain = Idna.ToAscii($"{selector}._domainkey.{domain}");
             var dkimRecord = await GetDkimKeyRecordAsync(dkimDomain, ct);
 
             if (dkimRecord is null)
@@ -1186,10 +1200,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
         }
 
+        /// <summary>
+        /// The tags of a DKIM-Signature, from its value as read for the hash - one character per
+        /// octet. The values are UTF-8: RFC 6376 §3.5 is amended by RFC 8616 §5, d=, i= and s= of
+        /// an EAI message may be in U-labels - and "sig.bücher.test" is not "sig.bã¼cher.test".
+        /// </summary>
         private static Dictionary<string, string> ParseDkimHeader(string header)
         {
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            var normalized = header.Replace("\r\n", "").Replace("\n", "").Replace("\t", " ");
+            var normalized = Utf8OfOctets(header).Replace("\r\n", "").Replace("\n", "").Replace("\t", " ");
         
             foreach (var part in normalized.Split(';', StringSplitOptions.RemoveEmptyEntries))
             {
@@ -1203,6 +1222,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
             }
             return result;
+        }
+
+        private static readonly UTF8Encoding StrictUtf8 = new (encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+        /// <summary>
+        /// Text read one character per octet, decoded as the UTF-8 it is; as it is when it is
+        /// ASCII, or no UTF-8.
+        /// </summary>
+        private static String Utf8OfOctets(String Octets)
+        {
+
+            if (Octets.All(c => c < 0x80) || Octets.Any(c => c > 0xFF))
+                return Octets;
+
+            try
+            {
+                return StrictUtf8.GetString(Encoding.Latin1.GetBytes(Octets));
+            }
+            catch (DecoderFallbackException)
+            {
+                return Octets;
+            }
+
         }
 
         private static Dictionary<string, string> ParseDkimRecord(string record)
@@ -1263,6 +1305,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             {
                 if (string.IsNullOrEmpty(fromDomain))
                     return (DmarcResult.None, null, null);
+
+                // RFC 8616 §6: "If the domain name in the RFC5322.From field is an IDN, all U-labels
+                // in the domain are converted to A-labels before further processing" - the record
+                // looked up is the A-labels', and the identifiers are aligned by their A-labels.
+                fromDomain = Idna.ToAscii(fromDomain);
 
                 // DMARC record for the From domain itself, else the organizational domain
                 // (RFC 7489 §6.6.3). The org-domain record's sp= governs sub-domains. The
@@ -1398,6 +1445,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
             if (string.IsNullOrEmpty(authDomain) || string.IsNullOrEmpty(fromDomain))
                 return false;
+
+            // A domain in U-labels and the same domain in A-labels are aligned (RFC 8616 §6).
+            authDomain = Idna.ToAscii(authDomain.TrimEnd('.'));
+            fromDomain = Idna.ToAscii(fromDomain.TrimEnd('.'));
 
             if (authDomain.Equals(fromDomain, StringComparison.OrdinalIgnoreCase))
                 return true;   // exact match satisfies both strict and relaxed
