@@ -98,8 +98,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         private static String AuthenticationResults(Server Server)
         {
+            // Below the Return-Path of the delivery (RFC 5321 §4.4), above this hop's Received field.
             var message = Server.Storage.Messages.Single();
-            return message[..message.IndexOf("Received:", StringComparison.Ordinal)];
+            var start   = message.IndexOf("Authentication-Results:", StringComparison.Ordinal);
+            return start < 0 ? "" : message[start..message.IndexOf("Received:", StringComparison.Ordinal)];
         }
 
 
@@ -279,8 +281,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             String Results(Int32 Index)
             {
+                // Between the Return-Path of the delivery - "<>" for a bounce - and the Received field.
                 var message = server.Storage.Messages.ElementAt(Index);
-                return message[..message.IndexOf("Received:", StringComparison.Ordinal)];
+                var start   = message.IndexOf("Authentication-Results:", StringComparison.Ordinal);
+                return message[start..message.IndexOf("Received:", StringComparison.Ordinal)];
             }
 
             Assert.Multiple(() => {

@@ -84,6 +84,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public          Int32     MaxRecipients             { get; init; } = 100;
 
         /// <summary>
+        /// The most Received fields a message may arrive with. RFC 5321 §6.3: "Simple counting
+        /// of the number of "Received:" header fields in a message has proven to be an
+        /// effective, although rarely optimal, method of detecting loops in mail systems. SMTP
+        /// servers using this technique SHOULD use a large rejection threshold, normally at
+        /// least 100 Received entries." A message with more has gone round in a loop, and is
+        /// refused with 554 5.4.6.
+        /// </summary>
+        public          Int32     MaxReceivedFields         { get; init; } = 100;
+
+        /// <summary>
         /// Maximum length of a command line incl. CRLF (RFC 5321 §4.5.3.1.4 requires ≥ 512;
         /// larger here to accommodate AUTH exchanges and ESMTP parameters).
         /// </summary>

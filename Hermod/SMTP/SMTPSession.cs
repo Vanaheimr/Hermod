@@ -331,6 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
         private async Task HandleHeloAsync(String hostname)
         {
+            hostname      = hostname.Trim();
             _heloHostname = hostname;
             _extendedSmtp = false;
             _state = SMTPSessionState.Greeted;
@@ -340,6 +341,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private async Task HandleEhloAsync(String hostname)
         {
 
+            hostname        = hostname.Trim();
             _heloHostname   = hostname;
             _extendedSmtp   = true;
             _state          = SMTPSessionState.Greeted;
@@ -1198,6 +1200,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var message     = EMailMessage.Parse(rawBytes);
             var rawMessage  = message.RawMessage;
 
+            // RFC 5321 §6.3: "Whatever mechanisms are used, servers MUST contain provisions for
+            // detecting and stopping trivial loops" - counting the Received fields, with "a large
+            // rejection threshold, normally at least 100". Two servers that forward to each other
+            // pass a message back and forth until it outgrows the size limit, a copy queued at
+            // every turn. RFC 3463 §3.5: X.4.6, "Routing loop detected".
+            var hops = message.Headers.Count(header => header.Key.Equals("Received", StringComparison.OrdinalIgnoreCase));
+            if (hops > config.MaxReceivedFields)
+            {
+                logger.Log(LogLevel.Warning, $"A message from {_mailFrom} ({_clientIp}) has {hops} Received fields: a mail loop; rejected");
+                await SendResponseAsync(554, $"5.4.6 Routing loop detected: the message has been through {hops} hops");
+                ResetTransaction();
+                return;
+            }
+
             // One author, or none (RFC 5322 §3.6): DMARC is anchored on the From: domain and a
             // reader is shown the From: address. Two From: fields, or two addresses in one, would
             // let DMARC pass on the one while the reader sees the other (RFC 7489 §6.6.1).
@@ -1423,12 +1439,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     // address of one recipient, so the recipients are stored in groups of the same
                     // ORCPT, each with its own field in front; those without one - or with one that
                     // is their own address - get the message as it is, all together, as before.
+                    //
+                    // Above all of it, the Return-Path. RFC 5321 §4.4: "When the delivery SMTP
+                    // server makes the "final delivery" of a message, it inserts a return-path
+                    // line at the beginning of the mail data. This use of return-path is
+                    // required; mail systems MUST support it" - Return-path-line = "Return-Path:"
+                    // FWS Reverse-path. And "exactly one return path SHOULD be present when the
+                    // message is delivered": a Return-Path the message came with is the
+                    // client's word for where errors go, and goes ("SMTP servers making final
+                    // delivery MAY remove Return-path header fields before adding their own").
+                    var returnPath = Encoding.UTF8.GetBytes($"Return-Path: <{_mailFrom ?? ""}>\r\n");
+                    var delivery   = WithoutReturnPath(stampedBytes);
+
                     foreach (var group in _localRcptTo.GroupBy(OriginalRecipientField))
                     {
 
-                        var delivered = group.Key is null
-                                            ? stampedMessage
-                                            : EMailMessage.Parse([ .. Encoding.UTF8.GetBytes(group.Key), .. stampedBytes ]);
+                        var delivered = EMailMessage.Parse([ .. returnPath,
+                                                             .. (group.Key is null ? [] : Encoding.UTF8.GetBytes(group.Key)),
+                                                             .. delivery ]);
 
                         delivered.Verification = verification;
 
@@ -1687,7 +1715,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var addrLiteral  = _clientIp.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6
                                    ? $"[IPv6:{_clientIp}]"
                                    : $"[{_clientIp}]";
-            var fromClause   = $"from {(_heloHostname.Length > 0 ? _heloHostname : "unknown")} ({reverseDns} {addrLiteral})";
+            // RFC 5321 §4.4: Extended-Domain = Domain / ( Domain FWS "(" TCP-info ")" ) /
+            // ( address-literal FWS "(" TCP-info ")" ), and TCP-info is "Information derived by
+            // server from TCP connection not client EHLO". A name that is no Domain - "DESKTOP_7"
+            // - is not the From-domain; the address of the connection is, and the name a comment.
+            var fromClause   = ExtendedDomain.IsMatch(_heloHostname)
+                                   ? $"from {_heloHostname} ({reverseDns} {addrLiteral})"
+                                   : $"from {addrLiteral} ({reverseDns} {addrLiteral})" + (_heloHostname.Length > 0 ? $" (helo={_heloHostname})" : "");
 
             // with-clause: RFC 3848 protocol name (HELO=SMTP, EHLO=ESMTP + S for TLS + A for AUTH)
             var protocol     = !_extendedSmtp
@@ -1756,6 +1790,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             => Hostname is not null &&
                !System.Net.IPAddress.TryParse(Hostname.Trim('[', ']'), out _) &&
                System.Text.RegularExpressions.Regex.IsMatch(Hostname.TrimEnd('.'), @"^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z][A-Za-z0-9-]{0,61}[A-Za-z0-9]$");
+
+        /// <summary>
+        /// Whether a HELO/EHLO argument is a name or an address literal (RFC 5321 §4.1.1.1:
+        /// ehlo = "EHLO" SP ( Domain / address-literal ) CRLF): one token of letters, digits,
+        /// hyphens and dots - with the underscores and the final dot of names in the wild,
+        /// "DESKTOP_7", "mail.example." - or "[" dcontent "]" (§4.1.3).
+        /// </summary>
+        private static Boolean IsHeloArgument(String Argument)
+
+            => HeloArgument.IsMatch(Argument);
+
+        private static readonly Regex HeloArgument     = new (@"^(?:\[[!-Z^-~]+\]|[A-Za-z0-9_](?:[A-Za-z0-9_.-]*[A-Za-z0-9_])?\.?)$", RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// RFC 5321 §4.1.2: Domain = sub-domain *("." sub-domain), sub-domain = Let-dig [Ldh-str] -
+        /// or an address literal: what the From-domain of a Received field may be (§4.4).
+        /// </summary>
+        private static readonly Regex ExtendedDomain   = new (@"^(?:\[[!-Z^-~]+\]|[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*)$", RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// The octets of a message without the Return-Path fields of its header section - the
+        /// octets as they are, the fields as they are, but for those.
+        /// </summary>
+        private static Byte[] WithoutReturnPath(Byte[] Message)
+        {
+
+            var text      = Encoding.Latin1.GetString(Message);
+            var headerEnd = text.StartsWith("\r\n", StringComparison.Ordinal) ? 0 : text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+
+            if (headerEnd <= 0 || text.IndexOf("Return-Path", 0, headerEnd, StringComparison.OrdinalIgnoreCase) < 0)
+                return Message;
+
+            var kept      = new StringBuilder();
+            var dropping  = false;
+
+            foreach (var line in text[..(headerEnd + 2)].Split("\r\n")[..^1])
+            {
+
+                // A line that begins with white space continues the field before it (RFC 5322 §2.2.3).
+                if (line.Length == 0 || line[0] is not (' ' or '\t'))
+                {
+                    var colon = line.IndexOf(':');
+                    dropping  = colon > 0 && line[..colon].TrimEnd().Equals("Return-Path", StringComparison.OrdinalIgnoreCase);
+                }
+
+                if (!dropping)
+                    kept.Append(line).Append("\r\n");
+
+            }
+
+            return Encoding.Latin1.GetBytes(kept + text[(headerEnd + 2)..]);
+
+        }
 
         // "postmaster@" any domain: the local part is compared without regard to case (RFC 5321
         // §4.5.1, "a case-insensitive local name"). The last "@" ends the local part, which may
@@ -1917,6 +2004,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                    //           enhanced status codes out of the replies to HELO and EHLO.
                    "EHLO"     when args.Trim().Length == 0  => "Syntax: EHLO hostname",
                    "HELO"     when args.Trim().Length == 0  => "Syntax: HELO hostname",
+
+                   // The name goes into the Received field of every message of the session
+                   // (§4.4), where white space, parentheses or a semicolon would be the field's
+                   // own syntax: "EHLO a (b [203.0.113.5])" wrote a TCP-info of the client's in
+                   // front of the server's. §4.1.4: "If the EHLO command is not acceptable to
+                   // the SMTP server, 501, 500, 502, or 550 failure replies MUST be returned".
+                   "EHLO" or
+                   "HELO"     when !IsHeloArgument(args.Trim())
+                                                            => $"Syntax: {command.ToUpperInvariant()} domain or address literal",
 
                    // §4.1.1.4: data = "DATA" CRLF; §4.1.1.5: rset = "RSET" CRLF;
                    // RFC 3207 §4: "STARTTLS" CRLF, "501 Syntax error (no parameters allowed)".
