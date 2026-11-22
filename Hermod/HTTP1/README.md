@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-11-21**
+Last verified: **2026-11-22**
 
 ## Support levels
 
@@ -851,7 +851,10 @@ What the cache does:
   (§5.1). Freshness is `s-maxage` in a shared cache, `max-age`, `Expires`
   minus `Date`, or a tenth of the time since `Last-Modified`. An invalid
   `max-age` makes the response stale, and the first of two directives counts
-  (§4.2.1).
+  (§4.2.1). Of an `Age` that arrives as a list, the first member counts,
+  `7200, 0` as 7200 on one field line as on two (§5.1), since 2026-11-22
+  (H-44 in HTTP1ConformanceTests). Until then one line read as invalid, so as
+  0, and a response two hours old was served as fresh.
 - **Revalidates** a stale one with `If-None-Match` and `If-Modified-Since`. A
   `304` that selects it updates its fields, except those describing the
   octets held, and serves it; one that names another representation sends the
@@ -1184,7 +1187,8 @@ makes forty-five: **920**, the 904 and its 16. The static-content
 handlers' own fixtures stay outside, as said above. This one tests what RFC
 9110 asks of the answers they give. `HTTPCacheTests` and
 `HTTPClientCacheTests` came with finding H-5 and joined with it, which makes
-forty-seven: **963**, the 920 and their 43.
+forty-seven: **963**, the 920 and their 43. H-44 added one test to each:
+**965**.
 
 Run it with:
 

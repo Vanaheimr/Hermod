@@ -229,6 +229,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region An Age list counts its first member, so an old response is stale (H-44)
+
+        /// <summary>
+        /// RFC 9111, Section 5.1, as cache-tests' age-parse-suffix sends it: one
+        /// field line "Age: 7200, 0" beside max-age=3600. The first member makes
+        /// the response two hours old and so stale; read as invalid, the field
+        /// was 0, and the response was served as fresh.
+        /// </summary>
+        [Test]
+        public async Task AnAgeListCountsItsFirstMember()
+        {
+
+            await using var origin = await Origin.Start();
+            origin.Respond = request => Answer(request, "old", ("Cache-Control", "max-age=3600"), ("Age", "7200, 0"));
+
+            var cache       = new HTTPClientCache(TimeProvider: origin.Clock);
+            using var client = origin.Client(cache);
+
+            var first   = await Get(client, "r");
+            var second  = await Get(client, "r");
+
+            Assert.Multiple(() => {
+                Assert.That(first. GetHeaderField("Age"), Is.EqualTo("7200, 0"), "the field reaches the cache as one line");
+                Assert.That(second.CacheStatus,           Is.Not.EqualTo(HTTPCacheStatus.Hit));
+                Assert.That(origin.Hits(HTTPMethod.GET),  Is.EqualTo(2));
+                Assert.That(cache.Hits,                   Is.EqualTo(0));
+            });
+
+        }
+
+        #endregion
+
         #region Without a cache, every request goes to the origin
 
         [Test]
