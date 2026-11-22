@@ -731,7 +731,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 // Send message content with dot-stuffing, and end with <CRLF>.<CRLF>
                 await connection.WriteAsync(messageOctets is not null ? MessageOctets.Data(messageOctets) : DataOctets(messageContent), ct);
-                var finalResponse = await connection.ReadReplyAsync(ct);
+
+                // RFC 5321 §4.5.3.2.6: 10 minutes for the reply to the end of data - the next hop is
+                // delivering. Given up on too soon, the message is sent again: twice.
+                var finalResponse = await connection.ReadReplyAsync(ct, TimeSpan.FromMilliseconds(_config.DataTerminationTimeoutMs));
 
                 // The message was taken for the accepted recipients; what became of the others goes
                 // with the result, for the queue to bounce or retry them.

@@ -35,8 +35,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     {
         public required String   LocalHostname        { get; init; }
         public          UInt32   ConnectTimeoutMs     { get; init; } = 30_000;
-        public          UInt32   ReadTimeoutMs        { get; init; } = 60_000;
-        public          UInt32   WriteTimeoutMs       { get; init; } = 60_000;
+        /// <summary>
+        /// How long the next hop may take to answer: the greeting, EHLO, MAIL, RCPT, DATA. RFC 5321
+        /// §4.5.3.2: "the minimum per-command timeout values SHOULD be as follows" - 5 minutes for
+        /// the initial 220 message (§4.5.3.2.1: "Many SMTP servers accept a TCP connection but
+        /// delay delivery of the 220 message until their system load permits"), MAIL and RCPT.
+        /// </summary>
+        public          UInt32   ReadTimeoutMs        { get; init; } = 300_000;
+
+        /// <summary>
+        /// How long one block of the message may take to be sent - §4.5.3.2.5, Data Block: 3
+        /// minutes, "while awaiting the completion of each TCP SEND call transmitting a chunk of
+        /// data". Per block, not for the whole message.
+        /// </summary>
+        public          UInt32   WriteTimeoutMs       { get; init; } = 180_000;
+
+        /// <summary>
+        /// How long the next hop may take to answer the end of the message. §4.5.3.2.6, DATA
+        /// Termination: 10 minutes - "A spurious timeout at this point would be very wasteful and
+        /// would typically result in delivery of multiple copies of the message, since it has
+        /// been successfully sent and the server has accepted responsibility for delivery."
+        /// </summary>
+        public          UInt32   DataTerminationTimeoutMs  { get; init; } = 600_000;
         public          Boolean  RequireStartTls      { get; init; } = false;
         public          Boolean  PreferStartTls       { get; init; } = true;
 
