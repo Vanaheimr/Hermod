@@ -196,6 +196,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
+        /// <summary>
+        /// RFC 6531 §3.7.1: "the SMTPUTF8-aware SMTP client MUST send only ASCII (LDH label or
+        /// A-label [RFC5890]) domains in the EHLO command" - before the reply, it cannot know
+        /// whether the server takes UTF-8 at all.
+        /// </summary>
+        [TestCase("client.bücher.test",   "EHLO client.xn--bcher-kva.test")]
+        [TestCase("München.example",      "EHLO xn--mnchen-3ya.example")]
+        [TestCase("client.xn--bcher-kva.test", "EHLO client.xn--bcher-kva.test")]
+        public async Task A_local_domain_in_U_labels_is_said_in_A_labels(String LocalDomain, String Ehlo)
+        {
+
+            using var server = new Server("8BITMIME");
+            using var client = ClientFor(server, LocalDomain: LocalDomain);
+
+            await client.SendWithResult(Message("hello"), NumberOfRetries: 0);
+            await Task.Delay(100);
+
+            Assert.That(server.Commands, Does.Contain(Ehlo));
+
+        }
+
+
         [TestCase("192.0.2.1",          "[192.0.2.1]")]
         [TestCase("2001:db8::1",        "[IPv6:2001:db8::1]")]
         [TestCase("::ffff:192.0.2.1",   "[192.0.2.1]")]

@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// to O-12 of SMTPConformanceTests.
     /// </summary>
     [TestFixture]
-    public class SMTPOutboundRoutingTests
+    public partial class SMTPOutboundRoutingTests
     {
 
         #region Setup

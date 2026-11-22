@@ -784,14 +784,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// EHLO command MUST be either a primary host name (a domain name that resolves to an
         /// address RR) or, if the host has no name, an address literal". The configured local
         /// domain, else the address this connection leaves from - the bare machine name the
-        /// client used to send ("octal", "runner-7f3a") is neither.
+        /// client used to send ("octal", "runner-7f3a") is neither. RFC 6531 §3.7.1: "the
+        /// SMTPUTF8-aware SMTP client MUST send only ASCII (LDH label or A-label [RFC5890]) domains
+        /// in the EHLO command" - a local domain in U-labels is said in its A-labels.
         /// </summary>
         private String EhloArgument
 
-            => LocalDomain ??
-               (CurrentLocalEndPoint is { } localEndPoint
-                    ? AddressLiteral(localEndPoint.Address)
-                    : System.Net.Dns.GetHostName());
+            => LocalDomain is not null
+                   ? Idna.ToAscii(LocalDomain)
+                   : CurrentLocalEndPoint is { } localEndPoint
+                         ? AddressLiteral(localEndPoint.Address)
+                         : System.Net.Dns.GetHostName();
 
         /// <summary>
         /// The RFC 5321 §4.1.3 address literal of an address: "[192.0.2.1]", "[IPv6:2001:db8::1]".
