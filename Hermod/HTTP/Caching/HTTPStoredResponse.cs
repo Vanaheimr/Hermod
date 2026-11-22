@@ -65,13 +65,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The Age field's value, 0 when there is none or it is not delta-seconds
         /// (RFC 9111, Section 5.1), 2^31 when it is too large to represent.
+        /// Age is a singleton, and of a list Section 5.1 says a cache SHOULD use
+        /// the first member and discard the rest: <c>Age: 7200, 0</c> is 7200,
+        /// whether on one field line or on two. Empty members do not count
+        /// (RFC 9110, Section 5.6.1), and a first member that is invalid makes
+        /// the whole field invalid rather than letting a later one stand in.
         /// </summary>
         public Int64             AgeValue
         {
             get
             {
 
-                var age = Header("age")?.Trim();
+                var age = Headers.Where     (header => header.Name == "age")
+                                 .SelectMany(header => header.Value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                                 .FirstOrDefault();
 
                 if (String.IsNullOrEmpty(age) || !age.All(Char.IsAsciiDigit))
                     return 0;

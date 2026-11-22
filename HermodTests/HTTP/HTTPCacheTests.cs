@@ -263,6 +263,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region Age: of a list, the first member counts (H-44)
+
+        /// <summary>
+        /// Section 5.1: Age is a singleton, and a cache that receives a list
+        /// SHOULD use its first member, discarding the rest. "7200, 0" on one
+        /// field line was read as invalid, so as 0, and a response two hours
+        /// old was served as fresh; on two lines it was already 7200.
+        /// </summary>
+        [Test]
+        public void OfAnAgeListTheFirstMemberCounts()
+        {
+
+            Assert.Multiple(() => {
+                Assert.That(Stored(200, ("age", "7200, 0")).AgeValue,                    Is.EqualTo(7200));
+                Assert.That(Stored(200, ("age", "0, 7200")).AgeValue,                    Is.EqualTo(0));
+                Assert.That(Stored(200, ("age", "7200,0")).AgeValue,                     Is.EqualTo(7200));
+                Assert.That(Stored(200, ("age", " 7200 ,\t0")).AgeValue,                 Is.EqualTo(7200));
+                Assert.That(Stored(200, ("age", "7200"), ("age", "0")).AgeValue,         Is.EqualTo(7200));
+                Assert.That(Stored(200, ("age", "0"),    ("age", "7200")).AgeValue,      Is.EqualTo(0));
+                Assert.That(Stored(200, ("age", ", 7200")).AgeValue,                     Is.EqualTo(7200), "RFC 9110, Section 5.6.1: an empty member is not one");
+                Assert.That(Stored(200, ("age", ""), ("age", "7200")).AgeValue,          Is.EqualTo(7200), "RFC 9110, Section 5.6.1: an empty member is not one");
+                Assert.That(Stored(200, ("age", "abc, 7200")).AgeValue,                  Is.EqualTo(0),    "an invalid first member makes the field invalid");
+                Assert.That(Stored(200, ("age", "7200;foo=bar, 0")).AgeValue,            Is.EqualTo(0),    "a parameter is not delta-seconds");
+                Assert.That(Stored(200, ("age", "99999999999999999999, 0")).AgeValue,    Is.EqualTo(2147483648L));
+            });
+
+        }
+
+        #endregion
+
 
         #region Storable: a validator alone does not make a response storable
 
