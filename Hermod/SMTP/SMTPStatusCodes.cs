@@ -56,4 +56,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
     }
 
+
+    /// <summary>
+    /// A reply code read as RFC 5321 §4.2.1 has it: "a sender-SMTP MUST be prepared to handle
+    /// codes not specified in this document and MUST do so by interpreting the first digit only."
+    /// A 252 to MAIL is a 250, a 350 to DATA a 354.
+    /// </summary>
+    public static class SMTPStatusCodesExtensions
+    {
+
+        /// <summary>
+        /// 2yz, Positive Completion reply (RFC 5321 §4.2.1).
+        /// </summary>
+        public static Boolean IsPositiveCompletion  (this SMTPStatusCodes Code)
+            => (Int32) Code is >= 200 and < 300;
+
+        /// <summary>
+        /// 3yz, Positive Intermediate reply (RFC 5321 §4.2.1).
+        /// </summary>
+        public static Boolean IsPositiveIntermediate(this SMTPStatusCodes Code)
+            => (Int32) Code is >= 300 and < 400;
+
+    }
+
 }

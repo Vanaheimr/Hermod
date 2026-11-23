@@ -40,6 +40,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                    : 0;
 
         /// <summary>
+        /// A 2yz, Positive Completion reply. RFC 5321 §4.2.1: the client reads a code by "the
+        /// first digit only" - a 252 to MAIL is as good as a 250.
+        /// </summary>
+        public Boolean IsPositiveCompletion
+            => Code is >= 200 and < 300;
+
+        /// <summary>
+        /// A 3yz, Positive Intermediate reply: a 350 to DATA is as good as a 354.
+        /// </summary>
+        public Boolean IsPositiveIntermediate
+            => Code is >= 300 and < 400;
+
+        /// <summary>
         /// The text of every line, without the codes, joined by a space.
         /// </summary>
         public String Text

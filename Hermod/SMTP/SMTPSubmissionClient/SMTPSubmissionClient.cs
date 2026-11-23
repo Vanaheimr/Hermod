@@ -659,7 +659,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var gs2Header        = "n,,";
 
             var first = await SendCommandAndWaitForResponseAsync("AUTH SCRAM-SHA-256 " + B64((gs2Header + clientFirstBare).ToUTF8Bytes()), CancellationToken).ConfigureAwait(false);
-            if (first.StatusCode != SMTPStatusCodes.AuthenticationChallenge)
+            if (!first.StatusCode.IsPositiveIntermediate())
                 return false;
 
             // server-first: r=<nonce>,s=<salt>,i=<iterations>
@@ -693,7 +693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // put it into the 235 text, base64 - taken there too.
             var serverFinal       = "v=" + B64(ScramSha256Client.ServerSignature(saltedPassword, authMessage));
 
-            if (final.StatusCode == SMTPStatusCodes.AuthenticationChallenge)
+            if (final.StatusCode.IsPositiveIntermediate())
             {
 
                 if (DecodeBase64(final.Response)?.Split(',')[0] != serverFinal)
@@ -705,11 +705,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 final = await SendCommandAndWaitForResponseAsync("", CancellationToken).ConfigureAwait(false);
 
-                return final.StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
+                return final.StatusCode.IsPositiveCompletion();
 
             }
 
-            return final.StatusCode == SMTPStatusCodes.AuthenticationSuccessful &&
+            return final.StatusCode.IsPositiveCompletion() &&
                    final.Response.Split(' ', StringSplitOptions.RemoveEmptyEntries).
                                   Any(word => DecodeBase64(word)?.Split(',')[0] == serverFinal);
 
@@ -741,18 +741,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             => (await SendCommandAndWaitForResponseAsync(
                    "AUTH PLAIN " + Convert.ToBase64String([.. ByteZero, .. Login.ToUTF8Bytes(), .. ByteZero, .. Password.ToUTF8Bytes()]),
                    CancellationToken
-               ).ConfigureAwait(false)).StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
+               ).ConfigureAwait(false)).StatusCode.IsPositiveCompletion();
 
         private async Task<Boolean> AuthLoginAsync(String Login, String Password, CancellationToken CancellationToken = default)
         {
 
-            if ((await SendCommandAndWaitForResponseAsync("AUTH LOGIN", CancellationToken).ConfigureAwait(false)).StatusCode != SMTPStatusCodes.AuthenticationChallenge)
+            if (!(await SendCommandAndWaitForResponseAsync("AUTH LOGIN", CancellationToken).ConfigureAwait(false)).StatusCode.IsPositiveIntermediate())
                 return false;
 
-            if ((await SendCommandAndWaitForResponseAsync(Convert.ToBase64String(Login.ToUTF8Bytes()), CancellationToken).ConfigureAwait(false)).StatusCode != SMTPStatusCodes.AuthenticationChallenge)
+            if (!(await SendCommandAndWaitForResponseAsync(Convert.ToBase64String(Login.ToUTF8Bytes()), CancellationToken).ConfigureAwait(false)).StatusCode.IsPositiveIntermediate())
                 return false;
 
-            return (await SendCommandAndWaitForResponseAsync(Convert.ToBase64String(Password.ToUTF8Bytes()), CancellationToken).ConfigureAwait(false)).StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
+            return (await SendCommandAndWaitForResponseAsync(Convert.ToBase64String(Password.ToUTF8Bytes()), CancellationToken).ConfigureAwait(false)).StatusCode.IsPositiveCompletion();
 
         }
 
@@ -760,7 +760,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
 
             var challenge = await SendCommandAndWaitForResponseAsync("AUTH CRAM-MD5", CancellationToken).ConfigureAwait(false);
-            if (challenge.StatusCode != SMTPStatusCodes.AuthenticationChallenge)
+            if (!challenge.StatusCode.IsPositiveIntermediate())
                 return false;
 
             var response = await SendCommandAndWaitForResponseAsync(
@@ -770,7 +770,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                                   Password)),
                                CancellationToken).ConfigureAwait(false);
 
-            return response.StatusCode == SMTPStatusCodes.AuthenticationSuccessful;
+            return response.StatusCode.IsPositiveCompletion();
 
         }
 
@@ -1005,10 +1005,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             var LoginResponse       = await ReadSMTPResponsesAsync(cancellationToken).ConfigureAwait(false);
                             sessionOpen             = true;
 
+                            // RFC 5321 §4.2.1: "a sender-SMTP MUST be prepared to handle codes not
+                            // specified in this document and MUST do so by interpreting the first
+                            // digit only" - here and for every reply below.
                             switch (LoginResponse.First().StatusCode)
                             {
 
-                                case SMTPStatusCodes.ServiceReady:
+                                case var greetingCode when greetingCode.IsPositiveCompletion():
 
                                     #region Send EHLO
 
@@ -1039,20 +1042,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         var HELOResponse = await SendCommandAndWaitForResponseAsync("HELO " + EhloArgument, cancellationToken).ConfigureAwait(false);
 
-                                        if (HELOResponse.StatusCode != SMTPStatusCodes.Ok)
+                                        if (!HELOResponse.StatusCode.IsPositiveCompletion())
                                             throw new SMTPClientException("SMTP HELO command error: " + HELOResponse.ToString());
 
                                         EHLOResponses = [ HELOResponse ];
 
                                     }
 
-                                    else if (EHLOResponses.Any(v => v.StatusCode != SMTPStatusCodes.Ok))
+                                    else if (EHLOResponses.Any(v => !v.StatusCode.IsPositiveCompletion()))
                                     {
 
-                                        var error = EHLOResponses.Where(smtpExtendedResponse => smtpExtendedResponse.StatusCode != SMTPStatusCodes.Ok).
+                                        var error = EHLOResponses.Where(smtpExtendedResponse => !smtpExtendedResponse.StatusCode.IsPositiveCompletion()).
                                                                   FirstOrDefault();
 
-                                        if (error != null && error.StatusCode != SMTPStatusCodes.Ok)
+                                        if (error != null)
                                             throw new SMTPClientException("SMTP EHLO command error: " + error.ToString());
 
                                     }
@@ -1078,7 +1081,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         var StartTLSResponse = await SendCommandAndWaitForResponseAsync("STARTTLS", cancellationToken).ConfigureAwait(false);
 
-                                        if (StartTLSResponse.StatusCode != SMTPStatusCodes.ServiceReady)
+                                        if (!StartTLSResponse.StatusCode.IsPositiveCompletion())
                                         {
                                             smtpLogger.LogWarning("SMTP server {RemoteHost} refused STARTTLS ({StatusCode} {Response}); not sending in cleartext",
                                                                   RemoteHost, (UInt16) StartTLSResponse.StatusCode, StartTLSResponse.Response);
@@ -1396,25 +1399,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     }
 
+                                    // A 2yz accepts the recipient: a 252 as a 250 or a 251.
                                     static Boolean IsAccepted(SMTPExtendedResponse Response)
-                                        => Response.StatusCode is SMTPStatusCodes.Ok or SMTPStatusCodes.UserNotLocalWillForward;
+                                        => Response.StatusCode.IsPositiveCompletion();
 
                                     static void Check(EMailAddress Recipient, SMTPExtendedResponse Response)
                                     {
-                                        switch (Response.StatusCode)
-                                        {
 
-                                            case SMTPStatusCodes.UserNotLocalWillForward:
-                                            case SMTPStatusCodes.Ok:
-                                                break;
+                                        if (Response.StatusCode.IsPositiveCompletion())
+                                            return;
 
-                                            case SMTPStatusCodes.AuthenticationRequired:
-                                                throw new UnauthorizedAccessException(Recipient.Address.ToString() + " => " + Response.StatusCode);
+                                        if (Response.StatusCode == SMTPStatusCodes.AuthenticationRequired)
+                                            throw new UnauthorizedAccessException(Recipient.Address.ToString() + " => " + Response.StatusCode);
 
-                                            default:
-                                                throw new SMTPClientException        (Recipient.Address.ToString() + " => " + Response.StatusCode);
+                                        throw new SMTPClientException(Recipient.Address.ToString() + " => " + Response.StatusCode);
 
-                                        }
                                     }
 
                                     if (Capabilities.HasFlag(SmtpCapabilities.Pipelining))
@@ -1433,7 +1432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         foreach (var _ in rcptCommands)
                                             rcptResponses.Add((await ReadSMTPResponsesAsync(cancellationToken).ConfigureAwait(false)).First());
 
-                                        if (mailFromResponse.StatusCode != SMTPStatusCodes.Ok)
+                                        if (!mailFromResponse.StatusCode.IsPositiveCompletion())
                                             throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
 
                                         for (var i = 0; i < rcptCommands.Length; i++)
@@ -1448,7 +1447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     {
 
                                         var mailFromResponse = await SendCommandAndWaitForResponseAsync(mailFromCommand, cancellationToken).ConfigureAwait(false);
-                                        if (mailFromResponse.StatusCode != SMTPStatusCodes.Ok)
+                                        if (!mailFromResponse.StatusCode.IsPositiveCompletion())
                                             throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
 
                                         // 250 2.1.5 Ok
@@ -1486,7 +1485,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         // The reply to BDAT LAST is the reply to the end of data (RFC 5321 §4.5.3.2.6).
                                         _FinishedResponse = (await ReadSMTPResponsesAsync(cancellationToken, dataTerminationTimeout).ConfigureAwait(false)).First();
-                                        if (_FinishedResponse.StatusCode != SMTPStatusCodes.Ok)
+                                        if (!_FinishedResponse.StatusCode.IsPositiveCompletion())
                                             throw new SMTPClientException("SMTP BDAT command error: " + _FinishedResponse.ToString());
 
                                     }
@@ -1496,7 +1495,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                         // 354 End data with <CR><LF>.<CR><LF>
                                         var dataResponse = await SendCommandAndWaitForResponseAsync("DATA", cancellationToken).ConfigureAwait(false);
-                                        if (dataResponse.StatusCode != SMTPStatusCodes.StartMailInput)
+                                        if (!dataResponse.StatusCode.IsPositiveIntermediate())
                                             throw new SMTPClientException("SMTP DATA command error: " + dataResponse.ToString());
 
                                         // Dot-stuffed.
@@ -1509,7 +1508,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         // sooner, the message is sent again on the next try - and is there twice.
                                         await SendCommandAsync(".", cancellationToken).ConfigureAwait(false);
                                         _FinishedResponse = (await ReadSMTPResponsesAsync(cancellationToken, dataTerminationTimeout).ConfigureAwait(false)).First();
-                                        if (_FinishedResponse.StatusCode != SMTPStatusCodes.Ok)
+                                        if (!_FinishedResponse.StatusCode.IsPositiveCompletion())
                                             throw new SMTPClientException("SMTP DATA '.' command error: " + _FinishedResponse.ToString());
 
                                     }
@@ -1525,7 +1524,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     // The message is the server's now (RFC 5321 §6.1); QUIT below cannot undo that.
                                     // For every recipient, or for those accepted.
-                                    result = recipientResults.All(recipient => recipient.StatusCode is SMTPStatusCodes.Ok or SMTPStatusCodes.UserNotLocalWillForward)
+                                    result = recipientResults.All(recipient => recipient.Accepted)
                                                  ? MailSentStatus.ok
                                                  : MailSentStatus.PartiallySent;
 

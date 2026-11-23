@@ -43,14 +43,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     {
 
         /// <summary>
-        /// Accepted (2xx), refused for now (4xx, and anything unparseable), or refused (5xx).
+        /// Accepted (2xx), refused for now (4xx, and anything unparseable), or refused (5xx) -
+        /// except a 552: RFC 5321 §4.5.3.1.10, "RFC 821 [1] incorrectly listed the error where an
+        /// SMTP server exhausts its implementation limit on the number of RCPT commands ("too many
+        /// recipients") as having reply code 552. The correct reply code for this condition is 452.
+        /// Clients SHOULD treat a 552 code in this case as a temporary, rather than permanent,
+        /// failure so the logic below works." The recipient is tried again, in a transaction of
+        /// its own. A 552 that says what else it is - "552 5.2.2 Mailbox full" (RFC 3463) - is
+        /// that; one that says "5.5.3 Too many recipients", or nothing, is the limit.
         /// </summary>
         public SendStatus Status
             => Code switch {
-                   >= 200 and < 300  => SendStatus.Success,
-                   >= 500 and < 600  => SendStatus.PermFail,
-                   _                 => SendStatus.TempFail
+                   >= 200 and < 300                 => SendStatus.Success,
+                   552 when IsTooManyRecipients()   => SendStatus.TempFail,
+                   >= 500 and < 600                 => SendStatus.PermFail,
+                   _                                => SendStatus.TempFail
                };
+
+        // The enhanced status code of the text, if it has one: "X.5.3", too many recipients
+        // (RFC 3463 §3.6), or none at all.
+        private Boolean IsTooManyRecipients()
+        {
+
+            var first = Text.TrimStart().Split(' ', 2)[0];
+            var parts = first.Split('.');
+
+            return parts.Length != 3 || !parts.All(part => part.Length > 0 && part.All(Char.IsAsciiDigit))
+                       || (parts[1] == "5" && parts[2] == "3");
+
+        }
 
     }
 

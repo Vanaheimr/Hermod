@@ -485,7 +485,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var greeting = await connection.ReadReplyAsync(ct);
                 sessionOpen  = true;
                 var secured  = false;
-                if (greeting.Code != 220)
+                // RFC 5321 §4.2.1: every reply is read by its first digit.
+                if (!greeting.IsPositiveCompletion)
                     return ParseResponse(greeting.ToString(), mxHost);
 
                 // EHLO
@@ -503,7 +504,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 }
 
-                if (ehloResponse.Code != 250)
+                if (!ehloResponse.IsPositiveCompletion)
                     return ParseResponse(ehloResponse.ToString(), mxHost);
 
                 var extensions = Extensions(ehloResponse);
@@ -519,7 +520,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     await connection.WriteLineAsync("STARTTLS", ct);
                     var starttlsResponse = await connection.ReadReplyAsync(ct);
 
-                    if (starttlsResponse.Code == 220)
+                    if (starttlsResponse.IsPositiveCompletion)
                     {
                         // Under DANE the TLSA record authenticates the certificate directly — no
                         // PKIX path or name check (RFC 7672 §3.1). Otherwise validate strictly when
@@ -602,7 +603,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         // Re-send EHLO after TLS
                         await connection.WriteLineAsync($"EHLO {_config.LocalHostname}", ct);
                         ehloResponse = await connection.ReadReplyAsync(ct);
-                        if (ehloResponse.Code != 250)
+                        if (!ehloResponse.IsPositiveCompletion)
                             return ParseResponse(ehloResponse.ToString(), mxHost);
 
                         // RFC 3207 §4.2: what was offered before TLS counts no more.
@@ -642,7 +643,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         return SendResult.TempFail(454, $"No TLS with {mxHost}: the credentials for the smart host are not sent in cleartext", mxHost);
 
                     var authResult = await AuthenticateAsync(connection, extensions, route, ct);
-                    if (!authResult.StartsWith("235"))
+                    if (!authResult.StartsWith('2'))
                     {
                         return ParseResponse(authResult, mxHost);
                     }
@@ -685,10 +686,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     mailFromCommand += " REQUIRETLS";           // RFC 8689 §4.2.1
                 await connection.WriteLineAsync(mailFromCommand, ct);
                 var mailResponse = await connection.ReadReplyAsync(ct);
-                if (mailResponse.Code != 250)
-                {
-                    return ParseResponse(mailResponse.ToString(), mxHost);
-                }
+
+                // RFC 5321 §4.2.1: "a sender-SMTP MUST be prepared to handle codes not specified in
+                // this document and MUST do so by interpreting the first digit only" - a 252 to MAIL
+                // is the sender accepted, and the transaction goes on. Anything but a 2yz ends it; a
+                // 3yz, which MAIL never has, as a failure for now - never as a delivery.
+                if (!mailResponse.IsPositiveCompletion)
+                    return Refused(mailResponse, mxHost);
 
                 // RCPT TO for each recipient (with NOTIFY/ORCPT when requested and supported)
                 var outcomes = new List<RecipientOutcome>();
@@ -707,7 +711,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                     outcomes.Add(new RecipientOutcome(recipient, rcptResponse.Code, rcptResponse.Text));
 
-                    if (rcptResponse.Code is not (250 or 251))
+                    if (outcomes[^1].Status != SendStatus.Success)
                         _logger.Log(LogLevel.Warning, $"Recipient {recipient} rejected: {rcptResponse}");
 
                 }
@@ -726,8 +730,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // DATA
                 await connection.WriteLineAsync("DATA", ct);
                 var dataResponse = await connection.ReadReplyAsync(ct);
-                if (dataResponse.Code != 354)
-                    return ParseResponse(dataResponse.ToString(), mxHost);
+
+                // A 3yz is the go-ahead for the message: a 350 as a 354. A 2yz to DATA is no
+                // delivery - not a line of the message was sent.
+                if (!dataResponse.IsPositiveIntermediate)
+                    return Refused(dataResponse, mxHost);
 
                 // Send message content with dot-stuffing, and end with <CRLF>.<CRLF>
                 await connection.WriteAsync(messageOctets is not null ? MessageOctets.Data(messageOctets) : DataOctets(messageContent), ct);
@@ -809,12 +816,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             {
                 await connection.WriteLineAsync("AUTH LOGIN", ct);
                 var response = await connection.ReadReplyAsync(ct);
-                if (response.Code != 334)
+                if (!response.IsPositiveIntermediate)
                     return response.ToString();
 
                 await connection.WriteLineAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(route.Username!)), ct);
                 response = await connection.ReadReplyAsync(ct);
-                if (response.Code != 334)
+                if (!response.IsPositiveIntermediate)
                     return response.ToString();
 
                 await connection.WriteLineAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(route.Password!)), ct);
@@ -1036,6 +1043,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             => Host is not null &&
                (Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
                 System.Net.IPAddress.TryParse(Host.Trim('[', ']'), out var address) && System.Net.IPAddress.IsLoopback(address));
+
+        /// <summary>
+        /// The result of a reply that ends the transaction before the end of data: a 4yz or 5yz
+        /// as it says, anything else - a reply of the wrong kind - a failure for now. Never a
+        /// delivery: no message was sent.
+        /// </summary>
+        private static SendResult Refused(SMTPReply Reply, String? mx)
+            => Reply.Code is >= 500 and < 600
+                   ? SendResult.PermFail(Reply.Code, Reply.ToString(), mx)
+                   : SendResult.TempFail(Reply.Code, Reply.ToString(), mx);
 
         private static SendResult ParseResponse(String response, String? mx)
         {
