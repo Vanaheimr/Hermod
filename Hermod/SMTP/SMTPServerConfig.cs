@@ -242,16 +242,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         /// <summary>
         /// Check if a domain is local (case-insensitive): <see cref="LocalDomainCheck"/> when
-        /// there is one, otherwise <see cref="LocalDomains"/>.
+        /// there is one, otherwise <see cref="LocalDomains"/>. A domain in U-labels and the same
+        /// domain in A-labels are one domain: RFC 6531 §3.7 has a client write "bücher.test" in an
+        /// SMTPUTF8 transaction and "xn--bcher-kva.test" outside one - either is local when the
+        /// domain is, however it was configured. The check is asked about each form.
         /// </summary>
         public          Boolean  IsLocalDomain(String domain)
 
              => LocalDomainCheck is not null
-                    ? LocalDomainCheck(domain)
-                    : LocalDomains.Contains(
-                          domain,
-                          StringComparer.OrdinalIgnoreCase
-                      );
+                    ? LocalDomainCheck(domain) ||
+                      (Idna.ToAscii  (domain) is var ascii   && ascii   != domain && LocalDomainCheck(ascii)) ||
+                      (Idna.ToUnicode(domain) is var unicode && unicode != domain && LocalDomainCheck(unicode))
+                    : LocalDomains.Any(local => Idna.SameDomain(local, domain));
 
     }
 

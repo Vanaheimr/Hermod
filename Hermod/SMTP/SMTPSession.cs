@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     }
                 }
 
-                await SendResponseAsync(220, $"{config.Hostname} ESMTP AchimSMTP ready");
+                await SendResponseAsync(220, $"{ServerName} ESMTP AchimSMTP ready");
 
                 while (!ct.IsCancellationRequested && client.Connected)
                 {
@@ -363,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             _state          = SMTPSessionState.Greeted;
 
             var extensions  = new List<String> {
-                $"{config.Hostname} Hello {hostname}",
+                $"{ServerName} Hello {hostname}",
                 $"SIZE {config.MaxMessageSize}",
                 "8BITMIME",
                 "PIPELINING", // RFC 2920 - command pipelining
@@ -1756,7 +1756,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var priorityClause = _mtPriority is { } priority ? $"\r\n\tPRIORITY {priority}" : "";
 
             return $"Received: {fromClause}\r\n" +
-                   $"\tby {config.Hostname} (AchimSMTP) with {protocol} id {id}{forClause}{priorityClause};\r\n" +
+                   $"\tby {ServerName} (AchimSMTP) with {protocol} id {id}{forClause}{priorityClause};\r\n" +
                    $"\t{timestamp}\r\n";
 
         }
@@ -1906,9 +1906,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             _bdatBuffer.   SetLength(0);
         }
 
+        /// <summary>
+        /// The name the server gives itself in its replies and its Received fields. RFC 6531
+        /// §3.7.1: in the greeting and the reply to EHLO "they MUST be in the form of LDH labels or
+        /// A-labels" - a server named in U-labels says its A-labels.
+        /// </summary>
+        private String ServerName
+            => Idna.ToAscii(config.Hostname);
+
         private async Task HandleQuitAsync()
         {
-            await SendResponseAsync(221, $"2.0.0 {config.Hostname} closing connection");
+            await SendResponseAsync(221, $"2.0.0 {ServerName} closing connection");
             _state = SMTPSessionState.Quit;
         }
 
@@ -1959,7 +1967,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             try
             {
-                await SendResponseAsync(421, $"4.4.2 {config.Hostname} Error: timeout exceeded, closing connection");
+                await SendResponseAsync(421, $"4.4.2 {ServerName} Error: timeout exceeded, closing connection");
             }
             catch
             {

@@ -101,6 +101,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var startTime = Timestamp.Now;
 
+            // RFC 6531 §3.2: "When doing lookups, the SMTPUTF8-aware SMTP client or server MUST
+            // either use a Unicode-aware DNS library, or transform the internationalized domain
+            // name to A-label form" - the MX records, the MTA-STS policy, the address of a domain
+            // in U-labels are those of its A-labels.
+            targetDomain = Idna.ToAscii(targetDomain);
+
             try
             {
 
@@ -133,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // MTA-STS (RFC 8461). §3.4: through a smart host, "compliant senders MUST treat the
                 // smart host domain as the Policy Domain" - the recipient domain's policy names its
                 // own MX hosts, not the relay we hand the message to. An address literal has none.
-                var policyDomain  = route.Host ?? targetDomain;
+                var policyDomain  = Idna.ToAscii(route.Host ?? targetDomain);
                 var mtaStsPolicy  = System.Net.IPAddress.TryParse(policyDomain.Trim('[', ']'), out _)
                                         ? MtaStsPolicy.None
                                         : await _mtaStsResolver.GetPolicyAsync(policyDomain, ct);
@@ -152,7 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 if (route.Host is not null)
                 {
                     // Use smarthost relay
-                    mxHosts = [new MxRecord(route.Host, 0)];
+                    mxHosts = [new MxRecord(Idna.ToAscii(route.Host), 0)];
                     _logger.Log(LogLevel.Debug, $"Using smarthost: {route}");
                 }
                 else if (targetDomain.StartsWith('['))
@@ -490,7 +496,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     return ParseResponse(greeting.ToString(), mxHost);
 
                 // EHLO
-                await connection.WriteLineAsync($"EHLO {_config.LocalHostname}", ct);
+                await connection.WriteLineAsync($"EHLO {EhloName}", ct);
                 var ehloResponse = await connection.ReadReplyAsync(ct);
 
                 // RFC 5321 §3.2: a server that does not know EHLO answers 500, 501, 502, 504 or 550,
@@ -499,7 +505,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 if (ehloResponse.Code is 500 or 501 or 502 or 504 or 550)
                 {
 
-                    await connection.WriteLineAsync($"HELO {_config.LocalHostname}", ct);
+                    await connection.WriteLineAsync($"HELO {EhloName}", ct);
                     ehloResponse = await connection.ReadReplyAsync(ct);
 
                 }
@@ -601,7 +607,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         RecordTls(policyFailure is null, policyFailure);
 
                         // Re-send EHLO after TLS
-                        await connection.WriteLineAsync($"EHLO {_config.LocalHostname}", ct);
+                        await connection.WriteLineAsync($"EHLO {EhloName}", ct);
                         ehloResponse = await connection.ReadReplyAsync(ct);
                         if (!ehloResponse.IsPositiveCompletion)
                             return ParseResponse(ehloResponse.ToString(), mxHost);
@@ -967,7 +973,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// Whether a host name is this relay's own: the name it greets with.
         /// </summary>
         private Boolean IsOwnName(String host)
-            => host.TrimEnd('.').Equals(_config.LocalHostname.TrimEnd('.'), StringComparison.OrdinalIgnoreCase);
+            => Idna.SameDomain(host, _config.LocalHostname);
+
+        /// <summary>
+        /// The name the relay gives itself in EHLO and HELO. RFC 6531 §3.7.1: "the SMTPUTF8-aware
+        /// SMTP client MUST send only ASCII (LDH label or A-label [RFC5890]) domains in the EHLO
+        /// command" - a relay named in U-labels says its A-labels.
+        /// </summary>
+        private String EhloName
+            => Idna.ToAscii(_config.LocalHostname);
 
         #endregion
 
