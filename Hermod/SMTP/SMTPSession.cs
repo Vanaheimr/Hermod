@@ -246,9 +246,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
             finally
             {
+
+                // RFC 5321 §3.8: the server closes a connection "After detecting the need to shut
+                // down the SMTP service and returning a 421 response code. This response code can
+                // be issued after the server receives any command or, if necessary, asynchronously
+                // from command receipt" - whatever the session was doing, DATA included: what was
+                // not answered with 250 is not taken. Not after QUIT or a timeout, which have had
+                // their reply.
+                if (ct.IsCancellationRequested && _state != SMTPSessionState.Quit && !_timedOut)
+                    await SayShutdownAsync();
+
                 connectionTracker?.UnregisterConnection(_clientIp);
                 _bdatBuffer.Dispose();
                 client.Close();
+
+            }
+        }
+
+        /// <summary>
+        /// The server is shutting down: "421 4.3.2" (RFC 3463 X.3.2, "System not accepting network
+        /// messages") to the client - best effort, and not waited for long: a client that does not
+        /// read does not hold the shutdown up.
+        /// </summary>
+        private async Task SayShutdownAsync()
+        {
+            try
+            {
+                await SendResponseAsync(421, $"4.3.2 {ServerName} Service shutting down, closing connection").
+                          WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch
+            {
+                // the client is gone, or does not read
             }
         }
 

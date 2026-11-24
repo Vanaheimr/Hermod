@@ -201,6 +201,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             }
 
+            /// <summary>
+            /// Stop the server, with clients connected or not.
+            /// </summary>
+            public Task StopAsync()
+                => server.Stop();
+
             public async ValueTask DisposeAsync()
             {
                 try { await server.DisposeAsync(); } catch { }
