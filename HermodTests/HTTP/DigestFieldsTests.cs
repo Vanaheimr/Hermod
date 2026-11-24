@@ -526,7 +526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                        helloWorld)
                                );
 
-            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 1);
+            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 0);
 
             var response = await client.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
 
@@ -734,10 +734,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var server = new RawServer(Raw(ok), Raw(ok));
 
-            using (var verifying = new HTTPClient(server.URL, MaxNumberOfRetries: 1) { VerifyDigests = true })
+            using (var verifying = new HTTPClient(server.URL, MaxNumberOfRetries: 0) { VerifyDigests = true })
                 await verifying.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
 
-            using (var plain     = new HTTPClient(server.URL, MaxNumberOfRetries: 1))
+            using (var plain     = new HTTPClient(server.URL, MaxNumberOfRetries: 0))
                 await plain.    GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
 
             await server.Served.WaitAsync(TimeSpan.FromSeconds(5));
@@ -773,7 +773,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                    Raw($"HTTP/1.1 200 OK\r\nContent-Length: 12\r\n{digest}Connection: close\r\n\r\n", helloWorld)
                                );
 
-            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 1) { VerifyDigests = true };
+            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 0) { VerifyDigests = true };
 
             var response = await client.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
 
@@ -806,7 +806,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                    Raw("HTTP/1.1 200 OK\r\nContent-Length: 12\r\nConnection: close\r\n\r\n", helloWorld)
                                );
 
-            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 3) { VerifyDigests = true };
+            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 2) { VerifyDigests = true };
 
             var response = await client.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
 
@@ -849,7 +849,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                              gzipped)
                                );
 
-            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 1) {
+            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 0) {
                                    AutomaticDecompression  = true,
                                    VerifyDigests           = true
                                };
@@ -884,7 +884,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                       $"Content-Digest: {HTTPDigest.FieldValue(Digested.ToUTF8Bytes(), "sha-256")}\r\n\r\n")
                                );
 
-            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 1) { VerifyDigests = true };
+            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 0) { VerifyDigests = true };
 
             var response = await client.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
 
@@ -912,7 +912,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                       $"Content-Digest: {HTTPDigest.FieldValue("Hello World?"u8.ToArray(), "sha-256")}\r\n\r\n")
                                );
 
-            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 1) { VerifyDigests = true };
+            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 0) { VerifyDigests = true };
 
             var response = await client.GET(HTTPPath.Root,
                                             ConsumeResponseChunkedTEImmediately:  false,
@@ -945,7 +945,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                        helloWorld)
                                );
 
-            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 1);
+            using var client = new HTTPClient(server.URL, MaxNumberOfRetries: 0);
 
             var response = await client.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
 

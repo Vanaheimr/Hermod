@@ -70,9 +70,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static readonly    TimeSpan                 MinimumConnectionAttemptSpacing  = TimeSpan.FromMilliseconds(10);
 
         /// <summary>
-        /// The default maximum number of transmission retries for HTTP request.
+        /// The default maximum number of transmission retries for an HTTP request:
+        /// retries after the first attempt, so three attempts in all.
         /// </summary>
-        public const              UInt16                   DefaultMaxNumberOfRetries        = 3;
+        public const              UInt16                   DefaultMaxNumberOfRetries        = 2;
 
         /// <summary>
         /// The default delay between transmission retries.

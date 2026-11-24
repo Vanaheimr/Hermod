@@ -1621,15 +1621,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
+                    // MaxNumberOfRetries counts what its name says: the attempts
+                    // after the first one. It used to count attempts, so 0 sent
+                    // nothing at all and answered "Giving up ... after 0
+                    // attempts", and 1 never tried a second time.
                     var maxNumberOfRetries  = MaxNumberOfRetries ?? this.MaxNumberOfRetries;
-                    var retry               = 1;
+                    var attempt             = 1;
 
                     // Why the loop gave up, in the words of whatever actually
                     // went wrong. Without it the caller was told nothing beyond
                     // "maximum retries reached", which names the symptom.
                     var lastError           = (String?) null;
 
-                    while (retry <= maxNumberOfRetries)
+                    while (attempt <= maxNumberOfRetries + 1)
                     {
 
                         // A request whose token is cancelled is not tried again.
@@ -1645,8 +1649,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             break;
                         }
 
-                        if (retry > 1)
-                            DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)} {RemoteURL}, retry #{retry} of {maxNumberOfRetries}...");
+                        if (attempt > 1)
+                            DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)} {RemoteURL}, retry #{attempt - 1} of {maxNumberOfRetries}...");
 
                         if (!IsConnected || !IsHTTPConnected || IsConnectionClosed || IsConnectionLifetimeExceeded)
                         {
@@ -1661,7 +1665,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     await Log($"Error in SendRequest: {lastError}");
                                     DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)}: {lastError}");
                                     IsHTTPConnected = false;
-                                    retry++;
+                                    attempt++;
                                     continue;
                                 }
 
@@ -1672,7 +1676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 await Log($"Error in SendRequest: {ex.Message}");
                                 DebugX.LogException(ex, nameof(AHTTPClient) + "." + nameof(SendRequest));
                                 IsHTTPConnected = false;
-                                retry++;
+                                attempt++;
                                 continue;
                             }
                         }
@@ -1683,7 +1687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             await Log("HTTP stream is not available!");
                             DebugX.Log($"{nameof(AHTTPClient)}.{nameof(SendRequest)} HTTP stream is not available!");
                             IsHTTPConnected = false;
-                            retry++;
+                            attempt++;
                             continue;
                         }
 
@@ -1853,7 +1857,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         await Log("Could not read HTTP response from the HTTP stream!");
                                         DebugX.Log($"{nameof(AHTTPClient)}.{nameof(SendRequest)} Could not read HTTP response from the HTTP stream!");
                                         await CloseHTTPConnectionAfterFailure().ConfigureAwait(false);
-                                        retry++;
+                                        attempt++;
                                         continue;
 
                                     }
@@ -2352,14 +2356,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              (innerException is System.ComponentModel.Win32Exception win32Exception ? $"/native:{win32Exception.NativeErrorCode}" : "") +
                                              $"] {innerException.Message}";
 
-                            if (retry > 1 || ex.InnerException is not SocketException)
+                            if (attempt > 1 || ex.InnerException is not SocketException)
                             {
                                 await Log($"Error in SendRequest: {lastError}");
                                 DebugX.LogException(ex, nameof(AHTTPClient) + "." + nameof(SendRequest));
                             }
 
                             await CloseHTTPConnectionAfterFailure().ConfigureAwait(false);
-                            retry++;
+                            attempt++;
 
                         }
                         finally
@@ -2378,7 +2382,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     // client's own 400 on as "the resolver returned HTTP 400".
                     return new HTTPResponse.Builder(Request) {
                                HTTPStatusCode  = HTTPStatusCode.ClientError,
-                               Content         = $"Giving up on this HTTP request to {RemoteURL} after {retry - 1} {(retry - 1 == 1 ? "attempt" : "attempts")}: {lastError ?? "no reason was recorded"}".ToUTF8Bytes(),
+                               Content         = $"Giving up on this HTTP request to {RemoteURL} after {attempt - 1} {(attempt - 1 == 1 ? "attempt" : "attempts")}: {lastError ?? "no reason was recorded"}".ToUTF8Bytes(),
                                ContentType     = HTTPContentType.Text.PLAIN,
                                Runtime         = TimeSpan.Zero
                            };

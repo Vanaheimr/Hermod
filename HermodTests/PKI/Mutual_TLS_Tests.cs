@@ -1865,7 +1865,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.PKI
                                                                                         );
 
                                                                               },
-                                               MaxNumberOfRetries:            1
+                                               MaxNumberOfRetries:            0
                                            );
 
             var response1    = await httpClient1.GET(HTTPPath.Root);
