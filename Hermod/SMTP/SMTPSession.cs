@@ -132,14 +132,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
                 while (!ct.IsCancellationRequested && client.Connected)
                 {
-                    var read = await ReadLineAsync(config.MaxCommandLineLength, ct);
+                    // Every line is read up to the longer of the two limits: an AUTH command and the
+                    // lines of its exchange carry base64 "much longer than normal SMTP commands"
+                    // (RFC 4954 §4) - what is neither is held to the command line's.
+                    var read = await ReadLineAsync(Math.Max(config.MaxCommandLineLength, config.MaxAuthLineLength), ct);
                     if (read is null)
                         break;
 
                     var line = read.Value.Text;
 
+                    var tooLong = read.Value.Status == SMTPLineStatus.TooLong ||
+                                  (!_inAuthExchange &&
+                                   !line.StartsWith("AUTH ", StringComparison.OrdinalIgnoreCase) &&
+                                   line.Length + 2 > config.MaxCommandLineLength);
+
+                    // RFC 4954 §4: "If, during an authentication exchange, the server receives a line
+                    // that is longer than the server's authentication buffer, the server fails the
+                    // AUTH command with the 500 reply" - and the AUTH command is over: the next line
+                    // is a command again, not a response to read as base64.
+                    if (tooLong && _inAuthExchange)
+                    {
+                        _inAuthExchange = false;
+                        _authManager.Reset();
+                        await SendResponseAsync(500, "5.5.6 Authentication exchange line is too long");
+                        continue;
+                    }
+
                     // Command line-length limit (RFC 5321 §4.5.3.1.4), enforced while reading.
-                    if (read.Value.Status == SMTPLineStatus.TooLong)
+                    if (tooLong)
                     {
                         _counters.InvalidCommands++;
                         await SendResponseAsync(500, "5.5.6 Line too long");
@@ -506,6 +526,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 case AuthResult.Continue:
                     _inAuthExchange = true;
                     await SendResponseAsync(334, result.Challenge ?? "");
+                    break;
+
+                // RFC 4954 §6: the server could not check the credentials - 454, and no failed
+                // attempt of the client's: it neither counts nor waits.
+                case AuthResult.TemporaryFailure:
+                    _inAuthExchange = false;
+                    await SendAuthRefusalAsync(result.ErrorCode, 454, "4.7.0 Temporary authentication failure");
                     break;
 
                 case AuthResult.Fail:

@@ -70,7 +70,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
 
             // Look up user by certificate
-            var user = await userStore.GetUserByCertificateAsync(clientCertificate, ct);
+            UserCredentials? user;
+            try
+            {
+                user = await userStore.GetUserByCertificateAsync(clientCertificate, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.Log(LogLevel.Error, $"EXTERNAL auth: the user store failed: {ex.Message}");
+                return TemporaryFailure;
+            }
             if (user is null)
             {
                 logger.Log(LogLevel.Warning, $"EXTERNAL auth: No user found for certificate {clientCertificate.Thumbprint}");

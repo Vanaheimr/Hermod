@@ -158,7 +158,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
 
             // Get user credentials
-            _userCredentials = await userStore.GetUserAsync(_username, ct);
+            try
+            {
+                _userCredentials = await userStore.GetUserAsync(_username, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.Log(LogLevel.Error, $"SCRAM-SHA-256 auth: the user store failed: {ex.Message}");
+                return TemporaryFailure;
+            }
             if (_userCredentials?.ScramStoredKey is null)
             {
                 // User not found or no SCRAM credentials - still continue to prevent user enumeration

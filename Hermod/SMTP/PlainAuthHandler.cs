@@ -71,7 +71,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
                 var username = authcid;
 
-                if (await userStore.ValidatePasswordAsync(username, password, ct))
+                Boolean valid;
+                try
+                {
+                    valid = await userStore.ValidatePasswordAsync(username, password, ct);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.Log(LogLevel.Error, $"PLAIN auth: the user store failed: {ex.Message}");
+                    return TemporaryFailure;
+                }
+
+                if (valid)
                 {
                     logger.Log(LogLevel.Info, $"PLAIN auth: User '{username}' authenticated");
                     return new AuthResponse(AuthResult.Success, Username: username);
