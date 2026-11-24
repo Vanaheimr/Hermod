@@ -897,6 +897,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         #endregion
 
 
+        #region ACertificateReplaced_IsShownToTheNextClientOverHTTP3_WithoutARestart()
+
+        /// <summary>
+        /// QUIC asks the selector of the server for every connection, as TCP
+        /// asks at every handshake: a certificate that was replaced is shown to
+        /// the next client over HTTP/3, on the same UDP port, while a client
+        /// shown the one before goes on as it was.
+        /// </summary>
+        [Test]
+        public async Task ACertificateReplaced_IsShownToTheNextClientOverHTTP3_WithoutARestart()
+        {
+
+            await TheServerTakesHTTP3();
+
+            var before      = serverCertificate!;
+            var http3Port   = webSocketServer!.HTTP3Port;
+
+            using var nextKey  = RSA.Create(2048);
+            using var next     = new CertificateRequest("CN=the next one", nextKey, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1).
+                                     CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+
+            WebSocketClient ClientShown(List<String> Shown)
+            {
+
+                var client = new WebSocketClient(
+                                 URL.Parse($"wss://127.0.0.1:{HTTPPort}/somewhere?with=this"),
+                                 SecWebSocketProtocols:       [ "ocpp2.1" ],
+                                 RemoteCertificateValidator:  (sender, certificate, certificateChain, tlsClient, policyErrors) => {
+                                                                  if (certificate is not null)
+                                                                      lock (Shown) Shown.Add(certificate.Thumbprint);
+                                                                  return TLSValidationResult.Success();
+                                                              },
+                                 ConnectTimeout:              TimeSpan.FromSeconds(5)
+                             ) {
+                                 WebSocketOver = WebSocketHTTPVersion.HTTP3
+                             };
+
+                toDispose.Add(client);
+
+                return client;
+
+            }
+
+            try
+            {
+
+                var shownFirst      = new List<String>();
+                var first           = ClientShown(shownFirst);
+                var (_, response1)  = await first.Connect();
+
+                Assert.That(response1.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.SwitchingProtocols), response1?.EntirePDU);
+
+                serverCertificate   = next;
+
+                var shownSecond     = new List<String>();
+                var second          = ClientShown(shownSecond);
+                var (_, response2)  = await second.Connect();
+
+                Assert.Multiple(() => {
+                    Assert.That(response2.HTTPStatusCode,     Is.EqualTo(HTTPStatusCode.SwitchingProtocols), response2?.EntirePDU);
+                    Assert.That(first. HTTPVersionInUse,      Is.EqualTo(HTTPVersion.HTTP_3_0));
+                    Assert.That(second.HTTPVersionInUse,      Is.EqualTo(HTTPVersion.HTTP_3_0));
+                    Assert.That(shownFirst,                   Is.EqualTo(new[] { before.Thumbprint }), "what the first client was shown");
+                    Assert.That(shownSecond,                  Is.EqualTo(new[] { next.  Thumbprint }), "what the client after the change was shown");
+                    Assert.That(webSocketServer.HTTP3Port,    Is.EqualTo(http3Port), "HTTP/3 on another port");
+                });
+
+                // Both go on, the first with what it was shown: nothing was restarted.
+                await TheMirrorAnswers(first);
+                await TheMirrorAnswers(second);
+
+            }
+            finally
+            {
+                serverCertificate = before;
+            }
+
+        }
+
+        #endregion
+
+
         #region A one-time password bound to the connection
 
         private const String TOTPSecret = "a-shared-secret-of-some-length";

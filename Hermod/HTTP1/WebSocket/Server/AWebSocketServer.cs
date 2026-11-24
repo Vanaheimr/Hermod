@@ -69,12 +69,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private          RemoteTLSClientCertificateValidationHandler<ITCPServer>?  clientCertificateValidator;
 
         /// <summary>
-        /// The HTTP/3 server beside the listener, the certificate it shows and
+        /// The HTTP/3 server beside the listener, the certificates it shows and
         /// what ends its WebSockets: while this server takes WebSockets over
         /// HTTP/3 (AcceptHTTP3) and is running.
         /// </summary>
         private          Http3Server?                                               http3Server;
-        private          ServerCertificate?                                         http3Certificate;
+        private          QUICCertificates?                                          http3Certificates;
         private          CancellationTokenSource?                                   http3Cancellation;
         private          Boolean                                                    acceptHTTP3;
 
@@ -310,8 +310,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <remarks>
         /// HTTP/3 is HTTP over TLS and nothing else, so only a server that has
-        /// a certificate takes it; the certificate is asked for once, at the
-        /// start, as QUIC shows one certificate to every client, and it is
+        /// a certificate takes it; the certificate is asked for at every new
+        /// connection, as over TCP at every handshake, so a certificate that
+        /// was replaced is shown to the next client without a restart; it is
         /// shown with a key of ECDSA P-256, ECDSA P-384 or RSA. A server
         /// without TLS, with another key, or whose UDP port is taken, runs as
         /// it would without this: <see cref="HTTP3Port"/> says so, and
@@ -763,14 +764,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region RestartHTTP3Async(CancellationToken = default)
 
         /// <summary>
-        /// Stop taking WebSockets over HTTP/3 and start again, with the
-        /// certificate the selector of this server answers with now.
+        /// Stop taking WebSockets over HTTP/3 and start again.
         /// </summary>
         /// <remarks>
-        /// QUIC is handed its certificate when it starts and shows that one
-        /// until it stops, while TCP asks the selector at every handshake: a
-        /// server whose certificate was replaced is restarted here to show the
-        /// new one over HTTP/3 as well.
+        /// Not needed for a certificate that was replaced: QUIC asks the
+        /// selector of this server for every connection, as TCP asks at every
+        /// handshake, and the next client over HTTP/3 is shown the new one
+        /// (QUICCertificates). A restart drops the connections over HTTP/3 as
+        /// well, which then are shown it at once.
         ///
         /// The new QUIC listener binds the UDP port only after the old one has
         /// let go of it. Switching <see cref="AcceptHTTP3"/> off and on does
@@ -1061,39 +1062,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 return;
             }
 
-            ServerCertificate certificate;
+            // Asked of the selector for every connection, as TCP asks at every
+            // handshake - and once here: a server that has nothing to show
+            // over QUIC takes no HTTP/3 at all.
+            var certificates = new QUICCertificates(
+
+                                   nobody => {
+
+                                       // The chain where the server has one, as its listener does: a
+                                       // client that knows the root alone needs the intermediates
+                                       // over QUIC as it needs them over TCP.
+                                       if (serverCertificateChainSelector is { } chainSelector)
+                                       {
+
+                                           var chain = chainSelector(this, nobody)
+                                                           ?? throw new InvalidOperationException("The server has no certificate chain to show.");
+
+                                           return (chain.Certificate, chain.Intermediates);
+
+                                       }
+
+                                       return (ServerCertificateSelector!(this, nobody), null);
+
+                                   },
+
+                                   RawPublicKeys,
+
+                                   e => Logger.LogWarning(e, "The WebSocket server on {IPSocket} cannot say which certificate to show over HTTP/3, and shows the one it showed before.", IPSocket)
+
+                               );
 
             try
             {
-
-                // QUIC shows one certificate to every client: the one this
-                // server would show to a client nothing is known of yet.
-                using var nobody = new TcpClient();
-
-                // The chain where the server has one, as its listener does: a
-                // client that knows the root alone needs the intermediates
-                // over QUIC as it needs them over TCP.
-                if (serverCertificateChainSelector is { } chainSelector)
-                {
-
-                    var chain   = chainSelector(this, nobody)
-                                      ?? throw new InvalidOperationException("The server has no certificate chain to show.");
-
-                    certificate = ServerCertificate.From(chain.Certificate, chain.Intermediates);
-
-                }
-
-                else
-                    certificate = ServerCertificate.From(ServerCertificateSelector!(this, nobody));
-
-                // Shown raw over QUIC where it is shown raw over TCP.
-                certificate.RawPublicKeys = RawPublicKeys;
-
+                certificates.ForTheNextConnection();
             }
             catch (Exception e)
             {
                 WhyNoHTTP3 = $"The certificate of the server cannot be shown over QUIC: {e.Message}";
                 Logger.LogWarning(e, "The WebSocket server on {IPSocket} takes no WebSockets over HTTP/3: its certificate cannot be shown over QUIC.", IPSocket);
+                certificates.Dispose();
                 return;
             }
 
@@ -1143,7 +1150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                              connection = new Http3ServerConnection(
 
-                                                              certificate,
+                                                              certificates.ForTheNextConnection(),
 
                                                               request => new Http3Response {
                                                                              Status   = 400,
@@ -1203,11 +1210,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 WhyNoHTTP3 = $"The UDP port {port} cannot be listened on: {failure?.Message}";
                 Logger.LogWarning(failure, "The WebSocket server on {IPSocket} takes no WebSockets over HTTP/3: its UDP port {Port} cannot be listened on.", IPSocket, port);
                 cancellation.Dispose();
-                certificate. Dispose();
+                certificates.Dispose();
                 return;
             }
 
-            http3Certificate   = certificate;
+            http3Certificates  = certificates;
             http3Cancellation  = cancellation;
             http3MoreServers   = started[1..];
             http3Server        = started[0];
@@ -1227,7 +1234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             Http3Server?              server;
             CancellationTokenSource?  cancellation;
-            ServerCertificate?        certificate;
+            QUICCertificates?         certificates;
             List<Http3Server>         more;
             TaskCompletionSource      stopped;
 
@@ -1236,11 +1243,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 server             = http3Server;
                 cancellation       = http3Cancellation;
-                certificate        = http3Certificate;
+                certificates       = http3Certificates;
                 more               = http3MoreServers;
                 http3Server        = null;
                 http3Cancellation  = null;
-                http3Certificate   = null;
+                http3Certificates  = null;
                 http3MoreServers   = [];
                 WhyNoHTTP3         = null;
 
@@ -1252,7 +1259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             }
 
-            return LetGoOfHTTP3(server, more, cancellation, certificate, stopped);
+            return LetGoOfHTTP3(server, more, cancellation, certificates, stopped);
 
         }
 
@@ -1263,13 +1270,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private async Task LetGoOfHTTP3(Http3Server               server,
                                         List<Http3Server>         more,
                                         CancellationTokenSource?  cancellation,
-                                        ServerCertificate?        certificate,
+                                        QUICCertificates?         certificates,
                                         TaskCompletionSource      stopped)
         {
 
             try
             {
-                await StopHTTP3Servers(server, more, cancellation, certificate).ConfigureAwait(false);
+                await StopHTTP3Servers(server, more, cancellation, certificates).ConfigureAwait(false);
             }
             finally
             {
@@ -1281,7 +1288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private async Task StopHTTP3Servers(Http3Server               server,
                                             List<Http3Server>         more,
                                             CancellationTokenSource?  cancellation,
-                                            ServerCertificate?        certificate)
+                                            QUICCertificates?         certificates)
         {
 
             try
@@ -1304,7 +1311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
 
             cancellation?.Dispose();
-            certificate?. Dispose();
+            certificates?.Dispose();
 
         }
 
