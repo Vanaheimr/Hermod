@@ -618,13 +618,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region (private) NeedsSmtpUtf8(EMailEnvelop)
+        #region (internal) NeedsSmtpUtf8(EMailEnvelop, MessageLines)
 
         /// <summary>
-        /// Whether this transaction needs SMTPUTF8 (RFC 6531): any non-ASCII byte in an envelope
-        /// address or in the serialized message.
+        /// Whether this transaction needs SMTPUTF8 (RFC 6531): an envelope address with UTF-8 in
+        /// it - a local-part, or a domain in U-labels -, or a header field with UTF-8 in it (§3.7.4,
+        /// RFC 6532). Not the body: 8-bit content in the body is BODY=8BITMIME's (RFC 6152), and
+        /// "if the SMTPUTF8-aware SMTP client is aware that neither the envelope nor the message
+        /// being sent requires any of the SMTPUTF8 extension capabilities, it SHOULD NOT supply the
+        /// SMTPUTF8 parameter" (§3.4).
         /// </summary>
-        private static Boolean NeedsSmtpUtf8(EMailEnvelop EMailEnvelop)
+        /// <param name="EMailEnvelop">The envelope.</param>
+        /// <param name="MessageLines">The lines of the message as sent.</param>
+        internal static Boolean NeedsSmtpUtf8(EMailEnvelop EMailEnvelop, IEnumerable<String> MessageLines)
         {
 
             static Boolean NonAscii(String s) => s.Any(c => c > '\x7F');
@@ -633,7 +639,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 EMailEnvelop.RcptTo.  Any(a => NonAscii(a.Address.ToString())))
                 return true;
 
-            return EMailEnvelop.Mail is not null && EMailEnvelop.Mail.ToText(IncludeBcc: false).Any(NonAscii);
+            // The header section ends with the first empty line (RFC 5322 §2.1).
+            return MessageLines.TakeWhile(line => line.Length > 0).Any(NonAscii);
 
         }
 
@@ -1373,6 +1380,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         break;
                                     }
 
+                                    // RFC 6531 §3.2: "If the SMTPUTF8 SMTP extension is not offered by the SMTP
+                                    // server, the SMTPUTF8-aware SMTP client MUST NOT transmit an internationalized
+                                    // email address and MUST NOT transmit a mail message containing internationalized
+                                    // mail headers"; §3.5: "MUST NOT send an internationalized message to an SMTP
+                                    // server that does not support SMTPUTF8". There is no downgrade here - rewriting
+                                    // the header would break DKIM signatures over it, and the address is the one
+                                    // the sender gave -, so it is a permanent failure, before anything is sent.
+                                    var needsUtf8    = NeedsSmtpUtf8(EMailEnvelop, messageLines);
+
+                                    if (needsUtf8 && !Capabilities.HasFlag(SmtpCapabilities.UTF8))
+                                    {
+                                        smtpLogger.LogWarning("The message needs SMTPUTF8 and {RemoteHost} does not offer it; not sent", RemoteHost);
+                                        result = MailSentStatus.SmtpUtf8NotSupported;
+                                        break;
+                                    }
+
                                     #endregion
 
                                     #region MAIL FROM: / RCPT TO:
@@ -1385,7 +1408,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     // A transaction has exactly one MAIL FROM (RFC 5321 §3.3).
                                     var mailFrom     = EMailEnvelop.MailFrom.FirstOrDefault();
-                                    var needsUtf8    = Capabilities.HasFlag(SmtpCapabilities.UTF8) && NeedsSmtpUtf8(EMailEnvelop);
 
                                     // MAIL FROM:<test@example.com>  (no space after the colon, RFC 5321)
                                     var mailFromCommand = "MAIL FROM:<" + (mailFrom?.Address.ToString() ?? "") + ">";
