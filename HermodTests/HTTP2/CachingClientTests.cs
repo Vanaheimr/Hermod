@@ -51,6 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             var path        = h.First(x => x.Name == ":path").Value;
             var ifNoneMatch = h.FirstOrDefault(x => x.Name == "if-none-match").Value;
             var acceptLang  = h.FirstOrDefault(x => x.Name == "accept-language").Value;
+            var method      = h.First(x => x.Name == ":method").Value;
             originHits.AddOrUpdate(path, 1, (_, c) => c + 1);
             var date = DateTimeOffset.UtcNow.ToString("r");
 
@@ -79,6 +80,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 "/invalidate"     => Cacheable("max-age=60",           "\"inv\"",   "inv-body"),
                 "/oic-stale"      => Cacheable("max-age=0",            "\"oic\"",   "oic-body"),
                 "/head"           => Cacheable("max-age=60",           "\"hd\"",    "head-body"),
+                "/head-update"    => method == "HEAD"
+                                         ? Make(200, Encoding.UTF8.GetBytes("hu-body"), ("cache-control", "max-age=60"), ("etag", "\"hu\""), ("x-version", "2"))
+                                         : Make(200, Encoding.UTF8.GetBytes("hu-body"), ("cache-control", "max-age=0"),  ("etag", "\"hu\""), ("x-version", "1")),
                 "/mismatch"       => ifNoneMatch is not null
                                          ? Make(304, null, ("cache-control", "max-age=0"), ("etag", "\"m2\""))
                                          : OriginHits(path) == 1
@@ -244,6 +248,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             await cache.GetAsync("/head");
             await cache.SendRequestAsync(HTTPMethod.HEAD, "/head");
             Assert.That(OriginHits("/head"), Is.EqualTo(2), "the HEAD went to the origin");
+        }
+
+        #endregion
+
+        #region Head_200UpdatesTheStoredGet()
+
+        /// <summary>
+        /// RFC 9111, Section 4.3.5: a 200 to a HEAD with the stored entity tag
+        /// and Content-Length updates the stored GET, its freshness included,
+        /// and the next GET is served from the cache (H-47).
+        /// </summary>
+        [Test]
+        public async Task Head_200UpdatesTheStoredGet()
+        {
+            var cache = await NewCache(HTTPCacheMode.Private);
+            await cache.GetAsync("/head-update");
+            await cache.SendRequestAsync(HTTPMethod.HEAD, "/head-update");
+            var third = await cache.GetAsync("/head-update");
+            Assert.Multiple(() =>
+            {
+                Assert.That(OriginHits("/head-update"),           Is.EqualTo(2), "a GET and the HEAD, and no revalidation");
+                Assert.That(cache.Revalidations,                  Is.EqualTo(0));
+                Assert.That(third.HeaderValue("x-version"),       Is.EqualTo("2"));
+                Assert.That(Encoding.UTF8.GetString(third.Body),  Is.EqualTo("hu-body"));
+            });
         }
 
         #endregion

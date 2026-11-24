@@ -268,8 +268,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var responseCC  = Stored.CacheControl;
             var age         = CurrentAge(Stored, Now);
-            var lifetime    = FreshnessLifetime(Stored, Mode) ?? TimeSpan.Zero;
-            var staleness   = age - lifetime;   // >= 0 means stale by that much
+            var staleness   = Staleness(Stored, age, Mode);   // >= 0 means stale by that much
             var isFresh     = staleness < TimeSpan.Zero;
 
             // no-cache, on either side, allows no use without validation
@@ -344,9 +343,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (window < 0)
                 return false;
 
-            var staleness = CurrentAge(Stored, Now) - (FreshnessLifetime(Stored, Mode) ?? TimeSpan.Zero);
-
-            return staleness <= TimeSpan.FromSeconds(window);
+            return Staleness(Stored, CurrentAge(Stored, Now), Mode) <= TimeSpan.FromSeconds(window);
 
         }
 
@@ -357,6 +354,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean IsStaleIfErrorStatus(Int32 Status)
 
             => Status is 500 or 502 or 503 or 504;
+
+        #endregion
+
+        #region (private) Staleness(Stored, Age, Mode)
+
+        /// <summary>
+        /// By how much a stored response of this age is stale: negative while
+        /// it is fresh. A response <see cref="HTTPStoredResponse.ConsideredStale"/>
+        /// is stale by at least zero, whatever its freshness lifetime says.
+        /// </summary>
+        private static TimeSpan Staleness(HTTPStoredResponse  Stored,
+                                          TimeSpan            Age,
+                                          HTTPCacheMode       Mode)
+        {
+
+            var staleness = Age - (FreshnessLifetime(Stored, Mode) ?? TimeSpan.Zero);
+
+            return Stored.ConsideredStale
+                       ? Max(staleness, TimeSpan.Zero)
+                       : staleness;
+
+        }
 
         #endregion
 
@@ -434,23 +453,98 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          List<(String Name, String Value)>  NotModifiedHeaders,
                                          DateTimeOffset                     RequestTime,
                                          DateTimeOffset                     ResponseTime)
+
+            => UpdateHeaders(Stored, NotModifiedHeaders, RequestTime, ResponseTime);
+
+        #endregion
+
+        #region HEAD (Section 4.3.5)
+
+        /// <summary>
+        /// Whether a 200 (OK) to a HEAD speaks for this stored GET response (RFC
+        /// 9111, Section 4.3.5): each validator it carries, ETag and
+        /// Last-Modified, is the stored one, and so is its Content-Length, when
+        /// it has one. A HEAD response without any of them speaks for whatever
+        /// it was asked about.
+        ///
+        /// The stored Content-Length is the stored field, or the length of the
+        /// stored octets where there is none. An HTTP/1.x client that decoded
+        /// the content it stored has rewritten that field to the decoded
+        /// length, which the HEAD's encoded one does not match. Such a response
+        /// is considered stale, and its next use revalidates it: one
+        /// conditional request more than necessary, never one less.
+        /// </summary>
+        public static Boolean HEADResponseMatches(HTTPStoredResponse                 Stored,
+                                                  List<(String Name, String Value)>  HEADHeaders)
         {
 
-            var connectionOptions = ConnectionOptions(NotModifiedHeaders);
+            static Boolean Same(String? Received, String? Held)
+                => Received is null || (Held is not null && Received.Trim() == Held.Trim());
 
-            var updates = NotModifiedHeaders.Where(header => !header.Name.StartsWith(':')            &&
-                                                             !NotUpdated.Contains(header.Name)       &&
-                                                             IsStoredField(header.Name, connectionOptions)).
-                                             ToList();
+            return Same(HEADHeaders.FirstOrDefault(header => header.Name == "etag").          Value, Stored.ETag)         &&
+                   Same(HEADHeaders.FirstOrDefault(header => header.Name == "last-modified"). Value, Stored.LastModified) &&
+                   Same(HEADHeaders.FirstOrDefault(header => header.Name == "content-length").Value, Stored.Header("content-length") ?? Stored.Body.LongLength.ToString());
 
-            // Replace each field the 304 carries, all of its lines at once.
+        }
+
+        /// <summary>
+        /// Apply a 200 (OK) to a HEAD to a stored GET response that it could
+        /// have been answered from (RFC 9111, Section 4.3.5). Where the HEAD
+        /// response matches it, see <see cref="HEADResponseMatches"/>, its header
+        /// fields update the stored ones as a 304's do (Section 3.2), and the
+        /// stored response counts as freshly validated. Otherwise the stored
+        /// response is <see cref="HTTPStoredResponse.ConsideredStale"/>.
+        /// </summary>
+        /// <returns>Whether the stored response was updated.</returns>
+        public static Boolean UpdateFromHEAD(HTTPStoredResponse                 Stored,
+                                             List<(String Name, String Value)>  HEADHeaders,
+                                             DateTimeOffset                     RequestTime,
+                                             DateTimeOffset                     ResponseTime)
+        {
+
+            if (!HEADResponseMatches(Stored, HEADHeaders))
+            {
+                Stored.ConsideredStale = true;
+                return false;
+            }
+
+            UpdateHeaders(Stored, HEADHeaders, RequestTime, ResponseTime);
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region (private) UpdateHeaders(Stored, Headers, RequestTime, ResponseTime)
+
+        /// <summary>
+        /// Update a stored response's header fields from a response without
+        /// content that speaks for it, a 304 or a 200 to a HEAD (RFC 9111,
+        /// Section 3.2), and reset its timing: it has just been validated.
+        /// </summary>
+        private static void UpdateHeaders(HTTPStoredResponse                 Stored,
+                                          List<(String Name, String Value)>  Headers,
+                                          DateTimeOffset                     RequestTime,
+                                          DateTimeOffset                     ResponseTime)
+        {
+
+            var connectionOptions = ConnectionOptions(Headers);
+
+            var updates = Headers.Where(header => !header.Name.StartsWith(':')            &&
+                                                  !NotUpdated.Contains(header.Name)       &&
+                                                  IsStoredField(header.Name, connectionOptions)).
+                                  ToList();
+
+            // Replace each field the response carries, all of its lines at once.
             foreach (var name in updates.Select(header => header.Name).Distinct())
                 Stored.Headers.RemoveAll(header => header.Name == name);
 
             Stored.Headers.AddRange(updates);
 
-            Stored.RequestTime   = RequestTime;
-            Stored.ResponseTime  = ResponseTime;
+            Stored.RequestTime      = RequestTime;
+            Stored.ResponseTime     = ResponseTime;
+            Stored.ConsideredStale  = false;
 
         }
 

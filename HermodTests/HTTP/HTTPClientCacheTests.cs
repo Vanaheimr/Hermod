@@ -814,6 +814,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region A 200 to a HEAD updates the stored GET and its freshness (H-47)
+
+        /// <summary>
+        /// RFC 9111, Section 4.3.5, as cache-tests' head-200-update has it: the
+        /// stored GET is stale, the HEAD's 200 carries a new max-age and a new
+        /// field, and the next GET is served from the cache with both.
+        /// </summary>
+        [Test]
+        public async Task A200ToAHEADUpdatesTheStoredGET()
+        {
+
+            await using var origin = await Origin.Start();
+            origin.Respond = request => request.HTTPMethod == HTTPMethod.HEAD
+                                            ? Answer(request, "body", ("Cache-Control", "max-age=1000"), ("Template-A", "2"))
+                                            : Answer(request, "body", ("Cache-Control", "max-age=2"),    ("Template-A", "1"));
+
+            var clock        = origin.Clock;
+            using var client = origin.Client(new HTTPClientCache(TimeProvider: clock));
+
+            await Get(client, "r");
+            clock.Advance(TimeSpan.FromSeconds(3));
+            var head   = await client.RunRequest(HTTPMethod.HEAD, HTTPPath.Root + "r", RequestTimeout: TimeSpan.FromSeconds(10));
+            var third  = await Get(client, "r");
+
+            Assert.Multiple(() => {
+                Assert.That(head. HTTPStatusCode,                Is.EqualTo(HTTPStatusCode.OK));
+                Assert.That(third.CacheStatus,                   Is.EqualTo(HTTPCacheStatus.Hit));
+                Assert.That(third.GetHeaderField("Template-A"),  Is.EqualTo("2"));
+                Assert.That(third.HTTPBodyAsUTF8String,          Is.EqualTo("body"));
+                Assert.That(origin.Hits(HTTPMethod.GET),         Is.EqualTo(1));
+                Assert.That(origin.Hits(HTTPMethod.HEAD),        Is.EqualTo(1));
+            });
+
+        }
+
+        #endregion
+
+        #region A 200 to a HEAD that does not match makes the stored GET stale (H-47)
+
+        /// <summary>
+        /// RFC 9111, Section 4.3.5: a HEAD response with another entity tag, or
+        /// with another Content-Length, updates nothing and makes the stored GET
+        /// stale, fresh as it was. Stale and not gone: the next GET revalidates
+        /// it with its entity tag.
+        /// </summary>
+        [TestCase("ETag")]
+        [TestCase("Content-Length")]
+        public async Task A200ToAHEADThatDoesNotMatchMakesTheStoredGETStale(String Differs)
+        {
+
+            await using var origin = await Origin.Start();
+            origin.Respond = request => request.HTTPMethod == HTTPMethod.HEAD
+                                            ? Differs == "ETag"
+                                                  ? Answer(request, "v1 body",        ("Cache-Control", "max-age=60"), ("ETag", "\"v2\""))
+                                                  : Answer(request, "a longer body",  ("Cache-Control", "max-age=60"), ("ETag", "\"v1\""))
+                                            : request.GetHeaderField("If-None-Match") is not null
+                                                  ? Answer(request, "v2 body", ("Cache-Control", "max-age=60"), ("ETag", "\"v2\""))
+                                                  : Answer(request, "v1 body", ("Cache-Control", "max-age=60"), ("ETag", "\"v1\""));
+
+            using var client = origin.Client(new HTTPClientCache(TimeProvider: origin.Clock));
+
+            var first   = await Get(client, "r");
+            await client.RunRequest(HTTPMethod.HEAD, HTTPPath.Root + "r", RequestTimeout: TimeSpan.FromSeconds(10));
+            var third   = await Get(client, "r");
+
+            var gets    = origin.Requests.Where(request => request.HTTPMethod == HTTPMethod.GET).ToList();
+
+            Assert.Multiple(() => {
+                Assert.That(first.HTTPBodyAsUTF8String,                  Is.EqualTo("v1 body"));
+                Assert.That(third.CacheStatus,                           Is.EqualTo(HTTPCacheStatus.Miss));
+                Assert.That(third.HTTPBodyAsUTF8String,                  Is.EqualTo("v2 body"));
+                Assert.That(gets,                                        Has.Count.EqualTo(2));
+                Assert.That(gets[^1].GetHeaderField("If-None-Match"),    Is.EqualTo("\"v1\""), "revalidated, so stale and not removed");
+            });
+
+        }
+
+        #endregion
+
         #region A shared cache does not store a private response, a private cache does
 
         [Test]

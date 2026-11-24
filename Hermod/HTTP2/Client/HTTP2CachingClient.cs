@@ -121,7 +121,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             // they are: entries are keyed by path, so a stored GET would answer
             // a HEAD with a body, and a stored 206 a GET with a part. This cache
             // neither combines partial content nor evaluates the caller's
-            // conditions.
+            // conditions. A 200 to a HEAD still updates the stored GET
+            // responses it could have been answered from, or makes them stale
+            // (Section 4.3.5).
+            if (Method == HTTPMethod.HEAD)
+            {
+
+                var requestTime   = timeProvider.GetUtcNow();
+                var headResponse  = await connection.SendRequestAsync(Method, scheme, authority, Path, extraHeaders, Body, CancellationToken: CancellationToken);
+                var responseTime  = timeProvider.GetUtcNow();
+
+                if (headResponse.Status == 200)
+                    UpdateFromHEAD(Path, extraHeaders, requestCC, hasAuth, headResponse, requestTime, responseTime);
+
+                return headResponse;
+
+            }
+
             if (Method != HTTPMethod.GET ||
                 extraHeaders.Any(h => h.Name is "range" or "if-match" or "if-none-match" or "if-modified-since" or "if-unmodified-since" or "if-range"))
                 return await connection.SendRequestAsync(Method, scheme, authority, Path, extraHeaders, Body, CancellationToken: CancellationToken);
@@ -276,6 +292,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // Replace any variant this request would have selected.
                 variants.RemoveAll(v => HTTPCache.SelectionMatches(v, RequestHeaders));
                 variants.Add(entry);
+            }
+
+        }
+
+        /// <summary>
+        /// A 200 to a HEAD updates each stored GET response it could have been
+        /// answered from, or makes it stale (RFC 9111, Section 4.3.5). One this
+        /// cache could not store updates nothing and only makes stale.
+        /// </summary>
+        private void UpdateFromHEAD(
+            string Path, List<(string Name, string Value)> RequestHeaders, HTTPCacheControl RequestCC, bool HasAuth,
+            HTTP2Response Response, DateTimeOffset RequestTime, DateTimeOffset ResponseTime)
+        {
+
+            var mayUpdate = HTTPCache.IsStorable(HTTPMethod.HEAD, HasAuth, RequestCC, Response.Status, Response.Headers,
+                                                 HTTPCacheControl.FromHeaders(Response.Headers), mode);
+
+            lock (storeLock)
+            {
+                if (!store.TryGetValue(Path, out var variants))
+                    return;
+
+                foreach (var stored in variants.Where(v => HTTPCache.SelectionMatches(v, RequestHeaders)))
+                {
+                    if (mayUpdate)
+                        HTTPCache.UpdateFromHEAD(stored, Response.Headers, RequestTime, ResponseTime);
+                    else
+                        stored.ConsideredStale = true;
+                }
             }
 
         }
