@@ -97,6 +97,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public IReadOnlyList<RecipientOutcome> Recipients { get; init; } = [];
 
+        /// <summary>
+        /// Whether the next hop refused the session itself: its greeting was no 2yz - a 554 that
+        /// will "formally reject a mail session" (RFC 5321 §3.1), a 521 of a host that "does not
+        /// accept mail under any circumstances" (RFC 7504 §3), a 421 - and said nothing of the
+        /// message. Another address of the host, or another MX host, may take it (RFC 5321 §5.1).
+        /// </summary>
+        public Boolean SessionRefused { get; init; }
+
         public static SendResult Success(String response, String mx, TimeSpan duration) =>
             new (SendStatus.Success, 250, response, mx, duration);
 

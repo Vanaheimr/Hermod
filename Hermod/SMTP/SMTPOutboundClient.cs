@@ -285,15 +285,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             return result with { Duration = duration };
                         }
 
-                        // Permanent failure - don't try other MX hosts
-                        if (result.Status == SendStatus.PermFail)
+                        // A permanent failure of the message - a refused sender, recipients, content - is
+                        // the domain's answer: no other MX host is tried. A refused session is not: RFC
+                        // 5321 §5.1, "the SMTP client MUST be able to try (and retry) each of the relevant
+                        // addresses in this list in order, until a delivery attempt succeeds".
+                        if (result.Status == SendStatus.PermFail && !result.SessionRefused)
                         {
                             return result;
                         }
 
-                        // Temp failure - try next MX
-                        lastResult = result;
-                        _logger.Log(LogLevel.Warning, $"MX {mx.Host} temp failed: {result.ResponseCode} {result.ResponseText}");
+                        // Refused for now, or the session refused - try the next MX host. What one of
+                        // them refused only for now is tried again later, whatever the others said.
+                        if (lastResult is null || lastResult.Status != SendStatus.TempFail || result.Status == SendStatus.TempFail)
+                            lastResult = result;
+
+                        _logger.Log(LogLevel.Warning, $"MX {mx.Host} failed: {result.ResponseCode} {result.ResponseText}");
                     }
                     catch (NoPublicAddressException ex)
                     {
@@ -327,6 +333,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // has an address, as its name servers say: not something a later attempt changes.
                 if (noAddress.Count > 0 && noAddress.Count + notPublic.Count == mxHosts.Count)
                     return SendResult.PermFail(550, $"5.4.4 No MX host of {targetDomain} has an address: {String.Join(", ", noAddress)}");
+
+                // All MX hosts refused the session, and one could not be reached at all: that one may
+                // take the message at the next attempt.
+                if (lastResult is { SessionRefused: true, Status: SendStatus.PermFail } && lastException is not null)
+                    return SendResult.TempFail(lastResult.ResponseCode is >= 500 and < 600 ? 451 : lastResult.ResponseCode,
+                                               $"{lastResult.ResponseText}; and not reached: {lastException.Message}",
+                                               lastResult.RemoteMx);
 
                 // All MX hosts failed: the last answer as it was - with its recipients' answers.
                 return lastResult
@@ -434,371 +447,423 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                                    ? [ mxHost, nextHopDomain ]
                                                                    : [ mxHost ];
 
-            using var client = new TcpClient();
+            // RFC 5321 §5.1: "The destination host (perhaps taken from the preferred MX record) may
+            // be multihomed, in which case the domain name resolver will return a list of alternative
+            // IP addresses. ... the SMTP sender MUST try them in the order presented" - each with a
+            // connect timeout of its own, not one for all: an address that does not answer at all
+            // would leave none for the next. An address that answers and refuses the session -
+            // greets with no 2yz - is followed by the next one as well; anything later in the
+            // session is the host's answer.
+            SendResult? refused     = null;
+            Exception?  unreachable = null;
 
-            // Connect with timeout
-            using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            connectCts.CancelAfter((Int32) _config.ConnectTimeoutMs);
-
-            _logger.Log(LogLevel.Debug, $"Connecting to {mxHost}:{port}");
-
-            await client.ConnectAsync(addresses, port.ToInt32(), connectCts.Token);
-
-            // TLS-RPT session context (RFC 8460): remember the peer/local IPs and record the
-            // outcome under the policy type that governs this session.
-            var receivingIp = (client.Client.RemoteEndPoint as System.Net.IPEndPoint)?.Address.ToString();
-            var sendingIp   = (client.Client.LocalEndPoint  as System.Net.IPEndPoint)?.Address.ToString();
-
-            void RecordTls(Boolean success, String? failureType)
-            {
-                if (_tlsRptRecorder is null)
-                    return;
-                var policyType = daneActive
-                                     ? TlsRptPolicyType.Tlsa
-                                     : stsMode is MtaStsMode.Enforce or MtaStsMode.Testing
-                                         ? TlsRptPolicyType.Sts
-                                         : TlsRptPolicyType.NoPolicyFound;
-                // RFC 8460 §4.5: the policy applied - the TLSA records, "a space-separated list of
-                // its four TLSA fields ... in presentation format", or the lines of the MTA-STS policy.
-                IReadOnlyList<String> policyString = policyType switch {
-                    TlsRptPolicyType.Tlsa  => [.. daneRRset.Select(tlsa => $"{tlsa.CertificateUsage} {tlsa.Selector} {tlsa.MatchingType} {Convert.ToHexString(tlsa.CertificateAssociationData)}")],
-                    TlsRptPolicyType.Sts   => stsPolicy.Lines,
-                    _                      => []
-                };
-                _tlsRptRecorder(new TlsRptEvent(policyDomain, policyType, mxHost, receivingIp, sendingIp, success, failureType, policyString));
-            }
-
-            // RFC 8461 §5: "testing" - "Sending MTAs that also implement the TLSRPT specification
-            // [RFC8460] send a report indicating policy application failures ...; in any case,
-            // messages may be delivered as though there were no MTA-STS validation failure."
-            // The mail goes on; the report says what the policy would have refused.
-            var stsTesting = !daneActive && stsMode == MtaStsMode.Testing;
-
-            // Every read and write within its timeout: the socket's ReceiveTimeout/SendTimeout do not
-            // apply to asynchronous I/O, so a silent next hop would otherwise hold the delivery forever.
-            var connection = new SMTPConnection(client.GetStream(),
-                                                TimeSpan.FromMilliseconds(_config.ReadTimeoutMs),
-                                                TimeSpan.FromMilliseconds(_config.WriteTimeoutMs));
-
-            // Whether the session can still be ended with QUIT: from the greeting on, until the
-            // connection is lost, a read times out, or a TLS handshake fails halfway.
-            var sessionOpen = false;
-
-            try
+            foreach (var address in addresses)
             {
 
-                // Read greeting
-                var greeting = await connection.ReadReplyAsync(ct);
-                sessionOpen  = true;
-                var secured  = false;
-                // RFC 5321 §4.2.1: every reply is read by its first digit.
-                if (!greeting.IsPositiveCompletion)
-                    return ParseResponse(greeting.ToString(), mxHost);
+                using var client = new TcpClient(address.AddressFamily);
 
-                // EHLO
-                await connection.WriteLineAsync($"EHLO {EhloName}", ct);
-                var ehloResponse = await connection.ReadReplyAsync(ct);
-
-                // RFC 5321 §3.2: a server that does not know EHLO answers 500, 501, 502, 504 or 550,
-                // and the client falls back to HELO. Anything else - a 421 that ends the session, a
-                // 554 - is the server's answer to the attempt.
-                if (ehloResponse.Code is 500 or 501 or 502 or 504 or 550)
+                try
                 {
 
-                    await connection.WriteLineAsync($"HELO {EhloName}", ct);
-                    ehloResponse = await connection.ReadReplyAsync(ct);
+                    using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    connectCts.CancelAfter((Int32) _config.ConnectTimeoutMs);
+
+                    _logger.Log(LogLevel.Debug, $"Connecting to {mxHost} ({address}):{port}");
+
+                    await client.ConnectAsync(address, port.ToInt32(), connectCts.Token);
 
                 }
+                catch (Exception e) when (!ct.IsCancellationRequested)
+                {
+                    unreachable = e;
+                    _logger.Log(LogLevel.Warning, $"{mxHost} ({address}) not reached: {e.Message}");
+                    continue;
+                }
 
-                if (!ehloResponse.IsPositiveCompletion)
-                    return ParseResponse(ehloResponse.ToString(), mxHost);
+                var result = await SessionAsync(client);
 
-                var extensions = Extensions(ehloResponse);
+                if (!result.SessionRefused)
+                    return result;
 
-                // STARTTLS if available and desired/required
-                var supportsStartTls = extensions.ContainsKey("STARTTLS");
+                // What one address refused only for now is tried again, whatever another said.
+                if (refused is null || refused.Status != SendStatus.TempFail || result.Status == SendStatus.TempFail)
+                    refused = result;
 
-                var wantTls = mustEnforceTls || _config.RequireStartTls || _config.PreferStartTls || stsTesting;
+                _logger.Log(LogLevel.Warning, $"{mxHost} ({address}) refused the session: {result.ResponseCode} {result.ResponseText}");
 
-                if (supportsStartTls && wantTls)
+            }
+
+            // Every address that answered refused the session: that is the host's answer - unless
+            // one refused only for now, or one could not be reached, which the next attempt may.
+            if (refused is not null)
+                return refused.Status == SendStatus.PermFail && unreachable is not null
+                           ? SendResult.TempFail(451, $"{refused.ResponseText}; and not reached: {unreachable.Message}", mxHost) with { SessionRefused = true }
+                           : refused;
+
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(unreachable!);
+            return null!;
+
+            // One session with the host, at the address the client is connected to.
+            async Task<SendResult> SessionAsync(TcpClient client)
+            {
+
+                // TLS-RPT session context (RFC 8460): remember the peer/local IPs and record the
+                // outcome under the policy type that governs this session.
+                var receivingIp = (client.Client.RemoteEndPoint as System.Net.IPEndPoint)?.Address.ToString();
+                var sendingIp   = (client.Client.LocalEndPoint  as System.Net.IPEndPoint)?.Address.ToString();
+
+                void RecordTls(Boolean success, String? failureType)
+                {
+                    if (_tlsRptRecorder is null)
+                        return;
+                    var policyType = daneActive
+                                         ? TlsRptPolicyType.Tlsa
+                                         : stsMode is MtaStsMode.Enforce or MtaStsMode.Testing
+                                             ? TlsRptPolicyType.Sts
+                                             : TlsRptPolicyType.NoPolicyFound;
+                    // RFC 8460 §4.5: the policy applied - the TLSA records, "a space-separated list of
+                    // its four TLSA fields ... in presentation format", or the lines of the MTA-STS policy.
+                    IReadOnlyList<String> policyString = policyType switch {
+                        TlsRptPolicyType.Tlsa  => [.. daneRRset.Select(tlsa => $"{tlsa.CertificateUsage} {tlsa.Selector} {tlsa.MatchingType} {Convert.ToHexString(tlsa.CertificateAssociationData)}")],
+                        TlsRptPolicyType.Sts   => stsPolicy.Lines,
+                        _                      => []
+                    };
+                    _tlsRptRecorder(new TlsRptEvent(policyDomain, policyType, mxHost, receivingIp, sendingIp, success, failureType, policyString));
+                }
+
+                // RFC 8461 §5: "testing" - "Sending MTAs that also implement the TLSRPT specification
+                // [RFC8460] send a report indicating policy application failures ...; in any case,
+                // messages may be delivered as though there were no MTA-STS validation failure."
+                // The mail goes on; the report says what the policy would have refused.
+                var stsTesting = !daneActive && stsMode == MtaStsMode.Testing;
+
+                // Every read and write within its timeout: the socket's ReceiveTimeout/SendTimeout do not
+                // apply to asynchronous I/O, so a silent next hop would otherwise hold the delivery forever.
+                var connection = new SMTPConnection(client.GetStream(),
+                                                    TimeSpan.FromMilliseconds(_config.ReadTimeoutMs),
+                                                    TimeSpan.FromMilliseconds(_config.WriteTimeoutMs));
+
+                // Whether the session can still be ended with QUIT: from the greeting on, until the
+                // connection is lost, a read times out, or a TLS handshake fails halfway.
+                var sessionOpen = false;
+
+                try
                 {
 
-                    await connection.WriteLineAsync("STARTTLS", ct);
-                    var starttlsResponse = await connection.ReadReplyAsync(ct);
+                    // Read greeting
+                    var greeting = await connection.ReadReplyAsync(ct);
+                    sessionOpen  = true;
+                    var secured  = false;
+                    // RFC 5321 §4.2.1: every reply is read by its first digit.
+                    if (!greeting.IsPositiveCompletion)
+                        return ParseResponse(greeting.ToString(), mxHost) with { SessionRefused = true };
 
-                    if (starttlsResponse.IsPositiveCompletion)
+                    // EHLO
+                    await connection.WriteLineAsync($"EHLO {EhloName}", ct);
+                    var ehloResponse = await connection.ReadReplyAsync(ct);
+
+                    // RFC 5321 §3.2: a server that does not know EHLO answers 500, 501, 502, 504 or 550,
+                    // and the client falls back to HELO. Anything else - a 421 that ends the session, a
+                    // 554 - is the server's answer to the attempt.
+                    if (ehloResponse.Code is 500 or 501 or 502 or 504 or 550)
                     {
-                        // Under DANE the TLSA record authenticates the certificate directly — no
-                        // PKIX path or name check (RFC 7672 §3.1). Otherwise validate strictly when
-                        // TLS is enforced, else opportunistically (RFC 7435): encrypt but tolerate a bad cert.
-                        var validateStrict = mustEnforceTls || _config.RequireValidCertificate;
 
-                        // What strict validation finds wrong with the certificate, as a result type
-                        // of RFC 8460 §4.3.1 - whether or not it is accepted all the same.
-                        String? certificateFailure = null;
-
-                        var sslStream = new SslStream(connection.Stream, false,
-                            (_, cert, chain, errors) => {
-
-                                if (daneActive)
-                                    return ValidateDaneCertificate(mxHost, daneRecords, referenceIdentifiers, cert, chain);
-
-                                // Secure TLSA records, none usable: encrypted, not authenticated (§2.2).
-                                if (daneTls)
-                                    return true;
-
-                                var accepted = ValidateServerCertificate(mxHost, validateStrict, cert, chain, errors);
-
-                                // A validator of the operator's own decides what is valid.
-                                certificateFailure = _config.RemoteCertificateValidator is not null
-                                                         ? accepted ? null : CertificateFailure(errors, chain) ?? "certificate-not-trusted"
-                                                         : CertificateFailure(errors, chain);
-
-                                return accepted;
-
-                            });
-
-                        try
-                        {
-                            await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
-                            {
-                                TargetHost = mxHost,
-                                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
-                                // Under DANE the chain the server presents is all there is to authenticate
-                                // against (RFC 7672 §3.1): build it offline. Otherwise the platform may go
-                                // fetching issuers from AIA URLs - on Windows for seconds, and when that
-                                // times out the chain comes back without the certificates the server sent,
-                                // the DANE-TA anchor among them. PKIX revocation does not apply either.
-                                CertificateChainPolicy = daneTls
-                                                             ? new X509ChainPolicy {
-                                                                   DisableCertificateDownloads  = true,
-                                                                   RevocationMode               = X509RevocationMode.NoCheck
-                                                               }
-                                                             : null
-                            }, ct);
-                        }
-                        catch (AuthenticationException ex)
-                        {
-                            sessionOpen = false;     // half a handshake: neither TLS nor cleartext
-                            // A rejected/mismatched certificate under enforced TLS (including a DANE
-                            // TLSA mismatch) must not be bypassed: defer instead of downgrading.
-                            var why = daneActive ? "DANE TLSA mismatch" : "certificate validation failed";
-                            RecordTls(false, daneActive ? "validation-failure" : certificateFailure ?? "certificate-not-trusted");
-                            return SendResult.TempFail(454, $"TLS {why} for {mxHost}: {ex.Message}", mxHost);
-                        }
-
-                        // Whatever was read in cleartext behind the 220 is discarded (RFC 3207 §4.2).
-                        connection.SwitchTo(sslStream);
-                        secured = true;
-
-                        _logger.Log(LogLevel.Debug,
-                            $"TLS established with {mxHost}: {sslStream.SslProtocol}{(daneActive ? " (DANE-authenticated)" : "")}");
-
-                        // TLS-RPT (RFC 8460): a compliant TLS session was established - unless an
-                        // MTA-STS policy in testing mode would have refused it: a certificate that is
-                        // not valid (RFC 8461 §4.2), or an MX host the policy does not name (§4.1).
-                        var policyFailure = stsTesting
-                                                ? certificateFailure ?? (stsPolicy.MatchesMx(mxHost) ? null : "validation-failure")
-                                                : null;
-
-                        if (policyFailure is not null)
-                            _logger.Log(LogLevel.Warning, $"MTA-STS policy of {policyDomain} (testing) fails for {mxHost}: {policyFailure}; delivering all the same");
-
-                        RecordTls(policyFailure is null, policyFailure);
-
-                        // Re-send EHLO after TLS
-                        await connection.WriteLineAsync($"EHLO {EhloName}", ct);
+                        await connection.WriteLineAsync($"HELO {EhloName}", ct);
                         ehloResponse = await connection.ReadReplyAsync(ct);
-                        if (!ehloResponse.IsPositiveCompletion)
-                            return ParseResponse(ehloResponse.ToString(), mxHost);
 
-                        // RFC 3207 §4.2: what was offered before TLS counts no more.
-                        extensions = Extensions(ehloResponse);
+                    }
+
+                    if (!ehloResponse.IsPositiveCompletion)
+                        return ParseResponse(ehloResponse.ToString(), mxHost);
+
+                    var extensions = Extensions(ehloResponse);
+
+                    // STARTTLS if available and desired/required
+                    var supportsStartTls = extensions.ContainsKey("STARTTLS");
+
+                    var wantTls = mustEnforceTls || _config.RequireStartTls || _config.PreferStartTls || stsTesting;
+
+                    if (supportsStartTls && wantTls)
+                    {
+
+                        await connection.WriteLineAsync("STARTTLS", ct);
+                        var starttlsResponse = await connection.ReadReplyAsync(ct);
+
+                        if (starttlsResponse.IsPositiveCompletion)
+                        {
+                            // Under DANE the TLSA record authenticates the certificate directly — no
+                            // PKIX path or name check (RFC 7672 §3.1). Otherwise validate strictly when
+                            // TLS is enforced, else opportunistically (RFC 7435): encrypt but tolerate a bad cert.
+                            var validateStrict = mustEnforceTls || _config.RequireValidCertificate;
+
+                            // What strict validation finds wrong with the certificate, as a result type
+                            // of RFC 8460 §4.3.1 - whether or not it is accepted all the same.
+                            String? certificateFailure = null;
+
+                            var sslStream = new SslStream(connection.Stream, false,
+                                (_, cert, chain, errors) => {
+
+                                    if (daneActive)
+                                        return ValidateDaneCertificate(mxHost, daneRecords, referenceIdentifiers, cert, chain);
+
+                                    // Secure TLSA records, none usable: encrypted, not authenticated (§2.2).
+                                    if (daneTls)
+                                        return true;
+
+                                    var accepted = ValidateServerCertificate(mxHost, validateStrict, cert, chain, errors);
+
+                                    // A validator of the operator's own decides what is valid.
+                                    certificateFailure = _config.RemoteCertificateValidator is not null
+                                                             ? accepted ? null : CertificateFailure(errors, chain) ?? "certificate-not-trusted"
+                                                             : CertificateFailure(errors, chain);
+
+                                    return accepted;
+
+                                });
+
+                            try
+                            {
+                                await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+                                {
+                                    TargetHost = mxHost,
+                                    EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                                    // Under DANE the chain the server presents is all there is to authenticate
+                                    // against (RFC 7672 §3.1): build it offline. Otherwise the platform may go
+                                    // fetching issuers from AIA URLs - on Windows for seconds, and when that
+                                    // times out the chain comes back without the certificates the server sent,
+                                    // the DANE-TA anchor among them. PKIX revocation does not apply either.
+                                    CertificateChainPolicy = daneTls
+                                                                 ? new X509ChainPolicy {
+                                                                       DisableCertificateDownloads  = true,
+                                                                       RevocationMode               = X509RevocationMode.NoCheck
+                                                                   }
+                                                                 : null
+                                }, ct);
+                            }
+                            catch (AuthenticationException ex)
+                            {
+                                sessionOpen = false;     // half a handshake: neither TLS nor cleartext
+                                // A rejected/mismatched certificate under enforced TLS (including a DANE
+                                // TLSA mismatch) must not be bypassed: defer instead of downgrading.
+                                var why = daneActive ? "DANE TLSA mismatch" : "certificate validation failed";
+                                RecordTls(false, daneActive ? "validation-failure" : certificateFailure ?? "certificate-not-trusted");
+                                return SendResult.TempFail(454, $"TLS {why} for {mxHost}: {ex.Message}", mxHost);
+                            }
+
+                            // Whatever was read in cleartext behind the 220 is discarded (RFC 3207 §4.2).
+                            connection.SwitchTo(sslStream);
+                            secured = true;
+
+                            _logger.Log(LogLevel.Debug,
+                                $"TLS established with {mxHost}: {sslStream.SslProtocol}{(daneActive ? " (DANE-authenticated)" : "")}");
+
+                            // TLS-RPT (RFC 8460): a compliant TLS session was established - unless an
+                            // MTA-STS policy in testing mode would have refused it: a certificate that is
+                            // not valid (RFC 8461 §4.2), or an MX host the policy does not name (§4.1).
+                            var policyFailure = stsTesting
+                                                    ? certificateFailure ?? (stsPolicy.MatchesMx(mxHost) ? null : "validation-failure")
+                                                    : null;
+
+                            if (policyFailure is not null)
+                                _logger.Log(LogLevel.Warning, $"MTA-STS policy of {policyDomain} (testing) fails for {mxHost}: {policyFailure}; delivering all the same");
+
+                            RecordTls(policyFailure is null, policyFailure);
+
+                            // Re-send EHLO after TLS
+                            await connection.WriteLineAsync($"EHLO {EhloName}", ct);
+                            ehloResponse = await connection.ReadReplyAsync(ct);
+                            if (!ehloResponse.IsPositiveCompletion)
+                                return ParseResponse(ehloResponse.ToString(), mxHost);
+
+                            // RFC 3207 §4.2: what was offered before TLS counts no more.
+                            extensions = Extensions(ehloResponse);
+                        }
+                        else if (mustEnforceTls || _config.RequireStartTls)
+                        {
+                            RecordTls(false, "starttls-not-supported");
+                            return SendResult.TempFail(454, $"STARTTLS required but failed: {starttlsResponse}", mxHost);
+                        }
+
+                        // RFC 8461 §5: testing mode goes on in cleartext, and reports it.
+                        else if (stsTesting)
+                            RecordTls(false, "starttls-not-supported");
+
                     }
                     else if (mustEnforceTls || _config.RequireStartTls)
                     {
                         RecordTls(false, "starttls-not-supported");
-                        return SendResult.TempFail(454, $"STARTTLS required but failed: {starttlsResponse}", mxHost);
+                        return SendResult.TempFail(454,
+                            daneActive
+                                ? $"DANE requires STARTTLS but {mxHost} does not offer it"
+                                : "STARTTLS required but not supported",
+                            mxHost);
                     }
 
                     // RFC 8461 §5: testing mode goes on in cleartext, and reports it.
                     else if (stsTesting)
                         RecordTls(false, "starttls-not-supported");
 
-                }
-                else if (mustEnforceTls || _config.RequireStartTls)
-                {
-                    RecordTls(false, "starttls-not-supported");
-                    return SendResult.TempFail(454,
-                        daneActive
-                            ? $"DANE requires STARTTLS but {mxHost} does not offer it"
-                            : "STARTTLS required but not supported",
-                        mxHost);
-                }
+                    // AUTH if smarthost credentials provided - never in cleartext across a network: a
+                    // password sent so is a password given away (RFC 4954 §4).
+                    var signedIn = false;
 
-                // RFC 8461 §5: testing mode goes on in cleartext, and reports it.
-                else if (stsTesting)
-                    RecordTls(false, "starttls-not-supported");
-
-                // AUTH if smarthost credentials provided - never in cleartext across a network: a
-                // password sent so is a password given away (RFC 4954 §4).
-                var signedIn = false;
-
-                if (route.Host is not null && route.Username is not null)
-                {
-
-                    if (!secured && !cleartextAuth)
-                        return SendResult.TempFail(454, $"No TLS with {mxHost}: the credentials for the smart host are not sent in cleartext", mxHost);
-
-                    var authResult = await AuthenticateAsync(connection, extensions, route, ct);
-                    if (!authResult.StartsWith('2'))
+                    if (route.Host is not null && route.Username is not null)
                     {
-                        return ParseResponse(authResult, mxHost);
+
+                        if (!secured && !cleartextAuth)
+                            return SendResult.TempFail(454, $"No TLS with {mxHost}: the credentials for the smart host are not sent in cleartext", mxHost);
+
+                        var authResult = await AuthenticateAsync(connection, extensions, route, ct);
+                        if (!authResult.StartsWith('2'))
+                        {
+                            return ParseResponse(authResult, mxHost);
+                        }
+
+                        signedIn = true;
                     }
 
-                    signedIn = true;
-                }
+                    // DSN (RFC 3461) / MT-PRIORITY (RFC 6710): only emit params the remote advertised.
+                    var supportsDsn         = extensions.ContainsKey("DSN");
+                    var supportsMtPriority  = extensions.ContainsKey(MtPriority.Keyword);
 
-                // DSN (RFC 3461) / MT-PRIORITY (RFC 6710): only emit params the remote advertised.
-                var supportsDsn         = extensions.ContainsKey("DSN");
-                var supportsMtPriority  = extensions.ContainsKey(MtPriority.Keyword);
+                    // What the message needs of the next hop, and whether it offers it. A message it
+                    // cannot take is not handed over in a form it did not ask for: no 7-bit conversion,
+                    // which would break DKIM and OpenPGP signatures over the content.
+                    var needsSmtpUtf8  = NeedsSmtpUtf8(envelopeFrom, recipients, messageOctets is not null ? MessageOctets.ToText(MessageOctets.Header(messageOctets)) : messageContent);
+                    var has8Bit        = messageOctets is not null ? MessageOctets.Has8Bit(messageOctets) : messageContent.Any(c => c > '\x7F');
 
-                // What the message needs of the next hop, and whether it offers it. A message it
-                // cannot take is not handed over in a form it did not ask for: no 7-bit conversion,
-                // which would break DKIM and OpenPGP signatures over the content.
-                var needsSmtpUtf8  = NeedsSmtpUtf8(envelopeFrom, recipients, messageOctets is not null ? MessageOctets.ToText(MessageOctets.Header(messageOctets)) : messageContent);
-                var has8Bit        = messageOctets is not null ? MessageOctets.Has8Bit(messageOctets) : messageContent.Any(c => c > '\x7F');
+                    // RFC 6531 §3.2: a message that needs SMTPUTF8 goes only to a server that offers it.
+                    if (needsSmtpUtf8 && !extensions.ContainsKey("SMTPUTF8"))
+                        return SendResult.PermFail(553, $"5.6.7 {mxHost} does not offer SMTPUTF8, which the message needs", mxHost);
 
-                // RFC 6531 §3.2: a message that needs SMTPUTF8 goes only to a server that offers it.
-                if (needsSmtpUtf8 && !extensions.ContainsKey("SMTPUTF8"))
-                    return SendResult.PermFail(553, $"5.6.7 {mxHost} does not offer SMTPUTF8, which the message needs", mxHost);
+                    // RFC 5321 §2.4, RFC 6152 §3: no 8-bit content to a server without 8BITMIME.
+                    if (has8Bit && !extensions.ContainsKey("8BITMIME"))
+                        return SendResult.PermFail(554, $"5.6.3 {mxHost} does not offer 8BITMIME, and the message has 8-bit content", mxHost);
 
-                // RFC 5321 §2.4, RFC 6152 §3: no 8-bit content to a server without 8BITMIME.
-                if (has8Bit && !extensions.ContainsKey("8BITMIME"))
-                    return SendResult.PermFail(554, $"5.6.3 {mxHost} does not offer 8BITMIME, and the message has 8-bit content", mxHost);
+                    // RFC 8689 §4.2.1: a REQUIRETLS message goes only to a next hop that offers REQUIRETLS
+                    // (which it does inside TLS only), and carries the option on.
+                    if (requireTls && !extensions.ContainsKey("REQUIRETLS"))
+                        return SendResult.PermFail(550, $"5.7.30 REQUIRETLS support required, and {mxHost} does not offer it", mxHost);
 
-                // RFC 8689 §4.2.1: a REQUIRETLS message goes only to a next hop that offers REQUIRETLS
-                // (which it does inside TLS only), and carries the option on.
-                if (requireTls && !extensions.ContainsKey("REQUIRETLS"))
-                    return SendResult.PermFail(550, $"5.7.30 REQUIRETLS support required, and {mxHost} does not offer it", mxHost);
+                    // MAIL FROM (with RET/ENVID and MT-PRIORITY when requested and supported)
+                    var mailFromCommand = DsnCommands.MailFrom(envelopeFrom, dsn, supportsDsn);
+                    mailFromCommand     = MtPriority.AppendMailFromParam(mailFromCommand, priority, supportsMtPriority);
 
-                // MAIL FROM (with RET/ENVID and MT-PRIORITY when requested and supported)
-                var mailFromCommand = DsnCommands.MailFrom(envelopeFrom, dsn, supportsDsn);
-                mailFromCommand     = MtPriority.AppendMailFromParam(mailFromCommand, priority, supportsMtPriority);
+                    if (has8Bit)
+                        mailFromCommand += " BODY=8BITMIME";        // RFC 6152 §3
 
-                if (has8Bit)
-                    mailFromCommand += " BODY=8BITMIME";        // RFC 6152 §3
+                    if (needsSmtpUtf8)
+                        mailFromCommand += " SMTPUTF8";             // RFC 6531 §3.4
 
-                if (needsSmtpUtf8)
-                    mailFromCommand += " SMTPUTF8";             // RFC 6531 §3.4
+                    if (requireTls)
+                        mailFromCommand += " REQUIRETLS";           // RFC 8689 §4.2.1
 
-                if (requireTls)
-                    mailFromCommand += " REQUIRETLS";           // RFC 8689 §4.2.1
+                    // RFC 4954 §5: "If the server does not sufficiently trust the authenticated identity
+                    // of the client, or if the client is not authenticated, then the server MUST behave
+                    // as if the AUTH=<> parameter was supplied", and "MUST supply the AUTH=<> parameter
+                    // when relaying the message to any server which it has authenticated to". The relay
+                    // vouches for no submitter: every message - forwarded, a bounce, one of a client
+                    // that signed in - goes with AUTH=<>, so the smart host does not take it for one
+                    // its account submitted.
+                    if (signedIn)
+                        mailFromCommand += " AUTH=<>";
+                    await connection.WriteLineAsync(mailFromCommand, ct);
+                    var mailResponse = await connection.ReadReplyAsync(ct);
 
-                // RFC 4954 §5: "If the server does not sufficiently trust the authenticated identity
-                // of the client, or if the client is not authenticated, then the server MUST behave
-                // as if the AUTH=<> parameter was supplied", and "MUST supply the AUTH=<> parameter
-                // when relaying the message to any server which it has authenticated to". The relay
-                // vouches for no submitter: every message - forwarded, a bounce, one of a client
-                // that signed in - goes with AUTH=<>, so the smart host does not take it for one
-                // its account submitted.
-                if (signedIn)
-                    mailFromCommand += " AUTH=<>";
-                await connection.WriteLineAsync(mailFromCommand, ct);
-                var mailResponse = await connection.ReadReplyAsync(ct);
+                    // RFC 5321 §4.2.1: "a sender-SMTP MUST be prepared to handle codes not specified in
+                    // this document and MUST do so by interpreting the first digit only" - a 252 to MAIL
+                    // is the sender accepted, and the transaction goes on. Anything but a 2yz ends it; a
+                    // 3yz, which MAIL never has, as a failure for now - never as a delivery.
+                    if (!mailResponse.IsPositiveCompletion)
+                        return Refused(mailResponse, mxHost);
 
-                // RFC 5321 §4.2.1: "a sender-SMTP MUST be prepared to handle codes not specified in
-                // this document and MUST do so by interpreting the first digit only" - a 252 to MAIL
-                // is the sender accepted, and the transaction goes on. Anything but a 2yz ends it; a
-                // 3yz, which MAIL never has, as a failure for now - never as a delivery.
-                if (!mailResponse.IsPositiveCompletion)
-                    return Refused(mailResponse, mxHost);
-
-                // RCPT TO for each recipient (with NOTIFY/ORCPT when requested and supported)
-                var outcomes = new List<RecipientOutcome>();
-                foreach (var recipient in recipients)
-                {
-
-                    // A relayed recipient carries the NOTIFY/ORCPT it was received with (RFC 3461
-                    // §5.2.1); a message of our own applies the message-wide request to every one.
-                    var recipientDsn = recipientDsns.FirstOrDefault(r => r.Recipient == recipient);
-
-                    await connection.WriteLineAsync(recipientDsn is not null
-                                                        ? $"RCPT TO:<{recipient}>" + DsnCommands.RcptToParams(recipientDsn, supportsDsn, needsSmtpUtf8)
-                                                        : DsnCommands.RcptTo(recipient, dsn, supportsDsn, needsSmtpUtf8),
-                                                    ct);
-                    var rcptResponse = await connection.ReadReplyAsync(ct);
-
-                    outcomes.Add(new RecipientOutcome(recipient, rcptResponse.Code, rcptResponse.Text));
-
-                    if (outcomes[^1].Status != SendStatus.Success)
-                        _logger.Log(LogLevel.Warning, $"Recipient {recipient} rejected: {rcptResponse}");
-
-                }
-
-                // Nobody accepted: refused for now if any was refused for now - those are tried
-                // again - else refused. Each recipient's answer goes with the result.
-                if (outcomes.All(outcome => outcome.Status != SendStatus.Success))
-                {
-                    var first = outcomes.FirstOrDefault(outcome => outcome.Status == SendStatus.TempFail) ?? outcomes[0];
-                    return (first.Status == SendStatus.TempFail
-                                ? SendResult.TempFail(first.Code, $"No recipient accepted: {first.Text}", mxHost)
-                                : SendResult.PermFail(first.Code, $"No recipient accepted: {first.Text}", mxHost))
-                           with { Recipients = outcomes };
-                }
-
-                // DATA
-                await connection.WriteLineAsync("DATA", ct);
-                var dataResponse = await connection.ReadReplyAsync(ct);
-
-                // A 3yz is the go-ahead for the message: a 350 as a 354. A 2yz to DATA is no
-                // delivery - not a line of the message was sent.
-                if (!dataResponse.IsPositiveIntermediate)
-                    return Refused(dataResponse, mxHost);
-
-                // Send message content with dot-stuffing, and end with <CRLF>.<CRLF>
-                await connection.WriteAsync(messageOctets is not null ? MessageOctets.Data(messageOctets) : DataOctets(messageContent), ct);
-
-                // RFC 5321 §4.5.3.2.6: 10 minutes for the reply to the end of data - the next hop is
-                // delivering. Given up on too soon, the message is sent again: twice.
-                var finalResponse = await connection.ReadReplyAsync(ct, TimeSpan.FromMilliseconds(_config.DataTerminationTimeoutMs));
-
-                // The message was taken for the accepted recipients; what became of the others goes
-                // with the result, for the queue to bounce or retry them.
-                var delivery = ParseResponse(finalResponse.ToString(), mxHost) with { RemoteSupportsDsn = supportsDsn };
-
-                return delivery.Status == SendStatus.Success
-                           ? delivery with { Recipients = outcomes }
-                           : delivery;
-
-            }
-            catch
-            {
-                // A lost connection, a timeout: nothing to say QUIT on.
-                sessionOpen = false;
-                throw;
-            }
-            finally
-            {
-
-                // RFC 5321 §4.1.1.10: "The sender MUST NOT intentionally close the transmission
-                // channel until it sends a QUIT command, and it SHOULD wait until it receives the
-                // reply" - after a refused MAIL, RCPT, DATA or message, a refused STARTTLS or EHLO,
-                // as after a delivery. Best effort: the reply changes nothing about the result.
-                if (sessionOpen)
-                {
-                    try
+                    // RCPT TO for each recipient (with NOTIFY/ORCPT when requested and supported)
+                    var outcomes = new List<RecipientOutcome>();
+                    foreach (var recipient in recipients)
                     {
-                        await connection.WriteLineAsync("QUIT", ct);
-                        await connection.ReadReplyAsync(ct);
-                    }
-                    catch
-                    {
-                        // the next hop is gone already
-                    }
-                }
 
-                client.Close();
+                        // A relayed recipient carries the NOTIFY/ORCPT it was received with (RFC 3461
+                        // §5.2.1); a message of our own applies the message-wide request to every one.
+                        var recipientDsn = recipientDsns.FirstOrDefault(r => r.Recipient == recipient);
+
+                        await connection.WriteLineAsync(recipientDsn is not null
+                                                            ? $"RCPT TO:<{recipient}>" + DsnCommands.RcptToParams(recipientDsn, supportsDsn, needsSmtpUtf8)
+                                                            : DsnCommands.RcptTo(recipient, dsn, supportsDsn, needsSmtpUtf8),
+                                                        ct);
+                        var rcptResponse = await connection.ReadReplyAsync(ct);
+
+                        outcomes.Add(new RecipientOutcome(recipient, rcptResponse.Code, rcptResponse.Text));
+
+                        if (outcomes[^1].Status != SendStatus.Success)
+                            _logger.Log(LogLevel.Warning, $"Recipient {recipient} rejected: {rcptResponse}");
+
+                    }
+
+                    // Nobody accepted: refused for now if any was refused for now - those are tried
+                    // again - else refused. Each recipient's answer goes with the result.
+                    if (outcomes.All(outcome => outcome.Status != SendStatus.Success))
+                    {
+                        var first = outcomes.FirstOrDefault(outcome => outcome.Status == SendStatus.TempFail) ?? outcomes[0];
+                        return (first.Status == SendStatus.TempFail
+                                    ? SendResult.TempFail(first.Code, $"No recipient accepted: {first.Text}", mxHost)
+                                    : SendResult.PermFail(first.Code, $"No recipient accepted: {first.Text}", mxHost))
+                               with { Recipients = outcomes };
+                    }
+
+                    // DATA
+                    await connection.WriteLineAsync("DATA", ct);
+                    var dataResponse = await connection.ReadReplyAsync(ct);
+
+                    // A 3yz is the go-ahead for the message: a 350 as a 354. A 2yz to DATA is no
+                    // delivery - not a line of the message was sent.
+                    if (!dataResponse.IsPositiveIntermediate)
+                        return Refused(dataResponse, mxHost);
+
+                    // Send message content with dot-stuffing, and end with <CRLF>.<CRLF>
+                    await connection.WriteAsync(messageOctets is not null ? MessageOctets.Data(messageOctets) : DataOctets(messageContent), ct);
+
+                    // RFC 5321 §4.5.3.2.6: 10 minutes for the reply to the end of data - the next hop is
+                    // delivering. Given up on too soon, the message is sent again: twice.
+                    var finalResponse = await connection.ReadReplyAsync(ct, TimeSpan.FromMilliseconds(_config.DataTerminationTimeoutMs));
+
+                    // The message was taken for the accepted recipients; what became of the others goes
+                    // with the result, for the queue to bounce or retry them.
+                    var delivery = ParseResponse(finalResponse.ToString(), mxHost) with { RemoteSupportsDsn = supportsDsn };
+
+                    return delivery.Status == SendStatus.Success
+                               ? delivery with { Recipients = outcomes }
+                               : delivery;
+
+                }
+                catch
+                {
+                    // A lost connection, a timeout: nothing to say QUIT on.
+                    sessionOpen = false;
+                    throw;
+                }
+                finally
+                {
+
+                    // RFC 5321 §4.1.1.10: "The sender MUST NOT intentionally close the transmission
+                    // channel until it sends a QUIT command, and it SHOULD wait until it receives the
+                    // reply" - after a refused MAIL, RCPT, DATA or message, a refused STARTTLS or EHLO,
+                    // as after a delivery. Best effort: the reply changes nothing about the result.
+                    if (sessionOpen)
+                    {
+                        try
+                        {
+                            await connection.WriteLineAsync("QUIT", ct);
+                            await connection.ReadReplyAsync(ct);
+                        }
+                        catch
+                        {
+                            // the next hop is gone already
+                        }
+                    }
+
+                    client.Close();
+
+                }
 
             }
         }
