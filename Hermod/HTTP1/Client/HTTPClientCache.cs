@@ -41,8 +41,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// One cache may serve several clients. Entries are keyed by scheme,
     /// authority and request-target, so two origins never share one.
     ///
-    /// What does not go through it, and is sent as it is: HEAD, which a cache
-    /// may answer from a stored GET but this one does not; a request with Range
+    /// A HEAD is sent as it is, although a cache may answer one from a stored
+    /// GET, and its response is not stored. A 200 to it updates each stored GET
+    /// response it could have been answered from, or makes it stale, as RFC
+    /// 9111, Section 4.3.5 has it (H-47 in HTTP1ConformanceTests, 2026-11-24).
+    ///
+    /// What does not go through it, and is sent as it is: a request with Range
     /// or with a precondition of its own, since this cache neither combines
     /// partial content nor evaluates a caller's conditions; DownloadAsync. A
     /// response whose body is still on the connection, an event stream, is not
@@ -207,6 +211,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             var requestHeaders = HeadersOf(Request);
+
+            if (Request.HTTPMethod == HTTPMethod.HEAD)
+                return await Head(key, Request, requestHeaders, Send).ConfigureAwait(false);
 
             if (Request.HTTPMethod != HTTPMethod.GET || !IsCacheable(requestHeaders))
                 return await Send(Request).ConfigureAwait(false);
@@ -390,6 +397,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Replace(Key, Request, RequestHeaders, RequestCC, response, requestTime, responseTime);
 
             response.CacheStatus = HTTPCacheStatus.Miss;
+
+            return response;
+
+        }
+
+        #endregion
+
+
+        #region (private) Head       (Key, Request, RequestHeaders, Send)
+
+        /// <summary>
+        /// Send a HEAD as it is, and let a 200 to it update each stored GET
+        /// response it could have been answered from, or make it stale (RFC
+        /// 9111, Section 4.3.5). A HEAD response this cache could not store, to
+        /// a request with no-store, say, updates nothing and only makes stale.
+        /// The response itself is handed on as the origin sent it.
+        /// </summary>
+        private async Task<HTTPResponse> Head(String                                 Key,
+                                              HTTPRequest                            Request,
+                                              List<(String Name, String Value)>      RequestHeaders,
+                                              Func<HTTPRequest, Task<HTTPResponse>>  Send)
+        {
+
+            var requestTime   = TimeProvider.GetUtcNow();
+            var response      = await Send(Request).ConfigureAwait(false);
+            var responseTime  = TimeProvider.GetUtcNow();
+
+            if (response.HTTPStatusCode.Code != 200)
+                return response;
+
+            var headHeaders  = HeadersOf(response);
+            var mayUpdate    = HTTPCache.IsStorable(HTTPMethod.HEAD,
+                                                    RequestHeaders.Any(header => header.Name == "authorization"),
+                                                    RequestCacheControl(RequestHeaders),
+                                                    200,
+                                                    headHeaders,
+                                                    HTTPCacheControl.FromHeaders(headHeaders),
+                                                    Mode);
+
+            lock (storeLock)
+            {
+                if (store.TryGetValue(Key, out var variants))
+                {
+                    foreach (var stored in variants.Where(variant => HTTPCache.SelectionMatches(variant, RequestHeaders)))
+                    {
+                        if (mayUpdate)
+                            HTTPCache.UpdateFromHEAD(stored, headHeaders, requestTime, responseTime);
+                        else
+                            stored.ConsideredStale = true;
+                    }
+                }
+            }
 
             return response;
 

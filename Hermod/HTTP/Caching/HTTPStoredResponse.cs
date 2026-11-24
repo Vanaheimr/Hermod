@@ -46,6 +46,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public required List<(String Name, String Value)>  VaryKeyHeaders  { get; set; }
 
+        /// <summary>
+        /// Stale whatever its freshness lifetime says, until it is validated
+        /// again: a 200 to a HEAD that did not match it said so (RFC 9111,
+        /// Section 4.3.5).
+        /// </summary>
+        public          Boolean                            ConsideredStale { get; set; }
+
 
         public String? Header(String Name)
             => Headers.FirstOrDefault(header => header.Name == Name).Value;

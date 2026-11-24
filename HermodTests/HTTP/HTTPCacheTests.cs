@@ -616,6 +616,112 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         #endregion
 
 
+        #region HEAD: matches by the validators and the Content-Length it carries (H-47)
+
+        /// <summary>
+        /// Section 4.3.5: each validator the HEAD response carries is the stored
+        /// one, and so is its Content-Length. What it does not carry is not
+        /// compared. Without a stored Content-Length, the stored octets count.
+        /// </summary>
+        [Test]
+        public void AHEADResponseMatchesByItsValidatorsAndItsContentLength()
+        {
+
+            var lastModified  = HTTPDate.ToHTTPDate(T0.AddDays(-1));
+            var stored        = Stored(200, ("etag", "\"v1\""), ("last-modified", lastModified), ("content-length", "5"));
+            var bare          = Stored(200);
+            bare.Body         = [ 1, 2, 3 ];
+
+            Assert.Multiple(() => {
+                Assert.That(HTTPCache.HEADResponseMatches(stored, [ ("cache-control", "max-age=60") ]),                 Is.True);
+                Assert.That(HTTPCache.HEADResponseMatches(stored, [ ("etag", "\"v1\""), ("content-length", "5") ]),      Is.True);
+                Assert.That(HTTPCache.HEADResponseMatches(stored, [ ("etag", "\"v2\"") ]),                               Is.False);
+                Assert.That(HTTPCache.HEADResponseMatches(stored, [ ("last-modified", lastModified) ]),                  Is.True);
+                Assert.That(HTTPCache.HEADResponseMatches(stored, [ ("last-modified", HTTPDate.ToHTTPDate(T0)) ]),       Is.False);
+                Assert.That(HTTPCache.HEADResponseMatches(stored, [ ("etag", "\"v1\""), ("content-length", "6") ]),      Is.False);
+                Assert.That(HTTPCache.HEADResponseMatches(bare,   [ ("etag", "\"v1\"") ]),                               Is.False, "a validator the stored response lacks");
+                Assert.That(HTTPCache.HEADResponseMatches(bare,   [ ("content-length", "3") ]),                          Is.True,  "the stored octets");
+                Assert.That(HTTPCache.HEADResponseMatches(bare,   [ ("content-length", "4") ]),                          Is.False, "the stored octets");
+            });
+
+        }
+
+        #endregion
+
+        #region HEAD: a match updates the stored response and its freshness (H-47)
+
+        /// <summary>
+        /// Section 4.3.5, as cache-tests' head-200-update has it: a stale stored
+        /// response, a HEAD response with a new max-age and a new field, and the
+        /// stored response is fresh again and carries the new field.
+        /// </summary>
+        [Test]
+        public void AMatchingHEADUpdatesTheStoredResponseAndItsFreshness()
+        {
+
+            var stored = Stored(200, ("cache-control", "max-age=2"), ("template-a", "1"), ("content-length", "5"));
+
+            var staleBefore  = Usability(stored, TimeSpan.FromSeconds(3));
+            var updated      = HTTPCache.UpdateFromHEAD(stored,
+                                                        [ ("date",           HTTPDate.ToHTTPDate(T0.AddSeconds(3))),
+                                                          ("cache-control",  "max-age=1000"),
+                                                          ("template-a",     "2"),
+                                                          ("content-length", "5") ],
+                                                        T0.AddSeconds(3),
+                                                        T0.AddSeconds(3));
+
+            Assert.Multiple(() => {
+                Assert.That(staleBefore,                       Is.EqualTo(HTTPCacheUsability.MustRevalidate));
+                Assert.That(updated,                           Is.True);
+                Assert.That(stored.Header("template-a"),       Is.EqualTo("2"));
+                Assert.That(stored.ConsideredStale,            Is.False);
+                Assert.That(Usability(stored, TimeSpan.FromSeconds(4)), Is.EqualTo(HTTPCacheUsability.Fresh));
+            });
+
+        }
+
+        #endregion
+
+        #region HEAD: a mismatch makes the stored response stale until it is validated (H-47)
+
+        /// <summary>
+        /// Section 4.3.5: otherwise the stored response is considered stale.
+        /// Stale, and so served where a stale response may be, under max-stale,
+        /// and fresh again once a 304 validates it.
+        /// </summary>
+        [Test]
+        public void AMismatchingHEADMakesTheStoredResponseStaleUntilItIsValidated()
+        {
+
+            var stored = Stored(200, ("cache-control", "max-age=60"), ("etag", "\"v1\""));
+
+            var freshBefore  = Usability(stored, TimeSpan.FromSeconds(10));
+            var updated      = HTTPCache.UpdateFromHEAD(stored,
+                                                        [ ("cache-control", "max-age=600"), ("etag", "\"v2\"") ],
+                                                        T0.AddSeconds(10),
+                                                        T0.AddSeconds(10));
+
+            Assert.Multiple(() => {
+                Assert.That(freshBefore,                                                Is.EqualTo(HTTPCacheUsability.Fresh));
+                Assert.That(updated,                                                    Is.False);
+                Assert.That(stored.Header("cache-control"),                             Is.EqualTo("max-age=60"), "nothing is updated");
+                Assert.That(stored.ConsideredStale,                                     Is.True);
+                Assert.That(Usability(stored, TimeSpan.FromSeconds(10)),                Is.EqualTo(HTTPCacheUsability.MustRevalidate));
+                Assert.That(Usability(stored, TimeSpan.FromSeconds(10), "max-stale=5"), Is.EqualTo(HTTPCacheUsability.Stale));
+            });
+
+            HTTPCache.UpdateFrom304(stored, [ ("etag", "\"v1\"") ], T0.AddSeconds(20), T0.AddSeconds(20));
+
+            Assert.Multiple(() => {
+                Assert.That(stored.ConsideredStale,                         Is.False);
+                Assert.That(Usability(stored, TimeSpan.FromSeconds(30)),    Is.EqualTo(HTTPCacheUsability.Fresh));
+            });
+
+        }
+
+        #endregion
+
+
         #region Vary: several lines of one field are compared combined
 
         /// <summary>

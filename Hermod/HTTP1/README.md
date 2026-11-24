@@ -863,6 +863,14 @@ What the cache does:
   `304` that selects it updates its fields, except those describing the
   octets held, and serves it; one that names another representation sends the
   request again without conditions.
+- **Updates from a `HEAD`:** a `200` to a `HEAD` updates each stored `GET`
+  response it could have been answered from, as a `304` does, its freshness
+  included, when the validators and the `Content-Length` it carries are the
+  stored ones. Otherwise the stored response is stale until it is validated
+  again (§4.3.5), since 2026-11-24 (H-47). A `HEAD` went past the cache
+  before, and its answer changed nothing stored. A decoded response stored
+  its decoded length, which a `HEAD`'s encoded one does not match: it is made
+  stale and costs one conditional request. The `HTTP/2` cache does the same.
 - **Honours the request:** `no-cache` and, without a `Cache-Control`,
   `Pragma: no-cache` revalidate (§5.4), `max-age` and `min-fresh` narrow what
   is fresh, `max-stale` accepts stale, `only-if-cached` is answered `504`
@@ -885,9 +893,10 @@ What the cache does:
 when no cache handled the request. A served response is rebuilt from the
 stored fields as `HTTP/1.1`, with a `Content-Length` for the stored octets.
 
-What goes past it, sent as it is: `HEAD`, which §4 would let a stored `GET`
-answer and which this cache does not; a request with `Range` or with a
-precondition of its own, since the cache neither combines partial content nor
+A `HEAD` is sent as it is, and its response is not stored: §4 would let a
+stored `GET` answer it, and this cache does not. What goes past it
+altogether, sent as it is: a request with `Range` or with a precondition of
+its own, since the cache neither combines partial content nor
 evaluates a caller's conditions; and `DownloadAsync`. Private is the default
 mode, the cache of one user agent. `HTTPCacheMode.Shared` gives a client that
 serves many users `s-maxage`, keeps `private` responses out, and stores a
@@ -1192,7 +1201,8 @@ handlers' own fixtures stay outside, as said above. This one tests what RFC
 9110 asks of the answers they give. `HTTPCacheTests` and
 `HTTPClientCacheTests` came with finding H-5 and joined with it, which makes
 forty-seven: **963**, the 920 and their 43. H-44 added one test to each:
-**965**. H-46 added two to the first and one to the second: **968**.
+**965**. H-46 added two to the first and one to the second: **968**. H-47
+added three to each: **974**.
 
 Run it with:
 
