@@ -73,6 +73,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         [GeneratedRegex(@"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+;(.+)$")]
         private static partial Regex OriginalRecipient();
 
+        /// <summary>
+        /// The parameters that may be given once only, the same value twice included: RFC 3461
+        /// §4.5, "The RET and ENVID parameters MUST NOT appear more than once each in any single
+        /// MAIL command. If more than one of either of these parameters appears in a MAIL command,
+        /// the ESMTP server SHOULD respond with "501 syntax error in parameters or arguments"", and
+        /// the same for NOTIFY and ORCPT on RCPT; RFC 1870 §6, "Only one SIZE parameter may be
+        /// specified in a single MAIL command"; RFC 6710 §4.1, "if there is more than one
+        /// MT-PRIORITY parameter in a particular MAIL FROM command, the server MUST return an error".
+        /// </summary>
+        private static readonly HashSet<String> OnceOnly = [ "RET", "ENVID", "NOTIFY", "ORCPT", "SIZE", "MT-PRIORITY" ];
+
         // MT-PRIORITY (RFC 6710 §7): priority-value = (["-"] NZDIGIT) / "0" - no "+", no "-0", no leading zero.
         [GeneratedRegex(@"^(?:-?[1-9]|0)$")]
         private static partial Regex PriorityValue();
@@ -101,15 +112,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     return (parameters, new (501, $"5.5.4 Invalid value for {keyword}"));
 
                 // The same parameter twice with the same value is redundant, not contradictory -
-                // and real: CPython's smtplib adds SMTPUTF8 on its own when an address needs it,
-                // next to the one its caller passed. Two different values are a contradiction.
+                // and real: CPython's smtplib adds SMTPUTF8 and BODY=8BITMIME on its own when a
+                // message needs them, next to those its caller passed. Two different values are a
+                // contradiction. And a parameter its RFC allows once only is an error the second
+                // time, whatever its value.
                 if (!parameters.TryAdd(keyword, value))
                 {
 
-                    // RFC 6710 §4.1: "if there is more than one MT-PRIORITY parameter in a particular
-                    // MAIL FROM command, the server MUST return an error" - the same value twice too.
-                    if (keyword == "MT-PRIORITY")
-                        return (parameters, new (501, "5.5.4 MT-PRIORITY given more than once"));
+                    if (OnceOnly.Contains(keyword))
+                        return (parameters, new (501, $"5.5.4 {keyword} given more than once"));
 
                     if (!String.Equals(parameters[keyword], value, StringComparison.OrdinalIgnoreCase))
                         return (parameters, new (501, $"5.5.4 Parameter {keyword} given twice with different values"));
