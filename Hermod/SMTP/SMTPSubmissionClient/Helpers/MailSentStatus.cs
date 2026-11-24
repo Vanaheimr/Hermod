@@ -33,7 +33,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         ExceptionOccurred,
         TLSUnavailable,     // TLS was required (STARTTLS), but not offered, refused, or the handshake failed; nothing was sent in cleartext
         EightBitNotSupported, // the message has 8-bit content and the server does not offer 8BITMIME (RFC 6152 §3); nothing was sent
-        PartiallySent        // the server accepted the message for some recipients and refused the others; SMTPSendResult.Recipients says which
+        PartiallySent,       // the server accepted the message for some recipients and refused the others; SMTPSendResult.Recipients says which
+        SmtpUtf8NotSupported // the message has UTF-8 in an envelope address or in the header and the server does not offer SMTPUTF8 (RFC 6531 §3.2); nothing was sent
     }
 
 }
