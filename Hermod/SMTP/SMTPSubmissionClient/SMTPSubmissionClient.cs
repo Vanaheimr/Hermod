@@ -1334,6 +1334,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         break;
                                     }
 
+                                    // RFC 8689 §4.3: "If TLS is to be required, it MUST do so by negotiating
+                                    // STARTTLS and REQUIRETLS and including the REQUIRETLS option on the MAIL
+                                    // FROM command" - a server that does not offer REQUIRETLS inside TLS would
+                                    // take the message and relay it as it likes, in cleartext too.
+                                    if (EMailEnvelop.RequireTls && !supportsRequireTls)
+                                    {
+                                        smtpLogger.LogWarning("REQUIRETLS demanded but {RemoteHost} does not offer REQUIRETLS; the message is not sent", RemoteHost);
+                                        result = MailSentStatus.failed;
+                                        break;
+                                    }
+
                                     // Serialize once, so we can declare/verify SIZE (RFC 1870) and send the body.
                                     var messageLines  = WireLines(EMailEnvelop.Mail?.ToText(IncludeBcc: false) ?? []);
                                     var messageBytes  = MessageSize(messageLines);
@@ -1396,7 +1407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     mailFromCommand += DsnCommands.MailFromParams(EMailEnvelop.Dsn, Capabilities.HasFlag(SmtpCapabilities.Dsn));
                                     mailFromCommand  = MtPriority.AppendMailFromParam(mailFromCommand, EMailEnvelop.Priority, supportsMtPriority);
 
-                                    if (EMailEnvelop.RequireTls && supportsRequireTls)
+                                    if (EMailEnvelop.RequireTls)
                                         mailFromCommand += " REQUIRETLS";
 
                                     // RCPT TO:<user@example.com>  (+ NOTIFY/ORCPT when DSN was requested and supported)

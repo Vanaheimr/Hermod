@@ -215,13 +215,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// A report on a queued message - with the octets of the message, when it has them:
         /// an 8-bit message in another charset than UTF-8 is returned as it was sent.
         /// </summary>
+        /// <remarks>
+        /// RFC 8689 §5: the report on a message that requires TLS "MUST be protected in the same
+        /// manner as the original message. All non-delivery messages resulting from messages with
+        /// the REQUIRETLS SMTP option, whether resulting from a REQUIRETLS error or some other
+        /// issue, MUST also specify the REQUIRETLS SMTP option" - and "If a REQUIRETLS message is
+        /// bounced, the server MUST behave as if RET=HDRS was present ... If both RET=FULL and
+        /// REQUIRETLS are present, the RET=FULL MUST be disregarded".
+        /// </remarks>
         private Task EnqueueReportAsync(QueuedMail mail, DateTimeOffset arrival, IReadOnlyList<DsnRecipient> recipients, String kind, CancellationToken ct)
+        {
 
-            => mail.MessageOctets is { } octets
-                   ? EnqueueReportAsync(new DsnGenerator(config).GenerateOctets(mail.EnvelopeFrom, mail.EnvId, mail.Ret, arrival, octets, recipients), mail.EnvelopeFrom, kind, ct)
-                   : EnqueueReportAsync(new DsnGenerator(config).Generate(mail.EnvelopeFrom, mail.EnvId, mail.Ret, arrival, mail.MessageContent, recipients), mail.EnvelopeFrom, kind, ct);
+            var ret = mail.RequireTls ? DsnRet.Hdrs : mail.Ret;
 
-        private Task EnqueueReportAsync(Byte[] dsnOctets, String originalSender, String kind, CancellationToken ct)
+            return mail.MessageOctets is { } octets
+                       ? EnqueueReportAsync(new DsnGenerator(config).GenerateOctets(mail.EnvelopeFrom, mail.EnvId, ret, arrival, octets, recipients), mail.EnvelopeFrom, kind, ct, mail.RequireTls)
+                       : EnqueueReportAsync(new DsnGenerator(config).Generate(mail.EnvelopeFrom, mail.EnvId, ret, arrival, mail.MessageContent, recipients), mail.EnvelopeFrom, kind, ct, mail.RequireTls);
+
+        }
+
+        private Task EnqueueReportAsync(Byte[] dsnOctets, String originalSender, String kind, CancellationToken ct, Boolean requireTls = false)
             => queue.EnqueueAsync(new QueuedMail
                {
                    Id              = $"{kind}-{UUIDv7.Generate():N}",
@@ -231,12 +244,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                    MessageOctets   = dsnOctets,
                    TargetDomain    = ExtractDomain(originalSender),
                    QueuedAt        = Timestamp.Now,
-                   NextRetry       = Timestamp.Now
+                   NextRetry       = Timestamp.Now,
+                   RequireTls      = requireTls
                }, ct);
 
         // RFC 3461 §6.1: a report has a null reverse-path, and goes to the reverse-path of the
         // message it reports on. No RET, and no NOTIFY but NEVER - none here.
-        private Task EnqueueReportAsync(String dsnMessage, String originalSender, String kind, CancellationToken ct)
+        private Task EnqueueReportAsync(String dsnMessage, String originalSender, String kind, CancellationToken ct, Boolean requireTls = false)
             => queue.EnqueueAsync(new QueuedMail
                {
                    Id              = $"{kind}-{UUIDv7.Generate():N}",
@@ -245,7 +259,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                    MessageContent  = dsnMessage,
                    TargetDomain    = ExtractDomain(originalSender),
                    QueuedAt        = Timestamp.Now,
-                   NextRetry       = Timestamp.Now
+                   NextRetry       = Timestamp.Now,
+                   RequireTls      = requireTls
                }, ct);
 
         /// <summary>
