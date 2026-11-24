@@ -43,29 +43,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             => new (AuthResult.Fail, ErrorCode: "501 5.5.2 Cannot decode response");
 
         /// <summary>
-        /// Decode a client response. RFC 4954 §4: a single "=" is the empty response - which
-        /// Convert.FromBase64String would reject.
+        /// Decode a client response. RFC 4954 §4: a single "=" is the empty response; and
+        /// "servers and clients MUST reject (and not ignore) any character not explicitly allowed
+        /// by the BASE64 alphabet" - a space or a tab inside a response, which
+        /// Convert.FromBase64String skips, makes it no base64.
         /// </summary>
         /// <returns>False when the response is not valid base64.</returns>
         protected static bool TryDecode(string clientResponse, out string decoded)
         {
 
-            decoded = "";
+            var octets = SaslBase64.Decode(clientResponse);
 
-            if (clientResponse == "=")
-                return true;
+            decoded = octets is not null
+                          ? Encoding.UTF8.GetString(octets)
+                          : "";
 
-            try
-            {
-                decoded = Encoding.UTF8.GetString(Convert.FromBase64String(clientResponse));
-                return true;
-            }
-            catch (FormatException)
-            {
-                return false;
-            }
+            return octets is not null;
 
         }
+
+        /// <summary>
+        /// RFC 4954 §6: the user store could not be asked - "454 4.7.0 Temporary authentication
+        /// failure", after which "The client SHOULD NOT prompt the user for another password".
+        /// Not 535, which tells it the credentials are wrong.
+        /// </summary>
+        protected static AuthResponse TemporaryFailure
+            => new (AuthResult.TemporaryFailure, ErrorCode: "454 4.7.0 Temporary authentication failure");
     }
 
 }

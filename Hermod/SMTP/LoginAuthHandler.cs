@@ -83,7 +83,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
                         _state = State.Complete;
 
-                        if (await userStore.ValidatePasswordAsync(_username!, password, ct))
+                        Boolean valid;
+                        try
+                        {
+                            valid = await userStore.ValidatePasswordAsync(_username!, password, ct);
+                        }
+                        catch (Exception ex) when (ex is not OperationCanceledException)
+                        {
+                            logger.Log(LogLevel.Error, $"LOGIN auth: the user store failed: {ex.Message}");
+                            return TemporaryFailure;
+                        }
+
+                        if (valid)
                         {
                             logger.Log(LogLevel.Info, $"LOGIN auth: User '{_username}' authenticated");
                             return new AuthResponse(AuthResult.Success, Username: _username);

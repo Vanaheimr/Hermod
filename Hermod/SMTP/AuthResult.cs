@@ -27,6 +27,19 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 {
 
-    public enum AuthResult { Success, Fail, Continue, InvalidMechanism }
+    public enum AuthResult
+    {
+        Success,
+        Fail,
+        Continue,
+        InvalidMechanism,
+
+        /// <summary>
+        /// RFC 4954 §6: "454 4.7.0 Temporary authentication failure" - the authentication
+        /// "failed due to a temporary server failure", the user store could not be asked: not
+        /// the client's credentials, and no failed attempt of its.
+        /// </summary>
+        TemporaryFailure
+    }
 
 }

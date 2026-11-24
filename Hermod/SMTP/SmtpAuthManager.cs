@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 AuthenticationMethod = _currentHandler.MechanismName;
                 _currentHandler = null;
             }
-            else if (result.Result == AuthResult.Fail)
+            else if (result.Result is AuthResult.Fail or AuthResult.TemporaryFailure)
             {
                 _currentHandler = null;
             }
