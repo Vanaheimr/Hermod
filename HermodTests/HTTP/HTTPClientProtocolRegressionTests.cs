@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(
@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
@@ -130,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(
@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(
@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(
@@ -261,7 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(
@@ -299,7 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response      = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
@@ -341,7 +341,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(
@@ -374,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
@@ -412,7 +412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
@@ -442,7 +442,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
@@ -493,7 +493,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.POST(
@@ -557,7 +557,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var response = await httpClient.RunRequest(HTTPMethod.Parse(Method),
@@ -598,13 +598,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient   = new HTTPClient(
                                          URL.Parse($"http://127.0.0.1:{closedPort}"),
-                                         MaxNumberOfRetries: 1
+                                         MaxNumberOfRetries: 0
                                      );
 
             using var httpsClient  = new HTTPSClient(
                                          URL.Parse($"https://127.0.0.1:{closedPort}"),
                                          (sender, certificate, chain, client, errors) => TLSValidationResult.Success(),
-                                         MaxNumberOfRetries: 1
+                                         MaxNumberOfRetries: 0
                                      );
 
             var plainResponse   = await httpClient. GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(10));
@@ -624,6 +624,166 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 // opened. This is what replaced the reason above.
                 Assert.That(secureReason,  Does.Not.Contain("AuthenticateAsClientAsync"),  secureReason);
 
+            });
+
+        }
+
+        #endregion
+
+        #region MaxNumberOfRetries counts the attempts after the first (H-48)
+
+        /// <summary>
+        /// A server that reads each request head, counts it, and closes the
+        /// connection without an answer, so every attempt fails - until the
+        /// one numbered AnswerFrom, which gets a 200.
+        /// </summary>
+        private sealed class DroppingServer : IDisposable
+        {
+
+            private readonly TcpListener              listener  = new (System.Net.IPAddress.Loopback, 0);
+            private readonly CancellationTokenSource  stop      = new ();
+            private readonly Int32                    answerFrom;
+            private          Int32                    requests;
+
+            public UInt16  Port
+                => (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port;
+
+            public Int32   Requests
+                => Volatile.Read(ref requests);
+
+            public DroppingServer(Int32 AnswerFrom = Int32.MaxValue)
+            {
+                answerFrom = AnswerFrom;
+                listener.Start();
+                _ = Task.Run(AcceptAll);
+            }
+
+            private async Task AcceptAll()
+            {
+                while (!stop.IsCancellationRequested)
+                {
+
+                    TcpClient client;
+
+                    try
+                    {
+                        client = await listener.AcceptTcpClientAsync(stop.Token);
+                    }
+                    catch
+                    {
+                        return;
+                    }
+
+                    _ = Task.Run(async () => {
+                        using (client)
+                        {
+                            try
+                            {
+
+                                var stream  = client.GetStream();
+                                var buffer  = new Byte[4096];
+                                var length  = 0;
+
+                                while (!Encoding.ASCII.GetString(buffer, 0, length).Contains("\r\n\r\n", StringComparison.Ordinal))
+                                {
+                                    var read = await stream.ReadAsync(buffer.AsMemory(length), stop.Token);
+                                    if (read == 0 || (length += read) == buffer.Length)
+                                        return;
+                                }
+
+                                if (Interlocked.Increment(ref requests) >= answerFrom)
+                                {
+                                    await stream.WriteAsync("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK"u8.ToArray(), stop.Token);
+                                    await stream.FlushAsync(stop.Token);
+                                }
+
+                            }
+                            catch
+                            { }
+                        }
+                    });
+
+                }
+            }
+
+            public void Dispose()
+            {
+                stop.Cancel();
+                listener.Stop();
+                stop.Dispose();
+            }
+
+        }
+
+        /// <summary>
+        /// MaxNumberOfRetries counted attempts: 0 sent nothing at all and
+        /// answered "Giving up ... after 0 attempts", and 1 never tried again.
+        /// It counts what its name says now, the attempts after the first one.
+        /// </summary>
+        [TestCase(0, 1)]
+        [TestCase(1, 2)]
+        [TestCase(2, 3)]
+        public async Task MaxNumberOfRetries_CountsTheAttemptsAfterTheFirst(Int32 Retries,
+                                                                            Int32 Attempts)
+        {
+
+            using var server      = new DroppingServer();
+            using var httpClient  = new HTTPClient(
+                                        URL.Parse($"http://127.0.0.1:{server.Port}"),
+                                        MaxNumberOfRetries: (UInt16) Retries
+                                    );
+
+            var response  = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
+            var reason    = response.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.ClientError),  reason);
+                Assert.That(server.Requests,          Is.EqualTo(Attempts),                    "requests the server received");
+                Assert.That(reason,                   Does.Contain($" after {Attempts} {(Attempts == 1 ? "attempt" : "attempts")}: "));
+            });
+
+        }
+
+        /// <summary>
+        /// The default keeps the three attempts it always made: two retries.
+        /// </summary>
+        [Test]
+        public async Task WithoutMaxNumberOfRetries_TwoRetries_ThreeAttempts()
+        {
+
+            using var server      = new DroppingServer();
+            using var httpClient  = new HTTPClient(URL.Parse($"http://127.0.0.1:{server.Port}"));
+
+            var response  = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
+
+            Assert.Multiple(() => {
+                Assert.That(httpClient.MaxNumberOfRetries,  Is.EqualTo(2));
+                Assert.That(response.HTTPStatusCode,        Is.EqualTo(HTTPStatusCode.ClientError));
+                Assert.That(server.Requests,                Is.EqualTo(3),  "requests the server received");
+            });
+
+        }
+
+        /// <summary>
+        /// One retry is a second attempt, and a second attempt that is answered
+        /// is the answer.
+        /// </summary>
+        [Test]
+        public async Task OneRetry_IsASecondAttempt_ThatCanSucceed()
+        {
+
+            using var server      = new DroppingServer(AnswerFrom: 2);
+            using var httpClient  = new HTTPClient(
+                                        URL.Parse($"http://127.0.0.1:{server.Port}"),
+                                        MaxNumberOfRetries: 1
+                                    );
+
+            var response  = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,        Is.EqualTo(HTTPStatusCode.OK),  response.EntirePDU);
+                Assert.That(response.HTTPBodyAsUTF8String,  Is.EqualTo("OK"));
+                Assert.That(server.Requests,                Is.EqualTo(2),                  "requests the server received");
             });
 
         }

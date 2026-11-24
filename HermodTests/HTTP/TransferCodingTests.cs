@@ -320,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using var httpClient = new HTTPClient(
                                        URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
-                                       MaxNumberOfRetries: 1
+                                       MaxNumberOfRetries: 0
                                    );
 
             var refused = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));

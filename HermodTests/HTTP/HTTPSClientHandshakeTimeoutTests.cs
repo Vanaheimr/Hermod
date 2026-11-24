@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                     URL.Parse($"https://127.0.0.1:{server.Port}"),
                                     AnyCertificate,
                                     ConnectTimeout:      TimeSpan.FromSeconds(2),
-                                    MaxNumberOfRetries:  2
+                                    MaxNumberOfRetries:  1
                                 );
 
             var stopwatch = Stopwatch.StartNew();

@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-11-22**
+Last verified: **2026-11-24**
 
 ## Support levels
 
@@ -741,6 +741,21 @@ breath that parsing them is ambiguous, since auth-params are comma-separated
 too. Separate header lines are the unambiguous form; one challenge per response
 is the form that works today.
 
+## The client: retries
+
+An attempt that fails, because the connection cannot be opened or the
+exchange does not complete, is followed by another on a new connection.
+`MaxNumberOfRetries` counts those retries, the attempts after the first one:
+`0` is exactly one attempt, and the default, `2`, is three. A caller's
+cancellation ends the attempts early. After the last one the answer is a
+`ClientError` that the client wrote itself, naming how many attempts were made
+and the last reason.
+
+Until 2026-11-24 (H-48) the same parameter counted attempts: `0` sent nothing
+at all and answered "Giving up … after 0 attempts", and `1` never tried a
+second time. The default was `3` then, so a client that leaves it alone
+makes the same three attempts as before. One that sets it makes one more.
+
 ## The client: challenges and redirects
 
 Since 2026-11-20 the HTTP/1.x client does both of what the HTTP/2 client
@@ -1215,7 +1230,8 @@ handlers' own fixtures stay outside, as said above. This one tests what RFC
 `HTTPClientCacheTests` came with finding H-5 and joined with it, which makes
 forty-seven: **963**, the 920 and their 43. H-44 added one test to each:
 **965**. H-46 added two to the first and one to the second: **968**. H-47
-added three to each: **974**, and H-45 three to each again: **980**.
+added three to each: **974**, and H-45 three to each again: **980**. H-48
+added five to `HTTPClientProtocolRegressionTests`: **985**.
 
 Run it with:
 
