@@ -335,8 +335,11 @@ What TLS over TCP has and this has not:
   ECDSA P-384 or RSA** (`ServerCertificate.From`; RSA as RSA-PSS, with 2048
   bits or more). A server with another key takes no WebSockets over HTTP/3
   and runs as it would without `AcceptHTTP3`; so does one without TLS, and
-  one whose UDP port is taken. `server.HTTP3Port` says whether it does, and
-  why not is logged.
+  one whose UDP port is taken. A server on "localhost" listens on both
+  loopback addresses or on neither, as over TCP: a port taken on one of them
+  is taken, since a client that tries 127.0.0.1 first would send its handshake
+  to whoever has it there. `server.HTTP3Port` says whether it does, and
+  `server.WhyNoHTTP3` why not, which is logged as well.
 - Where a client certificate is asked for and not required, a client whose
   certificate is refused is a client without one. Over TCP its handshake
   fails.

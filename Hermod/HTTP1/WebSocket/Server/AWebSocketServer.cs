@@ -318,7 +318,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// it would without this: <see cref="HTTP3Port"/> says so, and
         /// <see cref="WhyNoHTTP3"/> why, which is logged as well. It listens
         /// where its listener listens: a server on "localhost" on both
-        /// loopback addresses. An extended CONNECT with <c>:protocol = websocket</c> is
+        /// loopback addresses, or on neither where the UDP port is taken on
+        /// one of them, as over TCP - on 127.0.0.1 alone only on a machine
+        /// without IPv6. An extended CONNECT with <c>:protocol = websocket</c> is
         /// then an upgrade request to this server, validated, authenticated
         /// and answered as every other: see <see cref="WebSocketOverHTTP2"/>,
         /// whose translation is the same over HTTP/3. One WebSocket at a time
@@ -1051,7 +1053,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (http3Server is not null || !acceptHTTP3)
                 return;
 
-            WhyNoHTTP3 = null;
+            // WhyNoHTTP3 keeps what it said until HTTP/3 is taken. It was set
+            // to null here: the listener tells of its start in its own time
+            // and starts HTTP/3 again, and a caller that read it meanwhile was
+            // told null, nothing in the way, of a server that took no HTTP/3.
 
             // A server has TLS by either of the two: a certificate, or a
             // certificate with the chain that leads from it towards its root.
@@ -1184,6 +1189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var        started  = new List<Http3Server>();
             Exception? failure  = null;
+            String?    takenOn  = null;
 
             foreach (var localAddress in localAddresses)
             {
@@ -1197,27 +1203,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    // One family the machine does not have, or a port that is taken there.
+
                     failure = e;
-                    Logger.LogDebug(e, "The WebSocket server on {IPSocket} does not listen for HTTP/3 on {Address}, UDP port {Port}.", IPSocket, localAddress, port);
                     _ = server.DisposeAsync();
+
+                    // A family the machine does not have is left out, and the
+                    // other address is listened on alone.
+                    if (e is SocketException { SocketErrorCode: SocketError.AddressFamilyNotSupported or
+                                                                SocketError.AddressNotAvailable })
+                    {
+                        Logger.LogDebug(e, "The WebSocket server on {IPSocket} does not listen for HTTP/3 on {Address}, UDP port {Port}.", IPSocket, localAddress, port);
+                        continue;
+                    }
+
+                    // A port that is taken on one loopback address is a port
+                    // that is taken, as over TCP (ATCPServer). It used to be
+                    // left out like a missing family: the server listened on
+                    // [::1] and said HTTP3Port, while UDP 127.0.0.1 on that
+                    // port was another program's - on Windows, one that holds
+                    // 0.0.0.0 to itself. A client that tries IPv4 first, as
+                    // Http3Client does, then sent its handshake to that
+                    // program and waited it out, and a client that took the
+                    // Alt-Svc of this server did the same.
+                    takenOn = localAddress.ToString();
+                    break;
+
                 }
 
             }
 
-            if (started.Count == 0)
+            if (takenOn is not null || started.Count == 0)
             {
-                WhyNoHTTP3 = $"The UDP port {port} cannot be listened on: {failure?.Message}";
+
+                foreach (var server in started)
+                    _ = server.DisposeAsync();
+
+                WhyNoHTTP3 = takenOn is not null
+                                 ? $"The UDP port {port} cannot be listened on at {takenOn}: {failure?.Message}"
+                                 : $"The UDP port {port} cannot be listened on: {failure?.Message}";
+
                 Logger.LogWarning(failure, "The WebSocket server on {IPSocket} takes no WebSockets over HTTP/3: its UDP port {Port} cannot be listened on.", IPSocket, port);
                 cancellation.Dispose();
                 certificates.Dispose();
                 return;
+
             }
 
             http3Certificates  = certificates;
             http3Cancellation  = cancellation;
             http3MoreServers   = started[1..];
             http3Server        = started[0];
+            WhyNoHTTP3         = null;
 
         }
 

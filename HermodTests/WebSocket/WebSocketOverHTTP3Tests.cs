@@ -1390,6 +1390,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
+
+        #region AUDPPortTakenOnOneLoopbackAddressIsATakenPort()
+
+        /// <summary>
+        /// A server on "localhost" listens for HTTP/3 on both loopback
+        /// addresses or on neither. With UDP 127.0.0.1 of its port held by
+        /// another socket - on Windows by a program that holds 0.0.0.0 to
+        /// itself - it listened on [::1] alone and still said HTTP3Port, and a
+        /// client, which tries IPv4 first, sent its handshake to that other
+        /// socket and waited it out. Every test here that ran into such a port
+        /// failed after five seconds with no HTTP/3 connection.
+        /// </summary>
+        [TestCase("127.0.0.1")]
+        [TestCase("::1")]
+        public async Task AUDPPortTakenOnOneLoopbackAddressIsATakenPort(String TakenOn)
+        {
+
+            await Shutdown_WebSocketTLSServer();
+
+            var port = APortFreeForBoth();
+
+            using (var another = new System.Net.Sockets.UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.Parse(TakenOn), port.ToInt32())))
+            {
+
+                webSocketServer = new WebSocketMirrorServer(
+                                      HTTPPort:                    port,
+                                      RequireAuthentication:       false,
+                                      ServerCertificateSelector:   (tcpServer, tcpClient) => serverCertificate!,
+                                      SecWebSocketProtocols:       SecWebSocketProtocols,
+                                      AutoStart:                   true
+                                  );
+
+                HTTPPort = webSocketServer.IPPort;
+
+                webSocketServer.AcceptHTTP3 = true;
+
+                Assert.Multiple(() => {
+                    Assert.That(webSocketServer.HTTP3Port,   Is.Null,  $"HTTP/3 was said to be taken on a port whose {TakenOn} is another socket's");
+                    // Either address may be named: the listener tells of its
+                    // start in its own time and HTTP/3 is tried again, which may
+                    // find 127.0.0.1 still held by the try before. That a reason
+                    // is there at all is what the second try took away before:
+                    // it set WhyNoHTTP3 to null while it ran.
+                    Assert.That(webSocketServer.WhyNoHTTP3,  Does.Contain($"The UDP port {port} cannot be listened on at "));
+                });
+
+            }
+
+            // Nothing of the other address is kept: once the other socket is
+            // gone, the port is the server's on both, and a client comes over
+            // HTTP/3.
+            var stopwatch = Stopwatch.StartNew();
+
+            while (webSocketServer.HTTP3Port is null && stopwatch.Elapsed < TimeSpan.FromSeconds(5))
+            {
+                webSocketServer.AcceptHTTP3 = false;
+                webSocketServer.AcceptHTTP3 = true;
+                if (webSocketServer.HTTP3Port is null)
+                    await Task.Delay(50);
+            }
+
+            Assert.That(webSocketServer.HTTP3Port, Is.EqualTo(port), "The server takes no WebSockets over HTTP/3: " + webSocketServer.WhyNoHTTP3);
+
+            var client         = ClientOver(WebSocketHTTPVersion.HTTP3);
+            var (_, response)  = await client.Connect();
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.SwitchingProtocols));
+                Assert.That(client.HTTPVersionInUse,  Is.EqualTo(HTTPVersion.HTTP_3_0));
+            });
+
+        }
+
+        #endregion
+
     }
 
 }
