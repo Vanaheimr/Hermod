@@ -80,6 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 "/invalidate"     => Cacheable("max-age=60",           "\"inv\"",   "inv-body"),
                 "/oic-stale"      => Cacheable("max-age=0",            "\"oic\"",   "oic-body"),
                 "/head"           => Cacheable("max-age=60",           "\"hd\"",    "head-body"),
+                "/precondition"   => Cacheable("max-age=60",           "\"pc\"",    "pc-body"),
                 "/head-update"    => method == "HEAD"
                                          ? Make(200, Encoding.UTF8.GetBytes("hu-body"), ("cache-control", "max-age=60"), ("etag", "\"hu\""), ("x-version", "2"))
                                          : Make(200, Encoding.UTF8.GetBytes("hu-body"), ("cache-control", "max-age=0"),  ("etag", "\"hu\""), ("x-version", "1")),
@@ -272,6 +273,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(cache.Revalidations,                  Is.EqualTo(0));
                 Assert.That(third.HeaderValue("x-version"),       Is.EqualTo("2"));
                 Assert.That(Encoding.UTF8.GetString(third.Body),  Is.EqualTo("hu-body"));
+            });
+        }
+
+        #endregion
+
+        #region Precondition_IfNoneMatchOnAFreshEntry_304FromTheCache()
+
+        /// <summary>
+        /// RFC 9111, Section 4.3.2: the caller's own If-None-Match is evaluated
+        /// against the fresh stored response, a 304 where it matches and the
+        /// stored 200 where it does not, and the origin is asked once (H-45).
+        /// </summary>
+        [Test]
+        public async Task Precondition_IfNoneMatchOnAFreshEntry_304FromTheCache()
+        {
+            var cache    = await NewCache(HTTPCacheMode.Private);
+            await cache.GetAsync("/precondition");
+            var matching = await cache.GetAsync("/precondition", [("if-none-match", "\"other\", \"pc\"")]);
+            var other    = await cache.GetAsync("/precondition", [("if-none-match", "\"other\"")]);
+            Assert.Multiple(() =>
+            {
+                Assert.That(matching.Status,                       Is.EqualTo(304));
+                Assert.That(matching.HeaderValue("etag"),          Is.EqualTo("\"pc\""));
+                Assert.That(matching.Body.Length,                  Is.EqualTo(0));
+                Assert.That(other.Status,                          Is.EqualTo(200));
+                Assert.That(Encoding.UTF8.GetString(other.Body),   Is.EqualTo("pc-body"));
+                Assert.That(OriginHits("/precondition"),           Is.EqualTo(1));
             });
         }
 

@@ -35,7 +35,7 @@ Last verified: **2026-11-22**
 | [RFC 7838](https://www.rfc-editor.org/rfc/rfc7838.html), HTTP Alternative Services | `Alt-Svc` is typed for responses and `Alt-Used` for requests, sent by handlers and read by the client, with the field's grammar shared with HTTP/2's ALTSVC frame. The client records alternatives and does not act on them. Announcing one is the application's decision. |
 | [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288.html), Web Linking | `Link` is typed on responses: `HTTPLinks`, a list of `HTTPLink`, each with its target, relation types, anchor and target attributes. A sender is held to the grammar, and parsing follows Appendix B. `title*` and other starred attributes are RFC 8187 values, through `HTTPExtendedValue`. Which links to send is the application's decision. Since 2026-10-29; see [Links](#links-rfc-8288). |
 | [RFC 8297](https://www.rfc-editor.org/rfc/rfc8297.html), 103 Early Hints | A handler sends a `103` with `request.SendEarlyHints(links)` while it is still working on the final response, and any other interim response with `SendInformationalResponse`. The client keeps the interim responses it receives on `HTTPResponse.InformationalResponses`, where a `103`'s `Link` fields can be read. Whether to send hints is the application's decision. Since 2026-10-29; see [Informational and bodyless responses](#informational-and-bodyless-responses). |
-| [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111.html), HTTP Caching; [RFC 5861](https://www.rfc-editor.org/rfc/rfc5861.html), stale content; [RFC 8246](https://www.rfc-editor.org/rfc/rfc8246.html), immutable | The client's opt-in `Cache` since 2026-11-21: storing, freshness, validation, `Vary`, invalidation, `stale-while-revalidate`, `stale-if-error` and `immutable`, private by default. The server is an origin and keeps no cache. See "The client: a cache" |
+| [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111.html), HTTP Caching; [RFC 5861](https://www.rfc-editor.org/rfc/rfc5861.html), stale content; [RFC 8246](https://www.rfc-editor.org/rfc/rfc8246.html), immutable | The client's opt-in `Cache` since 2026-11-21: storing, freshness, validation, a caller's own `If-None-Match` and `If-Modified-Since` (since 2026-11-24), `Vary`, invalidation, `stale-while-revalidate`, `stale-if-error` and `immutable`, private by default. The server is an origin and keeps no cache. See "The client: a cache" |
 | [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html), Problem Details for HTTP APIs | `HTTPProblemDetails` is the JSON object of Section 3, served as `application/problem+json`. Handlers send it with `SetProblemDetails`, which also sets the status code it names, and clients read it with `TryParseProblemDetails`. The server's own errors stay `application/json` unless a request's `Accept` prefers problem details. JSON only: the XML format of Appendix B is not implemented. Since 2026-10-29; see [Problem details](#problem-details-rfc-9457). |
 | [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), WebSocket | Implemented in Hermod's WebSocket client/server subsystem. The HTTP/1.1 server can also serve a WebSocket on a path of its own, beside ordinary HTTP on the same listener: `WebSocketUpgrade.For` hands a request that asks for an upgrade over to a WebSocket server, whose single implementation of the opening handshake (RFC 6455 §4.2) validates it and answers the `101` - the HTTP layer only decides whether a request is asking. Regression-tested by `WebSocketOnAnHTTPPathTests`; see [WebSocket/README.md](WebSocket/README.md#on-an-http-path). |
 | [WHATWG Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html) | Implemented and regression-tested for `text/event-stream`, parsing, live streaming, reconnection, `Last-Event-ID`, retry intervals, comments/heartbeats, cancellation, and disconnect cleanup. |
@@ -871,6 +871,18 @@ What the cache does:
   before, and its answer changed nothing stored. A decoded response stored
   its decoded length, which a `HEAD`'s encoded one does not match: it is made
   stale and costs one conditional request. The `HTTP/2` cache does the same.
+- **Answers a caller's preconditions:** a `GET` with an `If-None-Match` or
+  `If-Modified-Since` of its own is answered from the store where the same
+  `GET` without them would be: with a `304` where they match the `200` it
+  would have answered with, and with that `200` where they do not (§4.3.2),
+  since 2026-11-24 (H-45). `If-None-Match` takes precedence and compares
+  weakly, and an `ETag` that is not an entity-tag matches nothing.
+  `If-Modified-Since` compares with `Last-Modified`, or `Date`, or the time
+  the response was received. A stored response that has to be revalidated
+  first is revalidated with the cache's own validators in place of the
+  caller's. With nothing stored, the request goes to the origin as it is.
+  Such a request went past the cache before, and a fresh stored response
+  never answered it. The `HTTP/2` cache does the same.
 - **Honours the request:** `no-cache` and, without a `Cache-Control`,
   `Pragma: no-cache` revalidate (§5.4), `max-age` and `min-fresh` narrow what
   is fresh, `max-stale` accepts stale, `only-if-cached` is answered `504`
@@ -895,9 +907,10 @@ stored fields as `HTTP/1.1`, with a `Content-Length` for the stored octets.
 
 A `HEAD` is sent as it is, and its response is not stored: §4 would let a
 stored `GET` answer it, and this cache does not. What goes past it
-altogether, sent as it is: a request with `Range` or with a precondition of
-its own, since the cache neither combines partial content nor
-evaluates a caller's conditions; and `DownloadAsync`. Private is the default
+altogether, sent as it is: a request with `Range` or `If-Range`, since the
+cache combines no partial content, or with `If-Match` or
+`If-Unmodified-Since`, which apply to an origin server only (§4.3.2); and
+`DownloadAsync`. Private is the default
 mode, the cache of one user agent. `HTTPCacheMode.Shared` gives a client that
 serves many users `s-maxage`, keeps `private` responses out, and stores a
 response to a request with `Authorization` only when §3.5 allows it.
@@ -1202,7 +1215,7 @@ handlers' own fixtures stay outside, as said above. This one tests what RFC
 `HTTPClientCacheTests` came with finding H-5 and joined with it, which makes
 forty-seven: **963**, the 920 and their 43. H-44 added one test to each:
 **965**. H-46 added two to the first and one to the second: **968**. H-47
-added three to each: **974**.
+added three to each: **974**, and H-45 three to each again: **980**.
 
 Run it with:
 
