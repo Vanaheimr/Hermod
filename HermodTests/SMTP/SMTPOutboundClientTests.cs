@@ -243,8 +243,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 }
             }
 
+            /// <summary>
+            /// Stops listening, and takes the issuers sent along out of the intermediate CA
+            /// stores again, where SslStreamCertificateContext put them on Windows - every
+            /// DANE-TA test's trust anchor stayed there for good (InstalledAuthorities).
+            /// </summary>
             public void Dispose()
-                => listener.Stop();
+            {
+                listener.Stop();
+                InstalledAuthorities.Remove(chain);
+            }
 
         }
 
