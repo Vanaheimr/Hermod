@@ -40,6 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private readonly Func<String, SmartHostRoute?>? _smartHostFor;
         private readonly MtaStsResolver        _mtaStsResolver;
         private readonly DaneResolver?         _daneResolver;
+        private readonly DNSSECValidator?      _dnssecValidator;
         private readonly Action<TlsRptEvent>?  _tlsRptRecorder;
         private readonly IDNSClient            _dnsClient;
         private readonly ILogger               _logger;
@@ -73,12 +74,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                        logger,
                                                        config.MtaStsHttpHandler,
                                                        config.PublicAddressesOnly ? config.IsPublicAddress : null);
-            this._daneResolver    = config.EnableDane
-                                        ? new DaneResolver(dnsClient,
-                                                           logger,
-                                                           config.DnssecTrustAnchors is { } anchors
-                                                               ? new DNSSECValidator(dnsClient, anchors)
-                                                               : null)
+            this._dnssecValidator = config.EnableDane
+                                        ? config.DnssecTrustAnchors is { } anchors
+                                              ? new DNSSECValidator(dnsClient, anchors)
+                                              : DNSSECValidator.WithRootTrustAnchor(dnsClient)
+                                        : null;
+            this._daneResolver    = _dnssecValidator is not null
+                                        ? new DaneResolver(dnsClient, logger, _dnssecValidator)
                                         : null;
             this._tlsRptRecorder  = tlsRptRecorder;
 
@@ -139,11 +141,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 // MTA-STS (RFC 8461). §3.4: through a smart host, "compliant senders MUST treat the
                 // smart host domain as the Policy Domain" - the recipient domain's policy names its
                 // own MX hosts, not the relay we hand the message to. An address literal has none.
+                //
+                // RFC 8689 §3: a message with "TLS-Required: No" goes "regardless of its ability to
+                // negotiate STARTTLS with the SMTP server, ignoring policy-based mechanisms (including
+                // MTA-STS and DANE), if any, asserted by the recipient domain" - it may be the report
+                // on that domain's broken TLS. §4.1: "If the REQUIRETLS MAIL FROM parameter is
+                // specified, the TLS-Required header field MUST be ignored".
+                var tlsOptional   = !requireTls &&
+                                    TlsRequiredNo(messageOctets is not null
+                                                      ? MessageOctets.ToText(MessageOctets.Header(messageOctets))
+                                                      : messageContent);
+
+                // RFC 8689 §4.2.1 holds for a message that requires TLS "for which the MAIL FROM
+                // return-path is not empty (an empty MAIL FROM return-path indicating a bounce
+                // message)": a bounce goes on its way, with REQUIRETLS where the next hop offers it.
+                var tlsRequired   = requireTls && !IsNullReversePath(envelopeFrom);
+
                 var policyDomain  = Idna.ToAscii(route.Host ?? targetDomain);
-                var mtaStsPolicy  = System.Net.IPAddress.TryParse(policyDomain.Trim('[', ']'), out _)
+                var mtaStsPolicy  = tlsOptional || System.Net.IPAddress.TryParse(policyDomain.Trim('[', ']'), out _)
                                         ? MtaStsPolicy.None
                                         : await _mtaStsResolver.GetPolicyAsync(policyDomain, ct);
-                var enforceTls    = requireTls ||
+                var enforceTls    = tlsRequired ||
                                     mtaStsPolicy.Mode == MtaStsMode.Enforce ||
                                     _config.RequireStartTls;
 
@@ -151,6 +169,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 {
                     _logger.Log(LogLevel.Info, $"MTA-STS policy for {policyDomain}: {mtaStsPolicy.Mode}");
                 }
+
+                if (tlsOptional)
+                    _logger.Log(LogLevel.Info, $"TLS-Required: No - the TLS policies of {policyDomain}, if any, are set aside (RFC 8689 §3)");
+
+                // The MX answer the hosts were taken from - none for a smart host, an address literal,
+                // the implicit MX.
+                DNSInfo? mxAnswer = null;
 
                 // Determine target hosts
                 IReadOnlyList<MxRecord> mxHosts;
@@ -174,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     // situation MUST be reported as an error. If a temporary error is returned, the
                     // message MUST be queued and retried later" - the implicit MX below is for "an
                     // empty list of MXs" only, and "applies only if there are no MX records present".
-                    var (lookup, records) = await ResolveMxAsync(targetDomain, ct);
+                    var (lookup, records, response) = await ResolveMxAsync(targetDomain, ct);
 
                     if (lookup == MxLookup.TemporaryError)
                         return SendResult.TempFail(451, $"4.4.3 The MX lookup of {targetDomain} failed; the message is queued");
@@ -195,6 +220,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                     // A null MX next to real ones is malformed (RFC 7505 §3); the real ones are tried.
                     mxHosts = [.. mxHosts.Where(mx => mx.Host.Length > 0)];
+
+                    if (mxHosts.Count > 0)
+                        mxAnswer = response;
 
                     if (mxHosts.Count == 0)
                     {
@@ -242,6 +270,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     mxHosts = allowed;
                 }
 
+                // RFC 8689 §2: "If the SMTP server to which the message is being transmitted is
+                // identified through an MX record lookup, its name MUST be validated via a DNSSEC
+                // signature on the recipient domain's MX record, or the MX hostname MUST be validated
+                // by an MTA-STS policy as described in Section 4.1 of [RFC8461]"; §4.2.1: "If there
+                // are no more MX hosts, the client MUST NOT transmit the message to the domain" -
+                // an MX record that may be forged leads to whoever forged it (§8.2).
+                if (tlsRequired && mxAnswer is not null)
+                {
+
+                    if (mtaStsPolicy.Mode is MtaStsMode.Enforce or MtaStsMode.Testing)
+                    {
+
+                        var named = mxHosts.Where(mx => mtaStsPolicy.MatchesMx(mx.Host)).ToList();
+
+                        if (named.Count == 0)
+                            return SendResult.PermFail(550, $"5.7.10 REQUIRETLS: the MTA-STS policy of {policyDomain} names none of the MX hosts of {targetDomain}");
+
+                        mxHosts = named;
+
+                    }
+
+                    else
+                    {
+
+                        var dnssec = _dnssecValidator is not null
+                                         ? await _dnssecValidator.ValidateAsync(mxAnswer, CancellationToken: ct)
+                                         : DNSSECValidationResult.Insecure;
+
+                        if (dnssec is DNSSECValidationResult.Bogus or DNSSECValidationResult.Indeterminate)
+                            return SendResult.TempFail(451, $"4.7.5 REQUIRETLS: the MX records of {targetDomain} did not validate ({dnssec}); the message is queued");
+
+                        if (dnssec != DNSSECValidationResult.Secure)
+                            return SendResult.PermFail(550, $"5.7.10 REQUIRETLS: neither DNSSEC nor an MTA-STS policy vouches for the MX hosts of {targetDomain}");
+
+                    }
+
+                }
+
                 // Try each MX host in priority order
                 Exception?  lastException  = null;
                 SendResult? lastResult     = null;
@@ -270,6 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                messageOctets,
                                                enforceTls,
                                                requireTls,
+                                               tlsOptional,
                                                targetDomain,
                                                policyDomain,
                                                mtaStsPolicy,
@@ -289,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         // the domain's answer: no other MX host is tried. A refused session is not: RFC
                         // 5321 §5.1, "the SMTP client MUST be able to try (and retry) each of the relevant
                         // addresses in this list in order, until a delivery attempt succeeds".
-                        if (result.Status == SendStatus.PermFail && !result.SessionRefused)
+                        if (result.Status == SendStatus.PermFail && !result.SessionRefused && !result.UnsuitableHost)
                         {
                             return result;
                         }
@@ -334,9 +401,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 if (noAddress.Count > 0 && noAddress.Count + notPublic.Count == mxHosts.Count)
                     return SendResult.PermFail(550, $"5.4.4 No MX host of {targetDomain} has an address: {String.Join(", ", noAddress)}");
 
-                // All MX hosts refused the session, and one could not be reached at all: that one may
-                // take the message at the next attempt.
-                if (lastResult is { SessionRefused: true, Status: SendStatus.PermFail } && lastException is not null)
+                // All MX hosts refused the session, or could not take the message the way it has to
+                // go, and one could not be reached at all: that one may take it at the next attempt.
+                if (lastResult is { Status: SendStatus.PermFail } && (lastResult.SessionRefused || lastResult.UnsuitableHost) && lastException is not null)
                     return SendResult.TempFail(lastResult.ResponseCode is >= 500 and < 600 ? 451 : lastResult.ResponseCode,
                                                $"{lastResult.ResponseText}; and not reached: {lastException.Message}",
                                                lastResult.RemoteMx);
@@ -365,6 +432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         Byte[]?             messageOctets,
                                                         Boolean             enforceTls,
                                                         Boolean             requireTls,
+                                                        Boolean             tlsOptional,
                                                         String              nextHopDomain,
                                                         String              policyDomain,
                                                         MtaStsPolicy        stsPolicy,
@@ -374,7 +442,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         CancellationToken   ct)
         {
 
-            var stsMode = stsPolicy.Mode;
+            var stsMode     = stsPolicy.Mode;
+
+            // RFC 8689 §4.2.1, for a message that requires TLS and has a sender to report to.
+            var tlsRequired = requireTls && !IsNullReversePath(envelopeFrom);
 
             // The addresses of the host, from the DNS client - never from the resolver of the operating
             // system - and the internet's only, when so configured, for an MX host, never for a smart
@@ -403,7 +474,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             // RFC 7672 §2.2: "When the original next-hop destination is an address literal ...
             // DANE TLS does not apply."
-            if (_daneResolver is not null && !System.Net.IPAddress.TryParse(mxHost.Trim('[', ']'), out _))
+            // RFC 8689 §3: not for a message with "TLS-Required: No".
+            if (_daneResolver is not null && !tlsOptional && !System.Net.IPAddress.TryParse(mxHost.Trim('[', ']'), out _))
             {
 
                 var dane = await _daneResolver.ResolveTlsaAsync(mxHost, port, ct);
@@ -581,7 +653,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     // STARTTLS if available and desired/required
                     var supportsStartTls = extensions.ContainsKey("STARTTLS");
 
-                    var wantTls = mustEnforceTls || _config.RequireStartTls || _config.PreferStartTls || stsTesting;
+                    // RFC 8689 §3: "Nevertheless, the client SHOULD negotiate STARTTLS with the server if
+                    // available" - for a message with "TLS-Required: No", and for a bounce with REQUIRETLS.
+                    var wantTls = mustEnforceTls || _config.RequireStartTls || _config.PreferStartTls || stsTesting || tlsOptional || requireTls;
 
                     if (supportsStartTls && wantTls)
                     {
@@ -606,8 +680,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     if (daneActive)
                                         return ValidateDaneCertificate(mxHost, daneRecords, referenceIdentifiers, cert, chain);
 
-                                    // Secure TLSA records, none usable: encrypted, not authenticated (§2.2).
-                                    if (daneTls)
+                                    // Secure TLSA records, none usable: encrypted, not authenticated (§2.2) -
+                                    // unless the message requires TLS: RFC 8689 §4.2.1, "authenticate the
+                                    // server's certificate as specified in [RFC6125] or [RFC7672]".
+                                    if (daneTls && !tlsRequired)
                                         return true;
 
                                     var accepted = ValidateServerCertificate(mxHost, validateStrict, cert, chain, errors);
@@ -647,6 +723,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                 // TLSA mismatch) must not be bypassed: defer instead of downgrading.
                                 var why = daneActive ? "DANE TLSA mismatch" : "certificate validation failed";
                                 RecordTls(false, daneActive ? "validation-failure" : certificateFailure ?? "certificate-not-trusted");
+
+                                // RFC 8689 §4.2.1: "Unable to establish TLS-protected SMTP session: 5.7.10
+                                // Encryption needed" - this host; another MX host may do.
+                                if (tlsRequired)
+                                    return SendResult.PermFail(550, $"5.7.10 REQUIRETLS: TLS {why} for {mxHost}: {ex.Message}", mxHost) with { UnsuitableHost = true };
+
                                 return SendResult.TempFail(454, $"TLS {why} for {mxHost}: {ex.Message}", mxHost);
                             }
 
@@ -680,8 +762,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         }
                         else if (mustEnforceTls || _config.RequireStartTls)
                         {
+
                             RecordTls(false, "starttls-not-supported");
+
+                            // A STARTTLS refused for good is no TLS for a message that requires it (RFC
+                            // 8689 §4.2.1); one refused for now may be TLS at the next attempt.
+                            if (tlsRequired && starttlsResponse.Code is >= 500 and < 600)
+                                return SendResult.PermFail(550, $"5.7.10 REQUIRETLS: {mxHost} refused STARTTLS: {starttlsResponse}", mxHost) with { UnsuitableHost = true };
+
                             return SendResult.TempFail(454, $"STARTTLS required but failed: {starttlsResponse}", mxHost);
+
                         }
 
                         // RFC 8461 §5: testing mode goes on in cleartext, and reports it.
@@ -691,7 +781,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     }
                     else if (mustEnforceTls || _config.RequireStartTls)
                     {
+
                         RecordTls(false, "starttls-not-supported");
+
+                        // RFC 8689 §4.2.1: "Unable to establish TLS-protected SMTP session: 5.7.10
+                        // Encryption needed" - at this host; another MX host may offer STARTTLS.
+                        if (tlsRequired)
+                            return SendResult.PermFail(550, $"5.7.10 REQUIRETLS: {mxHost} offers no STARTTLS", mxHost) with { UnsuitableHost = true };
+
                         return SendResult.TempFail(454,
                             daneActive
                                 ? $"DANE requires STARTTLS but {mxHost} does not offer it"
@@ -741,9 +838,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         return SendResult.PermFail(554, $"5.6.3 {mxHost} does not offer 8BITMIME, and the message has 8-bit content", mxHost);
 
                     // RFC 8689 §4.2.1: a REQUIRETLS message goes only to a next hop that offers REQUIRETLS
-                    // (which it does inside TLS only), and carries the option on.
-                    if (requireTls && !extensions.ContainsKey("REQUIRETLS"))
-                        return SendResult.PermFail(550, $"5.7.30 REQUIRETLS support required, and {mxHost} does not offer it", mxHost);
+                    // (which it does inside TLS only), and carries the option on. Not this one - "repeat
+                    // steps 2-5 with each host on the recipient domain's list of MX hosts". A bounce goes
+                    // on all the same (§5).
+                    if (tlsRequired && !extensions.ContainsKey("REQUIRETLS"))
+                        return SendResult.PermFail(550, $"5.7.30 REQUIRETLS support required, and {mxHost} does not offer it", mxHost) with { UnsuitableHost = true };
 
                     // MAIL FROM (with RET/ENVID and MT-PRIORITY when requested and supported)
                     var mailFromCommand = DsnCommands.MailFrom(envelopeFrom, dsn, supportsDsn);
@@ -755,8 +854,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     if (needsSmtpUtf8)
                         mailFromCommand += " SMTPUTF8";             // RFC 6531 §3.4
 
-                    if (requireTls)
-                        mailFromCommand += " REQUIRETLS";           // RFC 8689 §4.2.1
+                    if (requireTls && extensions.ContainsKey("REQUIRETLS"))
+                        mailFromCommand += " REQUIRETLS";           // RFC 8689 §4.2.1, §5
 
                     // RFC 4954 §5: "If the server does not sufficiently trust the authenticated identity
                     // of the client, or if the client is not authenticated, then the server MUST behave
@@ -964,6 +1063,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         }
 
+        #region REQUIRETLS (RFC 8689)
+
+        /// <summary>
+        /// A null reverse-path - the sender of a bounce (RFC 5321 §4.5.5).
+        /// </summary>
+        private static Boolean IsNullReversePath(String? reversePath)
+            => String.IsNullOrEmpty(reversePath) || reversePath == "<>";
+
+        /// <summary>
+        /// Whether the header of a message has "TLS-Required: No" (RFC 8689 §3): one such field -
+        /// "More than one instance of the TLS-Required header field MUST NOT appear in a given
+        /// message" - whose value, folding white space aside, is "No".
+        /// </summary>
+        /// <param name="message">The message, or its header.</param>
+        internal static Boolean TlsRequiredNo(String message)
+        {
+
+            var       found   = 0;
+            var       no      = false;
+            String?   field   = null;
+
+            void Take(String? f)
+            {
+                if (f is not null && f.StartsWith("TLS-Required:", StringComparison.OrdinalIgnoreCase))
+                {
+                    found++;
+                    no = f["TLS-Required:".Length..].Trim().Equals("No", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
+            using var reader = new StringReader(message);
+
+            for (var line = reader.ReadLine(); line is not null && line.Length > 0; line = reader.ReadLine())
+            {
+
+                // RFC 5322 §2.2.3: a line that begins with white space continues the field before.
+                if (line[0] is ' ' or '\t' && field is not null)
+                    field += line;
+
+                else
+                {
+                    Take(field);
+                    field = line;
+                }
+
+            }
+
+            Take(field);
+
+            return found == 1 && no;
+
+        }
+
+        #endregion
+
         #region MX Resolution
 
         /// <summary>
@@ -981,7 +1135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// not exist (NXDOMAIN), or that the lookup failed for now: another RCODE, a timeout, an
         /// exception.
         /// </summary>
-        private async Task<(MxLookup Lookup, IReadOnlyList<MxRecord> Records)> ResolveMxAsync(String domain, CancellationToken ct)
+        private async Task<(MxLookup Lookup, IReadOnlyList<MxRecord> Records, DNSInfo? Response)> ResolveMxAsync(String domain, CancellationToken ct)
         {
 
             DNSInfo response;
@@ -1001,13 +1155,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             catch (Exception ex)
             {
                 _logger.Log(LogLevel.Warning, $"MX lookup failed for {domain}: {ex.Message}");
-                return (MxLookup.TemporaryError, []);
+                return (MxLookup.TemporaryError, [], null);
             }
 
             if (response.IsTimeout)
             {
                 _logger.Log(LogLevel.Warning, $"MX lookup for {domain} timed out");
-                return (MxLookup.TemporaryError, []);
+                return (MxLookup.TemporaryError, [], null);
             }
 
             switch (response.ResponseCode)
@@ -1017,15 +1171,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     return (MxLookup.Answered,
                             [.. response.Answers.
                                     OfType<MX>().
-                                    Select(mx => new MxRecord(mx.Exchange.FullName.TrimEnd('.'), mx.Preference))]);
+                                    Select(mx => new MxRecord(mx.Exchange.FullName.TrimEnd('.'), mx.Preference))],
+                            response);
 
                 case DNSResponseCodes.NameError:
                     _logger.Log(LogLevel.Warning, $"{domain} does not exist (NXDOMAIN)");
-                    return (MxLookup.NonExistentDomain, []);
+                    return (MxLookup.NonExistentDomain, [], null);
 
                 default:
                     _logger.Log(LogLevel.Warning, $"MX lookup failed for {domain}: {response.ResponseCode}");
-                    return (MxLookup.TemporaryError, []);
+                    return (MxLookup.TemporaryError, [], null);
 
             }
 

@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         private sealed class NextHop : IDisposable
         {
 
-            private readonly TcpListener              listener = new (System.Net.IPAddress.Loopback, 0);
+            private readonly TcpListener              listener;
             private readonly Func<String, String?>    reply;
             private readonly String                   greeting;
             private readonly String[]                 extensions;
@@ -107,6 +107,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             /// <param name="RequireTls">Inside TLS, offer REQUIRETLS (RFC 8689).</param>
             /// <param name="Chain">The certificates to send along with the certificate - its issuers.</param>
             /// <param name="Octets">Read the lines one character per octet (Latin-1), not as UTF-8: what arrived, exactly.</param>
+            /// <param name="Address">The address to listen on: the loopback, or another of 127/8 - a second host.</param>
+            /// <param name="Port">The port to listen on: any free one, or that of another next hop.</param>
             public NextHop(Func<String, String?>?  Reply        = null,
                            String                  Greeting     = "220 next.hop ESMTP",
                            String[]?               Extensions   = null,
@@ -114,8 +116,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                            X509Certificate2?       Certificate  = null,
                            Boolean                 RequireTls   = false,
                            X509Certificate2[]?     Chain        = null,
-                           Boolean                 Octets       = false)
+                           Boolean                 Octets       = false,
+                           System.Net.IPAddress?   Address      = null,
+                           IPPort?                 Port         = null)
             {
+                listener     = new TcpListener(Address ?? System.Net.IPAddress.Loopback, Port?.ToInt32() ?? 0);
                 encoding     = Octets ? Encoding.Latin1 : Encoding.UTF8;
                 reply        = line => Reply?.Invoke(line) ?? Default(line);
                 greeting     = Greeting;

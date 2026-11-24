@@ -105,6 +105,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public Boolean SessionRefused { get; init; }
 
+        /// <summary>
+        /// Whether this host cannot take the message the way it has to go - a message that requires
+        /// TLS (RFC 8689 §4.2.1) to a host that offers no REQUIRETLS, or no TLS the relay can
+        /// authenticate - and said nothing of the message itself. Another MX host may: "repeat
+        /// steps 2-5 with each host on the recipient domain's list of MX hosts".
+        /// </summary>
+        public Boolean UnsuitableHost { get; init; }
+
         public static SendResult Success(String response, String mx, TimeSpan duration) =>
             new (SendStatus.Success, 250, response, mx, duration);
 
