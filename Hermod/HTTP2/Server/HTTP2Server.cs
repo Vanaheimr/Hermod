@@ -587,7 +587,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                                 HTTP2EventSource.Log.ConnectionRejected(remoteEP?.ToString() ?? "?",
                                                     $"cipher suite {sslStream.NegotiatedCipherSuite} is blocklisted for HTTP/2 (RFC 9113, Appendix A)");
 
-                                await RejectInadequateSecurityAsync(sslStream, sslStream.NegotiatedCipherSuite, Token);
+                                await RejectInadequateSecurityAsync(sslStream, sslStream.NegotiatedCipherSuite, timeouts, Token);
                                 return;
 
                             }
@@ -678,15 +678,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// instead of to a broken HTTP/2 implementation. Best-effort — a peer that
         /// has already gone away just makes the write fail, which is fine.
         ///
-        /// The drain afterwards is not optional: by now the client has already sent
-        /// its own preface and SETTINGS, and closing a socket with unread data in
-        /// the receive buffer makes TCP send an RST, which discards the GOAWAY we
-        /// just wrote — the peer would see a broken connection instead of the
-        /// reason. Same hazard, and same bounded remedy, as
-        /// <c>HTTP2Connection.DrainForCloseAsync</c>.
+        /// The drain afterwards is not optional: the client sends its own preface
+        /// and SETTINGS, and closing a socket before they are read makes TCP send
+        /// an RST — for data already unread in the receive buffer, or for data that
+        /// arrives once the socket is closed. On the client's side that aborts its
+        /// write and can discard the GOAWAY we just wrote; the peer would see a
+        /// broken connection instead of the reason. Same hazard as
+        /// <c>HTTP2Connection.DrainForCloseAsync</c>, with one difference: here the
+        /// client's data cannot already be in flight. It sends its preface only
+        /// once its own handshake has completed, which is when our last handshake
+        /// flight, and the GOAWAY behind it, reaches it. So the preface arrives at
+        /// the earliest one round trip after the GOAWAY was written, later still on
+        /// a busy client, and a fixed grace period counted from the GOAWAY closes in
+        /// its face on any link slower than that period. The drain therefore waits
+        /// for the client's preface first, for as long as any connection is given
+        /// to send one (<see cref="HTTP2Timeouts.Preface"/>), and only then allows
+        /// the short grace period for whatever else was already on its way. Waiting
+        /// that long opens nothing new: any connection may take as long before its
+        /// preface. Bounded in volume as before.
         /// </summary>
         private static async Task RejectInadequateSecurityAsync(Stream            Transport,
                                                                 TlsCipherSuite    CipherSuite,
+                                                                HTTP2Timeouts     Timeouts,
                                                                 CancellationToken Token)
         {
 
@@ -712,18 +725,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // Best-effort: the peer is being dropped either way.
             }
 
+            // The client connection preface: 24 octets, then a SETTINGS frame
+            // (Section 3.4), whose length is in the first 3 octets of its header.
+            const Int32 PrefaceOctets = 24;
+            const Int32 MaxDrain      = 256 * 1024;
+
             try
             {
 
-                using var drainCts = CancellationTokenSource.CreateLinkedTokenSource(Token);
-                drainCts.CancelAfter(TimeSpan.FromMilliseconds(250));
+                var buffer   = new byte[8192];
+                var head     = new byte[PrefaceOctets + 9];
+                var drained  = 0;
+                var expected = MaxDrain;   // until the SETTINGS frame's length is known
 
-                var buffer  = new byte[8192];
-                var drained = 0;
-
-                while (drained < 256 * 1024)
+                // 1. The client's preface, for as long as any connection is given to send one.
+                using (var prefaceTimeout = new CancellationTokenSource(Timeouts.Preface, Timeouts.TimeProvider))
+                using (var prefaceCts     = CancellationTokenSource.CreateLinkedTokenSource(Token, prefaceTimeout.Token))
                 {
-                    var read = await Transport.ReadAsync(buffer, drainCts.Token);
+                    while (drained < expected)
+                    {
+
+                        var read = await Transport.ReadAsync(buffer, prefaceCts.Token);
+                        if (read == 0)
+                            return;
+
+                        var hadHead = drained >= head.Length;
+
+                        if (!hadHead)
+                            buffer.AsSpan(0, Math.Min(read, head.Length - drained)).CopyTo(head.AsSpan(drained));
+
+                        drained += read;
+
+                        if (!hadHead && drained >= head.Length)
+                            expected = Math.Min(MaxDrain,
+                                                head.Length + (head[PrefaceOctets] << 16 | head[PrefaceOctets + 1] << 8 | head[PrefaceOctets + 2]));
+
+                    }
+                }
+
+                // 2. Then a short grace period for whatever else was already on its way.
+                using var graceCts = CancellationTokenSource.CreateLinkedTokenSource(Token);
+                graceCts.CancelAfter(TimeSpan.FromMilliseconds(250));
+
+                while (drained < MaxDrain)
+                {
+                    var read = await Transport.ReadAsync(buffer, graceCts.Token);
                     if (read == 0)
                         break;
                     drained += read;

@@ -257,6 +257,111 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         #endregion
 
+        #region TLS12Handshake_Rejected_LatePreface_StillReceivesGoAway()
+
+        // The client sends its preface only once its own handshake has completed,
+        // i.e. at the earliest one round trip after the server wrote its GOAWAY —
+        // and later still when the client is busy. The server used to stop
+        // draining 250 ms after the GOAWAY, so a preface that came later met a
+        // closed socket: the client's write was aborted (WSAECONNABORTED), and the
+        // RST could take the unread GOAWAY with it. That is how the test above
+        // failed now and then under load. Here the delay is deliberate.
+        [Test]
+        public async Task TLS12Handshake_Rejected_LatePreface_StillReceivesGoAway()
+        {
+
+            await using var srv = await TestH2Server.StartAsync(
+                                      (s, h, b, ct) => Task.FromResult<(List<(String, String)>, Byte[]?)>(
+                                          ([(":status", "200")], null)),
+                                      IsBlocklistedCipherSuite: _ => true);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            await using var ssl = await H2Raw.ConnectTlsAsync(srv.Port,
+                                                              Protocols:         SslProtocols.Tls12,
+                                                              CancellationToken: cts.Token);
+
+            // Well past the 250 ms grace period, well within the preface timeout.
+            await Task.Delay(TimeSpan.FromSeconds(1), cts.Token);
+
+            await ssl.WriteAsync(H2Raw.Preface, cts.Token);
+            await ssl.WriteAsync(HTTP2Frame.CreateSettings().Serialize(), cts.Token);
+            await ssl.FlushAsync(cts.Token);
+
+            var settings = await H2Raw.ReadFrameAsync(ssl, cts.Token);
+            var goAway   = await H2Raw.ReadFrameAsync(ssl, cts.Token);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(settings?.Type, Is.EqualTo(HTTP2FrameType.SETTINGS), "server preface still comes first (§3.4)");
+                Assert.That(goAway?.Type,   Is.EqualTo(HTTP2FrameType.GOAWAY),   "then the connection error");
+            });
+
+            var errorCode = (HTTP2ErrorCode) System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(goAway!.Payload.AsSpan(4));
+
+            Assert.That(errorCode, Is.EqualTo(HTTP2ErrorCode.INADEQUATE_SECURITY));
+
+        }
+
+        #endregion
+
+        #region TLS12Handshake_Rejected_SilentClient_ClosedAfterPrefaceTimeout()
+
+        // Waiting for the client's preface must stay bounded: a client that never
+        // sends one is let go after HTTP2Timeouts.Preface, as on any connection —
+        // not earlier (that would be the old fixed grace period again), and not
+        // never.
+        [Test]
+        public async Task TLS12Handshake_Rejected_SilentClient_ClosedAfterPrefaceTimeout()
+        {
+
+            var prefaceTimeout = TimeSpan.FromMilliseconds(1500);
+
+            await using var srv = await TestH2Server.StartAsync(
+                                      (s, h, b, ct) => Task.FromResult<(List<(String, String)>, Byte[]?)>(
+                                          ([(":status", "200")], null)),
+                                      Timeouts:                 new HTTP2Timeouts { Preface = prefaceTimeout },
+                                      IsBlocklistedCipherSuite: _ => true);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            await using var ssl = await H2Raw.ConnectTlsAsync(srv.Port,
+                                                              Protocols:         SslProtocols.Tls12,
+                                                              CancellationToken: cts.Token);
+
+            var connected = System.Diagnostics.Stopwatch.StartNew();
+
+            var settings = await H2Raw.ReadFrameAsync(ssl, cts.Token);
+            var goAway   = await H2Raw.ReadFrameAsync(ssl, cts.Token);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(settings?.Type, Is.EqualTo(HTTP2FrameType.SETTINGS));
+                Assert.That(goAway?.Type,   Is.EqualTo(HTTP2FrameType.GOAWAY));
+            });
+
+            // Nothing written: the next read ends when the server closes.
+            try
+            {
+                var next = await H2Raw.ReadFrameAsync(ssl, cts.Token);
+                Assert.That(next, Is.Null, "nothing follows the GOAWAY");
+            }
+            catch (IOException)
+            {
+                // A close without close_notify may surface as an exception — closed all the same.
+            }
+
+            Assert.That(cts.IsCancellationRequested, Is.False, "the server never closed the connection");
+
+            // The lower bound tells this apart from the old 250 ms grace period;
+            // the upper one only guards against waiting far longer than asked.
+            Assert.That(connected.Elapsed, Is.GreaterThanOrEqualTo(prefaceTimeout - TimeSpan.FromMilliseconds(300))
+                                              .And.LessThan(prefaceTimeout + TimeSpan.FromSeconds(5)));
+
+        }
+
+        #endregion
+
     }
 
 }
