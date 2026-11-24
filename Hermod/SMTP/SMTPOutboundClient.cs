@@ -642,6 +642,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 // AUTH if smarthost credentials provided - never in cleartext across a network: a
                 // password sent so is a password given away (RFC 4954 §4).
+                var signedIn = false;
+
                 if (route.Host is not null && route.Username is not null)
                 {
 
@@ -653,6 +655,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     {
                         return ParseResponse(authResult, mxHost);
                     }
+
+                    signedIn = true;
                 }
 
                 // DSN (RFC 3461) / MT-PRIORITY (RFC 6710): only emit params the remote advertised.
@@ -690,6 +694,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 if (requireTls)
                     mailFromCommand += " REQUIRETLS";           // RFC 8689 §4.2.1
+
+                // RFC 4954 §5: "If the server does not sufficiently trust the authenticated identity
+                // of the client, or if the client is not authenticated, then the server MUST behave
+                // as if the AUTH=<> parameter was supplied", and "MUST supply the AUTH=<> parameter
+                // when relaying the message to any server which it has authenticated to". The relay
+                // vouches for no submitter: every message - forwarded, a bounce, one of a client
+                // that signed in - goes with AUTH=<>, so the smart host does not take it for one
+                // its account submitted.
+                if (signedIn)
+                    mailFromCommand += " AUTH=<>";
                 await connection.WriteLineAsync(mailFromCommand, ct);
                 var mailResponse = await connection.ReadReplyAsync(ct);
 
@@ -789,6 +803,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
         }
 
+        /// <summary>
+        /// Whether an AUTH command with its initial response fits the 512 octets of a command line,
+        /// CR LF included (RFC 5321 §4.5.3.1.4, RFC 4954 §4).
+        /// </summary>
+        internal static Boolean AuthLineFits(String Line)
+            => Encoding.UTF8.GetByteCount(Line) + 2 <= 512;
+
         private async Task<String> AuthenticateAsync(SMTPConnection                       connection,
                                                      IReadOnlyDictionary<String, String>  extensions,
                                                      SmartHostRoute                       route,
@@ -812,7 +833,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var authString = $"\0{route.Username}\0{route.Password}";
                 var authBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
 
-                await connection.WriteLineAsync($"AUTH PLAIN {authBase64}", ct);
+                // RFC 4954 §4: "If use of the initial response argument would cause the AUTH command
+                // to exceed this length, the client MUST NOT use the initial response parameter" -
+                // RFC 5321 §4.5.3.1.4: 512 octets, CR LF included. The response then follows the
+                // empty challenge (RFC 4422 §5.1).
+                if (AuthLineFits($"AUTH PLAIN {authBase64}"))
+                {
+                    await connection.WriteLineAsync($"AUTH PLAIN {authBase64}", ct);
+                    return (await connection.ReadReplyAsync(ct)).ToString();
+                }
+
+                await connection.WriteLineAsync("AUTH PLAIN", ct);
+                var challenge = await connection.ReadReplyAsync(ct);
+                if (!challenge.IsPositiveIntermediate)
+                    return challenge.ToString();
+
+                await connection.WriteLineAsync(authBase64, ct);
                 return (await connection.ReadReplyAsync(ct)).ToString();
 
             }

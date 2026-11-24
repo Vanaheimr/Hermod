@@ -662,8 +662,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (!first.StatusCode.IsPositiveIntermediate())
                 return false;
 
-            // server-first: r=<nonce>,s=<salt>,i=<iterations>
-            var serverFirst  = Convert.FromBase64String(first.Response).ToUTF8String();
+            // server-first: r=<nonce>,s=<salt>,i=<iterations>. RFC 4954 §4: "If the client cannot
+            // BASE64 decode any of the server's challenges, it MUST cancel the authentication
+            // using the "*" response" - and what is not of the alphabet is no base64 (no white
+            // space skipped).
+            var serverFirst  = DecodeBase64(first.Response);
+            if (serverFirst is null)
+            {
+                await SendCommandAndWaitForResponseAsync("*", CancellationToken).ConfigureAwait(false);
+                return false;
+            }
             var attrs        = serverFirst.Split(',').
                                    Where (p => p.Length > 1 && p[1] == '=').
                                    ToDictionary(p => p[0], p => p[2..]);
@@ -720,28 +728,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private static String EscapeSaslName(String value)
             => value.Replace("=", "=3D").Replace(",", "=2C");
 
-        // The UTF-8 text of a base64 value, or null when it is none.
+        // The UTF-8 text of a base64 value, or null when it is none - as RFC 4954 §4 has it,
+        // the alphabet and nothing else.
         private static String? DecodeBase64(String value)
-        {
-            try
-            {
-                return Convert.FromBase64String(value.Trim()).ToUTF8String();
-            }
-            catch (FormatException)
-            {
-                return null;
-            }
-        }
+            => SaslBase64.Decode(value)?.ToUTF8String();
 
         #endregion
 
         #region (private) AuthPlainAsync / AuthLoginAsync / AuthCramMd5Async
 
         private async Task<Boolean> AuthPlainAsync(String Login, String Password, CancellationToken CancellationToken = default)
-            => (await SendCommandAndWaitForResponseAsync(
-                   "AUTH PLAIN " + Convert.ToBase64String([.. ByteZero, .. Login.ToUTF8Bytes(), .. ByteZero, .. Password.ToUTF8Bytes()]),
-                   CancellationToken
-               ).ConfigureAwait(false)).StatusCode.IsPositiveCompletion();
+        {
+
+            var response = Convert.ToBase64String([.. ByteZero, .. Login.ToUTF8Bytes(), .. ByteZero, .. Password.ToUTF8Bytes()]);
+
+            // RFC 4954 §4: "If use of the initial response argument would cause the AUTH command
+            // to exceed this length, the client MUST NOT use the initial response parameter (and
+            // instead proceed as defined in Section 5.1 of [SASL])" - 512 octets with CR LF (RFC
+            // 5321 §4.5.3.1.4): the response then follows the empty challenge.
+            if (Encoding.UTF8.GetByteCount("AUTH PLAIN " + response) + 2 <= 512)
+                return (await SendCommandAndWaitForResponseAsync("AUTH PLAIN " + response, CancellationToken).ConfigureAwait(false)).StatusCode.IsPositiveCompletion();
+
+            if (!(await SendCommandAndWaitForResponseAsync("AUTH PLAIN", CancellationToken).ConfigureAwait(false)).StatusCode.IsPositiveIntermediate())
+                return false;
+
+            return (await SendCommandAndWaitForResponseAsync(response, CancellationToken).ConfigureAwait(false)).StatusCode.IsPositiveCompletion();
+
+        }
 
         private async Task<Boolean> AuthLoginAsync(String Login, String Password, CancellationToken CancellationToken = default)
         {
@@ -763,9 +776,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (!challenge.StatusCode.IsPositiveIntermediate())
                 return false;
 
+            // RFC 4954 §4: a challenge that is no base64 is cancelled with "*".
+            var decoded = DecodeBase64(challenge.Response);
+            if (decoded is null)
+            {
+                await SendCommandAndWaitForResponseAsync("*", CancellationToken).ConfigureAwait(false);
+                return false;
+            }
+
             var response = await SendCommandAndWaitForResponseAsync(
                                Convert.ToBase64String(
-                                   ISMTPSubmissionClientExtensions.CRAM_MD5(Convert.FromBase64String(challenge.Response).ToUTF8String(),
+                                   ISMTPSubmissionClientExtensions.CRAM_MD5(decoded,
                                                                   Login,
                                                                   Password)),
                                CancellationToken).ConfigureAwait(false);
