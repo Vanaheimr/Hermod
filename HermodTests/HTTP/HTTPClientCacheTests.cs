@@ -893,6 +893,128 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region A fresh response answers the caller's own preconditions (H-45)
+
+        /// <summary>
+        /// RFC 9111, Section 4.3.2: a fresh stored response answers a GET with an
+        /// If-None-Match or If-Modified-Since of its own, with a 304 where they
+        /// match it and with itself where they do not, and the origin hears of
+        /// neither. The 304 carries the ETag and no representation metadata.
+        /// </summary>
+        [Test]
+        public async Task AFreshResponseAnswersTheCallersOwnPreconditions()
+        {
+
+            await using var origin = await Origin.Start();
+
+            var lastModified = HTTPDate.ToHTTPDate(origin.Clock.GetUtcNow().AddDays(-1));
+            var earlier      = HTTPDate.ToHTTPDate(origin.Clock.GetUtcNow().AddDays(-2));
+
+            origin.Respond = request => Answer(request, "body", ("Cache-Control", "max-age=60"), ("ETag", "\"v1\""), ("Last-Modified", lastModified));
+
+            using var client = origin.Client(new HTTPClientCache(TimeProvider: origin.Clock));
+
+            await Get(client, "r");
+            var etagMatches  = await Get(client, "r", ("If-None-Match",     "\"v0\", \"v1\""));
+            var etagDiffers  = await Get(client, "r", ("If-None-Match",     "\"v0\""));
+            var dateMatches  = await Get(client, "r", ("If-Modified-Since", lastModified));
+            var dateDiffers  = await Get(client, "r", ("If-Modified-Since", earlier));
+
+            Assert.Multiple(() => {
+                Assert.That(etagMatches.HTTPStatusCode,                  Is.EqualTo(HTTPStatusCode.NotModified));
+                Assert.That(etagMatches.CacheStatus,                     Is.EqualTo(HTTPCacheStatus.Hit));
+                Assert.That(etagMatches.GetHeaderField("ETag"),          Is.EqualTo("\"v1\""));
+                Assert.That(etagMatches.GetHeaderField("Content-Type"),  Is.Null);
+                Assert.That(etagMatches.HTTPBody?.Length ?? 0,           Is.EqualTo(0));
+                Assert.That(etagDiffers.HTTPStatusCode,                  Is.EqualTo(HTTPStatusCode.OK));
+                Assert.That(etagDiffers.CacheStatus,                     Is.EqualTo(HTTPCacheStatus.Hit));
+                Assert.That(etagDiffers.HTTPBodyAsUTF8String,            Is.EqualTo("body"));
+                Assert.That(dateMatches.HTTPStatusCode,                  Is.EqualTo(HTTPStatusCode.NotModified));
+                Assert.That(dateDiffers.HTTPStatusCode,                  Is.EqualTo(HTTPStatusCode.OK));
+                Assert.That(dateDiffers.HTTPBodyAsUTF8String,            Is.EqualTo("body"));
+                Assert.That(origin.Hits(HTTPMethod.GET),                 Is.EqualTo(1));
+            });
+
+        }
+
+        #endregion
+
+        #region A stale response is revalidated with the cache's own validators, then the caller's are evaluated (H-45)
+
+        /// <summary>
+        /// RFC 9111, Section 4.3.2: a stored response that has to be revalidated
+        /// is revalidated with its own validators in place of the caller's, so
+        /// neither the caller's If-None-Match nor its If-Modified-Since reaches
+        /// the origin. Once the origin's 304 has freshened the stored response,
+        /// the caller's preconditions are evaluated against it.
+        /// </summary>
+        [Test]
+        public async Task AStaleResponseIsRevalidatedWithTheCachesOwnValidatorsFirst()
+        {
+
+            await using var origin = await Origin.Start();
+
+            var clock         = origin.Clock;
+            var lastModified  = HTTPDate.ToHTTPDate(clock.GetUtcNow().AddDays(-2));
+            var callers       = HTTPDate.ToHTTPDate(clock.GetUtcNow().AddDays(-1));
+
+            origin.Respond = request => request.GetHeaderField("If-Modified-Since") == lastModified
+                                            ? Status(request, HTTPStatusCode.NotModified, ("Cache-Control", "max-age=60"), ("Last-Modified", lastModified))
+                                            : Answer(request, "body",                     ("Cache-Control", "max-age=1"),  ("Last-Modified", lastModified));
+
+            using var client = origin.Client(new HTTPClientCache(TimeProvider: clock));
+
+            await Get(client, "r");
+            clock.Advance(TimeSpan.FromSeconds(2));
+            var second = await Get(client, "r", ("If-None-Match", "*"), ("If-Modified-Since", callers));
+
+            Assert.Multiple(() => {
+                Assert.That(second.HTTPStatusCode,                                    Is.EqualTo(HTTPStatusCode.NotModified));
+                Assert.That(second.CacheStatus,                                       Is.EqualTo(HTTPCacheStatus.Revalidated));
+                Assert.That(origin.Requests.Count,                                    Is.EqualTo(2));
+                Assert.That(origin.Requests[1].GetHeaderField("If-Modified-Since"),   Is.EqualTo(lastModified), "the cache's own");
+                Assert.That(origin.Requests[1].GetHeaderField("If-None-Match"),       Is.Null,                  "not the caller's");
+            });
+
+        }
+
+        #endregion
+
+        #region With nothing stored, the caller's preconditions go to the origin; If-Match always does (H-45)
+
+        /// <summary>
+        /// RFC 9111, Section 4.3.2: a cache must not evaluate the preconditions of
+        /// a request for a target it has nothing stored for, nor If-Match and
+        /// If-Unmodified-Since, which apply to an origin server only. Both go to
+        /// the origin as they are.
+        /// </summary>
+        [Test]
+        public async Task WithNothingStoredTheCallersPreconditionsGoToTheOrigin()
+        {
+
+            await using var origin = await Origin.Start();
+            origin.Respond = Tagged("max-age=60", "\"v1\"", "body");
+
+            using var client = origin.Client(new HTTPClientCache(TimeProvider: origin.Clock));
+
+            var first   = await Get(client, "r", ("If-None-Match", "\"v1\""));
+            var second  = await Get(client, "r");
+            var third   = await Get(client, "r", ("If-Match", "\"v1\""));
+
+            Assert.Multiple(() => {
+                Assert.That(first. HTTPStatusCode,                                Is.EqualTo(HTTPStatusCode.NotModified), "the origin's");
+                Assert.That(origin.Requests[0].GetHeaderField("If-None-Match"),   Is.EqualTo("\"v1\""));
+                Assert.That(second.HTTPStatusCode,                                Is.EqualTo(HTTPStatusCode.OK));
+                Assert.That(second.CacheStatus,                                   Is.EqualTo(HTTPCacheStatus.Miss), "a 304 is not stored");
+                Assert.That(third. CacheStatus,                                   Is.Null);
+                Assert.That(origin.Requests[2].GetHeaderField("If-Match"),        Is.EqualTo("\"v1\""));
+                Assert.That(origin.Hits(HTTPMethod.GET),                          Is.EqualTo(3));
+            });
+
+        }
+
+        #endregion
+
         #region A shared cache does not store a private response, a private cache does
 
         [Test]

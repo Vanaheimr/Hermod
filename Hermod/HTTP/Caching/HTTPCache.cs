@@ -516,6 +516,134 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Preconditions received (Section 4.3.2)
+
+        /// <summary>
+        /// Whether a request carries a precondition a cache evaluates itself
+        /// (RFC 9111, Section 4.3.2): If-None-Match or If-Modified-Since. If-Match
+        /// and If-Unmodified-Since apply to an origin server only, and If-Range to
+        /// a cache that combines partial content.
+        /// </summary>
+        /// <param name="RequestHeaders">The request's fields, lowercase names.</param>
+        public static Boolean HasCachePreconditions(List<(String Name, String Value)> RequestHeaders)
+
+            => RequestHeaders.Any(header => IsCachePrecondition(header.Name));
+
+        /// <summary>
+        /// Whether a field name is one of the preconditions a cache evaluates
+        /// itself, see <see cref="HasCachePreconditions"/>.
+        /// </summary>
+        /// <param name="Name">A lowercase field name.</param>
+        public static Boolean IsCachePrecondition(String Name)
+
+            => Name is "if-none-match" or "if-modified-since";
+
+        /// <summary>
+        /// Whether a request's preconditions make a 304 (Not Modified) the answer
+        /// in place of the 200 (OK) a cache would have answered it with (RFC 9111,
+        /// Section 4.3.2; RFC 9110, Sections 13.1.2, 13.1.3 and 13.2.2).
+        ///
+        /// If-None-Match takes precedence: "*" matches any response, and a list
+        /// matches where one of its entity-tags is weakly equal to the response's
+        /// ETag. An ETag that is not an entity-tag by RFC 9110's grammar, an
+        /// unquoted one say, matches nothing, since what it means would be a guess.
+        ///
+        /// Otherwise If-Modified-Since, a single valid HTTP-date: it matches where
+        /// the response's Last-Modified is not later, or where there is none, its
+        /// Date, or where there is neither, the time it was received. A date that
+        /// is not valid, or one in several field lines, is ignored, as RFC 9110
+        /// requires, and so is a Last-Modified that is not one.
+        /// </summary>
+        /// <param name="RequestHeaders">The request's fields, lowercase names.</param>
+        /// <param name="ResponseHeaders">The fields of the 200 the cache would have answered with, lowercase names.</param>
+        /// <param name="Received">When that response was received, for one without Last-Modified and Date.</param>
+        public static Boolean IsNotModified(List<(String Name, String Value)>  RequestHeaders,
+                                            List<(String Name, String Value)>  ResponseHeaders,
+                                            DateTimeOffset                     Received)
+        {
+
+            var ifNoneMatch = RequestHeaders.Where(header => header.Name == "if-none-match").Select(header => header.Value).ToList();
+
+            if (ifNoneMatch.Count > 0)
+            {
+
+                // Several field lines are one list (RFC 9110, Section 5.3).
+                var members = String.Join(",", ifNoneMatch);
+
+                if (members.Trim() == "*")
+                    return true;
+
+                var etag = ResponseHeaders.FirstOrDefault(header => header.Name == "etag").Value?.Trim();
+
+                return etag is not null &&
+                       IsEntityTag(etag) &&
+                       HTTPValidators.ParseETagList(members).Any(member => HTTPValidators.WeakMatch(member.Tag, etag));
+
+            }
+
+            var ifModifiedSince = RequestHeaders.Where(header => header.Name == "if-modified-since").Select(header => header.Value).ToList();
+
+            if (ifModifiedSince.Count != 1 || TryParseHTTPDate(ifModifiedSince[0].Trim()) is not DateTimeOffset since)
+                return false;
+
+            var lastModifiedField = ResponseHeaders.FirstOrDefault(header => header.Name == "last-modified").Value;
+            DateTimeOffset lastModified;
+
+            if (lastModifiedField is not null)
+            {
+                if (TryParseHTTPDate(lastModifiedField.Trim()) is not DateTimeOffset parsed)
+                    return false;
+                lastModified = parsed;
+            }
+            else
+                lastModified = TryParseHTTPDate(ResponseHeaders.FirstOrDefault(header => header.Name == "date").Value?.Trim()) ?? Received;
+
+            return HTTPValidators.Truncate(lastModified) <= HTTPValidators.Truncate(since);
+
+        }
+
+        /// <summary>
+        /// The fields of the 304 (Not Modified) a cache answers with in place of
+        /// a 200 (RFC 9110, Section 15.4.5): Cache-Control, Content-Location,
+        /// Date, ETag, Expires and Vary, as the 200 has them, Last-Modified where
+        /// it has no ETag, and the cache's own Age. Other representation metadata
+        /// stays out.
+        /// </summary>
+        /// <param name="ResponseHeaders">The fields of the 200, lowercase names.</param>
+        public static List<(String Name, String Value)> NotModifiedHeaders(List<(String Name, String Value)> ResponseHeaders)
+        {
+
+            var hasETag = ResponseHeaders.Any(header => header.Name == "etag");
+
+            return [.. ResponseHeaders.Where(header => header.Name is "cache-control"
+                                                                   or "content-location"
+                                                                   or "date"
+                                                                   or "etag"
+                                                                   or "expires"
+                                                                   or "vary"
+                                                                   or "age" ||
+                                                       (header.Name == "last-modified" && !hasETag))];
+
+        }
+
+        /// <summary>
+        /// Whether a field value is one entity-tag (RFC 9110, Section 8.8.3):
+        /// an optional W/, then a quoted string of etagc characters.
+        /// </summary>
+        private static Boolean IsEntityTag(String Value)
+        {
+
+            var opaque = Value.StartsWith("W/", StringComparison.Ordinal) ? Value[2..] : Value;
+
+            return opaque.Length >= 2 &&
+                   opaque[0]  == '"'  &&
+                   opaque[^1] == '"'  &&
+                   opaque[1..^1].All(c => c == 0x21 || (c >= 0x23 && c <= 0x7E) || c >= 0x80);
+
+        }
+
+        #endregion
+
         #region (private) UpdateHeaders(Stored, Headers, RequestTime, ResponseTime)
 
         /// <summary>

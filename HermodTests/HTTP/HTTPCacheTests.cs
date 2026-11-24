@@ -747,6 +747,122 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+
+        #region Preconditions received: If-None-Match first, by weak comparison (H-45)
+
+        private static Boolean NotModified(List<(String Name, String Value)>     Response,
+                                           params (String Name, String Value)[]  Request)
+
+            => HTTPCache.IsNotModified([.. Request], Response, T0);
+
+        /// <summary>
+        /// RFC 9111, Section 4.3.2 and RFC 9110, Section 13.1.2: "*", or an
+        /// entity-tag in the list weakly equal to the response's ETag, makes the
+        /// answer a 304. If-None-Match takes precedence over If-Modified-Since,
+        /// in either direction. An ETag that is not an entity-tag matches nothing.
+        /// </summary>
+        [Test]
+        public void IfNoneMatchComparesWeaklyAndTakesPrecedence()
+        {
+
+            List<(String Name, String Value)> response = [ ("etag", "\"v1\""), ("last-modified", HTTPDate.ToHTTPDate(T0)) ];
+
+            var earlier  = HTTPDate.ToHTTPDate(T0.AddDays(-1));
+            var later    = HTTPDate.ToHTTPDate(T0.AddDays(1));
+
+            Assert.Multiple(() => {
+                Assert.That(NotModified(response, ("if-none-match", "\"v1\"")),                                   Is.True);
+                Assert.That(NotModified(response, ("if-none-match", "\"v0\", W/\"v1\"")),                         Is.True,  "weakly, any member");
+                Assert.That(NotModified(response, ("if-none-match", "\"v0\""), ("if-none-match", "\"v1\"")),      Is.True,  "two field lines are one list");
+                Assert.That(NotModified(response, ("if-none-match", "*")),                                        Is.True);
+                Assert.That(NotModified(response, ("if-none-match", "\"v0\"")),                                   Is.False);
+                Assert.That(NotModified(response, ("if-none-match", "\"v0\""), ("if-modified-since", later)),     Is.False, "If-Modified-Since alone would match");
+                Assert.That(NotModified(response, ("if-none-match", "\"v1\""), ("if-modified-since", earlier)),   Is.True,  "If-Modified-Since alone would not");
+                Assert.That(NotModified(response, ("if-none-match", "v1")),                                       Is.False, "not an entity-tag");
+                Assert.That(NotModified([ ("etag", "v1") ],        ("if-none-match", "v1")),                      Is.False, "neither is an entity-tag");
+                Assert.That(NotModified([ ("etag", "w/\"v1\"") ],  ("if-none-match", "w/\"v1\"")),                Is.False, "W/ is case-sensitive");
+                Assert.That(NotModified([ ("etag", "W/\"v1\"") ],  ("if-none-match", "\"v1\"")),                  Is.True);
+                Assert.That(NotModified([ ("etag", "\"v 1\"") ],   ("if-none-match", "\"v 1\"")),                 Is.False, "a space is no etagc");
+                Assert.That(NotModified([ ],                       ("if-none-match", "\"v1\"")),                  Is.False, "no ETag");
+                Assert.That(NotModified([ ],                       ("if-none-match", "*")),                       Is.True);
+            });
+
+        }
+
+        #endregion
+
+        #region Preconditions received: If-Modified-Since against Last-Modified, Date, or receipt (H-45)
+
+        /// <summary>
+        /// RFC 9111, Section 4.3.2 and RFC 9110, Section 13.1.3: a 304 where the
+        /// response's Last-Modified is not later than the date, or, without one,
+        /// its Date, or, without either, the time it was received. A date that is
+        /// not valid, or one in two field lines, counts as no precondition.
+        /// </summary>
+        [Test]
+        public void IfModifiedSinceComparesLastModifiedThenDateThenTheTimeOfReceipt()
+        {
+
+            var at      = HTTPDate.ToHTTPDate(T0);
+            var before  = HTTPDate.ToHTTPDate(T0.AddSeconds(-1));
+            var after   = HTTPDate.ToHTTPDate(T0.AddSeconds(1));
+
+            Assert.Multiple(() => {
+                Assert.That(NotModified([ ("last-modified", at) ],                  ("if-modified-since", at)),      Is.True,  "not later");
+                Assert.That(NotModified([ ("last-modified", at) ],                  ("if-modified-since", after)),   Is.True);
+                Assert.That(NotModified([ ("last-modified", at) ],                  ("if-modified-since", before)),  Is.False);
+                Assert.That(NotModified([ ("last-modified", at), ("date", before) ], ("if-modified-since", before)), Is.False, "Last-Modified before Date");
+                Assert.That(NotModified([ ("date", at) ],                           ("if-modified-since", at)),      Is.True,  "Date where there is no Last-Modified");
+                Assert.That(NotModified([ ("date", at) ],                           ("if-modified-since", before)),  Is.False);
+                Assert.That(HTTPCache.IsNotModified([ ("if-modified-since", at) ], [ ], T0),                         Is.True,  "the time of receipt");
+                Assert.That(HTTPCache.IsNotModified([ ("if-modified-since", at) ], [ ], T0.AddSeconds(1)),           Is.False, "the time of receipt");
+                Assert.That(NotModified([ ("last-modified", at) ],                  ("if-modified-since", "Saturday, 21-Nov-26 12:00:00 GMT")), Is.True, "an rfc850-date");
+                Assert.That(NotModified([ ("last-modified", at) ],                  ("if-modified-since", "yesterday")),                        Is.False, "not an HTTP-date");
+                Assert.That(NotModified([ ("last-modified", at) ],                  ("if-modified-since", at), ("if-modified-since", at)),      Is.False, "two field lines");
+                Assert.That(NotModified([ ("last-modified", "yesterday") ],         ("if-modified-since", at)),      Is.False, "a Last-Modified that is not one");
+                Assert.That(NotModified([ ("last-modified", at) ]),                                                  Is.False, "no precondition");
+            });
+
+        }
+
+        #endregion
+
+        #region Preconditions received: a 304 carries the validators and no representation metadata (H-45)
+
+        /// <summary>
+        /// RFC 9110, Section 15.4.5: Cache-Control, Content-Location, Date, ETag,
+        /// Expires and Vary, as the 200 has them, and the cache's Age; Last-Modified
+        /// only where there is no ETag; no Content-Type, no Content-Length.
+        /// </summary>
+        [Test]
+        public void ANotModifiedCarriesTheValidatorsAndNoRepresentationMetadata()
+        {
+
+            var at = HTTPDate.ToHTTPDate(T0);
+
+            List<(String Name, String Value)> withETag = [ ("cache-control",    "max-age=60"),
+                                                          ("content-type",     "text/plain"),
+                                                          ("content-length",   "4"),
+                                                          ("content-location", "/r"),
+                                                          ("date",             at),
+                                                          ("etag",             "\"v1\""),
+                                                          ("expires",          at),
+                                                          ("last-modified",    at),
+                                                          ("vary",             "accept"),
+                                                          ("x-other",          "1"),
+                                                          ("age",              "3") ];
+
+            Assert.Multiple(() => {
+                Assert.That(HTTPCache.NotModifiedHeaders(withETag).Select(header => header.Name),
+                            Is.EqualTo(new[] { "cache-control", "content-location", "date", "etag", "expires", "vary", "age" }));
+                Assert.That(HTTPCache.NotModifiedHeaders([ ("content-type", "text/plain"), ("last-modified", at) ]),
+                            Is.EqualTo(new List<(String, String)> { ("last-modified", at) }));
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

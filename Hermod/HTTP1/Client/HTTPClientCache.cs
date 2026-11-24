@@ -46,11 +46,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// response it could have been answered from, or makes it stale, as RFC
     /// 9111, Section 4.3.5 has it (H-47 in HTTP1ConformanceTests, 2026-11-24).
     ///
-    /// What does not go through it, and is sent as it is: a request with Range
-    /// or with a precondition of its own, since this cache neither combines
-    /// partial content nor evaluates a caller's conditions; DownloadAsync. A
-    /// response whose body is still on the connection, an event stream, is not
-    /// stored, and neither is one larger than MaxBodySize.
+    /// A GET with an If-None-Match or If-Modified-Since of its own is answered
+    /// from the store where the same GET without them would be: the cache
+    /// evaluates them against the 200 it would have answered with, and answers
+    /// a 304 where they match, as RFC 9111, Section 4.3.2 has it (H-45 in
+    /// HTTP1ConformanceTests, 2026-11-24). A stored response that has to be
+    /// revalidated first is revalidated with the cache's own validators in
+    /// place of the caller's. With nothing stored, the request goes to the
+    /// origin as it is, and the origin evaluates them.
+    ///
+    /// What does not go through it, and is sent as it is: a request with Range,
+    /// If-Range, If-Match or If-Unmodified-Since, since this cache neither
+    /// combines partial content nor evaluates the conditions that apply to an
+    /// origin server only; DownloadAsync. A response whose body is still on
+    /// the connection, an event stream, is not stored, and neither is one
+    /// larger than MaxBodySize.
     /// </summary>
     public sealed class HTTPClientCache
     {
@@ -222,53 +232,124 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var stored     = Lookup(key, requestHeaders);
 
             if (stored is not null)
-            {
-
-                var decision = HTTPCache.Evaluate(stored, requestCC, Mode, TimeProvider.GetUtcNow());
-
-                switch (decision.Usability)
-                {
-
-                    case HTTPCacheUsability.Fresh:
-                        Interlocked.Increment(ref hits);
-                        return Serve(stored, Request, HTTPCacheStatus.Hit);
-
-                    case HTTPCacheUsability.Stale:
-                        Interlocked.Increment(ref hits);
-                        return Serve(stored, Request, HTTPCacheStatus.Stale);
-
-                    case HTTPCacheUsability.StaleWhileRevalidate:
-                        Interlocked.Increment(ref hits);
-                        var served = Serve(stored, Request, HTTPCacheStatus.Stale);
-                        _ = Task.Run(async () => {
-                                try
-                                {
-                                    await Revalidate(key, Request, requestHeaders, requestCC, stored, Send).ConfigureAwait(false);
-                                }
-                                catch (Exception e)
-                                {
-                                    DebugX.LogT($"{nameof(HTTPClientCache)} could not revalidate {key} in the background: {e.Message}");
-                                }
-                            });
-                        return served;
-
-                    default:
-                        // Section 5.2.1.7: only-if-cached never goes to the origin.
-                        if (requestCC.OnlyIfCached)
-                            return Unavailable(Request);
-
-                        return await Revalidate(key, Request, requestHeaders, requestCC, stored, Send).ConfigureAwait(false);
-
-                }
-
-            }
+                return HTTPCache.HasCachePreconditions(requestHeaders)
+                           ? await WithPreconditions(key, Request, requestHeaders, requestCC, stored, Send).ConfigureAwait(false)
+                           : await FromStore        (key, Request, requestHeaders, requestCC, stored, Send).ConfigureAwait(false);
 
             if (requestCC.OnlyIfCached)
                 return Unavailable(Request);
 
             Interlocked.Increment(ref misses);
 
+            // Section 4.3.2: the preconditions of a request for a target with
+            // nothing stored are the origin's to evaluate, and go to it as they are.
             return await Forward(key, Request, requestHeaders, requestCC, Send).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+
+        #region (private) FromStore  (Key, Request, RequestHeaders, RequestCC, Stored, Send)
+
+        /// <summary>
+        /// Answer the request with the stored response it selects: as it is,
+        /// where Section 4.2 or the request's directives allow that, and after
+        /// revalidating it, where they do not.
+        /// </summary>
+        private async Task<HTTPResponse> FromStore(String                                 Key,
+                                                   HTTPRequest                            Request,
+                                                   List<(String Name, String Value)>      RequestHeaders,
+                                                   HTTPCacheControl                       RequestCC,
+                                                   HTTPStoredResponse                     Stored,
+                                                   Func<HTTPRequest, Task<HTTPResponse>>  Send)
+        {
+
+            var decision = HTTPCache.Evaluate(Stored, RequestCC, Mode, TimeProvider.GetUtcNow());
+
+            switch (decision.Usability)
+            {
+
+                case HTTPCacheUsability.Fresh:
+                    Interlocked.Increment(ref hits);
+                    return Serve(Stored, Request, HTTPCacheStatus.Hit);
+
+                case HTTPCacheUsability.Stale:
+                    Interlocked.Increment(ref hits);
+                    return Serve(Stored, Request, HTTPCacheStatus.Stale);
+
+                case HTTPCacheUsability.StaleWhileRevalidate:
+                    Interlocked.Increment(ref hits);
+                    var served = Serve(Stored, Request, HTTPCacheStatus.Stale);
+                    _ = Task.Run(async () => {
+                            try
+                            {
+                                await Revalidate(Key, Request, RequestHeaders, RequestCC, Stored, Send).ConfigureAwait(false);
+                            }
+                            catch (Exception e)
+                            {
+                                DebugX.LogT($"{nameof(HTTPClientCache)} could not revalidate {Key} in the background: {e.Message}");
+                            }
+                        });
+                    return served;
+
+                default:
+                    // Section 5.2.1.7: only-if-cached never goes to the origin.
+                    if (RequestCC.OnlyIfCached)
+                        return Unavailable(Request);
+
+                    return await Revalidate(Key, Request, RequestHeaders, RequestCC, Stored, Send).ConfigureAwait(false);
+
+            }
+
+        }
+
+        #endregion
+
+        #region (private) WithPreconditions (Key, Request, RequestHeaders, RequestCC, Stored, Send)
+
+        /// <summary>
+        /// Answer a GET with an If-None-Match or If-Modified-Since of its own
+        /// (RFC 9111, Section 4.3.2): find the answer the same GET without them
+        /// gets, from the store, or from a revalidation with this cache's own
+        /// validators in place of the caller's, and where that answer is a 200
+        /// the caller's preconditions match, answer a 304 instead.
+        /// </summary>
+        private async Task<HTTPResponse> WithPreconditions(String                                 Key,
+                                                           HTTPRequest                            Request,
+                                                           List<(String Name, String Value)>      RequestHeaders,
+                                                           HTTPCacheControl                       RequestCC,
+                                                           HTTPStoredResponse                     Stored,
+                                                           Func<HTTPRequest, Task<HTTPResponse>>  Send)
+        {
+
+            var unconditional = new HTTPRequest.Builder(Request);
+            unconditional.RemoveHeaderField("If-None-Match");
+            unconditional.RemoveHeaderField("If-Modified-Since");
+
+            var answer = await FromStore(Key,
+                                         unconditional.AsImmutable,
+                                         [.. RequestHeaders.Where(header => !HTTPCache.IsCachePrecondition(header.Name))],
+                                         RequestCC,
+                                         Stored,
+                                         Send).ConfigureAwait(false);
+
+            if (answer.HTTPStatusCode.Code != 200)
+                return answer;
+
+            // When the 200 was received, for one without Last-Modified and Date:
+            // the stored response's time, or now for one the origin just sent.
+            DateTimeOffset received;
+
+            if (answer.CacheStatus == HTTPCacheStatus.Miss)
+                received = TimeProvider.GetUtcNow();
+            else
+                lock (storeLock)
+                    received = Stored.ResponseTime;
+
+            return HTTPCache.IsNotModified(RequestHeaders, HeadersOf(answer), received)
+                       ? NotModified(answer, Request)
+                       : answer;
 
         }
 
@@ -676,6 +757,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (private) NotModified (Answer, Request)
+
+        /// <summary>
+        /// The 304 (Not Modified) for a 200 that the request's own preconditions
+        /// match, with the fields RFC 9110, Section 15.4.5 has a 304 carry, and
+        /// the 200's cache status.
+        /// </summary>
+        private static HTTPResponse NotModified(HTTPResponse  Answer,
+                                                HTTPRequest   Request)
+        {
+
+            var head = new StringBuilder("HTTP/1.1 304 Not Modified").Append("\r\n");
+
+            foreach (var (name, value) in HTTPCache.NotModifiedHeaders(HeadersOf(Answer)))
+                head.Append(name).Append(": ").Append(value).Append("\r\n");
+
+            var response = HTTPResponse.Parse(head.ToString(), [], Request);
+
+            response.CacheStatus = Answer.CacheStatus;
+
+            return response;
+
+        }
+
+        #endregion
+
         #region (private) Unavailable (Request)
 
         /// <summary>
@@ -746,16 +853,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         /// <summary>
         /// Whether a GET is one this cache looks up and stores at all: not one
-        /// with Range, which asks for partial content this cache does not
-        /// combine, and not one with a precondition of its own, which is the
-        /// caller's to evaluate and the origin's to answer.
+        /// with Range or If-Range, which ask for partial content this cache does
+        /// not combine, and not one with If-Match or If-Unmodified-Since, which
+        /// apply to an origin server only (RFC 9111, Section 4.3.2). The
+        /// preconditions a cache evaluates are not in the way.
         /// </summary>
         private static Boolean IsCacheable(List<(String Name, String Value)> RequestHeaders)
 
             => !RequestHeaders.Any(header => header.Name is "range"
                                                           or "if-match"
-                                                          or "if-none-match"
-                                                          or "if-modified-since"
                                                           or "if-unmodified-since"
                                                           or "if-range");
 

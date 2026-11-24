@@ -117,13 +117,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 return resp;
             }
 
-            // HEAD, Range and a caller's own preconditions go to the origin as
-            // they are: entries are keyed by path, so a stored GET would answer
-            // a HEAD with a body, and a stored 206 a GET with a part. This cache
-            // neither combines partial content nor evaluates the caller's
-            // conditions. A 200 to a HEAD still updates the stored GET
-            // responses it could have been answered from, or makes them stale
-            // (Section 4.3.5).
+            // HEAD, Range and the preconditions for an origin server go to the
+            // origin as they are: entries are keyed by path, so a stored GET
+            // would answer a HEAD with a body, and a stored 206 a GET with a
+            // part. This cache combines no partial content, and If-Match and
+            // If-Unmodified-Since apply to an origin server only (Section 4.3.2).
+            // A 200 to a HEAD still updates the stored GET responses it could
+            // have been answered from, or makes them stale (Section 4.3.5).
             if (Method == HTTPMethod.HEAD)
             {
 
@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
 
             if (Method != HTTPMethod.GET ||
-                extraHeaders.Any(h => h.Name is "range" or "if-match" or "if-none-match" or "if-modified-since" or "if-unmodified-since" or "if-range"))
+                extraHeaders.Any(h => h.Name is "range" or "if-match" or "if-unmodified-since" or "if-range"))
                 return await connection.SendRequestAsync(Method, scheme, authority, Path, extraHeaders, Body, CancellationToken: CancellationToken);
 
             // Request no-store: don't use or populate the cache.
@@ -151,37 +151,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (stored is not null)
             {
 
-                var decision = HTTPCache.Evaluate(stored, requestCC, mode, timeProvider.GetUtcNow());
+                if (!HTTPCache.HasCachePreconditions(extraHeaders))
+                    return await FromStoreAsync(Method, Path, extraHeaders, stored, requestCC, hasAuth, CancellationToken);
 
-                switch (decision.Usability)
-                {
+                // Section 4.3.2: the caller's If-None-Match and If-Modified-Since
+                // are evaluated against the 200 the same request without them
+                // gets, from the store or from a revalidation with this cache's
+                // own validators, and where they match, the answer is a 304.
+                // When that 200 was received, for one without Last-Modified and
+                // Date, is taken as now: never earlier than it was, so an error
+                // answers a 200 where a 304 would have done, never the reverse.
+                var answer = await FromStoreAsync(Method, Path, [.. extraHeaders.Where(h => !HTTPCache.IsCachePrecondition(h.Name))],
+                                                  stored, requestCC, hasAuth, CancellationToken);
 
-                    case HTTPCacheUsability.Fresh:
-                    case HTTPCacheUsability.Stale:
-                        Hits++;
-                        return Serve(stored, decision.Age);
-
-                    case HTTPCacheUsability.StaleWhileRevalidate:
-                        Hits++;
-                        var served = Serve(stored, decision.Age);
-                        _ = Task.Run(() => RevalidateAsync(Method, Path, extraHeaders, stored, requestCC, hasAuth, CancellationToken.None));
-                        return served;
-
-                    case HTTPCacheUsability.MustRevalidate:
-                        // Section 5.2.1.7: only-if-cached never goes to the origin.
-                        if (requestCC.OnlyIfCached)
-                            return GatewayTimeout();
-                        return await RevalidateAsync(Method, Path, extraHeaders, stored, requestCC, hasAuth, CancellationToken);
-
-                }
+                return answer.Status == 200 && HTTPCache.IsNotModified(extraHeaders, answer.Headers, timeProvider.GetUtcNow())
+                           ? NotModified(answer)
+                           : answer;
 
             }
 
-            // Nothing cached.
+            // Nothing cached: the caller's preconditions are the origin's to evaluate.
             if (requestCC.OnlyIfCached)
                 return GatewayTimeout();   // Section 5.2.1.7
 
             return await OriginAndMaybeStore(Method, Path, extraHeaders, Body, requestCC, hasAuth, store: true, CancellationToken);
+
+        }
+
+        /// <summary>
+        /// Answer the request with the stored response it selects: as it is,
+        /// where Section 4.2 or the request's directives allow that, and after
+        /// revalidating it, where they do not.
+        /// </summary>
+        private async Task<HTTP2Response> FromStoreAsync(HTTPMethod                         Method,
+                                                         String                             Path,
+                                                         List<(String Name, String Value)>  ExtraHeaders,
+                                                         HTTPStoredResponse                 Stored,
+                                                         HTTPCacheControl                   RequestCC,
+                                                         Boolean                            HasAuth,
+                                                         CancellationToken                  CancellationToken)
+        {
+
+            var decision = HTTPCache.Evaluate(Stored, RequestCC, mode, timeProvider.GetUtcNow());
+
+            switch (decision.Usability)
+            {
+
+                case HTTPCacheUsability.Fresh:
+                case HTTPCacheUsability.Stale:
+                    Hits++;
+                    return Serve(Stored, decision.Age);
+
+                case HTTPCacheUsability.StaleWhileRevalidate:
+                    Hits++;
+                    var served = Serve(Stored, decision.Age);
+                    _ = Task.Run(() => RevalidateAsync(Method, Path, ExtraHeaders, Stored, RequestCC, HasAuth, CancellationToken.None));
+                    return served;
+
+                default:
+                    // Section 5.2.1.7: only-if-cached never goes to the origin.
+                    if (RequestCC.OnlyIfCached)
+                        return GatewayTimeout();
+                    return await RevalidateAsync(Method, Path, ExtraHeaders, Stored, RequestCC, HasAuth, CancellationToken);
+
+            }
 
         }
 
@@ -331,6 +364,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 if (store.TryGetValue(Path, out var variants))
                     variants.RemoveAll(v => HTTPCache.SelectionMatches(v, RequestHeaders));
         }
+
+        /// <summary>
+        /// The 304 (Not Modified) for a 200 that the request's own preconditions
+        /// match, with the fields RFC 9110, Section 15.4.5 has a 304 carry.
+        /// </summary>
+        private static HTTP2Response NotModified(HTTP2Response Answer)
+            => new() { Status = 304, Headers = [(":status", "304"), .. HTTPCache.NotModifiedHeaders(Answer.Headers)], Body = [] };
 
         private static HTTP2Response GatewayTimeout()
             => new() { Status = 504, Headers = [(":status", "504")], Body = [] };
