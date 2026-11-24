@@ -1434,6 +1434,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (blocklistings.Count > 0)
                 traceHeaders += $"X-DNSBL: {String.Join(", ", blocklistings.Select(listing => $"{listing.Zone}={listing.Answer}"))}\r\n";
 
+            // RFC 8601 §5: "an MTA for example.com receiving a message MUST delete or otherwise
+            // obscure any instance of this header field bearing an authentication service
+            // identifier indicating that the header field was added within example.com prior to
+            // adding its own header fields" - and one of a version it does not know. Not before
+            // the verification: a signature that covers such a field was made over it.
+            rawBytes = AuthenticationResultsFields.WithoutForeign(rawBytes, config.Hostname);
+
             // The trace headers go in front of the octets that arrived, not of their decoding:
             // a body in ISO-8859-1 stays ISO-8859-1, and a signature over it stays valid.
             var traceBytes     = Encoding.UTF8.GetBytes(traceHeaders);
@@ -1737,7 +1744,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // reverse-path, or for a null one the HELO identity (RFC 7208 §2.4) - "<>" names
             // nothing a filter could align, and is no pvalue. A HELO that is no domain name,
             // an address literal, gave SPF nothing to check, and the result names nothing.
-            var spfIdentity  = spfOnMailFrom                 ? $" smtp.mailfrom={_mailFrom}"
+            //
+            // §2.7.2: "If the retrieved sender policies used to evaluate SPF do not contain explicit
+            // provisions for authenticating the local-part ... the "pvalue" reported along with
+            // results for this mechanism SHOULD NOT include the local-part or the following "@"
+            // character" - SPF authenticates the domain of the reverse-path, not its local-part.
+            var spfIdentity  = spfOnMailFrom                 ? $" smtp.mailfrom={senderDomain}"
                              : senderDomain.Length > 0       ? $" smtp.helo={senderDomain}"
                              : "";
             var dmarcComment = v.DmarcPolicy is not null ? $" (p={v.DmarcPolicy})" : "";
@@ -1768,8 +1780,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
             // No method at all is the "none" form of RFC 8601 §2.2.
             return clauses.Count == 0
-                       ? $"Authentication-Results: {config.Hostname}; none\r\n"
-                       : $"Authentication-Results: {config.Hostname};\r\n\t" + String.Join(";\r\n\t", clauses) + "\r\n";
+                       ? $"Authentication-Results: {TraceName}; none\r\n"
+                       : $"Authentication-Results: {TraceName};\r\n\t" + String.Join(";\r\n\t", clauses) + "\r\n";
 
         }
 
@@ -1793,10 +1805,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                                    ? $"from {_heloHostname} ({reverseDns} {addrLiteral})"
                                    : $"from {addrLiteral} ({reverseDns} {addrLiteral})" + (_heloHostname.Length > 0 ? $" (helo={_heloHostname})" : "");
 
-            // with-clause: RFC 3848 protocol name (HELO=SMTP, EHLO=ESMTP + S for TLS + A for AUTH)
+            // with-clause: RFC 3848 protocol name (HELO=SMTP, EHLO=ESMTP + S for TLS + A for AUTH).
+            // RFC 6531 §3.7.3: "The protocol value of the 'WITH' clause when this extension is used
+            // is one of the SMTPUTF8 values" - UTF8SMTP, UTF8SMTPS, UTF8SMTPA, UTF8SMTPSA (§4.3).
             var protocol     = !_extendedSmtp
                                    ? "SMTP"
-                                   : "ESMTP" + (_tlsActive ? "S" : "") + (_authManager.IsAuthenticated ? "A" : "");
+                                   : (_smtpUtf8 ? "UTF8SMTP" : "ESMTP") + (_tlsActive ? "S" : "") + (_authManager.IsAuthenticated ? "A" : "");
 
             var id           = UUIDv7.Generate().ToString("N")[..12].ToUpperInvariant();
             var timestamp    = DateTimeOffset.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss +0000",
@@ -1812,7 +1826,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             var priorityClause = _mtPriority is { } priority ? $"\r\n\tPRIORITY {priority}" : "";
 
             return $"Received: {fromClause}\r\n" +
-                   $"\tby {ServerName} (AchimSMTP) with {protocol} id {id}{forClause}{priorityClause};\r\n" +
+                   $"\tby {TraceName} (AchimSMTP) with {protocol} id {id}{forClause}{priorityClause};\r\n" +
                    $"\t{timestamp}\r\n";
 
         }
@@ -1969,6 +1983,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         /// </summary>
         private String ServerName
             => Idna.ToAscii(config.Hostname);
+
+        /// <summary>
+        /// The name the server gives itself in the trace fields it adds to a message - Received and
+        /// Authentication-Results: its A-labels (S-36), and its U-labels for a message transmitted
+        /// with SMTPUTF8. RFC 6531 §3.7.3: "When an SMTPUTF8-aware SMTP server adds a trace field to
+        /// a message that was or will be transmitted with the SMTPUTF8 parameter included in the
+        /// MAIL commands, that server SHOULD use the U-label form for internationalized domain
+        /// names in the new trace field"; without it, "trace field values must conform to RFC 5321".
+        /// </summary>
+        private String TraceName
+            => _smtpUtf8
+                   ? Idna.ToUnicode(ServerName)
+                   : ServerName;
 
         private async Task HandleQuitAsync()
         {

@@ -293,7 +293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(Results(0),    Does.Contain("spf=pass smtp.helo=client.example").And.Not.Contain("<>"));
 
                 Assert.That(letter.Code,   Is.EqualTo(250), letter.Text);
-                Assert.That(Results(1),    Does.Contain("spf=pass smtp.mailfrom=sender@client.example"));
+                Assert.That(Results(1),    Does.Contain("spf=pass smtp.mailfrom=client.example;"), "the domain SPF authenticated, not the local-part (RFC 8601 §2.7.2)");
 
                 Assert.That(literal.Code,  Is.EqualTo(250), literal.Text);
                 Assert.That(Results(2),    Does.Contain("spf=none;").And.Not.Contain("smtp.mailfrom").And.Not.Contain("smtp.helo"),
