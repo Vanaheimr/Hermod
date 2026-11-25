@@ -179,11 +179,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             lock (notificationMessageTypes)
             {
 
-                if (notificationMessageTypes.Contains(NotificationMessageType))
-                {
-                    notificationMessageTypes.Add(NotificationMessageType);
+                if (notificationMessageTypes.Remove(NotificationMessageType))
                     OnRemoved?.Invoke();
-                }
 
             }
         }
@@ -202,11 +199,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                 foreach (var NotificationMessageType in NotificationMessageTypes)
                 {
-                    if (!notificationMessageTypes.Contains(NotificationMessageType))
-                    {
-                        notificationMessageTypes.Add(NotificationMessageType);
+                    if (notificationMessageTypes.Remove(NotificationMessageType))
                         Removed = true;
-                    }
                 }
 
                 if (Removed)
