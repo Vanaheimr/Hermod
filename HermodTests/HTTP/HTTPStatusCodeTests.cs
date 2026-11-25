@@ -372,6 +372,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region AnInvalidCodeIsAServerError()
+
+        /// <summary>
+        /// RFC 9110, Section 15: a code outside 100-599 is invalid, and a client
+        /// SHOULD process the response as if it had a 5xx status code (H-49).
+        /// So IsServerError holds for it, and IsInvalid says why. The
+        /// ClientError sentinel, code 0, is neither: no response came at all.
+        /// </summary>
+        [Test]
+        public void AnInvalidCodeIsAServerError()
+        {
+
+            Assert.Multiple(() => {
+
+                foreach (var code in new UInt16[] { 1, 99, 600, 999 })
+                {
+                    var statusCode = HTTPStatusCode.ParseUInt16(code);
+                    Assert.That(statusCode.IsInvalid,       Is.True,  $"{code} is invalid");
+                    Assert.That(statusCode.IsServerError,   Is.True,  $"{code} is processed as a 5xx");
+                    Assert.That(statusCode.IsInformational, Is.False, $"{code} is not a 1xx");
+                    Assert.That(statusCode.IsNotSuccessful, Is.True,  $"{code} is not a success");
+                }
+
+                foreach (var statusCode in Defined().Where(statusCode => statusCode.Code > 0))
+                    Assert.That(statusCode.IsInvalid, Is.False, $"{statusCode.SimpleString} is valid");
+
+                Assert.That(HTTPStatusCode.ClientError.IsInvalid,     Is.False);
+                Assert.That(HTTPStatusCode.ClientError.IsServerError, Is.False);
+
+            });
+
+        }
+
+        #endregion
+
         #region IsNotSuccessfulIsTheNegationOfIsSuccessful()
 
         /// <summary>

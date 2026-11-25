@@ -77,10 +77,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => Code >= 400 && Code < 500;
 
         /// <summary>
-        /// Is server error.
+        /// Is server error: a 5xx, or an invalid code, which RFC 9110,
+        /// Section 15 has a client process as if it were a 5xx.
         /// </summary>
         public Boolean  IsServerError
-            => Code >= 500 && Code < 600;
+            => Code >= 500 && Code < 600 || IsInvalid;
+
+        /// <summary>
+        /// Is invalid: a code outside 100-599 (RFC 9110, Section 15), such as
+        /// the 600-999 some implementations use for errors of their own. Not
+        /// the ClientError sentinel, whose code 0 says that no response came.
+        /// </summary>
+        public Boolean  IsInvalid
+            => Code is > 0 and < 100 or > 599;
 
 
         /// <summary>

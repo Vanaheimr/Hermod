@@ -401,6 +401,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region Storable: never a response with an invalid status code
+
+        /// <summary>
+        /// A code outside 100-599 is invalid (RFC 9110, Section 15). The client
+        /// takes it as a 5xx since H-49, and a 5xx with a max-age may be stored;
+        /// one with an invalid code is not, by either cache.
+        /// </summary>
+        [Test]
+        public void AnInvalidStatusCodeIsNotStorable()
+        {
+            Assert.Multiple(() => {
+                Assert.That(Storable(500, HTTPCacheMode.Shared,  ("cache-control", "max-age=60")), Is.True,  "the control: a 5xx with a max-age");
+                Assert.That(Storable(599, HTTPCacheMode.Shared,  ("cache-control", "max-age=60")), Is.True,  "599 is valid");
+                Assert.That(Storable(600, HTTPCacheMode.Shared,  ("cache-control", "max-age=60")), Is.False);
+                Assert.That(Storable(999, HTTPCacheMode.Shared,  ("cache-control", "max-age=60")), Is.False);
+                Assert.That(Storable(999, HTTPCacheMode.Private, ("cache-control", "max-age=60")), Is.False);
+                Assert.That(Storable( 99, HTTPCacheMode.Private, ("cache-control", "max-age=60")), Is.False);
+            });
+        }
+
+        #endregion
+
         #region Storable: a shared cache stores an authenticated response only when told so
 
         /// <summary>

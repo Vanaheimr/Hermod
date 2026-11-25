@@ -2485,12 +2485,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var statusLine = HTTPHeader.Split("\r\n", 2, StringSplitOptions.None)[0];
             var statusParts = statusLine.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
 
+            // RFC 9112, Section 4: the status code is three digits, and any
+            // three will do here. RFC 9110, Section 15 calls a code outside
+            // 100-599 invalid, and a client that receives one SHOULD process
+            // the response as if it had a 5xx status code: framed and read like
+            // any final response, its HTTPStatusCode an IsServerError. Until
+            // H-49 (HTTP1ConformanceTests, 2026-11-25) this refused them, so a
+            // "999" became this client's own ClientError and the connection was
+            // dropped with its body still unread.
+            //
+            // "000" alone is still refused: code 0 is HTTPStatusCode.ClientError,
+            // the answer that says no response came, and a server's 000 must
+            // not read as that. It reads as ClientError either way.
             if (statusParts.Length < 2 ||
                 statusParts[0] is not "HTTP/1.0" and not "HTTP/1.1" ||
                 statusParts[1].Length != 3 ||
                 !statusParts[1].All(character => character >= '0' && character <= '9') ||
                 !UInt16.TryParse(statusParts[1], out var statusCode) ||
-                statusCode is < 100 or > 599)
+                statusCode == 0)
             {
                 ErrorDescription = "Invalid HTTP response status line.";
                 return false;
