@@ -37,11 +37,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         /// </summary>
         internal const Int32 MaxMessageIdOctetsInFileName = 100;
 
-        /// <summary>
-        /// The most octets of a header line, CR LF aside (RFC 5322 §2.1.1).
-        /// </summary>
-        private const Int32 MaxLineOctets = 998;
-
         public async Task<string> StoreAsync(
             EMailMessage        message,
             string              envelopeFrom,
@@ -59,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // the server was told - by the client, by DNS, by the message - and goes in as a field
             // body (RFC 5322 §2.2): no line break of its own, folded where it is long.
             var metadata = new StringBuilder();
-            void AddHeader(string name, string value) => metadata.Append(Field(name, value));
+            void AddHeader(string name, string value) => metadata.Append(HeaderField.Of(name, value));
 
             AddHeader("X-Envelope-From", envelopeFrom);
             AddHeader("X-Envelope-To",   string.Join(", ", envelopeTo));
@@ -114,63 +109,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             return filePath;
         }
 
-
-        #region (internal static) Field(Name, Value)
-
-        /// <summary>
-        /// A header field of the store's own, CR LF and all. RFC 5322 §2.2: "A field body MUST NOT
-        /// include CR and LF except when used in 'folding' and 'unfolding'" - a value from DNS or
-        /// from the message may have line breaks and other control characters in it: each run of
-        /// them is a space, so that it makes no field of its own and does not end the header.
-        /// And §2.1.1: "Each line of characters MUST be no more than 998 characters" - a longer
-        /// value is folded before white space in it.
-        /// </summary>
-        internal static String Field(String Name, String Value)
-        {
-
-            var body    = new StringBuilder(Value.Length);
-            var inBreak = false;
-
-            foreach (var c in Value)
-            {
-
-                if (Char.IsControl(c) && c != '\t' || c is '\u2028' or '\u2029')
-                {
-                    if (!inBreak)
-                        body.Append(' ');
-                    inBreak = true;
-                    continue;
-                }
-
-                body.Append(c);
-                inBreak = false;
-
-            }
-
-            var field  = new StringBuilder();
-            var line   = new StringBuilder(Name).Append(':');
-            var words  = body.ToString().Split(' ');
-
-            foreach (var word in words)
-            {
-
-                // Folding puts CR LF before the white space; the next line begins with it.
-                if (line.Length > Name.Length + 1 &&
-                    Encoding.UTF8.GetByteCount(line.ToString()) + 1 + Encoding.UTF8.GetByteCount(word) > MaxLineOctets)
-                {
-                    field.Append(line).Append("\r\n");
-                    line.Clear();
-                }
-
-                line.Append(' ').Append(word);
-
-            }
-
-            return field.Append(line).Append("\r\n").ToString();
-
-        }
-
-        #endregion
 
         #region (internal static) EndOfReturnPath(Message)
 

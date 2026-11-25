@@ -181,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                   Append("Report-ID: <").Append(reportId).Append(">\r\n").
                                   Append("Report-Size: ").Append(size).Append("\r\n").
                                   Append("Submitter: ").Append(options.ReportingDomain).Append("\r\n").
-                                  Append("Submitting-URI: ").Append(String.Join(", ", destinations.Select(destination => "mailto:" + destination.Address))).Append("\r\n").
+                                  Append("Submitting-URI: ").Append(String.Join(", ", destinations.Select(destination => MailtoUri.Of(destination.Address)))).Append("\r\n").
                                   ToString();
 
                 if ((UInt64) message.Length > limit)
@@ -383,8 +383,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region (private) helpers
 
-        // RFC 7489 §6.2: rua/ruf are comma-separated URIs, each "mailto:addr" with an optional
-        // "!size" limit suffix. Only mailto is supported here.
+        // RFC 7489 §6.2: rua/ruf are comma-separated URIs, each a mailto URI (RFC 6068) with an
+        // optional "!size" limit suffix. Only mailto is supported here.
         public static IEnumerable<String> ParseReportUris(String value)
             => ParseReportDestinations(value).Select(destination => destination.Address);
 
@@ -414,11 +414,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 }
 
-                if (uri.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
-                {
-                    var addr = uri[7..].Trim();
-                    if (addr.Contains('@')) yield return (addr, limit);
-                }
+                // RFC 7489 §6.2: a Mail Receiver "MUST implement support for a "mailto:" URI" -
+                // RFC 6068, its addresses percent-encoded, a comma or an exclamation point of its
+                // own too ("MUST be encoded per Section 2.1 of [URI]"). A URI with a line break in
+                // it is none (RFC 3986 §2), and names no recipient - nor a header field of the
+                // report its address goes into.
+                foreach (var address in MailtoUri.Addresses(uri))
+                    yield return (address, limit);
 
             }
         }

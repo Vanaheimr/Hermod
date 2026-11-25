@@ -85,10 +85,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             sb.Append("Feedback-Type: auth-failure\r\n");
             sb.Append("User-Agent: AchimSMTP-DMARC/1.0\r\n");
             sb.Append("Version: 1\r\n");
-            sb.Append("Original-Mail-From: ").Append(string.IsNullOrEmpty(envelopeFrom) ? "<>" : envelopeFrom).Append("\r\n");
+            // RFC 5965 §3.5: original-mail-from = "Original-Mail-From:" [CFWS] reverse-path [CFWS]
+            // CRLF - RFC 5321 §4.1.2: Reverse-path = Path / "<>", the mailbox in angle brackets.
+            sb.Append("Original-Mail-From: ").Append(ReversePath(envelopeFrom)).Append("\r\n");
             sb.Append("Arrival-Date: ").Append(date).Append("\r\n");
-            sb.Append("Source-IP: ").Append(sourceIp).Append("\r\n");
-            sb.Append("Reported-Domain: ").Append(eval.HeaderFromDomain).Append("\r\n");
+            // RFC 5965 §3.5: source-ip = "Source-IP:" [CFWS] ( IPv4-address-literal /
+            // IPv6-address-literal ) [CFWS] CRLF - RFC 5321 §4.1.3: "IPv6:" before an IPv6 one.
+            sb.Append("Source-IP: ").Append(AddressLiteral(sourceIp)).Append("\r\n");
+            sb.Append(HeaderField.Of("Reported-Domain", eval.HeaderFromDomain));
             sb.Append("Auth-Failure: ").Append(authFailure).Append("\r\n");
 
             switch (authFailure)
@@ -166,18 +170,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         // [ local-part ] "@" domain-name: the i= tag, or "@" d= by default (RFC 6376 §3.5).
         private static void AppendDkimFields(StringBuilder sb, DkimSignatureOutcome signature)
         {
-            sb.Append("DKIM-Domain: ").  Append(signature.Domain).Append("\r\n");
-            sb.Append("DKIM-Identity: ").Append(signature.AgentOrUserIdentifier).Append("\r\n");
+            sb.Append(HeaderField.Of("DKIM-Domain",   signature.Domain));
+            sb.Append(HeaderField.Of("DKIM-Identity", signature.AgentOrUserIdentifier));
             if (!String.IsNullOrEmpty(signature.Selector))
-                sb.Append("DKIM-Selector: ").Append(signature.Selector).Append("\r\n");
+                sb.Append(HeaderField.Of("DKIM-Selector", signature.Selector));
         }
 
         // RFC 6591 §4: spf-dns = "SPF-DNS:" [CFWS] ( "txt" / "spf" ) [CFWS] ":" [CFWS] domain
-        // [CFWS] ":" [CFWS] quoted-string [CFWS] CRLF.
+        // [CFWS] ":" [CFWS] quoted-string [CFWS] CRLF. The record is the sender's to publish, and
+        // may have line breaks in it: a quoted-string has no CR and no LF but in folding (RFC
+        // 5322 §3.2.4), and a line break made a field of the report of its own.
         private static void AppendSpfDns(StringBuilder sb, DmarcEvaluation eval)
         {
-            sb.Append("SPF-DNS: txt : ").Append(eval.SpfDomain).Append(" : \"")
-              .Append((eval.SpfRecord ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"")).Append("\"\r\n");
+            var record = (eval.SpfRecord ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"");
+            sb.Append(HeaderField.Of("SPF-DNS", $"txt : {eval.SpfDomain} : \"{record}\""));
+        }
+
+        /// <summary>
+        /// A reverse-path (RFC 5321 §4.1.2): the mailbox of MAIL FROM in angle brackets, "&lt;&gt;"
+        /// for the null one.
+        /// </summary>
+        internal static String ReversePath(String EnvelopeFrom)
+            => String.IsNullOrEmpty(EnvelopeFrom) ? "<>"
+             : EnvelopeFrom.StartsWith('<')        ? EnvelopeFrom
+             : $"<{EnvelopeFrom}>";
+
+        /// <summary>
+        /// An address literal without its brackets (RFC 5321 §4.1.3): IPv4-address-literal =
+        /// Snum 3("." Snum), IPv6-address-literal = "IPv6:" IPv6-addr. An IPv4 address mapped
+        /// into IPv6 is the IPv4 address it is; a scope is no part of IPv6-addr.
+        /// </summary>
+        internal static String AddressLiteral(System.Net.IPAddress Address)
+        {
+
+            if (Address.IsIPv4MappedToIPv6)
+                Address = Address.MapToIPv4();
+
+            return Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6
+                       ? "IPv6:" + new System.Net.IPAddress(Address.GetAddressBytes())
+                       : Address.ToString();
+
         }
 
         // Ensure the embedded header block uses CRLF line endings.

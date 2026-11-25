@@ -322,6 +322,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         #endregion
 
+
+        #region T-5 and T-6: where a report goes
+
+        [TestCase("v=TLSRPTv1; rua=mailto:tlsrpt@policy.test\r\nBcc: victim@policy.test",          new String[0],                             TestName = "TLSRPT rua: a CR LF in the URI - no address")]
+        [TestCase("v=TLSRPTv1; rua=mailto:tlsrpt@policy.test\nBcc: victim@policy.test",            new String[0],                             TestName = "TLSRPT rua: an LF in the URI - no address")]
+        [TestCase("v=TLSRPTv1; rua=mailto:tlsrpt%0D%0ABcc:%20victim@policy.test",                 new String[0],                             TestName = "TLSRPT rua: a line break percent-encoded - no address")]
+        [TestCase("v=TLSRPTv1; rua=mailto:tls%21reports@policy.test",                             new[] { "tls!reports@policy.test" },       TestName = "TLSRPT rua: percent-encoding decoded")]
+        [TestCase("v=TLSRPTv1; rua=mailto:tlsrpt@policy.test?subject=TLS%20report",               new[] { "tlsrpt@policy.test" },            TestName = "TLSRPT rua: header fields no part of the address")]
+        [TestCase("v=TLSRPTv1; rua=mailto:tlsrpt@policy.test,mailto:tlsrpt@policy.test",          new[] { "tlsrpt@policy.test" },            TestName = "TLSRPT rua: one address named twice, once")]
+        [Description("T-5, T-6 - RFC 8460 §3: tlsrpt-uri = URI (RFC 3986), commas, exclamation points and semicolons of its own \"MUST be encoded\"; \"In the case of \"mailto\", reports should be submitted to the specified email address [RFC6068]\"")]
+        public void A_report_goes_to_the_address_its_rua_URI_names(String Record, String[] Addresses)
+
+            => Assert.That(TlsRptResolver.Parse(Record).RuaMailto, Is.EqualTo(Addresses));
+
+
+        [Test(Description = "T-5 - RFC 5322 §2.2: no recipient, and no header field of the report, from a line break in the record's rua")]
+        public async Task A_line_break_in_an_rua_URI_makes_no_recipient_and_no_header_field()
+        {
+
+            var (service, queue) = Reporter("v=TLSRPTv1; rua=mailto:tlsrpt@policy.test\r\nBcc: victim@policy.test, mailto:tls@policy.test");
+
+            service.Record(Session(true));
+            await service.GenerateAndSendAsync(CancellationToken.None);
+
+            Assert.Multiple(() => {
+                Assert.That(queue.Enqueued.SelectMany(mail => mail.EnvelopeTo), Is.EqualTo(new[] { "tls@policy.test" }));
+                Assert.That(queue.Enqueued.Single().MessageContent,             Does.Not.Contain("Bcc:"));
+            });
+
+        }
+
+        #endregion
+
     }
 
 }
