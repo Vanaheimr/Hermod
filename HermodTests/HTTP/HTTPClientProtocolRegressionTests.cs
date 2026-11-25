@@ -826,20 +826,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         /// <summary>
+        /// A server that takes each connection and closes it at once: an HTTPS
+        /// client's TLS handshake fails, and the attempt ends before a request
+        /// can go out. Those are the attempts MaxNumberOfRetries counts in full;
+        /// a request that did go out is sent again at most once (H-50).
+        /// </summary>
+        private sealed class ClosingServer : IDisposable
+        {
+
+            private readonly TcpListener              listener  = new (System.Net.IPAddress.Loopback, 0);
+            private readonly CancellationTokenSource  stop      = new ();
+            private          Int32                    connections;
+
+            public UInt16  Port
+                => (UInt16) ((IPEndPoint) listener.LocalEndpoint).Port;
+
+            public Int32   Connections
+                => Volatile.Read(ref connections);
+
+            public ClosingServer()
+            {
+                listener.Start();
+                _ = Task.Run(AcceptAll);
+            }
+
+            private async Task AcceptAll()
+            {
+                while (!stop.IsCancellationRequested)
+                {
+                    try
+                    {
+                        using var client = await listener.AcceptTcpClientAsync(stop.Token);
+                        Interlocked.Increment(ref connections);
+                    }
+                    catch
+                    {
+                        return;
+                    }
+                }
+            }
+
+            public void Dispose()
+            {
+                stop.Cancel();
+                listener.Stop();
+                stop.Dispose();
+            }
+
+        }
+
+        private static readonly RemoteTLSServerCertificateValidationHandler<IHTTPClient> AnyCertificate
+
+            = (sender, certificate, certificateChain, client, policyErrors) => TLSValidationResult.Success();
+
+        /// <summary>
         /// MaxNumberOfRetries counted attempts: 0 sent nothing at all and
         /// answered "Giving up ... after 0 attempts", and 1 never tried again.
         /// It counts what its name says now, the attempts after the first one.
+        /// Counted on attempts that fail before a request goes out, since one
+        /// that went out is sent again at most once (H-50).
         /// </summary>
         [TestCase(0, 1)]
         [TestCase(1, 2)]
         [TestCase(2, 3)]
+        [TestCase(4, 5)]
         public async Task MaxNumberOfRetries_CountsTheAttemptsAfterTheFirst(Int32 Retries,
                                                                             Int32 Attempts)
         {
 
-            using var server      = new DroppingServer();
-            using var httpClient  = new HTTPClient(
-                                        URL.Parse($"http://127.0.0.1:{server.Port}"),
+            using var server      = new ClosingServer();
+            using var httpClient  = new HTTPSClient(
+                                        URL.Parse($"https://127.0.0.1:{server.Port}"),
+                                        AnyCertificate,
                                         MaxNumberOfRetries: (UInt16) Retries
                                     );
 
@@ -848,7 +906,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.Multiple(() => {
                 Assert.That(response.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.ClientError),  reason);
-                Assert.That(server.Requests,          Is.EqualTo(Attempts),                    "requests the server received");
+                Assert.That(server.Connections,       Is.EqualTo(Attempts),                    "connections the server took");
                 Assert.That(reason,                   Does.Contain($" after {Attempts} {(Attempts == 1 ? "attempt" : "attempts")}: "));
             });
 
@@ -861,15 +919,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         public async Task WithoutMaxNumberOfRetries_TwoRetries_ThreeAttempts()
         {
 
-            using var server      = new DroppingServer();
-            using var httpClient  = new HTTPClient(URL.Parse($"http://127.0.0.1:{server.Port}"));
+            using var server      = new ClosingServer();
+            using var httpClient  = new HTTPSClient(URL.Parse($"https://127.0.0.1:{server.Port}"), AnyCertificate);
 
             var response  = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
 
             Assert.Multiple(() => {
                 Assert.That(httpClient.MaxNumberOfRetries,  Is.EqualTo(2));
                 Assert.That(response.HTTPStatusCode,        Is.EqualTo(HTTPStatusCode.ClientError));
-                Assert.That(server.Requests,                Is.EqualTo(3),  "requests the server received");
+                Assert.That(server.Connections,             Is.EqualTo(3),  "connections the server took");
             });
 
         }
@@ -894,6 +952,135 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(response.HTTPStatusCode,        Is.EqualTo(HTTPStatusCode.OK),  response.EntirePDU);
                 Assert.That(response.HTTPBodyAsUTF8String,  Is.EqualTo("OK"));
                 Assert.That(server.Requests,                Is.EqualTo(2),                  "requests the server received");
+            });
+
+        }
+
+        #endregion
+
+        #region A request that went out is sent again only if it may be, and once (H-50)
+
+        /// <summary>
+        /// RFC 9110, Section 9.2.2: a client SHOULD NOT automatically retry a
+        /// request with a non-idempotent method. The server read each of these
+        /// and closed without an answer, so it may well have acted on it. With
+        /// the default two retries it used to receive the request three times.
+        /// </summary>
+        [TestCase("POST")]
+        [TestCase("PATCH")]
+        [TestCase("LOCK")]
+        public async Task A_NonIdempotent_Request_That_Went_Out_Is_Not_Sent_Again(String Method)
+        {
+
+            using var server      = new DroppingServer();
+            using var httpClient  = new HTTPClient(URL.Parse($"http://127.0.0.1:{server.Port}"));
+
+            var response  = await httpClient.RunRequest(
+                                      HTTPMethod.Parse(Method),
+                                      HTTPPath.Root,
+                                      Content:         "order"u8.ToArray(),
+                                      ContentType:     HTTPContentType.Text.PLAIN,
+                                      RequestTimeout:  TimeSpan.FromSeconds(5)
+                                  );
+
+            var reason    = response.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.ClientError),  reason);
+                Assert.That(server.Requests,          Is.EqualTo(1),                           "requests the server received");
+                Assert.That(reason,                   Does.Contain(" after 1 attempt: "));
+                Assert.That(reason,                   Does.Contain($"{Method} is not idempotent"));
+            });
+
+        }
+
+        /// <summary>
+        /// An idempotent request that went out may be sent again, once: RFC 9110,
+        /// Section 9.2.2 also says a client SHOULD NOT retry a failed automatic
+        /// retry. The default allows two retries, and used to spend both.
+        /// </summary>
+        [TestCase("GET")]
+        [TestCase("PUT")]
+        [TestCase("DELETE")]
+        public async Task An_Idempotent_Request_That_Went_Out_Is_Sent_Again_Once(String Method)
+        {
+
+            using var server      = new DroppingServer();
+            using var httpClient  = new HTTPClient(URL.Parse($"http://127.0.0.1:{server.Port}"));
+
+            var response  = await httpClient.RunRequest(
+                                      HTTPMethod.Parse(Method),
+                                      HTTPPath.Root,
+                                      RequestTimeout:  TimeSpan.FromSeconds(5)
+                                  );
+
+            var reason    = response.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
+
+            Assert.Multiple(() => {
+                Assert.That(httpClient.MaxNumberOfRetries,  Is.EqualTo(2));
+                Assert.That(response.HTTPStatusCode,        Is.EqualTo(HTTPStatusCode.ClientError),  reason);
+                Assert.That(server.Requests,                Is.EqualTo(2),                           "requests the server received");
+                Assert.That(reason,                         Does.Contain(" after 2 attempts: "));
+                Assert.That(reason,                         Does.Contain("a failed automatic retry is not retried again"));
+            });
+
+        }
+
+        /// <summary>
+        /// A POST that carries an Idempotency-Key asks the server to apply it
+        /// once however often it arrives: the client knows it may send it again,
+        /// which is what RFC 9110, Section 9.2.2 asks for. And sent again, it is
+        /// answered.
+        /// </summary>
+        [Test]
+        public async Task A_POST_With_An_IdempotencyKey_Is_Sent_Again_Once()
+        {
+
+            using var server      = new DroppingServer(AnswerFrom: 2);
+            using var httpClient  = new HTTPClient(URL.Parse($"http://127.0.0.1:{server.Port}"));
+
+            var response  = await httpClient.POST(
+                                      HTTPPath.Root,
+                                      "order"u8.ToArray(),
+                                      HTTPContentType.Text.PLAIN,
+                                      RequestTimeout:  TimeSpan.FromSeconds(5),
+                                      RequestBuilder:  builder => builder.SetHeaderField("Idempotency-Key", "\"8e03978e-40d5-43e8-bc93-6894a57f9324\"")
+                                  );
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,        Is.EqualTo(HTTPStatusCode.OK),  response.EntirePDU);
+                Assert.That(response.HTTPBodyAsUTF8String,  Is.EqualTo("OK"));
+                Assert.That(server.Requests,                Is.EqualTo(2),                  "requests the server received");
+            });
+
+        }
+
+        /// <summary>
+        /// A POST whose connection never opened has not gone out, and trying it
+        /// again cannot deliver it twice: every retry MaxNumberOfRetries allows
+        /// is still made.
+        /// </summary>
+        [Test]
+        public async Task A_POST_That_Never_Went_Out_Is_Tried_Again()
+        {
+
+            using var server      = new ClosingServer();
+            using var httpClient  = new HTTPSClient(URL.Parse($"https://127.0.0.1:{server.Port}"), AnyCertificate);
+
+            var response  = await httpClient.POST(
+                                      HTTPPath.Root,
+                                      "order"u8.ToArray(),
+                                      HTTPContentType.Text.PLAIN,
+                                      RequestTimeout:  TimeSpan.FromSeconds(5)
+                                  );
+
+            var reason    = response.GetResponseBodyAsUTF8String(HTTPContentType.Text.PLAIN);
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.ClientError),  reason);
+                Assert.That(server.Connections,       Is.EqualTo(3),                           "connections the server took");
+                Assert.That(reason,                   Does.Contain(" after 3 attempts: "));
+                Assert.That(reason,                   Does.Not.Contain("not idempotent"));
             });
 
         }
