@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Security.Cryptography;
 using System.Text;
 
 #endregion
@@ -27,6 +28,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
     public sealed class FileMailStorage(string basePath, ILogger logger) : IMailStorage
     {
+
+        /// <summary>
+        /// The most octets of a Message-ID that go into a file name as they are. A longer one is
+        /// cut, and a hash of the whole of it keeps the name its own: NTFS and ext4 take no name
+        /// of more than 255 characters or octets, and a Message-ID has no length of its own but
+        /// the line's (RFC 5322 §3.6.4, §2.1.1).
+        /// </summary>
+        internal const Int32 MaxMessageIdOctetsInFileName = 100;
+
+        /// <summary>
+        /// The most octets of a header line, CR LF aside (RFC 5322 §2.1.1).
+        /// </summary>
+        private const Int32 MaxLineOctets = 998;
+
         public async Task<string> StoreAsync(
             EMailMessage        message,
             string              envelopeFrom,
@@ -36,13 +51,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             Directory.CreateDirectory(basePath);
 
             var timestamp = Timestamp.Now.ToString("yyyyMMdd_HHmmss_fff");
-            var messageId = message.MessageId ?? UUIDv7.Generate().ToString("N")[..16];
-            var fileName = $"{timestamp}_{SanitizeFileName(messageId)}.eml";
+            var messageId = FileNameOf(message.MessageId ?? UUIDv7.Generate().ToString("N")[..16]);
+            var fileName = $"{timestamp}_{messageId}.eml";
             var filePath = Path.Combine(basePath, fileName);
 
-            // Build metadata header (CRLF line endings, independent of host OS)
+            // Build metadata header (CRLF line endings, independent of host OS). A value is what
+            // the server was told - by the client, by DNS, by the message - and goes in as a field
+            // body (RFC 5322 §2.2): no line break of its own, folded where it is long.
             var metadata = new StringBuilder();
-            void AddHeader(string name, string value) => metadata.Append(name).Append(": ").Append(value).Append("\r\n");
+            void AddHeader(string name, string value) => metadata.Append(Field(name, value));
 
             AddHeader("X-Envelope-From", envelopeFrom);
             AddHeader("X-Envelope-To",   string.Join(", ", envelopeTo));
@@ -64,14 +81,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     AddHeader("X-MX-Records", string.Join(", ", v.MxRecords));
             }
 
-            // The metadata as UTF-8 without BOM, so the stored .eml starts with the first header
-            // byte, followed by the message exactly as it arrived: an 8-bit body that is not
-            // UTF-8 must not come out of the store as U+FFFD.
+            // The metadata as UTF-8 without BOM, followed by the message exactly as it arrived: an
+            // 8-bit body that is not UTF-8 must not come out of the store as U+FFFD. It goes behind
+            // the Return-Path, which the delivery server puts "at the beginning of the mail data"
+            // (RFC 5321 §4.4) - or first, for a message without one.
             var metadataBytes = Encoding.UTF8.GetBytes(metadata.ToString());
             var messageBytes  = message.GetBytes();
+            var at            = EndOfReturnPath(messageBytes);
             var fullMessage   = new Byte[metadataBytes.Length + messageBytes.Length];
-            metadataBytes.CopyTo(fullMessage, 0);
-            messageBytes. CopyTo(fullMessage, metadataBytes.Length);
+            messageBytes.AsSpan(0, at).CopyTo(fullMessage);
+            metadataBytes.CopyTo(fullMessage, at);
+            messageBytes.AsSpan(at).CopyTo(fullMessage.AsSpan(at + metadataBytes.Length));
 
             // One message can be stored more than once in the same millisecond - a copy for each
             // ORCPT, with its own Original-Recipient field (RFC 8098 §2.3) - and a copy must not
@@ -86,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 }
                 catch (IOException) when (File.Exists(filePath) && number < 1000)
                 {
-                    filePath = Path.Combine(basePath, $"{timestamp}_{SanitizeFileName(messageId)}_{number}.eml");
+                    filePath = Path.Combine(basePath, $"{timestamp}_{messageId}_{number}.eml");
                 }
             }
 
@@ -94,11 +114,138 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             return filePath;
         }
 
+
+        #region (internal static) Field(Name, Value)
+
+        /// <summary>
+        /// A header field of the store's own, CR LF and all. RFC 5322 §2.2: "A field body MUST NOT
+        /// include CR and LF except when used in 'folding' and 'unfolding'" - a value from DNS or
+        /// from the message may have line breaks and other control characters in it: each run of
+        /// them is a space, so that it makes no field of its own and does not end the header.
+        /// And §2.1.1: "Each line of characters MUST be no more than 998 characters" - a longer
+        /// value is folded before white space in it.
+        /// </summary>
+        internal static String Field(String Name, String Value)
+        {
+
+            var body    = new StringBuilder(Value.Length);
+            var inBreak = false;
+
+            foreach (var c in Value)
+            {
+
+                if (Char.IsControl(c) && c != '\t' || c is '\u2028' or '\u2029')
+                {
+                    if (!inBreak)
+                        body.Append(' ');
+                    inBreak = true;
+                    continue;
+                }
+
+                body.Append(c);
+                inBreak = false;
+
+            }
+
+            var field  = new StringBuilder();
+            var line   = new StringBuilder(Name).Append(':');
+            var words  = body.ToString().Split(' ');
+
+            foreach (var word in words)
+            {
+
+                // Folding puts CR LF before the white space; the next line begins with it.
+                if (line.Length > Name.Length + 1 &&
+                    Encoding.UTF8.GetByteCount(line.ToString()) + 1 + Encoding.UTF8.GetByteCount(word) > MaxLineOctets)
+                {
+                    field.Append(line).Append("\r\n");
+                    line.Clear();
+                }
+
+                line.Append(' ').Append(word);
+
+            }
+
+            return field.Append(line).Append("\r\n").ToString();
+
+        }
+
+        #endregion
+
+        #region (internal static) EndOfReturnPath(Message)
+
+        /// <summary>
+        /// Where the Return-Path field the message begins with ends, its CR LF included - or 0
+        /// when it does not begin with one.
+        /// </summary>
+        internal static Int32 EndOfReturnPath(ReadOnlySpan<Byte> Message)
+        {
+
+            var name = "Return-Path:"u8;
+
+            if (Message.Length < name.Length || !Ascii.EqualsIgnoreCase(Message[..name.Length], name))
+                return 0;
+
+            var start = 0;
+
+            while (true)
+            {
+
+                var eol = Message[start..].IndexOf("\r\n"u8);
+                if (eol < 0)
+                    return 0;
+
+                start += eol + 2;
+
+                // A folded field goes on in a line that begins with white space.
+                if (start >= Message.Length || Message[start] is not ((Byte) ' ' or (Byte) '\t'))
+                    return start;
+
+            }
+
+        }
+
+        #endregion
+
+        #region (internal static) FileNameOf(MessageId)
+
+        /// <summary>
+        /// The part of a file name that names the message: its Message-ID, without what no file
+        /// name may have - and, when it is longer than <see cref="MaxMessageIdOctetsInFileName"/>
+        /// octets, its beginning and a hash of the whole of it.
+        /// </summary>
+        internal static String FileNameOf(String MessageId)
+        {
+
+            var name = SanitizeFileName(MessageId);
+
+            if (Encoding.UTF8.GetByteCount(name) <= MaxMessageIdOctetsInFileName)
+                return name;
+
+            var hash   = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(MessageId)))[..16];
+            var prefix = new StringBuilder();
+            var octets = 0;
+
+            foreach (var rune in name.EnumerateRunes())
+            {
+                octets += rune.Utf8SequenceLength;
+                if (octets > MaxMessageIdOctetsInFileName - hash.Length - 1)
+                    break;
+                prefix.Append(rune.ToString());
+            }
+
+            return $"{prefix}_{hash}";
+
+        }
+
+        #endregion
+
         private static string SanitizeFileName(string name)
         {
             var invalid = Path.GetInvalidFileNameChars();
             return string.Join("_", name.Split(invalid, StringSplitOptions.RemoveEmptyEntries));
         }
+
     }
 
 }
