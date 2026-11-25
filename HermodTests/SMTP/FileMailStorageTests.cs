@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             var value = String.Join(" ", Enumerable.Range(0, 300).Select(number => $"ip4:192.0.2.{number % 256}"));
-            var field = FileMailStorage.Field("X-SPF-Record", value);
+            var field = HeaderField.Of("X-SPF-Record", value);
 
             Assert.That(field.Split("\r\n").Where(line => line.Length > 0), Has.All.Matches<String>(line => Encoding.UTF8.GetByteCount(line) <= 998));
             Assert.That(field.Split("\r\n").Skip(1).Where(line => line.Length > 0), Has.All.StartWith(" "), "folded before white space");
@@ -117,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         [Test]
         public void A_value_of_the_usual_kind_goes_as_it_is()
 
-            => Assert.That(FileMailStorage.Field("X-SPF-Record", "v=spf1 ip4:192.0.2.0/24\t-all"),
+            => Assert.That(HeaderField.Of("X-SPF-Record", "v=spf1 ip4:192.0.2.0/24\t-all"),
                            Is.EqualTo("X-SPF-Record: v=spf1 ip4:192.0.2.0/24\t-all\r\n"));
 
         #endregion

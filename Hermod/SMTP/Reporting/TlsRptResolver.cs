@@ -125,11 +125,12 @@ public sealed partial class TlsRptResolver(IDNSClient dnsClient, ILogger logger)
 
         foreach (var uri in rua.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
+            // RFC 8460 §3: "In the case of "mailto", reports should be submitted to the
+            // specified email address [RFC6068]" - percent-encoded in the URI, commas,
+            // exclamation points and semicolons of its own too. A URI with a line break in it is
+            // none (RFC 3986 §2), and names no recipient - nor a header field of the report.
             if (uri.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
-            {
-                var addr = uri[7..].Trim();
-                if (addr.Contains('@')) mailto.Add(addr);
-            }
+                mailto.AddRange(MailtoUri.Addresses(uri).Where(address => !mailto.Contains(address)));
             else if (uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 https.Add(uri);
         }
