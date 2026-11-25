@@ -455,7 +455,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         [TestCase("HTP/1.1 200 OK")]
         [TestCase("HTTP/1.1 20 OK")]
-        [TestCase("HTTP/1.1 600 Out of range")]
+        [TestCase("HTTP/1.1 2000 Four digits")]
+        [TestCase("HTTP/1.1 000 Zero")]
         public async Task GET_Rejects_Invalid_Response_Status_Line(String statusLine)
         {
 
@@ -476,11 +477,120 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
 
-            Assert.That(response.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.ClientError));
+            // The reason, not just the code: a "000" read as a status code
+            // would be a ClientError too, code 0 being that sentinel.
+            Assert.That(response.HTTPStatusCode,       Is.EqualTo(HTTPStatusCode.ClientError));
+            Assert.That(response.HTTPBodyAsUTF8String, Is.EqualTo("Invalid HTTP response status line."));
 
             await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
 
         }
+
+        #region An invalid status code is read as a server error (H-49)
+
+        /// <summary>
+        /// RFC 9110, Section 15: a status code outside 100-599 is invalid, and
+        /// a client that receives one SHOULD process the response as if it had
+        /// a 5xx status code. Until H-49 this client refused the status line,
+        /// so a "999" came back as its own ClientError and the body was never
+        /// read. Found by cache-tests (A12), whose origin answers 999 to a
+        /// request it expected to be conditional.
+        /// </summary>
+        [TestCase("999", 999)]
+        [TestCase("600", 600)]
+        [TestCase("099",  99)]
+        public async Task An_Invalid_Status_Code_Is_Read_As_A_Server_Error(String StatusCode, Int32 Code)
+        {
+
+            using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+
+            var serverTask = SendResponseAndClose(
+                                 listener,
+                                 $"HTTP/1.1 {StatusCode} Not One Of Ours\r\nContent-Length: 5\r\nConnection: close\r\n\r\n",
+                                 "hello",
+                                 false
+                             );
+
+            using var httpClient = new HTTPClient(
+                                       URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
+                                       MaxNumberOfRetries: 0
+                                   );
+
+            var response = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPStatusCode.Code,          Is.EqualTo(Code));
+                Assert.That(response.HTTPStatusCode.IsServerError, Is.True);
+                Assert.That(response.HTTPStatusCode.IsInvalid,     Is.True);
+                Assert.That(response.HTTPBodyAsUTF8String,         Is.EqualTo("hello"));
+            });
+
+            await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
+
+        }
+
+        /// <summary>
+        /// The response with the invalid status code is framed and read like any
+        /// other, so the connection carries the next request. Refusing it had
+        /// dropped the connection with the body still in the socket.
+        /// </summary>
+        [Test]
+        public async Task An_Invalid_Status_Code_Leaves_The_Connection_Usable()
+        {
+
+            using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+
+            var serverTask = Task.Run(async () => {
+
+                using var tcpClient = await listener.AcceptTcpClientAsync();
+                await using var stream = tcpClient.GetStream();
+
+                foreach (var response in new[] {
+                                             "HTTP/1.1 999 304 Not Generated\r\nContent-Length: 5\r\n\r\nfirst",
+                                             "HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nsecond"
+                                         })
+                {
+
+                    var buffer  = new Byte[4096];
+                    var request = "";
+
+                    while (!request.Contains("\r\n\r\n", StringComparison.Ordinal))
+                    {
+                        var bytesRead = await stream.ReadAsync(buffer);
+                        if (bytesRead == 0)
+                            return;
+                        request += Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    }
+
+                    await stream.WriteAsync(Encoding.UTF8.GetBytes(response));
+                    await stream.FlushAsync();
+
+                }
+
+            });
+
+            using var httpClient = new HTTPClient(
+                                       URL.Parse($"http://127.0.0.1:{((IPEndPoint) listener.LocalEndpoint).Port}"),
+                                       MaxNumberOfRetries: 0
+                                   );
+
+            var first  = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
+            var second = await httpClient.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(3));
+
+            Assert.Multiple(() => {
+                Assert.That(first. HTTPStatusCode.Code,  Is.EqualTo(999));
+                Assert.That(first. HTTPBodyAsUTF8String, Is.EqualTo("first"));
+                Assert.That(second.HTTPStatusCode,       Is.EqualTo(HTTPStatusCode.OK), "The second request needs the connection the first one left");
+                Assert.That(second.HTTPBodyAsUTF8String, Is.EqualTo("second"));
+            });
+
+            await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
+
+        }
+
+        #endregion
 
         [Test]
         public async Task POST_Does_Not_Send_Body_After_Expectation_Failed()

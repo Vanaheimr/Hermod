@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-11-24**
+Last verified: **2026-11-25**
 
 ## Support levels
 
@@ -756,6 +756,24 @@ at all and answered "Giving up … after 0 attempts", and `1` never tried a
 second time. The default was `3` then, so a client that leaves it alone
 makes the same three attempts as before. One that sets it makes one more.
 
+## The client: status codes outside 100–599
+
+RFC 9110, Section 15 calls a status code outside 100–599 invalid, and a
+client that receives one SHOULD process the response as if it had a `5xx`.
+Some implementations use 600–999 for errors of their own. The client reads
+any three digits: the response is framed and read like any final one, the
+connection carries the next request, and its `HTTPStatusCode` keeps the code
+it came with and says `IsServerError` and `IsInvalid`. Neither cache stores it.
+
+`000` alone is still refused, as an invalid status line. Code 0 is
+`HTTPStatusCode.ClientError`, the answer that says no response came, and a
+server's `000` must not read as one that did.
+
+Until 2026-11-25 (H-49) the client refused every code outside 100–599, so a
+`999` came back as its own `ClientError` and the connection was dropped with
+the body still unread. Found by cache-tests, whose origin answers `999` to a
+request it expected to be conditional.
+
 ## The client: challenges and redirects
 
 Since 2026-11-20 the HTTP/1.x client does both of what the HTTP/2 client
@@ -857,7 +875,8 @@ cache with them:
 What the cache does:
 
 - **Stores** the responses to `GET` that §3 allows: not `no-store`, a final
-  status other than `206` and `304`, and something that says it may be kept.
+  status other than `206` and `304`, none outside 100–599, and something that
+  says it may be kept.
   A body still on the connection, an event stream, is not stored, nor one
   larger than `MaxBodySize` (4 MiB by default). `MaxEntries` (1024) evicts
   the response used least recently. Connection-specific fields are not
@@ -1231,7 +1250,9 @@ handlers' own fixtures stay outside, as said above. This one tests what RFC
 forty-seven: **963**, the 920 and their 43. H-44 added one test to each:
 **965**. H-46 added two to the first and one to the second: **968**. H-47
 added three to each: **974**, and H-45 three to each again: **980**. H-48
-added five to `HTTPClientProtocolRegressionTests`: **985**.
+added five to `HTTPClientProtocolRegressionTests`: **985**. H-49 added
+five more to it, one to `HTTPStatusCodeTests` and one to `HTTPCacheTests`:
+**992**.
 
 Run it with:
 

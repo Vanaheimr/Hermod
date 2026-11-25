@@ -98,8 +98,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Method != HTTPMethod.GET && Method != HTTPMethod.HEAD)
                 return false;
 
-            // Only final responses, and none this cache cannot use whole.
-            if (Status < 200 || Status is 206 or 304)
+            // Only final responses, and none this cache cannot use whole. Nor
+            // one with an invalid status code, outside 100-599 (RFC 9110,
+            // Section 15): the client takes it as a 5xx, but nothing makes a
+            // cache store one, and a shared cache would hand it to everyone.
+            if (Status < 200 || Status > 599 || Status is 206 or 304)
                 return false;
 
             // no-store on either side forbids storage.
