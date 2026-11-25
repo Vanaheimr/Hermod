@@ -793,8 +793,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                 var stream  = client.GetStream();
                                 var buffer  = new Byte[4096];
                                 var length  = 0;
+                                var end     = -1;
 
-                                while (!Encoding.ASCII.GetString(buffer, 0, length).Contains("\r\n\r\n", StringComparison.Ordinal))
+                                while ((end = Encoding.ASCII.GetString(buffer, 0, length).IndexOf("\r\n\r\n", StringComparison.Ordinal)) < 0)
                                 {
                                     var read = await stream.ReadAsync(buffer.AsMemory(length), stop.Token);
                                     if (read == 0 || (length += read) == buffer.Length)
@@ -803,8 +804,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                                 if (Interlocked.Increment(ref requests) >= answerFrom)
                                 {
+
+                                    // The body has to be read before answering: a socket closed
+                                    // with octets still unread sends a reset rather than a FIN
+                                    // (RFC 9293, Section 3.6.1; Windows does), and the reset can
+                                    // discard the answer before the client reads it. The client
+                                    // writes the header section and the body separately, so the
+                                    // body may well still be on its way here.
+                                    var header         = Encoding.ASCII.GetString(buffer, 0, end);
+                                    var contentLength  = header.Split("\r\n").
+                                                                Where (line => line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase)).
+                                                                Select(line => Int32.Parse(line["Content-Length:".Length..].Trim())).
+                                                                FirstOrDefault();
+
+                                    while (length - (end + 4) < contentLength)
+                                    {
+                                        var read = await stream.ReadAsync(buffer.AsMemory(length), stop.Token);
+                                        if (read == 0 || (length += read) == buffer.Length)
+                                            return;
+                                    }
+
                                     await stream.WriteAsync("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK"u8.ToArray(), stop.Token);
                                     await stream.FlushAsync(stop.Token);
+
+                                    // Close the sending side first and wait for the client's close,
+                                    // so that the answer is never followed by a reset.
+                                    client.Client.Shutdown(SocketShutdown.Send);
+                                    while (await stream.ReadAsync(buffer, stop.Token) > 0) { }
+
                                 }
 
                             }
