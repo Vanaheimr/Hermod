@@ -68,11 +68,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         // What mail programs put before a subject, in the languages they are most
         // often set to: Re, Aw (de), Sv (da, no, sv), Antw (nl), Fwd, Fw, Wg (de),
         // Tr (fr), Rv (es), Doorst (nl) - with a count, "Re[2]:", or a list tag.
-        [GeneratedRegex(@"^\s*(?:(?:re|aw|sv|antw|fwd?|wg|tr|rv|doorst)\s*(?:\[\d+\]|\(\d+\))?\s*:\s*)+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-        private static partial Regex Prefixes();
+        [GeneratedRegex(@"^\s*(?:re|aw|sv|antw|fwd?|wg|tr|rv|doorst)\s*(?:\[\d+\]|\(\d+\))?\s*:\s*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        private static partial Regex Prefix();
 
-        [GeneratedRegex(@"<mailto:([^>?]+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-        private static partial Regex MailtoTarget();
+        // The tag a mailing list puts before the subject: "[dev] ".
+        [GeneratedRegex(@"^\s*\[[^\[\]]*\]\s*", RegexOptions.CultureInvariant)]
+        private static partial Regex ListTag();
 
         /// <summary>
         /// How many message ids References keeps: the first, which names the thread,
@@ -86,10 +87,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region BaseSubject(Subject) / ReplySubject(Subject) / ForwardSubject(Subject)
 
         /// <summary>
-        /// The subject without what mail programs put before it - "Re: AW: Fwd:".
+        /// The subject without what mail programs put before it - "Re: AW: Fwd:" - also where
+        /// a mailing list's tag stands among them: "[dev] Re: Hello" is "[dev] Hello", the tag
+        /// kept, once, before the subject.
         /// </summary>
+        /// <remarks>
+        /// RFC 5322 §3.6.5: the subject of a reply is "Re: " and the original's, and "only one
+        /// instance of the literal string "Re: " ought to be used" - a list that puts its tag
+        /// before "Re: " would have it twice in the answer.
+        /// </remarks>
         public static String BaseSubject(String Subject)
-            => Prefixes().Replace(Subject, "").Trim();
+        {
+
+            var tags = new List<String>();
+            var rest = Subject;
+
+            while (true)
+            {
+
+                if (Prefix().Match(rest) is { Success: true } prefix)
+                    rest = rest[prefix.Length..];
+
+                else if (ListTag().Match(rest) is { Success: true } tag)
+                {
+                    if (!tags.Contains(tag.Value.Trim(), StringComparer.OrdinalIgnoreCase))
+                        tags.Add(tag.Value.Trim());
+                    rest = rest[tag.Length..];
+                }
+
+                else
+                    break;
+
+            }
+
+            return String.Join(" ", [ .. tags, rest.Trim() ]).Trim();
+
+        }
 
         /// <summary>
         /// The subject of an answer: one "Re:" before what it was about.
@@ -153,14 +186,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// The address a list takes posts at - the mailto: of List-Post (RFC 2369) -
         /// or null when it takes none ("NO") or names no list.
         /// </summary>
+        /// <remarks>
+        /// RFC 2369 §2: the field is angle-bracket enclosed URLs, "with internal whitespace
+        /// being ignored", alternatives separated by commas, in their order of preference; and
+        /// "client applications MUST follow the following guidelines": a field that,
+        /// "following any leading whitespace, including comments", begins with no "&lt;" is
+        /// ignored; "Any characters following an angle bracket enclosed URL SHOULD be ignored,
+        /// unless a comma is the first non-whitespace/comment character after the closing
+        /// angle bracket"; and after a sub-item that is no such URL, the remainder is ignored.
+        /// The first mailto URL among them names the list (RFC 6068).
+        /// </remarks>
         public static String? ListPost(MimeMessage Original)
         {
 
-            var match = MailtoTarget().Match(Original.Root.Headers.Get("List-Post") ?? "");
+            foreach (var url in ListUrls(Original.Root.Headers.Get("List-Post") ?? ""))
+                if (url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
+                    foreach (var address in SMTP.MailtoUri.Addresses(url))
+                        if (MimeEncoding.IsAddress(address))
+                            return address;
 
-            return match.Success && MimeEncoding.IsAddress(Uri.UnescapeDataString(match.Groups[1].Value))
-                       ? Uri.UnescapeDataString(match.Groups[1].Value)
-                       : null;
+            return null;
+
+        }
+
+        /// <summary>
+        /// The URLs of a list header field (RFC 2369 §2), white space inside their angle
+        /// brackets taken away, as far as the field's guidelines let them be read.
+        /// </summary>
+        internal static IEnumerable<String> ListUrls(String Value)
+        {
+
+            var i = 0;
+
+            while (true)
+            {
+
+                i = SkipCommentsAndWhiteSpace(Value, i);
+
+                if (i >= Value.Length || Value[i] != '<')
+                    yield break;
+
+                var end = Value.IndexOf('>', i + 1);
+                if (end < 0)
+                    yield break;
+
+                yield return String.Concat(Value[(i + 1)..end].Where(character => !Char.IsWhiteSpace(character)));
+
+                i = SkipCommentsAndWhiteSpace(Value, end + 1);
+
+                if (i >= Value.Length || Value[i] != ',')
+                    yield break;
+
+                i++;
+
+            }
+
+        }
+
+        // White space and comments (RFC 5322 §3.2.2: nested, with quoted-pairs).
+        private static Int32 SkipCommentsAndWhiteSpace(String Value, Int32 Index)
+        {
+
+            var depth = 0;
+
+            for (; Index < Value.Length; Index++)
+            {
+
+                var character = Value[Index];
+
+                if (depth > 0)
+                {
+                    if      (character == '\\') Index++;
+                    else if (character == '(')  depth++;
+                    else if (character == ')')  depth--;
+                }
+                else if (character == '(')
+                    depth++;
+                else if (!Char.IsWhiteSpace(character))
+                    break;
+
+            }
+
+            return Index;
 
         }
 

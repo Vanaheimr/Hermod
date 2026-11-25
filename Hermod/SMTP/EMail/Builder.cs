@@ -454,8 +454,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                                                                                                     ($"<{ListId.Identification}>", false) ],
                                                                                                                76)));
 
+                    // RFC 2369 §2: a URL in angle brackets - RFC 6068 §2: the address in a mailto URL
+                    // percent-encoded, "%" and the gen-delims but "@" and ":" - "/", "?", "#" - too.
                     if (ListPost           is not null)
-                        SetEMailHeader("List-Post",                  $"<mailto:{ListPost}>");
+                        SetEMailHeader("List-Post",                  $"<{SMTP.MailtoUri.Of(ListPost.ToString())}>");
 
                     if (DispositionNotificationTo is not null)
                         SetEMailHeader("Disposition-Notification-To", AddressHeader("Disposition-Notification-To", [ DispositionNotificationTo ]));
