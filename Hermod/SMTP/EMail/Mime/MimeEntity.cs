@@ -49,6 +49,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #endregion
 
 
+        #region (internal) EntityType / ContentIdOfPart
+
+        /// <summary>
+        /// The media type of the entity - type "/" subtype, lower case - or null where it
+        /// is not known.
+        /// </summary>
+        internal virtual String? EntityType
+            => null;
+
+        /// <summary>
+        /// The Content-ID of the entity, without its angle brackets, or null: the one it
+        /// is given, or a Content-ID among its further headers.
+        /// </summary>
+        internal virtual String? ContentIdOfPart
+            => Headers.Where(header => header.Name.Equals("Content-ID", StringComparison.OrdinalIgnoreCase)).
+                       Select (header => MimeMessage.ContentIdOf(header.Value)).
+                       FirstOrDefault();
+
+        #endregion
+
         #region (protected abstract) ContentHeaders()
 
         /// <summary>
@@ -139,6 +159,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         private Byte[] Octets
             => Encoding.UTF8.GetBytes(Text);
 
+        internal override String EntityType
+            => $"text/{SubType.ToLowerInvariant()}";
+
         protected override IEnumerable<String> ContentHeaders()
         {
 
@@ -219,11 +242,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             this.ContentType  = MediaType.IsMatch(ContentType.Trim()) ? ContentType.Trim().ToLowerInvariant() : "application/octet-stream";
             this.FileName     = String.IsNullOrWhiteSpace(FileName) ? null : MimeEncoding.CheckHeaderValue("a file name", FileName.Trim());
             this.Inline       = Inline;
-            this.ContentId    = ContentId is null ? null : MimeEncoding.CheckHeaderValue("Content-ID", ContentId.Trim('<', '>', ' '));
+            this.ContentId    = ContentId is null ? null : CheckContentId(ContentId.Trim().Trim('<', '>'));
 
         }
 
         #endregion
+
+        internal override String EntityType
+            => ContentType;
+
+        internal override String? ContentIdOfPart
+            => ContentId ?? base.ContentIdOfPart;
+
+        // RFC 5322 §3.6.4: id-left = dot-atom-text, id-right = dot-atom-text / no-fold-literal.
+        private static readonly Regex MsgIdText = new(@"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@([A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\[[\x21-\x5A\x5E-\x7E]*\])$");
+
+        /// <summary>
+        /// A Content-ID, without its angle brackets: RFC 2045 §7: id := "Content-ID" ":"
+        /// msg-id, and RFC 5322 §3.6.4: msg-id = "&lt;" id-left "@" id-right "&gt;", of
+        /// printable US-ASCII. What is none is refused - written, it would be none, or
+        /// another id than the one a cid: URL refers to.
+        /// </summary>
+        /// <exception cref="ArgumentException">It is no msg-id.</exception>
+        internal static String CheckContentId(String ContentId)
+        {
+
+            if (!MsgIdText.IsMatch(ContentId))
+                throw new ArgumentException($"The Content-ID \"{ContentId}\" is no msg-id (RFC 5322 §3.6.4): id-left \"@\" id-right, of printable US-ASCII, without white space.", nameof(ContentId));
+
+            return ContentId;
+
+        }
 
         protected override IEnumerable<String> ContentHeaders()
         {
@@ -289,9 +338,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if (this.Parts.Count == 0)
                 throw new ArgumentException("A multipart without parts is none.");
 
+            // RFC 2387 §3.1: "The type parameter must be specified and its value is the MIME
+            // media type of the "root" body part" - the part start names, the first without
+            // (§3.2). Given none, it is the root's.
+            if (this.SubType == "related" &&
+               !this.Parameters.Any(parameter => parameter.Name.Equals("type", StringComparison.OrdinalIgnoreCase)) &&
+                RootOf(this.Parts, this.Parameters).EntityType is { } rootType)
+            {
+                this.Parameters = [ ("type", rootType), .. this.Parameters ];
+            }
+
         }
 
         #endregion
+
+        // RFC 2387 §3.2: the root is the part whose Content-ID start names, the first without.
+        private static MimeEntity RootOf(IReadOnlyList<MimeEntity> Parts, IReadOnlyList<(String Name, String Value)> Parameters)
+        {
+
+            var start = Parameters.FirstOrDefault(parameter => parameter.Name.Equals("start", StringComparison.OrdinalIgnoreCase)).Value;
+            var id    = start is null ? null : MimeMessage.ContentIdOf(start);
+
+            return (id is null ? null : Parts.FirstOrDefault(part => part.ContentIdOfPart == id)) ?? Parts[0];
+
+        }
+
+        internal override String EntityType
+            => $"multipart/{SubType}";
 
         protected override IEnumerable<String> ContentHeaders()
         {
@@ -342,6 +415,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         public ReadOnlyMemory<Byte> Octets { get; } = Octets;
 
+        internal override String EntityType
+            => MimeMessage.Parse(Octets).Root.ContentType.MimeType;
+
+        internal override String? ContentIdOfPart
+            => MimeMessage.Parse(Octets).Root.ContentId;
+
         protected override IEnumerable<String> ContentHeaders()
             => [];
 
@@ -384,6 +463,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             this.Message   = Message;
             this.FileName  = String.IsNullOrWhiteSpace(FileName) ? null : MimeEncoding.CheckHeaderValue("a file name", FileName.Trim());
         }
+
+        internal override String EntityType
+            => "message/rfc822";
 
         /// <summary>
         /// Whether the message is 7-bit - and so the mail that carries it.

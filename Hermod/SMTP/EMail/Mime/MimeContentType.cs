@@ -499,10 +499,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             => Parameters.GetValueOrDefault("filename");
 
         /// <summary>
-        /// Whether the sender meant it to be saved rather than shown.
+        /// Whether the sender meant it to be shown with the message.
+        /// </summary>
+        public Boolean                              IsInline
+            => Disposition == "inline";
+
+        /// <summary>
+        /// Whether the sender meant it to be saved rather than shown: attachment, and a
+        /// type this reader does not know - RFC 2183 §2.8: "Unrecognized disposition types
+        /// should be treated as `attachment'".
         /// </summary>
         public Boolean                              IsAttachment
-            => Disposition == "attachment";
+            => !IsInline;
 
         #endregion
 
