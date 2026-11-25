@@ -1022,20 +1022,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         /// <summary>
         /// A client that answers the PINGs - Hermod's own, which does so by itself - stays connected,
-        /// however many intervals pass.
+        /// however many intervals pass: here fifteen, three times as long as a peer may stay silent.
         /// </summary>
+        /// <remarks>
+        /// A PONG late by more than the silence allowed ends the connection as one that never came.
+        /// With 100 ms and two PINGs, 200 ms, a runner busy with other suites - EMSPCLI's nightly
+        /// on windows-latest of 2026-11-25 - lost both sides of a connection that was well; a
+        /// second of silence holds against such a pause and is still far below the wait.
+        /// </remarks>
         [Test]
         [CancelAfter(30000)]
         public async Task AnsweringClient_StaysConnected(CancellationToken CancellationToken)
         {
 
-            await using var running = await StartAsync(CancellationToken, o => o with { PingEvery = TimeSpan.FromMilliseconds(100), MaxOutstandingPings = 2 });
+            await using var running = await StartAsync(CancellationToken, o => o with { PingEvery = TimeSpan.FromMilliseconds(200), MaxOutstandingPings = 5 });
             await using var client  = Client(running);
 
             var connection = await client.ConnectAsync(CancellationToken);
             var serverSide = await ServerSideOf(running);
 
-            await Task.Delay(TimeSpan.FromMilliseconds(1200), CancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(3000), CancellationToken);
 
             Assert.Multiple(() => {
                 Assert.That(serverSide.IsAlive, Is.True);
