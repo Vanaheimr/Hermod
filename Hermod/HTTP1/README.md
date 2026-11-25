@@ -22,7 +22,7 @@ Last verified: **2026-11-25**
 | Specification | Hermod support |
 |---|---|
 | [RFC 1945](https://www.rfc-editor.org/rfc/rfc1945.html), HTTP/1.0 | Implemented and regression-tested for requests, responses, `Content-Length`, close-delimited responses, default connection closing, optional negotiated keep-alive, and HTTP/1.0-specific rejection/fallback behavior. |
-| [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host` and the §7.4 refusal of a request for an origin the TLS certificate does not cover (since 2026-10-29), connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Every status code in the IANA registry is defined with its registered reason phrase. Six carried pre-RFC-9110 phrases until 2026-10-03; five now match the registry (413 `Content Too Large`, 414 `URI Too Long`, 416 `Range Not Satisfiable`, 422 `Unprocessable Content` and 306 `(Unused)`) without any field being renamed, since the wire carries the phrase and downstream code refers to the field. 418 keeps `I'm a teapot`, which RFC 9110 does not mention and RFC 2324 does. `HTTPStatusCodeTests` pins that one remaining divergence. Resource semantics remain application-defined, unless a resource is registered with `AddResource`: then negotiation, preconditions and ranges (§12–14) come from the library, the same code HTTP/2 uses, since 2026-11-20 — see "Resources: negotiation, preconditions and ranges". |
+| [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host` and the §7.4 refusal of a request for an origin the TLS certificate does not cover (since 2026-10-29), connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Every status code in the IANA registry is defined with its registered reason phrase. Six carried pre-RFC-9110 phrases until 2026-10-03; five now match the registry (413 `Content Too Large`, 414 `URI Too Long`, 416 `Range Not Satisfiable`, 422 `Unprocessable Content` and 306 `(Unused)`) without any field being renamed, since the wire carries the phrase and downstream code refers to the field. 418 keeps `I'm a teapot`, which RFC 9110 does not mention and RFC 2324 does. `HTTPStatusCodeTests` pins that one remaining divergence. Resource semantics remain application-defined, unless a resource is registered with `AddResource`: then negotiation, preconditions and ranges (§12–14) come from the library, the same code HTTP/2 uses, since 2026-11-20 — see "Resources: negotiation, preconditions and ranges". The client sends a request that went out and was not answered again only if its method is idempotent or it carries an `Idempotency-Key`, and only once (§9.2.2, since 2026-11-25) — see "The client: retries". |
 | [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html), HTTP/1.1 message syntax and routing | Implemented and regression-tested for start lines, all four forms of request-target (absolute-form accepted since 2026-11-20), header parsing, message framing, persistent connections, pipelining, chunked transfer coding, trailers, and malformed-message rejection. |
 | [RFC 10008](https://www.rfc-editor.org/rfc/rfc10008.html), HTTP `QUERY` method | The method is modeled as safe and idempotent and is end-to-end tested with fixed-length and chunked request content, trailers, and chunk extensions. Media-type policy, `Accept-Query`, caching, conditional requests, and query-result URI policy are handler responsibilities, except for a resource registered with `AddResource` and a query handler: its `QUERY` runs through the `GET` pipeline, conditional requests and negotiation included, content without a `Content-Type` is a `400` (RFC 10008, Section 4), and the result can name its own URI in `Content-Location`. |
 | [RFC 4918](https://www.rfc-editor.org/rfc/rfc4918.html), WebDAV | Method tokens are modeled (`COPY`, `LOCK`, `MKCOL`, `MOVE`, `PROPFIND`, `PROPPATCH`, and `UNLOCK`). Hermod does not provide a complete WebDAV resource implementation. |
@@ -756,6 +756,28 @@ at all and answered "Giving up … after 0 attempts", and `1` never tried a
 second time. The default was `3` then, so a client that leaves it alone
 makes the same three attempts as before. One that sets it makes one more.
 
+A request that went out is another matter: the server may have acted on it
+although the connection closed before an answer. RFC 9110, Section 9.2.2 says
+a client SHOULD NOT automatically retry a request with a non-idempotent method,
+unless it knows the request to be idempotent all the same, and SHOULD
+NOT retry a failed automatic retry. Since 2026-11-25 (H-50) the client keeps
+both, within whatever `MaxNumberOfRetries` allows:
+
+- An attempt that fails before the request goes out, because the connection
+  or its TLS handshake fails, sent nothing, and is followed by another.
+- One that fails after it went out is followed by another only if the method
+  is idempotent (`HTTPMethod.IsIdempotent`: `GET`, `HEAD`, `PUT`, `DELETE`,
+  `OPTIONS` and the others the registry marks so), or if the request carries
+  an `Idempotency-Key`, which asks the server to apply it once however often
+  it arrives.
+- And only once: a request that went out twice and failed twice is not sent
+  a third time.
+
+The answer then says why it stopped, after the last reason: "`POST` is not
+idempotent, so a request that went out is not sent again", or "a failed
+automatic retry is not retried again". Until then a `POST` to a server that
+read it and closed without an answer arrived three times.
+
 ## The client: status codes outside 100–599
 
 RFC 9110, Section 15 calls a status code outside 100–599 invalid, and a
@@ -1252,7 +1274,8 @@ forty-seven: **963**, the 920 and their 43. H-44 added one test to each:
 added three to each: **974**, and H-45 three to each again: **980**. H-48
 added five to `HTTPClientProtocolRegressionTests`: **985**. H-49 added
 five more to it, one to `HTTPStatusCodeTests` and one to `HTTPCacheTests`:
-**992**.
+**992**. H-50 added nine more to `HTTPClientProtocolRegressionTests`:
+**1001**.
 
 Run it with:
 

@@ -1633,6 +1633,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     // "maximum retries reached", which names the symptom.
                     var lastError           = (String?) null;
 
+                    // RFC 9110, Section 9.2.2 (H-50): an attempt that failed
+                    // after the request went out may have been applied all the
+                    // same. A client SHOULD NOT send a request with a
+                    // non-idempotent method again unless it knows the request
+                    // to be idempotent anyway - here: it carries an
+                    // Idempotency-Key, which asks the server to apply it once
+                    // however often it arrives - and SHOULD NOT retry a failed
+                    // automatic retry. So a request that went out is sent at
+                    // most twice, and only if it may be. An attempt whose
+                    // connection never opened sent nothing, and is tried again
+                    // as often as MaxNumberOfRetries allows. The loop used to
+                    // try every attempt again: a POST to a server that closed
+                    // without an answer arrived three times.
+                    var maySendAgain        = Request.HTTPMethod.IsIdempotent ||
+                                              Request.GetHeaderField("Idempotency-Key") is not null;
+                    var sentAndFailed       = 0;
+                    var gaveUpBecause       = (String?) null;
+
                     while (attempt <= maxNumberOfRetries + 1)
                     {
 
@@ -1691,7 +1709,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             continue;
                         }
 
-                        var stopwatch = Stopwatch.StartNew();
+                        var stopwatch    = Stopwatch.StartNew();
+                        var requestSent  = false;
 
                         try
                         {
@@ -1813,6 +1832,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             }
 
+                            // From the first octet on, the server may have the
+                            // request, and a failure no longer says it does not.
+                            requestSent = true;
+
                             await httpStream.WriteAsync(
                                       Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"),
                                       linkedCancellationToken.Token
@@ -1854,6 +1877,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         bufferOwner?.Dispose();
 
+                                        lastError = "the connection closed before a response arrived";
                                         await Log("Could not read HTTP response from the HTTP stream!");
                                         DebugX.Log($"{nameof(AHTTPClient)}.{nameof(SendRequest)} Could not read HTTP response from the HTTP stream!");
                                         await CloseHTTPConnectionAfterFailure().ConfigureAwait(false);
@@ -2371,6 +2395,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             stopwatch.Stop();
                         }
 
+                        // Only a failed attempt gets here: an answered one has
+                        // returned above.
+                        if (requestSent)
+                        {
+
+                            sentAndFailed++;
+
+                            if (!maySendAgain)
+                            {
+                                gaveUpBecause = $"{Request.HTTPMethod} is not idempotent, so a request that went out is not sent again (RFC 9110, Section 9.2.2)";
+                                break;
+                            }
+
+                            if (sentAndFailed > 1)
+                            {
+                                gaveUpBecause = "a failed automatic retry is not retried again (RFC 9110, Section 9.2.2)";
+                                break;
+                            }
+
+                        }
+
                     }
 
                     // This one is written here, not received: the request was
@@ -2382,7 +2427,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     // client's own 400 on as "the resolver returned HTTP 400".
                     return new HTTPResponse.Builder(Request) {
                                HTTPStatusCode  = HTTPStatusCode.ClientError,
-                               Content         = $"Giving up on this HTTP request to {RemoteURL} after {attempt - 1} {(attempt - 1 == 1 ? "attempt" : "attempts")}: {lastError ?? "no reason was recorded"}".ToUTF8Bytes(),
+                               Content         = $"Giving up on this HTTP request to {RemoteURL} after {attempt - 1} {(attempt - 1 == 1 ? "attempt" : "attempts")}: {lastError ?? "no reason was recorded"}{(gaveUpBecause is not null ? $"; {gaveUpBecause}" : "")}".ToUTF8Bytes(),
                                ContentType     = HTTPContentType.Text.PLAIN,
                                Runtime         = TimeSpan.Zero
                            };
