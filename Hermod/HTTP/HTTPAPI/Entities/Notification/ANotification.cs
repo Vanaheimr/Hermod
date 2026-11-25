@@ -291,7 +291,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region IEquatable<ANotification> Members
 
-        //public abstract Boolean Equals(Object? obj);
+        /// <summary>
+        /// Whether the given object is a notification equal to this one, as
+        /// <see cref="Equals(ANotification?)"/> says - which == says as well, and
+        /// <see cref="GetHashCode"/> agrees with.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is ANotification notification &&
+               Equals(notification);
 
         public abstract Boolean Equals(ANotification? other);
 
