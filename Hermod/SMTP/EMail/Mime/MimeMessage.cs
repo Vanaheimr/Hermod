@@ -122,6 +122,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                Parent is not null && Parent.ContentType.Is("multipart/encrypted");
 
         /// <summary>
+        /// Whether this is a text or an HTML part the sender marked inline and gave a
+        /// file name.
+        /// </summary>
+        internal Boolean                IsNamedInlineText
+            => (ContentType.Is("text/plain") || ContentType.Is("text/html")) &&
+               (ContentDisposition?.IsInline ?? false) && FileName is not null;
+
+        /// <summary>
         /// Whether this is something to list as an attachment: what the sender marked
         /// as one, a forwarded message, and anything that is neither text to show nor
         /// a container nor PGP machinery nor an inline resource.
@@ -143,9 +151,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     return true;
 
                 // Text and HTML are to be shown - unless they come with a file name,
-                // which is how a .txt or .html is attached.
+                // which is how a .txt or .html is attached where the sender said nothing.
+                // Where the sender said inline, inline decides (RFC 2183 §2.1, §2.3: the
+                // filename parameter is one of either disposition).
                 if (ContentType.Is("text/plain") || ContentType.Is("text/html"))
-                    return FileName is not null;
+                    return FileName is not null && !(ContentDisposition?.IsInline ?? false);
 
                 // The report parts of a bounce or a read receipt belong to its text.
                 if (ContentType.Is("message/*") || ContentType.Is("text/rfc822-headers"))
@@ -173,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             this.ContentType              = ContentType;
             this.ContentDisposition       = MimeContentDisposition.Parse(Headers.Get("Content-Disposition"));
             this.ContentTransferEncoding  = TransferEncodingOf(Headers);
-            this.ContentId                = Headers.Get("Content-ID")?.Trim().Trim('<', '>').Trim();
+            this.ContentId                = MimeMessage.ContentIdOf(Headers.Get("Content-ID"));
             this.Raw                      = Raw;
             this.RawBody                  = RawBody;
 
@@ -393,7 +403,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             this.TextBody    = text;
             this.HtmlBody    = html;
-            this.Attachments = [.. Root.Descendants().Where(part => part.IsAttachment)];
+            // A text marked inline with a file name that is not the body - a second one of a
+            // multipart/mixed - is listed beside it, as it was before it was shown.
+            this.Attachments = [.. Root.Descendants().Where(part => part.IsAttachment ||
+                                                                    part.IsNamedInlineText && part != text && part != html)];
 
             this.Pgp         = PgpOf(Root) ?? Root.Children.Select(PgpOf).FirstOrDefault(pgp => pgp is not null);
 
@@ -689,7 +702,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if (type.Is("multipart/related"))
             {
 
-                var start = type.Parameters.GetValueOrDefault("start")?.Trim().Trim('<', '>');
+                // RFC 2387 §3.2: start = msg-id, the Content-ID of the root - read as one.
+                var start = ContentIdOf(type.Parameters.GetValueOrDefault("start"));
                 var root  = (start is not null ? Part.Children.FirstOrDefault(child => child.ContentId == start) : null)
                                 ?? Part.Children.FirstOrDefault();
 
@@ -783,7 +797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         public MimePart? FindByContentId(String ContentId)
         {
-            var id = ContentId.Trim().Trim('<', '>');
+            var id = ContentIdOf(ContentId) ?? ContentId;
             return Root.Descendants().FirstOrDefault(part => part.ContentId is not null && part.ContentId.Equals(id, StringComparison.Ordinal));
         }
 
@@ -851,6 +865,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             return ids;
 
         }
+
+        /// <summary>
+        /// The id of a Content-ID, without its angle brackets, or null for none. RFC 2045 §7:
+        /// id := "Content-ID" ":" msg-id, and RFC 5322 §3.6.4: msg-id = [CFWS] "&lt;" id-left
+        /// "@" id-right "&gt;" [CFWS] - a comment before or after it is no part of it. One
+        /// that is no msg-id is what is between its angle brackets, as it was read before.
+        /// </summary>
+        internal static String? ContentIdOf(String? Value)
+            => MessageIds(Value).FirstOrDefault() ?? NullIfEmpty(Value?.Trim().Trim('<', '>').Trim());
 
         private static String? NullIfEmpty(String? Text)
             => String.IsNullOrEmpty(Text) ? null : Text;
