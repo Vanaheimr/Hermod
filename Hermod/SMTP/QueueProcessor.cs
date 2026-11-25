@@ -269,7 +269,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     mail.EnvelopeTo,
                     mail.MessageContent,
                     mail.RequireTls,
-                    new DsnParameters(mail.Notify, mail.Ret, mail.EnvId),
+                    // A queued Notify of Never is none given; a NOTIFY=NEVER is in RecipientDsns.
+                    // The ENVID is the xtext as it was received or queued, and goes as it is.
+                    new DsnParameters(mail.Notify == DsnNotify.Never ? null : mail.Notify, mail.Ret) { ReceivedEnvId = mail.EnvId },
                     mail.Priority,
                     ct,
                     mail.RecipientDsns,
