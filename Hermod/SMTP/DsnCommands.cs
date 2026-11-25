@@ -63,8 +63,13 @@ public static class DsnCommands
                     _            => ""
                 };
 
-        if (dsn.EnvId is not null)
-            s += $" ENVID={dsn.EnvId}";
+        // RFC 3461 §4.4: "envid-parameter = 'ENVID=' xtext". An identifier that cannot be one is
+        // the caller's to refuse before MAIL; here it never makes a command line of its own.
+        if (dsn.EnvIdError is { } envIdError)
+            throw new ArgumentException(envIdError, nameof(dsn));
+
+        if (dsn.EnvIdXText is { } envId)
+            s += $" ENVID={envId}";
 
         return s;
     }
@@ -76,10 +81,14 @@ public static class DsnCommands
     /// <param name="smtpUtf8">Whether the transaction is SMTPUTF8 (MAIL had the parameter): a UTF-8 address may then be written in UTF-8.</param>
     public static string RcptToParams(DsnParameters dsn, string recipient, bool remoteSupportsDsn, bool smtpUtf8 = false)
     {
-        if (!remoteSupportsDsn || dsn.Notify == DsnNotify.Never)
+
+        // RFC 3461 §4.1: no NOTIFY is the server's default; NOTIFY=NEVER "requests that a DSN not
+        // be returned to the sender under any conditions" - a request like any other.
+        if (!remoteSupportsDsn || dsn.Notify is not { } notify)
             return "";
 
-        return " NOTIFY=" + FormatNotify(dsn.Notify) + " ORCPT=" + OriginalRecipientOf(recipient, smtpUtf8);
+        return " NOTIFY=" + FormatNotify(notify) + " ORCPT=" + OriginalRecipientOf(recipient, smtpUtf8);
+
     }
 
     /// <summary>

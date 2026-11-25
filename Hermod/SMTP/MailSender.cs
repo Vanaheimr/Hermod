@@ -89,6 +89,9 @@ public sealed class MailSender
         if (recipients.Count == 0)
             throw new ArgumentException("The e-mail envelope has no recipients (RCPT TO).", nameof(EMailEnvelop));
 
+        if (EMailEnvelop.Dsn.EnvIdError is { } envIdError)
+            throw new ArgumentException(envIdError, nameof(EMailEnvelop));
+
         // Serialize the composed message to the RFC 5322 wire format. CRLF is forced here (never
         // Environment.NewLine); dot-stuffing is applied later by the outbound client, not now.
         var messageContent = String.Join("\r\n", EMailEnvelop.Mail.ToText(IncludeBcc: false));
@@ -110,9 +113,10 @@ public sealed class MailSender
                 MessageContent  = messageContent,
                 TargetDomain    = domain,
                 RequireTls      = EMailEnvelop.RequireTls,
-                Notify          = EMailEnvelop.Dsn.Notify,
+                Notify          = EMailEnvelop.Dsn.Notify ?? DsnNotify.Never,
                 Ret             = EMailEnvelop.Dsn.Ret,
-                EnvId           = EMailEnvelop.Dsn.EnvId,
+                EnvId           = EMailEnvelop.Dsn.EnvIdXText,
+                RecipientDsns   = NotifyNever(EMailEnvelop.Dsn, to),
                 Priority        = EMailEnvelop.Priority
             }, CancellationToken).ConfigureAwait(false);
 
@@ -176,6 +180,9 @@ public sealed class MailSender
         if (recipients.Count == 0)
             throw new ArgumentException("A message without recipients (RCPT TO) goes nowhere.", nameof(Recipients));
 
+        if (Dsn?.EnvIdError is { } envIdError)
+            throw new ArgumentException(envIdError, nameof(Dsn));
+
         var ids = new List<String>();
 
         foreach (var byDomain in recipients.GroupBy(recipient => recipient[(recipient.LastIndexOf('@') + 1)..].TrimEnd('.').ToLowerInvariant()))
@@ -193,7 +200,8 @@ public sealed class MailSender
                 RequireTls      = RequireTls,
                 Notify          = Dsn?.Notify ?? DsnNotify.Never,
                 Ret             = Dsn?.Ret,
-                EnvId           = Dsn?.EnvId
+                EnvId           = Dsn?.EnvIdXText,
+                RecipientDsns   = NotifyNever(Dsn, [ .. byDomain ])
             }, CancellationToken).ConfigureAwait(false);
 
             ids.Add(id);
@@ -261,6 +269,21 @@ public sealed class MailSender
 
         var results = new List<DirectSendResult>();
 
+        // RFC 3461 §4.4: an ENVID that cannot be one goes to no next hop - a permanent failure
+        // for every recipient domain, before anything is sent.
+        if (EMailEnvelop.Dsn.EnvIdError is { } envIdError)
+        {
+
+            foreach (var byDomain in recipients.GroupBy(rcpt => rcpt.Address.Domain, StringComparer.OrdinalIgnoreCase))
+                results.Add(new DirectSendResult(byDomain.Key.TrimEnd('.').ToLowerInvariant(),
+                                                 [ .. byDomain.Select(rcpt => rcpt.Address.ToString()) ],
+                                                 SendResult.PermFail(501, "5.5.4 " + envIdError)));
+
+            logger.Log(LogLevel.Warning, $"MailSender: not sent - {envIdError}");
+            return results;
+
+        }
+
         // Direct-to-MX delivery is per recipient domain (each has its own MX set).
         foreach (var byDomain in recipients.GroupBy(rcpt => rcpt.Address.Domain, StringComparer.OrdinalIgnoreCase))
         {
@@ -295,6 +318,22 @@ public sealed class MailSender
                                                                  CancellationToken  CancellationToken   = default)
 
         => SendDirectAsync(new EMailEnvelop(EMail), CancellationToken);
+
+    #endregion
+
+
+    #region (private static) NotifyNever(Dsn, Recipients)
+
+    /// <summary>
+    /// The DSN of each recipient when the sender asked for NOTIFY=NEVER: a queued message keeps
+    /// one message-wide Notify, where Never stands for none given - so an explicit NEVER goes
+    /// with each recipient (RFC 3461 §4.1), as a relayed one does. Otherwise none.
+    /// </summary>
+    private static RecipientDsn[] NotifyNever(DsnParameters? Dsn, IEnumerable<String> Recipients)
+
+        => Dsn?.Notify == DsnNotify.Never
+               ? [ .. Recipients.Select(recipient => new RecipientDsn { Recipient = recipient, Notify = DsnNotify.Never }) ]
+               : [];
 
     #endregion
 

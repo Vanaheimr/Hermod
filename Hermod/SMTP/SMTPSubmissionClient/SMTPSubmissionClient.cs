@@ -1396,6 +1396,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         break;
                                     }
 
+                                    // RFC 3461 §4.4: an ENVID is printable US-ASCII, at most 100 characters as
+                                    // xtext. One that is not - a line break in it would end the MAIL command and
+                                    // make a command of its own - is the caller's error; nothing is sent.
+                                    if (EMailEnvelop.Dsn.EnvIdError is { } envIdError)
+                                    {
+                                        smtpLogger.LogWarning("{EnvIdError}; the message is not sent", envIdError);
+                                        result = MailSentStatus.InvalidEnvelopeId;
+                                        break;
+                                    }
+
                                     #endregion
 
                                     #region MAIL FROM: / RCPT TO:
