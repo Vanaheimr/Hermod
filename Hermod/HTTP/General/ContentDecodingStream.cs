@@ -35,12 +35,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     ///   because when it is constructed those bytes have not necessarily arrived.
     ///   So the whole decision — for every coding, not only deflate — waits for the
     ///   first read, where waiting for two bytes is what the caller asked for.</item>
-    ///   <item><b>The decoders disagree about their own exception.</b> gzip, zlib
-    ///   and deflate raise <see cref="InvalidDataException"/> on octets that are not
-    ///   valid for them; <c>BrotliStream</c> raises
-    ///   <see cref="InvalidOperationException"/> for the identical condition. The
-    ///   caller wants one answer to "this body is not what it said it was", so the
-    ///   second is translated into the first.</item>
+    ///   <item><b>The decoders disagree about their own exception.</b> gzip, zlib,
+    ///   deflate and zstd raise <see cref="InvalidDataException"/> on octets that
+    ///   are not valid for them; <c>BrotliStream</c> raises
+    ///   <see cref="InvalidOperationException"/> for the identical condition, and
+    ///   <c>ZstandardStream</c> an <see cref="IOException"/> for a frame whose
+    ///   window is larger than RFC 9659 lets HTTP use — the one a caller would
+    ///   take for the connection failing. The caller wants one answer to "this
+    ///   body is not what it said it was", so both are translated into the first.
+    ///   An IOException of the stream being read is not: it goes on as it is
+    ///   (<see cref="HTTPContentCoding.IsDecoderFailure"/>).</item>
     /// </list>
     /// </summary>
     internal sealed class ContentDecodingStream : Stream
@@ -135,6 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             return coding switch {
                 "br"       => new BrotliStream (source, CompressionMode.Decompress),
+                "zstd"     => HTTPContentCoding.ZstandardDecoder(source),
                 "gzip"     => new GZipStream   (source, CompressionMode.Decompress),
                 "deflate"  => LooksLikeZLib(Prefix, Length)
                                   ? new ZLibStream   (source, CompressionMode.Decompress)
@@ -218,6 +223,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 throw new InvalidDataException($"The body is not valid '{coding}': {e.Message}", e);
             }
+            catch (IOException e) when (HTTPContentCoding.IsDecoderFailure(e))
+            {
+                throw new InvalidDataException($"The body is not valid '{coding}': {e.Message}", e);
+            }
 
         }
 
@@ -238,6 +247,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
             catch (InvalidOperationException e)
+            {
+                throw new InvalidDataException($"The body is not valid '{coding}': {e.Message}", e);
+            }
+            catch (IOException e) when (HTTPContentCoding.IsDecoderFailure(e))
             {
                 throw new InvalidDataException($"The body is not valid '{coding}': {e.Message}", e);
             }

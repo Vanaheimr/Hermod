@@ -362,7 +362,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                              ("gzip",                        "gzip"),
                              ("gzip, deflate, br",          "br"),
                              ("*",                          "br"),
-                             ("br;q=0, gzip;q=0.5",         "gzip")
+                             ("br;q=0, gzip;q=0.5",         "gzip"),
+                             ("zstd",                       "zstd"),
+                             ("gzip, zstd",                 "zstd"),
+                             ("gzip, deflate, br, zstd",    "br")
                          })
                 {
 
@@ -458,6 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             using (Stream decoder = Coding switch {
                                         "gzip"  => new GZipStream  (input, CompressionMode.Decompress),
                                         "br"    => new BrotliStream(input, CompressionMode.Decompress),
+                                        "zstd"  => new ZstandardStream(input, CompressionMode.Decompress),
                                         _       => throw new NotSupportedException(Coding)
                                     })
             {

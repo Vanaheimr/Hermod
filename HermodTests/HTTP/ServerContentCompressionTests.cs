@@ -588,6 +588,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+
+        #region ZstdWhenItIsTheCodingAccepted(AcceptEncoding)
+
+        /// <summary>
+        /// zstd is offered (RFC 8878): taken where the client accepts it and not
+        /// br, before gzip. Its entity tag is its own.
+        /// </summary>
+        [TestCase("zstd")]
+        [TestCase("gzip, zstd")]
+        [TestCase("br;q=0, zstd")]
+        public async Task ZstdWhenItIsTheCodingAccepted(String AcceptEncoding)
+        {
+
+            var response = await Get("/text", AcceptEncoding);
+
+            Assert.Multiple(() => {
+                Assert.That(response.ContentEncoding,  Is.EqualTo(new[] { "zstd" }), response.EntirePDU);
+                Assert.That(response.Vary,             Is.EqualTo("Accept-Encoding"));
+                Assert.That(response.ContentLength,    Is.LessThan((UInt64) compressibleText.Length));
+            });
+
+            Assert.That(
+                Encoding.UTF8.GetString(HTTPContentCoding.Decode(response.HTTPBody!, "zstd", 1024 * 1024)),
+                Is.EqualTo(compressibleText)
+            );
+
+        }
+
+        #endregion
+
+        #region BrotliIsPreferredOverZstd()
+
+        /// <summary>
+        /// A client that accepts both gets br, as it did before zstd was offered.
+        /// </summary>
+        [Test]
+        public async Task BrotliIsPreferredOverZstd()
+        {
+
+            var response = await Get("/text", "zstd, br");
+
+            Assert.That(response.ContentEncoding, Is.EqualTo(new[] { "br" }));
+
+        }
+
+        #endregion
+
     }
 
 }

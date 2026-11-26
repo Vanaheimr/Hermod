@@ -36,9 +36,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Data
 
         /// <summary>
-        /// The content codings offered, in order of server preference.
+        /// The content codings offered, in order of server preference: those of
+        /// <see cref="HTTPContentCoding.Supported"/> but deflate, which the wire
+        /// disagrees about, so it is read and not written.
         /// </summary>
-        public static readonly String[] SupportedCodings = [ "br", "gzip" ];
+        public static readonly String[] SupportedCodings = [ "br", "zstd", "gzip" ];
 
         private static readonly HashSet<String> compressibleSubTypes = new(StringComparer.OrdinalIgnoreCase) {
             "json", "javascript", "ecmascript", "xml", "xhtml+xml", "svg+xml", "ld+json", "manifest+json", "wasm"

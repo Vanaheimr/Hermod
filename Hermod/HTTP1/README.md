@@ -515,7 +515,7 @@ path.
 
 | | |
 |---|---|
-| Codings | `br`, `gzip`, `deflate` — the last one both zlib-wrapped (RFC 1950, what RFC 9110 names) and raw (RFC 1951, what many servers send). The octets are sniffed, because `DeflateStream` reads only the raw form. |
+| Codings | `br`, `zstd`, `gzip`, `deflate` — `deflate` both zlib-wrapped (RFC 1950, what RFC 9110 names) and raw (RFC 1951, what many servers send); the octets are sniffed, because `DeflateStream` reads only the raw form. `zstd` (RFC 8878) is held to RFC 9659: no frame is taken that needs a window above 8 MB, and none is written that does. It is the BCL's own `ZstandardStream`, new in .NET 11. |
 | Stacked codings | Undone in reverse order, as RFC 9110, Section 8.4 defines the list. |
 | `identity` | The absence of a coding, so nothing is decoded. |
 | An unknown coding | Refused: `DecodeBody(...)` throws, `TryDecodeBody(...)` returns false. Returning the encoded octets as if they were the representation is the one answer that would be dangerous. |
@@ -529,7 +529,7 @@ coding gets its body back unchanged and uncopied.
 
 `AHTTPClient.AutomaticDecompression` — **off by default**, because it changes
 what goes out on the wire and what the caller gets back — advertises
-`Accept-Encoding: br, gzip, deflate` on requests that do not already carry one,
+`Accept-Encoding: br, zstd, gzip, deflate` on requests that do not already carry one,
 and hands the caller the representation. Never over a caller's own field:
 `identity` is how compression is switched off for one request. The ceiling is
 `MaxDecodedBodySize`, 64 MiB by default.
@@ -1275,7 +1275,9 @@ added three to each: **974**, and H-45 three to each again: **980**. H-48
 added five to `HTTPClientProtocolRegressionTests`: **985**. H-49 added
 five more to it, one to `HTTPStatusCodeTests` and one to `HTTPCacheTests`:
 **992**. H-50 added nine more to `HTTPClientProtocolRegressionTests`:
-**1001**.
+**1001**. zstd as a content coding added eight to `ContentEncodingHeaderTests`,
+eleven to `ContentCodingStreamTests`, two to `ClientContentDecodingTests` and
+four to `ServerContentCompressionTests`: **1026**.
 
 Run it with:
 

@@ -76,6 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             using (Stream d = coding switch
             {
                 "br"      => new BrotliStream (input, CompressionMode.Decompress),
+                "zstd"    => new ZstandardStream(input, CompressionMode.Decompress),
                 "gzip"    => new GZipStream   (input, CompressionMode.Decompress),
                 "deflate" => new DeflateStream(input, CompressionMode.Decompress),
                 _         => throw new InvalidOperationException()
@@ -124,6 +125,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             {
                 Assert.That(r.HeaderValue("content-encoding"), Is.EqualTo("br"),    "content-encoding");
                 Assert.That(Decompress(r.Body, "br"),          Is.EqualTo(BigBody), "decodes to the original");
+            });
+        }
+
+        #endregion
+
+        #region OurClient_Zstd()
+
+        [Test]
+        public async Task OurClient_Zstd()
+        {
+            var r = await Get("/big", "zstd");
+            Assert.Multiple(() =>
+            {
+                Assert.That(r.HeaderValue("content-encoding"), Is.EqualTo("zstd"),          "content-encoding");
+                Assert.That(r.Body.Length,                     Is.LessThan(BigBody.Length), "compressed smaller");
+                Assert.That(Decompress(r.Body, "zstd"),        Is.EqualTo(BigBody),         "decodes to the original");
+            });
+        }
+
+        #endregion
+
+        #region OurClient_ServerPrefersBrotliOverZstd_AndZstdOverGzip()
+
+        [Test]
+        public async Task OurClient_ServerPrefersBrotliOverZstd_AndZstdOverGzip()
+        {
+            var both  = await Get("/big", "zstd, br");
+            var gzip  = await Get("/big", "gzip, zstd");
+            Assert.Multiple(() =>
+            {
+                Assert.That(both.HeaderValue("content-encoding"), Is.EqualTo("br"),   "zstd+br offered -> br chosen");
+                Assert.That(gzip.HeaderValue("content-encoding"), Is.EqualTo("zstd"), "gzip+zstd offered -> zstd chosen");
             });
         }
 

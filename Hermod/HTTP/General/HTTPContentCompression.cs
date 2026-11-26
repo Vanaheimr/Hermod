@@ -131,9 +131,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if ((UInt64) body.LongLength < MinimumSize)
                 return false;
 
-            // RFC 9110, Section 12.5.3. Note that the server offers br and gzip
-            // where the client accepts br, gzip and deflate: "deflate" is the one
-            // the wire disagrees about, so we read it and do not write it.
+            // RFC 9110, Section 12.5.3. Note that the server offers br, zstd and
+            // gzip where the client accepts deflate too: "deflate" is the one the
+            // wire disagrees about, so we read it and do not write it.
             Coding = ContentNegotiation.SelectContentCoding(Request.AcceptEncoding);
 
             return Coding is not null;

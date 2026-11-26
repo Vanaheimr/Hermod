@@ -72,8 +72,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CompressResponses">
         /// When true, a full 200 response whose body is a compressible type and
         /// isn't already content-encoded is compressed on the fly with the best
-        /// coding the request's <c>Accept-Encoding</c> accepts (br &gt; gzip &gt;
-        /// deflate), via <see cref="System.IO.Compression"/> — RFC 9110 Section 8.4
+        /// coding the request's <c>Accept-Encoding</c> accepts (br &gt; zstd &gt;
+        /// gzip &gt; deflate), via <see cref="System.IO.Compression"/> — RFC 9110 Section 8.4
         /// content coding. Off by default: it's a transport optimization an app
         /// opts into, and it never fires unless the client positively lists a
         /// compression coding.
@@ -687,7 +687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Pick the best content coding the client will accept (RFC 9110, Section
         /// 12.5.3): among the codings we support, the highest positive q wins, ties
-        /// broken by our own preference order (br &gt; gzip &gt; deflate). Returns
+        /// broken by our own preference order (br &gt; zstd &gt; gzip &gt; deflate). Returns
         /// null when Accept-Encoding is absent or lists none of our codings with a
         /// positive q — in which case we serve identity (never compress a client
         /// that didn't ask).

@@ -220,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             await client.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
             await server.Served.WaitAsync(TimeSpan.FromSeconds(5));
 
-            Assert.That(server.Requests[0], Does.Contain("Accept-Encoding: br, gzip, deflate"), server.Requests[0]);
+            Assert.That(server.Requests[0], Does.Contain("Accept-Encoding: br, zstd, gzip, deflate"), server.Requests[0]);
 
         }
 
@@ -292,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             Assert.Multiple(() => {
                 Assert.That(server.Requests[0], Does.Contain("Accept-Encoding: identity"));
-                Assert.That(server.Requests[0], Does.Not.Contain("br, gzip, deflate"));
+                Assert.That(server.Requests[0], Does.Not.Contain("br, zstd, gzip, deflate"));
             });
 
         }
@@ -552,6 +552,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var read    = await response.HTTPBodyStream!.ReadAsync(buffer).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
 
             Assert.That(Encoding.UTF8.GetString(buffer, 0, read), Does.StartWith("retry: 1000\n\nevent: tick\ndata: 1\n\n"));
+
+        }
+
+        #endregion
+
+
+        #region AZstdResponseArrivesDecoded(IsChunked)
+
+        /// <summary>
+        /// zstd, length-framed and chunked: the two routes a body takes.
+        /// </summary>
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task AZstdResponseArrivesDecoded(Boolean IsChunked)
+        {
+
+            var text     = "the representation, sent as zstd";
+            var encoded  = HTTPContentCoding.Encode(Encoding.UTF8.GetBytes(text), "zstd");
+
+            using var server = new RawServer(
+                                   CloseWhenDone: true,
+                                   Raw("HTTP/1.1 200 OK\r\n" +
+                                       "Content-Type: text/plain\r\n" +
+                                       "Content-Encoding: zstd\r\n" +
+                                       (IsChunked ? "Transfer-Encoding: chunked\r\n" : $"Content-Length: {encoded.Length}\r\n") +
+                                       "Connection: close\r\n\r\n",
+                                       IsChunked ? Chunked(encoded) : encoded)
+                               );
+
+            using var client = new HTTPClient(server.URL) { AutomaticDecompression = true };
+
+            var response = await client.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPBodyAsUTF8String,    Is.EqualTo(text));
+                Assert.That(response.DecodedContentEncoding,  Is.EqualTo("zstd"));
+                Assert.That(response.ContentEncoding,         Is.Empty);
+            });
 
         }
 
