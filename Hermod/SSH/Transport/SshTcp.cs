@@ -55,6 +55,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
+        /// <summary>
+        /// Configure a connected SSH TCP socket for low latency and long-lived connection health
+        /// (TCP_NODELAY + OS-level TCP keepalive probes to detect half-open connections through NAT/firewalls).
+        /// </summary>
+        internal static void ConfigureConnectedSocket(Socket Socket)
+        {
+            Socket.NoDelay = true;
+            try
+            {
+                Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+                Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, 60);
+                Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, 10);
+                Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, 6);
+            }
+            catch (SocketException) { }
+            catch (PlatformNotSupportedException) { }
+        }
+
         #region ConnectAsync(RemoteSocket, CancellationToken = default)
 
         /// <summary>
@@ -64,7 +82,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                            CancellationToken  CancellationToken = default)
         {
 
-            var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            ConfigureConnectedSocket(socket);
 
             try
             {
@@ -102,7 +121,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             var addresses  = await ResolveAsync(Host, DNSClient, CancellationToken).ConfigureAwait(false);
 
-            var socket     = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            var socket     = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            ConfigureConnectedSocket(socket);
 
             try
             {
@@ -215,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #endregion
 
 
-        #region (static) Start(EndPoint, Backlog = 32)
+        #region (static) Start(EndPoint, Backlog = 128)
 
         /// <summary>
         /// Start listening on the given IP socket. An IPv6 address enables dual-stack mode (IPv4 and IPv6).
@@ -224,11 +244,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         /// <param name="EndPoint">The IP socket to bind to.</param>
         /// <param name="Backlog">The listen backlog.</param>
-        public static SshTcpListener Start(IPSocket EndPoint, Int32 Backlog = 32)
+        public static SshTcpListener Start(IPSocket EndPoint, Int32 Backlog = 128)
         {
 
             var dotNetAddress  = EndPoint.IPAddress.ToDotNet();
             var socket         = new Socket(dotNetAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+            if (!OperatingSystem.IsWindows())
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
             if (dotNetAddress.AddressFamily == AddressFamily.InterNetworkV6)
                 socket.DualMode = true;   // accept IPv4-mapped connections too
@@ -276,7 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         {
 
             var client = await socket.AcceptAsync(CancellationToken).ConfigureAwait(false);
-            client.NoDelay = true;
+            SshTcp.ConfigureConnectedSocket(client);
 
             var peer  = client.RemoteEndPoint is IPEndPoint remote
                             ? IPSocket.FromIPEndPoint(remote)

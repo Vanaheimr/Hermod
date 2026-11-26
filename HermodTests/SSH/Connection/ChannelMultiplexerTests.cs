@@ -302,6 +302,232 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region SendData_RespectsSmallPeerMaxPacket
+
+        /// <summary>
+        /// RFC 4254 §5.1: outbound <c>CHANNEL_DATA</c> must respect the peer's advertised maximum packet
+        /// size rather than assuming 32 KiB.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task SendData_RespectsSmallPeerMaxPacket(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var client = await clientTask;
+            using var server = await serverTask;
+
+            await using var clientMux = new SshChannelMultiplexer(client) { RekeyLimits = null }.Start();
+
+            const UInt32 peerMaxPacket = 1024;
+            var          sent          = Enumerable.Range(0, 5000).Select(i => (Byte) (i & 0xFF)).ToArray();
+
+            var serverRun = Task.Run(async () =>
+            {
+                var open = await server.ReceivePacketAsync(CancellationToken);
+                var r    = new SshPacketReader(open); r.ReadByte(); r.ReadString();
+                var clientLocalId = r.ReadUInt32();
+                await server.SendPacketAsync(SshChannelWire.ChannelOpenConfirmation(clientLocalId, 10, 65536, peerMaxPacket), CancellationToken);
+
+                var collected = new MemoryStream();
+                while (collected.Length < sent.Length)
+                {
+                    var pkt = await server.ReceivePacketAsync(CancellationToken);
+                    Assert.That(pkt[0], Is.EqualTo((Byte) SshMessageNumber.ChannelData));
+                    var pr = new SshPacketReader(pkt); pr.ReadByte(); pr.ReadUInt32();
+                    var chunk = pr.ReadBinaryString();
+                    Assert.That(chunk.Length, Is.LessThanOrEqualTo((Int32) peerMaxPacket),
+                                "every CHANNEL_DATA chunk must respect the peer's MaxPacket");
+                    collected.Write(chunk);
+                }
+
+                return collected.ToArray();
+            }, CancellationToken);
+
+            var channel = await clientMux.OpenChannelAsync("session", CancellationToken: CancellationToken);
+            await channel.SendDataAsync(sent, CancellationToken);
+
+            var received = await serverRun;
+            Assert.That(received, Is.EqualTo(sent));
+
+        }
+
+        #endregion
+
+        #region SendError_RespectsPeerWindowAndMaxPacket
+
+        /// <summary>
+        /// RFC 4254 §5.2: <c>SSH_MSG_CHANNEL_EXTENDED_DATA</c> (stderr) consumes the same channel window
+        /// and obeys the same maximum packet size as <c>SSH_MSG_CHANNEL_DATA</c>.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task SendError_RespectsPeerWindowAndMaxPacket(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var client = await clientTask;
+            using var server = await serverTask;
+
+            await using var clientMux = new SshChannelMultiplexer(client) { RekeyLimits = null }.Start();
+
+            const UInt32 peerWindow    = 2048;
+            const UInt32 peerMaxPacket = 1024;
+            var          sent          = Enumerable.Range(0, 3000).Select(i => (Byte) (i % 251)).ToArray();
+
+            var serverRun = Task.Run(async () =>
+            {
+                var open = await server.ReceivePacketAsync(CancellationToken);
+                var r    = new SshPacketReader(open); r.ReadByte(); r.ReadString();
+                var clientLocalId = r.ReadUInt32();
+                await server.SendPacketAsync(SshChannelWire.ChannelOpenConfirmation(clientLocalId, 11, peerWindow, peerMaxPacket), CancellationToken);
+
+                var collected = new MemoryStream();
+                // First 2048 bytes arrive in two 1024-byte extended-data packets; then the sender must pause.
+                for (var i = 0; i < 2; i++)
+                {
+                    var pkt = await server.ReceivePacketAsync(CancellationToken);
+                    Assert.That(pkt[0], Is.EqualTo((Byte) SshMessageNumber.ChannelExtendedData));
+                    var pr = new SshPacketReader(pkt); pr.ReadByte(); pr.ReadUInt32();
+                    Assert.That(pr.ReadUInt32(), Is.EqualTo(1u));
+                    var chunk = pr.ReadBinaryString();
+                    Assert.That(chunk.Length, Is.EqualTo(1024));
+                    collected.Write(chunk);
+                }
+
+                // Grant window for the remaining 952 bytes.
+                await server.SendPacketAsync(SshChannelWire.WindowAdjust(clientLocalId, 1024), CancellationToken);
+
+                var lastPkt = await server.ReceivePacketAsync(CancellationToken);
+                Assert.That(lastPkt[0], Is.EqualTo((Byte) SshMessageNumber.ChannelExtendedData));
+                var lpr = new SshPacketReader(lastPkt); lpr.ReadByte(); lpr.ReadUInt32(); lpr.ReadUInt32();
+                collected.Write(lpr.ReadBinaryString());
+
+                return collected.ToArray();
+            }, CancellationToken);
+
+            var channel = await clientMux.OpenChannelAsync("session", CancellationToken: CancellationToken);
+            await channel.SendErrorAsync(sent, CancellationToken);
+
+            var received = await serverRun;
+            Assert.That(received, Is.EqualTo(sent));
+
+        }
+
+        #endregion
+
+        #region ReceiveWindowOverflow_FaultsConnection
+
+        /// <summary>
+        /// A misbehaving peer that ignores our advertised <see cref="SshChannelMultiplexer.InitialWindow"/>
+        /// and keeps pouring data must be cut off with <see cref="SshWireException"/> rather than driving
+        /// the process into OOM.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task ReceiveWindowOverflow_FaultsConnection(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var client = await clientTask;
+            using var server = await serverTask;
+
+            await using var clientMux = new SshChannelMultiplexer(client) { RekeyLimits = null }.Start();
+
+            var serverRun = Task.Run(async () =>
+            {
+                var open = await server.ReceivePacketAsync(CancellationToken);
+                var r    = new SshPacketReader(open); r.ReadByte(); r.ReadString();
+                var clientLocalId = r.ReadUInt32();
+                await server.SendPacketAsync(SshChannelWire.ChannelOpenConfirmation(clientLocalId, 12, 65536, 32768), CancellationToken);
+
+                // Blast 65 × 32 KiB = 2 MiB + 32 KiB without ever waiting for a WINDOW_ADJUST.
+                var chunk = new Byte[32 * 1024];
+                for (var i = 0; i < 65; i++)
+                {
+                    try { await server.SendPacketAsync(SshChannelWire.ChannelData(clientLocalId, chunk), CancellationToken); }
+                    catch { break; }
+                }
+            }, CancellationToken);
+
+            _ = await clientMux.OpenChannelAsync("session", CancellationToken: CancellationToken);
+
+            await clientMux.Completion.WaitAsync(TimeSpan.FromSeconds(10), CancellationToken);
+            Assert.That(clientMux.EndReason, Is.InstanceOf<SshWireException>());
+
+            await serverRun;
+
+        }
+
+        #endregion
+
+        #region ExecRefusedByServer_ThrowsInsteadOfHanging
+
+        /// <summary>
+        /// If a server refuses an <c>exec</c> request (<c>CHANNEL_FAILURE</c>) without closing the channel,
+        /// <see cref="SshSessionChannel.ExecuteAsync"/> must fail immediately and close the channel instead
+        /// of hanging in <c>CaptureAsync</c>.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task ExecRefusedByServer_ThrowsInsteadOfHanging(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var client = await clientTask;
+            using var server = await serverTask;
+
+            await using var clientMux = new SshChannelMultiplexer(client) { RekeyLimits = null }.Start();
+
+            var serverRun = Task.Run(async () =>
+            {
+                var open = await server.ReceivePacketAsync(CancellationToken);
+                var r    = new SshPacketReader(open); r.ReadByte(); r.ReadString();
+                var clientLocalId = r.ReadUInt32();
+                await server.SendPacketAsync(SshChannelWire.ChannelOpenConfirmation(clientLocalId, 13, 65536, 32768), CancellationToken);
+
+                var req = await server.ReceivePacketAsync(CancellationToken);
+                Assert.That(req[0], Is.EqualTo((Byte) SshMessageNumber.ChannelRequest));
+
+                // Refuse exec and deliberately leave the channel open.
+                await server.SendPacketAsync(SshChannelWire.ChannelFailure(clientLocalId), CancellationToken);
+
+                // Client must close the channel after seeing the refusal.
+                Byte[] pkt;
+                do { pkt = await server.ReceivePacketAsync(CancellationToken); }
+                while (pkt[0] == (Byte) SshMessageNumber.ChannelEof);
+                Assert.That(pkt[0], Is.EqualTo((Byte) SshMessageNumber.ChannelClose));
+            }, CancellationToken);
+
+            await Assert.ThrowsAsync<SshChannelClosedException>(async () =>
+                await SshSessionChannel.ExecuteAsync(clientMux, "forbidden", CancellationToken));
+
+            await serverRun;
+
+        }
+
+        #endregion
+
     }
 
 }

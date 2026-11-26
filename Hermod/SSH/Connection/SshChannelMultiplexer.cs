@@ -85,8 +85,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constants
 
-        internal const UInt32 InitialWindow  = 2 * 1024 * 1024;
-        internal const UInt32 MaxPacket      = 32 * 1024;
+        internal const UInt32 InitialWindow              = 2 * 1024 * 1024;
+        internal const UInt32 MaxPacket                  = 32 * 1024;
+        private  const Int32  MaxQueuedAcceptedChannels  = 256;
 
         #endregion
 
@@ -97,8 +98,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly SemaphoreSlim                                            globalRequestGate    = new (1, 1);
         private readonly Lock                                                     globalRepliesSync    = new ();
         private readonly CancellationTokenSource                                  cts                  = new ();
+        private readonly CancellationTokenSource                                  endedCts             = new ();
         private readonly ConcurrentDictionary<UInt32, SshMuxChannel>              channels             = new ();
-        private readonly Channel<SshMuxChannel>                                   accepted             = System.Threading.Channels.Channel.CreateUnbounded<SshMuxChannel>();
+        private readonly Channel<SshMuxChannel>                                   accepted             = System.Threading.Channels.Channel.CreateBounded<SshMuxChannel>(
+                                                                                                             new BoundedChannelOptions(MaxQueuedAcceptedChannels) {
+                                                                                                                 FullMode     = BoundedChannelFullMode.Wait,
+                                                                                                                 SingleWriter = true
+                                                                                                             });
         private readonly LinkedList<TaskCompletionSource<SshGlobalRequestReply>>  pendingGlobalReplies = new ();
         private Int32                                                             nextLocalId;
         private Task                                                              runTask = Task.CompletedTask;
@@ -153,6 +159,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// A multiplexer never <see cref="Start"/>ed never ends this way.
         /// </summary>
         public Task Completion => completion.Task;
+
+        /// <summary>
+        /// Fires when the multiplexer's receive loop ends; callers can link against this token and
+        /// dispose their linked <see cref="CancellationTokenSource"/> without retaining continuations
+        /// on <see cref="Completion"/>.
+        /// </summary>
+        internal CancellationToken EndedToken => endedCts.Token;
 
         /// <summary>
         /// Why the connection ended, once it has (<see cref="SshChannelClosedException"/> for an orderly
@@ -453,9 +466,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 case SshMessageNumber.ChannelOpenConfirmation:
                 {
                     var r = new SshPacketReader(Payload); r.ReadByte();
-                    var local = r.ReadUInt32(); var remote = r.ReadUInt32(); var window = r.ReadUInt32();
+                    var local = r.ReadUInt32(); var remote = r.ReadUInt32(); var window = r.ReadUInt32(); var maxPkt = r.ReadUInt32();
                     if (channels.TryGetValue(local, out var ch))
-                        ch.OnOpenConfirmed(remote, window);
+                        ch.OnOpenConfirmed(remote, window, maxPkt);
                     else
                         // The opener gave up (e.g. cancelled) before the peer's confirmation arrived — close
                         // the peer's half so it does not leak the channel.
@@ -609,13 +622,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             if (handler is not null || await ChannelAcceptor(info).ConfigureAwait(false))
             {
+                if (handler is null && accepted.Reader.Count >= MaxQueuedAcceptedChannels)
+                {
+                    await SendAsync(SshChannelWire.ChannelOpenFailure(sender, 4, "too many pending channels")).ConfigureAwait(false);
+                    return;
+                }
+
                 UInt32        localId;
                 SshMuxChannel channel;
                 while (true)
                 {
                     localId = unchecked((UInt32) Interlocked.Increment(ref nextLocalId));
                     channel = new SshMuxChannel(this, localId, type, rest);
-                    channel.OnOpenConfirmed(sender, window);
+                    channel.OnOpenConfirmed(sender, window, maxPkt);
                     if (channels.TryAdd(localId, channel))
                         break;
                 }
@@ -693,6 +712,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             foreach (var ch in channels.Values) ch.Fault(ended);
             DrainGlobalReplies(ended);
             accepted.Writer.TryComplete();
+            try { endedCts.Cancel(); } catch (ObjectDisposedException) { }
             completion.TrySetResult();
         }
 

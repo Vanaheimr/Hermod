@@ -493,6 +493,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region StalledRekey_TimesOutInsteadOfHangingForever
+
+        /// <summary>
+        /// If a peer never answers our <c>SSH_MSG_KEXINIT</c> during a rekey, the transport must fail the
+        /// connection after <see cref="SshTransport.RekeyTimeout"/> and release any parked channel-data
+        /// writers instead of stalling indefinitely.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task StalledRekey_TimesOutInsteadOfHangingForever(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var client = await clientTask;
+            using var server = await serverTask;
+
+            server.RekeyTimeout = TimeSpan.FromMilliseconds(300);
+
+            await using var serverMux = new SshChannelMultiplexer(server) { RekeyLimits = null }.Start();
+
+            // Start a rekey on the server; the bare client deliberately stays completely silent.
+            Assert.That(await server.StartRekeyAsync(CancellationToken), Is.True);
+
+            await serverMux.Completion.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken);
+            Assert.That(serverMux.EndReason, Is.InstanceOf<SshWireException>());
+
+        }
+
+        #endregion
+
         #region TheLimits_RefuseNonsense
 
         [Test]

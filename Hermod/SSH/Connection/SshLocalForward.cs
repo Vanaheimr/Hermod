@@ -111,12 +111,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             try
             {
 
+                if (!OperatingSystem.IsWindows())
+                    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
                 // An IPv6 address listens for IPv4 too, as with SshTcpListener.
                 if (endPoint.AddressFamily == AddressFamily.InterNetworkV6)
                     socket.DualMode = true;
 
                 socket.Bind(endPoint);
-                socket.Listen(32);
+                socket.Listen(128);
 
             }
             catch
@@ -128,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return new SSHLocalForward(
                        ChannelMultiplexer,
                        socket,
-                       CancellationTokenSource.CreateLinkedTokenSource(Lifetime),
+                       CancellationTokenSource.CreateLinkedTokenSource(Lifetime, ChannelMultiplexer.EndedToken),
                        RemoteHost,
                        RemotePort
                    );
@@ -144,11 +147,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         {
             try
             {
-                while (true)
+                while (!CancellationToken.IsCancellationRequested)
                 {
-                    var connection = await listener.AcceptAsync(CancellationToken).ConfigureAwait(false);
-                    connection.NoDelay = true;
-                    _ = Task.Run(() => Tunnel(connection, CancellationToken), CancellationToken);
+                    Socket connection;
+                    try
+                    {
+                        connection = await listener.AcceptAsync(CancellationToken).ConfigureAwait(false);
+                    }
+                    catch (SocketException) when (!CancellationToken.IsCancellationRequested)
+                    {
+                        // Transient accept error (e.g. peer reset before accept, temporary FD pressure):
+                        // keep the listener alive rather than killing the entire forward.
+                        await Task.Delay(50, CancellationToken).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    SshTcp.ConfigureConnectedSocket(connection);
+                    // Do not pass CancellationToken to Task.Run: if cancelled before scheduling, the
+                    // lambda would never run and the accepted socket would leak.
+                    _ = Task.Run(() => Tunnel(connection, CancellationToken));
                 }
             }
             catch

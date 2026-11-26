@@ -43,9 +43,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
         private sealed class ManualClock : TimeProvider
         {
             private DateTimeOffset now;
-            public ManualClock(DateTimeOffset Start) { now = Start; }
-            public override DateTimeOffset GetUtcNow() => now;
-            public void Advance(TimeSpan By) => now += By;
+            private Int64          monotonicTicks;
+
+            public ManualClock(DateTimeOffset Start)
+            {
+                now            = Start;
+                monotonicTicks = Start.Ticks;
+            }
+
+            public override Int64          TimestampFrequency => TimeSpan.TicksPerSecond;
+            public override Int64          GetTimestamp()     => monotonicTicks;
+            public override DateTimeOffset GetUtcNow()        => now;
+
+            public void Advance(TimeSpan By)
+            {
+                now            += By;
+                monotonicTicks += By.Ticks;
+            }
+
+            /// <summary>
+            /// Simulate an NTP wall-clock step without advancing monotonic time.
+            /// </summary>
+            public void StepWallClock(TimeSpan Delta)
+                => now += Delta;
         }
 
         private static ManualClock NewClock()
@@ -194,6 +214,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             var idleOnly = new SshLivenessMonitor(clock);
             Assert.That(idleOnly.TimeUntilNextEvent(), Is.EqualTo(Timeout.InfiniteTimeSpan));
+
+        }
+
+        #endregion
+
+        #region KeepAlive_TimeUntilNextEvent_WakesForPeerIsDeadAfterLastProbe
+
+        /// <summary>
+        /// After the final (<c>KeepAliveCountMax</c>-th) probe is sent, <see cref="SshLivenessMonitor.TimeUntilNextEvent"/>
+        /// must still schedule a wakeup one interval later so a caller sleeping on it wakes up to observe
+        /// <see cref="SshLivenessAction.PeerIsDead"/> — previously it returned <see cref="Timeout.InfiniteTimeSpan"/>.
+        /// </summary>
+        [Test]
+        public void KeepAlive_TimeUntilNextEvent_WakesForPeerIsDeadAfterLastProbe()
+        {
+
+            var clock   = NewClock();
+            var monitor = new SshLivenessMonitor(clock,
+                                                 KeepAliveInterval: TimeSpan.FromSeconds(10),
+                                                 KeepAliveCountMax: 3);
+
+            for (var probe = 1; probe <= 3; probe++)
+            {
+                clock.Advance(TimeSpan.FromSeconds(10));
+                Assert.That(monitor.Poll(), Is.EqualTo(SshLivenessAction.SendKeepAlive));
+            }
+
+            // Right after the 3rd probe, give the peer its full 10 s window to answer — not Infinite and not 0.
+            Assert.That(monitor.TimeUntilNextEvent(), Is.EqualTo(TimeSpan.FromSeconds(10)));
+
+            clock.Advance(TimeSpan.FromSeconds(5));
+            Assert.That(monitor.Poll(),               Is.EqualTo(SshLivenessAction.None));
+            Assert.That(monitor.TimeUntilNextEvent(), Is.EqualTo(TimeSpan.FromSeconds(5)));
+
+            clock.Advance(TimeSpan.FromSeconds(5));
+            Assert.That(monitor.TimeUntilNextEvent(), Is.EqualTo(TimeSpan.Zero));
+            Assert.That(monitor.Poll(),               Is.EqualTo(SshLivenessAction.PeerIsDead));
+
+        }
+
+        #endregion
+
+        #region Liveness_IgnoresNtpWallClockJumps
+
+        /// <summary>
+        /// Long-lived connections on embedded devices must survive NTP wall-clock jumps in either direction
+        /// without falsely triggering idle timeout or stalling keepalive probes.
+        /// </summary>
+        [Test]
+        public void Liveness_IgnoresNtpWallClockJumps()
+        {
+
+            var clock   = NewClock();
+            var monitor = new SshLivenessMonitor(clock,
+                                                 KeepAliveInterval: TimeSpan.FromSeconds(10),
+                                                 KeepAliveCountMax: 3,
+                                                 IdleTimeout:       TimeSpan.FromSeconds(60));
+
+            clock.Advance(TimeSpan.FromSeconds(5));
+
+            // Huge forward NTP step (+5 hours) must NOT trigger idle timeout or keepalive.
+            clock.StepWallClock(TimeSpan.FromHours(5));
+            Assert.That(monitor.Poll(),               Is.EqualTo(SshLivenessAction.None));
+            Assert.That(monitor.TimeUntilNextEvent(), Is.EqualTo(TimeSpan.FromSeconds(5)));
+
+            // Huge backward NTP step (-10 hours) must NOT stall keepalive.
+            clock.StepWallClock(TimeSpan.FromHours(-10));
+            clock.Advance(TimeSpan.FromSeconds(5));
+            Assert.That(monitor.Poll(), Is.EqualTo(SshLivenessAction.SendKeepAlive));
 
         }
 

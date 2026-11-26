@@ -64,10 +64,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Data
 
+        private const Int32  MaxQueuedRequests      = 256;
+        internal const UInt32 WindowAdjustThreshold = SshChannelMultiplexer.InitialWindow / 2;
+
         private readonly SshChannelMultiplexer                  mux;
         private readonly Pipe                                   stdout         = new (new PipeOptions(pauseWriterThreshold: 0, useSynchronizationContext: false));
         private readonly Pipe                                   stderr         = new (new PipeOptions(pauseWriterThreshold: 0, useSynchronizationContext: false));
-        private readonly Channel<SshChannelRequest>             requests       = System.Threading.Channels.Channel.CreateUnbounded<SshChannelRequest>();
+        private readonly Channel<SshChannelRequest>             requests       = System.Threading.Channels.Channel.CreateBounded<SshChannelRequest>(
+                                                                                     new BoundedChannelOptions(MaxQueuedRequests) {
+                                                                                         FullMode     = BoundedChannelFullMode.Wait,
+                                                                                         SingleWriter = true
+                                                                                     });
         private readonly SemaphoreSlim                          requestGate    = new (1, 1);
         private readonly LinkedList<TaskCompletionSource<Boolean>> requestReplies = new ();
         private readonly TaskCompletionSource                   openTcs        = new (TaskCreationOptions.RunContinuationsAsynchronously);
@@ -75,7 +82,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private readonly Lock                                   sync           = new ();
 
         private UInt32                         remoteId;
+        private UInt32                         remoteMaxPacket = SshChannelMultiplexer.MaxPacket;
         private Int64                          remoteWindow;
+        private Int64                          localWindow     = SshChannelMultiplexer.InitialWindow;
+        private UInt32                         pendingWindowAdjust;
         private TaskCompletionSource?          windowGrew;
         private Exception?                     faulted;
         private Boolean                        sentEof, sentClose, sentExit, inboundDone;
@@ -135,36 +145,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #region Outbound
 
         /// <summary>
-        /// Send bytes as channel data, chunked to the max packet and honouring the peer's window.
+        /// Send bytes as channel data, chunked to the peer's max packet and honouring the peer's window.
         /// </summary>
-        public async ValueTask SendDataAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
+        public ValueTask SendDataAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
+            => SendWindowedAsync(Data, Extended: false, CancellationToken);
+
+        /// <summary>
+        /// Send bytes as extended (stderr) channel data, chunked to the peer's max packet and honouring
+        /// the peer's window (RFC 4254 §5.2).
+        /// </summary>
+        public ValueTask SendErrorAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
+            => SendWindowedAsync(Data, Extended: true, CancellationToken);
+
+        private async ValueTask SendWindowedAsync(ReadOnlyMemory<Byte> Data, Boolean Extended, CancellationToken CancellationToken)
         {
             var offset = 0;
             while (offset < Data.Length)
             {
-                Task?  wait  = null;
-                Int64  avail = 0;
+                Task? wait  = null;
+                Int32 chunk = 0;
                 lock (sync)
                 {
-                    if (remoteWindow <= 0) { windowGrew ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); wait = windowGrew.Task; }
-                    else avail = remoteWindow;
-                }
-                if (wait is not null) { await wait.WaitAsync(CancellationToken).ConfigureAwait(false); continue; }
+                    if (faulted is not null)
+                        throw faulted;
 
-                var chunk = (Int32) Math.Min(Math.Min(SshChannelMultiplexer.MaxPacket, (UInt32) (Data.Length - offset)), (UInt32) Math.Min(avail, SshChannelMultiplexer.MaxPacket));
+                    if (remoteWindow <= 0)
+                    {
+                        windowGrew ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                        wait = windowGrew.Task;
+                    }
+                    else
+                    {
+                        // Reserve the peer window credit BEFORE awaiting the send so concurrent writers
+                        // on the same channel cannot oversubscribe remoteWindow.
+                        var remaining = (UInt32) (Data.Length - offset);
+                        var maxChunk  = Math.Min(remoteMaxPacket, remaining);
+                        chunk         = (Int32) Math.Min((Int64) maxChunk, remoteWindow);
+                        remoteWindow -= chunk;
+                    }
+                }
+
+                if (wait is not null)
+                {
+                    await wait.WaitAsync(CancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
                 if (chunk <= 0) continue;
 
-                await mux.SendAsync(SshChannelWire.ChannelData(remoteId, Data.Slice(offset, chunk).Span), CancellationToken).ConfigureAwait(false);
-                lock (sync) remoteWindow -= chunk;
+                var packet = Extended
+                                 ? SshChannelWire.ChannelExtendedData(remoteId, 1, Data.Slice(offset, chunk).Span)
+                                 : SshChannelWire.ChannelData(remoteId, Data.Slice(offset, chunk).Span);
+
+                await mux.SendAsync(packet, CancellationToken).ConfigureAwait(false);
                 offset += chunk;
             }
         }
-
-        /// <summary>
-        /// Send bytes as extended (stderr) channel data.
-        /// </summary>
-        public async ValueTask SendErrorAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
-            => await mux.SendAsync(SshChannelWire.ChannelExtendedData(remoteId, 1, Data.Span), CancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Send a channel request; when <paramref name="WantReply"/>, await the SUCCESS/FAILURE reply.
@@ -345,9 +381,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (internal) events from the multiplexer
 
-        internal void OnOpenConfirmed(UInt32 RemoteId, UInt32 Window)
+        internal void OnOpenConfirmed(UInt32 RemoteId, UInt32 Window, UInt32 MaxPacket = SshChannelMultiplexer.MaxPacket)
         {
-            lock (sync) { remoteId = RemoteId; remoteWindow = Window; }
+            lock (sync)
+            {
+                remoteId        = RemoteId;
+                remoteWindow    = Window;
+                remoteMaxPacket = MaxPacket == 0 ? SshChannelMultiplexer.MaxPacket : Math.Min(MaxPacket, SshChannelMultiplexer.MaxPacket);
+            }
             openTcs.TrySetResult();
         }
 
@@ -356,13 +397,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         internal async ValueTask OnDataAsync(Byte[] Data)
         {
+            ConsumeLocalWindow(Data.Length);
             await stdout.Writer.WriteAsync(Data).ConfigureAwait(false);
         }
 
         internal async ValueTask OnExtendedDataAsync(UInt32 Code, Byte[] Data)
         {
+            ConsumeLocalWindow(Data.Length);
             if (Code == 1) await stderr.Writer.WriteAsync(Data).ConfigureAwait(false);
             else           Replenish((UInt32) Data.Length);   // unknown extended data: just return the window
+        }
+
+        private void ConsumeLocalWindow(Int32 Bytes)
+        {
+            if (Bytes == 0) return;
+            Boolean overflow;
+            lock (sync)
+            {
+                localWindow -= Bytes;
+                overflow     = localWindow < 0;
+            }
+            if (overflow)
+                throw new SshWireException($"Peer exceeded the receive window on channel {LocalId}.");
         }
 
         internal void OnWindowAdjust(UInt32 Increment)
@@ -386,7 +442,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             mux.Remove(LocalId);
         }
 
-        internal void OnRequest(SshChannelRequest Request) => requests.Writer.TryWrite(Request);
+        internal void OnRequest(SshChannelRequest Request)
+        {
+            if (!requests.Writer.TryWrite(Request))
+                throw new SshWireException($"Too many unread channel requests queued on channel {LocalId}.");
+        }
 
         internal void OnRequestReply(Boolean Success)
         {
@@ -450,7 +510,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private void Replenish(UInt32 Bytes)
         {
             if (Bytes == 0) return;
-            _ = mux.SendAsync(SshChannelWire.WindowAdjust(remoteId, Bytes));
+
+            UInt32 toSend = 0;
+            lock (sync)
+            {
+                if (sentClose || faulted is not null)
+                    return;
+
+                pendingWindowAdjust += Bytes;
+                if (pendingWindowAdjust >= WindowAdjustThreshold)
+                {
+                    toSend               = pendingWindowAdjust;
+                    pendingWindowAdjust  = 0;
+                    localWindow         += toSend;
+                }
+            }
+
+            if (toSend > 0)
+                _ = SendWindowAdjustSafeAsync(toSend);
+        }
+
+        private async Task SendWindowAdjustSafeAsync(UInt32 Increment)
+        {
+            try
+            {
+                await mux.SendAsync(SshChannelWire.WindowAdjust(remoteId, Increment)).ConfigureAwait(false);
+            }
+            catch
+            {
+                // The channel or connection closed before the window update went out — nothing to report.
+            }
         }
 
         #endregion

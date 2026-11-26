@@ -103,7 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         // Set under sendLock by CloseOutputAsync: nothing is written into the pipe after it is
         // completed - completing gives its buffers back to the pool every connection rents from. Set
         // by Dispose too: nothing is sealed under the keys it wipes.
-        private Boolean outputClosed;
+        private volatile Boolean outputClosed;
         private Int32   closingOutput;
 
         // What has moved under the current keys, and since when - what an automatic rekey is measured
@@ -143,13 +143,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private Boolean               peerKexInitSeen;
         private Boolean               sendsHeld;
         private readonly Queue<Byte[]>  held = new ();
+        private Int64                 heldBytes;
+        private readonly CancellationTokenSource rekeyTimeoutCts = new ();
         private TaskCompletionSource  sendsReleased = CompletedSignal();
         private readonly Queue<Byte[]>  deferred = new ();
         private Int64                 deferredBytes;
 
         // A peer that never answers our KEXINIT while it keeps sending is cut off here, instead of being
-        // buffered without end.
-        private const Int64           MaxDeferredBytes = 32 * 1024 * 1024;
+        // buffered without end. Same cap on our outbound rekey queue while waiting for the peer.
+        private const Int64           MaxDeferredBytes    = 32 * 1024 * 1024;
+        private const Int64           MaxHeldBytes        = 32 * 1024 * 1024;
+
+        // Hard nonce-safety ceiling below 2^32 packets per key (ChaCha20-Poly1305 uses the 32-bit
+        // sequence number as nonce). If a peer ignores our rekey at 2^31 packets, we abort before wrap.
+        private const Int64           HardMaxPacketsPerKey = (1L << 32) - 1024;
 
         private static TaskCompletionSource CompletedSignal()
         {
@@ -232,6 +239,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public SshRekeyLimits?       RekeyLimits       { get; set; }
 
         /// <summary>
+        /// Maximum time allowed for a key re-exchange to complete once initiated (default 2 minutes).
+        /// Prevents channel-data senders from blocking indefinitely if the peer stalls mid-rekey.
+        /// Set to <see cref="TimeSpan.Zero"/> to disable.
+        /// </summary>
+        public TimeSpan              RekeyTimeout      { get; set; } = TimeSpan.FromMinutes(2);
+
+        /// <summary>
         /// How long the current keys have been in use.
         /// </summary>
         public TimeSpan              TimeSinceKeyExchange
@@ -239,16 +253,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         /// <summary>
         /// Whether the current keys have reached <see cref="RekeyLimits"/>, or the packet count after
-        /// which every key is renewed (<see cref="SshRekeyLimits.MaxPacketsPerKey"/>).
+        /// which every key is renewed (<see cref="SshRekeyLimits.MaxPacketsPerKey"/>, RFC 4344).
+        /// The packet-count safety limit applies even when <see cref="RekeyLimits"/> is null.
         /// </summary>
         public Boolean               IsRekeyDue
-            => RekeyLimits is { } limits &&
-               KeyExchangeCount > 0      &&
-               (Interlocked.Read(ref bytesSentSinceKex)       >= limits.DataVolume              ||
-                Interlocked.Read(ref bytesReceivedSinceKex)   >= limits.DataVolume              ||
-                Interlocked.Read(ref packetsSentSinceKex)     >= SshRekeyLimits.MaxPacketsPerKey ||
+            => KeyExchangeCount > 0 &&
+               (Interlocked.Read(ref packetsSentSinceKex)     >= SshRekeyLimits.MaxPacketsPerKey ||
                 Interlocked.Read(ref packetsReceivedSinceKex) >= SshRekeyLimits.MaxPacketsPerKey ||
-                (limits.Interval is { } interval && TimeSinceKeyExchange >= interval));
+                (RekeyLimits is { } limits &&
+                 (Interlocked.Read(ref bytesSentSinceKex)     >= limits.DataVolume ||
+                  Interlocked.Read(ref bytesReceivedSinceKex) >= limits.DataVolume ||
+                  (limits.Interval is { } interval && TimeSinceKeyExchange >= interval))));
 
         /// <summary>
         /// Called on the receiving task after every completed key <i>re</i>-exchange, with the new
@@ -450,7 +465,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                             else
                             {
-                                held.Enqueue(Payload.ToArray());
+                                if (heldBytes + Payload.Length > MaxHeldBytes)
+                                    throw new SshWireException($"Outbound rekey queue exceeded {MaxHeldBytes} bytes while waiting for the peer to finish key exchange.");
+                                var copy = Payload.ToArray();
+                                held.Enqueue(copy);
+                                heldBytes += copy.Length;
                                 return;
                             }
 
@@ -491,6 +510,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             if (outputClosed)
                 throw new SshConnectionClosedException("The connection is closed: nothing more is sent on it.");
+
+            if (KeyExchangeCount > 0 && Interlocked.Read(ref packetsSentSinceKex) >= HardMaxPacketsPerKey)
+                throw new SshWireException("Refusing to send further packets: approaching 2^32 per-key nonce wrap limit without rekey.");
 
             SshPacketFraming.WritePacket(pipe.Output, sendCipher, Payload.Span, sendSequenceNumber, sendMac);
 
@@ -622,15 +644,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             try
             {
 
+                using var readCts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, rekeyTimeoutCts.Token);
+
                 while (true)
                 {
 
-                    var payload = await SshPacketFraming.ReadPacketAsync(pipe.Input, receiveCipher, receiveSequenceNumber, receiveMac, CancellationToken, MaxInboundPacketLength).ConfigureAwait(false);
+                    Byte[] payload;
+                    try
+                    {
+                        payload = await SshPacketFraming.ReadPacketAsync(pipe.Input, receiveCipher, receiveSequenceNumber, receiveMac, readCts.Token, MaxInboundPacketLength).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (rekeyTimeoutCts.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
+                    {
+                        throw new SshWireException($"Key re-exchange timed out after {RekeyTimeout.TotalSeconds:0.#}s.");
+                    }
 
                     unchecked { receiveSequenceNumber++; }
 
                     Interlocked.Add      (ref bytesReceivedSinceKex, payload.Length);
-                    Interlocked.Increment(ref packetsReceivedSinceKex);
+                    var receivedCount = Interlocked.Increment(ref packetsReceivedSinceKex);
+                    if (KeyExchangeCount > 0 && receivedCount >= HardMaxPacketsPerKey)
+                        throw new SshWireException("Peer exceeded 2^32 per-key packet safety ceiling without rekeying.");
 
                     if (payload.Length < 1)
                         return payload;
@@ -770,6 +804,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             {
                 sendsHeld      = true;
                 sendsReleased  = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                if (KeyExchangeCount > 0 && RekeyTimeout > TimeSpan.Zero)
+                    try { rekeyTimeoutCts.CancelAfter(RekeyTimeout); } catch (ObjectDisposedException) { }
             }
         }
 
@@ -780,7 +816,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private void ReleaseHeldSends()
         {
             held.Clear();
-            sendsHeld  = false;
+            heldBytes      = 0;
+            sendsHeld      = false;
+            try { rekeyTimeoutCts.CancelAfter(Timeout.InfiniteTimeSpan); } catch (ObjectDisposedException) { }
             sendsReleased.TrySetResult();
         }
 
@@ -800,12 +838,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                     if (held.Count == 0)
                     {
-                        sendsHeld = false;
+                        heldBytes      = 0;
+                        sendsHeld      = false;
+                        try { rekeyTimeoutCts.CancelAfter(Timeout.InfiniteTimeSpan); } catch (ObjectDisposedException) { }
                         sendsReleased.TrySetResult();
                         return;
                     }
 
                     next       = held.Dequeue();
+                    heldBytes -= next.Length;
 
                 }
 
@@ -952,6 +993,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             keyExchangeInProgress = true;
 
             var completed = false;
+            SshTransportCipher? newSendCipher    = null;
+            SshTransportCipher? newReceiveCipher = null;
+            ISshMac?            newSendMac       = null;
+            ISshMac?            newReceiveMac    = null;
+
+            CancellationTokenSource? rekeyCts = null;
+            var kexToken = CancellationToken;
+            if (!IsInitial && RekeyTimeout > TimeSpan.Zero)
+            {
+                rekeyCts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                rekeyCts.CancelAfter(RekeyTimeout);
+                kexToken = rekeyCts.Token;
+            }
 
             try
             {
@@ -962,7 +1016,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             KexInitMessage localKexInit;
             Byte[]         iLocal;
 
-            await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
+            await sendLock.WaitAsync(kexToken).ConfigureAwait(false);
 
             try
             {
@@ -984,7 +1038,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 {
                     localKexInit  = LocalKexInit();
                     iLocal        = localKexInit.Encode();
-                    await WritePacketAsync(iLocal, CancellationToken).ConfigureAwait(false);
+                    await WritePacketAsync(iLocal, kexToken).ConfigureAwait(false);
                 }
 
             }
@@ -994,7 +1048,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
 
             // 2. Obtain the peer's KEXINIT (already read on a peer-initiated rekey, else read it now).
-            var iRemote = PeerKexInit ?? await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+            var iRemote = PeerKexInit ?? await ReceivePacketAsync(kexToken).ConfigureAwait(false);
             if (iRemote.Length < 1 || iRemote[0] != (Byte) SshMessageNumber.KexInit)
                 throw new SshWireException($"Expected SSH_MSG_KEXINIT (20) to start the key exchange, but found message number {(iRemote.Length > 0 ? iRemote[0] : -1)}!");
 
@@ -1047,7 +1101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                 // Discarded unread - so it had better be what it claims to be, a key exchange method's
                 // packet, and not connection traffic that would vanish in its place.
-                var guess = await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+                var guess = await ReceivePacketAsync(kexToken).ConfigureAwait(false);
 
                 if (guess.Length < 1 || guess[0] is < 30 or > 49)
                     throw new SshWireException(
@@ -1065,7 +1119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (isServer)
             {
 
-                var initPayload      = await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+                var initPayload      = await ReceivePacketAsync(kexToken).ConfigureAwait(false);
                 var qC               = SshKexCore.ParseEcdhInit(initPayload);
                 var (qS, rawSecret)  = kex.ServerRespond(qC);
 
@@ -1078,16 +1132,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 h               = ExchangeHashCalc.Compute(kex.HashAlgorithm, vC, vS, iC, iS, kS, qC, qS, kEncoded);
 
                 var signature   = hostKey.Sign(negotiated.HostKey, h);
-                await WriteExchangePacketAsync(SshKexCore.BuildEcdhReply(kS, qS, signature), CancellationToken).ConfigureAwait(false);
+                await WriteExchangePacketAsync(SshKexCore.BuildEcdhReply(kS, qS, signature), kexToken).ConfigureAwait(false);
 
             }
             else
             {
 
                 var qC          = kex.StartClient();
-                await WriteExchangePacketAsync(SshKexCore.BuildEcdhInit(qC), CancellationToken).ConfigureAwait(false);
+                await WriteExchangePacketAsync(SshKexCore.BuildEcdhInit(qC), kexToken).ConfigureAwait(false);
 
-                var reply                   = await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+                var reply                   = await ReceivePacketAsync(kexToken).ConfigureAwait(false);
                 var (kServer, qS, sigBlob)  = SshKexCore.ParseEcdhReply(reply);
                 kS                          = kServer;
 
@@ -1129,11 +1183,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var derive = SshKexCore.MakeDeriver(kex.HashAlgorithm, kEncoded, h, sessionId);
 
             // Directional keys: we send in our own direction and receive in the peer's.
-            var (newSendCipher, newSendMac) = isServer
+            (newSendCipher, newSendMac) = isServer
                 ? SshKexCore.BuildDirection(negotiated.CipherServerToClient, negotiated.MacServerToClient, derive, Kdf.KeyLetter.EncryptionKeyServerToClient, Kdf.KeyLetter.InitialIVServerToClient, Kdf.KeyLetter.IntegrityKeyServerToClient)
                 : SshKexCore.BuildDirection(negotiated.CipherClientToServer, negotiated.MacClientToServer, derive, Kdf.KeyLetter.EncryptionKeyClientToServer, Kdf.KeyLetter.InitialIVClientToServer, Kdf.KeyLetter.IntegrityKeyClientToServer);
 
-            var (newReceiveCipher, newReceiveMac) = isServer
+            (newReceiveCipher, newReceiveMac) = isServer
                 ? SshKexCore.BuildDirection(negotiated.CipherClientToServer, negotiated.MacClientToServer, derive, Kdf.KeyLetter.EncryptionKeyClientToServer, Kdf.KeyLetter.InitialIVClientToServer, Kdf.KeyLetter.IntegrityKeyClientToServer)
                 : SshKexCore.BuildDirection(negotiated.CipherServerToClient, negotiated.MacServerToClient, derive, Kdf.KeyLetter.EncryptionKeyServerToClient, Kdf.KeyLetter.InitialIVServerToClient, Kdf.KeyLetter.IntegrityKeyServerToClient);
 
@@ -1141,18 +1195,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             //    under the old receive keys. Swap each direction independently, right after the boundary.
             var newKeysMessage = new Byte[] { (Byte) SshMessageNumber.NewKeys };
 
-            await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
+            await sendLock.WaitAsync(kexToken).ConfigureAwait(false);
             try
             {
-                await WritePacketAsync(newKeysMessage, CancellationToken).ConfigureAwait(false);
+                await WritePacketAsync(newKeysMessage, kexToken).ConfigureAwait(false);
                 SwapSend(newSendCipher, newSendMac, negotiated.StrictKex);
+                newSendCipher = null;
+                newSendMac    = null;
             }
             finally
             {
                 sendLock.Release();
             }
 
-            var newKeys = await ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
+            var newKeys = await ReceivePacketAsync(kexToken).ConfigureAwait(false);
             if (newKeys.Length < 1 || newKeys[0] != (Byte) SshMessageNumber.NewKeys)
                 throw new SshWireException(
                           $"Expected SSH_MSG_NEWKEYS (21) to complete the key exchange, but found " +
@@ -1163,6 +1219,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                           $"and {(remoteKexInit.FirstKexPacketFollows ? "did" : "did not")} guess. " +
                           $"A peer rejecting our signature here means the two sides computed different exchange hashes.");
             SwapReceive(newReceiveCipher, newReceiveMac, negotiated.StrictKex);
+            newReceiveCipher = null;
+            newReceiveMac    = null;
 
             algorithms     = negotiated;
             exchangeHash   = h;
@@ -1187,17 +1245,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             // 6. What was sent during the exchange goes out now, under the new keys - after
             //    SSH_MSG_EXT_INFO, which RFC 8308 §3.1 puts right after the server's first NEWKEYS
             //    (server-sig-algs; not repeated on rekeys).
-            await sendLock.WaitAsync(CancellationToken).ConfigureAwait(false);
+            await sendLock.WaitAsync(kexToken).ConfigureAwait(false);
             try
             {
 
                 if (IsInitial && isServer && negotiated.ExtensionInfo)
                 {
                     var extInfo = ExtInfoMessage.ForServerSigAlgs(serverSignatureAlgorithms);
-                    await WritePacketAsync(extInfo.Encode(), CancellationToken).ConfigureAwait(false);
+                    await WritePacketAsync(extInfo.Encode(), kexToken).ConfigureAwait(false);
                 }
 
-                await FlushHeldSendsAsync(CancellationToken).ConfigureAwait(false);
+                await FlushHeldSendsAsync(kexToken).ConfigureAwait(false);
 
             }
             finally
@@ -1206,8 +1264,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
 
             }
+            catch (OperationCanceledException) when (rekeyCts is not null && rekeyCts.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
+            {
+                throw new SshWireException($"Key re-exchange timed out after {RekeyTimeout.TotalSeconds:0.#}s.");
+            }
             finally
             {
+
+                rekeyCts?.Dispose();
+                if (newSendCipher    is not null) DisposeCipher(newSendCipher);
+                if (newReceiveCipher is not null) DisposeCipher(newReceiveCipher);
+                newSendMac?.Dispose();
+                newReceiveMac?.Dispose();
 
                 keyExchangeInProgress = false;
 
@@ -1319,9 +1387,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public void Dispose()
         {
             outputClosed = true;
-            DisposeCipher(sendCipher);
+
+            lock (kexGate)
+            {
+                try { rekeyTimeoutCts.CancelAfter(Timeout.InfiniteTimeSpan); } catch (ObjectDisposedException) { }
+                if (sendsHeld)
+                    ReleaseHeldSends();
+            }
+
+            var heldLock = sendLock.Wait(TimeSpan.FromMilliseconds(200));
+            try
+            {
+                DisposeCipher(sendCipher);
+                sendMac?.Dispose();
+            }
+            finally
+            {
+                if (heldLock)
+                    sendLock.Release();
+            }
+
             DisposeCipher(receiveCipher);
-            sendMac?.Dispose();
             receiveMac?.Dispose();
             exporter?.Dispose();
         }

@@ -258,6 +258,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (sshClientIsOwn && sshClient is SSHClient ssh)
                 await ssh.DisposeAsync().ConfigureAwait(false);
 
+            stopping.Dispose();
+
         }
 
         #endregion
@@ -422,17 +424,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                               ? SshMessageServer.PingAsync(Connection, every, Options.MaxOutstandingPings)
                               : Task.CompletedTask;
 
-            using (var gone = CancellationTokenSource.CreateLinkedTokenSource(stopping.Token))
+            // Link directly to Ssh.EndedToken so disposing `gone` unregisters cleanly without
+            // accumulating ContinueWith continuations on Ssh.Closed across reconnects over a shared connection.
+            using (var gone = CancellationTokenSource.CreateLinkedTokenSource(stopping.Token, Ssh.EndedToken))
             {
-
-                // The SSH connection ending tells the handlers at once. The channel's reads end on their
-                // own, after what arrived before.
-                _ = Ssh.Closed.ContinueWith(_ => {
-                        try { gone.Cancel(); } catch (ObjectDisposedException) { }
-                    }, TaskScheduler.Default);
-
                 await Connection.RunAsync(gone.Token).ConfigureAwait(false);
-
             }
 
             await pinging.ConfigureAwait(false);

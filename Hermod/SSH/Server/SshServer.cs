@@ -271,6 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             public SshAuditContext?         Audit     { get; } = Audit;
             public CancellationTokenSource  Ending    { get; } = CancellationTokenSource.CreateLinkedTokenSource(ServerToken);
             public Int32                    Sessions;
+            public Int32                    DirectTcpIp;
             public Int32                    Authenticated;
 
             public void Dispose()
@@ -835,7 +836,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                 }
 
                 else if (channel.ChannelType == "direct-tcpip")
-                    _ = ServeDirectTcpIpAsync(channel, token);
+                {
+                    var relayed = ServeDirectTcpIpAsync(channel, token);
+                    _ = relayed.ContinueWith(_ => Interlocked.Decrement(ref Connection.DirectTcpIp), TaskScheduler.Default);
+                }
 
             }
 
@@ -878,24 +882,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             if (Info.ChannelType == "direct-tcpip" && options.ForwardingPolicy.DirectTcpIp is not null)
             {
 
+                if (Interlocked.Increment(ref Connection.DirectTcpIp) > options.Limits.MaxDirectTcpIp)
+                {
+                    Interlocked.Decrement(ref Connection.DirectTcpIp);
+                    await EmitAsync(Connection.Audit, new LimitExceededEvent(DateTimeOffset.UtcNow, "direct-tcpip", $"{options.Limits.MaxDirectTcpIp} forwarding channel(s) are open on this connection")).ConfigureAwait(false);
+                    return false;
+                }
+
                 var (host, port) = ParseDirectTcpIp(Info.TypeData);
 
                 IReadOnlyList<IPAddress> addresses;
 
+                // Bound DNS resolution time so a slow resolver cannot stall the multiplexer receive loop.
+                using var resolveCts = CancellationTokenSource.CreateLinkedTokenSource(Connection.Ending.Token);
+                resolveCts.CancelAfter(TimeSpan.FromSeconds(5));
+
                 // A target that cannot be resolved is refused as one the policy does not allow.
                 try
                 {
-                    addresses = await ResolveAsync(host).ConfigureAwait(false);
+                    addresses = await ResolveAsync(host, resolveCts.Token).ConfigureAwait(false);
                 }
-                catch (SshNameResolutionException)
+                catch (Exception e) when (e is SshNameResolutionException or OperationCanceledException)
                 {
+                    Interlocked.Decrement(ref Connection.DirectTcpIp);
                     return false;
                 }
 
                 // An early refusal, so a forbidden target is rejected with CHANNEL_OPEN_FAILURE rather than
                 // being accepted and then dropped. This is *not* the authoritative check: the binding
                 // decision is made at connect time against the addresses actually connected to.
-                return options.ForwardingPolicy.DirectTcpIp.AllowsAll(addresses, port, host);
+                if (!options.ForwardingPolicy.DirectTcpIp.AllowsAll(addresses, port, host))
+                {
+                    Interlocked.Decrement(ref Connection.DirectTcpIp);
+                    return false;
+                }
+
+                return true;
 
             }
 
@@ -1139,7 +1161,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                 // connecting to a second lets an attacker-controlled name return an allowed address for the check
                 // and a forbidden one for the connection (DNS rebinding), which is precisely what
                 // AllowsAll's caller contract forbids.
-                var addresses = await ResolveAsync(host).ConfigureAwait(false);
+                using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                connectCts.CancelAfter(TimeSpan.FromSeconds(15));
+
+                var addresses = await ResolveAsync(host, connectCts.Token).ConfigureAwait(false);
 
                 if (options.ForwardingPolicy.DirectTcpIp is null ||
                     !options.ForwardingPolicy.DirectTcpIp.AllowsAll(addresses, port, host))
@@ -1149,10 +1174,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                 }
 
                 var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                SshTcp.ConfigureConnectedSocket(socket);
 
                 try
                 {
-                    await socket.ConnectAsync(new System.Net.IPEndPoint(addresses[0], port.ToInt32()), CancellationToken).ConfigureAwait(false);
+                    // Try every resolved address (IPv6 / IPv4 fallback) rather than only addresses[0].
+                    await socket.ConnectAsync([.. addresses], port.ToInt32(), connectCts.Token).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -1360,14 +1387,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             return (host, port);
         }
 
-        private async ValueTask<IReadOnlyList<IPAddress>> ResolveAsync(String Host)
+        private async ValueTask<IReadOnlyList<IPAddress>> ResolveAsync(String Host, CancellationToken CancellationToken = default)
         {
 
             if (options.AddressResolver is not null)
-                return await options.AddressResolver(Host, CancellationToken.None).ConfigureAwait(false);
+                return await options.AddressResolver(Host, CancellationToken).ConfigureAwait(false);
 
             // Never the resolver of the operating system.
-            return await SshTcp.ResolveAsync(Host, options.DNSClient).ConfigureAwait(false);
+            return await SshTcp.ResolveAsync(Host, options.DNSClient, CancellationToken).ConfigureAwait(false);
 
         }
 
