@@ -13,10 +13,11 @@ the KDF, the exchange hash — is written here against official test vectors, be
 the interesting mistakes live. The ChaCha20 core is ours too, and vectorised
 (`Vector128<UInt32>`: NEON on ARM, SSE/AVX on x86, one implementation).
 
-> **Verified against nine independent implementations**, in both directions: OpenSSH and Dropbear
+> **Verified against ten independent implementations**, in both directions: OpenSSH and Dropbear
 > drive our server *and* our client drives theirs, with TinySSH, PuTTY, AsyncSSH, Paramiko,
-> Go `x/crypto/ssh`, SSH.NET and curl/libssh2 alongside. **93 interop checks, none failing.**
-> The harness that runs them is a sibling repository,
+> Go `x/crypto/ssh`, SSH.NET, curl/libssh2 and `ncclient` (NETCONF) alongside, gated on every
+> commit and repeated nightly (including OpenSSH 8.9/9.6/9.9 backward spread and newest upstream
+> OpenSSH). The harness lives in a sibling repository,
 > [SSHConformanceTests](https://github.com/Vanaheimr/SSHConformanceTests) — see [Interop](#interop).
 
 ---
@@ -35,7 +36,7 @@ the interesting mistakes live. The ChaCha20 core is ours too, and vectorised
 | `Forwarding/` | `NetworkAcl` and the `ForwardingPolicy` presets for `direct-tcpip` and `tcpip-forward` |
 | `Recording/` | Session recording: asciicast v2 and an SFTP transcript |
 | `Messaging/` | Whole messages over a subsystem channel: `SshMessageServer`, `SshMessageClient`, the frames - see its README |
-| `Client/` | The high-level `SshClient` façade |
+| `Client/` | The high-level `SSHClient` façade |
 | `Server/` | The high-level `SshServer` façade |
 
 `Client/` and `Server/` both depend on the folders above them and **never on each other**. That
@@ -47,20 +48,22 @@ exactly one place instead of twice.
 ### A client
 
 ```csharp
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
 using org.GraphDefined.Vanaheimr.Hermod.SSH.Client;
 
 var key    = SshKeyGenerator.LoadPrivateKey(await File.ReadAllTextAsync("id_ed25519")).Key;
 var policy = HostKeyPolicy.Pin("SHA256:5Q3…").OrKnownHostsFile("known_hosts");
 
-await using var client = await SshClient.ConnectAsync("host.example.org", 22, new SshClientOptions {
-    Username       = "achim",
+await using var client = await SSHClient.Connect("host.example.org", IPPort.Parse(22), new SSHClientOptions {
+    Username       = User_Id.Parse("achim"),
     Credentials    = [ key ],
-    VerifyHostKey  = blob => policy.Verify("host.example.org", IPPort.Parse("22"), blob),
+    VerifyHostKey  = blob => policy.Verify("host.example.org", IPPort.Parse(22), blob),
     DNSClient      = dnsClient
 });
 
-var result = await client.ExecuteAsync("uname -a");
+var result = await client.Execute("uname -a");
 Console.WriteLine($"[{result.ExitCode}] {result.StandardOutput}");
 ```
 
@@ -76,8 +79,8 @@ address only. `SshTcp.ResolveAsync` and `SshTcp.ResolverOf` are where all of the
 One connection carries everything at once — exec, SFTP and tunnels multiplex over it:
 
 ```csharp
-await using var sftp   = await client.OpenSftpClientAsync();
-await using var tunnel = await client.OpenTcpStreamAsync("10.0.0.5", 5432);   // -L, as a Stream
+await using var sftp   = await client.OpenSFTPClient();
+await using var tunnel = await client.OpenTCPStream("10.0.0.5", IPPort.Parse(5432));   // -L, as a Stream
 
 await sftp.UploadAsync("/firmware.bin", File.ReadAllBytes("firmware.bin"));
 foreach (var entry in await sftp.ListDirectoryAsync("/"))
@@ -159,7 +162,7 @@ await using var server = new SshServer(new SshServerOptions {
 There is no terminal driver in between, so the handler is its own line discipline: Enter arrives as
 CR, Backspace as DEL, Ctrl+C as 3, and `"\r\n"` ends a line on the screen. With a shell handler and
 nothing else the server serves the shell and nothing else - exec, SFTP and tunnels are refused - and
-a key confined to one command (`command="..."`) is never given the shell. `SshClient.OpenShellAsync`
+a key confined to one command (`command="..."`) is never given the shell. `SSHClient.OpenShell`
 is the client half, for a program or a test that wants to be the person at the terminal.
 
 Stopping the server is orderly: no connection is accepted any more, every shell is told through its
@@ -189,7 +192,7 @@ the transport of the second.
 `SshServerOptions.Subsystems` serves subsystems besides SFTP, session by session. The factory is
 told who signed in and which name they asked for, and answers a handler or null. The handler gets
 the session and the channel, and the server closes the channel once it returns.
-`SshClient.OpenSubsystemAsync(name)` is the client's side.
+`SSHClient.OpenSubsystem(name)` is the client's side.
 
 A credential can be confined to some subsystems with `SshSessionRestrictions.PermittedSubsystems`:
 it then gets only those, and no shell, no exec and no forced command.
@@ -245,7 +248,7 @@ follow) and `ext-info-c`/`-s` for RFC 8308.
 | **draft-ietf-sshm-mlkem-hybrid-kex** | `mlkem768x25519-sha256` | ✅ Draft-10, in the RFC Editor queue; names and encoding stable |
 | **draft-ietf-secsh-filexfer-02** | SFTP version 3 | ✅ Client + server |
 | **RFC 9987 / draft-miller-ssh-agent** | SSH agent protocol | 🔶 Client only — list identities, request signatures; no agent *forwarding* |
-| OpenSSH `PROTOCOL` | Certificates, `hostkeys-00@openssh.com`, and the SFTP extensions `posix-rename`, `fsync`, `statvfs`/`fstatvfs`, `limits@openssh.com`, `copy-data` | ✅ Server answers all six; the client drives all but `fstatvfs`. `hardlink`, `lsetstat`, `expand-path` are not implemented |
+| OpenSSH `PROTOCOL` | Certificates, `hostkeys-00@openssh.com`, and the SFTP extensions `posix-rename`, `fsync`, `statvfs`/`fstatvfs`, `lsetstat`, `limits@openssh.com`, `copy-data` | ✅ Server answers all seven; the client drives all but `fstatvfs`. `hardlink` and `expand-path` are not implemented |
 | `kexguess2@matt.ucc.asn.au` | Dropbear's narrowed guess rule | ✅ Both roles |
 
 RFC 4253 §7.1 is worth a note, because it is the one place where "obviously correct" was wrong for
@@ -273,13 +276,14 @@ runnable anywhere.
 | Go `x/crypto/ssh` | v0.54.0 | their client → our server |
 | SSH.NET | 2026.0.0 | their client → our server (in-process) |
 | curl / libssh2 | 8.14.1 / 1.11.1 | their client → our server (SFTP) |
+| `ncclient` | NETCONF 1.0 / 1.1 | their client → our server (`netconf` subsystem) |
 
 A peer that is absent is **skipped with a precise reason**, never counted as passing: the matrix
 distinguishes "disagreed" from "no evidence either way".
 
 ## Test
 
-334 hermetic tests live under [`HermodTests/SSH`](../../HermodTests/SSH), mirroring this
+Over 680 hermetic tests live under [`HermodTests/SSH`](../../HermodTests/SSH), mirroring this
 folder layout. They need nothing but the code — unit tests and loopback round-trips between our
 own client and our own server.
 
@@ -330,17 +334,16 @@ Three things about them are worth knowing:
 
 - **No compression.** `zlib@openssh.com` is not implemented; `none` is what we offer.
 - **SFTP v3 only** — versions 4–6 are not negotiated. Of the OpenSSH extensions, `hardlink@openssh.com`
-  and `lsetstat@openssh.com` are missing because `ISftpFileSystem` has no concept of links at all (not
-  even symlinks), and hard links would quietly defeat the per-session byte quota — that is a decision,
-  not a gap. `home-directory` and `users-groups-by-id@openssh.com` are deliberately not offered: a
-  root-jailed session has no business learning host paths or resolving UIDs to names.
+  is deliberately omitted because hard links would quietly defeat the per-session byte quota — that is a
+  decision, not a gap. `home-directory` and `users-groups-by-id@openssh.com` are deliberately not
+  offered: a root-jailed session has no business learning host paths or resolving UIDs to names.
+  Symbolic links (`SYMLINK`, `READLINK`, `LSTAT`, `lsetstat@openssh.com`) are supported and confined to
+  the root jail.
 - **No agent forwarding, no X11 forwarding.** The `authorized_keys` parser understands and enforces
   the options that restrict them, which is the part that matters for a server that does not offer
   them either way.
-- **Certificates are proven against OpenSSH only**, and only in the direction where we validate
-  theirs. Our own mini-CA is exercised by our own validator and by OpenSSH, not by a third opinion.
-- **The nightly interop matrix is not wired up yet** — everything runs on a developer machine
-  today, pending a CI runner decision.
+- **Certificates** are verified bidirectionally against OpenSSH, AsyncSSH, and Go `x/crypto/ssh`
+  (both user and host certificates, issued by our mini-CA and by the peers).
 
 ## License
 
