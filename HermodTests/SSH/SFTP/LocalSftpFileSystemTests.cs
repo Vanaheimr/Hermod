@@ -238,6 +238,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Local_Dispose_ClosesOpenHandlesAndRejectsFurtherOpens
+
+        [Test]
+        [CancelAfter(15000)]
+        public async Task Local_Dispose_ClosesOpenHandlesAndRejectsFurtherOpens(CancellationToken CancellationToken)
+        {
+
+            var fs     = new LocalSftpFileSystem(root);
+            var handle = await fs.OpenAsync("/held.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken);
+            await fs.WriteAsync(handle, 0, Encoding.UTF8.GetBytes("data"), CancellationToken);
+
+            Assert.That(fs.OpenHandleCount, Is.EqualTo(1));
+
+            fs.Dispose();
+
+            await Assert.MultipleAsync(async () => {
+                Assert.That(fs.OpenHandleCount, Is.EqualTo(0));
+                Assert.DoesNotThrow(() => File.Delete(Path.Combine(root, "held.bin")));
+                await Assert.ThrowsAsync<ObjectDisposedException>(async () => await fs.OpenAsync("/after.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken));
+                await Assert.ThrowsAsync<ObjectDisposedException>(async () => await fs.OpenDirectoryAsync("/", CancellationToken));
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

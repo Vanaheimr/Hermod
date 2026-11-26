@@ -210,6 +210,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// </summary>
         public Task Closed => channelMultiplexer.Completion;
 
+        internal CancellationToken EndedToken => channelMultiplexer.EndedToken;
+
         /// <summary>
         /// Why the connection ended, once it has; null while it lasts.
         /// </summary>
@@ -742,27 +744,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         public async ValueTask<SFTPClient> OpenSFTPClient(CancellationToken CancellationToken = default)
         {
 
-            var channel = await channelMultiplexer.OpenChannelAsync(
-                                    "session",
-                                    CancellationToken: CancellationToken
-                                ).ConfigureAwait(false);
+            var channel = await OpenSubsystem("sftp", CancellationToken).ConfigureAwait(false);
 
-            if (!await channel.SendRequestAsync(
-                           "subsystem",
-                           true,
-                           SshSessionChannel.EncodeString("sftp"),
-                           CancellationToken
-                       ).ConfigureAwait(false))
+            try
             {
-                throw new SshSubsystemRefusedException("sftp");
+                return await SFTPClient.OpenAsync(
+                                 new StreamSftpDuplex(
+                                     channel.AsStream()
+                                 ),
+                                 CancellationToken
+                             ).ConfigureAwait(false);
             }
-
-            return await SFTPClient.OpenAsync(
-                             new StreamSftpDuplex(
-                                 channel.AsStream()
-                             ),
-                             CancellationToken
-                         ).ConfigureAwait(false);
+            catch
+            {
+                try { await channel.CloseAsync(CancellationToken.None).ConfigureAwait(false); } catch { }
+                throw;
+            }
 
         }
 

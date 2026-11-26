@@ -419,6 +419,115 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region ChannelDataHeldDuringRekey_DoesNotDeadlockPeerChannelOpen
+
+        /// <summary>
+        /// Regression test for the multiplexer sendGate deadlock: while a rekey is in progress on the
+        /// server, a server channel tries to send <c>CHANNEL_DATA</c> and parks inside the transport's
+        /// rekey hold (<c>sendsHeld</c>). Before the client sees the server's <c>KEXINIT</c>, the client
+        /// opens a second channel. The server's receive loop must confirm that channel (buffering the
+        /// confirmation inside the transport) and keep reading so the rekey completes — previously the
+        /// parked <c>CHANNEL_DATA</c> writer held <c>SshChannelMultiplexer.sendGate</c>, deadlocking the
+        /// receive loop forever.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task ChannelDataHeldDuringRekey_DoesNotDeadlockPeerChannelOpen(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var client = await clientTask;
+            using var server = await serverTask;
+
+            if (client.Algorithms.ExtensionInfo)
+                Assert.That(client.TryHandleExtInfo(await client.ReceivePacketAsync(CancellationToken)), Is.True);
+
+            await using var serverMux = new SshChannelMultiplexer(server) { RekeyLimits = null }.Start();
+
+            // 1. Open channel #1 so the server has an active channel to write CHANNEL_DATA to.
+            var acceptingFirst = serverMux.AcceptChannelAsync(CancellationToken);
+            await client.SendPacketAsync(SshChannelWire.ChannelOpen("session", 1, 65536, 32768, []), CancellationToken);
+            var firstConfirm = await client.ReceivePacketAsync(CancellationToken);
+            Assert.That(firstConfirm[0], Is.EqualTo((Byte) SshMessageNumber.ChannelOpenConfirmation));
+            var serverChannel1 = await acceptingFirst;
+
+            // 2. Start a rekey on the server so sendsHeld becomes true.
+            Assert.That(await server.StartRekeyAsync(CancellationToken), Is.True, "the server starts a rekey");
+
+            // 3. Park a CHANNEL_DATA send from the server channel while the rekey is still in progress.
+            var payload  = RandomNumberGenerator.GetBytes(1024);
+            var heldSend = serverChannel1.SendDataAsync(payload, CancellationToken).AsTask();
+            await Task.Delay(50, CancellationToken);
+            Assert.That(heldSend.IsCompleted, Is.False, "channel data must wait until the rekey finishes");
+
+            // 4. Before reading the server's KEXINIT, the client opens a second channel. The server's
+            //    receive loop handles CHANNEL_OPEN and sends CHANNEL_OPEN_CONFIRMATION — this must not
+            //    block behind the parked CHANNEL_DATA writer.
+            await client.SendPacketAsync(SshChannelWire.ChannelOpen("session", 2, 65536, 32768, []), CancellationToken);
+
+            // 5. Complete the rekey from the client side.
+            var serverKexInit = await client.ReceivePacketAsync(CancellationToken);
+            Assert.That(serverKexInit[0], Is.EqualTo((Byte) SshMessageNumber.KexInit));
+            await client.RespondToRekeyAsync(serverKexInit, CancellationToken);
+
+            // 6. After NEWKEYS, both the buffered CHANNEL_OPEN_CONFIRMATION and the released CHANNEL_DATA arrive.
+            var p1 = await client.ReceivePacketAsync(CancellationToken);
+            var p2 = await client.ReceivePacketAsync(CancellationToken);
+            await heldSend.WaitAsync(CancellationToken);
+
+            var types = new[] { (SshMessageNumber) p1[0], (SshMessageNumber) p2[0] };
+
+            Assert.Multiple(() => {
+                Assert.That(types, Does.Contain(SshMessageNumber.ChannelOpenConfirmation), "second channel confirmed after rekey");
+                Assert.That(types, Does.Contain(SshMessageNumber.ChannelData),             "held channel data delivered after rekey");
+                Assert.That(client.KeyExchangeCount, Is.EqualTo(2));
+                Assert.That(server.KeyExchangeCount, Is.EqualTo(2));
+            });
+
+        }
+
+        #endregion
+
+        #region StalledRekey_TimesOutInsteadOfHangingForever
+
+        /// <summary>
+        /// If a peer never answers our <c>SSH_MSG_KEXINIT</c> during a rekey, the transport must fail the
+        /// connection after <see cref="SshTransport.RekeyTimeout"/> and release any parked channel-data
+        /// writers instead of stalling indefinitely.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task StalledRekey_TimesOutInsteadOfHangingForever(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var client = await clientTask;
+            using var server = await serverTask;
+
+            server.RekeyTimeout = TimeSpan.FromMilliseconds(300);
+
+            await using var serverMux = new SshChannelMultiplexer(server) { RekeyLimits = null }.Start();
+
+            // Start a rekey on the server; the bare client deliberately stays completely silent.
+            Assert.That(await server.StartRekeyAsync(CancellationToken), Is.True);
+
+            await serverMux.Completion.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken);
+            Assert.That(serverMux.EndReason, Is.InstanceOf<SshWireException>());
+
+        }
+
+        #endregion
+
         #region TheLimits_RefuseNonsense
 
         [Test]

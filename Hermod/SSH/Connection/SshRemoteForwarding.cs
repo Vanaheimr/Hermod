@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             // A connection that ends takes its listeners with it.
             CancellationToken.Register(() => {
                 foreach (var forward in forwards.Values)
-                    forward.Stop();
+                    forward.StopAndDispose();
             });
 
             Mux.GlobalRequestResponder = info => info.Name switch {
@@ -171,7 +171,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             // stopped while it waits for a connection lets go of its port only when that wait has ended:
             // on Linux, later, on another thread. So answer once the accept loops are over.
             forward.Stop();
-            await forward.StoppedAsync(StopWait).ConfigureAwait(false);
+            try
+            {
+                await forward.StoppedAsync(StopWait).ConfigureAwait(false);
+            }
+            finally
+            {
+                forward.Dispose();
+            }
 
             return SshGlobalRequestReply.Ok;
 
@@ -181,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// How long a cancel waits for the listeners of a forward to let go of their port before it
         /// answers anyway.
         /// </summary>
-        private static readonly TimeSpan StopWait = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan StopWait = TimeSpan.FromSeconds(1);
 
         private static Boolean TryReadAddressAndPort(Byte[] Data, out String Address, out IPPort Port)
         {
@@ -231,7 +238,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             {
                 while (!CancellationToken.IsCancellationRequested)
                 {
-                    var socket = await Listener.AcceptTcpClientAsync(CancellationToken).ConfigureAwait(false);
+                    TcpClient socket;
+                    try
+                    {
+                        socket = await Listener.AcceptTcpClientAsync(CancellationToken).ConfigureAwait(false);
+                    }
+                    catch (SocketException) when (!CancellationToken.IsCancellationRequested)
+                    {
+                        await Task.Delay(50, CancellationToken).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    SshTcp.ConfigureConnectedSocket(socket.Client);
+                    // Do not pass CancellationToken to Task.Run so an accepted socket is always disposed.
                     _ = Task.Run(async () =>
                     {
                         try
@@ -243,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                             await SshTcpRelay.RelayAsync(ch, socket.Client, CancellationToken).ConfigureAwait(false);
                         }
                         catch { socket.Dispose(); }
-                    }, CancellationToken);
+                    });
                 }
             }
             catch { }
@@ -435,12 +454,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             return abw.WrittenSpan.ToArray();
         }
 
-        private sealed class RemoteForwardListener
+        private sealed class RemoteForwardListener : IDisposable
         {
 
             private readonly IReadOnlyList<TcpListener>  listeners;
             private readonly CancellationTokenSource     cts;
             private readonly List<Task>                  loops = [];
+            private          Int32                       disposed;
 
             public RemoteForwardListener(IReadOnlyList<TcpListener> Listeners, CancellationToken Connection)
             {
@@ -485,6 +505,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 try { cts.Cancel(); } catch (ObjectDisposedException) { }
                 foreach (var listener in listeners)
                     try { listener.Stop(); } catch { }
+            }
+
+            public void StopAndDispose()
+            {
+                Stop();
+                Dispose();
+            }
+
+            public void Dispose()
+            {
+                if (Interlocked.Exchange(ref disposed, 1) == 0)
+                    cts.Dispose();
             }
 
         }

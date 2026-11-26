@@ -85,22 +85,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Constants
 
-        internal const UInt32 InitialWindow  = 2 * 1024 * 1024;
-        internal const UInt32 MaxPacket      = 32 * 1024;
+        internal const UInt32 InitialWindow              = 2 * 1024 * 1024;
+        internal const UInt32 MaxPacket                  = 32 * 1024;
+        private  const Int32  MaxQueuedAcceptedChannels  = 256;
 
         #endregion
 
         #region Data
 
-        private readonly SshTransport                              transport;
-        private readonly SemaphoreSlim                             sendGate = new (1, 1);
-        private readonly CancellationTokenSource                   cts      = new ();
-        private readonly ConcurrentDictionary<UInt32, SshMuxChannel>  channels = new ();
-        private readonly Channel<SshMuxChannel>                    accepted = System.Threading.Channels.Channel.CreateUnbounded<SshMuxChannel>();
-        private readonly ConcurrentQueue<TaskCompletionSource<SshGlobalRequestReply>>  pendingGlobalReplies = new ();
-        private Int32                                             nextLocalId;
-        private Task                                             runTask = Task.CompletedTask;
-        private Int64                                            lastChannelActivity;
+        private readonly SshTransport                                             transport;
+        private readonly Action                                                   throwIfDisposed;
+        private readonly SemaphoreSlim                                            globalRequestGate    = new (1, 1);
+        private readonly Lock                                                     globalRepliesSync    = new ();
+        private readonly CancellationTokenSource                                  cts                  = new ();
+        private readonly CancellationTokenSource                                  endedCts             = new ();
+        private readonly ConcurrentDictionary<UInt32, SshMuxChannel>              channels             = new ();
+        private readonly Channel<SshMuxChannel>                                   accepted             = System.Threading.Channels.Channel.CreateBounded<SshMuxChannel>(
+                                                                                                             new BoundedChannelOptions(MaxQueuedAcceptedChannels) {
+                                                                                                                 FullMode     = BoundedChannelFullMode.Wait,
+                                                                                                                 SingleWriter = true
+                                                                                                             });
+        private readonly LinkedList<TaskCompletionSource<SshGlobalRequestReply>>  pendingGlobalReplies = new ();
+        private Int32                                                             nextLocalId;
+        private Task                                                              runTask = Task.CompletedTask;
+        private Int64                                                             lastChannelActivity;
 
         /// <summary>
         /// Why the connection ended, once it has: the receive loop is gone, and nothing will ever answer
@@ -153,6 +161,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public Task Completion => completion.Task;
 
         /// <summary>
+        /// Fires when the multiplexer's receive loop ends; callers can link against this token and
+        /// dispose their linked <see cref="CancellationTokenSource"/> without retaining continuations
+        /// on <see cref="Completion"/>.
+        /// </summary>
+        internal CancellationToken EndedToken => endedCts.Token;
+
+        /// <summary>
         /// Why the connection ended, once it has (<see cref="SshChannelClosedException"/> for an orderly
         /// end); null while it lasts.
         /// </summary>
@@ -202,6 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public SshChannelMultiplexer(SshTransport Transport)
         {
             this.transport            = Transport;
+            this.throwIfDisposed      = ThrowIfDisposed;
             this.lastChannelActivity  = System.TimeProvider.System.GetTimestamp();
         }
 
@@ -240,9 +256,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public async ValueTask<SshMuxChannel> OpenChannelAsync(String ChannelType, Byte[]? TypeData = null, CancellationToken CancellationToken = default)
         {
 
-            var localId = (UInt32) Interlocked.Increment(ref nextLocalId);
-            var channel = new SshMuxChannel(this, localId, ChannelType, TypeData ?? []);
-            channels[localId] = channel;
+            var data    = TypeData ?? [];
+            var channel = AllocateChannel(ChannelType, data);
+            var localId = channel.LocalId;
 
             // A connection that has ended answers nothing, and the loop that would have failed this channel
             // with it is gone: without this, a channel opened after the server's DISCONNECT waited for its
@@ -255,11 +271,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 await channel.OpenAwaitable.ConfigureAwait(false);
             }
 
-            await SendAsync(SshChannelWire.ChannelOpen(ChannelType, localId, InitialWindow, MaxPacket, TypeData ?? []), CancellationToken).ConfigureAwait(false);
+            try
+            {
+                await SendAsync(SshChannelWire.ChannelOpen(ChannelType, localId, InitialWindow, MaxPacket, data), CancellationToken).ConfigureAwait(false);
+                await channel.OpenAwaitable.WaitAsync(CancellationToken).ConfigureAwait(false);
+                return channel;
+            }
+            catch
+            {
+                channels.TryRemove(localId, out _);
+                if (channel.OpenAwaitable.IsCompletedSuccessfully)
+                    try { await channel.CloseAsync().ConfigureAwait(false); } catch { }
+                throw;
+            }
 
-            await channel.OpenAwaitable.WaitAsync(CancellationToken).ConfigureAwait(false);
-            return channel;
+        }
 
+        private SshMuxChannel AllocateChannel(String ChannelType, Byte[] TypeData)
+        {
+            while (true)
+            {
+                var localId = unchecked((UInt32) Interlocked.Increment(ref nextLocalId));
+                var channel = new SshMuxChannel(this, localId, ChannelType, TypeData);
+                if (channels.TryAdd(localId, channel))
+                    return channel;
+            }
         }
 
         #endregion
@@ -289,22 +325,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public async ValueTask<SshGlobalRequestReply> SendGlobalRequestWithReplyAsync(String Name, Boolean WantReply, Byte[] Data, CancellationToken CancellationToken = default)
         {
 
-            TaskCompletionSource<SshGlobalRequestReply>? tcs = null;
-            if (WantReply)
+            if (!WantReply)
             {
-                tcs = new TaskCompletionSource<SshGlobalRequestReply>(TaskCreationOptions.RunContinuationsAsynchronously);
-                pendingGlobalReplies.Enqueue(tcs);
+                await SendAsync(SshChannelWire.GlobalRequest(Name, false, Data), CancellationToken).ConfigureAwait(false);
+                return SshGlobalRequestReply.Ok;
             }
 
-            // As with OpenChannelAsync: a reply queued after the loop failed what was queued would never come.
-            if (tcs is not null && ended is Exception gone)
-                tcs.TrySetException(gone);
+            var tcs = new TaskCompletionSource<SshGlobalRequestReply>(TaskCreationOptions.RunContinuationsAsynchronously);
+            LinkedListNode<TaskCompletionSource<SshGlobalRequestReply>> node;
 
-            await SendAsync(SshChannelWire.GlobalRequest(Name, WantReply, Data), CancellationToken).ConfigureAwait(false);
+            // Serialize enqueue + wire send so concurrent want-reply global requests land in the same
+            // FIFO order in pendingGlobalReplies and on the wire (RFC 4254 §4). globalRequestGate is
+            // never held by ChannelData or DispatchAsync, so a rekey holding channel data cannot
+            // deadlock global requests or control replies.
+            await globalRequestGate.WaitAsync(CancellationToken).ConfigureAwait(false);
+            try
+            {
+                lock (globalRepliesSync)
+                {
+                    if (ended is Exception gone)
+                        throw gone;
+                    if (Volatile.Read(ref disposed) != 0)
+                        throw new SshChannelClosedException();
+                    node = pendingGlobalReplies.AddLast(tcs);
+                }
 
-            return tcs is null
-                       ? SshGlobalRequestReply.Ok
-                       : await tcs.Task.WaitAsync(CancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await SendAsync(SshChannelWire.GlobalRequest(Name, true, Data), CancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    lock (globalRepliesSync)
+                    {
+                        if (node.List is not null)
+                            pendingGlobalReplies.Remove(node);
+                    }
+                    throw;
+                }
+            }
+            finally
+            {
+                globalRequestGate.Release();
+            }
+
+            return await tcs.Task.WaitAsync(CancellationToken).ConfigureAwait(false);
 
         }
 
@@ -316,14 +381,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         internal async ValueTask SendAsync(Byte[] Payload, CancellationToken CancellationToken = default)
         {
             RecordChannelActivity(Payload);
-            await sendGate.WaitAsync(CancellationToken).ConfigureAwait(false);
-            try
-            {
-                if (Volatile.Read(ref disposed) != 0)
-                    throw new SshChannelClosedException();
-                await transport.SendPacketAsync(Payload, CancellationToken).ConfigureAwait(false);
-            }
-            finally { sendGate.Release(); }
+            ThrowIfDisposed();
+            await transport.SendPacketCoreAsync(Payload, throwIfDisposed, CancellationToken).ConfigureAwait(false);
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (Volatile.Read(ref disposed) != 0)
+                throw new SshChannelClosedException();
         }
 
         internal void Remove(UInt32 LocalId) => channels.TryRemove(LocalId, out _);
@@ -401,8 +466,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 case SshMessageNumber.ChannelOpenConfirmation:
                 {
                     var r = new SshPacketReader(Payload); r.ReadByte();
-                    var local = r.ReadUInt32(); var remote = r.ReadUInt32(); var window = r.ReadUInt32();
-                    if (channels.TryGetValue(local, out var ch)) ch.OnOpenConfirmed(remote, window);
+                    var local = r.ReadUInt32(); var remote = r.ReadUInt32(); var window = r.ReadUInt32(); var maxPkt = r.ReadUInt32();
+                    if (channels.TryGetValue(local, out var ch))
+                        ch.OnOpenConfirmed(remote, window, maxPkt);
+                    else
+                        // The opener gave up (e.g. cancelled) before the peer's confirmation arrived — close
+                        // the peer's half so it does not leak the channel.
+                        await SendAsync(SshChannelWire.Close(remote)).ConfigureAwait(false);
                     break;
                 }
 
@@ -480,13 +550,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     break;
 
                 case SshMessageNumber.RequestSuccess:
-                    if (pendingGlobalReplies.TryDequeue(out var okTcs))
-                        okTcs.TrySetResult(new SshGlobalRequestReply(true, Payload.AsSpan(1).ToArray()));
+                {
+                    TaskCompletionSource<SshGlobalRequestReply>? okTcs = null;
+                    lock (globalRepliesSync)
+                    {
+                        if (pendingGlobalReplies.First is { } first)
+                        {
+                            okTcs = first.Value;
+                            pendingGlobalReplies.RemoveFirst();
+                        }
+                    }
+                    okTcs?.TrySetResult(new SshGlobalRequestReply(true, Payload.AsSpan(1).ToArray()));
                     break;
+                }
 
                 case SshMessageNumber.RequestFailure:
-                    if (pendingGlobalReplies.TryDequeue(out var failTcs)) failTcs.TrySetResult(SshGlobalRequestReply.Failed);
+                {
+                    TaskCompletionSource<SshGlobalRequestReply>? failTcs = null;
+                    lock (globalRepliesSync)
+                    {
+                        if (pendingGlobalReplies.First is { } first)
+                        {
+                            failTcs = first.Value;
+                            pendingGlobalReplies.RemoveFirst();
+                        }
+                    }
+                    failTcs?.TrySetResult(SshGlobalRequestReply.Failed);
                     break;
+                }
 
                 case SshMessageNumber.Ping:
                 {
@@ -531,10 +622,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             if (handler is not null || await ChannelAcceptor(info).ConfigureAwait(false))
             {
-                var localId = (UInt32) Interlocked.Increment(ref nextLocalId);
-                var channel = new SshMuxChannel(this, localId, type, rest);
-                channel.OnOpenConfirmed(sender, window);
-                channels[localId] = channel;
+                if (handler is null && accepted.Reader.Count >= MaxQueuedAcceptedChannels)
+                {
+                    await SendAsync(SshChannelWire.ChannelOpenFailure(sender, 4, "too many pending channels")).ConfigureAwait(false);
+                    return;
+                }
+
+                UInt32        localId;
+                SshMuxChannel channel;
+                while (true)
+                {
+                    localId = unchecked((UInt32) Interlocked.Increment(ref nextLocalId));
+                    channel = new SshMuxChannel(this, localId, type, rest);
+                    channel.OnOpenConfirmed(sender, window, maxPkt);
+                    if (channels.TryAdd(localId, channel))
+                        break;
+                }
                 await SendAsync(SshChannelWire.ChannelOpenConfirmation(sender, localId, InitialWindow, MaxPacket)).ConfigureAwait(false);
 
                 if (handler is not null)
@@ -588,7 +691,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         {
             ended = Exception;
             foreach (var ch in channels.Values) ch.Fault(Exception);
-            while (pendingGlobalReplies.TryDequeue(out var tcs)) tcs.TrySetException(Exception);
+            DrainGlobalReplies(Exception);
             accepted.Writer.TryComplete(Exception);
         }
 
@@ -607,8 +710,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var closed = new SshChannelClosedException();
             ended ??= closed;
             foreach (var ch in channels.Values) ch.Fault(ended);
+            DrainGlobalReplies(ended);
             accepted.Writer.TryComplete();
+            try { endedCts.Cancel(); } catch (ObjectDisposedException) { }
             completion.TrySetResult();
+        }
+
+        private void DrainGlobalReplies(Exception Exception)
+        {
+            List<TaskCompletionSource<SshGlobalRequestReply>>? pending = null;
+            lock (globalRepliesSync)
+            {
+                if (pendingGlobalReplies.Count > 0)
+                {
+                    pending = [.. pendingGlobalReplies];
+                    pendingGlobalReplies.Clear();
+                }
+            }
+            if (pending is not null)
+                foreach (var tcs in pending)
+                    tcs.TrySetException(Exception);
         }
 
         #endregion
@@ -619,12 +740,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Stop the multiplexer and tear down all channels.
         /// </summary>
         /// <remarks>
-        /// The send gate is not disposed. Disposing a SemaphoreSlim drops whoever waits for it without an
-        /// answer, and whoever holds it then fails to release it. A channel's EOF queued behind a send in
-        /// flight waited for ever, and so did the direct-tcpip relay that sent it: its socket was never
-        /// closed, and the host behind it - a second jump host - saw a connection that never ended. Not
-        /// disposed, the gate goes to each waiter in turn, and each is refused. It never had a wait
-        /// handle, so there is nothing to free.
+        /// <see cref="globalRequestGate"/> is not disposed. Disposing a SemaphoreSlim drops whoever waits for
+        /// it without an answer, and whoever holds it then fails to release it. Not disposed, the gate goes
+        /// to each waiter in turn, and each is refused. It never had a wait handle, so there is nothing to
+        /// free.
         /// </remarks>
         public async ValueTask DisposeAsync()
         {

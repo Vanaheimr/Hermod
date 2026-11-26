@@ -173,7 +173,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             }
             finally
             {
-                await CloseAsync(handle, CancellationToken).ConfigureAwait(false);
+                try   { await CloseAsync(handle, CancellationToken.None).ConfigureAwait(false); }
+                catch { }
             }
 
         }
@@ -233,7 +234,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             }
             finally
             {
-                await CloseAsync(handle, CancellationToken).ConfigureAwait(false);
+                try   { await CloseAsync(handle, CancellationToken.None).ConfigureAwait(false); }
+                catch { }
             }
 
         }
@@ -513,7 +515,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             }
             finally
             {
-                await CloseAsync(handle, CancellationToken).ConfigureAwait(false);
+                try   { await CloseAsync(handle, CancellationToken.None).ConfigureAwait(false); }
+                catch { }
             }
 
             return entries.Where(e => e.Name is not "." and not "..").ToList();
@@ -686,13 +689,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                 }
                 finally
                 {
-                    await CloseAsync(destination, CancellationToken).ConfigureAwait(false);
+                    try   { await CloseAsync(destination, CancellationToken.None).ConfigureAwait(false); }
+                    catch { }
                 }
 
             }
             finally
             {
-                await CloseAsync(source, CancellationToken).ConfigureAwait(false);
+                try   { await CloseAsync(source, CancellationToken.None).ConfigureAwait(false); }
+                catch { }
             }
 
         }
@@ -824,7 +829,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
             var reader = new SshPacketReader(response); reader.ReadByte(); reader.ReadUInt32();
             var count  = reader.ReadUInt32();
-            var result = new List<SftpDirectoryEntry>((Int32) count);
+            var result = new List<SftpDirectoryEntry>((Int32) Math.Min(count, 1024u));
             for (var i = 0U; i < count; i++)
             {
                 var name = reader.ReadString();
@@ -864,12 +869,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             w.WriteUInt32(id);
             Write(ref w);
 
-            await sendGate.WaitAsync(CancellationToken).ConfigureAwait(false);
-            try     { await SftpServer.SendAsync(channel, abw.WrittenMemory, CancellationToken).ConfigureAwait(false); }
-            finally { sendGate.Release(); }
+            try
+            {
+                await sendGate.WaitAsync(CancellationToken).ConfigureAwait(false);
+                try
+                {
+                    if (Volatile.Read(ref ended) is not null)
+                        throw new SshChannelClosedException();
+                    await SftpServer.SendAsync(channel, abw.WrittenMemory, CancellationToken).ConfigureAwait(false);
+                }
+                finally { sendGate.Release(); }
 
-            await using (CancellationToken.Register(static state => ((TaskCompletionSource<Byte[]>) state!).TrySetCanceled(), tcs).ConfigureAwait(false))
-                return await tcs.Task.ConfigureAwait(false);
+                await using (CancellationToken.Register(static state => ((TaskCompletionSource<Byte[]>) state!).TrySetCanceled(), tcs).ConfigureAwait(false))
+                    return await tcs.Task.ConfigureAwait(false);
+            }
+            catch
+            {
+                pending.TryRemove(id, out _);
+                throw;
+            }
 
         }
 
@@ -956,12 +974,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         /// </summary>
         public async ValueTask DisposeAsync()
         {
+            var closed = new SshChannelClosedException();
+            if (Interlocked.CompareExchange(ref ended, closed, null) is not null && cts.IsCancellationRequested)
+                return;
             try { await channel.CloseAsync().ConfigureAwait(false); } catch { }
-            await cts.CancelAsync().ConfigureAwait(false);
+            try { await cts.CancelAsync().ConfigureAwait(false); } catch (ObjectDisposedException) { }
             try { await receiveLoop.ConfigureAwait(false); } catch { }
-            FailAllPending(new SshChannelClosedException());
-            sendGate.Dispose();
-            cts.Dispose();
+            FailAllPending(closed);
+            try { cts.Dispose(); } catch (ObjectDisposedException) { }
         }
 
         #endregion

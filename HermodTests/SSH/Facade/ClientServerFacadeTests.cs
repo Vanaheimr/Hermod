@@ -503,6 +503,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Facade_RepeatedShortConnections_AndGracefulShutdown
+
+        /// <summary>
+        /// Long-running server stability: many short-lived connections connect, run a command, and
+        /// disconnect cleanly, followed by a graceful server shutdown while one live connection is idle.
+        /// Exercises the linked <c>CancellationTokenSource</c> in <c>AcceptChannelsAsync</c> (replacing the
+        /// leaked <c>Task.Delay(Timeout.Infinite, stopping.Token)</c> per connection).
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task Facade_RepeatedShortConnections_AndGracefulShutdown(CancellationToken CancellationToken)
+        {
+
+            var hostKey = SshHostKey.GenerateEd25519();
+            var userKey = SshHostKey.GenerateEd25519();
+
+            var server = new SshServer(new SshServerOptions {
+                HostKeys            = [ hostKey ],
+                Authenticator       = SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob),
+                ExecHandler         = async (ctx, ct) => { await ctx.WriteAsync($"ok:{ctx.Command}\n", ct); return 0; },
+                ShutdownGracePeriod = TimeSpan.FromSeconds(2)
+            });
+
+            try
+            {
+
+                await server.StartAsync(new IPSocket(IPv4Address.Localhost, IPPort.Auto), CancellationToken);
+                var port = server.LocalEndPoint.Port;
+
+                for (var i = 0; i < 15; i++)
+                {
+                    await using var client = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                        Username      = User_Id.Parse("achim"),
+                        VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
+                        Credentials   = [ userKey ]
+                    }, CancellationToken);
+
+                    var result = await client.Execute($"ping-{i}", CancellationToken);
+                    Assert.That(result.StandardOutput, Is.EqualTo($"ok:ping-{i}\n"));
+                }
+
+                // Keep one live idle connection while the server shuts down gracefully.
+                await using var lingering = await SSHClient.Connect("127.0.0.1", port, new SSHClientOptions {
+                    Username      = User_Id.Parse("achim"),
+                    VerifyHostKey = blob => blob.AsSpan().SequenceEqual(hostKey.PublicKeyBlob),
+                    Credentials   = [ userKey ]
+                }, CancellationToken);
+
+                await server.DisposeAsync();
+
+                // The server disconnected the idle client cleanly (and a second DisposeAsync is idempotent).
+                await Assert.ThrowsAsync<SshChannelClosedException>(async () =>
+                    await lingering.Execute("after-shutdown", CancellationToken));
+
+            }
+            finally
+            {
+                await server.DisposeAsync();
+            }
+
+        }
+
+        #endregion
+
     }
 
 }

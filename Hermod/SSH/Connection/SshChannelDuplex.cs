@@ -271,6 +271,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// Create a new channel-closed exception.
         /// </summary>
         public SshChannelClosedException() : base("The SSH channel was closed.") { }
+
+        /// <summary>
+        /// Create a new channel-closed exception with a specific message.
+        /// </summary>
+        public SshChannelClosedException(String Message) : base(Message) { }
     }
 
 }

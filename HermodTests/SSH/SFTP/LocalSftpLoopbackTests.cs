@@ -102,6 +102,151 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Sftp_AbruptClientDisconnect_ClosesAllOpenServerHandles
+
+        /// <summary>
+        /// When a client disconnects abruptly while holding open SFTP handles (without sending
+        /// <c>SSH_FXP_CLOSE</c>), <see cref="SftpServer"/> must close every remaining handle on the backing
+        /// file system so no OS file descriptors are leaked.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task Sftp_AbruptClientDisconnect_ClosesAllOpenServerHandles(CancellationToken CancellationToken)
+        {
+
+            var root = Path.Combine(Path.GetTempPath(), "hermod_sftp_leak_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+
+            try
+            {
+
+                var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+                var hostKey = Ed25519KeyPair.Generate();
+                var userKey = SshHostKey.GenerateEd25519();
+
+                using var fileSystem = new LocalSftpFileSystem(root);
+                var authenticator    = SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob);
+
+                var serverRun = Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var t = await SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+                        await UserAuthentication.ServerAuthenticateAsync(t, authenticator, CancellationToken: CancellationToken);
+                        var duplex = await SshConnection.AcceptSubsystemAsync(t, "sftp", CancellationToken);
+                        await SftpServer.ServeAsync(duplex, fileSystem, CancellationToken: CancellationToken);
+                    }
+                    catch { }
+                }, CancellationToken);
+
+                using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
+
+                var sftp = await SFTPClient.OpenAsync(client, CancellationToken);
+
+                // Open three files and deliberately leave them all unclosed.
+                var h1 = await sftp.OpenFileAsync("/leaked1.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken);
+                var h2 = await sftp.OpenFileAsync("/leaked2.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken);
+                var h3 = await sftp.OpenFileAsync("/leaked3.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken);
+                await sftp.WriteAsync(h1, 0, new Byte[] { 1, 2, 3 }, CancellationToken);
+                await sftp.WriteAsync(h2, 0, new Byte[] { 4, 5, 6 }, CancellationToken);
+                await sftp.WriteAsync(h3, 0, new Byte[] { 7, 8, 9 }, CancellationToken);
+
+                Assert.That(fileSystem.OpenHandleCount, Is.EqualTo(3));
+
+                // Drop the transport abruptly without closing any SFTP handle.
+                await clientPipe.Output.CompleteAsync();
+                await clientPipe.Input.CompleteAsync();
+                await serverRun;
+
+                Assert.That(fileSystem.OpenHandleCount, Is.EqualTo(0), "server must close all open handles when the session ends");
+
+                // On Windows, deleting a file fails with IOException if any SafeFileHandle is still open.
+                Assert.DoesNotThrow(() => File.Delete(Path.Combine(root, "leaked1.bin")));
+                Assert.DoesNotThrow(() => File.Delete(Path.Combine(root, "leaked2.bin")));
+                Assert.DoesNotThrow(() => File.Delete(Path.Combine(root, "leaked3.bin")));
+
+                await sftp.DisposeAsync();
+
+            }
+            finally
+            {
+                try { Directory.Delete(root, recursive: true); } catch { }
+            }
+
+        }
+
+        #endregion
+
+        #region Sftp_MaxOpenHandles_RejectsExcessiveOpens
+
+        /// <summary>
+        /// Per-session open-handle cap: opening more handles than <see cref="SftpLimits.MaxOpenHandles"/>
+        /// allows is refused with <see cref="SftpStatusCode.Failure"/> until an existing handle is closed.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task Sftp_MaxOpenHandles_RejectsExcessiveOpens(CancellationToken CancellationToken)
+        {
+
+            var root = Path.Combine(Path.GetTempPath(), "hermod_sftp_cap_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+
+            try
+            {
+
+                var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+                var hostKey = Ed25519KeyPair.Generate();
+                var userKey = SshHostKey.GenerateEd25519();
+
+                using var fileSystem = new LocalSftpFileSystem(root);
+                var authenticator    = SshUserAuthenticator.ForAuthorizedKeys(userKey.PublicKeyBlob);
+
+                var serverRun = Task.Run(async () =>
+                {
+                    using var t = await SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+                    await UserAuthentication.ServerAuthenticateAsync(t, authenticator, CancellationToken: CancellationToken);
+                    var duplex = await SshConnection.AcceptSubsystemAsync(t, "sftp", CancellationToken);
+                    await SftpServer.ServeAsync(duplex, fileSystem, Limits: new SftpLimits { MaxOpenHandles = 3 }, CancellationToken: CancellationToken);
+                }, CancellationToken);
+
+                using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+                await UserAuthentication.ClientPublicKeyAuthenticateAsync(client, User_Id.Parse("achim"), userKey, CancellationToken: CancellationToken);
+
+                var sftp   = await SFTPClient.OpenAsync(client, CancellationToken);
+                var limits = await sftp.LimitsAsync(CancellationToken);
+                Assert.That(limits.MaxOpenHandles, Is.EqualTo(3UL));
+
+                var h1 = await sftp.OpenFileAsync("/f1.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken);
+                var h2 = await sftp.OpenFileAsync("/f2.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken);
+                var h3 = await sftp.OpenFileAsync("/f3.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken);
+
+                var ex = await Assert.ThrowsAsync<SftpException>(async () =>
+                    await sftp.OpenFileAsync("/f4.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken));
+                Assert.That(ex!.Code, Is.EqualTo(SftpStatusCode.Failure));
+
+                // Closing one handle frees a slot.
+                await sftp.CloseAsync(h1, CancellationToken);
+                var h4 = await sftp.OpenFileAsync("/f4.bin", SftpOpenFlags.Create | SftpOpenFlags.Write, CancellationToken);
+                await sftp.CloseAsync(h2, CancellationToken);
+                await sftp.CloseAsync(h3, CancellationToken);
+                await sftp.CloseAsync(h4, CancellationToken);
+
+                await sftp.DisposeAsync();
+                await serverRun;
+
+                Assert.That(fileSystem.OpenHandleCount, Is.EqualTo(0));
+
+            }
+            finally
+            {
+                try { Directory.Delete(root, recursive: true); } catch { }
+            }
+
+        }
+
+        #endregion
+
     }
 
 }

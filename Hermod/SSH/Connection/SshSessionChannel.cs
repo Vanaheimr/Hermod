@@ -50,8 +50,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public static async ValueTask<SshCommandResult> ExecuteAsync(SshChannelMultiplexer Mux, String Command, CancellationToken CancellationToken = default)
         {
-            var channel = await Mux.OpenChannelAsync("session", CancellationToken: CancellationToken).ConfigureAwait(false);
-            await channel.SendRequestAsync("exec", true, EncodeString(Command), CancellationToken).ConfigureAwait(false);
+            var channel  = await Mux.OpenChannelAsync("session", CancellationToken: CancellationToken).ConfigureAwait(false);
+            var accepted = await channel.SendRequestAsync("exec", true, EncodeString(Command), CancellationToken).ConfigureAwait(false);
+            if (!accepted)
+            {
+                try { await channel.CloseAsync(CancellationToken.None).ConfigureAwait(false); } catch { }
+                throw new SshChannelClosedException($"The server refused the exec request for '{Command}'.");
+            }
             return await CaptureAsync(channel, CancellationToken).ConfigureAwait(false);
         }
 

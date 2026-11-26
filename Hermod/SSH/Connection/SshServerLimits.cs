@@ -42,6 +42,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public Int32      MaxSessions          { get; init; } = 10;
 
         /// <summary>
+        /// The maximum number of concurrent <c>direct-tcpip</c> forwarding channels a connection may open (default 64).
+        /// </summary>
+        public Int32      MaxDirectTcpIp       { get; init; } = 64;
+
+        /// <summary>
         /// The maximum number of connections at once, authenticated or not (default 100). One more is
         /// closed as soon as it is accepted.
         /// </summary>

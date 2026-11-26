@@ -110,8 +110,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
 
             // 2. Process authentication requests, tracking the methods completed for a multi-factor chain.
-            var failedAttempts   = 0;
-            var completedMethods = new HashSet<String>(StringComparer.Ordinal);
+            var      failedAttempts    = 0;
+            var      completedMethods  = new HashSet<String>(StringComparer.Ordinal);
+            User_Id? authenticatedUser = null;
 
             // Restrictions the succeeding credential imposes on the session. Read off the blob that was
             // actually authenticated — the certificate has already had its CA signature, validity,
@@ -127,6 +128,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 var payload  = await Transport.ReceivePacketAsync(CancellationToken).ConfigureAwait(false);
                 var request  = ParseAuthRequest(payload);   // fully parse before any await (ref struct)
 
+                // RFC 4252 §5: once a factor has succeeded in a multi-factor exchange, pin the
+                // username for the remainder of the exchange so factors from different accounts
+                // can never be combined.
+                if (authenticatedUser is not null && !request.Username.Equals(authenticatedUser.Value))
+                {
+                    await EmitAsync(AuditSink, new AuthMethodFailedEvent(clock.GetUtcNow(), request.Username, request.Method, "username changed during authentication"), CancellationToken).ConfigureAwait(false);
+                    await EmitAsync(AuditSink, new AuthenticationFailedEvent(clock.GetUtcNow(), request.Username, failedAttempts + 1), CancellationToken).ConfigureAwait(false);
+                    throw new SshAuthenticationException("Username changed during authentication.");
+                }
+
                 var (succeeded, isQueryOnly) = request.Method switch {
                     PublicKeyMethod            => await EvaluatePublicKeyAsync(Transport, Authenticator, request, CancellationToken).ConfigureAwait(false),
                     PasswordMethod             => (await Authenticator.AuthorizePasswordAsync(request.Username, request.Password, Client, CancellationToken).ConfigureAwait(false), false),
@@ -141,6 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 if (succeeded)
                 {
 
+                    authenticatedUser ??= request.Username;
                     completedMethods.Add(request.Method);
                     await EmitAsync(AuditSink, new AuthMethodSucceededEvent(clock.GetUtcNow(), request.Username, request.Method) {
                                                    Identity = request.Method == PublicKeyMethod ? SshFingerprint.Sha256(request.PublicKeyBlob) : null
@@ -234,7 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
 
             var signedData = BuildPublicKeySignedData(Transport.SessionId, Request.Username, Request.Algorithm, Request.PublicKeyBlob);
-            return (authorized && SshSignature.Verify(Request.PublicKeyBlob, signedData, Request.Signature), false);
+            return (authorized && SshSignature.Verify(Request.PublicKeyBlob, signedData, Request.Signature, Request.Algorithm), false);
 
         }
 

@@ -57,18 +57,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             using (Connection)
             {
 
-                using var stream  = new NetworkStream(Connection, ownsSocket: false);
-                using var upwards = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                using var stream   = new NetworkStream(Connection, ownsSocket: false);
+                using var relayCts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+                using var upwards  = CancellationTokenSource.CreateLinkedTokenSource(relayCts.Token);
 
                 _ = Channel.Closed.ContinueWith(_ => { try { upwards.Cancel(); } catch (ObjectDisposedException) { } },
                                                 TaskScheduler.Default);
 
                 var up   = SocketToChannelAsync(stream, Channel, upwards.Token);
-                var down = ChannelToSocketAsync(Channel, stream, Connection, CancellationToken);
+                var down = ChannelToSocketAsync(Channel, stream, Connection, relayCts.Token);
 
                 if (!await await Task.WhenAny(up, down).ConfigureAwait(false))
                 {
-                    await upwards.CancelAsync().ConfigureAwait(false);
+                    // A direction failed (error, not clean EOF): cancel BOTH directions so neither hangs.
+                    await relayCts.CancelAsync().ConfigureAwait(false);
                     try { await Channel.CloseAsync().ConfigureAwait(false); } catch { }
                 }
 

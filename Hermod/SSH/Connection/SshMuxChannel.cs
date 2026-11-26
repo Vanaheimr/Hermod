@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Collections.Concurrent;
 using System.IO.Pipelines;
 using System.Threading.Channels;
 
@@ -65,18 +64,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Data
 
-        private readonly SshChannelMultiplexer  mux;
-        private readonly Pipe                   stdout = new (new PipeOptions(pauseWriterThreshold: 0, useSynchronizationContext: false));
-        private readonly Pipe                   stderr = new (new PipeOptions(pauseWriterThreshold: 0, useSynchronizationContext: false));
-        private readonly Channel<SshChannelRequest>  requests = System.Threading.Channels.Channel.CreateUnbounded<SshChannelRequest>();
-        private readonly ConcurrentQueue<TaskCompletionSource<Boolean>>  requestReplies = new ();
-        private readonly TaskCompletionSource  openTcs  = new (TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource  closeTcs = new (TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly Lock                  sync = new ();
+        private const Int32  MaxQueuedRequests      = 256;
+        internal const UInt32 WindowAdjustThreshold = SshChannelMultiplexer.InitialWindow / 2;
+
+        private readonly SshChannelMultiplexer                  mux;
+        private readonly Pipe                                   stdout         = new (new PipeOptions(pauseWriterThreshold: 0, useSynchronizationContext: false));
+        private readonly Pipe                                   stderr         = new (new PipeOptions(pauseWriterThreshold: 0, useSynchronizationContext: false));
+        private readonly Channel<SshChannelRequest>             requests       = System.Threading.Channels.Channel.CreateBounded<SshChannelRequest>(
+                                                                                     new BoundedChannelOptions(MaxQueuedRequests) {
+                                                                                         FullMode     = BoundedChannelFullMode.Wait,
+                                                                                         SingleWriter = true
+                                                                                     });
+        private readonly SemaphoreSlim                          requestGate    = new (1, 1);
+        private readonly LinkedList<TaskCompletionSource<Boolean>> requestReplies = new ();
+        private readonly TaskCompletionSource                   openTcs        = new (TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource                   closeTcs       = new (TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly Lock                                   sync           = new ();
 
         private UInt32                         remoteId;
+        private UInt32                         remoteMaxPacket = SshChannelMultiplexer.MaxPacket;
         private Int64                          remoteWindow;
+        private Int64                          localWindow     = SshChannelMultiplexer.InitialWindow;
+        private UInt32                         pendingWindowAdjust;
         private TaskCompletionSource?          windowGrew;
+        private Exception?                     faulted;
         private Boolean                        sentEof, sentClose, sentExit, inboundDone;
         private Stream?                        inputStream, errorStream;
 
@@ -134,36 +145,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #region Outbound
 
         /// <summary>
-        /// Send bytes as channel data, chunked to the max packet and honouring the peer's window.
+        /// Send bytes as channel data, chunked to the peer's max packet and honouring the peer's window.
         /// </summary>
-        public async ValueTask SendDataAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
+        public ValueTask SendDataAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
+            => SendWindowedAsync(Data, Extended: false, CancellationToken);
+
+        /// <summary>
+        /// Send bytes as extended (stderr) channel data, chunked to the peer's max packet and honouring
+        /// the peer's window (RFC 4254 §5.2).
+        /// </summary>
+        public ValueTask SendErrorAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
+            => SendWindowedAsync(Data, Extended: true, CancellationToken);
+
+        private async ValueTask SendWindowedAsync(ReadOnlyMemory<Byte> Data, Boolean Extended, CancellationToken CancellationToken)
         {
             var offset = 0;
             while (offset < Data.Length)
             {
-                Task?  wait  = null;
-                Int64  avail = 0;
+                Task? wait  = null;
+                Int32 chunk = 0;
                 lock (sync)
                 {
-                    if (remoteWindow <= 0) { windowGrew ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); wait = windowGrew.Task; }
-                    else avail = remoteWindow;
-                }
-                if (wait is not null) { await wait.WaitAsync(CancellationToken).ConfigureAwait(false); continue; }
+                    if (faulted is not null)
+                        throw faulted;
 
-                var chunk = (Int32) Math.Min(Math.Min(SshChannelMultiplexer.MaxPacket, (UInt32) (Data.Length - offset)), (UInt32) Math.Min(avail, SshChannelMultiplexer.MaxPacket));
+                    if (remoteWindow <= 0)
+                    {
+                        windowGrew ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                        wait = windowGrew.Task;
+                    }
+                    else
+                    {
+                        // Reserve the peer window credit BEFORE awaiting the send so concurrent writers
+                        // on the same channel cannot oversubscribe remoteWindow.
+                        var remaining = (UInt32) (Data.Length - offset);
+                        var maxChunk  = Math.Min(remoteMaxPacket, remaining);
+                        chunk         = (Int32) Math.Min((Int64) maxChunk, remoteWindow);
+                        remoteWindow -= chunk;
+                    }
+                }
+
+                if (wait is not null)
+                {
+                    await wait.WaitAsync(CancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
                 if (chunk <= 0) continue;
 
-                await mux.SendAsync(SshChannelWire.ChannelData(remoteId, Data.Slice(offset, chunk).Span), CancellationToken).ConfigureAwait(false);
-                lock (sync) remoteWindow -= chunk;
+                var packet = Extended
+                                 ? SshChannelWire.ChannelExtendedData(remoteId, 1, Data.Slice(offset, chunk).Span)
+                                 : SshChannelWire.ChannelData(remoteId, Data.Slice(offset, chunk).Span);
+
+                await mux.SendAsync(packet, CancellationToken).ConfigureAwait(false);
                 offset += chunk;
             }
         }
-
-        /// <summary>
-        /// Send bytes as extended (stderr) channel data.
-        /// </summary>
-        public async ValueTask SendErrorAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
-            => await mux.SendAsync(SshChannelWire.ChannelExtendedData(remoteId, 1, Data.Span), CancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Send a channel request; when <paramref name="WantReply"/>, await the SUCCESS/FAILURE reply.
@@ -176,10 +213,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         {
             if (Type is "exit-status" or "exit-signal")
                 lock (sync) sentExit = true;
-            TaskCompletionSource<Boolean>? tcs = null;
-            if (WantReply) { tcs = new TaskCompletionSource<Boolean>(TaskCreationOptions.RunContinuationsAsynchronously); requestReplies.Enqueue(tcs); }
-            await mux.SendAsync(SshChannelWire.ChannelRequest(remoteId, Type, WantReply, Payload), CancellationToken).ConfigureAwait(false);
-            return tcs is null || await tcs.Task.WaitAsync(CancellationToken).ConfigureAwait(false);
+
+            if (!WantReply)
+            {
+                await mux.SendAsync(SshChannelWire.ChannelRequest(remoteId, Type, false, Payload), CancellationToken).ConfigureAwait(false);
+                return true;
+            }
+
+            var tcs = new TaskCompletionSource<Boolean>(TaskCreationOptions.RunContinuationsAsynchronously);
+            LinkedListNode<TaskCompletionSource<Boolean>> node;
+
+            // Serialize enqueue + wire send so concurrent want-reply channel requests stay strictly FIFO
+            // with the peer's CHANNEL_SUCCESS / CHANNEL_FAILURE replies (RFC 4254 §5.4).
+            await requestGate.WaitAsync(CancellationToken).ConfigureAwait(false);
+            try
+            {
+                lock (sync)
+                {
+                    if (faulted is not null)
+                        throw faulted;
+                    node = requestReplies.AddLast(tcs);
+                }
+
+                try
+                {
+                    await mux.SendAsync(SshChannelWire.ChannelRequest(remoteId, Type, true, Payload), CancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    lock (sync)
+                    {
+                        if (node.List is not null)
+                            requestReplies.Remove(node);
+                    }
+                    throw;
+                }
+            }
+            finally
+            {
+                requestGate.Release();
+            }
+
+            return await tcs.Task.WaitAsync(CancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -306,9 +381,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (internal) events from the multiplexer
 
-        internal void OnOpenConfirmed(UInt32 RemoteId, UInt32 Window)
+        internal void OnOpenConfirmed(UInt32 RemoteId, UInt32 Window, UInt32 MaxPacket = SshChannelMultiplexer.MaxPacket)
         {
-            lock (sync) { remoteId = RemoteId; remoteWindow = Window; }
+            lock (sync)
+            {
+                remoteId        = RemoteId;
+                remoteWindow    = Window;
+                remoteMaxPacket = MaxPacket == 0 ? SshChannelMultiplexer.MaxPacket : Math.Min(MaxPacket, SshChannelMultiplexer.MaxPacket);
+            }
             openTcs.TrySetResult();
         }
 
@@ -317,13 +397,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         internal async ValueTask OnDataAsync(Byte[] Data)
         {
+            ConsumeLocalWindow(Data.Length);
             await stdout.Writer.WriteAsync(Data).ConfigureAwait(false);
         }
 
         internal async ValueTask OnExtendedDataAsync(UInt32 Code, Byte[] Data)
         {
+            ConsumeLocalWindow(Data.Length);
             if (Code == 1) await stderr.Writer.WriteAsync(Data).ConfigureAwait(false);
             else           Replenish((UInt32) Data.Length);   // unknown extended data: just return the window
+        }
+
+        private void ConsumeLocalWindow(Int32 Bytes)
+        {
+            if (Bytes == 0) return;
+            Boolean overflow;
+            lock (sync)
+            {
+                localWindow -= Bytes;
+                overflow     = localWindow < 0;
+            }
+            if (overflow)
+                throw new SshWireException($"Peer exceeded the receive window on channel {LocalId}.");
         }
 
         internal void OnWindowAdjust(UInt32 Increment)
@@ -342,15 +437,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (sendClose) await mux.SendAsync(SshChannelWire.Close(remoteId)).ConfigureAwait(false);
             await CompleteDataAsync().ConfigureAwait(false);
             requests.Writer.TryComplete();   // no more inbound requests once the channel closes
+            DrainRequestReplies(new SshChannelClosedException());
             closeTcs.TrySetResult();
             mux.Remove(LocalId);
         }
 
-        internal void OnRequest(SshChannelRequest Request) => requests.Writer.TryWrite(Request);
+        internal void OnRequest(SshChannelRequest Request)
+        {
+            if (!requests.Writer.TryWrite(Request))
+                throw new SshWireException($"Too many unread channel requests queued on channel {LocalId}.");
+        }
 
         internal void OnRequestReply(Boolean Success)
         {
-            if (requestReplies.TryDequeue(out var tcs)) tcs.TrySetResult(Success);
+            TaskCompletionSource<Boolean>? tcs = null;
+            lock (sync)
+            {
+                if (requestReplies.First is { } first)
+                {
+                    tcs = first.Value;
+                    requestReplies.RemoveFirst();
+                }
+            }
+            tcs?.TrySetResult(Success);
         }
 
         internal void Fault(Exception Exception)
@@ -360,9 +469,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             try { stdout.Writer.Complete(Exception); } catch { }
             try { stderr.Writer.Complete(Exception); } catch { }
             requests.Writer.TryComplete();
+            DrainRequestReplies(Exception);
             TaskCompletionSource? grew;
             lock (sync) { grew = windowGrew; windowGrew = null; }
             grew?.TrySetException(Exception);
+        }
+
+        private void DrainRequestReplies(Exception Exception)
+        {
+            List<TaskCompletionSource<Boolean>>? pending = null;
+            lock (sync)
+            {
+                faulted ??= Exception;
+                if (requestReplies.Count > 0)
+                {
+                    pending = [.. requestReplies];
+                    requestReplies.Clear();
+                }
+            }
+            if (pending is not null)
+                foreach (var tcs in pending)
+                    tcs.TrySetException(Exception);
         }
 
         #endregion
@@ -383,7 +510,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private void Replenish(UInt32 Bytes)
         {
             if (Bytes == 0) return;
-            _ = mux.SendAsync(SshChannelWire.WindowAdjust(remoteId, Bytes));
+
+            UInt32 toSend = 0;
+            lock (sync)
+            {
+                if (sentClose || faulted is not null)
+                    return;
+
+                pendingWindowAdjust += Bytes;
+                if (pendingWindowAdjust >= WindowAdjustThreshold)
+                {
+                    toSend               = pendingWindowAdjust;
+                    pendingWindowAdjust  = 0;
+                    localWindow         += toSend;
+                }
+            }
+
+            if (toSend > 0)
+                _ = SendWindowAdjustSafeAsync(toSend);
+        }
+
+        private async Task SendWindowAdjustSafeAsync(UInt32 Increment)
+        {
+            try
+            {
+                await mux.SendAsync(SshChannelWire.WindowAdjust(remoteId, Increment)).ConfigureAwait(false);
+            }
+            catch
+            {
+                // The channel or connection closed before the window update went out — nothing to report.
+            }
         }
 
         #endregion

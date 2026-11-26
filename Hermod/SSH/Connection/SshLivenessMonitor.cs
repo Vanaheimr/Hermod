@@ -61,10 +61,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #region Data
 
         private readonly TimeProvider     timeProvider;
-        private readonly Object            sync = new ();
+        private readonly Lock             sync = new ();
 
-        private DateTimeOffset            lastActivity;
-        private DateTimeOffset            lastProbe;
+        private Int64                     lastActivity;
+        private Int64                     lastProbe;
         private Int32                     outstandingProbes;
 
         #endregion
@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             this.KeepAliveCountMax  = Math.Max(1, KeepAliveCountMax);
             this.IdleTimeout        = IdleTimeout;
 
-            var now                 = this.timeProvider.GetUtcNow();
+            var now                 = this.timeProvider.GetTimestamp();
             this.lastActivity       = now;
             this.lastProbe          = now;
 
@@ -132,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         {
             lock (sync)
             {
-                var now            = timeProvider.GetUtcNow();
+                var now            = timeProvider.GetTimestamp();
                 lastActivity       = now;
                 lastProbe          = now;
                 outstandingProbes  = 0;
@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         {
             lock (sync)
             {
-                lastProbe          = timeProvider.GetUtcNow();
+                lastProbe          = timeProvider.GetTimestamp();
                 outstandingProbes  = 0;
             }
         }
@@ -171,22 +171,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             lock (sync)
             {
 
-                var now = timeProvider.GetUtcNow();
+                var now = timeProvider.GetTimestamp();
 
                 // 1. Idle timeout on real traffic wins — a dead OR idle session should go away.
-                if (IdleTimeout is { } idle && now - lastActivity >= idle)
+                if (IdleTimeout is { } idle && timeProvider.GetElapsedTime(lastActivity, now) >= idle)
                     return SshLivenessAction.IdleTimeout;
 
                 if (KeepAliveInterval is { } interval)
                 {
 
-                    // 2. Too many unanswered probes ⇒ the peer is gone.
-                    if (outstandingProbes >= KeepAliveCountMax)
-                        return SshLivenessAction.PeerIsDead;
-
-                    // 3. Time for the next probe?
-                    if (now - lastProbe >= interval)
+                    // 2. Wait a full interval after each probe (including the last one) before acting:
+                    //    once KeepAliveCountMax probes have gone unanswered for a full interval, the peer is dead.
+                    if (timeProvider.GetElapsedTime(lastProbe, now) >= interval)
                     {
+                        if (outstandingProbes >= KeepAliveCountMax)
+                            return SshLivenessAction.PeerIsDead;
+
                         lastProbe = now;
                         outstandingProbes++;
                         return SshLivenessAction.SendKeepAlive;
@@ -213,14 +213,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             lock (sync)
             {
 
-                var now   = timeProvider.GetUtcNow();
+                var now   = timeProvider.GetTimestamp();
                 var next  = TimeSpan.MaxValue;
 
                 if (IdleTimeout is { } idle)
-                    next = Min(next, (lastActivity + idle) - now);
+                    next = Min(next, idle - timeProvider.GetElapsedTime(lastActivity, now));
 
-                if (KeepAliveInterval is { } interval && outstandingProbes < KeepAliveCountMax)
-                    next = Min(next, (lastProbe + interval) - now);
+                if (KeepAliveInterval is { } interval)
+                    next = Min(next, interval - timeProvider.GetElapsedTime(lastProbe, now));
 
                 if (next == TimeSpan.MaxValue)
                     return Timeout.InfiniteTimeSpan;

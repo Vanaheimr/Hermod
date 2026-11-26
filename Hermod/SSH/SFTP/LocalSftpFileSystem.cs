@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     /// root moves. What this cannot guard against is another process swapping a directory on the path for
     /// a link between the check and the open.
     /// </remarks>
-    public sealed class LocalSftpFileSystem : ISftpFileSystem
+    public sealed class LocalSftpFileSystem : ISftpFileSystem, IDisposable
     {
 
         #region Data
@@ -53,6 +53,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         private readonly Dictionary<String, Object>   handles = [];
         private readonly Lock                         gate    = new ();
         private Int64                                 handleCounter;
+        private Boolean                               disposed;
+
+        /// <summary>
+        /// The number of currently open file and directory handles.
+        /// </summary>
+        public Int32 OpenHandleCount
+        {
+            get { lock (gate) return handles.Count; }
+        }
 
         /// <summary>
         /// The links followed on one path before it is given up as a loop, as Linux's limit.
@@ -85,6 +94,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         public ValueTask<String> OpenAsync(String Path, SftpOpenFlags Flags, CancellationToken CancellationToken = default)
         {
+
+            ThrowIfDisposed();
 
             var physical = Resolve(Path);
             var writing  = (Flags & (SftpOpenFlags.Write | SftpOpenFlags.Append | SftpOpenFlags.Create | SftpOpenFlags.Truncate)) != 0;
@@ -155,6 +166,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         public ValueTask<String> OpenDirectoryAsync(String Path, CancellationToken CancellationToken = default)
         {
+
+            ThrowIfDisposed();
 
             var physical = Resolve(Path);
 
@@ -616,13 +629,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         }
 
+        private void ThrowIfDisposed()
+        {
+            lock (gate)
+                ObjectDisposedException.ThrowIf(disposed, this);
+        }
+
         private String Register(Object Handle)
         {
             lock (gate)
             {
+                if (disposed)
+                {
+                    if (Handle is FileEntry f)
+                        f.Handle.Dispose();
+                    throw new ObjectDisposedException(nameof(LocalSftpFileSystem));
+                }
                 var id = "h" + (++handleCounter);
                 handles[id] = Handle;
                 return id;
+            }
+        }
+
+        /// <summary>
+        /// Dispose all currently open file handles and prevent further opens.
+        /// </summary>
+        public void Dispose()
+        {
+            lock (gate)
+            {
+                if (disposed)
+                    return;
+                disposed = true;
+                foreach (var entry in handles.Values)
+                {
+                    if (entry is FileEntry f)
+                        f.Handle.Dispose();
+                }
+                handles.Clear();
             }
         }
 

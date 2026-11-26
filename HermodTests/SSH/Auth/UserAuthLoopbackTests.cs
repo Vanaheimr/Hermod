@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Buffers;
+
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
@@ -155,6 +157,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             Assert.That(await clientRun,            Is.True);
             Assert.That((await serverRun).Username, Is.EqualTo(operatorUser));
+
+        }
+
+        #endregion
+
+        #region PublicKey_Auth_AlgorithmMismatchInSignature_IsRejected
+
+        /// <summary>
+        /// RFC 8332: when <c>SSH_MSG_USERAUTH_REQUEST</c> names <c>rsa-sha2-512</c> as the public-key
+        /// algorithm, a signature produced with <c>rsa-sha2-256</c> (mismatching the declared algorithm)
+        /// must be rejected even though both hashes are valid for the same RSA key.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task PublicKey_Auth_AlgorithmMismatchInSignature_IsRejected(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+            var rsaKey  = SshHostKey.GenerateRsa();
+            var authenticator = SshUserAuthenticator.ForAuthorizedKeys(rsaKey.PublicKeyBlob);
+
+            var serverRun = Task.Run(async () =>
+            {
+                using var transport = await SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+                return await UserAuthentication.ServerAuthenticateAsync(transport, authenticator, MaxAuthTries: 1, CancellationToken: CancellationToken);
+            }, CancellationToken);
+
+            using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+
+            // Request ssh-userauth.
+            var svcReq = new ArrayBufferWriter<Byte>();
+            var w1     = new SshPacketWriter(svcReq);
+            w1.WriteByte((Byte) SshMessageNumber.ServiceRequest);
+            w1.WriteString("ssh-userauth");
+            await client.SendPacketAsync(svcReq.WrittenSpan.ToArray(), CancellationToken);
+
+            Byte[] reply;
+            do { reply = await client.ReceivePacketAsync(CancellationToken); }
+            while ((SshMessageNumber) reply[0] == SshMessageNumber.ExtInfo);
+            Assert.That((SshMessageNumber) reply[0], Is.EqualTo(SshMessageNumber.ServiceAccept));
+
+            // Declare "rsa-sha2-512" in the request, but sign with "rsa-sha2-256".
+            var toSign = new ArrayBufferWriter<Byte>();
+            var ws     = new SshPacketWriter(toSign);
+            ws.WriteBinaryString(client.SessionId);
+            ws.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
+            ws.WriteString("achim");
+            ws.WriteString("ssh-connection");
+            ws.WriteString("publickey");
+            ws.WriteBoolean(true);
+            ws.WriteString("rsa-sha2-512");
+            ws.WriteBinaryString(rsaKey.PublicKeyBlob);
+            var mismatchedSig = rsaKey.Sign("rsa-sha2-256", toSign.WrittenSpan);
+
+            var req = new ArrayBufferWriter<Byte>();
+            var w2  = new SshPacketWriter(req);
+            w2.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
+            w2.WriteString("achim");
+            w2.WriteString("ssh-connection");
+            w2.WriteString("publickey");
+            w2.WriteBoolean(true);
+            w2.WriteString("rsa-sha2-512");
+            w2.WriteBinaryString(rsaKey.PublicKeyBlob);
+            w2.WriteBinaryString(mismatchedSig);
+            await client.SendPacketAsync(req.WrittenSpan.ToArray(), CancellationToken);
+
+            var response = await client.ReceivePacketAsync(CancellationToken);
+            Assert.That((SshMessageNumber) response[0], Is.EqualTo(SshMessageNumber.UserAuthFailure),
+                        "a signature whose algorithm disagrees with the request's algorithm must be refused");
+
+            await Assert.ThrowsAsync<SshAuthenticationException>(async () => await serverRun);
 
         }
 

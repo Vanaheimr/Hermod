@@ -42,6 +42,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         public Int32?         MaxFileCount            { get; init; }
 
         /// <summary>
+        /// The maximum number of open file and directory handles a session may hold concurrently.
+        /// When null, <see cref="SftpServer.DefaultMaxOpenHandles"/> applies.
+        /// </summary>
+        public Int32?         MaxOpenHandles          { get; init; }
+
+        /// <summary>
         /// The upload (client→server write) throughput cap, in bytes per second.
         /// </summary>
         public Int64?         UploadBytesPerSecond    { get; init; }
