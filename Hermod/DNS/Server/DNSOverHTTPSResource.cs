@@ -371,6 +371,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #endregion
 
+            dnsRequest.TSIGKeyName = securityContext?.TSIGKey?.Name;
+
             #region Answer
 
             var dnsResponse = await Pipeline.ProcessRequest(

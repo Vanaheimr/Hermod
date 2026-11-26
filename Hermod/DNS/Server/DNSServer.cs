@@ -536,6 +536,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     }
 
+                    dnsRequest.TSIGKeyName = tsigContext?.TSIGKey?.Name;
+
                     await LogEvent(
                         OnDNSRequestReceived,
                         async loggingDelegate => await loggingDelegate.Invoke(
@@ -1249,7 +1251,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     }
 
-                    dnsRequest.ClientIdentity = ClientIdentity;
+                    dnsRequest.ClientIdentity  = ClientIdentity;
+                    dnsRequest.OverStream      = true;
+                    dnsRequest.TSIGKeyName     = tsigContext?.TSIGKey?.Name;
 
                     await LogEvent(
                         OnDNSRequestReceived,

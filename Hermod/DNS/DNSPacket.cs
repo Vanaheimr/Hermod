@@ -164,6 +164,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </remarks>
         public String?                          ClientIdentity         { get; internal set; }
 
+        /// <summary>
+        /// Whether the request arrived on a byte stream - TCP, TLS, a channel of DNS-over-SSH - where
+        /// a response is not cut to the size of a datagram: what a zone transfer needs, which RFC 5936
+        /// §4.2 does not define over UDP. False over UDP, multicast and HTTP.
+        /// </summary>
+        public Boolean                          OverStream             { get; internal set; }
+
+        /// <summary>
+        /// The name of the TSIG key the request was signed with and verified against (RFC 8945), or
+        /// null for a request that was not signed with one.
+        /// </summary>
+        /// <remarks>
+        /// Set only where the signature verified: a request whose signature did not is answered
+        /// NOTAUTH before it reaches a request handler. A handler may grant per key what it would
+        /// otherwise have only the source address to go by for - a zone transfer, say.
+        /// </remarks>
+        public DomainName?                      TSIGKeyName            { get; internal set; }
+
 
         /// <summary>
         /// The transaction identifier of this DNS query.
