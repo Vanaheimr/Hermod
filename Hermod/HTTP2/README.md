@@ -423,6 +423,15 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   `:status` used to be read with `Int32.TryParse`, so `42`, `1000`, `+200` and
   ` 200` were status codes, the first of two was taken, a `:path` was let
   through, and a response without one failed only once it had ended.
+- And its **regular fields** to §8.2, in its header block, an interim
+  response's, and its trailers: a name is lowercase and not empty, no
+  connection-specific field (`connection`, `keep-alive`, `proxy-connection`,
+  `transfer-encoding`, `upgrade`) is carried, and `te` carries `trailers` and
+  nothing else. These are the rules the server holds a request's fields to,
+  and nghttp2 a response's; the client reads `trailers` in any case, as
+  nghttp2 and RFC 9110's ABNF do, where the server takes it in lowercase only.
+  A response that breaks one fails at the header block that does, as above.
+  The client used to hand all of these over.
 - Cleartext **h2c** (prior knowledge, RFC 9113 §3.3) — server and client. (The
   RFC 7540 `Upgrade: h2c` negotiation was removed in RFC 9113 and is
   deliberately not implemented.)

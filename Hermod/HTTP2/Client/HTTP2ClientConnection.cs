@@ -2541,6 +2541,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
                 }
 
+                // RFC 9113, Section 8.2: so is one whose regular fields break the
+                // rules the server holds a request's to (see TryFindMalformedField).
+                if (TryFindMalformedField(Decoded, out var malformedField))
+                {
+
+                    if (EndStream)
+                        CloseRemoteIfOpen(Exchange.Stream);
+
+                    _ = RefuseResponseAsync(Exchange, MalformedResponse(Exchange, malformedField));
+
+                    return;
+
+                }
+
                 // An interim (1xx) response (RFC 9110 §15.2 — e.g. 100 Continue, 103
                 // Early Hints) precedes the final response: record it and keep
                 // waiting, rather than mistaking it for the final response.
@@ -2683,6 +2697,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                         CloseRemoteIfOpen(Exchange.Stream);
 
                     _ = RefuseResponseAsync(Exchange, MalformedResponse(Exchange, $"pseudo-header field '{pseudoHeader.Name}' in trailers"));
+
+                    return;
+
+                }
+
+                // The rules of Section 8.2 hold for trailers' fields as well.
+                if (TryFindMalformedField(Decoded, out var malformedTrailer))
+                {
+
+                    if (EndStream)
+                        CloseRemoteIfOpen(Exchange.Stream);
+
+                    _ = RefuseResponseAsync(Exchange, MalformedResponse(Exchange, $"{malformedTrailer} in trailers"));
 
                     return;
 
@@ -3123,9 +3150,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
         /// <summary>
         /// Refuse a response: a malformed one (RFC 9113, Section 8.1.1) — whose
-        /// pseudo-header fields are not a response's, at the header block that
-        /// carries them (see <see cref="TryReadStatus"/>), or whose
-        /// content-length is no length, or whose DATA do not add up to it — at
+        /// pseudo-header fields are not a response's, or whose regular fields
+        /// break the rules of Section 8.2, at the header block that carries them
+        /// (see <see cref="TryReadStatus"/> and <see cref="TryFindMalformedField"/>),
+        /// or whose content-length is no length, or whose DATA do not add up to it — at
         /// its HEADERS, at the DATA frame that takes its body past the declared
         /// length, or where its body ends — with PROTOCOL_ERROR, a stream error
         /// (Section 5.4.2); or a buffered one that would take more than
@@ -3305,6 +3333,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             Status = (value[0] - '0') * 100 + (value[1] - '0') * 10 + (value[2] - '0');
             return true;
+
+        }
+
+        /// <summary>
+        /// Fields that carry connection-specific semantics in HTTP/1.1, which an
+        /// HTTP/2 message must not carry (RFC 9113, Section 8.2.2): the same set
+        /// the server refuses in a request.
+        /// </summary>
+        private static readonly HashSet<String> ConnectionSpecificFields = new (StringComparer.Ordinal)
+            { "connection", "keep-alive", "proxy-connection", "transfer-encoding", "upgrade" };
+
+        /// <summary>
+        /// Whether a response's header block or trailers carry a regular field that
+        /// makes the response malformed (RFC 9113, Section 8.2), with what is wrong
+        /// in <paramref name="Malformed"/>: an empty name, a name that is not
+        /// lowercase (Section 8.2.1), a connection-specific field, or a te with
+        /// any value other than "trailers" (Section 8.2.2). These are the rules
+        /// the server holds a request's fields to (HTTP2Connection's
+        /// ValidateRegularHeaderField), and nghttp2's, which curl uses, a
+        /// response's — with nghttp2's te, which reads "trailers" in any case, as
+        /// RFC 9110's ABNF does; the server takes it in lowercase only.
+        /// Pseudo-header fields are TryReadStatus's.
+        /// </summary>
+        private static Boolean TryFindMalformedField(List<(String Name, String Value)>  Headers,
+                                                     out String                         Malformed)
+        {
+
+            foreach (var (name, value) in Headers)
+            {
+
+                if (name.Length == 0)
+                {
+                    Malformed = "empty field name";
+                    return true;
+                }
+
+                if (name[0] == ':')
+                    continue;
+
+                if (name.Any(Char.IsAsciiLetterUpper))
+                {
+                    Malformed = $"field name '{name}' is not lowercase";
+                    return true;
+                }
+
+                if (ConnectionSpecificFields.Contains(name))
+                {
+                    Malformed = $"connection-specific field '{name}'";
+                    return true;
+                }
+
+                if (name == "te" && !value.Equals("trailers", StringComparison.OrdinalIgnoreCase))
+                {
+                    Malformed = $"te '{value}' other than \"trailers\"";
+                    return true;
+                }
+
+            }
+
+            Malformed = "";
+            return false;
 
         }
 
