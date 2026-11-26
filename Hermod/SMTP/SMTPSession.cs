@@ -879,6 +879,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // RFC 5321 §4.1.4: "a mail transaction consists of a transaction beginning command, one
+            // or more RCPT commands, and a DATA command, in that order" - and BDAT is that DATA
+            // (RFC 3030 §2: "After all MAIL and RCPT responses are collected and processed, the
+            // message is sent using a series of BDAT commands"). A recipient named after part of
+            // the message was sent is out of order: 503, and the transaction goes on as it was.
+            if (_inBdatSequence)
+            {
+                await SendResponseAsync(503, "5.5.1 RCPT after BDAT");
+                return;
+            }
+
             // RFC 5321 §4.1.2: Forward-path = Path - a mailbox, after a source route that is
             // ignored (§4.1.1.3: "Receiving systems MUST recognize source route syntax but SHOULD
             // strip off the source route specification and utilize the domain name associated
@@ -1177,12 +1188,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         private async Task HandleBdatAsync(String args, CancellationToken ct)
         {
 
-            // Parse BDAT arguments: BDAT <size> [LAST]. Without a valid size the chunk
-            // cannot be found, so this is the one refusal that cannot consume it.
+            // RFC 3030 §2: bdat-cmd ::= "BDAT" SP chunk-size [ SP end-marker ] CR LF,
+            // chunk-size ::= 1*DIGIT, end-marker ::= "LAST".
             var parts = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 1 || !Int64.TryParse(parts[0], out var chunkSize) || chunkSize < 0)
+
+            // "The message data is sent immediately after the trailing <CR> <LF> of the BDAT
+            // command line": without a size that can be read - none, a sign, LAST where it goes,
+            // more digits than an Int64 holds - the chunk is on its way and nobody can tell where
+            // it ends. Every line read from here on could be the message's, and none of it may be
+            // taken for a command; the only way out is to close the connection, with the 421 that
+            // RFC 5321 §3.8 has a server say when it does.
+            if (parts.Length < 1 || !TryParseChunkSize(parts[0], out var chunkSize))
             {
-                await SendResponseAsync(501, "5.5.4 Syntax: BDAT size [LAST]");
+                await SendResponseAsync(421, "4.5.4 Syntax: BDAT size [LAST] - the chunk cannot be found, closing connection");
+                ResetTransaction();
+                _state = SMTPSessionState.Quit;
                 return;
             }
 
@@ -1194,7 +1214,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             // Answering first would leave the chunk to be read as commands.
             (Int32 Code, String Text, Boolean Reset)? refusal = null;
 
-            if (_state < SMTPSessionState.RcptTo || _rcptTo.Count == 0)
+            // The size is there, the rest is not the grammar's: an end-marker that is not LAST, an
+            // argument after it. Whatever the client meant by it, it is not a chunk the server can
+            // tell to be the last or not - RFC 5321 §4.2.2, "501 Syntax error in parameters or
+            // arguments", once the chunk is read; the transaction it would have gone into is gone
+            // (RFC 3030 §2: "The state resulting from this error is indeterminate").
+            if (parts.Length > 2 || parts.Length == 2 && !isLast)
+                refusal = (501, "5.5.4 Syntax: BDAT size [LAST]", true);
+
+            else if (_state < SMTPSessionState.RcptTo || _rcptTo.Count == 0)
                 refusal = (503, "5.5.1 Need RCPT command first", false);
 
             // Submission port requires authentication per RFC 6409, as for DATA.
@@ -1250,6 +1278,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 // More chunks expected
                 await SendResponseAsync(250, $"2.0.0 {chunkSize} bytes received, continue");
             }
+
+        }
+
+
+        /// <summary>
+        /// A chunk-size as RFC 3030 §2 has it - 1*DIGIT, ASCII digits only, no sign, no white
+        /// space - that fits an Int64.
+        /// </summary>
+        private static Boolean TryParseChunkSize(String Text, out Int64 Size)
+        {
+
+            Size = 0;
+
+            return Text.Length > 0 &&
+                   Text.All(Char.IsAsciiDigit) &&
+                   Int64.TryParse(Text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out Size);
 
         }
 
