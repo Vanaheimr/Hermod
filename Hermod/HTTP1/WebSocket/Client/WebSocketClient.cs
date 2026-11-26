@@ -67,11 +67,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// </summary>
     /// <param name="Timestamp">The timestamp of the incoming HTTP response.</param>
     /// <param name="WebSocketClient">The HTTP WebSocketclient receiving the HTTP request.</param>
-    /// <param name="Request">The outgoing HTTP request.</param>
+    /// <param name="Request">The outgoing HTTP request, or null when the attempt failed before one was sent.</param>
     /// <param name="Response">The incoming HTTP response.</param>
     public delegate Task ClientResponseLogHandler(DateTimeOffset    Timestamp,
                                                   IWebSocketClient  WebSocketClient,
-                                                  HTTPRequest       Request,
+                                                  HTTPRequest?      Request,
                                                   HTTPResponse      Response);
 
 
@@ -1680,7 +1680,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="RequestTimeout">An optional timeout.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of retransmissions of this request.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public async Task<Tuple<WebSocketClientConnection, HTTPResponse>>
+        public async Task<Tuple<WebSocketClientConnection?, HTTPResponse>>
 
             Connect(EventTracking_Id?             EventTrackingId      = null,
                     TimeSpan?                     RequestTimeout       = null,
@@ -1700,10 +1700,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             HTTPResponse? waitingForHTTPResponse  = null;
             HTTPResponse? lastFailureResponse     = null;
 
+            // Already connecting or connected: the answer to that attempt, as far
+            // as there is one yet.
             if (networkingTask is not null)
-                return new Tuple<WebSocketClientConnection, HTTPResponse>(
+                return new Tuple<WebSocketClientConnection?, HTTPResponse>(
                            webSocketClientConnection,
-                           waitingForHTTPResponse
+                           webSocketClientConnection?.HTTPResponse ?? FailureResponse(null, HTTPStatusCode.ClientError)
                        );
 
             ReconnectAttempts = 0;
@@ -2812,7 +2814,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                        ).AsImmutable;
 
-            return new Tuple<WebSocketClientConnection, HTTPResponse>(
+            return new Tuple<WebSocketClientConnection?, HTTPResponse>(
                        webSocketClientConnection,
                        waitingForHTTPResponse
                    );

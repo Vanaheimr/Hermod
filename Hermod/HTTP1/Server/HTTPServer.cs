@@ -237,7 +237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsServer as HTTPServer,
+                                              (tlsServer as HTTPServer)!,
                                                policyErrors
                                            )
                        : null,
@@ -1507,8 +1507,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  httpLogger.LogError(
                                      e,
                                      "Exception in HTTP request handler for {FirstPDULine} ({EventTrackingId}).",
-                                     Request?.FirstPDULine,
-                                     Request?.EventTrackingId
+                                     Request.FirstPDULine,
+                                     Request.EventTrackingId
                                  );
 
                                  httpResponse = WithErrorContent(
@@ -1734,8 +1734,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 httpLogger.LogError(
                     e,
                     "Exception while processing HTTP request {FirstPDULine} ({EventTrackingId}).",
-                    Request?.FirstPDULine ?? "null",
-                    Request?.EventTrackingId.ToString() ?? "null"
+                    Request.FirstPDULine,
+                    Request.EventTrackingId.ToString()
                 );
 
                 return WithErrorContent(

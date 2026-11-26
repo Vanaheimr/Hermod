@@ -272,7 +272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
                                          RawPublicKeys = RawPublicKeyMode.Prefer
                                      };
 
-            server.Start();
+            await server.Start();
 
             // A client that takes raw public keys: the ClientHello of OpenSSL is read ahead,
             // and the stack that speaks raw public keys answers it.

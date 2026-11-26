@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
             /// <summary>
             /// An entity to check.
             /// </summary>
-            public Object             Entity             { get; }
+            public Object?            Entity             { get; }
 
 
             public Action<TResult>[]  ResultConsumers    { get; }
@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
                 this.RunCheck         = RunCheck;
                 this.SleepTime        = SleepTime;
                 this.Entity           = Entity;
-                this.ServiceCheck     = (ts, dns, obj, ct) => ServiceChecker(ts, obj, ct);
+                this.ServiceCheck     = (ts, dns, _, ct) => ServiceChecker(ts, Entity, ct);
                 //this.ResultConsumers  = new Action<TResult>[] { result => ResultConsumers.ForEach(consumer => consumer(Entity, result)) };
                 var thisResultConsumers = new List<Action<TResult>>();
 
@@ -142,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
                 this.RunCheck         = RunCheck;
                 this.SleepTime        = SleepTime;
                 this.Entity           = Entity;
-                this.ServiceCheck     = (ts, dns, obj, ct) => ServiceChecker(ts, dns, obj, ct);
+                this.ServiceCheck     = (ts, dns, _, ct) => ServiceChecker(ts, dns, Entity, ct);
 
                 var thisResultConsumers = new List<Action<TResult>>();
 

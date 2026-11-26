@@ -51,11 +51,11 @@ namespace org.GraphDefined.Vanaheimr.Warden
     /// </summary>
     /// <param name="Timestamp">The current timestamp.</param>
     /// <param name="DNSClient">An optional DNS client for warden checks requiring network access.</param>
-    /// <param name="Entity">An entity to check.</param>
+    /// <param name="Entity">An entity to check - none for a check made without one.</param>
     /// <param name="CancellationToken">A cancellation token.</param>
     public delegate Task ServiceCheckDelegate(DateTimeOffset     Timestamp,
                                               IDNSClient         DNSClient,
-                                              Object             Entity,
+                                              Object?            Entity,
                                               CancellationToken  CancellationToken);
 
     /// <summary>
@@ -63,11 +63,11 @@ namespace org.GraphDefined.Vanaheimr.Warden
     /// </summary>
     /// <param name="Timestamp">The current timestamp.</param>
     /// <param name="DNSClient">An optional DNS client for warden checks requiring network access.</param>
-    /// <param name="Entity">An entity to check.</param>
+    /// <param name="Entity">An entity to check - none for a check made without one.</param>
     /// <param name="CancellationToken">A cancellation token.</param>
     public delegate Task<TResult> ServiceCheckDelegate<TResult>(DateTimeOffset     Timestamp,
                                                                 IDNSClient         DNSClient,
-                                                                Object             Entity,
+                                                                Object?            Entity,
                                                                 CancellationToken  CancellationToken);
 
 }

@@ -592,7 +592,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///                   algorithm=MD5,
         ///                   qop="auth"
         /// </summary>
-        public WWWAuthenticate WWWAuthenticate
+        public WWWAuthenticate? WWWAuthenticate
 
             => GetHeaderFields<WWWAuthenticate>(HTTPResponseHeaderField.WWWAuthenticate);
 
@@ -655,7 +655,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public IEnumerable<String> AccessControlAllowHeaders
 
-            => GetHeaderFields<IEnumerable<String>>(HTTPResponseHeaderField.AccessControlAllowHeaders);
+            => GetHeaderFields<IEnumerable<String>>(HTTPResponseHeaderField.AccessControlAllowHeaders) ?? Array.Empty<String>();
 
         #endregion
 
@@ -1969,7 +1969,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private HTTPResponse(TContent   Content,
                              Exception  Exception)
 
-            : base(null)
+            : base(NoResponse(HTTPStatusCode.ClientError))
 
         {
 
@@ -2014,6 +2014,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region (private static) NoResponse(HTTPStatusCode)
+
+        /// <summary>
+        /// A stand-in for the received HTTP response the content and error
+        /// factories below do not have: the base class must copy one.
+        /// </summary>
+        /// <param name="HTTPStatusCode">The HTTP status code of the stand-in.</param>
+        private static HTTPResponse NoResponse(HTTPStatusCode HTTPStatusCode)
+
+            => new Builder(
+                   Illias.Timestamp.Now,
+                   EventTracking_Id.New,
+                   TimeSpan.Zero,
+
+                   new HTTPSource(),
+                   IPSocket.Zero,
+                   IPSocket.Zero,
+                   ConnectionType.Close,
+
+                   HTTPStatusCode
+               );
+
+        #endregion
+
+
         #region ConvertContent<TResult>(ContentConverter)
 
         /// <summary>
@@ -2022,7 +2047,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
-        public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent, TResult> ContentConverter)
+        public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent?, TResult> ContentConverter)
         {
 
             if (ContentConverter is null)
@@ -2046,8 +2071,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
-        public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent, OnExceptionDelegate, TResult>  ContentConverter,
-                                                             OnExceptionDelegate?                          OnException   = null)
+        public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent?, OnExceptionDelegate?, TResult>  ContentConverter,
+                                                             OnExceptionDelegate?                            OnException   = null)
         {
 
             if (ContentConverter is null)
@@ -2076,8 +2101,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
         /// <param name="Request">The request leading to this response.</param>
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
-        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                           Request,
-                                                                       Func<TRequest, TContent, TResult>  ContentConverter)
+        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                            Request,
+                                                                       Func<TRequest, TContent?, TResult>  ContentConverter)
         {
 
             if (ContentConverter is null)
@@ -2106,9 +2131,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">The request leading to this response.</param>
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
-        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                Request,
-                                                                       Func<TRequest, TContent, OnExceptionDelegate, TResult>  ContentConverter,
-                                                                       OnExceptionDelegate?                                    OnException   = null)
+        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                  Request,
+                                                                       Func<TRequest, TContent?, OnExceptionDelegate?, TResult>  ContentConverter,
+                                                                       OnExceptionDelegate?                                      OnException   = null)
         {
 
             if (ContentConverter is null)
@@ -2138,9 +2163,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">The request leading to this response.</param>
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
-        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                              Request,
-                                                                       Func<TRequest, TContent, HTTPResponse, OnExceptionDelegate, TResult>  ContentConverter,
-                                                                       OnExceptionDelegate?                                                  OnException   = null)
+        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                                Request,
+                                                                       Func<TRequest, TContent?, HTTPResponse, OnExceptionDelegate?, TResult>  ContentConverter,
+                                                                       OnExceptionDelegate?                                                    OnException   = null)
         {
 
             if (ContentConverter is null)
@@ -2170,7 +2195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static HTTPResponse<TContent> OK(TContent Content)
 
-            => new (default,
+            => new (NoResponse(HTTPStatusCode.OK),
                     Content,
                     null,
                     null);
@@ -2184,7 +2209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static HTTPResponse<TContent> FromClientError(TContent Content)
 
-            => new (default,
+            => new (NoResponse(HTTPStatusCode.ClientError),
                     Content,
                     IsFault: true);
 

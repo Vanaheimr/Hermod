@@ -54,8 +54,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
             get
             {
-                return (Byte) this.multicastSocket.GetSocketOption(SocketOptionLevel.IP,
-                                                                   SocketOptionName.MulticastTimeToLive);
+                // The socket option is a boxed Int32, which cannot be unboxed as a Byte
+                return Convert.ToByte(this.multicastSocket.GetSocketOption(SocketOptionLevel.IP,
+                                                                           SocketOptionName.MulticastTimeToLive));
             }
 
             set

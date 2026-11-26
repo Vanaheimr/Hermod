@@ -644,7 +644,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Request.ContentLength   == 0                                  ||
                !Request.TryReadHTTPBodyStream()                               ||
                 Request.HTTPBody        is null                               ||
-                Request.HTTPBody.Length == 0)
+                Request.HTTPBody.Length == 0                                  ||
+                Request.ContentType.MIMEBoundary is null)
             {
 
                 MimeMultipart  = null;
@@ -689,7 +690,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            JValue Text;
+            JValue? Text;
             I18N = I18NString.Empty;
 
             foreach (var Description in DescriptionJSON)
@@ -712,7 +713,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Text = Description.Value as JValue;
 
-                if (Text is null)
+                if (Text?.Value<String>() is not String descriptionText)
                 {
 
                     I18N          = null;
@@ -727,7 +728,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                I18N.Set(Language, Text.Value<String>());
+                I18N.Set(Language, descriptionText);
 
             }
 
@@ -1107,7 +1108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region SecWebSocketKey
 
-        public String SecWebSocketKey
+        public String? SecWebSocketKey
             => GetHeaderField(HTTPHeaderField.SecWebSocketKey);
 
         #endregion
@@ -1396,6 +1397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ProtocolName       = ProtocolName;
             this.ProtocolVersion    = ProtocolVersion;
             this.QueryString        = QueryString ?? QueryString.Empty;
+            this.RequestTarget      = $"{this.Path}{this.QueryString}";
 
             this.headerFields.Clear();
             foreach (var kvp in HTTPHeaderFields)
@@ -1590,6 +1592,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             ProtocolName            = Request.ProtocolName;
+            RequestTarget           = Request.RequestTarget;
+            TargetScheme            = Request.TargetScheme;
+            originFormTarget        = Request.originFormTarget;
             ParsedURLParameters     = Request.ParsedURLParameters;
             QueryString             = Request.QueryString;
             BestMatchingAcceptType  = Request.BestMatchingAcceptType;
@@ -3502,8 +3507,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
-        public HTTPRequest<TResult> ConvertContent<TResult>(Func<String, OnExceptionDelegate, TResult>  ContentConverter,
-                                                            OnExceptionDelegate?                        OnException   = null)
+        public HTTPRequest<TResult> ConvertContent<TResult>(Func<String?, OnExceptionDelegate?, TResult>  ContentConverter,
+                                                            OnExceptionDelegate?                          OnException   = null)
         {
 
             if (ContentConverter is null)
@@ -3527,8 +3532,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
-        public HTTPRequest<TResult> ConvertContent<TResult>(Func<Byte[], OnExceptionDelegate, TResult>  ContentConverter,
-                                                            OnExceptionDelegate?                        OnException   = null)
+        public HTTPRequest<TResult> ConvertContent<TResult>(Func<Byte[]?, OnExceptionDelegate?, TResult>  ContentConverter,
+                                                            OnExceptionDelegate?                          OnException   = null)
         {
 
             if (ContentConverter is null)
@@ -3552,8 +3557,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
-        public HTTPRequest<TResult> ConvertContent<TResult>(Func<Stream, OnExceptionDelegate, TResult>  ContentConverter,
-                                                            OnExceptionDelegate?                        OnException   = null)
+        public HTTPRequest<TResult> ConvertContent<TResult>(Func<Stream?, OnExceptionDelegate?, TResult>  ContentConverter,
+                                                            OnExceptionDelegate?                          OnException   = null)
         {
 
             if (ContentConverter is null)

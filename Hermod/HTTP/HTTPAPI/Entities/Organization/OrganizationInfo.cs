@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static JArray ToJSON(this IEnumerable<OrganizationInfo> OrganizationInfos)
         {
 
-            if (OrganizationInfos?.Any() == false)
+            if (OrganizationInfos is null || !OrganizationInfos.Any())
                 return new JArray();
 
             return JSONArray.Create(OrganizationInfos.Select(orgInfo => orgInfo.ToJSON(ExpandMembers: InfoStatus.Expanded)));

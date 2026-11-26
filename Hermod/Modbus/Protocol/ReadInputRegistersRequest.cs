@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="NumberOfRegisters">The number of input registers to read.</param>
         /// <param name="UnitIdentifier">An optional device/unit identifier.</param>
         /// <param name="ProtocolIdentifier">An optional protocol identifier.</param>
-        public ReadInputRegistersRequest(ModbusTCPClient  ModbusClient,
+        public ReadInputRegistersRequest(ModbusTCPClient? ModbusClient,
                                          UInt16           TransactionId,
                                          UInt16           StartingAddress,
                                          UInt16           NumberOfRegisters,

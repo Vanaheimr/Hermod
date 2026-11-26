@@ -1186,7 +1186,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                         dname.DomainName,
                                         dname.Target,
                                         out var rewritten
-                                    ) == DNAMESubstitution.Redirected)
+                                    ) == DNAMESubstitution.Redirected &&
+                                    rewritten is not null)
                                 {
                                     cnameTarget = rewritten.FullName;
                                 }

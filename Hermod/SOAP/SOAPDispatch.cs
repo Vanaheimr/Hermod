@@ -45,12 +45,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// An HTTP/SOAP delegate to invoke this dispatch.
         /// </summary>
-        public SOAPBodyDelegate           BodyDelegate             { get; }
+        public SOAPBodyDelegate?          BodyDelegate             { get; }
 
         /// <summary>
         /// An HTTP/SOAP delegate to invoke this dispatch.
         /// </summary>
-        public SOAPHeaderAndBodyDelegate  HeaderAndBodyDelegate    { get; }
+        public SOAPHeaderAndBodyDelegate? HeaderAndBodyDelegate    { get; }
 
         #endregion
 

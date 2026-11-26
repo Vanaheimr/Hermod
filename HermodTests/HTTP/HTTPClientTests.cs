@@ -354,7 +354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(httpBody, Is.Null);
 
             Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
-            Assert.That(httpResponse.WWWAuthenticate.ToString().Trim(), Is.EqualTo(@"Basic realm=""Access to the staging site"", charset=""UTF-8"""));
+            Assert.That(httpResponse.WWWAuthenticate?.ToString().Trim(), Is.EqualTo(@"Basic realm=""Access to the staging site"", charset=""UTF-8"""));
 
             // A response without a body says so - see BodilessResponseTests.
             Assert.That(httpResponse.ContentLength, Is.EqualTo(0));
@@ -451,7 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(httpBody, Is.EqualTo("Sorry 'testUser2' please contact your administrator!"));
 
             Assert.That(httpResponse.Server, Is.EqualTo("Hermod Test Server"));
-            Assert.That(httpResponse.WWWAuthenticate.ToString().Trim(), Is.EqualTo(@"Basic realm=""Access to the staging site"", charset=""UTF-8"""));
+            Assert.That(httpResponse.WWWAuthenticate?.ToString().Trim(), Is.EqualTo(@"Basic realm=""Access to the staging site"", charset=""UTF-8"""));
             Assert.That(httpResponse.ContentLength, Is.EqualTo("Sorry 'testUser2' please contact your administrator!".Length));
 
         }

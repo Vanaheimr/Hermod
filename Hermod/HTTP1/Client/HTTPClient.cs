@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsClient as HTTPClient,
+                                              (tlsClient as HTTPClient)!,
                                                policyErrors
                                            )
                        : null,
@@ -310,7 +310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsClient as HTTPClient,
+                                              (tlsClient as HTTPClient)!,
                                                policyErrors
                                            )
                        : null,

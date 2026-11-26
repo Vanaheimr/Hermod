@@ -109,7 +109,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailEnvelop(EMail EMail)
         {
 
-            this.MailFrom  = EMailAddressList.Create(EMail.From);
+            this.MailFrom  = EMail.From is not null
+                                 ? EMailAddressList.Create(EMail.From)
+                                 : EMailAddressList.Empty;
             this.RcptTo    = Recipients(EMail);
             this.Mail      = EMail;
 

@@ -363,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 using var connection = await listener.AcceptTcpClientAsync();
                 using var stream     = connection.GetStream();
                 var buffer = new Byte[4096];
-                await stream.ReadAsync(buffer);
+                _ = await stream.ReadAsync(buffer);
                 await stream.WriteAsync("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok"u8.ToArray());
             });
 

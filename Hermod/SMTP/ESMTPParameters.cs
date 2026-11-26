@@ -241,8 +241,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                         // in the ORCPT parameter including 8-bit UTF-8 characters" - in a transaction
                         // that is SMTPUTF8; in another one, utf-8-addr-xtext is ASCII and xtext.
                         var utf8 = Smtputf8 &&
+                                   value is not null &&
                                    match is { Success: true } &&
-                                   value![..value.IndexOf(';')].Equals("utf-8", StringComparison.OrdinalIgnoreCase) &&
+                                   value[..value.IndexOf(';')].Equals("utf-8", StringComparison.OrdinalIgnoreCase) &&
                                    Utf8AddressUnitext().IsMatch(match.Groups[1].Value);
 
                         if (!utf8 && (match is null || !match.Success || !XText().IsMatch(match.Groups[1].Value)))

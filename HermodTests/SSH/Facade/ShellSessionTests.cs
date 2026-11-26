@@ -473,7 +473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             // Its version line, so that it is surely accepted and counted.
             var buffer = new Byte[256];
-            await first.GetStream().ReadAsync(buffer, CancellationToken);
+            _ = await first.GetStream().ReadAsync(buffer, CancellationToken);
 
             using var second = new TcpClient();
             await second.ConnectAsync("127.0.0.1", port, CancellationToken);

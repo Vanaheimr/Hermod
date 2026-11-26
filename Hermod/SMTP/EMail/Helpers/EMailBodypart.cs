@@ -36,7 +36,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// The content of this e-mail body.
         /// </summary>
-        public IEnumerable<String>         Content            { get; }
+        public IEnumerable<String>         Content
+            => MailBody;
 
         /// <summary>
         /// The nested e-mail body parts.
@@ -247,10 +248,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 Concat(MailBody).
 
                 Concat(NestedBodyparts.
-                           SelectMany(bodypart => new String[] { "--" + ContentType.MIMEBoundary }.
+                           SelectMany(bodypart => new String[] { "--" + ContentType?.MIMEBoundary }.
                            Concat(bodypart.ToText(true)))).
 
-                Concat(NestedBodyparts.Any() ? [ "--" + ContentType.MIMEBoundary + "--" ] : Array.Empty<String>());
+                Concat(NestedBodyparts.Any() ? [ "--" + ContentType?.MIMEBoundary + "--" ] : Array.Empty<String>());
 
         #endregion
 

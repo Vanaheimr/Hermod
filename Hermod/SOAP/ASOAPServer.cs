@@ -85,8 +85,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// All TCP ports this SOAP server listens on.
         /// </summary>
-        public IEnumerable<IPPort>  IPPorts       { get; }
-         //   => SOAPServer.HTTPServer.IPPorts;
+        public IEnumerable<IPPort>  IPPorts
+            => [ SOAPServer.HTTPServer.TCPPort ];
 
         /// <summary>
         /// The SOAP server logger.
@@ -95,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
 
 
-        public HTTPAPI             API           { get;}
+        public HTTPAPI?            API           { get;}
 
         #endregion
 
@@ -216,6 +216,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         {
 
+            this.API = new HTTPAPI(SOAPServer.HTTPServer);
+
             if (RegisterHTTPRootService)
                 RegisterRootService();
 
@@ -315,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
 
             //SOAPServer.HTTPServer.
-                API.AddHandler(   //null,
+                API?.AddHandler(  //null,
                                   //HTTPHostname.Any,
                                   HTTPMethod.GET,
                                   //

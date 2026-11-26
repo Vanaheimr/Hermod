@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 
 
 
-        public static Boolean TryParse(ICMPPacket Packet, out ICMPDestinationUnreachable ICMPDestinationUnreachable)
+        public static Boolean TryParse(ICMPPacket Packet, [NotNullWhen(true)] out ICMPDestinationUnreachable? ICMPDestinationUnreachable)
         {
 
             try

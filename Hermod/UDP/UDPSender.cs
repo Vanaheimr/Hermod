@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using org.GraphDefined.Vanaheimr.Illias;
@@ -116,8 +117,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         private readonly Func<T, Byte[]>       MessageProcessor;
         private readonly Socket                DotNetSocket;
-        private          System.Net.IPAddress  DotNetIPAddress;
-        private          IPEndPoint            RemoteIPEndPoint;
+        private          System.Net.IPAddress? DotNetIPAddress;
+        private          IPEndPoint?           RemoteIPEndPoint;
 
         #endregion
 
@@ -125,14 +126,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #region Hostname
 
-        private String hostname;
+        private String? hostname;
 
         /// <summary>
         /// The host to send the UDP data: an IPv4 address or "localhost". A host name is refused, and never
         /// handed to the resolver of the operating system: resolve it with a DNS client, as
         /// <see cref="IPv4AddressOf"/> does, and set the <see cref="IPAddress"/>.
         /// </summary>
-        public String Hostname
+        [DisallowNull]
+        public String? Hostname
         {
 
             get
@@ -231,8 +233,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #region IPSocket
 
-        private IPSocket ipSocket;
-
         /// <summary>
         /// The IP socket to send the UDP data.
         /// </summary>
@@ -240,7 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         {
             get
             {
-                return ipSocket;
+                return new IPSocket(ipAddress, port);
             }
         }
 
@@ -379,7 +379,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
             try
             {
-                RemoteIPEndPoint = new IPEndPoint(DotNetIPAddress, port.ToUInt16());
+                RemoteIPEndPoint = new IPEndPoint(DotNetIPAddress ?? throw new ArgumentNullException(nameof(DotNetIPAddress)), port.ToUInt16());
             }
             catch (Exception e)
             {
@@ -423,6 +423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             catch (Exception e)
             {
                 ProcessExceptionOccurred(this, Timestamp.Now, EventTracking_Id.New, new Exception("The MessageProcessor lead to an error!", e));
+                return;
             }
 
             try
@@ -475,6 +476,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             catch (Exception e)
             {
                 ProcessExceptionOccurred(this, Timestamp.Now, EventTracking_Id.New, new Exception("The MessageProcessor lead to an error!", e));
+                return;
             }
 
             try

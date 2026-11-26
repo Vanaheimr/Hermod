@@ -293,7 +293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsClient as DNSTLSClient,
+                                               (DNSTLSClient) tlsClient,
                                                policyErrors
                                            )
                        : null,
@@ -381,7 +381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsClient as DNSTLSClient,
+                                               (DNSTLSClient) tlsClient,
                                                policyErrors
                                            )
                        : null,

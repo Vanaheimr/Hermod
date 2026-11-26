@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Xml.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -143,11 +145,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             if (xmlRequest.HasErrors)
                 return xmlRequest.Error;
 
+            // XDocument.Parse() never returns a document without a root element
+            var soapXML      = xmlRequest.Data.Root!;
+
             var soapDispatch = soapDispatches.
                                     Select(dispatch => new {
                                         dispatch    = dispatch,
-                                        SOAPHeader  = xmlRequest.Data.Root.Descendants(v1_2.NS.SOAPEnvelope + "Header").FirstOrDefault(),
-                                        SOAPBody    = dispatch.Matcher(xmlRequest.Data.Root)
+                                        SOAPHeader  = soapXML.Descendants(v1_2.NS.SOAPEnvelope + "Header").FirstOrDefault(),
+                                        SOAPBody    = dispatch.Matcher(soapXML)
                                     }).
                                     FirstOrDefault(match => match.SOAPBody is not null);
 
@@ -163,7 +168,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                 if (soapDispatch.dispatch.HeaderAndBodyDelegate is not null)
                     return await soapDispatch.dispatch.HeaderAndBodyDelegate(
                                      Request,
-                                     soapDispatch.SOAPHeader,
+                                     // a request without a SOAP header gets an empty one
+                                     soapDispatch.SOAPHeader ?? new XElement(v1_2.NS.SOAPEnvelope + "Header"),
                                      soapDispatch.SOAPBody
                                  );
 
@@ -199,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                 HTTPStatusCode  = HTTPStatusCode.OK,
                 ContentType     = HTTPContentType.Text.PLAIN,
-                Content         = ("Welcome at " + Request.HTTPServer.HTTPServerName + Environment.NewLine +
+                Content         = ("Welcome at " + Request.HTTPServer?.HTTPServerName + Environment.NewLine +
                                    "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
                                    "Defined SOAP meassages: " + Environment.NewLine +
                                    soapDispatches.

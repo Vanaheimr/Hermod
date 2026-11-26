@@ -457,7 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     // RFC 2369 §2: a URL in angle brackets - RFC 6068 §2: the address in a mailto URL
                     // percent-encoded, "%" and the gen-delims but "@" and ":" - "/", "?", "#" - too.
                     if (ListPost           is not null)
-                        SetEMailHeader("List-Post",                  $"<{SMTP.MailtoUri.Of(ListPost.ToString())}>");
+                        SetEMailHeader("List-Post",                  $"<{SMTP.MailtoUri.Of(ListPost.Value.ToString())}>");
 
                     if (DispositionNotificationTo is not null)
                         SetEMailHeader("Disposition-Notification-To", AddressHeader("Disposition-Notification-To", [ DispositionNotificationTo ]));
@@ -691,8 +691,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                     OpenPGP.EncryptSignAndZip(InputStream:            new MemoryStream(Plaintext),
                                               Length:                 (UInt64) Plaintext.Length,
-                                              SecretKey:              From.SecretKeyRing?.GetSecretKeys().Cast<PgpSecretKey>().ToList().First(),
-                                              Passphrase:             Passphrase,
+                                              SecretKey:              From!.SecretKeyRing!.GetSecretKeys().Cast<PgpSecretKey>().ToList().First(),
+                                              Passphrase:             Passphrase!,
                                               PublicKeys:             recipientKeys,
                                               OutputStream:           Ciphertext,
                                               SymmetricKeyAlgorithm:  SymmetricKeyAlgorithm,
@@ -770,8 +770,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                                                                                  Content:                  [
 
                                                                                                                                OpenPGP.CreateSignature(new MemoryStream(dataToBeSigned.ToUTF8Bytes()),
-                                                                                                                                                       From.SecretKeyRing?.GetSecretKeys().Cast<PgpSecretKey>().ToList().First(),
-                                                                                                                                                       Passphrase,
+                                                                                                                                                       From!.SecretKeyRing!.GetSecretKeys().Cast<PgpSecretKey>().ToList().First(),
+                                                                                                                                                       Passphrase!,
                                                                                                                                                        HashAlgorithm: HashAlgorithm).
 
                                                                                                                                        WriteTo(new MemoryStream(), CloseOutputStream: false).

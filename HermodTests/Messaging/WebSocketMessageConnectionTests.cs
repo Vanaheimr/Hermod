@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Messaging
 
             var (webSocketConnection, _) = await client.Connect();
 
-            IMessageConnection connection = webSocketConnection;
+            IMessageConnection connection = webSocketConnection ?? throw new AssertionException("The client did not connect!");
 
             var status = await connection.SendTextMessage("through the common interface");
 
@@ -190,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Messaging
 
             var (webSocketConnection, _) = await client.Connect();
 
-            IMessageConnection connection = webSocketConnection;
+            IMessageConnection connection = webSocketConnection ?? throw new AssertionException("The client did not connect!");
 
             await connection.Close(MessageCloseCode.NormalClosure, "done");
 

@@ -171,9 +171,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             }
 
-            if (this.DefaultHTTPAPI is not null)
-                AddHTTPAPI("default",
-                           this.DefaultHTTPAPI);
+            AddHTTPAPI("default",
+                       this.DefaultHTTPAPI);
 
         }
 

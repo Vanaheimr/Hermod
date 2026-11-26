@@ -42,9 +42,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         #region Properties
 
         /// <summary>
-        /// The Modbus/TCP client.
+        /// The Modbus/TCP client - none for a request a server received.
         /// </summary>
-        public ModbusTCPClient  ModbusClient    { get; }
+        public ModbusTCPClient? ModbusClient    { get; }
 
         /// <summary>
         /// The local TCP/IP socket used.
@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="Length"></param>
         /// <param name="UnitId">An optional device/unit identifier.</param>
         /// <param name="ProtocolId">An optional protocol identifier.</param>
-        public ModbusTCPRequest(ModbusTCPClient  ModbusClient,
+        public ModbusTCPRequest(ModbusTCPClient? ModbusClient,
                                 UInt16           TransactionId,
                                 FunctionCode     FunctionCode,
                                 UInt16           StartAddress,

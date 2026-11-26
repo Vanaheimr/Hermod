@@ -189,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(retry!.EnvelopeTo,  Is.EqualTo(new[] { "later@next.example" }), "and only later@: now@ has the message");
             Assert.That(retry.Status,       Is.EqualTo(QueueItemStatus.Deferred));
             Assert.That(retry.RetryCount,   Is.GreaterThanOrEqualTo(1));
-            Assert.That(queue.Mails.Values, Has.None.Matches<QueuedMail>(mail => mail.EnvelopeFrom.Length == 0), "nobody is bounced");
+            Assert.That(queue.Mails.Values, Has.None.Matches<QueuedMail>(mail => mail is not null && mail.EnvelopeFrom.Length == 0), "nobody is bounced");
 
         }
 

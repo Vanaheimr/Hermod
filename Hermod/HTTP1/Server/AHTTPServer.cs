@@ -888,7 +888,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  LeaveInnerStreamOpen: true
                                               );
 
-                            if (request.IsChunkedTransferEncoding)
+                            if (request.IsChunkedTransferEncoding && bodyStream is not null)
                                 bodyStream = new MaximumLengthStream(
                                                  bodyStream,
                                                  MaxHTTPBodySize,

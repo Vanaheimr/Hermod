@@ -546,7 +546,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 
                             LogfileCreatorDelegate?  LogfileCreator          = null)
 
-            : base(LoggingPath,
+            : base(LoggingPath ?? "",
                    Context,
 
                    LogRequest_toConsole,

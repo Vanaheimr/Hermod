@@ -297,7 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsClient as IHTTPClient,
+                                              (tlsClient as IHTTPClient)!,
                                                policyErrors
                                            )
                        : null,
@@ -414,7 +414,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsClient as IHTTPClient,
+                                              (tlsClient as IHTTPClient)!,
                                                policyErrors
                                            )
                        : null,
@@ -535,7 +535,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsClient as IHTTPClient,
+                                              (tlsClient as IHTTPClient)!,
                                                policyErrors
                                            )
                        : null,
@@ -1489,7 +1489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                      Request.HTTPMethod,
                      out var target
                  ) ||
-                !target.SameOrigin ||
+                !target!.SameOrigin ||
                 (target.KeepBody && !HasReplayableBody(Request)))
             {
                 return false;

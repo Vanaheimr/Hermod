@@ -60,6 +60,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                        Boolean? RecursionDesired = true, Boolean? ForceUpdate = false, CancellationToken CancellationToken = default)
                 => Empty();
 
+            public override String ToString()
+                => nameof(NoDNS);
+
             public void Dispose() { }
 
             public ValueTask DisposeAsync()
@@ -81,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         {
 
             private readonly TcpListener              listener;
-            private readonly Func<String, String?>    reply;
+            private readonly Func<String, String>     reply;
             private readonly String                   greeting;
             private readonly String[]                 extensions;
             private readonly Boolean                  silent;

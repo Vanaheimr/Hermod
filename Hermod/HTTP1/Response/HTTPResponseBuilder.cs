@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 get
                 {
-                    return GetHeaderFields(HTTPResponseHeaderField.Allow);
+                    return GetHeaderFields(HTTPResponseHeaderField.Allow) ?? [];
                 }
 
                 set
@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 get
                 {
-                    return GetHeaderFields(HTTPResponseHeaderField.AcceptPatch);
+                    return GetHeaderFields(HTTPResponseHeaderField.AcceptPatch) ?? [];
                 }
 
                 set
@@ -512,7 +512,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// WWW-Authenticate
             /// </summary>
-            public WWWAuthenticate WWWAuthenticate
+            public WWWAuthenticate? WWWAuthenticate
             {
 
                 get

@@ -178,7 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
                 Assert.That(MailAddressParser.ParseAddressList(from),                                                          Is.EqualTo(new[] { "mallory@evil.example" }), "the address parser the DMARC check uses");
                 Assert.That(DkimSigning.FromDomain($"From: {from}\r\nTo: <a@example.net>\r\nSubject: Hi\r\n\r\nBody.\r\n"),  Is.EqualTo("evil.example"),                     "the domain whose DKIM key signs the message");
-                Assert.That(EMail.Parse([ $"From: {from}", "Subject: Hi", "", "x" ]).From.Address.ToString(),                 Is.EqualTo("mallory@evil.example"),             "EMail.From");
+                Assert.That(EMail.Parse([ $"From: {from}", "Subject: Hi", "", "x" ]).From?.Address.ToString(),                 Is.EqualTo("mallory@evil.example"),             "EMail.From");
                 Assert.That(Parse($"From: {from}\n\nx\n").From.Single(),                                                       Is.EqualTo(new MailboxAddress(null, "mallory@evil.example")), "MimeMessage.From");
                 Assert.That(DispositionNotification.RequestedBy(Parse($"Disposition-Notification-To: {from}\n\nx\n"))?.Address, Is.EqualTo("mallory@evil.example"),             "where a read receipt goes");
 

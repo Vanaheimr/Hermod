@@ -728,7 +728,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => HTTPTOTPAuthentication is not null &&
                Login.      Equals(HTTPTOTPAuthentication.Login) &&
                TOTP.       Equals(HTTPTOTPAuthentication.TOTP)  &&
-               TOTPConfig ==      HTTPTOTPAuthentication.TOTPConfig;
+               Object.Equals(TOTPConfig, HTTPTOTPAuthentication.TOTPConfig);
 
         #endregion
 

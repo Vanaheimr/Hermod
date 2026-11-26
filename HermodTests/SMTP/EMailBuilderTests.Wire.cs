@@ -177,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(Header(text, "To"),                                       Is.EqualTo("\"Doe, John\" <doe@example.org>"), "a name with a comma quoted - else it had been two addresses");
 
                 Assert.That(parsed.Subject,                                           Is.EqualTo(builder.Subject));
-                Assert.That(parsed.From.OwnerName,                                    Is.EqualTo("Müller, Jörg"));
+                Assert.That(parsed.From?.OwnerName,                                    Is.EqualTo("Müller, Jörg"));
                 Assert.That(parsed.To.Select(to => to.Address.ToString()),            Is.EqualTo(new[] { "doe@example.org" }));
                 Assert.That(parsed.Cc.Count(),                                        Is.EqualTo(12));
 

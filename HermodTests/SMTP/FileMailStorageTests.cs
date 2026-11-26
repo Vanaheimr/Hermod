@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             var value = String.Join(" ", Enumerable.Range(0, 300).Select(number => $"ip4:192.0.2.{number % 256}"));
             var field = HeaderField.Of("X-SPF-Record", value);
 
-            Assert.That(field.Split("\r\n").Where(line => line.Length > 0), Has.All.Matches<String>(line => Encoding.UTF8.GetByteCount(line) <= 998));
+            Assert.That(field.Split("\r\n").Where(line => line.Length > 0), Has.All.Matches<String>(line => line is not null && Encoding.UTF8.GetByteCount(line) <= 998));
             Assert.That(field.Split("\r\n").Skip(1).Where(line => line.Length > 0), Has.All.StartWith(" "), "folded before white space");
             Assert.That(field.Replace("\r\n", ""), Is.EqualTo("X-SPF-Record: " + value + ""));
 

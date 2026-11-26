@@ -59,7 +59,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #region Events
 
+        // Required by IArrowSender, but never raised by this processor
+#pragma warning disable CS0067
         public event StartedEventHandler?                                                      OnStarted;
+#pragma warning restore CS0067
 
         public event BoomerangSenderHandler<TCPConnection, DateTimeOffset, String[], String>?  OnNotification;
 

@@ -158,7 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public static Boolean TryParse(String Text, out NotificationGroup_Id NotificationGroupId)
         {
 
-            Text = Text?.Trim();
+            Text = Text?.Trim() ?? "";
 
             if (Text.IsNotNullOrEmpty())
             {

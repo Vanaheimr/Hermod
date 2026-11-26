@@ -35,12 +35,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               IComparable
     {
 
-        #region Data
-
-        private UInt32 _PlaceOfOccurence;
-
-        #endregion
-
         #region Properties
 
         /// <summary>
@@ -82,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var acceptString  = AcceptString.Split('/');
 
-            this.ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(acceptString[0], acceptString[1], "utf-8", null, null));
+            this.ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(acceptString[0], acceptString[1], "utf-8", null, null))!;
             this.Quality      = Quality;
 
         }
@@ -121,17 +115,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var charset               = Array.Find(splittedAcceptString, part => part.StartsWith("charset=", StringComparison.OrdinalIgnoreCase));
             var quality               = Array.Find(splittedAcceptString, part => part.StartsWith("q=",       StringComparison.OrdinalIgnoreCase));
 
-            if (mediaTypes.Length == 1)
+            if (mediaTypes.Length != 2)
             {
                 this.ContentType      = HTTPContentType.ALL;
             }
-            else if(mediaTypes.Length == 2)
+            else
             {
                 this.ContentType      = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(mediaTypes[0],
                                                                                                              mediaTypes[1],
                                                                                                              charset.IsNotNullOrEmpty() ? charset.Substring(8) : null,
                                                                                                              null,
-                                                                                                             null));
+                                                                                                             null))!;
             }
 
             this.Quality              = quality is not null && quality.IsNotNullOrEmpty()
@@ -207,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                       mediaTypes[1],
                                                                                                       charset.IsNotNullOrEmpty() ? charset.Substring(8) : null,
                                                                                                       null,
-                                                                                                      null)),
+                                                                                                      null))!,
                                  quality2
                              );
 
@@ -260,8 +254,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(AcceptType),
                                                 "The given accept type must not be null!");
 
+            // Equal qualities compare as equal: the place of occurrence is not tracked.
             return Quality == AcceptType.Quality
-                       ? _PlaceOfOccurence.CompareTo(AcceptType._PlaceOfOccurence)
+                       ? 0
                        : Quality.CompareTo(AcceptType.Quality) * -1;
 
         }

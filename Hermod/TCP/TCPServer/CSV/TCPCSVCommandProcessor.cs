@@ -39,13 +39,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #region Properties
 
-        public String ServiceBanner { get; set; }
+        public String? ServiceBanner { get; set; }
 
         #endregion
 
         #region Events
 
+        // Required by IArrowSender, but never raised by this processor
+#pragma warning disable CS0067
         public event StartedEventHandler?                                                          OnStarted;
+#pragma warning restore CS0067
 
         public event BoomerangSenderHandler<String, DateTimeOffset, String[], TCPResult<String>>?  OnNotification;
 

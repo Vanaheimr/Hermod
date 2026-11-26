@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPResponseHeaderField<IEnumerable<HTTPContentType>> AcceptPatch = new ("Accept-Patch",
                                                                                                         RequestPathSemantic.EndToEnd,
                                                                                                         MultipleValuesAsList:  true,
-                                                                                                        StringParser:         (String s, out IEnumerable<HTTPContentType>? o) => StringParsers.NullableHashSetOf(s, HTTPContentType.TryParse, out o));
+                                                                                                        StringParser:         (String s, [NotNullWhen(true)] out IEnumerable<HTTPContentType>? o) => StringParsers.NullableHashSetOf(s, HTTPContentType.TryParse, out o));
 
         #endregion
 

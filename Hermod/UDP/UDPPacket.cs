@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <summary>
         /// The associated UDP receiver.
         /// </summary>
-        public UDPReceiver<TData>  UDPReceiver        { get; }
+        public UDPReceiver<TData>? UDPReceiver        { get; }
 
         /// <summary>
         /// The timestamp of the packet arrival at the UDP receiver.
@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="LocalSocket">The local/receiving IP socket of the UDP packet.</param>
         /// <param name="RemoteSocket">The remote  IP socket of the UDP packet.</param>
         /// <param name="Payload">The message/payload of the UDP packet.</param>
-        public UDPPacket(UDPReceiver<TData>  UDPReceiver,
+        public UDPPacket(UDPReceiver<TData>? UDPReceiver,
                          DateTimeOffset      ServerTimestamp,
                          IPSocket            LocalSocket,
                          IPSocket            RemoteSocket,
@@ -70,6 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         {
 
+            this.UDPReceiver      = UDPReceiver;
             this.ServerTimestamp  = ServerTimestamp;
             this.Payload          = Payload;
 

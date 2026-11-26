@@ -85,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
         #endregion
 
 
-        public static Boolean TryParse(ICMPPacket Packet, out ICMPTimeExceeded ICMPTimeExceeded)
+        public static Boolean TryParse(ICMPPacket Packet, [NotNullWhen(true)] out ICMPTimeExceeded? ICMPTimeExceeded)
         {
 
             ICMPTimeExceeded = null;

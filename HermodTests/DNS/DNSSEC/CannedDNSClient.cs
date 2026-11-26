@@ -89,6 +89,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
                    Runtime:                TimeSpan.Zero
                );
 
+        public override String ToString()
+            => nameof(CannedDNSClient);
+
         public void Dispose()
         { }
 

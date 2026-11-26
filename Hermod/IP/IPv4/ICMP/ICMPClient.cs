@@ -239,7 +239,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
 
                 //var sentLength         = socket.SendTo(echoRequest.ICMPPacket.GetBytes(),
                 //                                       ipEndPoint);
-                var sentLength         = await socket.SendToAsync(new ArraySegment<Byte>(echoRequest.ICMPPacket.GetBytes()),
+                // Create() always sets the ICMP packet
+                var sentLength         = await socket.SendToAsync(new ArraySegment<Byte>(echoRequest.ICMPPacket!.GetBytes()),
                                                                   SocketFlags.None,
                                                                   ipEndPoint);
 
@@ -255,11 +256,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
                         try
                         {
 
-                            var packet          = new ArraySegment<Byte>(new Byte[65536]);
+                            var buffer          = new Byte[65536];
+                            var packet          = new ArraySegment<Byte>(buffer);
                             //var receivedLenght  = socket.Receive(packet);
                             var receivedLenght  = await socket.ReceiveAsync(packet, SocketFlags.None);
 
-                            if (IPv4Packet.TryParse(packet.Array,    out var ipv4PacketReply) &&
+                            if (IPv4Packet.TryParse(buffer,          out var ipv4PacketReply) &&
                                 ipv4PacketReply.Protocol == IPv4Protocols.ICMP                       &&
                                 ICMPPacket.TryParse(ipv4PacketReply, out var icmpPacketReply))
                             {
@@ -287,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
                                 // On Windows you might have to allow ICMP replies within your firewall settings!
 
                                 else if (icmpPacketReply.Type                   ==  3 &&
-                                         ICMPDestinationUnreachable.TryParse(icmpPacketReply, out ICMPDestinationUnreachable icmpDestinationUnreachable) &&
+                                         ICMPDestinationUnreachable.TryParse(icmpPacketReply, out ICMPDestinationUnreachable? icmpDestinationUnreachable) &&
                                          icmpDestinationUnreachable.EmbeddedIPv4Packet is not null &&
                                          icmpDestinationUnreachable.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
                                          ICMPEchoRequest.TryParse(icmpDestinationUnreachable.EmbeddedIPv4Packet.Payload, out var embeddedICMPEchoRequest) &&
@@ -306,7 +308,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.IPv4.ICMP
                                 else if (icmpPacketReply.Type                  == 11 &&
                                         (icmpPacketReply.Code                  ==  0 ||
                                          icmpPacketReply.Code                  ==  1) &&
-                                        ICMPTimeExceeded.TryParse(icmpPacketReply, out ICMPTimeExceeded icmpTimeExceeded) &&
+                                        ICMPTimeExceeded.TryParse(icmpPacketReply, out ICMPTimeExceeded? icmpTimeExceeded) &&
                                         icmpTimeExceeded.EmbeddedIPv4Packet          is not null &&
                                         icmpTimeExceeded.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
                                         ICMPEchoRequest.TryParse(icmpTimeExceeded.EmbeddedIPv4Packet.Payload, out embeddedICMPEchoRequest) &&

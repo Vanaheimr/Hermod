@@ -487,7 +487,7 @@ public class ModbusPKI
         foreach (var certificate in chainCertificates)
             collection.Add(X509CertificateLoader.LoadCertificate(certificate.GetEncoded()));
 
-        return collection.Export(X509ContentType.Pfx, DemoPfxPassword);
+        return collection.Export(X509ContentType.Pfx, DemoPfxPassword) ?? throw new InvalidOperationException("The certificate collection exported no PFX!");
 
     }
 

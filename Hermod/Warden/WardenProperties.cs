@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         }
 
-        public Object Get(String Key)
+        public Object? Get(String Key)
         {
 
             lock (_Properties)

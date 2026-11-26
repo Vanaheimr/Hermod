@@ -20,6 +20,7 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Xml.Linq;
 
 using Newtonsoft.Json.Linq;
@@ -88,13 +89,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.MIME
 
         public Dictionary<String, Object>  Headers       { get; }
         public Byte[]                      Content       { get; }
-        public HTTPContentType             ContentType   { get; }
-        public String                      Name          { get; }
-        public String                      Filename      { get; }
+        public HTTPContentType?            ContentType   { get; }
+        public String?                     Name          { get; }
+        public String?                     Filename      { get; }
 
         public MIME(String           Part,
                     HTTPContentType  ContentType)
         {
+
+            this.Headers      = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
+            this.Content      = Part.ToUTF8Bytes();
+            this.ContentType  = ContentType;
+
         }
 
         public MIME(Dictionary<String, Object>  Headers,
@@ -106,14 +112,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.MIME
 
 
             if (Headers.TryGetValue("Content-Type", out Object? Value) &&
-                HTTPContentType.TryParse(Value as String, out HTTPContentType? ContentType))
+                Value is String contentTypeText &&
+                HTTPContentType.TryParse(contentTypeText, out HTTPContentType? ContentType))
             {
                 Headers["Content-Type"] = ContentType;
                 this.ContentType = ContentType;
             }
 
             if (Headers.TryGetValue("Content-Disposition", out Value) &&
-                Value is String)
+                Value is String contentDisposition)
             {
 
                 // Content-Disposition: form-data; name="file"; filename="OffenesJena.svg"
@@ -121,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.MIME
                 var Parts = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
                 var index = 0;
 
-                foreach (var part in (Value as String).Split(Splitter2, StringSplitOptions.RemoveEmptyEntries))
+                foreach (var part in contentDisposition.Split(Splitter2, StringSplitOptions.RemoveEmptyEntries))
                 {
 
                     index = part.IndexOf("=");
@@ -177,15 +184,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.MIME
 
             _Parts = new Dictionary<String, MIME>(StringComparer.OrdinalIgnoreCase);
 
+            // A part without a name can not be looked up by one.
             foreach (var MIMEPart in MIMEParts)
-                _Parts.Add(MIMEPart.Name, MIMEPart);
+                if (MIMEPart.Name is not null)
+                    _Parts.Add(MIMEPart.Name, MIMEPart);
 
         }
 
         public MIME this[String Name]
             => _Parts[Name];
 
-        public Boolean TryGet(String Name, out MIME MIMEPart)
+        public Boolean TryGet(String Name, [NotNullWhen(true)] out MIME? MIMEPart)
             => _Parts.TryGetValue(Name, out MIMEPart);
 
 

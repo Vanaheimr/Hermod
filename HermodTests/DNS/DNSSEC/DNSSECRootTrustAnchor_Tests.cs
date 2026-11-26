@@ -174,6 +174,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS.DNSSEC
                        Runtime:                TimeSpan.Zero
                    );
 
+            public override String ToString()
+                => nameof(RootDNSKEYClient);
+
             public void Dispose()
             { }
 

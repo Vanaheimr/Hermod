@@ -197,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <summary>
         /// An optional text template for the SMS notification.
         /// </summary>
-        public String       TextTemplate    { get; }
+        public String?      TextTemplate    { get; }
 
         #endregion
 
@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Parse   (JSON)
 
-        public static SMSNotification Parse(JObject JSON)
+        public static SMSNotification? Parse(JObject JSON)
         {
 
             if (TryParse(JSON, out var smsNotification))
@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         {
 
             if (JSON["@context"]?.Value<String>() == JSONLDContext &&
-                PhoneNumber.TryParse(JSON["phoneNumber"]?.Value<String>(), out PhoneNumber phoneNumber))
+                PhoneNumber.TryParse(JSON["phoneNumber"]?.Value<String>() ?? "", out PhoneNumber phoneNumber))
             {
 
                 //Notification = new SMSNotification(PhoneNumber.Parse(JSON["phoneNumber"]?.Value<String>()),

@@ -1401,7 +1401,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String                         HTTPAPIPath                        { get; }
         public String                         NotificationsPath                  { get; }
         public String                         SMTPLoggingPath                    { get; }
-        public String                         SMSLoggingPath                     { get; }
+        public String?                        SMSLoggingPath                     { get; }
 
 
         /// <summary>
@@ -1614,7 +1614,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 JObject            Data,
                                                 TimeSpan?          RequestTimeout);
 
+        // Public API kept for subscribers; never raised while sending SMS is disabled.
+#pragma warning disable CS0067
         public event OnSendSMSDelegate? OnSendSMS;
+#pragma warning restore CS0067
 
         // ---------------------------------------------------------------
 
@@ -2497,7 +2500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.CookieName                      = CookieName                     ?? DefaultCookieName;
             this.SessionCookieName               = this.CookieName + "Session";
             this.UseSecureCookies                = UseSecureCookies;
-            this.HTTPCookiePath                  = HTTPCookiePath                 ?? RootPath.ToString();
+            this.HTTPCookiePath                  = HTTPCookiePath                 ?? this.RootPath.ToString();
             this.WebAuthnSettings                = WebAuthnSettings;
             this.DefaultLanguage                 = DefaultLanguage                ?? DefaultDefaultLanguage;
 
@@ -3477,7 +3480,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         HTTPRequest? request     = null;
-                        HTTPResponse result      = HTTPResponse.ClientError(request);
+                        HTTPResponse? result     = null;
                         Byte TransmissionRetry   = 0;
                         Byte MaxNumberOfRetries  = 3;
 
@@ -3540,7 +3543,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         }
                         // Try to resend the HTTP message, when there had been networking errors...
-                        while (result.HTTPStatusCode == HTTPStatusCode.RequestTimeout &&
+                        while (result is not null &&
+                               result.HTTPStatusCode == HTTPStatusCode.RequestTimeout &&
                                TransmissionRetry++ < MaxNumberOfRetries);
 
                         // If it failed: Write entire message on disc/logfile
@@ -8188,7 +8192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   break;
 
                                               case HTTPSNotification.JSONLDContext:
-                                                  if (!HTTPSNotification.TryParse(JSONObject, out HTTPSNotification httpsNotification, out _))
+                                                  if (!HTTPSNotification.TryParse(JSONObject, out var httpsNotification, out _))
                                                   {
                                                       ErrorString = "Could not parse https notification!";
                                                       goto fail;
@@ -9858,9 +9862,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   IUser? Admin    = null;
                                   var Admins      = new List<IUser>();
-                                  var AdminNames  = AdminsJSON.Select(admin => admin as JObject).
-                                                               Where(admin => admin is not null).
-                                                               Select(admin => User_Id.TryParse(admin["@id"].Value<String>())).
+                                  var AdminNames  = AdminsJSON.OfType<JObject>().
+                                                               Select(admin => User_Id.TryParse(admin["@id"]?.Value<String>() ?? "")).
                                                                ToArray();
 
                                   foreach (var admin in AdminNames)
@@ -9878,7 +9881,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                   Content                    = JSONObject.Create(
-                                                                                      new JProperty("description",  "Invalid admin user '" + admin.Value  + "'!")
+                                                                                      new JProperty("description",  "Invalid admin user '" + admin        + "'!")
                                                                                   ).ToUTF8Bytes()
                                               }.AsImmutable;
 
@@ -13727,7 +13730,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case HTTPSNotification.JSONLDContext:
 
-                            if (HTTPSNotification.TryParse(Data, out HTTPSNotification httpsNotification, out _))
+                            if (HTTPSNotification.TryParse(Data, out var httpsNotification, out _))
                             {
                                 user?.        AddNotification(httpsNotification);
                                 organization?.AddNotification(httpsNotification);
@@ -14784,8 +14787,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             ComparisonResult? comparizionResult = null;
 
-            if (messageTypes.Contains(updateUser_MessageType))
-                comparizionResult = (User as User).CompareWith(OldUser as User);
+            if (messageTypes.Contains(updateUser_MessageType) &&
+                User    is User currentUser &&
+                OldUser is User oldUser)
+            {
+                comparizionResult = currentUser.CompareWith(oldUser);
+            }
 
 
             #region Get notification settings from his organisations and higher-level organizations
@@ -23907,7 +23914,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An enumeration of all notification messages.
         /// </summary>
-        protected readonly Dictionary<NotificationMessage_Id, NotificationMessage> notificationMessages;
+        protected readonly Dictionary<NotificationMessage_Id, NotificationMessage> notificationMessages = new();
 
         /// <summary>
         /// An enumeration of all notification messages.
@@ -24182,10 +24189,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the notification message had been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async Task<NotificationMessage> AddNotificationMessage(NotificationMessage                             NotificationMessage,
-                                                                      Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
-                                                                      EventTracking_Id?                               EventTrackingId   = null,
-                                                                      User_Id?                                        CurrentUserId     = null)
+        public async Task<NotificationMessage?> AddNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                       Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
+                                                                       EventTracking_Id?                               EventTrackingId   = null,
+                                                                       User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessage is null)
@@ -24299,10 +24306,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the notification message had been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async Task<NotificationMessage> AddNotificationMessageIfNotExists(NotificationMessage                             NotificationMessage,
-                                                                                 Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
-                                                                                 EventTracking_Id?                               EventTrackingId   = null,
-                                                                                 User_Id?                                        CurrentUserId     = null)
+        public async Task<NotificationMessage?> AddNotificationMessageIfNotExists(NotificationMessage                             NotificationMessage,
+                                                                                  Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
+                                                                                  EventTracking_Id?                               EventTrackingId   = null,
+                                                                                  User_Id?                                        CurrentUserId     = null)
         {
 
             try
@@ -24452,11 +24459,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the notification message had been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        public async Task<NotificationMessage> AddOrUpdateNotificationMessage(NotificationMessage                             NotificationMessage,
-                                                                              Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
-                                                                              Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
-                                                                              EventTracking_Id?                               EventTrackingId   = null,
-                                                                              User_Id?                                        CurrentUserId     = null)
+        public async Task<NotificationMessage?> AddOrUpdateNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                               Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
+                                                                               Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
+                                                                               EventTracking_Id?                               EventTrackingId   = null,
+                                                                               User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessage is null)
@@ -24591,10 +24598,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the notification message had been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        public async Task<NotificationMessage> UpdateNotificationMessage(NotificationMessage                             NotificationMessage,
-                                                                         Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
-                                                                         EventTracking_Id?                               EventTrackingId   = null,
-                                                                         User_Id?                                        CurrentUserId     = null)
+        public async Task<NotificationMessage?> UpdateNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                          Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
+                                                                          EventTracking_Id?                               EventTrackingId   = null,
+                                                                          User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessage is null)
@@ -24710,11 +24717,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the notification message had been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        public async Task<NotificationMessage> UpdateNotificationMessage(NotificationMessage_Id                          NotificationMessageId,
-                                                                         Action<NotificationMessage.Builder>             UpdateDelegate,
-                                                                         Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
-                                                                         EventTracking_Id?                               EventTrackingId   = null,
-                                                                         User_Id?                                        CurrentUserId     = null)
+        public async Task<NotificationMessage?> UpdateNotificationMessage(NotificationMessage_Id                          NotificationMessageId,
+                                                                          Action<NotificationMessage.Builder>             UpdateDelegate,
+                                                                          Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
+                                                                          EventTracking_Id?                               EventTrackingId   = null,
+                                                                          User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessageId.IsNullOrEmpty)
@@ -24777,7 +24784,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             public Boolean     IsSuccess           { get; }
 
-            public I18NString  ErrorDescription    { get; }
+            public I18NString? ErrorDescription    { get; }
 
 
             private DeleteNotificationMessageResult(Boolean      IsSuccess,
@@ -24806,7 +24813,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 => IsSuccess
                        ? "Success"
-                       : "Failed" + (ErrorDescription.IsNullOrEmpty()
+                       : "Failed" + (ErrorDescription.IsNotNullOrEmpty()
                                          ? ": " + ErrorDescription.FirstText()
                                          : "!");
 
@@ -24906,10 +24913,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnRemoved">A delegate run whenever the notification message had been removed successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        public async Task<DeleteNotificationMessageResult> RemoveNotificationMessage(NotificationMessage                             NotificationMessage,
-                                                                                     Action<NotificationMessage, EventTracking_Id>?  OnRemoved         = null,
-                                                                                     EventTracking_Id?                               EventTrackingId   = null,
-                                                                                     User_Id?                                        CurrentUserId     = null)
+        public async Task<DeleteNotificationMessageResult?> RemoveNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                                      Action<NotificationMessage, EventTracking_Id>?  OnRemoved         = null,
+                                                                                      EventTracking_Id?                               EventTrackingId   = null,
+                                                                                      User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessage is null)
@@ -25001,7 +25008,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get the notification message having the given unique identification.
         /// </summary>
         /// <param name="NotificationMessageId">The unique identification of an notification message.</param>
-        protected NotificationMessage _GetNotificationMessage(NotificationMessage_Id NotificationMessageId)
+        protected NotificationMessage? _GetNotificationMessage(NotificationMessage_Id NotificationMessageId)
         {
 
             if (!NotificationMessageId.IsNullOrEmpty && notificationMessages.TryGetValue(NotificationMessageId, out var notificationMessage))
@@ -25016,7 +25023,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get the notification message having the given unique identification.
         /// </summary>
         /// <param name="NotificationMessageId">The unique identification of the notification message.</param>
-        public NotificationMessage GetNotificationMessage(NotificationMessage_Id NotificationMessageId)
+        public NotificationMessage? GetNotificationMessage(NotificationMessage_Id NotificationMessageId)
         {
 
             try
@@ -25221,8 +25228,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             ComparisonResult? comparizionResult = null;
 
-            if (messageTypes.Contains(updateOrganization_MessageType))
-                comparizionResult = (Organization as Organization).CompareWith(OldOrganization as Organization);
+            if (messageTypes.Contains(updateOrganization_MessageType) &&
+                Organization    is Organization currentOrganization &&
+                OldOrganization is Organization oldOrganization)
+            {
+                comparizionResult = currentOrganization.CompareWith(oldOrganization);
+            }
 
 
             if (!DisableNotifications)
@@ -25803,9 +25814,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #region Check if the user is allowed to create and link the given organizations!
 
                     if (CurrentUserId.HasValue &&
-                       !GetUser(CurrentUserId.Value).
+                        GetUser(CurrentUserId.Value)?.
                             Organizations(Access_Levels.ReadWrite, true).
-                            Contains     (ParentOrganization))
+                            Contains     (ParentOrganization) != true)
                     {
 
                         return AddOrganizationResult.Error(
@@ -26039,9 +26050,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #region Check if the user is allowed to create and link the given organizations!
 
                     if (CurrentUserId.HasValue &&
-                       !GetUser(CurrentUserId.Value).
+                        GetUser(CurrentUserId.Value)?.
                             Organizations(Access_Levels.ReadWrite, true).
-                            Contains     (ParentOrganization))
+                            Contains     (ParentOrganization) != true)
                     {
 
                         return AddOrganizationResult.Error(
@@ -26371,12 +26382,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Check if the user is allowed to create and link the given organizations!
 
-                    if (!(Organization is null) &&
-                        !_OrganizationExists(Organization.Id) &&
+                    if (!_OrganizationExists(Organization.Id) &&
                          CurrentUserId.HasValue &&
-                        !GetUser(CurrentUserId.Value).
+                         GetUser(CurrentUserId.Value)?.
                              Organizations(Access_Levels.ReadWrite, true).
-                             Contains     (ParentOrganization))
+                             Contains     (ParentOrganization) != true)
                     {
 
                         return AddOrUpdateOrganizationResult.Error(
@@ -26416,7 +26426,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         result.ParentOrganization = ParentOrganization;
 
-                        if (result?.AddedOrUpdated == AddedOrUpdated.Add)
+                        if (result.AddedOrUpdated == AddedOrUpdated.Add)
                             await SendNotifications(Organization,
                                                     Organization2OrganizationEdgeLabel.IsChildOf,
                                                     ParentOrganization,
@@ -27925,10 +27935,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the organization group has been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async Task<OrganizationGroup> AddOrganizationGroup(OrganizationGroup                             OrganizationGroup,
-                                                                  Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
-                                                                  EventTracking_Id?                             EventTrackingId   = null,
-                                                                  User_Id?                                      CurrentUserId     = null)
+        public async Task<OrganizationGroup?> AddOrganizationGroup(OrganizationGroup                             OrganizationGroup,
+                                                                   Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
+                                                                   EventTracking_Id?                             EventTrackingId   = null,
+                                                                   User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroup is null)
@@ -28042,10 +28052,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the organization group has been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async Task<OrganizationGroup> AddOrganizationGroupIfNotExists(OrganizationGroup                             OrganizationGroup,
-                                                                             Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
-                                                                             EventTracking_Id?                             EventTrackingId   = null,
-                                                                             User_Id?                                      CurrentUserId     = null)
+        public async Task<OrganizationGroup?> AddOrganizationGroupIfNotExists(OrganizationGroup                             OrganizationGroup,
+                                                                              Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
+                                                                              EventTracking_Id?                             EventTrackingId   = null,
+                                                                              User_Id?                                      CurrentUserId     = null)
         {
 
             try
@@ -28195,11 +28205,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization group has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
-        public async Task<OrganizationGroup> AddOrUpdateOrganizationGroup(OrganizationGroup                             OrganizationGroup,
-                                                                          Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
-                                                                          Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
-                                                                          EventTracking_Id?                             EventTrackingId   = null,
-                                                                          User_Id?                                      CurrentUserId     = null)
+        public async Task<OrganizationGroup?> AddOrUpdateOrganizationGroup(OrganizationGroup                             OrganizationGroup,
+                                                                           Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
+                                                                           Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
+                                                                           EventTracking_Id?                             EventTrackingId   = null,
+                                                                           User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroup is null)
@@ -28334,10 +28344,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization group has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
-        public async Task<OrganizationGroup> UpdateOrganizationGroup(OrganizationGroup                             OrganizationGroup,
-                                                                     Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
-                                                                     EventTracking_Id?                             EventTrackingId   = null,
-                                                                     User_Id?                                      CurrentUserId     = null)
+        public async Task<OrganizationGroup?> UpdateOrganizationGroup(OrganizationGroup                             OrganizationGroup,
+                                                                      Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
+                                                                      EventTracking_Id?                             EventTrackingId   = null,
+                                                                      User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroup is null)
@@ -28453,11 +28463,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization group has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
-        public async Task<OrganizationGroup> UpdateOrganizationGroup(OrganizationGroup_Id                          OrganizationGroupId,
-                                                                     Action<OrganizationGroup.Builder>             UpdateDelegate,
-                                                                     Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
-                                                                     EventTracking_Id?                             EventTrackingId   = null,
-                                                                     User_Id?                                      CurrentUserId     = null)
+        public async Task<OrganizationGroup?> UpdateOrganizationGroup(OrganizationGroup_Id                          OrganizationGroupId,
+                                                                      Action<OrganizationGroup.Builder>             UpdateDelegate,
+                                                                      Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
+                                                                      EventTracking_Id?                             EventTrackingId   = null,
+                                                                      User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroupId.IsNullOrEmpty)
@@ -28725,7 +28735,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get the organization group having the given unique identification.
         /// </summary>
         /// <param name="OrganizationGroupId">The unique identification of an organization group.</param>
-        protected internal OrganizationGroup _GetOrganizationGroup(OrganizationGroup_Id OrganizationGroupId)
+        protected internal OrganizationGroup? _GetOrganizationGroup(OrganizationGroup_Id OrganizationGroupId)
         {
 
             if (!OrganizationGroupId.IsNullOrEmpty && organizationGroups.TryGetValue(OrganizationGroupId, out OrganizationGroup? organizationGroup))
@@ -28740,7 +28750,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get the organization group having the given unique identification.
         /// </summary>
         /// <param name="OrganizationGroupId">The unique identification of the organization group.</param>
-        public OrganizationGroup GetOrganizationGroup(OrganizationGroup_Id OrganizationGroupId)
+        public OrganizationGroup? GetOrganizationGroup(OrganizationGroup_Id OrganizationGroupId)
         {
 
             try
@@ -29217,14 +29227,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (User is null)
-                return AddUserToUserGroupResult.ArgumentError(User,
-                                                              EdgeLabel,
-                                                              UserGroup,
-                                                              eventTrackingId,
-                                                              nameof(User),
-                                                              "The given user must not be null!");
-
             if (User.API is not null && User.API != this)
                 return AddUserToUserGroupResult.ArgumentError(User,
                                                               EdgeLabel,
@@ -29250,14 +29252,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                     nameof(EdgeLabel),
             //                                                     "The given edge label must not be null or empty!");
 
-
-            if (UserGroup is null)
-                return AddUserToUserGroupResult.ArgumentError(User,
-                                                              EdgeLabel,
-                                                              UserGroup,
-                                                              eventTrackingId,
-                                                              nameof(UserGroup),
-                                                              "The given user group must not be null!");
 
             if (UserGroup.APIX is not null && UserGroup.APIX != this)
                 return AddUserToUserGroupResult.ArgumentError(User,
@@ -29402,14 +29396,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (User is null)
-                return RemoveUserFromUserGroupResult.ArgumentError(User,
-                                                                   EdgeLabel,
-                                                                   UserGroup,
-                                                                   eventTrackingId,
-                                                                   nameof(User),
-                                                                   "The given user must not be null!");
-
             if (User.API is not null && User.API != this)
                 return RemoveUserFromUserGroupResult.ArgumentError(User,
                                                                    EdgeLabel,
@@ -29435,14 +29421,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                     nameof(EdgeLabel),
             //                                                     "The given edge label must not be null or empty!");
 
-
-            if (UserGroup is null)
-                return RemoveUserFromUserGroupResult.ArgumentError(User,
-                                                                   EdgeLabel,
-                                                                   UserGroup,
-                                                                   eventTrackingId,
-                                                                   nameof(UserGroup),
-                                                                   "The given user group must not be null!");
 
             if (UserGroup.APIX is not null && UserGroup.APIX != this)
                 return RemoveUserFromUserGroupResult.ArgumentError(User,
@@ -29601,13 +29579,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (User is null)
-                return RemoveUserFromUserGroupResult.ArgumentError(User,
-                                                                   UserGroup,
-                                                                   eventTrackingId,
-                                                                   nameof(User),
-                                                                   "The given user must not be null!");
-
             if (User.API is not null && User.API != this)
                 return RemoveUserFromUserGroupResult.ArgumentError(User,
                                                                    UserGroup,
@@ -29621,13 +29592,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                    eventTrackingId,
                                                                    nameof(User),
                                                                    "The given user '" + User.Id + "' does not exists within this API!");
-
-            if (UserGroup is null)
-                return RemoveUserFromUserGroupResult.ArgumentError(User,
-                                                                   UserGroup,
-                                                                   eventTrackingId,
-                                                                   nameof(UserGroup),
-                                                                   "The given user group must not be null!");
 
             if (UserGroup.APIX is not null && UserGroup.APIX != this)
                 return RemoveUserFromUserGroupResult.ArgumentError(User,
@@ -30168,14 +30132,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (User is null)
-                return AddUserToOrganizationResult.ArgumentError(User,
-                                                                 EdgeLabel,
-                                                                 Organization,
-                                                                 eventTrackingId,
-                                                                 nameof(User),
-                                                                 "The given user must not be null!");
-
             if (User.API is not null && User.API != this)
                 return AddUserToOrganizationResult.ArgumentError(User,
                                                                  EdgeLabel,
@@ -30201,14 +30157,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                     nameof(EdgeLabel),
             //                                                     "The given edge label must not be null or empty!");
 
-
-            if (Organization is null)
-                return AddUserToOrganizationResult.ArgumentError(User,
-                                                                 EdgeLabel,
-                                                                 Organization,
-                                                                 eventTrackingId,
-                                                                 nameof(Organization),
-                                                                 "The given organization must not be null!");
 
             if (Organization.API is not null && Organization.API != this)
                 return AddUserToOrganizationResult.ArgumentError(User,
@@ -30359,14 +30307,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (User is null)
-                return RemoveUserFromOrganizationResult.ArgumentError(User,
-                                                                      EdgeLabel,
-                                                                      Organization,
-                                                                      eventTrackingId,
-                                                                      nameof(User),
-                                                                      "The given user must not be null!");
-
             if (User.API is not null && User.API != this)
                 return RemoveUserFromOrganizationResult.ArgumentError(User,
                                                                       EdgeLabel,
@@ -30392,14 +30332,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                     nameof(EdgeLabel),
             //                                                     "The given edge label must not be null or empty!");
 
-
-            if (Organization is null)
-                return RemoveUserFromOrganizationResult.ArgumentError(User,
-                                                                      EdgeLabel,
-                                                                      Organization,
-                                                                      eventTrackingId,
-                                                                      nameof(Organization),
-                                                                      "The given organization must not be null!");
 
             if (Organization.API is not null && Organization.API != this)
                 return RemoveUserFromOrganizationResult.ArgumentError(User,
@@ -30569,13 +30501,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       eventTrackingId,
                                                                       nameof(User),
                                                                       "The given user '" + User.Id + "' does not exists within this API!");
-
-            if (Organization is null)
-                return RemoveUserFromOrganizationResult.ArgumentError(User,
-                                                                      Organization,
-                                                                      eventTrackingId,
-                                                                      nameof(Organization),
-                                                                      "The given organization must not be null!");
 
             if (Organization.API is not null && Organization.API != this)
                 return RemoveUserFromOrganizationResult.ArgumentError(User,
@@ -31002,13 +30927,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                          User_Id?                            CurrentUserId           = null)
         {
 
+                var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
+
                 if (!OrganizationOut.
                         Organization2OrganizationOutEdges.
                         Where(edge => edge.Target.Id.Equals(OrganizationIn.Id)).
                         Any  (edge => edge.EdgeLabel == EdgeLabel))
                 {
-
-                    var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
                     await WriteToDatabaseFile(linkOrganizations_MessageType,
                                               new JObject(
@@ -31040,14 +30965,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return LinkOrganizationsResult.Success(OrganizationOut,
                                                            EdgeLabel,
                                                            OrganizationIn,
-                                                           EventTrackingId);
+                                                           eventTrackingId);
 
                 }
 
                 return LinkOrganizationsResult.Failed(OrganizationOut,
                                                       EdgeLabel,
                                                       OrganizationIn,
-                                                      EventTrackingId,
+                                                      eventTrackingId,
                                                       "!");
 
         }
@@ -31122,13 +31047,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                              User_Id?                            CurrentUserId           = null)
         {
 
+            var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
+
             if (OrganizationOut.
                     Organization2OrganizationOutEdges.
                     Where(edge => edge.Target.Id.Equals(OrganizationIn.Id)).
                     Any  (edge => edge.EdgeLabel == EdgeLabel))
             {
-
-                var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
                 await WriteToDatabaseFile(unlinkOrganizations_MessageType,
                                           new JObject(
@@ -31160,14 +31085,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return UnlinkOrganizationsResult.Success(OrganizationOut,
                                                          EdgeLabel,
                                                          OrganizationIn,
-                                                         EventTrackingId);
+                                                         eventTrackingId);
 
             }
 
             return UnlinkOrganizationsResult.Failed(OrganizationOut,
                                                     EdgeLabel,
                                                     OrganizationIn,
-                                                    EventTrackingId,
+                                                    eventTrackingId,
                                                     "!");
 
         }

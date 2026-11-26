@@ -65,7 +65,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Data
 
-        private readonly IModbusClient ModbusClient;
+        private readonly IModbusClient? modbusClient;
+
+        // The serial port constructor has no Modbus RTU client yet.
+        private IModbusClient ModbusClient
+            => modbusClient ?? throw new InvalidOperationException("This Janitza UMG 604 has no Modbus client, as Modbus RTU is not supported yet!");
 
         #endregion
 
@@ -978,7 +982,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                              Byte?       UnitAddress   = null)
         {
 
-            this.ModbusClient = new ModbusTCPClient(IPAddress,
+            this.modbusClient = new ModbusTCPClient(IPAddress,
                                                     RemotePort,
                                                     UnitAddress,
                                                     1);
@@ -1000,7 +1004,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                              Byte?         UnitAddress   = null)
         {
 
-            this.ModbusClient = new ModbusTCPClient(RemoteHostname,
+            this.modbusClient = new ModbusTCPClient(RemoteHostname,
                                                     RemotePort,
                                                     UnitAddress,
                                                     1);
@@ -1026,7 +1030,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         public Single[] ReadSingles(UInt16 StartingAddress, Int32 Num)
         {
-            return ModbusClient.Read<Single[]>(StartingAddress, (ushort)(2 * Num), array => MultiConverters.NetworkBytesToHostSingle(array));
+            return ModbusClient.Read<Single[]>(StartingAddress, (ushort)(2 * Num), array => MultiConverters.NetworkBytesToHostSingle(array)) ?? [];
         }
 
         #endregion
@@ -1043,12 +1047,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         public void Close()
         {
-            ModbusClient.Close();
+            modbusClient?.Close();
         }
 
         public void Dispose()
         {
-            ModbusClient.Dispose();
+            modbusClient?.Dispose();
         }
 
     }

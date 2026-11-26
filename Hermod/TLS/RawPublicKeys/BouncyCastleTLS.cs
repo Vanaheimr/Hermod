@@ -507,10 +507,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (private) Client
 
-        private sealed class Client(BcTlsCrypto                      Crypto,
+        private sealed class Client(BcTlsCrypto                      BCCrypto,
                                     RawPublicKeyTLSClientParameters  Parameters)
 
-            : DefaultTlsClient(Crypto),
+            : DefaultTlsClient(BCCrypto),
               TlsAuthentication
 
         {
@@ -685,10 +685,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (private) Server
 
-        private sealed class Server(BcTlsCrypto                      Crypto,
+        private sealed class Server(BcTlsCrypto                      BCCrypto,
                                     RawPublicKeyTLSServerParameters  Parameters)
 
-            : DefaultTlsServer(Crypto)
+            : DefaultTlsServer(BCCrypto)
 
         {
 

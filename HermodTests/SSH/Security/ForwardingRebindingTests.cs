@@ -162,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 {
                     await using var tunnel = await client.OpenTCPStream("127.0.0.1", canary.Port, CancellationToken);
                     var buffer = new Byte[16];
-                    await tunnel.ReadAsync(buffer, CancellationToken);
+                    _ = await tunnel.ReadAsync(buffer, CancellationToken);
                 }
                 catch { /* refusing the channel — or tearing it down — are both acceptable */ }
 
@@ -224,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 {
                     await using var tunnel = await client.OpenTCPStream("rebind.example", canary.Port, CancellationToken);
                     var buffer = new Byte[16];
-                    await tunnel.ReadAsync(buffer, CancellationToken);
+                    _ = await tunnel.ReadAsync(buffer, CancellationToken);
                 }
                 catch { /* refusal is the expected outcome */ }
 

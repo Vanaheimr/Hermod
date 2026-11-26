@@ -467,7 +467,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             await using var stream = await sftp.OpenFileStreamAsync("/firmware/image.bin", SftpOpenFlags.Read, CancellationToken);
             stream.Position = 95_000;
             Assert.That((await Assert.ThrowsAsync<SftpException>(async () =>
-                             await stream.ReadAsync(new Byte[100], CancellationToken)))!.Code,
+                             await stream.ReadExactlyAsync(new Byte[100], CancellationToken)))!.Code,
                         Is.EqualTo(SftpStatusCode.PermissionDenied));
 
             await EndAsync(sftp, client, server);

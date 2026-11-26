@@ -76,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
 
-        public class res
+        public class VerificationResult
         {
 
             #region Properties
@@ -95,8 +95,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             #region Constructor(s)
 
-            public res(PgpSignature  Signature,
-                       PgpPublicKey  PublicKey)
+            public VerificationResult(PgpSignature  Signature,
+                                      PgpPublicKey  PublicKey)
             {
                 this.Signature  = Signature;
                 this.PublicKey  = PublicKey;
@@ -123,9 +123,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         }
 
-        private static res VerifySignature(String  FileToVerify,
-                                           Stream  SignatureInputStream,
-                                           Stream  keyIn)
+        private static VerificationResult VerifySignature(String  FileToVerify,
+                                                          Stream  SignatureInputStream,
+                                                          Stream  keyIn)
         {
 
             SignatureInputStream = PgpUtilities.GetDecoderStream(SignatureInputStream);
@@ -159,8 +159,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             FileToVerifyStream.Close();
 
-            return new res(Signature,
-                           PublicKey);
+            return new VerificationResult(Signature,
+                                          PublicKey);
 
         }
 

@@ -262,8 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                                          CancellationToken: CancellationToken
                                      );
 
-            if (httpResponse                     is not null       &&
-                httpResponse.HTTPStatusCode   == HTTPStatusCode.OK &&
+            if (httpResponse.HTTPStatusCode   == HTTPStatusCode.OK &&
                 httpResponse.HTTPBody?.Length  > 0)
             {
 
@@ -329,7 +328,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                     return HTTPResponse<XElement>.FromError(
                                httpResponse,
                                new XElement("SOAPFault")
-                           ) as HTTPResponse<T>;
+                           ) as HTTPResponse<T>
+                           ?? HTTPResponse<T>.FromError(httpResponse);
 
 
                 } catch (Exception e)
@@ -344,7 +344,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                     return HTTPResponse<XElement>.FromError(
                                httpResponse,
                                new XElement("exception", e.Message)
-                           ) as HTTPResponse<T>;
+                           ) as HTTPResponse<T>
+                           ?? HTTPResponse<T>.FromException(httpResponse, e);
 
                 }
 
@@ -364,7 +365,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                 return HTTPResponse<XElement>.FromError(
                            httpResponse,
                            new XElement("HTTPError")
-                       ) as HTTPResponse<T>;
+                       ) as HTTPResponse<T>
+                       ?? HTTPResponse<T>.FromError(httpResponse);
 
             }
 
@@ -646,8 +648,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                                  //           NumberOfRetry,
                                  //           CancellationToken);
 
-            if (httpResponse                    is not null       &&
-                httpResponse.HTTPStatusCode  == HTTPStatusCode.OK &&
+            if (httpResponse.HTTPStatusCode  == HTTPStatusCode.OK &&
                 httpResponse.HTTPBody?.Length > 0)
             {
 
@@ -713,7 +714,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                     return HTTPResponse<XElement>.FromError(
                                httpResponse,
                                new XElement("SOAPFault")
-                           ) as HTTPResponse<T>;
+                           ) as HTTPResponse<T>
+                           ?? HTTPResponse<T>.FromError(httpResponse);
 
                 }
                 catch (Exception e)
@@ -728,7 +730,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                     return HTTPResponse<XElement>.FromError(
                                httpResponse,
                                new XElement("exception", e.Message)
-                           ) as HTTPResponse<T>;
+                           ) as HTTPResponse<T>
+                           ?? HTTPResponse<T>.FromException(httpResponse, e);
 
                 }
 
@@ -744,7 +747,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                 return HTTPResponse<XElement>.FromError(
                            httpResponse,
                            new XElement("HTTPError")
-                       ) as HTTPResponse<T>;
+                       ) as HTTPResponse<T>
+                       ?? HTTPResponse<T>.FromError(httpResponse);
 
             }
 

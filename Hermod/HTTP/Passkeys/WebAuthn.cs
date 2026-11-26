@@ -105,7 +105,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
                    Ceremony.Challenge,
                    [
                        new PublicKeyCredentialParameters(PublicKeyCredentialType.PublicKey, COSEAlgorithmIdentifiers.ES256),
-                       new PublicKeyCredentialParameters(PublicKeyCredentialType.PublicKey, COSEAlgorithmIdentifiers.RS256)
+                       // RS256 stays offered, as some authenticators (e.g. Windows Hello) can only do RSA;
+                       // the deprecated enum member is avoided by using this class's own constant.
+                       new PublicKeyCredentialParameters(PublicKeyCredentialType.PublicKey, (COSEAlgorithmIdentifiers) RS256)
                    ],
                    Timeout,
                    (ExistingPasskeys ?? []).Select(Descriptor),

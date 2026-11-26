@@ -255,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Parse   (JSON)
 
-        public static HTTPSNotification Parse(JObject JSON)
+        public static HTTPSNotification? Parse(JObject JSON)
         {
 
             if (TryParse(JSON, out var notification, out _))
@@ -310,13 +310,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                 Notification = new HTTPSNotification(
                                    remoteURL,
-                                  (JSON["messageTypes"  ] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>())),
+                                  (JSON["messageTypes"  ] as JArray)?.SafeSelect(element => NotificationMessageType.Parse(element.Value<String>() ?? "")) ?? [],
                                    method ?? HTTPMethod.POST,
                                    //JSON["basicAuth"     ]?["login"   ]?.Value<String>(),
                                    //JSON["basicAuth"     ]?["password"]?.Value<String>(),
                                    //JSON["APIKey"] is not null ? APIKey_Id.Parse(JSON["APIKey"        ]?.Value<String>()) : new APIKey_Id?(),
                                    null,
-                                   JSON["requestTimeout"] is not null ? TimeSpan.FromSeconds((Double) JSON["requestTimeout"]?.Value<Int32>()) : new TimeSpan?(),
+                                   JSON["requestTimeout"] is JToken requestTimeout ? TimeSpan.FromSeconds(requestTimeout.Value<Int32>()) : new TimeSpan?(),
                                    description
                                );
 

@@ -290,12 +290,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <summary>
         /// The Telegram shared secret of this Telegram notification.
         /// </summary>
-        public String  SharedSecret    { get; }
+        public String? SharedSecret    { get; }
 
         /// <summary>
         /// An optional text template for the SMS notification.
         /// </summary>
-        public String  TextTemplate    { get; }
+        public String? TextTemplate    { get; }
 
         #endregion
 
@@ -339,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Parse   (JSON)
 
-        public static TelegramGroupNotification Parse(JObject JSON)
+        public static TelegramGroupNotification? Parse(JObject JSON)
         {
 
             if (TryParse(JSON, out var Notification))

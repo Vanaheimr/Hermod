@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(String Text, out UserGroup_Id UserGroupId)
         {
 
-            Text = Text?.Trim();
+            Text = Text?.Trim() ?? "";
 
             if (Text.IsNotNullOrEmpty())
             {

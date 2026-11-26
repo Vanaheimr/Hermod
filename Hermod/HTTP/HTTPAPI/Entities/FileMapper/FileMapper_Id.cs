@@ -161,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(String Text, out FileMapper_Id FileMapperId)
         {
 
-            Text = Text?.Trim();
+            Text = Text?.Trim() ?? "";
 
             if (Text.IsNotNullOrEmpty())
             {

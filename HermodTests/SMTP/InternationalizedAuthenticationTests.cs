@@ -104,6 +104,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                        Boolean? RecursionDesired = true, Boolean? ForceUpdate = false, CancellationToken CancellationToken = default)
                 => Answer(DNSServiceName.FullName, ResourceRecordTypes);
 
+            public override String ToString()
+                => nameof(ZoneDNS);
+
             public void Dispose() { }
 
             public ValueTask DisposeAsync()

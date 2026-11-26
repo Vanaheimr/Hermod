@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(String Text, out OrganizationGroup_Id OrganizationGroupId)
         {
 
-            Text = Text?.Trim();
+            Text = Text?.Trim() ?? "";
 
             if (Text.IsNotNullOrEmpty())
             {

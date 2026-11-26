@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Data
 
-        private readonly IModbusClient ModbusClient;
+        private readonly IModbusClient? ModbusClient;
 
         #endregion
 
@@ -211,12 +211,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         public void Close()
         {
-            ModbusClient.Close();
+            ModbusClient?.Close();
         }
 
         public void Dispose()
         {
-            ModbusClient.Dispose();
+            ModbusClient?.Dispose();
         }
 
 

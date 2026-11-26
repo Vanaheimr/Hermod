@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
         /// <summary>
         /// An entity to check.
         /// </summary>
-        Object             Entity      { get; }
+        Object?            Entity      { get; }
 
         /// <summary>
         /// The timestamp of the last run.

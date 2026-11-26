@@ -305,7 +305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var (_, response)  = await client.Connect();
 
             Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True,
-                        "The server took no WebSocket: " + response?.EntirePDU);
+                        "The server took no WebSocket: " + response.EntirePDU);
 
             Assert.Multiple(() => {
                 Assert.That(response.HTTPStatusCode,       Is.EqualTo(HTTPStatusCode.SwitchingProtocols));
@@ -388,7 +388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             if (ItLetsThemIn)
                 Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True,
-                            "The server took no WebSocket: " + response?.EntirePDU);
+                            "The server took no WebSocket: " + response.EntirePDU);
 
             Assert.Multiple(() => {
                 Assert.That(response.HTTPStatusCode,  Is.EqualTo(ItLetsThemIn ? HTTPStatusCode.SwitchingProtocols : HTTPStatusCode.Forbidden));
@@ -416,7 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var (_, response)  = await client.Connect();
 
             Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True,
-                        "The server took no WebSocket: " + response?.EntirePDU);
+                        "The server took no WebSocket: " + response.EntirePDU);
 
             Assert.Multiple(() => {
 
@@ -559,7 +559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.That(port, Is.EqualTo(HTTPPort));
 
             // The server stops taking HTTP/3, and tells nobody.
-            webSocketServer.AcceptHTTP3 = false;
+            webSocketServer!.AcceptHTTP3 = false;
 
             Assert.That(SpinWait.SpinUntil(() => webSocketServer.HTTP3Port is null, TimeSpan.FromSeconds(10)), Is.True);
 
@@ -624,7 +624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             await TheServerTakesHTTP3();
 
-            webSocketServer.OnValidateWebSocketConnection += (timestamp, server, connection, eventTrackingId, cancellationToken) =>
+            webSocketServer!.OnValidateWebSocketConnection += (timestamp, server, connection, eventTrackingId, cancellationToken) =>
                 Task.FromResult<HTTPResponse?>(
                     new HTTPResponse.Builder(connection.HTTPRequest!) {
                         HTTPStatusCode  = HTTPStatusCode.ServiceUnavailable,
@@ -656,7 +656,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             await TheServerTakesHTTP3();
 
             var requests = 0;
-            webSocketServer.OnHTTPRequest += (timestamp, server, httpRequest, cancellationToken) => { Interlocked.Increment(ref requests); return Task.CompletedTask; };
+            webSocketServer!.OnHTTPRequest += (timestamp, server, httpRequest, cancellationToken) => { Interlocked.Increment(ref requests); return Task.CompletedTask; };
 
             var client         = ClientOver(WebSocketHTTPVersion.HTTP3, Trusting: false);
 
@@ -1028,7 +1028,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var (_, response)  = await client.Connect();
 
             Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True,
-                        "The server took no WebSocket: " + response?.EntirePDU);
+                        "The server took no WebSocket: " + response.EntirePDU);
 
             var sent = requests.First().Authorization as HTTPTOTPAuthentication;
 
@@ -1260,7 +1260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var (_, response)  = await client.Connect();
 
             Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True,
-                        "The server took no WebSocket: " + response?.EntirePDU);
+                        "The server took no WebSocket: " + response.EntirePDU);
 
             Assert.Multiple(() => {
                 Assert.That(response.HTTPStatusCode,              Is.EqualTo(HTTPStatusCode.SwitchingProtocols));

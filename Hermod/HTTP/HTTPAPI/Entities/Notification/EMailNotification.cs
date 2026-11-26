@@ -241,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Parse   (JSON)
 
-        public static EMailNotification Parse(JObject JSON)
+        public static EMailNotification? Parse(JObject JSON)
         {
 
             if (TryParse(JSON, out var Notification))

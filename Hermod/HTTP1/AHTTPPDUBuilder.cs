@@ -1165,7 +1165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the values of the given HTTP header field.
         /// </summary>
         /// <param name="HeaderField">The HTTP header field.</param>
-        protected T GetHeaderFields<T>(HTTPHeaderField<T> HeaderField)
+        protected T? GetHeaderFields<T>(HTTPHeaderField<T> HeaderField)
         {
 
             if (headerFields.TryGetValue(HeaderField.Name, out var values))

@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region (Default)LingerState
 
-        public LingerOption                          DefaultLingerState            { get; set; }
+        public LingerOption?                         DefaultLingerState            { get; set; }
 
         public LingerOption? LingerState
         {
@@ -1106,7 +1106,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         public Boolean TryReadSingles(UInt16 StartingAddress, Int32 Num, out Single[] Values)
         {
-            return TryRead(StartingAddress, (ushort)(2*Num), out Values, array => MultiConverters.NetworkBytesToHostSingle(array));
+            var success = TryRead(StartingAddress, (ushort)(2*Num), out var values, array => MultiConverters.NetworkBytesToHostSingle(array));
+            Values = values ?? [];
+            return success;
         }
 
         #endregion
@@ -1115,7 +1117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         public Single[] ReadSingles(UInt16 StartingAddress, Int32 Num)
         {
-            return Read<Single[]>(StartingAddress, (ushort)(2 * Num), array => MultiConverters.NetworkBytesToHostSingle(array));
+            return Read<Single[]>(StartingAddress, (ushort)(2 * Num), array => MultiConverters.NetworkBytesToHostSingle(array)) ?? [];
         }
 
         #endregion

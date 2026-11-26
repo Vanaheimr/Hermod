@@ -39,8 +39,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean ParseMandatoryText(this JObject              JSON,
                                                  String                    PropertyName,
                                                  String                    PropertyDescription,
-                                                 String                    DefaultServerName,
-                                                 out String                Text,
+                                                 String?                   DefaultServerName,
+                                                 [NotNullWhen(true)]  out String?  Text,
                                                  HTTPRequest               HTTPRequest,
                                                  [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
@@ -162,9 +162,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean ParseMandatory<T>(this JObject              JSON,
                                                 String                    PropertyName,
                                                 String                    PropertyDescription,
-                                                String                    DefaultServerName,
+                                                String?                   DefaultServerName,
                                                 TryParser<T>              TryParser,
-                                                out T                     Value,
+                                                [NotNullWhen(true)]  out T?  Value,
                                                 HTTPRequest               HTTPRequest,
                                                 [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
@@ -819,7 +819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    PropertyName,
                                              String                    PropertyDescription,
                                              String                    DefaultServerName,
-                                             out JObject               JObject,
+                                             [NotNullWhen(true)]  out JObject?  JObject,
                                              HTTPRequest               HTTPRequest,
                                              [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
@@ -859,7 +859,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              String                    PropertyName,
                                              String                    PropertyDescription,
                                              String                    DefaultServerName,
-                                             out JArray                JArray,
+                                             [NotNullWhen(true)]  out JArray?  JArray,
                                              HTTPRequest               HTTPRequest,
                                              [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
@@ -947,9 +947,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean ParseOptional<T>(this JObject              JSON,
                                                String                    PropertyName,
                                                String                    PropertyDescription,
-                                               String                    DefaultServerName,
+                                               String?                   DefaultServerName,
                                                Func<String, T>           Mapper,
-                                               out T                     Value,
+                                               out T?                    Value,
                                                HTTPRequest               HTTPRequest,
                                                [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {
@@ -1196,7 +1196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             String                    PropertyName,
                                             String                    PropertyDescription,
                                             String                    DefaultServerName,
-                                            out I18NString            I18NText,
+                                            out I18NString?           I18NText,
                                             HTTPRequest               HTTPRequest,
                                             [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponse)
         {

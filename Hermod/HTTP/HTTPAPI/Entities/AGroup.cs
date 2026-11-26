@@ -82,12 +82,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region API
 
-        private Object _API;
+        private Object? _API;
 
         /// <summary>
         /// The API of this object.
         /// </summary>
-        public Object API
+        public Object? API
         {
 
             get
@@ -111,12 +111,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region APIX
 
-        private Object _APIX;
+        private Object? _APIX;
 
         /// <summary>
         /// The API of this object.
         /// </summary>
-        public Object APIX
+        public Object? APIX
         {
 
             get
@@ -281,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// An optional parent group.
             /// </summary>
-            public TGroup                 ParentGroup       { get; set; }
+            public TGroup?                ParentGroup       { get; set; }
 
             /// <summary>
             /// Optional subgroups.

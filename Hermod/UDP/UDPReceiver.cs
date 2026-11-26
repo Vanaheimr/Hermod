@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #region Data
 
-        private          Task                            ReceiverTask;
+        private          Task?                           ReceiverTask;
         private readonly Socket                          LocalDotNetSocket;
         public  readonly IPSocket                        LocalSocket;
         private readonly Func<UDPPacket<TData>, String>  PacketThreadsNameCreator;
@@ -498,7 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
                                     }
 
-                                    else
+                                    else if (MapReduce is not null)
                                     {
 
                                         foreach (var aaa in MapReduce(this,

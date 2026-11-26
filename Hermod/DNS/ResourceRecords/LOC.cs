@@ -331,7 +331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (Centimetres >= MaxExpressibleCentimetres)
                 return 0x99;
 
-            var exponent = 0;
+            var exponent = 0U;
             var value    = Centimetres;
 
             while (value > 9)

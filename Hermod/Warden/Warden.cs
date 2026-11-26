@@ -440,9 +440,9 @@ namespace org.GraphDefined.Vanaheimr.Warden
                     RunCheck,
                     SleepTime,
                     Entity,
-                    // A cast rather than "as", and the entity refused above:
-                    // see the first of these overloads for why.
-                    (ts, dns, obj, ct) => ServiceChecker(ts, dns, (TEntity) obj, ct)
+                    // The entity refused above is the one the check is run with:
+                    // WardenCheck passes that very one, so it is passed on as given.
+                    (ts, dns, _, ct) => ServiceChecker(ts, dns, Entity, ct)
                 )
             );
 
@@ -497,7 +497,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
             return WardenCheckProperties.Set(Key, Value);
         }
 
-        public Object Get(String Key)
+        public Object? Get(String Key)
         {
             return WardenCheckProperties.Get(Key);
         }

@@ -265,7 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var hashedBytes  = SHA256.HashData([
                                    .. randomBytes,
-                                   .. Mail.From.   ToString(). ToUTF8Bytes(),
+                                   .. (Mail.From?.ToString() ?? "").ToUTF8Bytes(),
                                    .. Mail.Subject.            ToUTF8Bytes(),
                                    .. Mail.Date.   ToISO8601().ToUTF8Bytes(),
                                ]);

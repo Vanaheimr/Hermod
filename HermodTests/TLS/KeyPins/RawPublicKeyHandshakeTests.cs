@@ -777,11 +777,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS.KeyPins
                         return message;
 
                     case HandshakeType.CertificateVerify:
-                        Byte[] chosen = [ 0x00, 0x14, 0x00, 0x01, (Byte) TLSCertificateType.RawPublicKey ];
-                        var    at     = encryptedExtensions!.AsSpan().IndexOf(chosen);
+                        Byte[] chosen   = [ 0x00, 0x14, 0x00, 0x01, (Byte) TLSCertificateType.RawPublicKey ];
+                        var    received = encryptedExtensions!;
+                        var    at       = received.AsSpan().IndexOf(chosen);
                         Assert.That(at, Is.GreaterThan(0), "The server did not choose a raw public key.");
-                        encryptedExtensions[at + 4] = (Byte) TLSCertificateType.X509;
-                        return [ .. encryptedExtensions, .. message ];
+                        received[at + 4] = (Byte) TLSCertificateType.X509;
+                        return [ .. received, .. message ];
 
                     default:
                         return message;

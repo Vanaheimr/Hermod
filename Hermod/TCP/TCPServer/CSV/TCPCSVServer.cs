@@ -84,14 +84,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <summary>
         /// An event called whenever new data hab been received.
         /// </summary>
-        public event OnNewDataHandler OnNewData;
+        public event OnNewDataHandler? OnNewData;
 
 
-        public event BoomerangSenderHandler<String, DateTimeOffset, String[], TCPResult<String>> OnNotification;
+        public event BoomerangSenderHandler<String, DateTimeOffset, String[], TCPResult<String>>? OnNotification;
 
+        // Required by IArrowSender, but never raised by this server
+#pragma warning disable CS0067
         public event StartedEventHandler?             OnStarted;
         public event CompletedEventHandler?           OnCompleted;
         public event ExceptionOccurredEventHandler?   OnExceptionOccurred;
+#pragma warning restore CS0067
 
         #endregion
 

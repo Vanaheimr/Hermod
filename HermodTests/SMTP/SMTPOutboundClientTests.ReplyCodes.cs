@@ -196,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(original.Status,    Is.EqualTo(QueueItemStatus.Delivered));
             Assert.That(retry,              Is.Not.Null, "later@ is to be tried again");
             Assert.That(retry!.EnvelopeTo,  Is.EqualTo(new[] { "later@next.example" }));
-            Assert.That(queue.Mails.Values, Has.None.Matches<QueuedMail>(mail => mail.EnvelopeFrom.Length == 0), "nobody is bounced");
+            Assert.That(queue.Mails.Values, Has.None.Matches<QueuedMail>(mail => mail is not null && mail.EnvelopeFrom.Length == 0), "nobody is bounced");
 
         }
 
@@ -209,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             var (queue, _) = await Relay(nextHop, "here@next.example", "gone@next.example");
 
-            Assert.That(queue.Mails.Values, Has.One.Matches<QueuedMail>(mail => mail.EnvelopeFrom.Length == 0));
+            Assert.That(queue.Mails.Values, Has.One.Matches<QueuedMail>(mail => mail is not null && mail.EnvelopeFrom.Length == 0));
 
         }
 

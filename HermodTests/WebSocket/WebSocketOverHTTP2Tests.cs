@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var (_, response)  = await client.Connect();
 
             Assert.That(SpinWait.SpinUntil(() => !accepted.IsEmpty, TimeSpan.FromSeconds(10)), Is.True,
-                        "The server took no WebSocket: " + response?.EntirePDU);
+                        "The server took no WebSocket: " + response.EntirePDU);
 
             Assert.Multiple(() => {
 

@@ -89,6 +89,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 => Task.FromResult(Answer(Keys.Where (key => DNSServiceName.ToString().TrimEnd('.').Equals($"{key.Selector}._domainkey.{key.Domain}", StringComparison.OrdinalIgnoreCase)).
                                                 Select(key => new TXT(DNSServiceName, DNSQueryClasses.IN, TimeSpan.FromHours(1), $"v=DKIM1; k={key.KeyType}; p={key.PublicBase64}"))));
 
+            public override String ToString()
+                => nameof(DkimDNS);
+
             public void Dispose() { }
 
             public ValueTask DisposeAsync()

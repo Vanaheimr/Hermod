@@ -614,12 +614,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
+                            var data = this.DataDeserializer(line[2]);
+
+                            // An event whose data can not be deserialized is not reloaded.
+                            if (data is null)
+                                return;
+
                             liveChannel.Writer.TryWrite(
                                 new HTTPEvent<T>(
                                     Id:                (UInt64) IdCounter++,
                                     Timestamp:         DateTimeOffset.Parse(line[0]),
                                     Subevent:          line[1],
-                                    Data:              DataDeserializer(line[2]),
+                                    Data:              data,
                                     SerializedHeader:  String.Concat(
                                                            line[1].IsNotNullOrEmpty()
                                                                ? "event: " + line[1] + Environment.NewLine

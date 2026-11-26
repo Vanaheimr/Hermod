@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <summary>
         /// The current hash value of the API.
         /// </summary>
-        public String CurrentDatabaseHashValue { get; private set; }
+        public String? CurrentDatabaseHashValue { get; private set; }
 
         #endregion
 

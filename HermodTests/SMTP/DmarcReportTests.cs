@@ -97,6 +97,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                        Boolean? RecursionDesired = true, Boolean? ForceUpdate = false, CancellationToken CancellationToken = default)
                 => Answer(DNSServiceName.FullName, ResourceRecordTypes);
 
+            public override String ToString()
+                => nameof(TxtDNS);
+
             public void Dispose() { }
 
             public ValueTask DisposeAsync()
@@ -734,7 +737,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                  : await reporter.FailureReport(evaluation, Letter());
 
             Assert.Multiple(() => {
-                Assert.That(queued.SelectMany(mail => mail.EnvelopeTo),                Has.None.Matches<String>(address => address.IndexOfAny([ '\r', '\n' ]) >= 0));
+                Assert.That(queued.SelectMany(mail => mail.EnvelopeTo),                Has.None.Matches<String>(address => address is not null && address.IndexOfAny([ '\r', '\n' ]) >= 0));
                 Assert.That(queued.SelectMany(mail => HeaderLines(mail.MessageContent)), Has.None.StartWith("Bcc:"));
             });
 
@@ -793,7 +796,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             var part       = Part((await reporter.FailureReport(evaluation, Letter())).Single().MessageContent, "message/feedback-report");
 
             Assert.Multiple(() => {
-                Assert.That(part.Split("\r\n"),                       Has.All.Matches<String>(line => Encoding.UTF8.GetByteCount(line) <= 998));
+                Assert.That(part.Split("\r\n"),                       Has.All.Matches<String>(line => line is not null && Encoding.UTF8.GetByteCount(line) <= 998));
                 Assert.That(Regex.Replace(part, "\r\n(?=[ \t])", ""),  Does.Contain($"SPF-DNS: txt : client.example : \"{record}\"\r\n"));
             });
 

@@ -37,9 +37,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region Well-known e-mail headers
 
         /// <summary>
-        /// The sender of the e-mail.
+        /// The sender of the e-mail - none where a mail read in has no valid From header.
         /// </summary>
-        public EMailAddress        From         { get; }
+        public EMailAddress?       From         { get; }
 
         /// <summary>
         /// The receivers of the e-mail.
@@ -103,14 +103,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Constructor(s)
 
-        #region (private)  EMail(MailHeaders)
+        #region (private)  EMail(MailHeaders, Body)
 
         /// <param name="MailHeaders">The header fields.</param>
+        /// <param name="Body">The e-mail body.</param>
         /// <param name="ParseHeaders">Whether From, To, Subject... are to be read from them - not when a builder wrote them, and has them.</param>
         private EMail(IEnumerable<KeyValuePair<String, String>> MailHeaders,
+                      EMailBodypart                             Body,
                       Boolean                                   ParseHeaders   = true)
         {
 
+            this.Body     = Body;
             this.To       = EMailAddressList.Empty;
             this.Cc       = EMailAddressList.Empty;
             this.Bcc      = EMailAddressList.Empty;
@@ -211,12 +214,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         private EMail(String[]             HeaderLines,
                       IEnumerable<String>  MailText)
 
-            : this(Unfold(HeaderLines))
+            : this(Unfold(HeaderLines),
+                   new EMailBodypart(MailText))
 
         {
 
             this.headerLines  = HeaderLines;
-            Body              = new EMailBodypart(MailText);
 
         }
 
@@ -290,12 +293,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                        // Copy only everything which is not related to the e-mail body!
                        MailHeaders.Where(header => !header.Key.StartsWith("content", StringComparison.CurrentCultureIgnoreCase)).
                        Concat(MailBuilder.Body?.MailHeaders ?? []),
+                   //ToDo: Do a real deep-copy here!
+                   MailBuilder.Body ?? throw new ArgumentException("The e-mail body must not be null!", nameof(MailBuilder)),
                    ParseHeaders: false)
 
         {
-
-            //ToDo: Do a real deep-copy here!
-                 Body       = MailBuilder.Body;
 
             if (MailBuilder.From is null)
 #pragma warning disable CA2208 // Instantiate argument exceptions correctly
@@ -308,8 +310,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             this.Cc         = MailBuilder.Cc;
             this.Bcc        = MailBuilder.Bcc;
             this.ReplyTo    = MailBuilder.ReplyTo;
-            this.Subject    = MailBuilder.Subject;
-            this.Date       = MailBuilder.Date.Value;
+            this.Subject    = MailBuilder.Subject ?? "";
+            this.Date       = MailBuilder.Date    ?? Timestamp.Now;
             this.MessageId  = MailBuilder.MessageId;
 
         }

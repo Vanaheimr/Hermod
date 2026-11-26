@@ -338,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             Assert.That(httpBody, Is.Null);
 
             Assert.That(httpResponse.Server, Is.EqualTo("Kestrel Test Server"));
-            Assert.That(httpResponse.WWWAuthenticate.ToString().Trim(), Is.EqualTo(@"Basic realm=""Access to the staging site"", charset=""UTF-8"""));
+            Assert.That(httpResponse.WWWAuthenticate?.ToString().Trim(), Is.EqualTo(@"Basic realm=""Access to the staging site"", charset=""UTF-8"""));
             // Unclear why Kestrel sets the Content-Length HTTP response header!
             Assert.That(httpResponse.ContentLength, Is.EqualTo(0));
 

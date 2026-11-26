@@ -120,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             Random.Shared.NextBytes(randomBytes);
 
             var hashedBytes  = SHA256.Create().ComputeHash(randomBytes.
-                                                               Concat(Mail.From.   ToString(). ToUTF8Bytes()).
+                                                               Concat((Mail.From?.ToString() ?? "").ToUTF8Bytes()).
                                                                Concat(Mail.Subject.            ToUTF8Bytes()).
                                                                Concat(Mail.Date.   ToISO8601().ToUTF8Bytes()).
                                                                ToArray());
