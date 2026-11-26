@@ -829,12 +829,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     var needsSmtpUtf8  = NeedsSmtpUtf8(envelopeFrom, recipients, messageOctets is not null ? MessageOctets.ToText(MessageOctets.Header(messageOctets)) : messageContent);
                     var has8Bit        = messageOctets is not null ? MessageOctets.Has8Bit(messageOctets) : messageContent.Any(c => c > '\x7F');
 
+                    // RFC 3030 §3: binary data - a line of more than 998 octets, a NUL (RFC 2045 §2.7 to
+                    // §2.9) - goes as BODY=BINARYMIME, which "can only be used with the "CHUNKING" service
+                    // extension", and to a server that does not offer it "the sender-SMTP MUST NOT, under
+                    // any circumstances, send binary data". There is no conversion here - re-encoding
+                    // would break the signatures over the content -, so it "may treat this as a permanent
+                    // error".
+                    var isBinary       = messageOctets is not null ? MessageOctets.IsBinary(messageOctets) : MessageOctets.IsBinary(DataLines(messageContent));
+
+                    if (isBinary && !(extensions.ContainsKey("BINARYMIME") && extensions.ContainsKey("CHUNKING")))
+                        return SendResult.PermFail(554, $"5.6.3 {mxHost} does not offer BINARYMIME with CHUNKING, and the message has binary content", mxHost);
+
                     // RFC 6531 §3.2: a message that needs SMTPUTF8 goes only to a server that offers it.
                     if (needsSmtpUtf8 && !extensions.ContainsKey("SMTPUTF8"))
                         return SendResult.PermFail(553, $"5.6.7 {mxHost} does not offer SMTPUTF8, which the message needs", mxHost);
 
-                    // RFC 5321 §2.4, RFC 6152 §3: no 8-bit content to a server without 8BITMIME.
-                    if (has8Bit && !extensions.ContainsKey("8BITMIME"))
+                    // RFC 5321 §2.4, RFC 6152 §3: no 8-bit content to a server without 8BITMIME - binary
+                    // data, which goes as BINARYMIME, is 8-bit content as well.
+                    if (has8Bit && !isBinary && !extensions.ContainsKey("8BITMIME"))
                         return SendResult.PermFail(554, $"5.6.3 {mxHost} does not offer 8BITMIME, and the message has 8-bit content", mxHost);
 
                     // RFC 8689 §4.2.1: a REQUIRETLS message goes only to a next hop that offers REQUIRETLS
@@ -848,7 +860,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     var mailFromCommand = DsnCommands.MailFrom(envelopeFrom, dsn, supportsDsn);
                     mailFromCommand     = MtPriority.AppendMailFromParam(mailFromCommand, priority, supportsMtPriority);
 
-                    if (has8Bit)
+                    if (isBinary)
+                        mailFromCommand += " BODY=BINARYMIME";      // RFC 3030 §3
+                    else if (has8Bit)
                         mailFromCommand += " BODY=8BITMIME";        // RFC 6152 §3
 
                     if (needsSmtpUtf8)
@@ -909,20 +923,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                with { Recipients = outcomes };
                     }
 
-                    // DATA
-                    await connection.WriteLineAsync("DATA", ct);
-                    var dataResponse = await connection.ReadReplyAsync(ct);
+                    // Binary data as BDAT (RFC 3030 §3: "BINARYMIME cannot be used with the DATA
+                    // command"), in one chunk, its octets as they are; everything else as DATA.
+                    if (isBinary)
+                    {
+                        var chunk = MessageOctets.Bdat(messageOctets ?? Encoding.UTF8.GetBytes(String.Join("\r\n", DataLines(messageContent))));
+                        await connection.WriteAsync([ .. Encoding.ASCII.GetBytes($"BDAT {chunk.Length} LAST\r\n"), .. chunk ], ct);
+                    }
 
-                    // A 3yz is the go-ahead for the message: a 350 as a 354. A 2yz to DATA is no
-                    // delivery - not a line of the message was sent.
-                    if (!dataResponse.IsPositiveIntermediate)
-                        return Refused(dataResponse, mxHost);
+                    else
+                    {
 
-                    // Send message content with dot-stuffing, and end with <CRLF>.<CRLF>
-                    await connection.WriteAsync(messageOctets is not null ? MessageOctets.Data(messageOctets) : DataOctets(messageContent), ct);
+                        // DATA
+                        await connection.WriteLineAsync("DATA", ct);
+                        var dataResponse = await connection.ReadReplyAsync(ct);
 
-                    // RFC 5321 §4.5.3.2.6: 10 minutes for the reply to the end of data - the next hop is
-                    // delivering. Given up on too soon, the message is sent again: twice.
+                        // A 3yz is the go-ahead for the message: a 350 as a 354. A 2yz to DATA is no
+                        // delivery - not a line of the message was sent.
+                        if (!dataResponse.IsPositiveIntermediate)
+                            return Refused(dataResponse, mxHost);
+
+                        // Send message content with dot-stuffing, and end with <CRLF>.<CRLF>
+                        await connection.WriteAsync(messageOctets is not null ? MessageOctets.Data(messageOctets) : DataOctets(messageContent), ct);
+
+                    }
+
+                    // RFC 5321 §4.5.3.2.6: 10 minutes for the reply to the end of data - the reply to BDAT
+                    // LAST is that reply (RFC 3030 §2) -, the next hop is delivering. Given up on too soon,
+                    // the message is sent again: twice.
                     var finalResponse = await connection.ReadReplyAsync(ct, TimeSpan.FromMilliseconds(_config.DataTerminationTimeoutMs));
 
                     // The message was taken for the accepted recipients; what became of the others goes
@@ -1038,6 +1066,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         }
 
         /// <summary>
+        /// The lines of a message given as text: CR LF, a bare CR and a bare LF each end one.
+        /// </summary>
+        private static IEnumerable<String> DataLines(String content)
+        {
+
+            using var contentReader = new StringReader(content);
+            String? line;
+
+            while ((line = contentReader.ReadLine()) is not null)
+                yield return line;
+
+        }
+
+        /// <summary>
         /// The message as it goes after 354: line by line (CR LF, a bare CR and a bare LF each end
         /// one), dot-stuffed (RFC 5321 §4.5.2), every line with CR LF, and the terminating ".".
         /// </summary>
@@ -1046,10 +1088,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var data = new StringBuilder();
 
-            using var contentReader = new StringReader(content);
-            String? line;
-
-            while ((line = contentReader.ReadLine()) is not null)
+            foreach (var line in DataLines(content))
             {
                 // Dot-stuffing: lines starting with "." get an extra "."
                 if (line.StartsWith('.'))

@@ -78,6 +78,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
+        #region IsBinary(Octets) / IsBinary(Lines)
+
+        /// <summary>
+        /// The longest line 7bit and 8bit data may have, CR LF not counted: RFC 2045 §2.7, §2.8,
+        /// "relatively short lines with 998 octets or less between CRLF line separation sequences".
+        /// </summary>
+        public const Int32 MaxLineOctets = 998;
+
+        /// <summary>
+        /// Whether the message is binary data (RFC 2045 §2.9): a line of more than 998 octets, or
+        /// a NUL - neither 7bit nor 8bit data are allowed either (§2.7, §2.8). Such a message goes
+        /// only as BODY=BINARYMIME, over BDAT (RFC 3030 §3); 8BITMIME "DOES NOT provide a means
+        /// of transferring an object with the BINARY content-transfer-encoding" (RFC 6152 §3).
+        /// A CR LF, a bare CR and a bare LF each end a line, as they do on the way out as DATA.
+        /// </summary>
+        public static Boolean IsBinary(ReadOnlySpan<Byte> Octets)
+        {
+
+            var length = 0;
+
+            foreach (var octet in Octets)
+            {
+
+                if (octet is (Byte) '\r' or (Byte) '\n')
+                {
+                    length = 0;
+                    continue;
+                }
+
+                if (octet == 0 || ++length > MaxLineOctets)
+                    return true;
+
+            }
+
+            return false;
+
+        }
+
+        /// <summary>
+        /// Whether the lines of a message, as they go on the wire in UTF-8, are binary data: one
+        /// of more than 998 octets, or a NUL (RFC 2045 §2.7 to §2.9).
+        /// </summary>
+        public static Boolean IsBinary(IEnumerable<String> Lines)
+
+            => Lines.Any(line => line.Contains('\0') ||
+                                 (line.Length > MaxLineOctets / 3 && Encoding.UTF8.GetByteCount(line) > MaxLineOctets));
+
+        #endregion
+
         #region Header(Octets)
 
         /// <summary>
@@ -92,6 +141,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 end = Octets.IndexOf("\n\n"u8);
 
             return end < 0 ? Octets : Octets[..end];
+
+        }
+
+        #endregion
+
+        #region Bdat(Octets)
+
+        /// <summary>
+        /// The message as BDAT sends it (RFC 3030 §2): its octets as they are - no dot-stuffing,
+        /// no final dot -, and a CR LF after the last line, should it have none.
+        /// </summary>
+        public static Byte[] Bdat(ReadOnlySpan<Byte> Octets)
+        {
+
+            if (Octets.Length == 0 || Octets.EndsWith("\r\n"u8))
+                return Octets.ToArray();
+
+            return [ .. Octets, (Byte) '\r', (Byte) '\n' ];
 
         }
 
