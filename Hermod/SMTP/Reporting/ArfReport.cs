@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using System.Text;
 
 #endregion
@@ -66,7 +67,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             sb.Append("Subject: ").Append(kind).Append(" failure report for ").Append(eval.HeaderFromDomain).Append("\r\n");
             sb.Append("Date: ").Append(date).Append("\r\n");
             sb.Append("Message-ID: ").Append(messageId).Append("\r\n");
-            sb.Append("Auto-Submitted: auto-generated\r\n");
+            // RFC 3834 §5.2: auto-generated "MUST NOT be used on a message issued in direct
+            // response to another message"; auto-replied "SHOULD be used on messages sent in
+            // direct response to another message by an automatic process". A failure report is
+            // about one message, sent as it arrives (RFC 7489 §7.3) - unlike the aggregate report.
+            sb.Append("Auto-Submitted: auto-replied\r\n");
             sb.Append("MIME-Version: 1.0\r\n");
             sb.Append("Content-Type: multipart/report; report-type=feedback-report;\r\n");
             sb.Append("\tboundary=\"").Append(boundary).Append("\"\r\n");
@@ -165,6 +170,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public static DkimSignatureOutcome? FailedSignature(DmarcEvaluation eval)
             => eval.DkimSignatures?.FirstOrDefault(signature => signature.Result is DkimResult.Fail or DkimResult.PermError);
+
+        /// <summary>
+        /// Whether a message is an ARF message (RFC 5965 §2): a multipart/report whose report-type
+        /// is "feedback-report" - read from its header fields. The media type and the names of its
+        /// parameters are case-insensitive (RFC 2045 §5.1), and so is the value of report-type, a
+        /// subtype too (RFC 6522 §3: "the MIME subtype of the second body part").
+        /// </summary>
+        /// <param name="HeaderBlock">The header fields of the message, as they arrived.</param>
+        public static Boolean IsArfMessage(String HeaderBlock)
+        {
+
+            var contentType = EMailMessage.Parse(HeaderBlock).Headers.
+                                  FirstOrDefault(field => field.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase)).
+                                  Value;
+
+            var type        = MimeContentType.Parse(contentType, MimeContentType.TextPlain);
+
+            return type.Is("multipart/report") &&
+                   String.Equals(type.Parameters.GetValueOrDefault("report-type")?.Trim(), "feedback-report", StringComparison.OrdinalIgnoreCase);
+
+        }
 
         // RFC 6591 §3.2.3, §4: the d=, i= and s= of a signature. DKIM-Identity is
         // [ local-part ] "@" domain-name: the i= tag, or "@" d= by default (RFC 6376 §3.5).

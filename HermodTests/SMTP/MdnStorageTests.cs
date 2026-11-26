@@ -151,6 +151,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         }
 
 
+        [TestCase("bob@example.org",       TestName = "K-11: a recipient named twice gets one MDN")]
+        [TestCase("bob@EXAMPLE.ORG",       TestName = "K-11: a recipient named twice, its domain in capitals the second time, gets one MDN")]
+        [TestCase("\"bob\"@example.org",   TestName = "K-11: a recipient named twice, its local-part quoted the second time, gets one MDN")]
+        [Description("K-11 - RFC 8098 §2.1: \"A user agent MUST NOT issue more than one MDN on behalf of each particular recipient\" - compared as §2.1 compares addresses: \"case sensitive for the local-part and case insensitive for the domain part\", without the quotes")]
+        public async Task A_recipient_named_twice_gets_one_MDN(String Again)
+        {
+
+            var queue   = new CapturingQueue();
+            var storage = new MdnGeneratingMailStorage(new RecordingStorage(), queue, new NullSmtpLogger());
+
+            await storage.StoreAsync(
+                new EMailMessage { RawMessage = RawMessage(requestReceipt: true) },
+                "alice@example.com",
+                ["bob@example.org", "carol@example.org", Again]);
+
+            Assert.That(queue.Enqueued.Select(m => System.Text.RegularExpressions.Regex.Match(m.MessageContent, @"Final-Recipient: rfc822; (\S+)").Groups[1].Value),
+                        Is.EquivalentTo(new[] { "bob@example.org", "carol@example.org" }));
+
+        }
+
+
+        [Test(Description = "K-11 - RFC 8098 §2.1: the local-part is compared \"case sensitive\" - Bob@ and bob@ are two recipients, with an MDN each")]
+        public async Task Recipients_whose_local_parts_differ_in_case_get_an_MDN_each()
+        {
+
+            var queue   = new CapturingQueue();
+            var storage = new MdnGeneratingMailStorage(new RecordingStorage(), queue, new NullSmtpLogger());
+
+            await storage.StoreAsync(
+                new EMailMessage { RawMessage = RawMessage(requestReceipt: true) },
+                "alice@example.com",
+                ["bob@example.org", "Bob@example.org"]);
+
+            Assert.That(queue.Enqueued, Has.Count.EqualTo(2));
+
+        }
+
+
         [Test(Description = "RFC 8098 §3: \"The envelope sender address (i.e., SMTP \"MAIL FROM\") of the MDN MUST be null (<>)\"")]
         public async Task The_MDN_is_sent_from_the_null_reverse_path()
         {
