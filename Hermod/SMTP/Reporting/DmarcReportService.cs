@@ -253,7 +253,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <summary>
         /// Emit the failure reports the policy's <c>fo</c> asks for one evaluated message - passed
         /// or failed - if forensic reporting is enabled, the policy requests <c>ruf</c>, the
-        /// destination consents, and the per-domain hourly budget is not exhausted.
+        /// message is no ARF report, the destination consents, and the per-domain hourly budget
+        /// is not exhausted.
         /// </summary>
         /// <param name="authenticationResults">The Authentication-Results of the DMARC result;
         /// its authserv-id is that of a DKIM or SPF failure report too.</param>
@@ -267,6 +268,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             if (!options.EnableForensic || string.IsNullOrEmpty(eval.Ruf))
                 return;
+
+            // RFC 6650 §6: "If the message under evaluation by the Verifier is an ARF [RFC5965]
+            // message, a report MUST NOT be automatically generated" - a failure report from
+            // another receiver, or an abuse report, answered with a failure report is answered in
+            // turn: two receivers that both report send each other reports for ever.
+            if (ArfReport.IsArfMessage(reportedHeaders))
+            {
+                logger.Log(LogLevel.Debug, $"No DMARC failure report for {eval.HeaderFromDomain}: the message is an ARF report (RFC 6650 §6)");
+                return;
+            }
 
             var failures = RequestedFailureReports(eval);
             if (failures.Count == 0)

@@ -178,8 +178,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             }
 
             // One MDN per local recipient — each mailbox reports its own disposition (RFC 8098).
+            // RFC 8098 §2.1: "A user agent MUST NOT issue more than one MDN on behalf of each
+            // particular recipient" - a recipient the client named in two RCPT commands is one,
+            // compared as §2.1 compares addresses.
+            var reported = new List<String>();
+
             foreach (var recipient in envelopeTo)
             {
+
+                if (reported.Any(address => DispositionNotification.SameAddress(address, recipient)))
+                    continue;
+
+                reported.Add(recipient);
 
                 var reporter = (EMailAddress) SimpleEMailAddress.Parse(recipient);
                 var mdn      = mail.CreateReadReceipt(reporter, disposition, reportingUAProduct);
