@@ -314,10 +314,12 @@ public sealed partial class DsnGenerator
             Line($"Status: {recipient.Status}");
 
             if (recipient.RemoteMta is not null)
-                Line($"Remote-MTA: dns; {recipient.RemoteMta}");
+                Line($"Remote-MTA: dns; {MtaName(recipient.RemoteMta)}");
 
+            // RFC 3461 §9.2: "For multi-line SMTP replies, it is necessary to insert a SPACE
+            // before each line after the first" - every line of the reply, on a line of its own.
             if (recipient.DiagnosticCode is not null)
-                Line($"Diagnostic-Code: {OneLine(recipient.DiagnosticCode)}");
+                Line($"Diagnostic-Code: {String.Join("\r\n ", LinesOf(recipient.DiagnosticCode).Select(Folded))}");
 
             if (recipient.LastAttemptDate is { } lastAttempt)
                 Line($"Last-Attempt-Date: {Rfc5322Date(lastAttempt)}");
@@ -385,6 +387,64 @@ public sealed partial class DsnGenerator
     private static String Rfc5322Date(DateTimeOffset timestamp)
         => timestamp.ToUniversalTime().ToString("ddd, dd MMM yyyy HH:mm:ss '+0000'", CultureInfo.InvariantCulture);
 
+    /// <summary>
+    /// The name of an MTA, of the "dns" type (RFC 3461 §9.3): "MTA names of type "dns" SHOULD be
+    /// valid Internet domain names. If such domain names are not available, a domain-literal
+    /// containing the internet protocol address is acceptable" - a next hop known by its address
+    /// alone, a smart host given as one, is "[192.0.2.1]", or "[IPv6:2001:db8::1]" (RFC 5321
+    /// §4.1.3); a name, or a literal already, as it is.
+    /// </summary>
+    internal static String MtaName(String Host)
+
+        => Host.StartsWith('[')
+               ? Host
+               : Uri.CheckHostName(Host) switch {
+                     UriHostNameType.IPv4  => $"[{Host}]",
+                     UriHostNameType.IPv6  => $"[IPv6:{Host}]",
+                     _                     => Host
+                 };
+
+    // The longest a line of a reply may take in a report, after the name of its field or the
+    // indent: RFC 5322 §2.1.1, "Each line of characters MUST be no more than 998 characters".
+    private const Int32 RoomOnALine = 960;
+
+    /// <summary>
+    /// The lines of a reply of the next hop - "550-5.1.1 mailbox unavailable", "550 5.1.1 user
+    /// has moved" - as it was received: none empty, each without the white space around it.
+    /// </summary>
+    private static IEnumerable<String> LinesOf(String Text)
+
+        => Regex.Split(Text.Trim(), @"[ \t]*(?:\r\n|\r|\n)\s*").
+                 Where(line => line.Length > 0);
+
+    /// <summary>
+    /// One line of a reply, folded where it is too long for a line of its own at a space within
+    /// it (RFC 5322 §2.2.3) - unfolding takes it back: "Unfolding is accomplished by simply
+    /// removing any CRLF that is immediately followed by WSP". A line without a space to fold
+    /// at stays as it is.
+    /// </summary>
+    private static String Folded(String Line)
+    {
+
+        var folded = new StringBuilder();
+
+        while (Line.Length > RoomOnALine)
+        {
+
+            var cut = Line.LastIndexOfAny([ ' ', '\t' ], RoomOnALine);
+
+            if (cut <= 0 || Line[..cut].Trim().Length == 0)
+                break;
+
+            folded.Append(Line[..cut]).Append("\r\n");
+            Line = Line[cut..];
+
+        }
+
+        return folded.Append(Line).ToString();
+
+    }
+
     // A field value on one line: CR and LF of a multi-line reply become spaces.
     private static String OneLine(String text)
         => Regex.Replace(text, @"\s*[\r\n]+\s*", " ").Trim();
@@ -434,9 +494,10 @@ public sealed partial class DsnGenerator
             {
                 Line($"    <{OneLine(recipient.Recipient)}>");
                 if (recipient.RemoteMta is not null)
-                    Line($"        Remote server: {recipient.RemoteMta}");
+                    Line($"        Remote server: {MtaName(recipient.RemoteMta)}");
                 if (recipient.DiagnosticCode is not null)
-                    Line($"        {OneLine(recipient.DiagnosticCode)}");
+                    foreach (var line in LinesOf(recipient.DiagnosticCode).SelectMany(line => Folded(line).Split("\r\n")))
+                        Line($"        {line.TrimStart()}");
                 if (recipient.WillRetryUntil is { } until)
                     Line($"        Delivery will be attempted until {Rfc5322Date(until)}.");
             }

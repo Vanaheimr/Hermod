@@ -37,9 +37,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <param name="Recipient">The recipient address.</param>
     /// <param name="Code">The reply code to its RCPT.</param>
     /// <param name="Text">The reply text.</param>
-    public sealed record RecipientOutcome(String  Recipient,
-                                          Int32   Code,
-                                          String  Text)
+    /// <param name="Reply">The reply as it was received - every line, its reply code and all - for a report to transcribe (RFC 3461 §9.2).</param>
+    public sealed record RecipientOutcome(String   Recipient,
+                                          Int32    Code,
+                                          String   Text,
+                                          String?  Reply   = null)
     {
 
         /// <summary>
