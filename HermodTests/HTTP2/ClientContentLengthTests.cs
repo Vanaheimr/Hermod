@@ -589,13 +589,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// The body the server sent before it read the RST_STREAM goes back to
         /// the connection, and the next request is answered. A list of equal
         /// values is no number either: the client rejects it, as RFC 9110 lets it,
-        /// and as the server does. The client used to accept them all.
+        /// and as the server does. The client used to accept them all. One with
+        /// whitespace at either end fails before it is read, for its characters
+        /// (RFC 9113, Section 8.2.1): see ClientResponseFieldTests.
         /// </summary>
         [TestCase("abc")]
         [TestCase("-1")]
         [TestCase("+5")]
-        [TestCase(" 5")]
-        [TestCase("5 ")]
+        [TestCase("5 5")]
         [TestCase("5, 5")]
         [TestCase("0x5")]
         [TestCase("")]

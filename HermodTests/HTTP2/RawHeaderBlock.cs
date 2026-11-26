@@ -57,6 +57,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
             => Field(0x40, Name, Value);
 
         /// <summary>
+        /// A literal header field without indexing, new name, both strings
+        /// Huffman-coded (Section 5.2), whether that is shorter or not.
+        /// </summary>
+        public static Byte[] HuffmanLiteral(String Name, String Value)
+        {
+
+            var block = new List<Byte> { 0x00 };
+
+            WriteHuffmanString(block, Name);
+            WriteHuffmanString(block, Value);
+
+            return [.. block];
+
+        }
+
+        /// <summary>
         /// An indexed header field (Section 6.1): 1 to 61 the static table, from
         /// 62 on the dynamic table, newest entry first.
         /// </summary>
@@ -152,12 +168,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         }
 
         /// <summary>
-        /// A string literal without Huffman coding (Section 5.2).
+        /// A string literal without Huffman coding (Section 5.2), one octet per
+        /// character: a character up to U+00FF is that octet.
         /// </summary>
         private static void WriteString(List<Byte> Block, String Text)
         {
-            var octets = Encoding.ASCII.GetBytes(Text);
+            var octets = Encoding.Latin1.GetBytes(Text);
             WriteInteger(Block, octets.Length, 7, 0x00);
+            Block.AddRange(octets);
+        }
+
+        /// <summary>
+        /// A Huffman-coded string literal (Section 5.2), one octet per character
+        /// before it is coded, as <see cref="WriteString"/>.
+        /// </summary>
+        private static void WriteHuffmanString(List<Byte> Block, String Text)
+        {
+            var octets = HuffmanEncoder.Encode(Encoding.Latin1.GetBytes(Text));
+            WriteInteger(Block, octets.Length, 7, 0x80);
             Block.AddRange(octets);
         }
 

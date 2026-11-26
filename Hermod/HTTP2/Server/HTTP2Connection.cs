@@ -1696,6 +1696,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, StreamId,
                         "Empty header field name");
 
+                // Section 8.2.1: the characters of every field, pseudo-header
+                // fields' values included.
+                if (HTTP2FieldCharacters.TryFindViolation(name, value, out var violation))
+                    throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, StreamId,
+                        $"Malformed request: {violation}");
+
                 if (name[0] == ':')
                 {
 
@@ -1805,6 +1811,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, StreamId,
                         $"Trailing header block must not contain pseudo-header field '{name}'");
 
+                if (HTTP2FieldCharacters.TryFindViolation(name, value, out var violation))
+                    throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, StreamId,
+                        $"Malformed trailers: {violation}");
+
                 ValidateRegularHeaderField(StreamId, name, value);
 
             }
@@ -1814,6 +1824,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// <summary>
         /// Field-level rules that apply to every regular (non-pseudo) header field,
         /// whether in the initial request headers or in trailers (RFC 9113, Section 8.2).
+        /// The characters of a field (Section 8.2.1) are HTTP2FieldCharacters', and
+        /// checked before.
         /// </summary>
         private static void ValidateRegularHeaderField(UInt32 StreamId, string Name, string Value)
         {
