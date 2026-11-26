@@ -35,6 +35,11 @@ Hermod is a .NET library for simplified advanced networking tasks...
 
 ## Specialized Application Protocols or Extensions
 
+- [ACME client (RFC 8555)](Hermod/ACME/README.md) for Let's Encrypt and other
+  ACME certificate authorities: http-01 from Hermod's HTTP server, dns-01
+  through delegates, and renewal before expiry as the CA suggests (ARI,
+  RFC 9773). The renewed certificate goes into certbot-style files and is
+  presented from the next handshake on, without a restart
 - ModbusTCP/TLS client / server
 - HTTP SOAP client / server
 - HTTP user and organization management (`HTTPExtAPI`): accounts with
