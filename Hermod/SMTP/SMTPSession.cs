@@ -767,6 +767,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // RFC 5321 §4.5.3.1.3: a path of 256 octets at most; §4.5.3.1.9: "501 Path too long".
+            // A longer one would be the Return-Path of the message, on a line of more than the 998
+            // characters RFC 5322 §2.1.1 allows.
+            if (SmtpPath.IsTooLong(reversePath))
+            {
+                await SendResponseAsync(501, "5.1.7 Path too long");
+                return;
+            }
+
             // Unknown parameters are 555, malformed values 501 (RFC 5321 §4.1.1.11) - never
             // silently dropped, which would leave the client believing a request was honoured.
             var (mailParameters, mailParametersError) = ESMTPParameters.Parse(parameters);
@@ -877,6 +886,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
             if (!SmtpPath.TryParse(args, "TO:", out var forwardPath, out var parameters) || forwardPath.Length == 0)
             {
                 await SendResponseAsync(501, "5.5.4 Syntax error in RCPT command");
+                return;
+            }
+
+            // RFC 5321 §4.5.3.1.3, §4.5.3.1.9: "501 Path too long" - a longer one would go whole
+            // into the Received field and into the reports on the message (RFC 5322 §2.1.1).
+            if (SmtpPath.IsTooLong(forwardPath))
+            {
+                await SendResponseAsync(501, "5.1.3 Path too long");
                 return;
             }
 
@@ -2089,6 +2106,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
 
         }
 
+        // RFC 5321 §4.5.3.1.2: a domain name or number of 255 octets at most.
+        private const Int32 MaxDomainOctets = 255;
+
         private static (String Command, String Args) ParseCommand(String line)
         {
             var spaceIndex = line.IndexOf(' ');
@@ -2112,6 +2132,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                    //           enhanced status codes out of the replies to HELO and EHLO.
                    "EHLO"     when args.Trim().Length == 0  => "Syntax: EHLO hostname",
                    "HELO"     when args.Trim().Length == 0  => "Syntax: HELO hostname",
+
+                   // §4.5.3.1.2: "The maximum total length of a domain name or number is 255
+                   // octets" - a longer argument is neither a Domain nor an address literal. The
+                   // reply that greets it would repeat it on a line of more than 512 octets
+                   // (§4.5.3.1.5), the Received field name it on one of more than 998 characters
+                   // (RFC 5322 §2.1.1).
+                   "EHLO" or
+                   "HELO"     when Encoding.UTF8.GetByteCount(args.Trim()) > MaxDomainOctets
+                                                            => $"Syntax: {command.ToUpperInvariant()} domain of {MaxDomainOctets} octets at most",
 
                    // The name goes into the Received field of every message of the session
                    // (§4.4), where white space, parentheses or a semicolon would be the field's

@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Text;
 using System.Text.RegularExpressions;
 
 #endregion
@@ -42,6 +43,23 @@ public static class SmtpPath
 
     // At-domain = "@" Domain: a name, or an address literal, of the hosts the route names.
     private static readonly Regex SourceRoute = new (@"^@[^\s@,:<>""]+(?:,@[^\s@,:<>""]+)*$", RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// RFC 5321 §4.5.3.1.3: "The maximum total length of a reverse-path or forward-path is 256
+    /// octets (including the punctuation and element separators)".
+    /// </summary>
+    public const Int32 MaxPathOctets = 256;
+
+
+    /// <summary>
+    /// Whether the path of a mailbox - "&lt;", the mailbox, "&gt;", its source route left out as
+    /// it is ignored - is longer than RFC 5321 §4.5.3.1.3 allows. A longer one goes whole into
+    /// the Return-Path, the Received field and the reports of a message, and makes lines there
+    /// that RFC 5322 §2.1.1 forbids; §4.5.3.1.9 has the answer to it: "501 Path too long".
+    /// </summary>
+    /// <param name="Mailbox">The mailbox, as <see cref="TryParse"/> gives it; "" for "&lt;&gt;".</param>
+    public static Boolean IsTooLong(String Mailbox)
+        => Encoding.UTF8.GetByteCount(Mailbox) + 2 > MaxPathOctets;
 
 
     /// <summary>
