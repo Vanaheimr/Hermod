@@ -35,7 +35,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         EightBitNotSupported, // the message has 8-bit content and the server does not offer 8BITMIME (RFC 6152 §3); nothing was sent
         PartiallySent,       // the server accepted the message for some recipients and refused the others; SMTPSendResult.Recipients says which
         SmtpUtf8NotSupported, // the message has UTF-8 in an envelope address or in the header and the server does not offer SMTPUTF8 (RFC 6531 §3.2); nothing was sent
-        InvalidEnvelopeId    // the DSN envelope identifier is no ENVID: not printable US-ASCII, or longer than 100 characters as xtext (RFC 3461 §4.4); nothing was sent
+        InvalidEnvelopeId,   // the DSN envelope identifier is no ENVID: not printable US-ASCII, or longer than 100 characters as xtext (RFC 3461 §4.4); nothing was sent
+        BinaryNotSupported   // the message has binary data - a line of more than 998 octets, a NUL - and the server does not offer BINARYMIME with CHUNKING (RFC 3030 §3); nothing was sent
     }
 
 }

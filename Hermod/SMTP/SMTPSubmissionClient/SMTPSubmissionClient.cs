@@ -1380,6 +1380,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                         break;
                                     }
 
+                                    // RFC 3030 §3: binary data - a line of more than 998 octets, a NUL (RFC 2045 §2.7
+                                    // to §2.9) - goes as BODY=BINARYMIME, which "can only be used with the "CHUNKING"
+                                    // service extension"; to a server that does not offer it "the sender-SMTP MUST
+                                    // NOT, under any circumstances, send binary data". 8BITMIME "DOES NOT provide a
+                                    // means of transferring an object with the BINARY content-transfer-encoding"
+                                    // (RFC 6152 §3). No conversion here either: a permanent failure, before
+                                    // anything is sent.
+                                    var isBinary     = MessageOctets.IsBinary(messageLines);
+
+                                    if (isBinary &&
+                                        !(Capabilities.HasFlag(SmtpCapabilities.BinaryMime) && Capabilities.HasFlag(SmtpCapabilities.Chunking)))
+                                    {
+                                        smtpLogger.LogWarning("The message has binary data and {RemoteHost} does not offer BINARYMIME with CHUNKING; not sent", RemoteHost);
+                                        result = MailSentStatus.BinaryNotSupported;
+                                        break;
+                                    }
+
                                     // RFC 6531 §3.2: "If the SMTPUTF8 SMTP extension is not offered by the SMTP
                                     // server, the SMTPUTF8-aware SMTP client MUST NOT transmit an internationalized
                                     // email address and MUST NOT transmit a mail message containing internationalized
@@ -1422,7 +1439,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // MAIL FROM:<test@example.com>  (no space after the colon, RFC 5321)
                                     var mailFromCommand = "MAIL FROM:<" + (mailFrom?.Address.ToString() ?? "") + ">";
 
-                                    if (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
+                                    if (isBinary)
+                                        mailFromCommand += " BODY=BINARYMIME";      // RFC 3030 §3: binary data, over BDAT
+                                    else if (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
                                         mailFromCommand += " BODY=8BITMIME";
                                     else if (Capabilities.HasFlag(SmtpCapabilities.BinaryMime) && useChunking)
                                         mailFromCommand += " BODY=BINARYMIME";      // RFC 3030 §3: never with DATA
