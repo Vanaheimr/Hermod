@@ -151,6 +151,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
+        #region IsKnown(Charset)
+
+        /// <summary>
+        /// Whether octets in the given charset can be read as text: no charset at all
+        /// (US-ASCII, RFC 2046 §4.1.2), US-ASCII by one of its names, or any charset
+        /// <see cref="Find"/> knows - not "unknown-8bit" and the like, which name none.
+        /// </summary>
+        /// <param name="Charset">A charset name as a Content-Type gives it, or null.</param>
+        public static Boolean IsKnown(String? Charset)
+        {
+
+            if (String.IsNullOrWhiteSpace(Charset))
+                return true;
+
+            return Charset.Trim().Trim('"', '\'').ToLowerInvariant() is "us-ascii" or "ascii" or "ansi_x3.4-1968" or "iso646-us" ||
+                   Find(Charset) is not null;
+
+        }
+
+        #endregion
+
         #region Decode(Octets, Charset)
 
         /// <summary>

@@ -434,11 +434,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
 
     /// <summary>
-    /// A message attached to a message (message/rfc822) - a forward as attachment.
+    /// A message attached to a message (message/rfc822, message/global) - a forward as
+    /// attachment.
     /// </summary>
     /// <remarks>
-    /// RFC 2046 §5.2.1 allows a message/rfc822 no encoding but 7bit, 8bit and
-    /// binary: one that is not 7-bit makes the mail that carries it 8-bit.
+    /// <para>
+    /// RFC 2046 §5.2.1 allows a message/rfc822 no encoding but 7bit, 8bit and binary: the
+    /// message is attached as it arrived, and the encoding says which of the three its
+    /// octets are (RFC 2045 §2.7 to §2.9) - one that is not 7-bit makes the mail that
+    /// carries it 8-bit, one that is binary makes it binary.
+    /// </para>
+    /// <para>
+    /// RFC 6532 §3.7: a message with 8-bit UTF-8 in its header, or in the header of one of
+    /// its parts, is a "message/global message", and attached as message/global.
+    /// </para>
     /// </remarks>
     public sealed class MimeAttachedMessage : MimeEntity
     {
@@ -460,31 +469,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public MimeAttachedMessage(ReadOnlyMemory<Byte>  Message,
                                    String?               FileName = null)
         {
-            this.Message   = Message;
-            this.FileName  = String.IsNullOrWhiteSpace(FileName) ? null : MimeEncoding.CheckHeaderValue("a file name", FileName.Trim());
+            this.Message           = Message;
+            this.FileName          = String.IsNullOrWhiteSpace(FileName) ? null : MimeEncoding.CheckHeaderValue("a file name", FileName.Trim());
+            this.IsGlobal          = HasEightBitHeader(Message);
+            this.TransferEncoding  = DomainOf(Body());
         }
 
+        /// <summary>
+        /// Whether the message has 8-bit UTF-8 in its header or in the header of one of its
+        /// parts - a "message/global message" (RFC 6532 §3.7).
+        /// </summary>
+        public Boolean IsGlobal { get; }
+
+        /// <summary>
+        /// What its octets are, as RFC 2045 §2.7 to §2.9 tell them apart: "7bit" for lines of
+        /// 998 octets or less of US-ASCII without NUL, "8bit" where octets above 127 are among
+        /// them, "binary" for a longer line or a NUL.
+        /// </summary>
+        public String  TransferEncoding { get; }
+
         internal override String EntityType
-            => "message/rfc822";
+            => IsGlobal ? "message/global" : "message/rfc822";
 
         /// <summary>
         /// Whether the message is 7-bit - and so the mail that carries it.
         /// </summary>
         public Boolean IsSevenBit
+            => TransferEncoding == "7bit";
+
+        // RFC 6532 §3.7: "it contains 8-bit UTF-8 header values", or "8-bit UTF-8 values in
+        // the header fields of body parts".
+        private static Boolean HasEightBitHeader(ReadOnlyMemory<Byte> Message)
+            => MimeMessage.Parse(Message).Root.Descendants().Any(part => part.Headers.Any(header => header.Name. Any(character => character > 127) ||
+                                                                                                     header.Value.Any(character => character > 127)));
+
+        // RFC 2045 §2.7: 7bit data is "relatively short lines with 998 octets or less between
+        // CRLF line separation sequences", no octet above 127 and no NUL; §2.8: 8bit data the
+        // same, octets above 127 allowed; §2.9: binary data "any sequence of octets whatsoever".
+        private static String DomainOf(ReadOnlySpan<Byte> Octets)
         {
-            get
+
+            var eightBit = false;
+            var length   = 0;
+
+            for (var i = 0; i < Octets.Length; i++)
             {
-                foreach (var octet in Message.Span)
-                    if (octet > 127 || octet == 0)
-                        return false;
-                return true;
+
+                var octet = Octets[i];
+
+                if (octet == '\r' && i + 1 < Octets.Length && Octets[i + 1] == '\n')
+                {
+                    length = 0;
+                    i++;
+                    continue;
+                }
+
+                if (octet == 0 || octet == '\r' || octet == '\n' || ++length > 998)
+                    return "binary";
+
+                if (octet > 127)
+                    eightBit = true;
+
             }
+
+            return eightBit ? "8bit" : "7bit";
+
         }
 
         protected override IEnumerable<String> ContentHeaders()
         {
-            yield return "Content-Type: message/rfc822";
-            yield return $"Content-Transfer-Encoding: {(IsSevenBit ? "7bit" : "8bit")}";
+            yield return $"Content-Type: {EntityType}";
+            yield return $"Content-Transfer-Encoding: {TransferEncoding}";
             yield return MimeEncoding.ParameterizedHeader("Content-Disposition", "attachment", FileName is null ? [] : [ ("filename", FileName) ]);
         }
 
