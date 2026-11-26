@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -710,6 +711,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
                     SetHeaderField(HTTPRequestHeaderField.Forwarded, value);
                 }
+
+            }
+
+            #endregion
+
+            #region ForwardClientCertificate(Certificate, Chain = null)
+
+            /// <summary>
+            /// What a TLS-terminating reverse proxy does with Client-Cert and
+            /// Client-Cert-Chain before dispatching a request (RFC 9440,
+            /// Section 2.4): it removes whatever the client sent of either, and
+            /// then declares the certificate the client authenticated with, and,
+            /// if given, the chain it validated that certificate through.
+            ///
+            /// Removing comes first and always: "Any occurrence of the Client-Cert
+            /// or Client-Cert-Chain header fields in the original incoming request
+            /// MUST be removed or overwritten", and a request on a connection with
+            /// no client certificate "MUST be sanitized" in the same way. So pass
+            /// the connection's certificate as it is, null included:
+            ///
+            ///    builder.ForwardClientCertificate(request.ClientCertificate);
+            ///
+            /// The chain is in TLS order, the issuer of the client's certificate
+            /// first. The client's certificate itself is left out of it should it
+            /// be there, as X509Chain puts it first; the trust anchor is kept if
+            /// given, which RFC 9440 permits but does not ask for.
+            ///
+            /// Only a proxy terminating the client's TLS writes these fields:
+            /// "Forward proxies and other intermediaries MUST NOT add the
+            /// Client-Cert or Client-Cert-Chain header fields to requests".
+            /// </summary>
+            /// <param name="Certificate">The certificate the client authenticated with, or null when it presented none.</param>
+            /// <param name="Chain">The chain the proxy validated it through, if it is to be passed on.</param>
+            /// <exception cref="ArgumentException">A chain, but no certificate.</exception>
+            public Builder ForwardClientCertificate(X509Certificate2?               Certificate,
+                                                    IEnumerable<X509Certificate2>?  Chain   = null)
+            {
+
+                var chain = Chain?.Where(issuer => Certificate is null ||
+                                                   !issuer.RawData.AsSpan().SequenceEqual(Certificate.RawData)).
+                                   ToArray() ?? [];
+
+                if (Certificate is null && chain.Length > 0)
+                    throw new ArgumentException("Client-Cert-Chain MUST NOT appear unless Client-Cert is also present (RFC 9440, Section 2.3)!",
+                                                nameof(Chain));
+
+                RemoveHeaderField(HTTPRequestHeaderField.ClientCert);
+                RemoveHeaderField(HTTPRequestHeaderField.ClientCertChain);
+
+                if (Certificate is not null)
+                {
+
+                    SetHeaderField(HTTPRequestHeaderField.ClientCert,
+                                   HTTPClientCertificateFields.FieldValue(Certificate));
+
+                    if (chain.Length > 0)
+                        SetHeaderField(HTTPRequestHeaderField.ClientCertChain,
+                                       HTTPClientCertificateFields.ChainFieldValue(chain));
+
+                }
+
+                return this;
 
             }
 

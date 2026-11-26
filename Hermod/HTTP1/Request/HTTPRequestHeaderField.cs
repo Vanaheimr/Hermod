@@ -1547,6 +1547,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Client-Cert
+
+        /// <summary>
+        /// The certificate the client authenticated with to a TLS-terminating
+        /// reverse proxy, as that proxy passes it on (RFC 9440, Section 2.2): the
+        /// DER of the end-entity certificate, as a byte sequence. A singleton.
+        ///
+        /// A claim of whoever wrote it: to be taken only from a proxy that is
+        /// trusted to have removed any the client sent (Section 4). See
+        /// <see cref="HTTPClientCertificateFields"/>.
+        /// </summary>
+        /// <example>Client-Cert: :MIIBqDCCAU6gAwIBAgIBBzAKBggqhkjOPQQDAjA6...:</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9440.html#section-2.2"/>
+        public static readonly HTTPRequestHeaderField ClientCert = new (HTTPClientCertificateFields.ClientCert,
+                                                                        RequestPathSemantic.EndToEnd,
+                                                                        MultipleValuesAsList: false);
+
+        #endregion
+
+        #region Client-Cert-Chain
+
+        /// <summary>
+        /// The chain through which a TLS-terminating reverse proxy validated the
+        /// client's certificate (RFC 9440, Section 2.3): a list of byte sequences,
+        /// in TLS order, without the end-entity certificate, the trust anchor
+        /// optional. Never without <see cref="ClientCert"/>.
+        /// </summary>
+        /// <example>Client-Cert-Chain: :MIIB5jCCAYugAwIBAgIBFjAKBggqhkjOPQQDAjBWMQsw...:, :MIICBjCCAaygAw...:</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9440.html#section-2.3"/>
+        public static readonly HTTPRequestHeaderField ClientCertChain = new (HTTPClientCertificateFields.ClientCertChain,
+                                                                             RequestPathSemantic.EndToEnd,
+                                                                             MultipleValuesAsList: true);
+
+        #endregion
+
 
         // Non-standard request header fields
 

@@ -1221,6 +1221,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Client-Cert, Client-Cert-Chain
+
+        private Tuple<X509Certificate2?, IReadOnlyList<X509Certificate2>>? forwardedClientCertificates;
+
+        /// <summary>
+        /// The certificate a TLS-terminating reverse proxy says the client
+        /// authenticated with (RFC 9440, Client-Cert). Null when the field is
+        /// absent, repeated, or not exactly one DER-encoded certificate.
+        ///
+        /// Not to be confused with <see cref="ClientCertificate"/>, which is what
+        /// the peer of this connection proved. This one is what a header says, and
+        /// anyone can send the header: "backend servers MUST only accept the
+        /// Client-Cert and Client-Cert-Chain header fields from a trusted TTRP"
+        /// (Section 4). Which peer is that proxy is the application's to know, so
+        /// nothing in the stack reads this on its own.
+        /// </summary>
+        public X509Certificate2? ForwardedClientCertificate
+
+            => LazyInitializer.EnsureInitialized(ref forwardedClientCertificates, ReadForwardedClientCertificates).Item1;
+
+        /// <summary>
+        /// The chain through which that proxy validated it (RFC 9440,
+        /// Client-Cert-Chain), in TLS order, all of the field's lines in the order
+        /// they came. Empty when the field is absent or not a list of DER-encoded
+        /// certificates, and when there is no <see cref="ForwardedClientCertificate"/>:
+        /// the chain "MUST NOT appear unless Client-Cert is also present"
+        /// (Section 2.3), so one that does is not the chain of anything.
+        /// </summary>
+        public IReadOnlyList<X509Certificate2> ForwardedClientCertificateChain
+
+            => LazyInitializer.EnsureInitialized(ref forwardedClientCertificates, ReadForwardedClientCertificates).Item2;
+
+        private Tuple<X509Certificate2?, IReadOnlyList<X509Certificate2>> ReadForwardedClientCertificates()
+        {
+
+            // A repeated Client-Cert is refused by the server's parser, which joins
+            // only the fields it knows to be lists. Wherever it got in as several
+            // values, they join into a list, which is not the single item
+            // RFC 9440 makes the field, so it is no certificate either.
+            if (!HTTPClientCertificateFields.TryParse(JoinedFieldLines(HTTPRequestHeaderField.ClientCert.Name), out var certificate))
+            {
+                return new (null, []);
+            }
+
+            var chain = JoinedFieldLines(HTTPRequestHeaderField.ClientCertChain.Name);
+
+            return new (certificate,
+                        chain is not null && HTTPClientCertificateFields.TryParseChain(chain, out var certificates)
+                            ? certificates
+                            : []);
+
+        }
+
+        #endregion
+
         #region API-Key
 
         /// <summary>
@@ -1947,6 +2002,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                        "Accept-Encoding",
                                                                                        "Accept-Language",
                                                                                        "Cache-Control",
+                                                                                       "Client-Cert-Chain",
                                                                                        "Connection",
                                                                                        "Expect",
                                                                                        "Forwarded",
