@@ -413,6 +413,16 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   declare a length it does not send, but not a malformed one. A CONNECT
   tunnel's `content-length` bounds nothing. The client used to accept all of
   these, and handed over whatever body arrived.
+- The client holds a response's **pseudo-header fields** to §8.1.1 and §8.3.2
+  as well, an interim response's included: exactly one `:status`, before every
+  regular field, and none in the trailers. Its value is three digits (RFC 9110
+  §15: no sign, no blanks) and no less than 100. A code from 600 to 999 is
+  invalid but not malformed, and is handed over with its code, as the HTTP/1.1
+  and HTTP/3 clients hand it over: a client SHOULD process it as a 5xx. A
+  response that breaks this fails at the header block that does, as above.
+  `:status` used to be read with `Int32.TryParse`, so `42`, `1000`, `+200` and
+  ` 200` were status codes, the first of two was taken, a `:path` was let
+  through, and a response without one failed only once it had ended.
 - Cleartext **h2c** (prior knowledge, RFC 9113 §3.3) — server and client. (The
   RFC 7540 `Upgrade: h2c` negotiation was removed in RFC 9113 and is
   deliberately not implemented.)

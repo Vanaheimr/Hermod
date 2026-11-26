@@ -2521,13 +2521,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (!Exchange.HeadersReceived)
             {
 
+                // RFC 9113, Sections 8.1.1 and 8.3.2: a response, interim or
+                // final, carries exactly one pseudo-header field, :status, before
+                // every regular field, and its value is a status code. A header
+                // block that breaks this makes the response malformed, and
+                // "Clients MUST NOT accept a malformed response": it fails here,
+                // before anything of it is handed over, and its stream is reset
+                // (see RefuseResponseAsync). :status used to be read with
+                // Int32.TryParse, once per use, and the first of two taken.
+                if (!TryReadStatus(Decoded, out var responseStatus, out var malformedStatus))
+                {
+
+                    if (EndStream)
+                        CloseRemoteIfOpen(Exchange.Stream);
+
+                    _ = RefuseResponseAsync(Exchange, MalformedResponse(Exchange, malformedStatus));
+
+                    return;
+
+                }
+
                 // An interim (1xx) response (RFC 9110 §15.2 — e.g. 100 Continue, 103
                 // Early Hints) precedes the final response: record it and keep
                 // waiting, rather than mistaking it for the final response.
-                var interimStatusText = Decoded.FirstOrDefault(h => h.Name == ":status").Value;
-                if (int.TryParse(interimStatusText, out var interimStatus) && interimStatus is >= 100 and < 200)
+                if (responseStatus is >= 100 and < 200)
                 {
-                    Exchange.Interim.Add((interimStatus, Decoded));
+                    Exchange.Interim.Add((responseStatus, Decoded));
                     return;   // do NOT set HeadersReceived — the final HEADERS follow
                 }
 
@@ -2538,8 +2557,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // the stream open — subsequent DATA is tunnel bytes) vs. reject.
                 if (Exchange.IsTunnel)
                 {
-                    var statusText = Decoded.FirstOrDefault(h => h.Name == ":status").Value;
-                    _ = int.TryParse(statusText, out var status);
+                    var status = responseStatus;
 
                     if (status is >= 200 and < 300 && !EndStream)
                     {
@@ -2611,9 +2629,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 // finalize now if this response has no body/trailers (headers-only).
                 if (Exchange.IsStreaming)
                 {
-                    var statusText = Decoded.FirstOrDefault(h => h.Name == ":status").Value;
-                    _ = int.TryParse(statusText, out var status);
-                    Exchange.ResponseHead!.TrySetResult(new HTTP2ResponseHead(status, Decoded));
+                    Exchange.ResponseHead!.TrySetResult(new HTTP2ResponseHead(responseStatus, Decoded));
 
                     if (EndStream)
                         FinalizeStreamingResponse(Exchange);
@@ -2656,6 +2672,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             }
             else
             {
+
+                // RFC 9113, Section 8.1: trailers carry no pseudo-header fields,
+                // and a trailer block with one makes the response malformed. The
+                // client used to hand such trailers over.
+                if (Decoded.FirstOrDefault(field => field.Name.StartsWith(':')) is { Name: not null } pseudoHeader)
+                {
+
+                    if (EndStream)
+                        CloseRemoteIfOpen(Exchange.Stream);
+
+                    _ = RefuseResponseAsync(Exchange, MalformedResponse(Exchange, $"pseudo-header field '{pseudoHeader.Name}' in trailers"));
+
+                    return;
+
+                }
 
                 // Trailers that end the stream end the body as well, so it is
                 // here, and not at a DATA frame with END_STREAM, that its length
@@ -3091,7 +3122,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         #region Refusing a response: content-length (RFC 9113, Section 8.1.1), MaxResponseBodySize
 
         /// <summary>
-        /// Refuse a response: a malformed one (RFC 9113, Section 8.1.1), whose
+        /// Refuse a response: a malformed one (RFC 9113, Section 8.1.1) — whose
+        /// pseudo-header fields are not a response's, at the header block that
+        /// carries them (see <see cref="TryReadStatus"/>), or whose
         /// content-length is no length, or whose DATA do not add up to it — at
         /// its HEADERS, at the DATA frame that takes its body past the declared
         /// length, or where its body ends — with PROTOCOL_ERROR, a stream error
@@ -3199,6 +3232,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
 
             }
 
+            return true;
+
+        }
+
+        /// <summary>
+        /// Read the :status of a response's header block, final or interim (RFC
+        /// 9113, Sections 8.1.1 and 8.3.2). False, with what is wrong in
+        /// <paramref name="Malformed"/>, if the block is malformed for its
+        /// pseudo-header fields — one after a regular field, one other than
+        /// :status, a second :status, or none — or for the value of :status,
+        /// which is three digits (RFC 9110, Section 15: 3DIGIT — no sign, no
+        /// blanks) and no less than 100, where neither a final nor an interim
+        /// response can be. A code from 600 to 999 is invalid, not malformed: a
+        /// client SHOULD process such a response as if it had a 5xx status, and
+        /// it is handed over with its code, as the HTTP/1.1 and the HTTP/3
+        /// clients hand it over.
+        /// </summary>
+        private static Boolean TryReadStatus(List<(String Name, String Value)>  Headers,
+                                             out Int32                          Status,
+                                             out String                         Malformed)
+        {
+
+            Status           = 0;
+            Malformed        = "";
+
+            String? value    = null;
+            var regularSeen  = false;
+
+            foreach (var (name, fieldValue) in Headers)
+            {
+
+                if (!name.StartsWith(':'))
+                {
+                    regularSeen = true;
+                    continue;
+                }
+
+                if (regularSeen)
+                {
+                    Malformed = $"pseudo-header field '{name}' after a regular field";
+                    return false;
+                }
+
+                if (name != ":status")
+                {
+                    Malformed = $"pseudo-header field '{name}' in a response";
+                    return false;
+                }
+
+                if (value is not null)
+                {
+                    Malformed = "duplicate pseudo-header field ':status'";
+                    return false;
+                }
+
+                value = fieldValue;
+
+            }
+
+            if (value is null)
+            {
+                Malformed = "missing :status";
+                return false;
+            }
+
+            if (value.Length != 3 || !value.All(Char.IsAsciiDigit) || value[0] == '0')
+            {
+                Malformed = $"invalid :status '{value}'";
+                return false;
+            }
+
+            Status = (value[0] - '0') * 100 + (value[1] - '0') * 10 + (value[2] - '0');
             return true;
 
         }
