@@ -519,6 +519,7 @@ path.
 | Stacked codings | Undone in reverse order, as RFC 9110, Section 8.4 defines the list. |
 | `identity` | The absence of a coding, so nothing is decoded. |
 | An unknown coding | Refused: `DecodeBody(...)` throws, `TryDecodeBody(...)` returns false. Returning the encoded octets as if they were the representation is the one answer that would be dangerous. |
+| Encryption | `aes128gcm` (RFC 8188) is `HTTPEncryptedContentCoding`'s, not one of these: it needs a key that RFC 8188 leaves to the application, so nothing undoes it on its own, and a body of it is left as it came, as an unknown coding is. The application that holds the key encrypts and decrypts — in records of a fixed size, the header's keyid naming the key — and every body RFC 8188 makes a decrypter fail on is an `InvalidDataException`: cut off, tampered with, reordered, under another key, or with a delimiter where none belongs. `EncryptedContentCodingTests`, outside the regression selection: it tests no field or coding the stack writes or reads by itself. |
 | Decompression bound | 64 MiB by default, overridable per call. The ceiling bites *during* decompression, not after it. |
 
 Decoding is explicit: `HTTPBody` is what arrived, `DecodeBody(...)` is what it
