@@ -776,6 +776,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 return;
             }
 
+            // RFC 6409 §4.2: "The MSA MUST ensure that all domains in the SMTP envelope are fully
+            // qualified", "Reply code 554 is to be used to reject a MAIL, RCPT, or DATA command
+            // that contains improper domain references". A reverse-path at "intranet" is relayed
+            // to a next hop that can only bounce it - to a domain that is none.
+            if (ActsAsSubmissionAgent && reversePath.Length > 0 && !IsFullyQualified(ExtractDomain(reversePath)))
+            {
+                await SendResponseAsync(554, "5.1.8 The sender's domain is not fully qualified (RFC 6409 4.2)");
+                return;
+            }
+
             // Unknown parameters are 555, malformed values 501 (RFC 5321 §4.1.1.11) - never
             // silently dropped, which would leave the client believing a request was honoured.
             var (mailParameters, mailParametersError) = ESMTPParameters.Parse(parameters);
@@ -935,6 +945,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 recipient = $"postmaster@{config.Hostname}";
 
             var recipientDomain = ExtractDomain(recipient);
+
+            // RFC 6409 §4.2, as for MAIL: a recipient at "intranet" would be queued for a domain
+            // that is none. The postmaster without a domain is this server's (above).
+            if (ActsAsSubmissionAgent && !isOwnPostmaster && !IsFullyQualified(recipientDomain))
+            {
+                await SendResponseAsync(554, "5.1.2 The recipient's domain is not fully qualified (RFC 6409 4.2)");
+                return;
+            }
 
             var (rcptParameters, rcptParametersError) = ESMTPParameters.Parse(parameters);
             if ((rcptParametersError ?? ESMTPParameters.ValidateRcpt(rcptParameters, _extendedSmtp, _smtpUtf8)) is { } rcptError)
@@ -1354,6 +1372,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                 await SendResponseAsync(550, "5.7.1 A message may name one From: address only (RFC 5322 3.6, RFC 7489 6.6.1)");
                 ResetTransaction();
                 return;
+            }
+
+            // RFC 6409 §8: "Any message forwarded or delivered by the MSA MUST conform to the
+            // requirements of [SMTP-MTA] and [MESSAGE-FORMAT]" - and RFC 5322 §3.6: "The only
+            // required header fields are the origination date field and the originator address
+            // field(s)". Who wrote the message only its client can say: without a From, or with one
+            // that names no mailbox at a fully qualified domain (§3.4.1, RFC 6409 §4.2), it is
+            // refused (§4.1: 554). The date and an identifier the server can give: RFC 5321 §6.4
+            // lets "one used as the target of SMTP as an initial posting (message submission)
+            // protocol" add "a message-id field when none appears" and "a date, time, or time
+            // zone when none appears" - and RFC 6409 §8.3: "The MSA SHOULD add or replace the
+            // 'Message-ID' field, if it lacks it". Not for mail from other servers: "These changes
+            // MUST NOT be applied by an SMTP server that provides an intermediate relay function".
+            if (ActsAsSubmissionAgent)
+            {
+
+                if (!HasFullyQualifiedAuthor(message))
+                {
+                    logger.Log(LogLevel.Warning, $"A message submitted by {_authManager.AuthenticatedUser} has no From: address at a fully qualified domain; rejected");
+                    await SendResponseAsync(554, "5.6.0 The message needs a From: field with an address at a fully qualified domain (RFC 5322 3.6, RFC 6409 8)");
+                    ResetTransaction();
+                    return;
+                }
+
+                var completion = "";
+
+                if (!HasField(message, "Date"))
+                    completion += "Date: " + DateTimeOffset.UtcNow.ToString("ddd, dd MMM yyyy HH:mm:ss '+0000'", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
+
+                if (!HasField(message, "Message-ID"))
+                    completion += $"Message-ID: <{UUIDv7.Generate().ToString("N")}@{config.Hostname}>\r\n";
+
+                if (completion.Length > 0)
+                {
+                    rawBytes   = [ .. Encoding.ASCII.GetBytes(completion), .. rawBytes ];
+                    message    = EMailMessage.Parse(rawBytes);
+                    rawMessage = message.RawMessage;
+                }
+
             }
 
             // Perform DNS verification (for inbound mail from other servers). A null reverse-path -
@@ -1915,6 +1972,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
         // §4.1.2: "within a quoted string, any ASCII graphic or space is permitted").
         private static String ExtractDomain(String email)
             => SmtpPath.DomainOf(email);
+
+        /// <summary>
+        /// Whether this server takes the message as the Message Submission Agent (RFC 6409): from
+        /// a client signed in, relayed or delivered by the server itself. A message handed to an
+        /// <see cref="IMailSubmission"/> application is the application's to complete.
+        /// </summary>
+        private Boolean ActsAsSubmissionAgent
+            => _authManager.IsAuthenticated && mailSubmission is null;
+
+        /// <summary>
+        /// Whether a domain is fully qualified (RFC 6409 §4.2): more than one label - or an
+        /// address literal, which names its host completely.
+        /// </summary>
+        private static Boolean IsFullyQualified(String Domain)
+            => Domain.StartsWith('[') && Domain.EndsWith(']') ||
+               Domain.TrimEnd('.').Contains('.') && !Domain.StartsWith('.');
+
+        private static Boolean HasField(EMailMessage Message, String Name)
+            => Message.Headers.Any(header => header.Key.Equals(Name, StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>
+        /// Whether the message has a From field whose every address is a mailbox at a fully
+        /// qualified domain (RFC 5322 §3.6, §3.4.1; RFC 6409 §4.2).
+        /// </summary>
+        private static Boolean HasFullyQualifiedAuthor(EMailMessage Message)
+        {
+
+            var fields = Message.Headers.Where(header => header.Key.Equals("From", StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (fields.Length == 0)
+                return false;
+
+            var addresses = fields.SelectMany(field => MailAddressParser.ParseAddressList(field.Value)).ToArray();
+
+            return addresses.Length > 0 &&
+                   addresses.All(address => address.LastIndexOf('@') is var at and > 0 && IsFullyQualified(address[(at + 1)..]));
+
+        }
 
         /// <summary>
         /// Whether the message names at most one author: no more than one From: field, and no

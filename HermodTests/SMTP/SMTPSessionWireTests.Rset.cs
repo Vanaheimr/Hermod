@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             Assert.That(await wire.CommandAsync("RCPT TO:<bob@hermod.test>"),       Is.EqualTo(250));
             Assert.That(await wire.CommandAsync("DATA"),                            Is.EqualTo(354), "DATA is still authenticated");
 
-            await wire.SendAsync("Subject: after RSET\r\n\r\nbody\r\n.\r\n");
+            await wire.SendAsync("From: <alice@hermod.test>\r\nSubject: after RSET\r\n\r\nbody\r\n.\r\n");
 
             Assert.That((await wire.ReplyAsync()).Code,                             Is.EqualTo(250));
             Assert.That(server.Storage.Envelopes.Single().To,                       Is.EqualTo(new[] { "bob@hermod.test" }),

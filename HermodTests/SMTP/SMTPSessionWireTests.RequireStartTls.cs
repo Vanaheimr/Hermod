@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
             await OpenTransaction(wire);
             Assert.That(await wire.CommandAsync("DATA"), Is.EqualTo(354));
-            await wire.SendAsync("Subject: test\r\n\r\nbody\r\n.\r\n");
+            await wire.SendAsync("From: <sender@client.example>\r\nSubject: test\r\n\r\nbody\r\n.\r\n");
             Assert.That((await wire.ReplyAsync()).Code, Is.EqualTo(250));
 
         }
