@@ -27,26 +27,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     /// <summary>
     /// The one-time password of the SSH authentication method <c>totp@open.charging.cloud</c>: a time-based
-    /// one-time password of a shared secret, bound to the session it is sent in.
+    /// one-time password of a shared secret, bound to the connection it is sent in.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// It is the token of "HTTP TOTP" (<see cref="TOTPGenerator"/>) with the SSH session identifier - the
-    /// exchange hash H of the first key exchange (RFC 4253 §7.2), which both ends worked out and nobody
-    /// between them can choose - where a TLS connection has its exporter material:
+    /// It is the token of "HTTP TOTP" (<see cref="TOTPGenerator"/>), bound as over TLS v1.3: with 32 bytes
+    /// of exporter material under the label <c>EXPORTER-Time-Based-One-Time-Password-v1</c> and an empty
+    /// context. Over SSH the material comes from the keying material exporter of the connection
+    /// (<see cref="SshExporter"/>), with the session identifier as its nonce:
     /// </para>
     /// <code>
-    /// slot  = floor(unixtime / validity)                      // 8 bytes, big-endian
-    /// inner = HMAC(hash, key = shared secret (UTF-8), slot)
-    /// bound = HMAC(hash, key = session identifier,    inner)
-    /// totp  = length characters of the alphabet, read off bound as off an unbound token
+    /// binding = SSH-Exporter(nonce = session_id, "EXPORTER-Time-Based-One-Time-Password-v1", "", 32)
+    /// slot    = floor(unixtime / validity)                      // 8 bytes, big-endian
+    /// inner   = HMAC(hash, key = shared secret (UTF-8), slot)
+    /// bound   = HMAC(hash, key = binding,                inner)
+    /// totp    = length characters of the alphabet, read off bound as off an unbound token
     /// </code>
     /// <para>
     /// A password and an answer to a keyboard-interactive prompt are read by whoever the session ends at,
-    /// and are good at the real server for as long as they are valid. This one is good in the session it
-    /// was made for and nowhere else: a server that is not the one meant, or somebody between the two,
-    /// has a different session identifier with the real server, and so nothing to sign in there with.
-    /// The shared secret itself never travels.
+    /// and are good at the real server for as long as they are valid. This one is good in the connection it
+    /// was made for and nowhere else: a server that is not the one meant, or somebody between the two, has
+    /// another connection with the real server, and so nothing to sign in there with. The binding is a
+    /// secret of the two ends, unlike the session identifier, which SSH agents and debug logs see. The
+    /// shared secret itself never travels.
+    /// </para>
+    /// <para>
+    /// See the white papers "SSH Authentication Extensions for OCPP" and "SSH Keying Material Exporter"
+    /// (section 8.1) of Open Charging Technology.
     /// </para>
     /// </remarks>
     public static class SshSessionBoundTotp
@@ -55,24 +62,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The name of the authentication method (RFC 4251 §6: a name of one's own carries one's domain).
         /// </summary>
-        public const String MethodName = UserAuthentication.SessionBoundTotpMethod;
-
-
-        #region Generate(Config, SessionId, Timestamp = null)
+        public const String MethodName     = UserAuthentication.SessionBoundTotpMethod;
 
         /// <summary>
-        /// The one-time password of the given configuration, bound to the given session, at the given time.
+        /// The exporter label of the binding: the one a TLS v1.3 connection binds the same token with.
+        /// </summary>
+        public const String ExporterLabel  = TOTPGenerator.TLSExporterLabel;
+
+        /// <summary>
+        /// How many bytes of exporter material a token is bound with, as over TLS v1.3.
+        /// </summary>
+        public const Int32  BindingLength  = TOTPGenerator.TLSExporterLength;
+
+
+        #region BindingOf(Exporter, SessionId)
+
+        /// <summary>
+        /// The exporter material a one-time password of this connection is bound with: 32 bytes under
+        /// <see cref="ExporterLabel"/>, an empty context, and the session identifier as nonce - which both
+        /// ends have without sending anything, which differs for every connection, and whose length, that
+        /// of the key exchange hash, is fixed.
+        /// </summary>
+        /// <param name="Exporter">The keying material exporter of the connection.</param>
+        /// <param name="SessionId">The session identifier of the connection.</param>
+        /// <exception cref="ArgumentException">An empty session identifier.</exception>
+        public static Byte[] BindingOf(SshExporter         Exporter,
+                                       ReadOnlySpan<Byte>  SessionId)
+        {
+
+            ArgumentNullException.ThrowIfNull(Exporter);
+
+            if (SessionId.IsEmpty)
+                throw new ArgumentException("A bound one-time password needs the session identifier.", nameof(SessionId));
+
+            return Exporter.Export(SessionId, ExporterLabel, [], BindingLength);
+
+        }
+
+        #endregion
+
+        #region Generate(Config, Binding, Timestamp = null)
+
+        /// <summary>
+        /// The one-time password of the given configuration, bound with the given exporter material, at the
+        /// given time.
         /// </summary>
         /// <param name="Config">The shared secret and how a token is made of it.</param>
-        /// <param name="SessionId">The session identifier.</param>
+        /// <param name="Binding">The exporter material of the connection, see <see cref="BindingOf"/>.</param>
         /// <param name="Timestamp">The time, or null for now.</param>
         public static String Generate(TOTPConfig          Config,
-                                      ReadOnlySpan<Byte>  SessionId,
+                                      ReadOnlySpan<Byte>  Binding,
                                       DateTimeOffset?     Timestamp   = null)
         {
 
-            if (SessionId.IsEmpty)
-                throw new ArgumentException("A session-bound one-time password needs the session identifier.", nameof(SessionId));
+            if (Binding.IsEmpty)
+                throw new ArgumentException("A bound one-time password needs the exporter material of its connection.", nameof(Binding));
 
             return TOTPGenerator.GenerateTOTP(
                        Config.SharedSecret,
@@ -80,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                        Config.Length ?? 12,
                        Config.Alphabet,
                        Timestamp,
-                       SessionId.ToArray(),
+                       Binding.ToArray(),
                        Config.HashAlgorithm
                    ).Current;
 
@@ -88,28 +132,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
-        #region Verify(Config, Totp, SessionId, Timestamp = null)
+        #region Verify(Config, Totp, Binding, Timestamp = null)
 
         /// <summary>
-        /// Whether the given one-time password is the one of the given configuration, bound to the given
-        /// session, at the given time - or the one of the time slot before or after it, for two clocks
-        /// that do not agree to the second. Compared in constant time.
+        /// Whether the given one-time password is the one of the given configuration, bound with the given
+        /// exporter material, at the given time - or the one of the time slot before or after it, for two
+        /// clocks that do not agree to the second. Compared in constant time.
         /// </summary>
         /// <remarks>
-        /// A token need not be remembered to keep it from being used twice: it is good in one session,
-        /// and a session is authenticated once.
+        /// A token need not be remembered to keep it from being used twice: it is good in one connection,
+        /// and a connection is authenticated once.
         /// </remarks>
         /// <param name="Config">The shared secret and how a token is made of it.</param>
         /// <param name="Totp">The one-time password as it was sent.</param>
-        /// <param name="SessionId">The session identifier.</param>
+        /// <param name="Binding">The exporter material of the connection, see <see cref="BindingOf"/>.</param>
         /// <param name="Timestamp">The time, or null for now.</param>
         public static Boolean Verify(TOTPConfig          Config,
                                      String              Totp,
-                                     ReadOnlySpan<Byte>  SessionId,
+                                     ReadOnlySpan<Byte>  Binding,
                                      DateTimeOffset?     Timestamp   = null)
         {
 
-            if (SessionId.IsEmpty || String.IsNullOrEmpty(Totp))
+            if (Binding.IsEmpty || String.IsNullOrEmpty(Totp))
                 return false;
 
             var (previous, current, next, _, _) = TOTPGenerator.GenerateTOTPs(
@@ -118,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                       Config.Length ?? 12,
                                                       Config.Alphabet,
                                                       Timestamp,
-                                                      SessionId.ToArray(),
+                                                      Binding.ToArray(),
                                                       Config.HashAlgorithm
                                                   );
 

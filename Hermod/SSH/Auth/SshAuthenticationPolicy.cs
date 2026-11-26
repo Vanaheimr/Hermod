@@ -141,9 +141,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #region WithSessionBoundTotp
 
         /// <summary>
-        /// Enable <c>totp@open.charging.cloud</c>: a one-time password bound to the session, checked by the
-        /// callback against the login name, the password as sent and the session identifier - with
-        /// <see cref="SshSessionBoundTotp.Verify"/>, typically.
+        /// Enable <c>totp@open.charging.cloud</c>: a one-time password bound to the connection, checked by the
+        /// callback against the login name, the password as sent and the exporter material of the connection
+        /// (<see cref="SshSessionBoundTotp.BindingOf"/>) - with <see cref="SshSessionBoundTotp.Verify"/>, typically.
         /// </summary>
         public SshAuthenticationPolicy WithSessionBoundTotp(Func<String, String, ReadOnlyMemory<Byte>, CancellationToken, ValueTask<Boolean>> CheckTotp)
         {
@@ -191,8 +191,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public ValueTask<Boolean> AuthorizePasswordAsync(User_Id Username, String Password, CancellationToken CancellationToken = default)
             => password?.Invoke(Username.ToString(), Password, CancellationToken) ?? ValueTask.FromResult(false);
 
-        public ValueTask<Boolean> AuthorizeSessionBoundTotpAsync(User_Id Username, String Totp, ReadOnlyMemory<Byte> SessionId, System.Net.IPAddress? Client, CancellationToken CancellationToken = default)
-            => sessionBoundTotp?.Invoke(Username.ToString(), Totp, SessionId, CancellationToken) ?? ValueTask.FromResult(false);
+        public ValueTask<Boolean> AuthorizeSessionBoundTotpAsync(User_Id Username, String Totp, ReadOnlyMemory<Byte> Binding, System.Net.IPAddress? Client, CancellationToken CancellationToken = default)
+            => sessionBoundTotp?.Invoke(Username.ToString(), Totp, Binding, CancellationToken) ?? ValueTask.FromResult(false);
 
         public ISshKeyboardInteractiveFactor? GetKeyboardInteractive(User_Id Username)
             => keyboardInteractive?.Invoke(Username.ToString());

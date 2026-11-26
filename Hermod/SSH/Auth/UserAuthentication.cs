@@ -61,9 +61,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public const String KeyboardInteractiveMethod = "keyboard-interactive";
 
         /// <summary>
-        /// The <c>totp@open.charging.cloud</c> method: a time-based one-time password bound to the session
-        /// identifier, so that one read on the way - or by a server that is not the one meant - opens no
-        /// other session. See <see cref="SshSessionBoundTotp"/>.
+        /// The <c>totp@open.charging.cloud</c> method: a time-based one-time password bound to the connection
+        /// by its keying material exporter, so that one read on the way - or by a server that is not the one
+        /// meant - opens no other connection. See <see cref="SshSessionBoundTotp"/>.
         /// </summary>
         public const String SessionBoundTotpMethod = "totp@open.charging.cloud";
 
@@ -141,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 var (succeeded, isQueryOnly) = request.Method switch {
                     PublicKeyMethod            => await EvaluatePublicKeyAsync(Transport, Authenticator, request, CancellationToken).ConfigureAwait(false),
                     PasswordMethod             => (await Authenticator.AuthorizePasswordAsync(request.Username, request.Password, Client, CancellationToken).ConfigureAwait(false), false),
-                    SessionBoundTotpMethod     => (await Authenticator.AuthorizeSessionBoundTotpAsync(request.Username, request.Password, Transport.SessionId, Client, CancellationToken).ConfigureAwait(false), false),
+                    SessionBoundTotpMethod     => (await EvaluateSessionBoundTotpAsync(Transport, Authenticator, request.Username, request.Password, Client, CancellationToken).ConfigureAwait(false), false),
                     KeyboardInteractiveMethod  => (await EvaluateKeyboardInteractiveAsync(Transport, Authenticator, request.Username, CancellationToken).ConfigureAwait(false), false),
                     _                          => (false, false)
                 };
@@ -247,6 +247,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             var signedData = BuildPublicKeySignedData(Transport.SessionId, Request.Username, Request.Algorithm, Request.PublicKeyBlob);
             return (authorized && SshSignature.Verify(Request.PublicKeyBlob, signedData, Request.Signature, Request.Algorithm), false);
+
+        }
+
+        /// <summary>
+        /// The bound one-time password of <see cref="SessionBoundTotpMethod"/>, checked by the authenticator
+        /// against the exporter material of this connection (<see cref="SshSessionBoundTotp.BindingOf"/>),
+        /// which is wiped once it has answered. A connection without an exporter lets nobody in this way.
+        /// </summary>
+        private static async ValueTask<Boolean> EvaluateSessionBoundTotpAsync(SshTransport           Transport,
+                                                                              ISshUserAuthenticator  Authenticator,
+                                                                              User_Id                Username,
+                                                                              String                 Totp,
+                                                                              System.Net.IPAddress?  Client,
+                                                                              CancellationToken      CancellationToken)
+        {
+
+            if (Transport.Exporter is not { } exporter)
+                return false;
+
+            var binding = SshSessionBoundTotp.BindingOf(exporter, Transport.SessionId);
+
+            try
+            {
+                return await Authenticator.AuthorizeSessionBoundTotpAsync(Username, Totp, binding, Client, CancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                System.Security.Cryptography.CryptographicOperations.ZeroMemory(binding);
+            }
 
         }
 
@@ -389,8 +418,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                 else if (sessionBoundTotp is not null && canContinue.Contains(SessionBoundTotpMethod))
                 {
-                    // Worked out now, from the session this request is sent in.
-                    attempt              = await TrySessionBoundTotpAsync(Transport, Username, sessionBoundTotp(Transport.SessionId), BannerCallback, CancellationToken).ConfigureAwait(false);
+                    // Worked out now, from the exporter of the connection this request is sent in.
+                    var exporter         = Transport.Exporter
+                                               ?? throw new InvalidOperationException("A bound one-time password needs the exporter of a connection whose key exchange has completed.");
+                    var binding          = SshSessionBoundTotp.BindingOf(exporter, Transport.SessionId);
+                    String totp;
+
+                    try
+                    {
+                        totp             = sessionBoundTotp(binding);
+                    }
+                    finally
+                    {
+                        System.Security.Cryptography.CryptographicOperations.ZeroMemory(binding);
+                    }
+
+                    attempt              = await TrySessionBoundTotpAsync(Transport, Username, totp, BannerCallback, CancellationToken).ConfigureAwait(false);
                     sessionBoundTotp     = null;
                 }
 

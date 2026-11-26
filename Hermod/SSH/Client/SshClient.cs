@@ -86,10 +86,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         public Func<SshKeyboardInteractiveChallenge, CancellationToken, ValueTask<String[]>>?  KeyboardInteractive  { get; init; }
 
         /// <summary>
-        /// Works out the one-time password of <c>totp@open.charging.cloud</c> from the session identifier it
-        /// is handed - with <see cref="SshSessionBoundTotp.Generate"/>, typically - or null to leave the
-        /// method out. Asked only where the server lists the method, and at the moment the request is
-        /// sent: what it returns opens this session and no other.
+        /// Works out the one-time password of <c>totp@open.charging.cloud</c> from the exporter material of
+        /// the connection it is handed (<see cref="SshSessionBoundTotp.BindingOf"/>) - with
+        /// <see cref="SshSessionBoundTotp.Generate"/>, typically - or null to leave the method out. Asked only
+        /// where the server lists the method, and at the moment the request is sent: what it returns opens
+        /// this connection and no other. The material is wiped once it has returned.
         /// </summary>
         public Func<Byte[], String>?              SessionBoundTOTP   { get; init; }
 

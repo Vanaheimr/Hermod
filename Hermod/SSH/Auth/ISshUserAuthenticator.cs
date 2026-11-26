@@ -120,17 +120,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             => AuthorizePasswordAsync(Username, Password, CancellationToken);
 
         /// <summary>
-        /// Whether the given one-time password authenticates the user in the session with the given
-        /// identifier (<c>totp@open.charging.cloud</c>, <see cref="SshSessionBoundTotp"/>). Default: no.
+        /// Whether the given one-time password authenticates the user in the connection with the given
+        /// exporter material (<c>totp@open.charging.cloud</c>, <see cref="SshSessionBoundTotp"/>). Default: no.
         /// </summary>
         /// <param name="Username">The login name.</param>
         /// <param name="Totp">The one-time password as it was sent.</param>
-        /// <param name="SessionId">The session identifier it has to be bound to: the exchange hash of the first key exchange (RFC 4253 §7.2).</param>
+        /// <param name="Binding">The exporter material of the connection it has to be bound with (<see cref="SshSessionBoundTotp.BindingOf"/>): a secret of this connection, valid only while the call lasts.</param>
         /// <param name="Client">The address of the client, or null where it can not be told.</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
         ValueTask<Boolean> AuthorizeSessionBoundTotpAsync(User_Id                Username,
                                                           String                 Totp,
-                                                          ReadOnlyMemory<Byte>   SessionId,
+                                                          ReadOnlyMemory<Byte>   Binding,
                                                           System.Net.IPAddress?  Client,
                                                           CancellationToken      CancellationToken = default)
             => ValueTask.FromResult(false);
