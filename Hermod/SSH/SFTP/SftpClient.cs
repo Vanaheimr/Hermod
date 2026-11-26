@@ -169,13 +169,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             catch
             {
                 await ObserveAsync(inflight).ConfigureAwait(false);   // don't leak faults from in-flight writes
+                await CloseQuietlyAsync(handle).ConfigureAwait(false);
                 throw;
             }
-            finally
-            {
-                try   { await CloseAsync(handle, CancellationToken.None).ConfigureAwait(false); }
-                catch { }
-            }
+
+            // Not quietly: the close is where a server commits the file - or refuses it, when its handler
+            // looks at what arrived - so the status of the close is the answer to the upload.
+            await CloseAsync(handle, CancellationToken.None).ConfigureAwait(false);
 
         }
 
@@ -328,16 +328,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             {
                 while (inflight.Count > 0)
                     try { await inflight.Dequeue().Task.ConfigureAwait(false); } catch { }
+                // An upload that failed is reported by what made it fail, not by a close that fails after it.
+                await CloseQuietlyAsync(handle).ConfigureAwait(false);
                 throw;
             }
             finally
             {
                 ArrayPool<Byte>.Shared.Return(buffer);
-                // The handle is closed whatever happened; an upload that failed is reported by what
-                // made it fail, not by a close that fails after it.
-                try   { await CloseAsync(handle, CancellationToken.None).ConfigureAwait(false); }
-                catch { }
             }
+
+            // An upload that got through is answered by its close: that is where a server commits the
+            // file, or refuses it.
+            await CloseAsync(handle, CancellationToken.None).ConfigureAwait(false);
 
             return offset;
 
@@ -687,11 +689,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                 {
                     await CopyDataAsync(source, SourceOffset, Length, destination, DestinationOffset, CancellationToken).ConfigureAwait(false);
                 }
-                finally
+                catch
                 {
-                    try   { await CloseAsync(destination, CancellationToken.None).ConfigureAwait(false); }
-                    catch { }
+                    await CloseQuietlyAsync(destination).ConfigureAwait(false);
+                    throw;
                 }
+
+                // As with an upload, the close of what was written may be where the server refuses it.
+                await CloseAsync(destination, CancellationToken.None).ConfigureAwait(false);
 
             }
             finally
@@ -814,6 +819,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         internal ValueTask CloseAsync(String Handle, CancellationToken CancellationToken)
             => ExpectOkAsync(SftpPacketType.Close, (ref SshPacketWriter w) => w.WriteString(Handle), CancellationToken);
+
+        /// <summary>
+        /// Close a handle on a path that is already failing: the handle must not stay open on the server,
+        /// and what made the operation fail is the caller's answer, not a close that fails after it.
+        /// Never for a handle that was written to and is closed on success - that close is the answer.
+        /// </summary>
+        private async ValueTask CloseQuietlyAsync(String Handle)
+        {
+            try   { await CloseAsync(Handle, CancellationToken.None).ConfigureAwait(false); }
+            catch { }
+        }
 
         private async ValueTask<String> OpenDirectoryAsync(String Path, CancellationToken CancellationToken)
         {

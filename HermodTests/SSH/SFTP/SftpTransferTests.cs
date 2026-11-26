@@ -159,6 +159,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         }
 
+        /// <summary>
+        /// A file system whose owner looks at an upload when its handle is closed and refuses what it
+        /// does not want, the way a handler that checks a firmware image or a picture does.
+        /// </summary>
+        private sealed class RefusingFileSystem(ISftpFileSystem Inner) : ISftpFileSystem
+        {
+
+            private readonly Dictionary<String, String> written = [];
+
+            public const String Why = "'refuse.txt' says it is to be refused.";
+
+            public async ValueTask<String> OpenAsync(String Path, SftpOpenFlags Flags, CancellationToken CancellationToken = default)
+            {
+                var handle = await Inner.OpenAsync(Path, Flags, CancellationToken);
+                if (Flags.HasFlag(SftpOpenFlags.Write))
+                    lock (written) written[handle] = Path;
+                return handle;
+            }
+
+            public ValueTask<Byte[]> ReadAsync(String Handle, Int64 Offset, Int32 Length, CancellationToken CancellationToken = default)
+                => Inner.ReadAsync(Handle, Offset, Length, CancellationToken);
+
+            public ValueTask WriteAsync(String Handle, Int64 Offset, ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
+                => Inner.WriteAsync(Handle, Offset, Data, CancellationToken);
+
+            public async ValueTask CloseAsync(String Handle, CancellationToken CancellationToken = default)
+            {
+                await Inner.CloseAsync(Handle, CancellationToken);
+                String? path;
+                lock (written) written.Remove(Handle, out path);
+                if (path is not null && path.EndsWith("/refuse.txt", StringComparison.Ordinal))
+                {
+                    await Inner.RemoveAsync(path, CancellationToken);
+                    throw new SftpException(SftpStatusCode.Failure, Why);
+                }
+            }
+
+            public ValueTask<String> OpenDirectoryAsync(String Path, CancellationToken CancellationToken = default)
+                => Inner.OpenDirectoryAsync(Path, CancellationToken);
+
+            public ValueTask<IReadOnlyList<SftpDirectoryEntry>> ReadDirectoryAsync(String Handle, CancellationToken CancellationToken = default)
+                => Inner.ReadDirectoryAsync(Handle, CancellationToken);
+
+            public ValueTask<SftpFileAttributes> StatAsync(String Path, CancellationToken CancellationToken = default)
+                => Inner.StatAsync(Path, CancellationToken);
+
+            public ValueTask MakeDirectoryAsync(String Path, CancellationToken CancellationToken = default)
+                => Inner.MakeDirectoryAsync(Path, CancellationToken);
+
+            public ValueTask RemoveAsync(String Path, CancellationToken CancellationToken = default)
+                => Inner.RemoveAsync(Path, CancellationToken);
+
+            public ValueTask RemoveDirectoryAsync(String Path, CancellationToken CancellationToken = default)
+                => Inner.RemoveDirectoryAsync(Path, CancellationToken);
+
+            public ValueTask RenameAsync(String OldPath, String NewPath, CancellationToken CancellationToken = default)
+                => Inner.RenameAsync(OldPath, NewPath, CancellationToken);
+
+            public ValueTask<String> RealPathAsync(String Path, CancellationToken CancellationToken = default)
+                => Inner.RealPathAsync(Path, CancellationToken);
+
+        }
+
         private sealed class Told : IProgress<Int64>
         {
             public List<Int64> Values { get; } = [];
@@ -437,6 +500,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+
+        #region AnUploadTheServerRefusesOnClose_IsRefused
+
+        /// <summary>
+        /// A server may take every WRITE and refuse the file only when its handle is closed - the moment
+        /// a handler can look at the whole of it. That refusal is the answer to the upload: each way of
+        /// writing a file must hand it to the caller, with the server's reason, and not report success.
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task AnUploadTheServerRefusesOnClose_IsRefused(CancellationToken CancellationToken)
+        {
+
+            var inner = new InMemorySftpFileSystem();
+            var (sftp, client, server) = await ConnectAsync(new RefusingFileSystem(inner), CancellationToken);
+            var content = RandomNumberGenerator.GetBytes(100_000);
+
+            var fromBytes  = await Assert.ThrowsAsync<SftpException>(async () => await sftp.UploadAsync("/up/refuse.txt", content, CancellationToken));
+            var fromStream = await Assert.ThrowsAsync<SftpException>(async () => await sftp.UploadAsync("/up/refuse.txt", new MemoryStream(content), CancellationToken: CancellationToken));
+
+            await sftp.UploadAsync("/up/source.bin", content, CancellationToken);
+            var fromCopy   = await Assert.ThrowsAsync<SftpException>(async () => await sftp.CopyAsync("/up/source.bin", "/up/refuse.txt", CancellationToken));
+
+            foreach (var (refused, how) in new[] { (fromBytes, "bytes"), (fromStream, "a stream"), (fromCopy, "copy-data") })
+            {
+                Assert.That(refused?.Code, Is.EqualTo(SftpStatusCode.Failure),   $"an upload from {how} is refused");
+                Assert.That(refused?.Message, Is.EqualTo(RefusingFileSystem.Why),   $"with the server's reason, from {how}");
+            }
+
+            // What is not refused still goes through, and the session is still good after three refusals.
+            await sftp.UploadAsync("/up/fine.txt", content, CancellationToken);
+            Assert.That(await ReadBackAsync(sftp, "/up/fine.txt", CancellationToken), Is.EqualTo(content));
+
+            await EndAsync(sftp, client, server);
+
+        }
+
+        #endregion
 
         #region AHostKeyThePolicyDoesNotTake_IsToldApart
 
