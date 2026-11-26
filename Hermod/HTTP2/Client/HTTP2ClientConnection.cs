@@ -3345,10 +3345,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             { "connection", "keep-alive", "proxy-connection", "transfer-encoding", "upgrade" };
 
         /// <summary>
-        /// Whether a response's header block or trailers carry a regular field that
+        /// Whether a response's header block or trailers carry a field that
         /// makes the response malformed (RFC 9113, Section 8.2), with what is wrong
-        /// in <paramref name="Malformed"/>: an empty name, a name that is not
-        /// lowercase (Section 8.2.1), a connection-specific field, or a te with
+        /// in <paramref name="Malformed"/>: an empty name, a character a field must
+        /// not carry (Section 8.2.1, <see cref="HTTP2FieldCharacters"/>), a name
+        /// that is not lowercase, a connection-specific field, or a te with
         /// any value other than "trailers" (Section 8.2.2). These are the rules
         /// the server holds a request's fields to (HTTP2Connection's
         /// ValidateRegularHeaderField), and nghttp2's, which curl uses, a
@@ -3368,6 +3369,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                     Malformed = "empty field name";
                     return true;
                 }
+
+                // Section 8.2.1: the characters of every field, a pseudo-header
+                // field's value included.
+                if (HTTP2FieldCharacters.TryFindViolation(name, value, out Malformed))
+                    return true;
 
                 if (name[0] == ':')
                     continue;

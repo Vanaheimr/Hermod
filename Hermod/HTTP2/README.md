@@ -384,6 +384,16 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 - Request validation (§8): pseudo-header ordering/uniqueness, lowercase field
   names, connection-specific header rejection, `te: trailers` only — malformed
   requests are stream errors, not connection errors.
+- The **characters** of every field, in a request's header block and its
+  trailers (§8.2.1): a name carries no octet from 0x00 to 0x20, none from 0x7F
+  to 0xFF, and no colon but the one that opens a pseudo-header field's name; a
+  value, a pseudo-header field's included, carries no NUL, CR or LF, and does
+  not start or end with SP or HTAB. HPACK carries any octet, so these are what
+  keeps a field from carrying what HTTP/1.1 could not even have framed — a CR
+  LF in a value, to a handler that writes it into an HTTP/1.1 request. A
+  request that breaks one is reset with `PROTOCOL_ERROR` and reaches no
+  handler. The server used to hand every one of them over. Whitespace inside a
+  value and octets above 0x7F in it (obs-text) are no reason to refuse.
 - Trailers (§8.1) and implicit stream closure (§5.1.1).
 - `content-length` vs. DATA-length enforcement (§8.1.1), wherever the body
   ends: at its last DATA frame, or at trailers — buffered and streamed alike. A
@@ -432,6 +442,11 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   nghttp2 and RFC 9110's ABNF do, where the server takes it in lowercase only.
   A response that breaks one fails at the header block that does, as above.
   The client used to hand all of these over.
+- And the **characters** of every field to §8.2.1, as the server holds a
+  request's, in its header block, an interim response's, and its trailers. A
+  response that breaks one fails at the header block that does, as above.
+  nghttp2 drops such a field, where the RFC makes the response malformed; the
+  client goes by the RFC, as it does for the rules before.
 - Cleartext **h2c** (prior knowledge, RFC 9113 §3.3) — server and client. (The
   RFC 7540 `Upgrade: h2c` negotiation was removed in RFC 9113 and is
   deliberately not implemented.)
@@ -443,6 +458,10 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   truncated-block → `COMPRESSION_ERROR`. Integers accumulate in 64 bits and are
   bounds-checked (§5.1): a five-octet encoding that would wrap a 32-bit
   accumulator is a decoding error, not a negative length handed to a slice.
+  A string literal is read one character per octet, raw as Huffman-coded. A
+  raw one used to be read as ASCII, every octet above 0x7F a `?`: the same
+  field read two ways, and a name with such an octet came through as a legal
+  one.
 - Full encoder: 61-entry static table, per-connection dynamic table (with a
   volatile-value denylist and *never-indexed* for sensitive fields §7.1.3),
   **Huffman encode**, table-size signaling from the peer's
@@ -1389,6 +1408,7 @@ they're common in the wild:
 | Memory exhaustion by fast producer | Consumption-driven backpressure (at most `ConnectionWindowSize` held per connection) + bounded buffered body |
 | One stalled stream holding up the connection | Connection window four stream windows; owed window returned once the peer has no more left |
 | Stream-ID exhaustion | Proactive GOAWAY + `REFUSED_STREAM` |
+| Field injection (CR, LF or NUL in a field, a field name that is no token) | §8.2.1 held to on the way in, both roles: a stream error |
 | Oversized header lists, HPACK bombs | `MAX_HEADER_LIST_SIZE` stated, and held to the *decoded* list: 431 / stream reset inbound, refusal outbound (both roles) |
 | Range amplification | `MaxRanges` cap on a byte-range set |
 | Weak TLS 1.2 cipher suites | RFC 9113 Appendix A check → `GOAWAY INADEQUATE_SECURITY` |

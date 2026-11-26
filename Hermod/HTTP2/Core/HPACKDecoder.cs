@@ -271,7 +271,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
             if (huffman)
                 return HuffmanDecoder.Decode(raw);
 
-            return Encoding.ASCII.GetString(raw);
+            // One character per octet, as the Huffman decoder hands them over:
+            // ASCII made every octet above 0x7F a '?', so the same field read
+            // differently as a raw literal and as a Huffman one, and a name with
+            // such an octet, which RFC 9113 Section 8.2.1 makes malformed, came
+            // through as a name of '?' — which is a legal one.
+            return Encoding.Latin1.GetString(raw);
 
         }
 

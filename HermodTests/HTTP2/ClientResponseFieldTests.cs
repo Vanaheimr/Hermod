@@ -29,8 +29,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 {
 
     /// <summary>
-    /// The regular fields of a response (RFC 9113, Section 8.2): a field name is
-    /// lowercase (Section 8.2.1), a connection-specific field is not carried at
+    /// The fields of a response (RFC 9113, Section 8.2): a field name is
+    /// lowercase, and carries no control, space, colon or octet above 0x7E, and
+    /// a field value no NUL, CR or LF, nor whitespace at either end (Section
+    /// 8.2.1); a connection-specific field is not carried at
     /// all, and te carries "trailers" and nothing else (Section 8.2.2). A
     /// response that breaks one of these, in its header block, an interim
     /// one's, or its trailers, is malformed, and "Clients MUST NOT accept a
@@ -155,9 +157,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// what the client sent on its streams up to the next request's HEADERS,
         /// and the next request's answer.
         /// </summary>
-        private static async Task<(Boolean Ended, String? Failure, List<String> Sent, String Next, UInt32 StreamId)>
+        private static Task<(Boolean Ended, String? Failure, List<String> Sent, String Next, UInt32 StreamId)>
 
             AnswerWithAsync(params (String Name, String Value)[][] HeaderBlocks)
+
+            => AnswerAsync(async (transport, streamId) => {
+                   foreach (var block in HeaderBlocks)
+                       await transport.SendHeadersAsync(streamId, block);
+               });
+
+        /// <summary>
+        /// Send this header block, built byte by byte, in answer to a buffered
+        /// GET, and go on as <see cref="AnswerWithAsync"/> does: for octets the
+        /// test's HPACK encoder, which writes ASCII, cannot carry.
+        /// </summary>
+        private static Task<(Boolean Ended, String? Failure, List<String> Sent, String Next, UInt32 StreamId)>
+
+            AnswerWithBlockAsync(Byte[] Block)
+
+            => AnswerAsync((transport, streamId) => transport.SendAsync([.. RawHeaderBlock.Frames(streamId, Block, EndStream: false)]));
+
+        private static async Task<(Boolean Ended, String? Failure, List<String> Sent, String Next, UInt32 StreamId)>
+
+            AnswerAsync(Func<HoldingH2Transport, UInt32, Task> SendHeaderBlocks)
 
         {
 
@@ -168,8 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
             await SentUntilHeadersOfAsync(transport, request.StreamId);
 
-            foreach (var block in HeaderBlocks)
-                await transport.SendHeadersAsync(request.StreamId, block);
+            await SendHeaderBlocks(transport, request.StreamId);
 
             var (ended, failure) = await EndOf(request.Response);
 
@@ -247,6 +268,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
 
         }
 
+        /// <summary>
+        /// A field as a literal without indexing, raw or Huffman-coded.
+        /// </summary>
+        private static Byte[] Field(String Name, String Value, Boolean Huffman)
+
+            => Huffman ? RawHeaderBlock.HuffmanLiteral(Name, Value)
+                       : RawHeaderBlock.Literal       (Name, Value);
+
+        /// <summary>
+        /// A name of a field with this octet in its middle, as a reason prints
+        /// it: an octet outside 0x21 to 0x7E as \xNN.
+        /// </summary>
+        private static (String Name, String Printed) NameWith(Int32 Octet)
+
+            => ($"x-{(Char) Octet}-id",
+                $"x-{(Octet is > 0x20 and < 0x7F ? ((Char) Octet).ToString() : $"\\x{Octet:X2}")}-id");
+
         #endregion
 
 
@@ -310,7 +348,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         [TestCase("gzip")]
         [TestCase("trailers, deflate")]
         [TestCase("trailers;q=1")]
-        [TestCase(" trailers")]
+        [TestCase("trailers,trailers")]
         [TestCase("")]
         public async Task TeOtherThanTrailers_FailsAtTheHeaders(String Value)
 
@@ -377,6 +415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         /// </summary>
         [TestCase("Link",        "</style.css>; rel=preload",  "field name 'Link' is not lowercase")]
         [TestCase("connection",  "keep-alive",                 "connection-specific field 'connection'")]
+        [TestCase("link",        "</style.css>; rel=preload\r", "field value of 'link' contains octet 0x0D")]
         public async Task MalformedInterimResponse_Fails(String Name, String Value, String Reason)
 
             => AssertMalformed(await AnswerWithAsync([(":status", "103"), (Name, Value)]),
@@ -395,6 +434,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
         [TestCase("X-Checksum",         "abc",       "field name 'X-Checksum' is not lowercase in trailers")]
         [TestCase("transfer-encoding",  "chunked",   "connection-specific field 'transfer-encoding' in trailers")]
         [TestCase("te",                 "deflate",   "te 'deflate' other than \"trailers\" in trailers")]
+        [TestCase("x-checksum",         "abc\n",     "field value of 'x-checksum' contains octet 0x0A in trailers")]
+        [TestCase("x-checksum",         "abc ",      "field value of 'x-checksum' ends with whitespace in trailers")]
+        [TestCase("x checksum",         "abc",       "field name 'x\\x20checksum' contains octet 0x20 in trailers")]
         public async Task MalformedTrailers_FailAtTheTrailers(String Name, String Value, String Reason)
         {
 
@@ -428,6 +470,118 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP2
                 Assert.That(failure,  Is.Null,                                                  "how the response failed");
                 Assert.That(sent,     Is.EqualTo(new[] { $"{streamId + 2} HEADERS END_STREAM" }), "what the client sent on its streams");
             });
+
+        }
+
+        #endregion
+
+        #region FieldNameCharacter_FailsAtTheHeaders(Octet, Huffman)
+
+        /// <summary>
+        /// A field name carries no octet from 0x00 to 0x20, none from 0x7F to
+        /// 0xFF, and no colon (Section 8.2.1): one of them in the middle of a
+        /// name makes the response malformed, raw or Huffman-coded. The client
+        /// used to hand every one of them over — those above 0x7F, as a raw
+        /// literal, as a name with a '?' in it, which is a legal one.
+        /// </summary>
+        [TestCase(0x00, false)]
+        [TestCase(0x09, false)]
+        [TestCase(0x0A, false)]
+        [TestCase(0x0D, false)]
+        [TestCase(0x20, false)]
+        [TestCase(0x3A, false)]
+        [TestCase(0x7F, false)]
+        [TestCase(0x80, false)]
+        [TestCase(0xE9, false)]
+        [TestCase(0xFF, false)]
+        [TestCase(0x00, true)]
+        [TestCase(0x20, true)]
+        [TestCase(0x80, true)]
+        [TestCase(0xE9, true)]
+        public async Task FieldNameCharacter_FailsAtTheHeaders(Int32 Octet, Boolean Huffman)
+        {
+
+            var (name, printed) = NameWith(Octet);
+
+            AssertMalformed(await AnswerWithBlockAsync([.. RawHeaderBlock.Literal(":status", "200"),
+                                                        .. Field(name, "1", Huffman),
+                                                        .. RawHeaderBlock.Literal("content-length", "5")]),
+                            $"field name '{printed}' contains octet 0x{Octet:X2}");
+
+        }
+
+        #endregion
+
+        #region FieldValueCharacter_FailsAtTheHeaders(Name, Value, Rule)
+
+        /// <summary>
+        /// A field value carries no NUL, LF or CR, anywhere, and does not start or
+        /// end with SP or HTAB (Section 8.2.1). The client used to hand all of
+        /// them over; a content-length with a space at either end it read as a
+        /// length, until the content-length checks rejected it as no number.
+        /// te with a space before "trailers" breaks this rule before te's own.
+        /// </summary>
+        [TestCase("x-id",            "a\0b",       "contains octet 0x00")]
+        [TestCase("x-id",            "ab\0",       "contains octet 0x00")]
+        [TestCase("x-id",            "a\nb",       "contains octet 0x0A")]
+        [TestCase("x-id",            "a\rb",       "contains octet 0x0D")]
+        [TestCase("x-id",            "\r\n",       "contains octet 0x0D")]
+        [TestCase("x-id",            " ab",        "starts with whitespace")]
+        [TestCase("x-id",            "\tab",       "starts with whitespace")]
+        [TestCase("x-id",            "ab ",        "ends with whitespace")]
+        [TestCase("x-id",            "ab\t",       "ends with whitespace")]
+        [TestCase("x-id",            " ",          "starts with whitespace")]
+        [TestCase("te",              " trailers",  "starts with whitespace")]
+        [TestCase("content-length",  " 5",         "starts with whitespace")]
+        [TestCase("content-length",  "5 ",         "ends with whitespace")]
+        public async Task FieldValueCharacter_FailsAtTheHeaders(String Name, String Value, String Rule)
+
+            => AssertMalformed(await AnswerWithBlockAsync([.. RawHeaderBlock.Literal(":status", "200"),
+                                                           .. RawHeaderBlock.Literal(Name, Value)]),
+                               $"field value of '{Name}' {Rule}");
+
+        #endregion
+
+        #region InnerWhitespace_AndOctetsAbove0x7F_InValues_Stand(Huffman)
+
+        /// <summary>
+        /// Whitespace inside a value, an empty value, and octets above 0x7F in a
+        /// value — obs-text, which RFC 9110 still lets a value carry — are no
+        /// reason to fail: the response is handed over with each value as it was
+        /// sent, an octet as the character of the same number, raw or
+        /// Huffman-coded. A raw literal used to make every octet above 0x7F a
+        /// '?', where a Huffman one gave the octet.
+        /// </summary>
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task InnerWhitespace_AndOctetsAbove0x7F_InValues_Stand(Boolean Huffman)
+        {
+
+            await using var transport = new HoldingH2Transport(HoldHeadersOf: streamId => false);
+
+            var connection  = await ConnectAsync(transport);
+            var request     = await StartAsync(connection, "/");
+
+            await SentUntilHeadersOfAsync(transport, request.StreamId);
+
+            (String, String)[] fields = [("x-a", "a b\tc"), ("x-b", "caf\u00E9 \u0080\u00FF"), ("x-c", "")];
+
+            Byte[] block = [.. RawHeaderBlock.Literal(":status", "200"),
+                            .. fields.SelectMany(field => Field(field.Item1, field.Item2, Huffman))];
+
+            await transport.SendAsync([.. RawHeaderBlock.Frames(request.StreamId, block, EndStream: true)]);
+
+            var (ended, failure) = await EndOf(request.Response);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ended,              Is.True,  "the response ended");
+                Assert.That(Describe(failure),  Is.Null,  "how the response failed");
+                if (ended && failure is null)
+                    Assert.That(request.Response.Result.Headers.Where(h => h.Name[0] != ':'),  Is.EqualTo(fields),  "its fields");
+            });
+
+            await connection.CloseAsync();
 
         }
 
