@@ -130,6 +130,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                (ContentDisposition?.IsInline ?? false) && FileName is not null;
 
         /// <summary>
+        /// Whether this is a text of a subtype the reader does not know - text/markdown,
+        /// text/x-log - in a charset it does know, which the sender did not mark as an
+        /// attachment nor give a file name but inline.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2046 §4.1.4: "Unrecognized subtypes of "text" should be treated as subtype
+        /// "plain" as long as the MIME implementation knows how to handle the charset.
+        /// Unrecognized subtypes which also specify an unrecognized charset should be
+        /// treated as "application/octet-stream"."
+        /// </remarks>
+        internal Boolean                IsTextOfAnotherSubtype
+            => ContentType.Is("text/*") &&
+              !ContentType.Is("text/plain") && !ContentType.Is("text/html") && !ContentType.Is("text/rfc822-headers") &&
+               MimeCharsets.IsKnown(ContentType.Charset) &&
+              !(ContentDisposition?.IsAttachment ?? false) &&
+               (FileName is null || (ContentDisposition?.IsInline ?? false));
+
+        /// <summary>
+        /// Whether this is one of the parts a report is made of besides its text - the
+        /// delivery status of a bounce (RFC 3464, RFC 6533), the disposition of a read
+        /// receipt (RFC 8098), the feedback of an abuse report (RFC 5965), the tracking
+        /// status of RFC 3886, the header of the message reported on (RFC 6522, RFC 6533).
+        /// </summary>
+        internal Boolean                IsReportPart
+            => ContentType.Is("message/delivery-status")                ||
+               ContentType.Is("message/global-delivery-status")         ||
+               ContentType.Is("message/disposition-notification")       ||
+               ContentType.Is("message/global-disposition-notification") ||
+               ContentType.Is("message/feedback-report")                ||
+               ContentType.Is("message/tracking-status")                ||
+               ContentType.Is("message/global-headers")                 ||
+               ContentType.Is("text/rfc822-headers");
+
+        /// <summary>
         /// Whether this is something to list as an attachment: what the sender marked
         /// as one, a forwarded message, and anything that is neither text to show nor
         /// a container nor PGP machinery nor an inline resource.
@@ -158,10 +192,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     return FileName is not null && !(ContentDisposition?.IsInline ?? false);
 
                 // The report parts of a bounce or a read receipt belong to its text.
-                if (ContentType.Is("message/*") || ContentType.Is("text/rfc822-headers"))
+                if (IsReportPart)
                     return false;
 
-                // Everything else - images, PDFs, calendars, archives - is one.
+                // Everything else - images, PDFs, calendars, archives - is one, and so is a
+                // message of a subtype the reader does not know: RFC 2046 §5.2.4, "MIME
+                // implementations must in general treat unrecognized subtypes of "message"
+                // as being equivalent to "application/octet-stream"".
                 return true;
 
             }
@@ -401,11 +438,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             MimePart? text = null, html = null;
             FindBodies(Root, ref text, ref html);
 
+            // RFC 2046 §4.1.4: a text of a subtype the reader does not know is read as
+            // text/plain - the body of a message that has no text/plain. Beside one it stays
+            // what it was, an attachment: the text/calendar of an invitation, say.
+            text ??= Root.Descendants().FirstOrDefault(part => part.IsTextOfAnotherSubtype);
+
             this.TextBody    = text;
             this.HtmlBody    = html;
             // A text marked inline with a file name that is not the body - a second one of a
             // multipart/mixed - is listed beside it, as it was before it was shown.
-            this.Attachments = [.. Root.Descendants().Where(part => part.IsAttachment ||
+            this.Attachments = [.. Root.Descendants().Where(part => part.IsAttachment && part != text ||
                                                                     part.IsNamedInlineText && part != text && part != html)];
 
             this.Pgp         = PgpOf(Root) ?? Root.Children.Select(PgpOf).FirstOrDefault(pgp => pgp is not null);
