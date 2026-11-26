@@ -149,6 +149,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
         #endregion
 
+        #region FractionalMillisecondDelayNeverGoesOutEarly()
+
+        /// <summary>
+        /// Even when the remaining wait has a sub-millisecond fraction or
+        /// Task.Delay wakes up on an earlier millisecond tick, no byte is
+        /// written before the stopwatch has reached its scheduled time.
+        /// </summary>
+        [Test]
+        public async Task FractionalMillisecondDelayNeverGoesOutEarly()
+        {
+
+            var delay   = TimeSpan.FromMilliseconds(20.7);
+            var stream  = new RecordingStream();
+
+            await SlowNetworkSimulation.WriteAsync(stream, new Byte[10], delay);
+
+            var first   = stream.Writes[0].At;
+
+            Assert.Multiple(() => {
+                Assert.That(stream.Writes,  Has.Count.EqualTo(10));
+                for (var n = 1; n < stream.Writes.Count; n++)
+                    Assert.That(stream.Writes[n].At - first,  Is.GreaterThanOrEqualTo(delay * n - TimeSpan.FromTicks(1)),  $"byte {n}");
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

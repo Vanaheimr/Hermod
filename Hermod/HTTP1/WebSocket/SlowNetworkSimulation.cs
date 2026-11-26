@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             CancellationToken  CancellationToken   = default)
         {
 
-            var pace = Stopwatch.StartNew();
+            Stopwatch? pace = null;
 
             for (var i = 0; i < Data.Length; i++)
             {
@@ -71,11 +71,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 await Stream.FlushAsync(CancellationToken);
 
-                var ahead = DelayPerByte * (i + 1) - pace.Elapsed;
+                // Start pacing after the first byte goes out so startup jitter
+                // before byte 0 cannot pull subsequent bytes ahead of schedule.
+                pace ??= Stopwatch.StartNew();
 
-                if (ahead > TimeSpan.Zero)
-                    await Task.Delay(ahead,
+                var target = DelayPerByte * (i + 1);
+
+                // Task.Delay(TimeSpan) truncates sub-millisecond fractions and
+                // schedules on integer millisecond ticks, so a single wait can
+                // wake up ~1-2 ms before target. Loop with ceiling milliseconds
+                // until the stopwatch has actually reached target.
+                while (true)
+                {
+
+                    var ahead = target - pace.Elapsed;
+
+                    if (ahead <= TimeSpan.Zero)
+                        break;
+
+                    await Task.Delay(TimeSpan.FromMilliseconds(Math.Ceiling(ahead.TotalMilliseconds)),
                                      CancellationToken);
+
+                }
 
             }
 
