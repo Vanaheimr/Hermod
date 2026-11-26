@@ -106,40 +106,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (chain is not null)
                 {
 
-                    var chainValidator  = new X509Chain();
-                    chainValidator.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                    check.IsChainValid  = chainValidator.Build(chain.ChainElements[0].Certificate);
-                    check.ChainStatus   = chainValidator.ChainStatus;
+                    var leafToValidate = chain.ChainElements.Count > 0
+                                             ? chain.ChainElements[0].Certificate
+                                             : cert;
 
-                    if (!check.IsChainValid.HasValue || check.IsChainValid.Value == false)
+                    if (leafToValidate is not null)
                     {
 
-                        Check.ErrorMessages.Add($"The certificate chain for {Check} is invalid!");
+                        using var chainValidator = new X509Chain();
+                        chainValidator.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
 
-                        foreach (var status in chainValidator.ChainStatus)
-                            Check.ErrorMessages.Add($" - {status.Status}: {status.StatusInformation}");
+                        for (var i = 1; i < chain.ChainElements.Count; i++)
+                            chainValidator.ChainPolicy.ExtraStore.Add(chain.ChainElements[i].Certificate);
+
+                        check.IsChainValid = chainValidator.Build(leafToValidate);
+                        var statuses       = chainValidator.ChainStatus.ToArray();
+                        check.ChainStatus  = statuses;
+
+                        if (!check.IsChainValid.HasValue || check.IsChainValid.Value == false)
+                        {
+
+                            Check.ErrorMessages.Add($"The certificate chain for {Check.URL} is invalid!");
+
+                            foreach (var status in statuses)
+                                Check.ErrorMessages.Add($" - {status.Status}: {status.StatusInformation}");
+
+                        }
 
                     }
+
+                    var now = Timestamp.Now;
 
                     for (var i = 0; i < chain.ChainElements.Count; i++)
                     {
 
-                        var daysUntilExpiry  = (UInt32)Math.Floor(((DateTimeOffset) chain.ChainElements[i].Certificate.NotAfter - Timestamp.Now).TotalDays);
+                        var elementCert     = chain.ChainElements[i].Certificate;
+                        var expiryDate      = new DateTimeOffset(elementCert.NotAfter.ToUniversalTime(), TimeSpan.Zero);
+                        var remainingDays   = Math.Floor((expiryDate - now).TotalDays);
+                        var alreadyExpired  = expiryDate <= now || remainingDays < 0;
+                        var daysUntilExpiry = alreadyExpired
+                                                  ? 0U
+                                                  : (UInt32) Math.Min(remainingDays, UInt32.MaxValue);
 
-                        var certificateInfo  = new CertificateInfo(
-                                                   Certificate:      chain.ChainElements[i].Certificate,
-                                                   CertType:         i == 0 ? CertTypes.Leaf : i == chain.ChainElements.Count - 1 ? CertTypes.Root : CertTypes.Intermediate,
-                                                   DisplayName:      GetCertificateDisplayName(chain.ChainElements[i].Certificate, i == 0),
-                                                   ExpiryDate:       chain.ChainElements[i].Certificate.NotAfter,
-                                                   DaysUntilExpiry:  daysUntilExpiry,
-                                                   IsExpired:        daysUntilExpiry <= Check.ExpireOk
-                                               );
+                        var certificateInfo = new CertificateInfo(
+                                                  Certificate:      elementCert,
+                                                  CertType:         i == 0
+                                                                        ? CertTypes.Leaf
+                                                                        : i == chain.ChainElements.Count - 1
+                                                                              ? CertTypes.Root
+                                                                              : CertTypes.Intermediate,
+                                                  DisplayName:      GetCertificateDisplayName(elementCert, i == 0),
+                                                  ExpiryDate:       expiryDate,
+                                                  DaysUntilExpiry:  daysUntilExpiry,
+                                                  IsExpired:        alreadyExpired || daysUntilExpiry <= Check.ExpireOk
+                                              );
 
                         Check.CertificateInfos.Add(certificateInfo);
 
-
-                        if (daysUntilExpiry <= 14)
-                            Check.Warnings.Add($"{certificateInfo.CertType} certificate '{certificateInfo.DisplayName}' expires in {daysUntilExpiry} days on: {certificateInfo.ExpiryDate})");
+                        if (alreadyExpired)
+                            Check.ErrorMessages.Add($"{certificateInfo.CertType} certificate '{certificateInfo.DisplayName}' expired on: {certificateInfo.ExpiryDate}");
+                        else if (daysUntilExpiry <= Check.ExpireOk)
+                            Check.Warnings.Add($"{certificateInfo.CertType} certificate '{certificateInfo.DisplayName}' expires in {daysUntilExpiry} days on: {certificateInfo.ExpiryDate}");
                         else
                             Check.Messages.Add($"{certificateInfo.CertType} certificate '{certificateInfo.DisplayName}' valid until: {certificateInfo.ExpiryDate}");
 
@@ -309,14 +336,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                     CancellationToken   CancellationToken   = default)
         {
 
-            var checkResults = new List<CheckResult>(Checks.Count());
+            var checkList    = Checks as IReadOnlyCollection<Check> ?? Checks.ToList();
+            var checkResults = new List<CheckResult>(checkList.Count);
 
             using var semaphore = new SemaphoreSlim(ConcurrencyLimit);
 
             await foreach (var task in Task.WhenEach(
-                Checks.Select(async check => {
+                checkList.Select(async check => {
 
-                    await semaphore.WaitAsync();
+                    await semaphore.WaitAsync(CancellationToken);
 
                     try
                     {
@@ -408,7 +436,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 using (var certClient = new HttpClient(CreateHTTPClientHandler(checkResult, DNSClient)))
                 {
 
-                    var response = await certClient.GetAsync(Check.URL, CancellationToken);
+                    using var response = await certClient.GetAsync(Check.URL, CancellationToken);
 
                     if (response.IsSuccessStatusCode)
                         checkResult.Messages.Add($"HTTPS check successful for {Check.URL}");
@@ -476,7 +504,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         while (!isLastLine)
                         {
 
-                            response = await reader.ReadLineAsync();
+                            response = await reader.ReadLineAsync(CancellationToken);
 
                             if (response is null)
                             {
@@ -521,7 +549,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                         using (var sslStream = new SslStream(stream, false, CreateRemoteCertificateValidationCallback(checkResult)))
                         {
-                            await sslStream.AuthenticateAsClientAsync(host);
+                            await sslStream.AuthenticateAsClientAsync(
+                                      new SslClientAuthenticationOptions { TargetHost = host },
+                                      CancellationToken
+                                  );
                             checkResult.Messages.Add($"SMTP STARTTLS connection successful for {Check.URL}");
                         }
 
@@ -592,7 +623,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                         using (var sslStream = new SslStream(stream, false, CreateRemoteCertificateValidationCallback(checkResult)))
                         {
-                            await sslStream.AuthenticateAsClientAsync(host);
+                            await sslStream.AuthenticateAsClientAsync(
+                                      new SslClientAuthenticationOptions { TargetHost = host },
+                                      CancellationToken
+                                  );
                             checkResult.Messages.Add($"IMAP STARTTLS connection successful for {Check.URL}");
                         }
 

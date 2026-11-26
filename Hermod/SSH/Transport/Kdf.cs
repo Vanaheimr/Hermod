@@ -90,42 +90,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             using var hash = IncrementalHash.CreateHash(HashAlgorithm);
 
-            // K1 = HASH(K || H || letter || session_id)
-            hash.AppendData(SharedSecretMPInt);
-            hash.AppendData(ExchangeHash);
-            hash.AppendData([ Letter ]);
-            hash.AppendData(SessionId);
+            var blocks = new List<Byte[]>();
 
-            var blocks    = new List<Byte[]> { hash.GetHashAndReset() };
-            var produced  = blocks[0].Length;
-
-            // Kn = HASH(K || H || K1 || ... || K(n-1)) — the FULL previous blocks, not the truncated output.
-            while (produced < Length)
+            try
             {
 
+                // K1 = HASH(K || H || letter || session_id)
                 hash.AppendData(SharedSecretMPInt);
                 hash.AppendData(ExchangeHash);
-                foreach (var previous in blocks)
-                    hash.AppendData(previous);
+                hash.AppendData([ Letter ]);
+                hash.AppendData(SessionId);
 
-                var next = hash.GetHashAndReset();
-                blocks.Add(next);
-                produced += next.Length;
+                blocks.Add(hash.GetHashAndReset());
+                var produced = blocks[0].Length;
+
+                // Kn = HASH(K || H || K1 || ... || K(n-1)) — the FULL previous blocks, not the truncated output.
+                while (produced < Length)
+                {
+
+                    hash.AppendData(SharedSecretMPInt);
+                    hash.AppendData(ExchangeHash);
+                    foreach (var previous in blocks)
+                        hash.AppendData(previous);
+
+                    var next = hash.GetHashAndReset();
+                    blocks.Add(next);
+                    produced += next.Length;
+
+                }
+
+                var result = new Byte[Length];
+                var filled = 0;
+                foreach (var block in blocks)
+                {
+                    var take = Math.Min(block.Length, Length - filled);
+                    block.AsSpan(0, take).CopyTo(result.AsSpan(filled));
+                    filled += take;
+                    if (filled == Length)
+                        break;
+                }
+
+                return result;
 
             }
-
-            var result  = new Byte[Length];
-            var filled   = 0;
-            foreach (var block in blocks)
+            finally
             {
-                var take = Math.Min(block.Length, Length - filled);
-                block.AsSpan(0, take).CopyTo(result.AsSpan(filled));
-                filled += take;
-                if (filled == Length)
-                    break;
+                foreach (var block in blocks)
+                    CryptographicOperations.ZeroMemory(block);
             }
-
-            return result;
 
         }
 

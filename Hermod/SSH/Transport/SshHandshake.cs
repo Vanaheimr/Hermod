@@ -85,31 +85,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var (kS, qS, signatureBlob) = SshKexCore.ParseEcdhReply(reply);
 
             // 5. Shared secret, exchange hash, signature verification.
-            var rawSecret  = kex.ClientFinish(qS);
-            var kEncoded   = kex.EncodeSharedSecret(rawSecret);
-            var h          = ExchangeHash.Compute(kex.HashAlgorithm, vC, vS, iC, iS, kS, qC, qS, kEncoded);
+            Byte[]?             kEncoded      = null;
+            SshTransportCipher? sendCipher    = null;
+            SshTransportCipher? receiveCipher = null;
+            ISshMac?            sendMac       = null;
+            ISshMac?            receiveMac    = null;
 
-            if (!SshSignature.Verify(kS, h, signatureBlob))
-                throw new SshWireException("The server's host-key signature over the exchange hash is invalid!");
+            try
+            {
 
-            // Fail closed: the signature proves key possession, not host identity, so a missing verifier
-            // means the server is unauthenticated and the connection is trivially machine-in-the-middled.
-            if (VerifyHostKey is null)
-                throw new SshWireException("No host-key verification was supplied, so the server's identity cannot be established. "
-                                           + "Pass a verifier (e.g. HostKeyPolicy.ForHost(host, port)), or SshHostKeyVerification.AcceptAnyUnsafe to skip it deliberately.");
+                var rawSecret = kex.ClientFinish(qS);
+                try   { kEncoded = kex.EncodeSharedSecret(rawSecret); }
+                finally { CryptographicOperations.ZeroMemory(rawSecret); }
 
-            if (!VerifyHostKey(kS))
-                throw new SshHostKeyRejectedException(kS);
+                var h = ExchangeHash.Compute(kex.HashAlgorithm, vC, vS, iC, iS, kS, qC, qS, kEncoded);
 
-            // 6. NEWKEYS + key derivation.
-            var sessionId = h;
-            await ExchangeNewKeysAsync(Pipe, CancellationToken).ConfigureAwait(false);
+                if (!SshSignature.Verify(kS, h, signatureBlob, negotiated.HostKey))
+                    throw new SshWireException($"The server's host-key signature over the exchange hash is invalid for the negotiated '{negotiated.HostKey}'!");
 
-            var derive = SshKexCore.MakeDeriver(kex.HashAlgorithm, kEncoded, h, sessionId);
-            var (sendCipher,    sendMac)    = SshKexCore.BuildDirection(negotiated.CipherClientToServer, negotiated.MacClientToServer, derive, Kdf.KeyLetter.EncryptionKeyClientToServer, Kdf.KeyLetter.InitialIVClientToServer, Kdf.KeyLetter.IntegrityKeyClientToServer);
-            var (receiveCipher, receiveMac) = SshKexCore.BuildDirection(negotiated.CipherServerToClient, negotiated.MacServerToClient, derive, Kdf.KeyLetter.EncryptionKeyServerToClient, Kdf.KeyLetter.InitialIVServerToClient, Kdf.KeyLetter.IntegrityKeyServerToClient);
+                // Fail closed: the signature proves key possession, not host identity, so a missing verifier
+                // means the server is unauthenticated and the connection is trivially machine-in-the-middled.
+                if (VerifyHostKey is null)
+                    throw new SshWireException("No host-key verification was supplied, so the server's identity cannot be established. "
+                                               + "Pass a verifier (e.g. HostKeyPolicy.ForHost(host, port)), or SshHostKeyVerification.AcceptAnyUnsafe to skip it deliberately.");
 
-            return new SshTransportContext(sessionId, h, negotiated, kS, sendCipher, receiveCipher, sendMac, receiveMac);
+                if (!VerifyHostKey(kS))
+                    throw new SshHostKeyRejectedException(kS);
+
+                // 6. NEWKEYS + key derivation.
+                var sessionId = h;
+                await ExchangeNewKeysAsync(Pipe, CancellationToken).ConfigureAwait(false);
+
+                var derive = SshKexCore.MakeDeriver(kex.HashAlgorithm, kEncoded, h, sessionId);
+                (sendCipher,    sendMac)    = SshKexCore.BuildDirection(negotiated.CipherClientToServer, negotiated.MacClientToServer, derive, Kdf.KeyLetter.EncryptionKeyClientToServer, Kdf.KeyLetter.InitialIVClientToServer, Kdf.KeyLetter.IntegrityKeyClientToServer);
+                (receiveCipher, receiveMac) = SshKexCore.BuildDirection(negotiated.CipherServerToClient, negotiated.MacServerToClient, derive, Kdf.KeyLetter.EncryptionKeyServerToClient, Kdf.KeyLetter.InitialIVServerToClient, Kdf.KeyLetter.IntegrityKeyServerToClient);
+
+                var context = new SshTransportContext(sessionId, h, negotiated, kS, sendCipher, receiveCipher, sendMac, receiveMac);
+                sendCipher    = null;
+                receiveCipher = null;
+                sendMac       = null;
+                receiveMac    = null;
+
+                return context;
+
+            }
+            finally
+            {
+                if (kEncoded is not null) CryptographicOperations.ZeroMemory(kEncoded);
+                sendCipher?.Dispose();
+                receiveCipher?.Dispose();
+                sendMac?.Dispose();
+                receiveMac?.Dispose();
+            }
 
         }
 
@@ -156,25 +183,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             var qC          = SshKexCore.ParseEcdhInit(initPayload);
 
             // 4. Compute the server public value + shared secret, the exchange hash, then sign it.
-            using var kex       = SshKeyExchange.Create(negotiated.KeyExchange);
-            var (qS, rawSecret) = kex.ServerRespond(qC);
-            var kEncoded        = kex.EncodeSharedSecret(rawSecret);
+            using var kex = SshKeyExchange.Create(negotiated.KeyExchange);
+            Byte[]?             kEncoded      = null;
+            SshTransportCipher? sendCipher    = null;
+            SshTransportCipher? receiveCipher = null;
+            ISshMac?            sendMac       = null;
+            ISshMac?            receiveMac    = null;
 
-            var kS         = HostKey.PublicKeyBlob;
-            var h          = ExchangeHash.Compute(kex.HashAlgorithm, vC, vS, iC, iS, kS, qC, qS, kEncoded);
-            var signature  = HostKey.Sign(negotiated.HostKey, h);
+            try
+            {
 
-            await WritePacketAsync(Pipe.Output, NullTransportCipher.Instance, SshKexCore.BuildEcdhReply(kS, qS, signature), CancellationToken).ConfigureAwait(false);
+                var (qS, rawSecret) = kex.ServerRespond(qC);
+                try   { kEncoded = kex.EncodeSharedSecret(rawSecret); }
+                finally { CryptographicOperations.ZeroMemory(rawSecret); }
 
-            // 5. NEWKEYS + key derivation.
-            var sessionId = h;
-            await ExchangeNewKeysAsync(Pipe, CancellationToken).ConfigureAwait(false);
+                var kS         = HostKey.PublicKeyBlob;
+                var h          = ExchangeHash.Compute(kex.HashAlgorithm, vC, vS, iC, iS, kS, qC, qS, kEncoded);
+                var signature  = HostKey.Sign(negotiated.HostKey, h);
 
-            var derive = SshKexCore.MakeDeriver(kex.HashAlgorithm, kEncoded, h, sessionId);
-            var (sendCipher,    sendMac)    = SshKexCore.BuildDirection(negotiated.CipherServerToClient, negotiated.MacServerToClient, derive, Kdf.KeyLetter.EncryptionKeyServerToClient, Kdf.KeyLetter.InitialIVServerToClient, Kdf.KeyLetter.IntegrityKeyServerToClient);
-            var (receiveCipher, receiveMac) = SshKexCore.BuildDirection(negotiated.CipherClientToServer, negotiated.MacClientToServer, derive, Kdf.KeyLetter.EncryptionKeyClientToServer, Kdf.KeyLetter.InitialIVClientToServer, Kdf.KeyLetter.IntegrityKeyClientToServer);
+                await WritePacketAsync(Pipe.Output, NullTransportCipher.Instance, SshKexCore.BuildEcdhReply(kS, qS, signature), CancellationToken).ConfigureAwait(false);
 
-            return new SshTransportContext(sessionId, h, negotiated, kS, sendCipher, receiveCipher, sendMac, receiveMac);
+                // 5. NEWKEYS + key derivation.
+                var sessionId = h;
+                await ExchangeNewKeysAsync(Pipe, CancellationToken).ConfigureAwait(false);
+
+                var derive = SshKexCore.MakeDeriver(kex.HashAlgorithm, kEncoded, h, sessionId);
+                (sendCipher,    sendMac)    = SshKexCore.BuildDirection(negotiated.CipherServerToClient, negotiated.MacServerToClient, derive, Kdf.KeyLetter.EncryptionKeyServerToClient, Kdf.KeyLetter.InitialIVServerToClient, Kdf.KeyLetter.IntegrityKeyServerToClient);
+                (receiveCipher, receiveMac) = SshKexCore.BuildDirection(negotiated.CipherClientToServer, negotiated.MacClientToServer, derive, Kdf.KeyLetter.EncryptionKeyClientToServer, Kdf.KeyLetter.InitialIVClientToServer, Kdf.KeyLetter.IntegrityKeyClientToServer);
+
+                var context = new SshTransportContext(sessionId, h, negotiated, kS, sendCipher, receiveCipher, sendMac, receiveMac);
+                sendCipher    = null;
+                receiveCipher = null;
+                sendMac       = null;
+                receiveMac    = null;
+
+                return context;
+
+            }
+            finally
+            {
+                if (kEncoded is not null) CryptographicOperations.ZeroMemory(kEncoded);
+                sendCipher?.Dispose();
+                receiveCipher?.Dispose();
+                sendMac?.Dispose();
+                receiveMac?.Dispose();
+            }
 
         }
 
