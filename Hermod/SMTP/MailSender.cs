@@ -98,11 +98,12 @@ public sealed class MailSender
 
         var ids = new List<String>();
 
-        // A QueuedMail targets exactly one recipient domain, so fan the recipients out per domain.
-        foreach (var byDomain in recipients.GroupBy(rcpt => rcpt.Address.Domain, StringComparer.OrdinalIgnoreCase))
+        // A QueuedMail targets exactly one recipient domain, so fan the recipients out per domain -
+        // one domain however its name is written (RFC 5321 §2.4, RFC 5890 §2.3.2.1).
+        foreach (var byDomain in recipients.GroupBy(rcpt => Idna.Key(rcpt.Address.Domain.ToString())))
         {
 
-            var domain = byDomain.Key.TrimEnd('.').ToLowerInvariant();
+            var domain = byDomain.Key;
             var to     = byDomain.Select(rcpt => rcpt.Address.ToString()).ToArray();
             var id     = UUIDv7.Generate().ToString("N");
 
@@ -185,7 +186,7 @@ public sealed class MailSender
 
         var ids = new List<String>();
 
-        foreach (var byDomain in recipients.GroupBy(recipient => recipient[(recipient.LastIndexOf('@') + 1)..].TrimEnd('.').ToLowerInvariant()))
+        foreach (var byDomain in recipients.GroupBy(recipient => Idna.Key(recipient[(recipient.LastIndexOf('@') + 1)..])))
         {
 
             var id = UUIDv7.Generate().ToString("N");
@@ -274,8 +275,8 @@ public sealed class MailSender
         if (EMailEnvelop.Dsn.EnvIdError is { } envIdError)
         {
 
-            foreach (var byDomain in recipients.GroupBy(rcpt => rcpt.Address.Domain, StringComparer.OrdinalIgnoreCase))
-                results.Add(new DirectSendResult(byDomain.Key.TrimEnd('.').ToLowerInvariant(),
+            foreach (var byDomain in recipients.GroupBy(rcpt => Idna.Key(rcpt.Address.Domain.ToString())))
+                results.Add(new DirectSendResult(byDomain.Key,
                                                  [ .. byDomain.Select(rcpt => rcpt.Address.ToString()) ],
                                                  SendResult.PermFail(501, "5.5.4 " + envIdError)));
 
@@ -284,11 +285,12 @@ public sealed class MailSender
 
         }
 
-        // Direct-to-MX delivery is per recipient domain (each has its own MX set).
-        foreach (var byDomain in recipients.GroupBy(rcpt => rcpt.Address.Domain, StringComparer.OrdinalIgnoreCase))
+        // Direct-to-MX delivery is per recipient domain (each has its own MX set) - one domain
+        // however its name is written (RFC 5321 §2.4, RFC 5890 §2.3.2.1).
+        foreach (var byDomain in recipients.GroupBy(rcpt => Idna.Key(rcpt.Address.Domain.ToString())))
         {
 
-            var domain = byDomain.Key.TrimEnd('.').ToLowerInvariant();
+            var domain = byDomain.Key;
             var to     = byDomain.Select(rcpt => rcpt.Address.ToString()).ToArray();
 
             var result = await directClient.SendAsync(domain, from, to, messageContent,

@@ -45,6 +45,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private readonly ConcurrentDictionary<String, Boolean>         _processingIds            = new();
         private readonly HashSet<String>                               _delayNotificationsSent   = [];
 
+        // The destinations that failed at their last attempt, by Idna.Key of the target domain.
+        private readonly Dictionary<String, FailedDestination>         _failedDestinations       = [];
+
+        /// <summary>
+        /// A destination that failed: not tried again before Until - unless a message is trying
+        /// it right now (Probing).
+        /// </summary>
+        /// <param name="Until">When the destination is tried again: when the message that failed there is due.</param>
+        /// <param name="Result">How it failed.</param>
+        /// <param name="Probing">Whether a message is trying it right now.</param>
+        private sealed record FailedDestination(DateTimeOffset  Until,
+                                                SendResult      Result,
+                                                Boolean         Probing);
+
+        /// <summary>
+        /// How long a message waits while another one tries its destination.
+        /// </summary>
+        private static readonly TimeSpan ProbeWait = TimeSpan.FromMinutes(1);
+
         private CancellationTokenSource? _cts;
         private Task?                    _newMailTask;
         private Task?                    _retryCheckTask;
@@ -161,6 +180,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                     }
 
+                    // A destination that failed at its last attempt is not tried again at once.
+                    if (await HeldBackAsync(mail, ct))
+                    {
+                        _processingIds.TryRemove(mail.Id, out _);
+                        continue;
+                    }
+
                     // Start delivery in background (fire and forget with semaphore control)
                     _ = DeliverWithSemaphoreAsync(mail, ct);
 
@@ -231,6 +257,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     continue;
                 }
 
+                // A destination that failed at its last attempt waits for its time.
+                if (await HeldBackAsync(mail, ct))
+                {
+                    _processingIds.TryRemove(mail.Id, out _);
+                    continue;
+                }
+
                 _ = DeliverWithSemaphoreAsync(mail, ct);
             }
 
@@ -280,15 +313,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 await HandleDeliveryResultAsync(mail, result, ct);
 
+                NoteDestination(mail, result);
+
             }
             catch (Exception ex)
             {
 
                 logger.Log(LogLevel.Error, $"Delivery exception for {mail.Id}: {ex.Message}");
 
+                // What the attempt said of its destination is not known: the next message may try it.
+                lock (_failedDestinations)
+                {
+                    if (_failedDestinations.TryGetValue(Idna.Key(mail.TargetDomain), out var failed) && failed.Probing)
+                        _failedDestinations.Remove(Idna.Key(mail.TargetDomain));
+                }
+
                 mail.LastError = ex.Message;
                 mail.RetryCount++;
-                mail.NextRetry = RetryCalculator.GetNextRetryTime(mail.RetryCount);
+                mail.NextRetry = RetryCalculator.GetNextRetryTime(mail.RetryCount, queueProcessorConfig.RetryIntervals);
                 mail.Status = QueueItemStatus.Deferred;
 
                 await UpdateAsync(mail, ct);
@@ -330,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     mail.LastError = $"{result.ResponseCode} {result.ResponseText}";
                     mail.RemoteMx = result.RemoteMx;
 
-                    if (RetryCalculator.ShouldGiveUp(mail))
+                    if (RetryCalculator.ShouldGiveUp(mail, queueProcessorConfig.MaxRetries, queueProcessorConfig.GiveUpAfter))
                     {
                         logger.Log(LogLevel.Warning, 
                             $"✗ Giving up on {mail.Id} after {mail.RetryCount} attempts: {mail.LastError}");
@@ -342,7 +384,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     }
                     else
                     {
-                        mail.NextRetry = RetryCalculator.GetNextRetryTime(mail.RetryCount);
+                        mail.NextRetry = RetryCalculator.GetNextRetryTime(mail.RetryCount, queueProcessorConfig.RetryIntervals);
                         mail.Status = QueueItemStatus.Deferred;
 
                         logger.Log(LogLevel.Warning, 
@@ -355,7 +397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             !_delayNotificationsSent.Contains(mail.Id) &&
                             Timestamp.Now - mail.QueuedAt > queueProcessorConfig.DelayNotificationAfter)
                         {
-                            await bounceHandler.SendDelayNotificationAsync(mail, result, ct);
+                            await bounceHandler.SendDelayNotificationAsync(mail, result, ct, queueProcessorConfig.GiveUpAfter);
                             _delayNotificationsSent.Add(mail.Id);
                         }
                     }
@@ -424,7 +466,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 retry.RetryCount = (UInt16) (mail.RetryCount + 1);
                 retry.LastError  = $"{refusedNow[0].Code} {refusedNow[0].Text}";
                 retry.RemoteMx   = result.RemoteMx;
-                retry.NextRetry  = RetryCalculator.GetNextRetryTime(retry.RetryCount);
+                retry.NextRetry  = RetryCalculator.GetNextRetryTime(retry.RetryCount, queueProcessorConfig.RetryIntervals);
                 retry.Status     = QueueItemStatus.Deferred;
 
                 await mailQueue.EnqueueAsync(retry, ct);
@@ -478,6 +520,115 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                    RemoteMx        = mail.RemoteMx,
                    RemoteResponse  = mail.RemoteResponse
                };
+
+        #region Failed destinations
+
+        /// <summary>
+        /// Whether the attempt failed at its destination itself: no session came about - no
+        /// connection, a connection closed unasked, a 421 - or the session was refused for now,
+        /// before any recipient was answered. A refusal of a recipient, or of the message, is not
+        /// the destination's failure.
+        /// </summary>
+        private static Boolean DestinationFailed(SendResult Result)
+
+            => Result.Status == SendStatus.TempFail &&
+               Result.Recipients.Count == 0 &&
+               (Result.SessionRefused || Result.ResponseCode is 0 or 421);
+
+        /// <summary>
+        /// What an attempt said of its destination. RFC 5321 §4.5.4.1: "The sender MUST delay
+        /// retrying a particular destination after one attempt has failed"; "A client SHOULD keep
+        /// a list of hosts it cannot reach and corresponding connection timeouts, rather than just
+        /// retrying queued mail items." One that failed is not tried again before the message that
+        /// failed there is due; one that answered is tried at once again.
+        /// </summary>
+        private void NoteDestination(QueuedMail Mail, SendResult Result)
+        {
+
+            var destination = Idna.Key(Mail.TargetDomain);
+
+            lock (_failedDestinations)
+            {
+
+                if (DestinationFailed(Result))
+                    _failedDestinations[destination] = new FailedDestination(Mail.Status == QueueItemStatus.Deferred
+                                                                                 ? Mail.NextRetry
+                                                                                 : RetryCalculator.GetNextRetryTime(1, queueProcessorConfig.RetryIntervals),
+                                                                             Result,
+                                                                             false);
+
+                else
+                    _failedDestinations.Remove(destination);
+
+            }
+
+        }
+
+        /// <summary>
+        /// Whether the message waits for its destination, which failed at its last attempt: until
+        /// the message that failed there is due - and while the first message that is due tries
+        /// it. A message that has waited as long as it may has failed, and its sender learns why.
+        /// </summary>
+        private async Task<Boolean> HeldBackAsync(QueuedMail Mail, CancellationToken ct)
+        {
+
+            DateTimeOffset? until  = null;
+            SendResult?     failed = null;
+            var             now    = Timestamp.Now;
+
+            lock (_failedDestinations)
+            {
+
+                var destination = Idna.Key(Mail.TargetDomain);
+
+                if (_failedDestinations.TryGetValue(destination, out var state))
+                {
+
+                    failed = state.Result;
+
+                    if (state.Probing)
+                        until = now + ProbeWait;
+
+                    else if (state.Until > now)
+                        until = state.Until;
+
+                    // Its time has come: this message tries it, the others wait for what it says.
+                    else
+                        _failedDestinations[destination] = state with { Probing = true };
+
+                }
+
+            }
+
+            if (until is null || failed is null)
+                return false;
+
+            if (now - Mail.QueuedAt >= queueProcessorConfig.GiveUpAfter)
+            {
+
+                logger.Log(LogLevel.Warning, $"✗ Giving up on {Mail.Id}: {Mail.TargetDomain} could not be reached ({failed.ResponseCode} {failed.ResponseText})");
+
+                Mail.Status    = QueueItemStatus.Failed;
+                Mail.LastError = $"{failed.ResponseCode} {failed.ResponseText}";
+                await UpdateAsync(Mail, ct);
+
+                await bounceHandler.SendBounceAsync(Mail, failed, ct);
+                return true;
+
+            }
+
+            logger.Log(LogLevel.Debug, $"Held back {Mail.Id}: {Mail.TargetDomain} failed at its last attempt, tried again at {until:HH:mm:ss}");
+
+            Mail.Status    = QueueItemStatus.Deferred;
+            Mail.NextRetry = until.Value;
+            Mail.LastError ??= $"{failed.ResponseCode} {failed.ResponseText}";
+            await UpdateAsync(Mail, ct);
+
+            return true;
+
+        }
+
+        #endregion
 
         #region Domain Rate Limiting
 

@@ -1588,10 +1588,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP.Server
                     return;
                 }
 
-                // Group remote recipients by domain for efficient delivery
+                // One copy for the recipients of one domain, however its name is written. RFC 5321
+                // §4.5.4.1: when the server "to which a copy of the message is to be sent is the same
+                // for multiple recipients, then only one copy of the message SHOULD be transmitted";
+                // §2.4: "Mailbox domains follow normal DNS rules and are hence not case sensitive",
+                // and a U-label is its A-label (RFC 5890 §2.3.2.1).
                 var recipientsByDomain = _remoteRcptTo
-                    .GroupBy(r => ExtractDomain(r))
-                    .Where(g => !string.IsNullOrEmpty(g.Key));
+                    .Where  (r => ExtractDomain(r).Length > 0)
+                    .GroupBy(r => Idna.Key(ExtractDomain(r)));
 
                 foreach (var domainGroup in recipientsByDomain)
                 {

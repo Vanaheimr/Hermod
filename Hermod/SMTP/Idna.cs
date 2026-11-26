@@ -99,6 +99,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                String.Equals(ToAscii(A).TrimEnd('.'), ToAscii(B).TrimEnd('.'), StringComparison.OrdinalIgnoreCase);
 
 
+        /// <summary>
+        /// The one name of a domain, however it is written: in A-labels, in lower case, without a
+        /// trailing dot - "Bücher.test." and "xn--bcher-kva.test" are both "xn--bcher-kva.test".
+        /// RFC 5321 §2.4: "Mailbox domains follow normal DNS rules and are hence not case
+        /// sensitive"; RFC 5890 §2.3.2.1: a U-label and its A-label are the same label.
+        /// </summary>
+        /// <param name="Domain">A domain name, in U-labels, A-labels or both, in any case.</param>
+        public static String Key(String Domain)
+
+            => ToAscii(Domain.TrimEnd('.')).ToLowerInvariant();
+
+
         private static Boolean IsAscii(String Text)
         {
 

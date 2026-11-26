@@ -182,17 +182,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="mail">The message still being tried.</param>
         /// <param name="lastResult">The answer to the last attempt, when there was one.</param>
         /// <param name="ct">A cancellation token.</param>
+        /// <param name="giveUpAfter">The time in the queue after which the message is given up on
+        /// (QueueProcessorConfig.GiveUpAfter); by default RetryCalculator.MaxQueueTime.</param>
         public async Task SendDelayNotificationAsync(
             QueuedMail          mail,
             SendResult?         lastResult   = null,
-            CancellationToken   ct           = default)
+            CancellationToken   ct           = default,
+            TimeSpan?           giveUpAfter  = null)
         {
 
             if (IsNullReversePath(mail.EnvelopeFrom))
                 return;
 
             var result     = lastResult ?? SendResult.TempFail(mail.LastError ?? "not yet delivered");
-            var retryUntil = mail.QueuedAt + RetryCalculator.MaxQueueTime;
+            var retryUntil = mail.QueuedAt + (giveUpAfter ?? RetryCalculator.MaxQueueTime);
             var recipients = mail.EnvelopeTo.
                                  Select(recipient => DsnOf(mail, recipient)).
                                  Where (recipient => recipient.ReportsDelay).
