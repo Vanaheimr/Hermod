@@ -128,7 +128,10 @@ internal static class Http3MessageValidator
 
     /// <summary>
     /// Checks a response header section (RFC 9114 §4.3.2): exactly ONE valid <c>:status</c>
-    /// (three digits, 100–599), no other pseudo-headers, pseudo-headers before regular fields.
+    /// (three digits, 100–999), no other pseudo-headers, pseudo-headers before regular fields.
+    /// A code from 600 to 999 is invalid (RFC 9110 §15) but not malformed: a client SHOULD
+    /// process such a response as if it had a 5xx status, and so it is handed on with its code
+    /// rather than discarded. Below 100 there is neither a final nor an interim response.
     /// </summary>
     public static string? ValidateResponseHeaders(IReadOnlyList<HeaderField> fields, out int status)
     {
