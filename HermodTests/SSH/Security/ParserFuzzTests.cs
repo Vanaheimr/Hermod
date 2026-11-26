@@ -17,11 +17,15 @@
 
 #region Usings
 
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Text;
+using System.Threading.Channels;
 
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.SSH;
+using org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP;
 
 #endregion
 
@@ -576,6 +580,207 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             ExercisedAtLeast(100);
 
+        }
+
+        #endregion
+
+        #region SFTP wire parsers (server requests & client responses)
+
+        /// <summary>
+        /// Feed truncated, bit-flipped, hostile-length, and random SFTP v3 packets into
+        /// <see cref="SftpServer.ServeAsync"/> and verify every packet either produces a clean SFTP
+        /// status reply or ends the session with a typed <see cref="SshWireException"/> — never a crash.
+        /// </summary>
+        [Test]
+        [CancelAfter(60000)]
+        public async Task Fuzz_SftpServer_MalformedRequests_NeverCrash(CancellationToken CancellationToken)
+        {
+
+            var random = new Random(Seed);
+
+            // Valid seed packets across the richest SFTP request decoders.
+            Byte[][] seeds = [
+                BuildSftpPacket(SftpPacketType.Open,     (ref SshPacketWriter w) => { w.WriteUInt32(1); w.WriteString("/f"); w.WriteUInt32((UInt32) SftpOpenFlags.Read); SftpFileAttributes.File(0).Encode(ref w); }),
+                BuildSftpPacket(SftpPacketType.Read,     (ref SshPacketWriter w) => { w.WriteUInt32(2); w.WriteString("h1"); w.WriteUInt64(0); w.WriteUInt32(64); }),
+                BuildSftpPacket(SftpPacketType.Write,    (ref SshPacketWriter w) => { w.WriteUInt32(3); w.WriteString("h1"); w.WriteUInt64(0); w.WriteBinaryString([1, 2, 3]); }),
+                BuildSftpPacket(SftpPacketType.SetStat,  (ref SshPacketWriter w) => { w.WriteUInt32(4); w.WriteString("/f"); SftpFileAttributes.File(10).Encode(ref w); }),
+                BuildSftpPacket(SftpPacketType.Symlink,  (ref SshPacketWriter w) => { w.WriteUInt32(5); w.WriteString("/target"); w.WriteString("/link"); }),
+                BuildSftpPacket(SftpPacketType.Extended, (ref SshPacketWriter w) => { w.WriteUInt32(6); w.WriteString("copy-data"); w.WriteString("h1"); w.WriteUInt64(0); w.WriteUInt64(10); w.WriteString("h2"); w.WriteUInt64(0); })
+            ];
+
+            var inputs = seeds.SelectMany(seed => Truncations(seed)
+                                                      .Concat(BitFlips(seed, random, 16))
+                                                      .Concat(HostileLengths(seed)))
+                              .Concat(Noise(random, 64))
+                              .ToArray();
+
+            var initPacket = BuildSftpPacket(SftpPacketType.Init, (ref SshPacketWriter w) => w.WriteUInt32(SftpVersion.Three));
+
+            foreach (var fuzzed in inputs)
+            {
+                exercised++;
+                var fs     = new InMemorySftpFileSystem();
+                var duplex = new CannedSftpDuplex(initPacket, fuzzed);
+
+                try
+                {
+                    await SftpServer.ServeAsync(duplex, fs, CancellationToken: CancellationToken);
+                }
+                catch (Exception e) when (!ForbiddenExceptions.Contains(e.GetType()))
+                {
+                    // Clean typed protocol rejection (e.g. SshWireException).
+                }
+                catch (Exception e)
+                {
+                    var hex = Convert.ToHexString(fuzzed.Length <= 96 ? fuzzed : fuzzed[..96]).ToLowerInvariant();
+                    Assert.Fail($"SftpServer: {e.GetType().Name} — must reject malformed SFTP packets cleanly.\n"
+                                + $"  input ({fuzzed.Length} byte(s)): {hex}\n  {e.Message}");
+                }
+            }
+
+            ExercisedAtLeast(300);
+
+        }
+
+        /// <summary>
+        /// A hostile server returning an <c>SSH_FXP_NAME</c> packet with <c>count = 0x7FFFFFFF</c>
+        /// followed by no entries must fail cleanly without attempting a multi-gigabyte List pre-allocation.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task Fuzz_SftpClient_HostileReadDirCount_DoesNotOom(CancellationToken CancellationToken)
+        {
+
+            var (clientEnd, serverEnd) = MemorySftpDuplex.CreatePair();
+
+            var hostileServer = Task.Run(async () =>
+            {
+                // 1. Read INIT → send VERSION 3.
+                _ = await SftpServer.ReadPacketAsync(serverEnd, CancellationToken);
+                await SftpServer.SendAsync(serverEnd, BuildSftpPacket(SftpPacketType.Version, (ref SshPacketWriter w) => w.WriteUInt32(SftpVersion.Three)), CancellationToken);
+
+                // 2. Read OPENDIR → send HANDLE.
+                var openDir = await SftpServer.ReadPacketAsync(serverEnd, CancellationToken);
+                var openId  = BinaryPrimitives.ReadUInt32BigEndian(openDir!.AsSpan(1, 4));
+                await SftpServer.SendAsync(serverEnd, BuildSftpPacket(SftpPacketType.Handle, (ref SshPacketWriter w) => { w.WriteUInt32(openId); w.WriteString("d1"); }), CancellationToken);
+
+                // 3. Read READDIR → send hostile NAME claiming 0x7FFFFFFF entries with 0 trailing bytes.
+                var readDir = await SftpServer.ReadPacketAsync(serverEnd, CancellationToken);
+                var readId  = BinaryPrimitives.ReadUInt32BigEndian(readDir!.AsSpan(1, 4));
+                await SftpServer.SendAsync(serverEnd, BuildSftpPacket(SftpPacketType.Name, (ref SshPacketWriter w) => { w.WriteUInt32(readId); w.WriteUInt32(0x7FFF_FFFFu); }), CancellationToken);
+
+                // 4. Read CLOSE (from finally) → send OK.
+                var close = await SftpServer.ReadPacketAsync(serverEnd, CancellationToken);
+                if (close is not null)
+                {
+                    var closeId = BinaryPrimitives.ReadUInt32BigEndian(close.AsSpan(1, 4));
+                    await SftpServer.SendAsync(serverEnd, BuildSftpPacket(SftpPacketType.Status, (ref SshPacketWriter w) => { w.WriteUInt32(closeId); w.WriteUInt32((UInt32) SftpStatusCode.Ok); w.WriteString("OK"); w.WriteString(""); }), CancellationToken);
+                }
+            }, CancellationToken);
+
+            await using var sftp = await SFTPClient.OpenAsync(clientEnd, CancellationToken);
+
+            var before = GC.GetTotalAllocatedBytes(precise: true);
+            await Assert.ThrowsAsync<SshWireException>(async () =>
+                await sftp.ListDirectoryAsync("/", CancellationToken));
+            var allocated = GC.GetTotalAllocatedBytes(precise: true) - before;
+
+            Assert.That(allocated, Is.LessThan(2_000_000),
+                        $"rejecting a hostile READDIR count must not pre-allocate gigabytes ({allocated} bytes allocated)");
+
+            await hostileServer;
+
+        }
+
+        private delegate void SftpBodyWriter(ref SshPacketWriter Writer);
+
+        private static Byte[] BuildSftpPacket(SftpPacketType Type, SftpBodyWriter Body)
+        {
+            var abw = new ArrayBufferWriter<Byte>();
+            var w   = new SshPacketWriter(abw);
+            w.WriteByte((Byte) Type);
+            Body(ref w);
+            return abw.WrittenSpan.ToArray();
+        }
+
+        private sealed class CannedSftpDuplex : ISftpDuplex
+        {
+            private readonly Byte[] stream;
+            private          Int32  position;
+
+            public CannedSftpDuplex(params Byte[][] Packets)
+            {
+                using var ms = new MemoryStream();
+                Span<Byte> len = stackalloc Byte[4];
+                foreach (var pkt in Packets)
+                {
+                    BinaryPrimitives.WriteUInt32BigEndian(len, (UInt32) pkt.Length);
+                    ms.Write(len);
+                    ms.Write(pkt);
+                }
+                stream = ms.ToArray();
+            }
+
+            public ValueTask<Byte[]?> TryReadExactAsync(Int32 Count, CancellationToken CancellationToken = default)
+            {
+                if (position + Count > stream.Length)
+                    return ValueTask.FromResult<Byte[]?>(null);
+                var result = stream[position..(position + Count)];
+                position += Count;
+                return ValueTask.FromResult<Byte[]?>(result);
+            }
+
+            public async ValueTask<Byte[]> ReadExactAsync(Int32 Count, CancellationToken CancellationToken = default)
+                => await TryReadExactAsync(Count, CancellationToken) ?? throw new EndOfStreamException();
+
+            public ValueTask SendAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
+                => ValueTask.CompletedTask;
+
+            public ValueTask CloseAsync(CancellationToken CancellationToken = default)
+                => ValueTask.CompletedTask;
+        }
+
+        private sealed class MemorySftpDuplex : ISftpDuplex
+        {
+            private readonly Channel<Byte[]> inbox = Channel.CreateUnbounded<Byte[]>();
+            private          MemorySftpDuplex peer = default!;
+            private          Byte[]           rest = [];
+
+            public static (MemorySftpDuplex A, MemorySftpDuplex B) CreatePair()
+            {
+                var a = new MemorySftpDuplex(); var b = new MemorySftpDuplex();
+                a.peer = b; b.peer = a;
+                return (a, b);
+            }
+
+            public async ValueTask<Byte[]?> TryReadExactAsync(Int32 Count, CancellationToken CancellationToken = default)
+            {
+                while (rest.Length < Count)
+                {
+                    if (!await inbox.Reader.WaitToReadAsync(CancellationToken))
+                        return null;
+                    rest = [.. rest, .. await inbox.Reader.ReadAsync(CancellationToken)];
+                }
+                var head = rest[..Count];
+                rest = rest[Count..];
+                return head;
+            }
+
+            public async ValueTask<Byte[]> ReadExactAsync(Int32 Count, CancellationToken CancellationToken = default)
+                => await TryReadExactAsync(Count, CancellationToken) ?? throw new EndOfStreamException();
+
+            public ValueTask SendAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
+            {
+                peer.inbox.Writer.TryWrite(Data.ToArray());
+                return ValueTask.CompletedTask;
+            }
+
+            public ValueTask CloseAsync(CancellationToken CancellationToken = default)
+            {
+                inbox.Writer.TryComplete();
+                peer.inbox.Writer.TryComplete();
+                return ValueTask.CompletedTask;
+            }
         }
 
         #endregion

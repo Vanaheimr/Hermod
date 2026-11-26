@@ -101,23 +101,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                                                Byte                      KeyLetter,
                                                                                Byte                      IVLetter,
                                                                                Byte                      MacLetter)
+        {
 
-            => CipherName switch {
-                   SshAlgorithmNames.Cipher.ChaCha20Poly1305 => (new ChaCha20Poly1305Cipher(Derive(KeyLetter, ChaCha20Poly1305Cipher.KeyLength)), null),
-                   SshAlgorithmNames.Cipher.Aes256Gcm => (new AesGcmTransportCipher(Derive(KeyLetter, 32), Derive(IVLetter, AesGcmTransportCipher.NonceLength)), null),
-                   SshAlgorithmNames.Cipher.Aes128Gcm => (new AesGcmTransportCipher(Derive(KeyLetter, 16), Derive(IVLetter, AesGcmTransportCipher.NonceLength)), null),
-                   SshAlgorithmNames.Cipher.Aes256Ctr => (new AesCtrTransportCipher(Derive(KeyLetter, 32), Derive(IVLetter, AesCtrTransportCipher.CounterLength)), BuildMac(MacName, Derive, MacLetter)),
-                   SshAlgorithmNames.Cipher.Aes192Ctr => (new AesCtrTransportCipher(Derive(KeyLetter, 24), Derive(IVLetter, AesCtrTransportCipher.CounterLength)), BuildMac(MacName, Derive, MacLetter)),
-                   SshAlgorithmNames.Cipher.Aes128Ctr => (new AesCtrTransportCipher(Derive(KeyLetter, 16), Derive(IVLetter, AesCtrTransportCipher.CounterLength)), BuildMac(MacName, Derive, MacLetter)),
-                   _                                  => throw new SshWireException($"Unsupported cipher '{CipherName}'.")
-               };
+            Byte[]? key = null;
+            Byte[]? iv  = null;
+
+            try
+            {
+                return CipherName switch {
+                    SshAlgorithmNames.Cipher.ChaCha20Poly1305 => (new ChaCha20Poly1305Cipher(key = Derive(KeyLetter, ChaCha20Poly1305Cipher.KeyLength)), null),
+                    SshAlgorithmNames.Cipher.Aes256Gcm        => (new AesGcmTransportCipher(key = Derive(KeyLetter, 32), iv = Derive(IVLetter, AesGcmTransportCipher.NonceLength)), null),
+                    SshAlgorithmNames.Cipher.Aes128Gcm        => (new AesGcmTransportCipher(key = Derive(KeyLetter, 16), iv = Derive(IVLetter, AesGcmTransportCipher.NonceLength)), null),
+                    SshAlgorithmNames.Cipher.Aes256Ctr        => (new AesCtrTransportCipher(key = Derive(KeyLetter, 32), iv = Derive(IVLetter, AesCtrTransportCipher.CounterLength)), BuildMac(MacName, Derive, MacLetter)),
+                    SshAlgorithmNames.Cipher.Aes192Ctr        => (new AesCtrTransportCipher(key = Derive(KeyLetter, 24), iv = Derive(IVLetter, AesCtrTransportCipher.CounterLength)), BuildMac(MacName, Derive, MacLetter)),
+                    SshAlgorithmNames.Cipher.Aes128Ctr        => (new AesCtrTransportCipher(key = Derive(KeyLetter, 16), iv = Derive(IVLetter, AesCtrTransportCipher.CounterLength)), BuildMac(MacName, Derive, MacLetter)),
+                    _                                         => throw new SshWireException($"Unsupported cipher '{CipherName}'.")
+                };
+            }
+            finally
+            {
+                if (key is not null) CryptographicOperations.ZeroMemory(key);
+                if (iv  is not null) CryptographicOperations.ZeroMemory(iv);
+            }
+
+        }
 
         private static ISshMac BuildMac(String MacName, Func<Byte, Int32, Byte[]> Derive, Byte MacLetter)
-            => MacName switch {
-                   SshAlgorithmNames.Mac.HmacSha2_256Etm => HmacSha2Mac.Sha256(Derive(MacLetter, 32)),
-                   SshAlgorithmNames.Mac.HmacSha2_512Etm => HmacSha2Mac.Sha512(Derive(MacLetter, 64)),
-                   _                                     => throw new SshWireException($"Unsupported MAC '{MacName}'.")
-               };
+        {
+
+            Byte[]? macKey = null;
+
+            try
+            {
+                return MacName switch {
+                    SshAlgorithmNames.Mac.HmacSha2_256Etm => HmacSha2Mac.Sha256(macKey = Derive(MacLetter, 32)),
+                    SshAlgorithmNames.Mac.HmacSha2_512Etm => HmacSha2Mac.Sha512(macKey = Derive(MacLetter, 64)),
+                    _                                     => throw new SshWireException($"Unsupported MAC '{MacName}'.")
+                };
+            }
+            finally
+            {
+                if (macKey is not null) CryptographicOperations.ZeroMemory(macKey);
+            }
+
+        }
 
         #endregion
 

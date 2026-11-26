@@ -528,6 +528,115 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Soak_ManyRekeys_WithConcurrentDataChannelsAndGlobalRequests
+
+        /// <summary>
+        /// Long-running soak/stress simulation: aggressive 32 KiB rekey limits on both sides while
+        /// simultaneously pumping 1 MiB bidirectionally, opening/closing 20 short-lived channels, and
+        /// issuing 40 want-reply global requests across dozens of key exchanges. Verifies no deadlocks,
+        /// no data corruption, and strict FIFO reply ordering across continuous rekeying.
+        /// </summary>
+        [Test]
+        [CancelAfter(45000)]
+        public async Task Soak_ManyRekeys_WithConcurrentDataChannelsAndGlobalRequests(CancellationToken CancellationToken)
+        {
+
+            var aggressive = new SshRekeyLimits { DataVolume = 32 * 1024, Interval = null };
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var clientTransport = await clientTask;
+            using var serverTransport = await serverTask;
+
+            await using var serverMux = new SshChannelMultiplexer(serverTransport) {
+                RekeyLimits            = aggressive,
+                GlobalRequestResponder = info => ValueTask.FromResult<SshGlobalRequestReply?>(SshGlobalRequestReply.WithData(info.Data))
+            }.Start();
+
+            await using var clientMux = new SshChannelMultiplexer(clientTransport) {
+                RekeyLimits = aggressive
+            }.Start();
+
+            // Open the primary bulk data channel.
+            var acceptPrimary  = serverMux.AcceptChannelAsync(CancellationToken);
+            var clientPrimary  = await clientMux.OpenChannelAsync("session", CancellationToken: CancellationToken);
+            var serverPrimary  = await acceptPrimary;
+
+            // Accept loop for 20 short-lived echo channels alongside the bulk stream.
+            const Int32 shortChannelCount = 20;
+            var serverShortChannels = Task.Run(async () =>
+            {
+                var handlers = new List<Task>();
+                for (var i = 0; i < shortChannelCount; i++)
+                {
+                    var ch = await serverMux.AcceptChannelAsync(CancellationToken);
+                    handlers.Add(Task.Run(async () =>
+                    {
+                        var bytes = await Receive(ch, CancellationToken);
+                        await Send(ch, bytes, CancellationToken);
+                        await ch.CloseAsync(CancellationToken);
+                    }, CancellationToken));
+                }
+                await Task.WhenAll(handlers);
+            }, CancellationToken);
+
+            var up   = RandomNumberGenerator.GetBytes(Megabyte);
+            var down = RandomNumberGenerator.GetBytes(Megabyte);
+
+            var serverBulkRecv = Receive(serverPrimary, CancellationToken);
+            var clientBulkRecv = Receive(clientPrimary, CancellationToken);
+
+            var clientShortChannels = Task.Run(async () =>
+            {
+                for (var i = 0; i < shortChannelCount; i++)
+                {
+                    var ch      = await clientMux.OpenChannelAsync("session", CancellationToken: CancellationToken);
+                    var msg     = BitConverter.GetBytes(i);
+                    var recv    = Receive(ch, CancellationToken);
+                    await Send(ch, msg, CancellationToken);
+                    var echoed  = await recv;
+                    Assert.That(echoed, Is.EqualTo(msg));
+                    await ch.CloseAsync(CancellationToken);
+                }
+            }, CancellationToken);
+
+            var globalRequests = Task.Run(async () =>
+            {
+                var tasks = Enumerable.Range(0, 40).Select(i => Task.Run(async () =>
+                {
+                    var payload = BitConverter.GetBytes(i);
+                    var reply   = await clientMux.SendGlobalRequestWithReplyAsync("soak-echo@example.test", true, payload, CancellationToken);
+                    Assert.That(reply.Success, Is.True);
+                    Assert.That(reply.Data,    Is.EqualTo(payload));
+                }, CancellationToken)).ToArray();
+                await Task.WhenAll(tasks);
+            }, CancellationToken);
+
+            await Task.WhenAll(
+                Send(clientPrimary, up,   CancellationToken),
+                Send(serverPrimary, down, CancellationToken),
+                serverBulkRecv,
+                clientBulkRecv,
+                clientShortChannels,
+                serverShortChannels,
+                globalRequests
+            );
+
+            Assert.Multiple(() => {
+                Assert.That(serverBulkRecv.Result,                  Is.EqualTo(up));
+                Assert.That(clientBulkRecv.Result,                  Is.EqualTo(down));
+                Assert.That(clientTransport.KeyExchangeCount,       Is.GreaterThanOrEqualTo(15), "aggressive 32 KiB limit across 2+ MiB produces many rekeys");
+                Assert.That(serverTransport.KeyExchangeCount,       Is.EqualTo(clientTransport.KeyExchangeCount));
+            });
+
+        }
+
+        #endregion
+
         #region TheLimits_RefuseNonsense
 
         [Test]

@@ -57,8 +57,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public const Int32  TagLen      = 16;
 
-        private readonly Byte[]  mainKey;     // key[0..32]  — payload + Poly1305 key
-        private readonly Byte[]  headerKey;   // key[32..64] — the 4-byte packet length
+        private readonly Byte[]    mainKey;        // key[0..32]  — payload + Poly1305 key
+        private readonly Byte[]    headerKey;      // key[32..64] — the 4-byte packet length
+        private readonly Poly1305  poly           = new ();
+        private readonly Byte[]    polyKeyBuffer  = new Byte[32];
 
         #endregion
 
@@ -101,16 +103,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             CryptographicOperations.ZeroMemory(block);
         }
 
-        private static void Poly1305Tag(ReadOnlySpan<Byte>  PolyKey,
-                                        ReadOnlySpan<Byte>  EncryptedLength,
-                                        ReadOnlySpan<Byte>  Ciphertext,
-                                        Span<Byte>          Tag)
+        private void Poly1305Tag(ReadOnlySpan<Byte>  PolyKey,
+                                 ReadOnlySpan<Byte>  EncryptedLength,
+                                 ReadOnlySpan<Byte>  Ciphertext,
+                                 Span<Byte>          Tag)
         {
-            var poly = new Poly1305();
-            poly.Init(new KeyParameter(PolyKey.ToArray()));
-            poly.BlockUpdate(EncryptedLength);
-            poly.BlockUpdate(Ciphertext);
-            poly.DoFinal(Tag);
+            PolyKey.CopyTo(polyKeyBuffer);
+            try
+            {
+                poly.Init(new KeyParameter(polyKeyBuffer, 0, 32));
+                CryptographicOperations.ZeroMemory(polyKeyBuffer);
+                poly.BlockUpdate(EncryptedLength);
+                poly.BlockUpdate(Ciphertext);
+                poly.DoFinal(Tag);
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(polyKeyBuffer);
+                poly.Reset();
+            }
         }
 
         #endregion
@@ -198,6 +209,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public Byte[] DecryptAndVerify(UInt32 SequenceNumber, ReadOnlySpan<Byte> EncryptedLength, ReadOnlySpan<Byte> CiphertextAndTag)
         {
+            var packetLength = CiphertextAndTag.Length - TagLen;
+            var plaintext    = new Byte[packetLength];
+            DecryptAndVerifyInto(SequenceNumber, EncryptedLength, CiphertextAndTag, plaintext);
+            return plaintext;
+        }
+
+        /// <summary>
+        /// Verify the Poly1305 tag and decrypt the payload block directly into <paramref name="Plaintext"/>
+        /// (allowing callers such as <see cref="SshPacketFraming"/> to reuse pooled buffers without LOH allocations).
+        /// </summary>
+        public void DecryptAndVerifyInto(UInt32 SequenceNumber, ReadOnlySpan<Byte> EncryptedLength, ReadOnlySpan<Byte> CiphertextAndTag, Span<Byte> Plaintext)
+        {
 
             var packetLength  = CiphertextAndTag.Length - TagLen;
             var ciphertext    = CiphertextAndTag[..packetLength];
@@ -209,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             Span<Byte> polyKey = stackalloc Byte[32];
             DerivePoly1305Key(mainKey, nonce, polyKey);
 
-            // Authenticate before decrypting — and before allocating anything for the plaintext.
+            // Authenticate before decrypting.
             Span<Byte> expectedTag = stackalloc Byte[TagLen];
             Poly1305Tag(polyKey, EncryptedLength, ciphertext, expectedTag);
             CryptographicOperations.ZeroMemory(polyKey);
@@ -217,11 +240,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (!CryptographicOperations.FixedTimeEquals(expectedTag, receivedTag))
                 throw new SshWireException("SSH chacha20-poly1305 authentication failed (bad Poly1305 tag)!");
 
-            // Decrypt straight into the result; the old ToArray() copied every packet first.
-            var plaintext = new Byte[packetLength];
-            ChaCha20.Xor(mainKey, nonce, 1, ciphertext, plaintext);
-            return plaintext;
+            ChaCha20.Xor(mainKey, nonce, 1, ciphertext, Plaintext[..packetLength]);
 
+        }
+
+        #endregion
+
+
+        #region Dispose()
+
+        /// <summary>
+        /// Wipe all directional key material and reset internal Poly1305 state.
+        /// </summary>
+        public override void Dispose()
+        {
+            CryptographicOperations.ZeroMemory(mainKey);
+            CryptographicOperations.ZeroMemory(headerKey);
+            CryptographicOperations.ZeroMemory(polyKeyBuffer);
+            poly.Reset();
+            base.Dispose();
         }
 
         #endregion

@@ -161,29 +161,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (Cipher is ChaCha20Poly1305Cipher chacha)
             {
 
-                var encryptedLength  = await ReadExactAsync(Input, 4, CancellationToken).ConfigureAwait(false);
-                var chachaLength     = chacha.DecryptLength(SequenceNumber, encryptedLength);
+                var rawEncryptedLength = await ReadFourBytesAsync(Input, CancellationToken).ConfigureAwait(false);
+                var chachaLength       = DecryptChaChaLength(chacha, SequenceNumber, rawEncryptedLength);
 
                 if (chachaLength < MinPacketLength || chachaLength > limit)
                     throw new SshWireException($"Illegal SSH packet_length {chachaLength} (must be {MinPacketLength}..{limit})!");
 
-                var chachaBody   = await ReadExactAsync(Input, (Int32) chachaLength + chacha.TagLength, CancellationToken).ConfigureAwait(false);
-                var chachaPlain  = chacha.DecryptAndVerify(SequenceNumber, encryptedLength, chachaBody);
+                var bodyLength = (Int32) chachaLength + chacha.TagLength;
+                var chachaBody = ArrayPool<Byte>.Shared.Rent(bodyLength);
+                var chachaPlain = ArrayPool<Byte>.Shared.Rent((Int32) chachaLength);
 
-                var chachaPad    = chachaPlain[0];
-                var chachaPayLen = (Int32) chachaLength - chachaPad - 1;
-                if (chachaPad < 4 || chachaPayLen < 0)
-                    throw new SshWireException($"Illegal SSH padding_length {chachaPad} for packet_length {chachaLength}!");
+                try
+                {
+                    await ReadExactIntoAsync(Input, chachaBody.AsMemory(0, bodyLength), CancellationToken).ConfigureAwait(false);
 
-                return chachaPlain[1..(1 + chachaPayLen)];
+                    Span<Byte> encryptedLength = stackalloc Byte[4];
+                    BinaryPrimitives.WriteUInt32BigEndian(encryptedLength, rawEncryptedLength);
+
+                    chacha.DecryptAndVerifyInto(SequenceNumber, encryptedLength, chachaBody.AsSpan(0, bodyLength), chachaPlain.AsSpan(0, (Int32) chachaLength));
+
+                    var chachaPad    = chachaPlain[0];
+                    var chachaPayLen = (Int32) chachaLength - chachaPad - 1;
+                    if (chachaPad < 4 || chachaPayLen < 0)
+                        throw new SshWireException($"Illegal SSH padding_length {chachaPad} for packet_length {chachaLength}!");
+
+                    return chachaPlain.AsSpan(1, chachaPayLen).ToArray();
+                }
+                finally
+                {
+                    CryptographicOperations.ZeroMemory(chachaPlain.AsSpan(0, (Int32) chachaLength));
+                    ArrayPool<Byte>.Shared.Return(chachaPlain);
+                    ArrayPool<Byte>.Shared.Return(chachaBody);
+                }
 
             }
 
             var macLength = Mac?.Length ?? 0;
 
             // 1. The 4-byte packet_length is plaintext for all our ciphers (none, aes-gcm, aes-ctr+etm).
-            var lengthBytes   = await ReadExactAsync(Input, 4, CancellationToken).ConfigureAwait(false);
-            var packetLength  = BinaryPrimitives.ReadUInt32BigEndian(lengthBytes);
+            var packetLength = await ReadFourBytesAsync(Input, CancellationToken).ConfigureAwait(false);
 
             if (packetLength < MinPacketLength || packetLength > limit)
                 throw new SshWireException($"Illegal SSH packet_length {packetLength} (must be {MinPacketLength}..{limit})!");
@@ -192,42 +208,99 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 throw new SshWireException($"SSH packet_length {packetLength} is not a multiple of the {Cipher.BlockSize}-byte block size!");
 
             // 2. The encrypted region (packet_length bytes) plus the AEAD tag plus the MAC.
-            var body        = await ReadExactAsync(Input, (Int32) packetLength + Cipher.TagLength + macLength, CancellationToken).ConfigureAwait(false);
-            var cipherText  = body.AsSpan(0, (Int32) packetLength + Cipher.TagLength);
+            var totalBodyLen = (Int32) packetLength + Cipher.TagLength + macLength;
+            var body         = ArrayPool<Byte>.Shared.Rent(totalBodyLen);
+            var plaintext    = ArrayPool<Byte>.Shared.Rent((Int32) packetLength);
 
-            // 3. Encrypt-then-MAC: verify the MAC (constant-time) before decrypting.
-            if (Mac is not null)
+            try
             {
-                Span<Byte> expected = stackalloc Byte[macLength];
-                Mac.ComputeInto(SequenceNumber, lengthBytes, cipherText, expected);
-                if (!CryptographicOperations.FixedTimeEquals(expected, body.AsSpan((Int32) packetLength + Cipher.TagLength)))
-                    throw new SshWireException("SSH packet MAC verification failed!");
+                await ReadExactIntoAsync(Input, body.AsMemory(0, totalBodyLen), CancellationToken).ConfigureAwait(false);
+
+                Span<Byte> lengthBytes = stackalloc Byte[4];
+                BinaryPrimitives.WriteUInt32BigEndian(lengthBytes, packetLength);
+
+                var cipherText = body.AsSpan(0, (Int32) packetLength + Cipher.TagLength);
+
+                // 3. Encrypt-then-MAC: verify the MAC (constant-time) before decrypting.
+                if (Mac is not null)
+                {
+                    Span<Byte> expected = stackalloc Byte[macLength];
+                    Mac.ComputeInto(SequenceNumber, lengthBytes, cipherText, expected);
+                    if (!CryptographicOperations.FixedTimeEquals(expected, body.AsSpan((Int32) packetLength + Cipher.TagLength, macLength)))
+                        throw new SshWireException("SSH packet MAC verification failed!");
+                }
+
+                if (!Cipher.Decrypt(lengthBytes, cipherText, plaintext.AsSpan(0, (Int32) packetLength)))
+                    throw new SshWireException("SSH packet authentication failed (bad AEAD tag)!");
+
+                var paddingLength = plaintext[0];
+                var payloadLength = (Int32) packetLength - paddingLength - 1;
+
+                if (paddingLength < 4 || payloadLength < 0)
+                    throw new SshWireException($"Illegal SSH padding_length {paddingLength} for packet_length {packetLength}!");
+
+                return plaintext.AsSpan(1, payloadLength).ToArray();
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(plaintext.AsSpan(0, (Int32) packetLength));
+                ArrayPool<Byte>.Shared.Return(plaintext);
+                ArrayPool<Byte>.Shared.Return(body);
             }
 
-            var plaintext = new Byte[packetLength];
+        }
 
-            if (!Cipher.Decrypt(lengthBytes, cipherText, plaintext))
-                throw new SshWireException("SSH packet authentication failed (bad AEAD tag)!");
-
-            var paddingLength = plaintext[0];
-            var payloadLength = (Int32) packetLength - paddingLength - 1;
-
-            if (paddingLength < 4 || payloadLength < 0)
-                throw new SshWireException($"Illegal SSH padding_length {paddingLength} for packet_length {packetLength}!");
-
-            return plaintext[1..(1 + payloadLength)];
-
+        private static UInt32 DecryptChaChaLength(ChaCha20Poly1305Cipher Cipher, UInt32 SequenceNumber, UInt32 RawEncryptedLength)
+        {
+            Span<Byte> encryptedLength = stackalloc Byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(encryptedLength, RawEncryptedLength);
+            return Cipher.DecryptLength(SequenceNumber, encryptedLength);
         }
 
         #endregion
 
 
-        #region (private) ReadExactAsync(Input, Count, CancellationToken)
+        #region (private) ReadFourBytesAsync / ReadExactIntoAsync
 
-        private static async ValueTask<Byte[]> ReadExactAsync(PipeReader         Input,
-                                                              Int32              Count,
-                                                              CancellationToken  CancellationToken)
+        private static async ValueTask<UInt32> ReadFourBytesAsync(PipeReader         Input,
+                                                                  CancellationToken  CancellationToken)
         {
+
+            while (true)
+            {
+
+                var result = await Input.ReadAsync(CancellationToken).ConfigureAwait(false);
+                var buffer = result.Buffer;
+
+                if (buffer.Length >= 4)
+                {
+                    var value = ReadBigEndianUInt32(buffer.Slice(0, 4));
+                    Input.AdvanceTo(buffer.GetPosition(4));
+                    return value;
+                }
+
+                Input.AdvanceTo(buffer.Start, buffer.End);
+
+                if (result.IsCompleted)
+                    throw new SshConnectionClosedException("The connection was closed in the middle of an SSH packet!");
+
+            }
+
+        }
+
+        private static UInt32 ReadBigEndianUInt32(ReadOnlySequence<Byte> Sequence)
+        {
+            Span<Byte> bytes = stackalloc Byte[4];
+            Sequence.CopyTo(bytes);
+            return BinaryPrimitives.ReadUInt32BigEndian(bytes);
+        }
+
+        private static async ValueTask ReadExactIntoAsync(PipeReader         Input,
+                                                          Memory<Byte>       Destination,
+                                                          CancellationToken  CancellationToken)
+        {
+
+            var count = Destination.Length;
 
             while (true)
             {
@@ -235,12 +308,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 var result  = await Input.ReadAsync(CancellationToken).ConfigureAwait(false);
                 var buffer  = result.Buffer;
 
-                if (buffer.Length >= Count)
+                if (buffer.Length >= count)
                 {
-                    var slice  = buffer.Slice(0, Count);
-                    var bytes  = slice.ToArray();
-                    Input.AdvanceTo(buffer.GetPosition(Count));
-                    return bytes;
+                    buffer.Slice(0, count).CopyTo(Destination.Span);
+                    Input.AdvanceTo(buffer.GetPosition(count));
+                    return;
                 }
 
                 Input.AdvanceTo(buffer.Start, buffer.End);

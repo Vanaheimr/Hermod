@@ -18,6 +18,7 @@
 #region Usings
 
 using System.IO.Pipelines;
+using System.Security.Cryptography;
 
 // Our own "ExchangeHash" property below would otherwise shadow the ExchangeHash helper type.
 using ExchangeHashCalc = org.GraphDefined.Vanaheimr.Hermod.SSH.ExchangeHash;
@@ -997,6 +998,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             SshTransportCipher? newReceiveCipher = null;
             ISshMac?            newSendMac       = null;
             ISshMac?            newReceiveMac    = null;
+            Byte[]?             kEncoded         = null;
 
             CancellationTokenSource? rekeyCts = null;
             var kexToken = CancellationToken;
@@ -1114,7 +1116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             //    initial handshake. e/f (classic DH) or Q_C/Q_S (ECDH) are carried transparently.
             using var kex = SshKeyExchange.Create(negotiated.KeyExchange);
 
-            Byte[] kS, h, kEncoded;
+            Byte[] kS, h;
 
             if (isServer)
             {
@@ -1123,7 +1125,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 var qC               = SshKexCore.ParseEcdhInit(initPayload);
                 var (qS, rawSecret)  = kex.ServerRespond(qC);
 
-                kEncoded        = kex.EncodeSharedSecret(rawSecret);
+                try   { kEncoded = kex.EncodeSharedSecret(rawSecret); }
+                finally { CryptographicOperations.ZeroMemory(rawSecret); }
                 // The client picked the algorithm, and with it the key: the first exchange fixes it for
                 // the connection, a rekey offered nothing else (LocalKexInit).
                 hostKey       ??= SelectHostKey(negotiated.HostKey);
@@ -1146,7 +1149,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 kS                          = kServer;
 
                 var rawSecret   = kex.ClientFinish(qS);
-                kEncoded        = kex.EncodeSharedSecret(rawSecret);
+                try   { kEncoded = kex.EncodeSharedSecret(rawSecret); }
+                finally { CryptographicOperations.ZeroMemory(rawSecret); }
                 h               = ExchangeHashCalc.Compute(kex.HashAlgorithm, vC, vS, iC, iS, kS, qC, qS, kEncoded);
 
                 // Bound to the negotiated algorithm, as OpenSSH binds it: the key must be of its type and
@@ -1272,6 +1276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             {
 
                 rekeyCts?.Dispose();
+                if (kEncoded         is not null) CryptographicOperations.ZeroMemory(kEncoded);
                 if (newSendCipher    is not null) DisposeCipher(newSendCipher);
                 if (newReceiveCipher is not null) DisposeCipher(newReceiveCipher);
                 newSendMac?.Dispose();
