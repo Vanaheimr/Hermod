@@ -44,6 +44,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         private String directory = "";
 
+        /// <summary>
+        /// The servers StartAPI made, disposed of after each test.
+        /// </summary>
+        private readonly List<HTTPServer> servers = [];
+
         #endregion
 
         #region SetUp / TearDown
@@ -55,10 +60,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         [TearDown]
-        public void TearDown()
+        public async Task TearDown()
         {
+
+            foreach (var server in servers)
+                await server.DisposeAsync();
+
+            servers.Clear();
+
             if (Directory.Exists(directory))
                 Directory.Delete(directory, recursive: true);
+
         }
 
         #endregion
@@ -134,6 +146,109 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+
+        #region A_Restarted_API_Holds_The_Notification_Messages_It_Held()
+
+        /// <summary>
+        /// Added, updated and removed, and the API started anew on the same
+        /// database file: it holds the messages it held, as they were last.
+        /// </summary>
+        /// <remarks>
+        /// The database file had every change of a notification message, but
+        /// nothing read them back: a restarted API held none. Nor could it
+        /// have - the parser looked for the data under "name" and refused a
+        /// message of no owner, and an update, written without its JSON-LD
+        /// context, was refused for that. An update also took the message out
+        /// of the API without putting the new one in.
+        /// </remarks>
+        [Test]
+        public async Task A_Restarted_API_Holds_The_Notification_Messages_It_Held()
+        {
+
+            var api       = await StartAPI();
+
+            var kept      = await api.AddNotificationMessage(new NotificationMessage(
+                                                                 Timestamp.Now,
+                                                                 NotificationMessageType.Parse("maintenance"),
+                                                                 new JObject(new JProperty("text", "Kept.")),
+                                                                 [ Organization_Id.Parse("operatorOrg") ]
+                                                             ));
+
+            var updated   = await api.AddNotificationMessage(NewMessage());
+            var removed   = await api.AddNotificationMessage(NewMessage());
+
+            Assert.That(kept,     Is.Not.Null);
+            Assert.That(updated,  Is.Not.Null);
+            Assert.That(removed,  Is.Not.Null);
+
+            await api.UpdateNotificationMessage(new NotificationMessage(
+                                                    updated!.Id,
+                                                    updated.Timestamp,
+                                                    updated.Type,
+                                                    new JObject(new JProperty("text", "Updated.")),
+                                                    []
+                                                ));
+
+            await api.RemoveNotificationMessage(removed!);
+
+            Assert.Multiple(() => {
+                Assert.That(api.NotificationMessageExists(updated.Id),                   Is.True, "an update keeps the message");
+                Assert.That(api.GetNotificationMessage(updated.Id)?.Data["text"]?.ToString(),  Is.EqualTo("Updated."));
+            });
+
+
+            var restarted = await StartAPI();
+
+            Assert.Multiple(() => {
+
+                Assert.That(restarted.NotificationMessages.Select(message => message.Id),
+                            Is.EquivalentTo(new[] { kept!.Id, updated.Id }));
+
+                var keptAgain = restarted.GetNotificationMessage(kept.Id);
+
+                Assert.That(keptAgain?.Type,                                             Is.EqualTo(NotificationMessageType.Parse("maintenance")));
+                Assert.That(keptAgain?.Data["text"]?.ToString(),                         Is.EqualTo("Kept."));
+                Assert.That(keptAgain?.Owners,                                           Is.EqualTo(new[] { Organization_Id.Parse("operatorOrg") }));
+                Assert.That(restarted.GetNotificationMessage(updated.Id)?.Data["text"]?.ToString(),  Is.EqualTo("Updated."));
+
+            });
+
+            // Taken over by the restarted API: removed there, and so written.
+            var result = await restarted.RemoveNotificationMessage(restarted.GetNotificationMessage(kept.Id)!);
+
+            Assert.That(result?.IsSuccess, Is.True, result?.ToString());
+
+        }
+
+        #endregion
+
+
+        #region (private) StartAPI()
+
+        /// <summary>
+        /// A headless HTTPExtAPI on this test's directory, with what its
+        /// database file holds read back - a first start or a restart.
+        /// </summary>
+        private async Task<HTTPExtAPI> StartAPI()
+        {
+
+            var server = new HTTPServer(
+                             IPAddress:  IPv4Address.Localhost,
+                             TCPPort:    IPPort.Zero,
+                             AutoStart:  false
+                         );
+
+            servers.Add(server);
+
+            var api = NewAPI(server);
+
+            await api.LoadDatabase();
+
+            return api;
+
+        }
+
+        #endregion
 
         #region (private) NewAPI(Server) / NewMessage()
 

@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -205,13 +207,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #endregion
 
-        #region (static) TryParseJSON(JSONObject, ..., out NotificationMessage, out ErrorResponse)
+        #region (static) TryParseJSON(JSONObject, OrganizationProvider, out NotificationMessage, out ErrorResponse)
 
-        public static Boolean TryParseJSON(JObject                              JSONObject,
-                                           Func<Organization_Id, Organization>  OrganizationProvider,
-                                           out NotificationMessage?             NotificationMessage,
-                                           out String?                          ErrorResponse,
-                                           NotificationMessage_Id?              NotificationMessageIdURL = null)
+        /// <summary>
+        /// Parse the given JSON representation of a notification message.
+        /// </summary>
+        /// <param name="JSONObject">The JSON to be parsed.</param>
+        /// <param name="OrganizationProvider">An organization provider - the owners are kept as their identifications, so it is not asked.</param>
+        /// <param name="NotificationMessage">The parsed notification message.</param>
+        /// <param name="ErrorResponse">An optional error response.</param>
+        /// <param name="NotificationMessageIdURL">An optional notification message identification, e.g. from the HTTP URL.</param>
+        public static Boolean TryParseJSON(JObject                                                   JSONObject,
+                                           Func<Organization_Id, Organization>                       OrganizationProvider,
+                                           [NotNullWhen(true)]  out NotificationMessage?             NotificationMessage,
+                                           [NotNullWhen(false)] out String?                          ErrorResponse,
+                                           NotificationMessage_Id?                                   NotificationMessageIdURL = null)
         {
 
             if (OrganizationProvider is null)
@@ -220,6 +230,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                 ErrorResponse       = "The given owner/organization provider must not be null!";
                 return false;
             }
+
+            return TryParseJSON(JSONObject,
+                                out NotificationMessage,
+                                out ErrorResponse,
+                                NotificationMessageIdURL);
+
+        }
+
+        #endregion
+
+        #region (static) TryParseJSON(JSONObject, out NotificationMessage, out ErrorResponse)
+
+        /// <summary>
+        /// Parse the given JSON representation of a notification message,
+        /// as ToJSON wrote it - with its JSON-LD context or, embedded, without.
+        /// </summary>
+        /// <param name="JSONObject">The JSON to be parsed.</param>
+        /// <param name="NotificationMessage">The parsed notification message.</param>
+        /// <param name="ErrorResponse">An optional error response.</param>
+        /// <param name="NotificationMessageIdURL">An optional notification message identification, e.g. from the HTTP URL.</param>
+        public static Boolean TryParseJSON(JObject                                        JSONObject,
+                                           [NotNullWhen(true)]  out NotificationMessage?  NotificationMessage,
+                                           [NotNullWhen(false)] out String?               ErrorResponse,
+                                           NotificationMessage_Id?                        NotificationMessageIdURL = null)
+        {
 
             try
             {
@@ -256,21 +291,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                 #endregion
 
-                #region Parse Context                 [mandatory]
+                #region Parse Context                 [optional]
 
-                if (!JSONObject.ParseMandatory("@context",
-                                               "JSON-LinkedData context information",
-                                               JSONLDContext.TryParse,
-                                               out JSONLDContext Context,
-                                               out ErrorResponse))
+                // ToJSON leaves it out of an embedded notification message,
+                // as the database file has it for an update.
+                if (JSONObject["@context"] is JToken contextJSON &&
+                    (!JSONLDContext.TryParse(contextJSON.Value<String>() ?? "", out var Context) ||
+                     Context != DefaultJSONLDContext))
                 {
-                    ErrorResponse = @"The JSON-LD ""@context"" information is missing!";
-                    return false;
-                }
-
-                if (Context != DefaultJSONLDContext)
-                {
-                    ErrorResponse = @"The given JSON-LD ""@context"" information '" + Context + "' is not supported!";
+                    ErrorResponse = @"The given JSON-LD ""@context"" information '" + contextJSON + "' is not supported!";
                     return false;
                 }
 
@@ -303,8 +332,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                 #region Parse Data                    [mandatory]
 
-                if (!JSONObject.ParseMandatory("name",
-                                               "NotificationMessagename",
+                if (!JSONObject.ParseMandatory("data",
+                                               "notification message data",
                                                out JObject? Data,
                                                out ErrorResponse))
                 {
@@ -340,11 +369,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                 }
 
-                if (OwnerIds.Count == 0)
-                {
-                    ErrorResponse = "Invalid owner identifications!";
-                    return false;
-                }
+                // None at all is a notification message of no organization,
+                // as the constructor makes one.
 
                 #endregion
 

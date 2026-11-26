@@ -12822,6 +12822,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
+                #region Notification messages
+
+                case "addNotificationMessage":
+                case "addNotificationMessageIfNotExists":
+                case "addOrUpdateNotificationMessage":
+                case "updateNotificationMessage":
+                case "removeNotificationMessage":
+
+                    if (!ProcessNotificationMessageEvent(Command, Data, out errorResponse))
+                        DebugX.Log($"{nameof(HTTPExtAPI)} {Command}{(Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty)}{(LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty)}: {errorResponse}");
+
+                    break;
+
+                #endregion
+
                 #region Create user
 
                 case "createUser":
@@ -24554,12 +24569,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
             await WriteToDatabaseFile(updateNotificationMessage_MessageType,
-                                      NotificationMessage.ToJSON(),
+                                      NotificationMessage.ToJSON(false),
                                       eventTrackingId,
                                       CurrentUserId);
 
             notificationMessages.Remove(OldNotificationMessage.Id);
             NotificationMessage.CopyAllLinkedDataFromBase(OldNotificationMessage);
+            notificationMessages.Add(NotificationMessage.Id, NotificationMessage);
 
 
             var now = Timestamp.Now;
@@ -24667,17 +24683,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var Builder = OldNotificationMessage.ToBuilder();
             UpdateDelegate(Builder);
             var NewNotificationMessage = Builder.ToImmutable;
+            NewNotificationMessage.API = this;
 
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
             await WriteToDatabaseFile(updateNotificationMessage_MessageType,
-                                      NewNotificationMessage.ToJSON(),
+                                      NewNotificationMessage.ToJSON(false),
                                       eventTrackingId,
                                       CurrentUserId);
 
             notificationMessages.Remove(OldNotificationMessage.Id);
             NewNotificationMessage.CopyAllLinkedDataFromBase(OldNotificationMessage);
+            notificationMessages.Add(NewNotificationMessage.Id, NewNotificationMessage);
 
 
             var now = Timestamp.Now;
