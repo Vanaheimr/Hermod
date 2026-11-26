@@ -963,14 +963,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                     return (channel, token) => {
                         Interlocked.Exchange(ref started, 1);
-                        return ServeSftpAsync(channel, sftp, token);
+                        return ServeSftpAsync(channel, sftp, Session.ClientIdentification, token);
                     };
 
                 };
 
             else if (options.SftpFileSystem is not null)
                 subsystems = new () {
-                    ["sftp"] = (ch, ct) => SftpServer.ServeAsync(new StreamSftpDuplex(ch.AsStream()), options.SftpFileSystem, options.SftpProfile, options.SftpLimits, ct)
+                    ["sftp"] = (ch, ct) => SftpServer.ServeAsync(new StreamSftpDuplex(ch.AsStream()), options.SftpFileSystem, options.SftpProfile, options.SftpLimits, ct, Session.ClientIdentification)
                 };
 
             // Every other subsystem, where the server serves any: asked after SFTP, and never for "sftp",
@@ -1079,7 +1079,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
         #endregion
 
-        #region (private static) ServeSftpAsync(Channel, Sftp, CancellationToken)
+        #region (private static) ServeSftpAsync(Channel, Sftp, ClientIdentification, CancellationToken)
 
         /// <summary>
         /// Serve one session's SFTP over what its factory answered: until the client closes it, the
@@ -1087,9 +1087,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         /// that the client is not left waiting for answers that will not come. The file system is the
         /// session's, and disposed when it is over.
         /// </summary>
-        private static async ValueTask ServeSftpAsync(SshMuxChannel       Channel,
-                                                      SftpSessionOptions  Sftp,
-                                                      CancellationToken   CancellationToken)
+        private static async ValueTask ServeSftpAsync(SshMuxChannel             Channel,
+                                                      SftpSessionOptions        Sftp,
+                                                      SshIdentificationString?  ClientIdentification,
+                                                      CancellationToken         CancellationToken)
         {
 
             using var serving = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, Sftp.Ends);
@@ -1100,7 +1101,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                                             Sftp.FileSystem,
                                             Sftp.Profile,
                                             Sftp.Limits,
-                                            serving.Token).ConfigureAwait(false);
+                                            serving.Token,
+                                            ClientIdentification).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (Sftp.Ends.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
             {
