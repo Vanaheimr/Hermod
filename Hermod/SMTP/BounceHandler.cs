@@ -288,7 +288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var outcome = result.Recipients.FirstOrDefault(outcome => outcome.Recipient == recipient.Recipient);
             var code    = outcome?.Code ?? result.ResponseCode;
-            var text    = outcome?.Text ?? result.ResponseText;
+            var text    = outcome is not null ? outcome.Reply ?? outcome.Text : result.ResponseText;
             var reply   = DsnGenerator.Reply(code, text);
 
             return new DsnRecipient(recipient.Recipient,

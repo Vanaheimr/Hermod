@@ -905,7 +905,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                         ct);
                         var rcptResponse = await connection.ReadReplyAsync(ct);
 
-                        outcomes.Add(new RecipientOutcome(recipient, rcptResponse.Code, rcptResponse.Text));
+                        outcomes.Add(new RecipientOutcome(recipient, rcptResponse.Code, rcptResponse.Text, rcptResponse.Transcript));
 
                         if (outcomes[^1].Status != SendStatus.Success)
                             _logger.Log(LogLevel.Warning, $"Recipient {recipient} rejected: {rcptResponse}");
@@ -954,8 +954,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     var finalResponse = await connection.ReadReplyAsync(ct, TimeSpan.FromMilliseconds(_config.DataTerminationTimeoutMs));
 
                     // The message was taken for the accepted recipients; what became of the others goes
-                    // with the result, for the queue to bounce or retry them.
-                    var delivery = ParseResponse(finalResponse.ToString(), mxHost) with { RemoteSupportsDsn = supportsDsn };
+                    // with the result, for the queue to bounce or retry them. The reply as it was, every
+                    // line of it, for a report to transcribe (RFC 3461 §9.2).
+                    var delivery = ParseResponse(finalResponse.Transcript, mxHost) with { RemoteSupportsDsn = supportsDsn };
 
                     return delivery.Status == SendStatus.Success
                                ? delivery with { Recipients = outcomes }
@@ -1356,12 +1357,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <summary>
         /// The result of a reply that ends the transaction before the end of data: a 4yz or 5yz
         /// as it says, anything else - a reply of the wrong kind - a failure for now. Never a
-        /// delivery: no message was sent.
+        /// delivery: no message was sent. The reply goes with it as it was, every line of it.
         /// </summary>
         private static SendResult Refused(SMTPReply Reply, String? mx)
             => Reply.Code is >= 500 and < 600
-                   ? SendResult.PermFail(Reply.Code, Reply.ToString(), mx)
-                   : SendResult.TempFail(Reply.Code, Reply.ToString(), mx);
+                   ? SendResult.PermFail(Reply.Code, Reply.Transcript, mx)
+                   : SendResult.TempFail(Reply.Code, Reply.Transcript, mx);
 
         private static SendResult ParseResponse(String response, String? mx)
         {

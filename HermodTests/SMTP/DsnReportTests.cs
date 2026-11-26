@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// <summary>
     /// The reports a relay owes a sender (RFC 3461 §5.2, §6) and their format (RFC 3464, RFC 6522):
     /// what BounceHandler queues for a message that failed, waits, or was relayed. The findings
-    /// D-1 to D-12 of SMTPConformanceTests.
+    /// D-1 to D-12, D-16 and D-17 of SMTPConformanceTests.
     /// </summary>
     [TestFixture]
     public class DsnReportTests
@@ -357,6 +357,174 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             });
 
         }
+
+
+        #region D-16: a multi-line reply in Diagnostic-Code
+
+        private const String MultiLine        = "550-5.1.1 mailbox unavailable\r\n550 5.1.1 user has moved with no forwarding address";
+        private const String MultiLineFolded  = "\r\nDiagnostic-Code: smtp; 550-5.1.1 mailbox unavailable\r\n 550 5.1.1 user has moved with no forwarding address\r\n";
+
+        /// <summary>
+        /// The value of a field of the delivery-status part, unfolded (RFC 5322 §2.2.3).
+        /// </summary>
+        private static String Unfolded(String Report, String Name)
+
+            => Regex.Replace(Regex.Match(Report, $@"(?m)^{Name}: ([^\r\n]*(?:\r\n[ \t][^\r\n]*)*)").Groups[1].Value, "\r\n(?=[ \t])", "");
+
+        private static Int32 LongestLine(String Report)
+            => Report.Split("\r\n").Max(line => line.Length);
+
+
+        [Test(Description = "D-16 - RFC 3461 §9.2: \"For multi-line SMTP replies, it is necessary to insert a SPACE before each line after the first\" - a refusal of the recipient, every line with its reply code")]
+        public async Task A_multi_line_refusal_of_a_recipient_is_transcribed_line_by_line()
+        {
+
+            var refused = SendResult.PermFail(550, "No recipient accepted: 5.1.1 mailbox unavailable 5.1.1 user has moved with no forwarding address", "mx.elsewhere.example")
+                              with { Recipients = [ new RecipientOutcome("gone@elsewhere.example", 550, "5.1.1 mailbox unavailable 5.1.1 user has moved with no forwarding address", MultiLine) ] };
+
+            var bounce  = (await Bounce(Relayed(), refused)).Single().MessageContent;
+
+            Assert.Multiple(() => {
+                Assert.That(bounce, Does.Contain(MultiLineFolded));
+                Assert.That(bounce, Does.Contain("\r\nStatus: 5.1.1\r\n"));
+                Assert.That(bounce, Does.Contain("\r\n        smtp; 550-5.1.1 mailbox unavailable\r\n        550 5.1.1 user has moved with no forwarding address\r\n"), "the explanation, a line each");
+            });
+
+        }
+
+
+        [Test(Description = "D-16 - RFC 3461 §9.2: a multi-line refusal of the message, at the end of data or of MAIL, every line with its reply code")]
+        public async Task A_multi_line_refusal_of_the_message_is_transcribed_line_by_line()
+        {
+
+            var bounce = (await Bounce(Relayed(), SendResult.PermFail(554, "554-5.7.1 Message refused\r\n554-5.7.1 it looks like spam to us\r\n554 5.7.1 see https://mx.elsewhere.example/why", "mx.elsewhere.example"))).Single().MessageContent;
+
+            Assert.Multiple(() => {
+                Assert.That(bounce, Does.Contain("\r\nDiagnostic-Code: smtp; 554-5.7.1 Message refused\r\n 554-5.7.1 it looks like spam to us\r\n 554 5.7.1 see https://mx.elsewhere.example/why\r\n"));
+                Assert.That(bounce, Does.Contain("\r\nStatus: 5.7.1\r\n"));
+            });
+
+        }
+
+
+        [Test(Description = "D-16 - RFC 3461 §9.2: the delayed DSN transcribes a multi-line reply line by line too")]
+        public async Task A_multi_line_reply_in_a_delayed_DSN_is_transcribed_line_by_line()
+        {
+
+            var later = SendResult.TempFail(450, "No recipient accepted: 4.2.1 Mailbox busy 4.2.1 try again later", "mx.elsewhere.example")
+                            with { Recipients = [ new RecipientOutcome("gone@elsewhere.example", 450, "4.2.1 Mailbox busy 4.2.1 try again later", "450-4.2.1 Mailbox busy\r\n450 4.2.1 try again later") ] };
+
+            var queue = new ReportQueue();
+            await new BounceHandler(new SMTPServerConfig { Hostname = "relay.example" }, queue, new NullLogger())
+                      .SendDelayNotificationAsync(Relayed(DsnNotify.Delay | DsnNotify.Failure), later);
+
+            Assert.That(queue.Enqueued.Single().MessageContent, Does.Contain("\r\nDiagnostic-Code: smtp; 450-4.2.1 Mailbox busy\r\n 450 4.2.1 try again later\r\n"));
+
+        }
+
+
+        [Test(Description = "D-16 - RFC 3461 §9.2: the relayed DSN transcribes a multi-line reply to the end of data line by line too")]
+        public async Task A_multi_line_reply_in_a_relayed_DSN_is_transcribed_line_by_line()
+        {
+
+            var mail = Relayed(DsnNotify.Success);
+            mail.RemoteMx       = "mx.elsewhere.example";
+            mail.RemoteResponse = "250-2.0.0 Ok\r\n250 2.0.0 queued as 4711";
+
+            var queue = new ReportQueue();
+            await new BounceHandler(new SMTPServerConfig { Hostname = "relay.example" }, queue, new NullLogger()).SendRelayNotificationAsync(mail, remoteSupportsDsn: false);
+
+            Assert.That(queue.Enqueued.Single().MessageContent, Does.Contain("\r\nDiagnostic-Code: smtp; 250-2.0.0 Ok\r\n 250 2.0.0 queued as 4711\r\n"));
+
+        }
+
+
+        [Test(Description = "D-16 - RFC 5321 §4.5.3.1.5: reply lines of 512 octets; RFC 5322 §2.1.1: \"Each line of characters MUST be no more than 998 characters\" - three such lines are three lines of the bounce, not one of 1511")]
+        public async Task A_reply_of_three_long_lines_makes_no_line_longer_than_998_characters()
+        {
+
+            var text  = new String('x', 488);
+            var reply = $"550-5.7.1 {text}\r\n550-5.7.1 {text}\r\n550 5.7.1 {text}";
+
+            var bounce = (await Bounce(Relayed(), SendResult.PermFail(550, reply, "mx.elsewhere.example"))).Single().MessageContent;
+
+            Assert.Multiple(() => {
+                Assert.That(LongestLine(bounce),                    Is.LessThanOrEqualTo(998));
+                Assert.That(Unfolded(bounce, "Diagnostic-Code"),    Is.EqualTo("smtp; " + reply.Replace("\r\n", " ")));
+            });
+
+        }
+
+
+        [Test(Description = "D-16 - RFC 5322 §2.2.3: a reply line too long for a line of the report is folded at a space within it, and unfolding takes it back - exactly")]
+        public async Task A_reply_line_too_long_for_a_line_is_folded_at_a_space()
+        {
+
+            var reply  = "550 5.7.1 " + String.Join(" ", Enumerable.Range(0, 300).Select(i => $"w{i:000}"));
+
+            var bounce = (await Bounce(Relayed(), SendResult.PermFail(550, reply, "mx.elsewhere.example"))).Single().MessageContent;
+
+            Assert.Multiple(() => {
+                Assert.That(reply.Length,                           Is.GreaterThan(998));
+                Assert.That(LongestLine(bounce),                    Is.LessThanOrEqualTo(998));
+                Assert.That(Unfolded(bounce, "Diagnostic-Code"),    Is.EqualTo("smtp; " + reply));
+            });
+
+        }
+
+
+        [Test(Description = "D-16 - RFC 3461 §9.2: \"For a single-line SMTP reply to an SMTP command, the diagnostic-code SHOULD be an exact transcription of the reply\" - a guard")]
+        public async Task A_single_line_reply_is_transcribed_on_one_line()
+        {
+
+            var bounce = (await Bounce(Relayed(), Refused("550 5.1.1 <gone@elsewhere.example>: Recipient address rejected"))).Single().MessageContent;
+
+            Assert.That(bounce, Does.Contain("\r\nDiagnostic-Code: smtp; 550 5.1.1 <gone@elsewhere.example>: Recipient address rejected\r\n"));
+
+        }
+
+        #endregion
+
+        #region D-17: the Remote-MTA of a next hop known by its address
+
+        [TestCase("127.0.0.1",              "[127.0.0.1]")]
+        [TestCase("192.0.2.25",             "[192.0.2.25]")]
+        [TestCase("2001:db8::25",           "[IPv6:2001:db8::25]")]
+        [TestCase("[192.0.2.25]",           "[192.0.2.25]")]
+        [TestCase("mx.elsewhere.example",   "mx.elsewhere.example")]
+        [Description("D-17 - RFC 3461 §9.3: \"MTA names of type \"dns\" SHOULD be valid Internet domain names. If such domain names are not available, a domain-literal containing the internet protocol address is acceptable\" - an address as a domain-literal, a name as it is")]
+        public async Task The_Remote_MTA_of_a_next_hop_known_by_its_address_is_a_domain_literal(String NextHop, String RemoteMta)
+        {
+
+            var refused = SendResult.PermFail(550, "No recipient accepted: 5.1.1 No such user", NextHop)
+                              with { Recipients = [ new RecipientOutcome("gone@elsewhere.example", 550, "5.1.1 No such user") ] };
+
+            var bounce  = (await Bounce(Relayed(), refused)).Single().MessageContent;
+
+            Assert.Multiple(() => {
+                Assert.That(bounce,                         Does.Contain($"\r\nRemote-MTA: dns; {RemoteMta}\r\n"));
+                Assert.That(DsnGenerator.MtaName(NextHop),  Is.EqualTo(RemoteMta));
+            });
+
+        }
+
+
+        [Test(Description = "D-17 - RFC 3461 §9.3: the relayed DSN names a smart host given as an address by a domain-literal too")]
+        public async Task The_Remote_MTA_of_a_relayed_DSN_is_a_domain_literal()
+        {
+
+            var mail = Relayed(DsnNotify.Success);
+            mail.RemoteMx       = "127.0.0.1";
+            mail.RemoteResponse = "250 2.0.0 queued";
+
+            var queue = new ReportQueue();
+            await new BounceHandler(new SMTPServerConfig { Hostname = "relay.example" }, queue, new NullLogger()).SendRelayNotificationAsync(mail, remoteSupportsDsn: false);
+
+            Assert.That(queue.Enqueued.Single().MessageContent, Does.Contain("\r\nRemote-MTA: dns; [127.0.0.1]\r\n"));
+
+        }
+
+        #endregion
 
 
         [Test(Description = "D-12 - RFC 3461 §5.2.1 (b), (c): no RET and no NOTIFY are received as none, and relayed as none")]

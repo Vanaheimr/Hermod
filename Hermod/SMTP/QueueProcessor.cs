@@ -456,7 +456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             foreach (var outcome in refused)
                 await bounceHandler.SendBounceAsync(CopyFor(mail, [ outcome.Recipient ], "refused"),
-                                                    SendResult.PermFail(outcome.Code, outcome.Text, result.RemoteMx),
+                                                    SendResult.PermFail(outcome.Code, outcome.Reply ?? outcome.Text, result.RemoteMx),
                                                     ct);
 
             if (refusedNow.Length > 0)

@@ -59,6 +59,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             => String.Join(" ", Lines.Select(line => line.Length > 4 ? line[4..] : "").Where(text => text.Length > 0));
 
         /// <summary>
+        /// The reply as it was received: every line, its reply code and all, the lines joined by
+        /// CR LF - what a report transcribes (RFC 3461 §9.2: "the diagnostic-code SHOULD be an
+        /// exact transcription of the reply").
+        /// </summary>
+        public String Transcript
+            => String.Join("\r\n", Lines);
+
+        /// <summary>
         /// "code text", as a one-line reply would read.
         /// </summary>
         public override String ToString()
