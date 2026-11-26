@@ -85,6 +85,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region MatchesIPAddress              (this Certificate, Address)
+
+        /// <summary>
+        /// Whether any iPAddress SAN entry of this certificate matches the given IP address
+        /// (RFC 5280 § 4.2.1.6 / RFC 9525).
+        /// </summary>
+        /// <param name="Certificate">A certificate.</param>
+        /// <param name="Address">The IP address the client connected to.</param>
+        public static Boolean MatchesIPAddress(this X509Certificate2   Certificate,
+                                               System.Net.IPAddress    Address)
+        {
+
+            var target = Address.IsIPv4MappedToIPv6
+                             ? Address.MapToIPv4()
+                             : Address;
+
+            var extension = Certificate.SubjectAlternativeNameExtension();
+
+            if (extension is null)
+                return false;
+
+            foreach (var sanIP in extension.EnumerateIPAddresses())
+            {
+                var normalized = sanIP.IsIPv4MappedToIPv6
+                                     ? sanIP.MapToIPv4()
+                                     : sanIP;
+
+                if (normalized.Equals(target))
+                    return true;
+            }
+
+            return false;
+
+        }
+
+        #endregion
+
         #region GetIIPAddresses               (this Certificate)
 
         /// <summary>
