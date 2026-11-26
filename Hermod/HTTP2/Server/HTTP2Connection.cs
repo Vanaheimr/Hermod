@@ -1843,8 +1843,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
                 throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, StreamId,
                     $"Connection-specific header field '{Name}' is not allowed in HTTP/2");
 
-            // Section 8.2.2: TE is the one exception, but only with value "trailers".
-            if (Name == "te" && Value != "trailers")
+            // Section 8.2.2: TE is the one exception, but only with value "trailers",
+            // read in any case, as RFC 9110's ABNF reads a transfer coding's
+            // name, and as nghttp2 (lstrieq) and this library's client read it.
+            if (Name == "te" && !Value.Equals("trailers", StringComparison.OrdinalIgnoreCase))
                 throw new HTTP2StreamException(HTTP2ErrorCode.PROTOCOL_ERROR, StreamId,
                     "TE header field must not contain any value other than \"trailers\"");
 
