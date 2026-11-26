@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Text;
 
 using NUnit.Framework;
@@ -137,6 +138,165 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                 Assert.That(outB,  Is.EqualTo("ran: boom\ndone: boom\n"));
                 Assert.That(exitB, Is.EqualTo(7));
             });
+
+        }
+
+        #endregion
+
+        #region CleanDisconnect_FaultsPendingGlobalAndChannelRequests
+
+        /// <summary>
+        /// When the peer closes cleanly with <c>SSH_MSG_DISCONNECT</c> while want-reply global or channel
+        /// requests are in flight, callers must fail promptly with <see cref="SshChannelClosedException"/>
+        /// rather than waiting forever.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task CleanDisconnect_FaultsPendingGlobalAndChannelRequests(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var client = await clientTask;
+            using var server = await serverTask;
+
+            await using var clientMux = new SshChannelMultiplexer(client) { RekeyLimits = null }.Start();
+
+            // Bare server confirms one channel, reads one GlobalRequest and one ChannelRequest, then disconnects cleanly.
+            var serverRun = Task.Run(async () =>
+            {
+                var open = await server.ReceivePacketAsync(CancellationToken);
+                Assert.That(open[0], Is.EqualTo((Byte) SshMessageNumber.ChannelOpen));
+                var r = new SshPacketReader(open); r.ReadByte(); r.ReadString();
+                var senderId = r.ReadUInt32();
+                await server.SendPacketAsync(SshChannelWire.ChannelOpenConfirmation(senderId, 99, 65536, 32768), CancellationToken);
+
+                // Read both in-flight requests without answering either, then send SSH_MSG_DISCONNECT.
+                _ = await server.ReceivePacketAsync(CancellationToken);
+                _ = await server.ReceivePacketAsync(CancellationToken);
+
+                var abw = new ArrayBufferWriter<Byte>(); var w = new SshPacketWriter(abw);
+                w.WriteByte((Byte) SshMessageNumber.Disconnect);
+                w.WriteUInt32(11);   // SSH_DISCONNECT_BY_APPLICATION
+                w.WriteString("bye");
+                w.WriteString("");
+                await server.SendPacketAsync(abw.WrittenSpan.ToArray(), CancellationToken);
+            }, CancellationToken);
+
+            var channel = await clientMux.OpenChannelAsync("session", CancellationToken: CancellationToken);
+
+            var pendingGlobal  = clientMux.SendGlobalRequestWithReplyAsync("custom@example.test", true, [], CancellationToken).AsTask();
+            var pendingChannel = channel.SendRequestAsync("exec", true, EncodeString("sleep 60"), CancellationToken).AsTask();
+
+            await serverRun;
+
+            await Assert.ThrowsAsync<SshChannelClosedException>(async () => await pendingGlobal);
+            await Assert.ThrowsAsync<SshChannelClosedException>(async () => await pendingChannel);
+
+        }
+
+        #endregion
+
+        #region ConcurrentGlobalRequests_MatchRepliesInStrictFifoOrder
+
+        /// <summary>
+        /// Concurrent want-reply global requests must be enqueued and written to the wire in the exact same
+        /// order so every caller receives its own reply payload (RFC 4254 §4).
+        /// </summary>
+        [Test]
+        [CancelAfter(20000)]
+        public async Task ConcurrentGlobalRequests_MatchRepliesInStrictFifoOrder(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var client = await clientTask;
+            using var server = await serverTask;
+
+            await using var serverMux = new SshChannelMultiplexer(server) {
+                RekeyLimits            = null,
+                GlobalRequestResponder = info => ValueTask.FromResult<SshGlobalRequestReply?>(SshGlobalRequestReply.WithData(info.Data))
+            }.Start();
+
+            await using var clientMux = new SshChannelMultiplexer(client) { RekeyLimits = null }.Start();
+
+            const Int32 count = 32;
+            var tasks = Enumerable.Range(0, count).Select(i => Task.Run(async () =>
+            {
+                var payload = EncodeUInt32((UInt32) i);
+                var reply   = await clientMux.SendGlobalRequestWithReplyAsync("echo@example.test", true, payload, CancellationToken);
+                return (Expected: (UInt32) i, Actual: ReadUInt32(reply.Data), reply.Success);
+            }, CancellationToken)).ToArray();
+
+            var results = await Task.WhenAll(tasks);
+
+            Assert.Multiple(() => {
+                foreach (var (expected, actual, success) in results)
+                {
+                    Assert.That(success, Is.True);
+                    Assert.That(actual,  Is.EqualTo(expected), "each concurrent global request must receive its own FIFO reply");
+                }
+            });
+
+        }
+
+        #endregion
+
+        #region CancelledOpenChannel_ClosesOrphanRemoteChannel
+
+        /// <summary>
+        /// If a caller cancels <see cref="SshChannelMultiplexer.OpenChannelAsync"/> before the peer's
+        /// <c>CHANNEL_OPEN_CONFIRMATION</c> arrives, the late confirmation must trigger a
+        /// <c>CHANNEL_CLOSE</c> so the peer does not leak its half of the channel.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task CancelledOpenChannel_ClosesOrphanRemoteChannel(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey = Ed25519KeyPair.Generate();
+
+            var clientTask = SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+            var serverTask = SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+
+            using var client = await clientTask;
+            using var server = await serverTask;
+
+            await using var clientMux = new SshChannelMultiplexer(client) { RekeyLimits = null }.Start();
+
+            var openCancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var serverRun = Task.Run(async () =>
+            {
+                var open = await server.ReceivePacketAsync(CancellationToken);
+                Assert.That(open[0], Is.EqualTo((Byte) SshMessageNumber.ChannelOpen));
+                var r = new SshPacketReader(open); r.ReadByte(); r.ReadString();
+                var clientLocalId = r.ReadUInt32();
+
+                // Wait until the client has cancelled its OpenChannelAsync call, then send a late confirmation.
+                await openCancelled.Task.WaitAsync(CancellationToken);
+                await server.SendPacketAsync(SshChannelWire.ChannelOpenConfirmation(clientLocalId, 42, 65536, 32768), CancellationToken);
+
+                var close = await server.ReceivePacketAsync(CancellationToken);
+                Assert.That(close[0], Is.EqualTo((Byte) SshMessageNumber.ChannelClose));
+                Assert.That(BinaryPrimitives.ReadUInt32BigEndian(close.AsSpan(1)), Is.EqualTo(42u));
+            }, CancellationToken);
+
+            using var openCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+                await clientMux.OpenChannelAsync("session", CancellationToken: openCts.Token));
+
+            openCancelled.SetResult();
+            await serverRun;
 
         }
 

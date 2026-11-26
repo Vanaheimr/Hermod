@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.IO.Pipelines;
+
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -203,6 +205,215 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
                             "an ignorable packet inside a key exchange is what Terrapin exploits");
 
             }
+
+        }
+
+        #endregion
+
+        #region (private) raw initial-handshake peer for Terrapin / strict-KEX tests
+
+        public enum InjectAt { None, BeforeKexInit, AfterKexInit, BeforeNewKeys, Everywhere }
+
+        private static async ValueTask WriteCleartextAsync(PipeWriter Output, Byte[] Payload, CancellationToken CancellationToken)
+        {
+            SshPacketFraming.WritePacket(Output, NullTransportCipher.Instance, Payload);
+            await Output.FlushAsync(CancellationToken);
+        }
+
+        private static Byte[] HousekeepingPacket(SshMessageNumber MessageNumber)
+            => MessageNumber switch {
+                   SshMessageNumber.Ignore        => [ (Byte) SshMessageNumber.Ignore,        0, 0, 0, 4, 1, 2, 3, 4 ],
+                   SshMessageNumber.Debug         => [ (Byte) SshMessageNumber.Debug,         0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                   SshMessageNumber.Unimplemented => [ (Byte) SshMessageNumber.Unimplemented, 0, 0, 0, 7 ],
+                   _                              => throw new ArgumentOutOfRangeException(nameof(MessageNumber))
+               };
+
+        /// <summary>
+        /// Drives the peer side of an initial curve25519-sha256 + ssh-ed25519 handshake directly on the
+        /// wire, injecting a housekeeping packet (IGNORE / DEBUG / UNIMPLEMENTED) at the chosen stage.
+        /// Without strict-KEX enforcement during the initial handshake, the entire handshake succeeds.
+        /// </summary>
+        private static async Task RunRawPeerHandshakeAsync(IDuplexPipe       PeerPipe,
+                                                           Boolean           PeerIsServer,
+                                                           Boolean           OfferStrictKex,
+                                                           InjectAt          Inject,
+                                                           SshMessageNumber  InjectedMessage,
+                                                           CancellationToken CancellationToken)
+        {
+
+            var peerId  = SshIdentificationString.Default;
+            await SshVersionExchange.WriteAsync(PeerPipe.Output, peerId, CancellationToken);
+            var ourId   = await SshVersionExchange.ReadAsync(PeerPipe.Input, CancellationToken);
+
+            var (vC, vS) = PeerIsServer
+                               ? (ourId.WireBytes, peerId.ToWireBytes())
+                               : (peerId.ToWireBytes(), ourId.WireBytes);
+
+            var packet = HousekeepingPacket(InjectedMessage);
+
+            if (Inject is InjectAt.BeforeKexInit or InjectAt.Everywhere)
+                await WriteCleartextAsync(PeerPipe.Output, packet, CancellationToken);
+
+            var hostKey  = PeerIsServer ? Ed25519KeyPair.Generate() : null;
+            var peerInit = KexInitMessage.CreateLocal(IsServer:          PeerIsServer,
+                                                      KeyExchanges:      [ SshAlgorithmNames.Kex.Curve25519Sha256 ],
+                                                      HostKeyAlgorithms: PeerIsServer ? [.. hostKey!.AlgorithmNames] : [ SshAlgorithmNames.HostKey.Ed25519 ],
+                                                      Initial:           OfferStrictKex);
+
+            var iPeer = peerInit.Encode();
+            await WriteCleartextAsync(PeerPipe.Output, iPeer, CancellationToken);
+
+            var iOur = await SshPacketFraming.ReadPacketAsync(PeerPipe.Input, NullTransportCipher.Instance, CancellationToken: CancellationToken);
+
+            var (iC, iS) = PeerIsServer ? (iOur, iPeer) : (iPeer, iOur);
+
+            if (Inject is InjectAt.AfterKexInit or InjectAt.Everywhere)
+                await WriteCleartextAsync(PeerPipe.Output, packet, CancellationToken);
+
+            using var kex = SshKeyExchange.Create(SshAlgorithmNames.Kex.Curve25519Sha256);
+
+            if (PeerIsServer)
+            {
+                var initPayload     = await SshPacketFraming.ReadPacketAsync(PeerPipe.Input, NullTransportCipher.Instance, CancellationToken: CancellationToken);
+                var qC              = SshKexCore.ParseEcdhInit(initPayload);
+                var (qS, rawSecret) = kex.ServerRespond(qC);
+                var kEncoded        = kex.EncodeSharedSecret(rawSecret);
+                var h               = ExchangeHash.Compute(kex.HashAlgorithm, vC, vS, iC, iS, hostKey!.PublicKeyBlob, qC, qS, kEncoded);
+                var signature       = hostKey.Sign(SshAlgorithmNames.HostKey.Ed25519, h);
+                await WriteCleartextAsync(PeerPipe.Output, SshKexCore.BuildEcdhReply(hostKey.PublicKeyBlob, qS, signature), CancellationToken);
+            }
+            else
+            {
+                var qC = kex.StartClient();
+                await WriteCleartextAsync(PeerPipe.Output, SshKexCore.BuildEcdhInit(qC), CancellationToken);
+                _ = await SshPacketFraming.ReadPacketAsync(PeerPipe.Input, NullTransportCipher.Instance, CancellationToken: CancellationToken);
+            }
+
+            if (Inject is InjectAt.BeforeNewKeys or InjectAt.Everywhere)
+                await WriteCleartextAsync(PeerPipe.Output, packet, CancellationToken);
+
+            await WriteCleartextAsync(PeerPipe.Output, [ (Byte) SshMessageNumber.NewKeys ], CancellationToken);
+            _ = await SshPacketFraming.ReadPacketAsync(PeerPipe.Input, NullTransportCipher.Instance, CancellationToken: CancellationToken);
+
+        }
+
+        private static ValueTask<SshTransport> RunOurHandshakeAsync(IDuplexPipe        OurPipe,
+                                                                    Boolean            WeAreServer,
+                                                                    Boolean            RequireStrictKex,
+                                                                    CancellationToken  CancellationToken)
+            => WeAreServer
+                   ? SshTransport.ServerHandshakeAsync(OurPipe,
+                                                       Ed25519KeyPair.Generate(),
+                                                       KeyExchanges:      [ SshAlgorithmNames.Kex.Curve25519Sha256 ],
+                                                       RequireStrictKex:  RequireStrictKex,
+                                                       CancellationToken: CancellationToken)
+                   : SshTransport.ClientHandshakeAsync(OurPipe,
+                                                       VerifyHostKey:     SshHostKeyVerification.AcceptAnyUnsafe,
+                                                       KeyExchanges:      [ SshAlgorithmNames.Kex.Curve25519Sha256 ],
+                                                       HostKeyAlgorithms: [ SshAlgorithmNames.HostKey.Ed25519 ],
+                                                       RequireStrictKex:  RequireStrictKex,
+                                                       CancellationToken: CancellationToken);
+
+        #endregion
+
+        #region StrictKex_InitialHandshake_RefusesHousekeepingMessages
+
+        /// <summary>
+        /// Terrapin (CVE-2023-48795) exploits injecting SSH_MSG_IGNORE / DEBUG / UNIMPLEMENTED into the
+        /// <i>initial</i> key exchange (before KEXINIT, between KEXINIT and ECDH, or before NEWKEYS).
+        /// Strict KEX must reject every one of those on both client and server — before NEWKEYS installs
+        /// <c>Algorithms</c>.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task StrictKex_InitialHandshake_RefusesHousekeepingMessages(
+            [Values]                                                                             Boolean           WeAreServer,
+            [Values(InjectAt.BeforeKexInit, InjectAt.AfterKexInit, InjectAt.BeforeNewKeys)]      InjectAt          Stage,
+            [Values(SshMessageNumber.Ignore, SshMessageNumber.Debug, SshMessageNumber.Unimplemented)] SshMessageNumber MessageNumber,
+            CancellationToken CancellationToken)
+        {
+
+            var (ourPipe, peerPipe) = DuplexPipe.CreateConnectedPair();
+
+            using var peerCts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
+            var peerTask = Task.Run(async () => {
+                               try   { await RunRawPeerHandshakeAsync(peerPipe, !WeAreServer, OfferStrictKex: true, Stage, MessageNumber, peerCts.Token); }
+                               catch { /* expected once our side aborts the handshake */ }
+                           }, CancellationToken);
+
+            var exception = await Assert.ThrowsAsync<SshWireException>(async () => {
+                                using var _ = await RunOurHandshakeAsync(ourPipe, WeAreServer, RequireStrictKex: false, CancellationToken);
+                            });
+
+            await peerCts.CancelAsync();
+            await peerTask;
+
+            Assert.That(exception!.Message, Does.Contain("Strict KEX"),
+                        $"Strict KEX must reject {MessageNumber} at {Stage} during the initial handshake.");
+
+        }
+
+        #endregion
+
+        #region RequireStrictKex_RefusesIgnoreBeforeKexInitImmediately
+
+        /// <summary>
+        /// When strict KEX is required, an SSH_MSG_IGNORE as packet 0 is already a violation and must be
+        /// refused immediately rather than waiting for a KEXINIT that may never arrive.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task RequireStrictKex_RefusesIgnoreBeforeKexInitImmediately([Values] Boolean WeAreServer,
+                                                                                 CancellationToken CancellationToken)
+        {
+
+            var (ourPipe, peerPipe) = DuplexPipe.CreateConnectedPair();
+
+            var peerTask = Task.Run(async () => {
+                               await SshVersionExchange.WriteAsync(peerPipe.Output, SshIdentificationString.Default, CancellationToken);
+                               await SshVersionExchange.ReadAsync (peerPipe.Input,  CancellationToken);
+                               await WriteCleartextAsync(peerPipe.Output, HousekeepingPacket(SshMessageNumber.Ignore), CancellationToken);
+                           }, CancellationToken);
+
+            var exception = await Assert.ThrowsAsync<SshWireException>(async () => {
+                                using var _ = await RunOurHandshakeAsync(ourPipe, WeAreServer, RequireStrictKex: true, CancellationToken);
+                            });
+
+            await peerTask;
+
+            Assert.That(exception!.Message, Does.Contain("Strict KEX"));
+
+        }
+
+        #endregion
+
+        #region NonStrictPeer_InitialHandshake_StillToleratesIgnore
+
+        /// <summary>
+        /// Control: a legacy peer that does not signal strict KEX (when <c>RequireStrictKex</c> is false)
+        /// is still allowed to send RFC 4253 §11 SSH_MSG_IGNORE packets during the initial handshake.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task NonStrictPeer_InitialHandshake_StillToleratesIgnore([Values] Boolean WeAreServer,
+                                                                              CancellationToken CancellationToken)
+        {
+
+            var (ourPipe, peerPipe) = DuplexPipe.CreateConnectedPair();
+
+            var peerTask = Task.Run(() => RunRawPeerHandshakeAsync(peerPipe,
+                                                                   !WeAreServer,
+                                                                   OfferStrictKex:  false,
+                                                                   InjectAt.Everywhere,
+                                                                   SshMessageNumber.Ignore,
+                                                                   CancellationToken),
+                                    CancellationToken);
+
+            using var transport = await RunOurHandshakeAsync(ourPipe, WeAreServer, RequireStrictKex: false, CancellationToken);
+            await peerTask;
+
+            Assert.That(transport.Algorithms.StrictKex, Is.False);
 
         }
 

@@ -76,9 +76,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private NegotiatedAlgorithms algorithms     = null!;
         private SshExporter?         exporter;
 
-        // Whether a key exchange is currently running. Only strict KEX cares: it forbids the otherwise
-        // always-legal SSH_MSG_IGNORE / DEBUG / UNIMPLEMENTED while the exchange is in flight.
+        // Whether a key exchange is currently running, and whether strict KEX (Terrapin mitigation,
+        // CVE-2023-48795) is in force. Kept in a field of its own rather than read from `algorithms`:
+        // during the initial key exchange `algorithms` is still null until NEWKEYS finishes, whereas
+        // strict KEX must already forbid SSH_MSG_IGNORE / DEBUG / UNIMPLEMENTED inside that very exchange.
         private Boolean              keyExchangeInProgress;
+        private Boolean              strictKex;
 
         // The class remark above calls this transport single-writer. This field is what makes that
         // true, rather than a request to whoever calls it: every send passes through it, and a key
@@ -418,7 +421,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// keys; the call returns once it is queued. Channel data waits for the exchange to end
         /// instead, and a DISCONNECT goes out at once - it may end an exchange.
         /// </remarks>
-        public async ValueTask SendPacketAsync(ReadOnlyMemory<Byte> Payload, CancellationToken CancellationToken = default)
+        public ValueTask SendPacketAsync(ReadOnlyMemory<Byte> Payload, CancellationToken CancellationToken = default)
+            => SendPacketCoreAsync(Payload, BeforeWrite: null, CancellationToken);
+
+        internal async ValueTask SendPacketCoreAsync(ReadOnlyMemory<Byte> Payload, Action? BeforeWrite, CancellationToken CancellationToken)
         {
 
             while (true)
@@ -430,6 +436,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                 try
                 {
+
+                    BeforeWrite?.Invoke();
 
                     lock (kexGate)
                     {
@@ -646,7 +654,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     if (messageNumber is SshMessageNumber.Ignore or SshMessageNumber.Debug or SshMessageNumber.Unimplemented)
                     {
 
-                        if (keyExchangeInProgress && algorithms is { StrictKex: true })
+                        if (keyExchangeInProgress && (strictKex || (requireStrictKex && KeyExchangeCount == 0)))
                             throw new SshWireException($"Strict KEX forbids {messageNumber} ({payload[0]}) during a key exchange.");
 
                         continue;
@@ -705,12 +713,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         /// <summary>
         /// What RFC 4253 §7.1 lets a party send between its KEXINIT and its NEWKEYS: the generic transport
-        /// messages (1-19) but for SERVICE_REQUEST and SERVICE_ACCEPT, the algorithm negotiation messages
-        /// (20-29) but for a further KEXINIT, and those of the key exchange method (30-49).
+        /// messages (1-19) but for SERVICE_REQUEST, SERVICE_ACCEPT and EXT_INFO (RFC 8308 §2.4 forbids
+        /// EXT_INFO before NEWKEYS), the algorithm negotiation messages (20-29) but for a further KEXINIT,
+        /// and those of the key exchange method (30-49).
         /// </summary>
         private static Boolean AllowedDuringKeyExchange(Byte MessageNumber)
             => MessageNumber is >= 1  and <= 19 and not (Byte) SshMessageNumber.ServiceRequest
-                                                and not (Byte) SshMessageNumber.ServiceAccept ||
+                                                and not (Byte) SshMessageNumber.ServiceAccept
+                                                and not (Byte) SshMessageNumber.ExtInfo ||
                MessageNumber is >= 21 and <= 49;
 
         private static SshWireException RefusedDuringKeyExchange(Byte MessageNumber)
@@ -1004,13 +1014,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 throw new SshStrictKexRequiredException(isServer);
 
             // Strict KEX is agreed by the first exchange and holds for the connection. OpenSSH's PROTOCOL
-            // calls its marker "only valid in the initial SSH2_MSG_KEXINIT", to be ignored after, and
+            // §1.9 calls its marker "only valid in the initial SSH2_MSG_KEXINIT", to be ignored after, and
             // OpenSSH sends it only there - so negotiated afresh on a rekey with OpenSSH it came out
             // false: we stopped resetting the sequence numbers after NEWKEYS while OpenSSH went on
-            // resetting them, and our first packet under the new keys was "Connection corrupted". Our
-            // own two ends never noticed, since we repeat the marker in every KEXINIT.
-            if (!IsInitial)
-                negotiated = negotiated with { StrictKex = algorithms.StrictKex };
+            // resetting them, and our first packet under the new keys was "Connection corrupted".
+            //
+            // On the initial exchange, strict KEX also requires SSH_MSG_KEXINIT to be the very first packet
+            // (sequence number 0) — catching any IGNORE / DEBUG / UNIMPLEMENTED injected ahead of it — and
+            // forbids them for the rest of the exchange up to NEWKEYS, so `strictKex` is latched right here
+            // rather than waiting for `algorithms = negotiated` after NEWKEYS.
+            if (IsInitial)
+            {
+
+                if (negotiated.StrictKex && packetsReceivedSinceKex != 1)
+                    throw new SshWireException(
+                        $"Strict KEX requires SSH_MSG_KEXINIT to be the first packet (sequence number 0), " +
+                        $"but {packetsReceivedSinceKex - 1} packet(s) preceded it.");
+
+                strictKex = negotiated.StrictKex;
+
+            }
+            else
+                negotiated = negotiated with { StrictKex = strictKex };
 
             // RFC 4253 §7.1: a peer may append a *guessed* first key-exchange packet to its KEXINIT. If the
             // guess turns out wrong it must be read and discarded, otherwise the next read would parse a

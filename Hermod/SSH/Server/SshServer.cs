@@ -292,6 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         private          Task                                 acceptLoop                 = Task.CompletedTask;
         private          Int64                                nextConnectionId;
         private          Int32                                unauthenticated;
+        private          Int32                                disposed;
 
         #endregion
 
@@ -788,25 +789,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                                                         Connection                                 Connection)
         {
 
-            var token     = Connection.Ending.Token;
-            var stopped   = Task.Delay(Timeout.Infinite, stopping.Token);
+            var       token        = Connection.Ending.Token;
+            using var acceptingCts = CancellationTokenSource.CreateLinkedTokenSource(token, stopping.Token);
 
             while (true)
             {
-
-                var accepting = Mux.AcceptChannelAsync(token).AsTask();
-
-                if (await Task.WhenAny(accepting, stopped).ConfigureAwait(false) == stopped)
-                {
-                    _ = accepting.ContinueWith(task => _ = task.Exception, TaskContinuationOptions.OnlyOnFaulted);
-                    return false;
-                }
 
                 SshMuxChannel channel;
 
                 try
                 {
-                    channel = await accepting.ConfigureAwait(false);
+                    channel = await Mux.AcceptChannelAsync(acceptingCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (stopping.IsCancellationRequested && !token.IsCancellationRequested)
+                {
+                    // The server is stopping gracefully — let the caller drain open sessions.
+                    return false;
                 }
                 catch (ChannelClosedException closed) when (closed.InnerException is null)
                 {
@@ -1385,6 +1383,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         public async ValueTask DisposeAsync()
         {
 
+            if (Interlocked.Exchange(ref disposed, 1) != 0)
+                return;
+
             await stopping.CancelAsync().ConfigureAwait(false);
 
             listener?.Dispose();
@@ -1410,6 +1411,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             { }
 
             cts?.Dispose();
+            if (connections.IsEmpty)
+                stopping.Dispose();
 
         }
 

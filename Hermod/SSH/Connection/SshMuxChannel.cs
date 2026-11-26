@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Collections.Concurrent;
 using System.IO.Pipelines;
 using System.Threading.Channels;
 
@@ -65,18 +64,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Data
 
-        private readonly SshChannelMultiplexer  mux;
-        private readonly Pipe                   stdout = new (new PipeOptions(pauseWriterThreshold: 0, useSynchronizationContext: false));
-        private readonly Pipe                   stderr = new (new PipeOptions(pauseWriterThreshold: 0, useSynchronizationContext: false));
-        private readonly Channel<SshChannelRequest>  requests = System.Threading.Channels.Channel.CreateUnbounded<SshChannelRequest>();
-        private readonly ConcurrentQueue<TaskCompletionSource<Boolean>>  requestReplies = new ();
-        private readonly TaskCompletionSource  openTcs  = new (TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource  closeTcs = new (TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly Lock                  sync = new ();
+        private readonly SshChannelMultiplexer                  mux;
+        private readonly Pipe                                   stdout         = new (new PipeOptions(pauseWriterThreshold: 0, useSynchronizationContext: false));
+        private readonly Pipe                                   stderr         = new (new PipeOptions(pauseWriterThreshold: 0, useSynchronizationContext: false));
+        private readonly Channel<SshChannelRequest>             requests       = System.Threading.Channels.Channel.CreateUnbounded<SshChannelRequest>();
+        private readonly SemaphoreSlim                          requestGate    = new (1, 1);
+        private readonly LinkedList<TaskCompletionSource<Boolean>> requestReplies = new ();
+        private readonly TaskCompletionSource                   openTcs        = new (TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource                   closeTcs       = new (TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly Lock                                   sync           = new ();
 
         private UInt32                         remoteId;
         private Int64                          remoteWindow;
         private TaskCompletionSource?          windowGrew;
+        private Exception?                     faulted;
         private Boolean                        sentEof, sentClose, sentExit, inboundDone;
         private Stream?                        inputStream, errorStream;
 
@@ -176,10 +177,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         {
             if (Type is "exit-status" or "exit-signal")
                 lock (sync) sentExit = true;
-            TaskCompletionSource<Boolean>? tcs = null;
-            if (WantReply) { tcs = new TaskCompletionSource<Boolean>(TaskCreationOptions.RunContinuationsAsynchronously); requestReplies.Enqueue(tcs); }
-            await mux.SendAsync(SshChannelWire.ChannelRequest(remoteId, Type, WantReply, Payload), CancellationToken).ConfigureAwait(false);
-            return tcs is null || await tcs.Task.WaitAsync(CancellationToken).ConfigureAwait(false);
+
+            if (!WantReply)
+            {
+                await mux.SendAsync(SshChannelWire.ChannelRequest(remoteId, Type, false, Payload), CancellationToken).ConfigureAwait(false);
+                return true;
+            }
+
+            var tcs = new TaskCompletionSource<Boolean>(TaskCreationOptions.RunContinuationsAsynchronously);
+            LinkedListNode<TaskCompletionSource<Boolean>> node;
+
+            // Serialize enqueue + wire send so concurrent want-reply channel requests stay strictly FIFO
+            // with the peer's CHANNEL_SUCCESS / CHANNEL_FAILURE replies (RFC 4254 §5.4).
+            await requestGate.WaitAsync(CancellationToken).ConfigureAwait(false);
+            try
+            {
+                lock (sync)
+                {
+                    if (faulted is not null)
+                        throw faulted;
+                    node = requestReplies.AddLast(tcs);
+                }
+
+                try
+                {
+                    await mux.SendAsync(SshChannelWire.ChannelRequest(remoteId, Type, true, Payload), CancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    lock (sync)
+                    {
+                        if (node.List is not null)
+                            requestReplies.Remove(node);
+                    }
+                    throw;
+                }
+            }
+            finally
+            {
+                requestGate.Release();
+            }
+
+            return await tcs.Task.WaitAsync(CancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -342,6 +381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             if (sendClose) await mux.SendAsync(SshChannelWire.Close(remoteId)).ConfigureAwait(false);
             await CompleteDataAsync().ConfigureAwait(false);
             requests.Writer.TryComplete();   // no more inbound requests once the channel closes
+            DrainRequestReplies(new SshChannelClosedException());
             closeTcs.TrySetResult();
             mux.Remove(LocalId);
         }
@@ -350,7 +390,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         internal void OnRequestReply(Boolean Success)
         {
-            if (requestReplies.TryDequeue(out var tcs)) tcs.TrySetResult(Success);
+            TaskCompletionSource<Boolean>? tcs = null;
+            lock (sync)
+            {
+                if (requestReplies.First is { } first)
+                {
+                    tcs = first.Value;
+                    requestReplies.RemoveFirst();
+                }
+            }
+            tcs?.TrySetResult(Success);
         }
 
         internal void Fault(Exception Exception)
@@ -360,9 +409,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             try { stdout.Writer.Complete(Exception); } catch { }
             try { stderr.Writer.Complete(Exception); } catch { }
             requests.Writer.TryComplete();
+            DrainRequestReplies(Exception);
             TaskCompletionSource? grew;
             lock (sync) { grew = windowGrew; windowGrew = null; }
             grew?.TrySetException(Exception);
+        }
+
+        private void DrainRequestReplies(Exception Exception)
+        {
+            List<TaskCompletionSource<Boolean>>? pending = null;
+            lock (sync)
+            {
+                faulted ??= Exception;
+                if (requestReplies.Count > 0)
+                {
+                    pending = [.. requestReplies];
+                    requestReplies.Clear();
+                }
+            }
+            if (pending is not null)
+                foreach (var tcs in pending)
+                    tcs.TrySetException(Exception);
         }
 
         #endregion

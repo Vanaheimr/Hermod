@@ -35,6 +35,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
     public static class SftpServer
     {
 
+        /// <summary>
+        /// Default maximum number of concurrently open file and directory handles per SFTP session
+        /// when <see cref="SftpLimits.MaxOpenHandles"/> is not specified.
+        /// </summary>
+        public const Int32 DefaultMaxOpenHandles = 256;
+
         #region ServeAsync(Channel, FileSystem, CancellationToken)
 
         /// <summary>
@@ -99,45 +105,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
             await SendAsync(Channel, BuildVersion(), CancellationToken).ConfigureAwait(false);
 
-            // 2. Request loop.
-            while (true)
+            // 2. Request loop — always close any handles the client left behind when the session ends
+            //    (abrupt disconnect, cancellation, or wire error) so backing file descriptors never leak.
+            try
             {
-
-                var packet = await ReadPacketAsync(Channel, CancellationToken).ConfigureAwait(false);
-                if (packet is null)
+                while (true)
                 {
-                    // The client closed the SFTP channel — complete the close handshake so the peer can exit.
-                    try { await Channel.CloseAsync(CancellationToken).ConfigureAwait(false); } catch { }
-                    return;
-                }
 
-                var request = ParseRequest(packet);
-                Byte[] response;
+                    var packet = await ReadPacketAsync(Channel, CancellationToken).ConfigureAwait(false);
+                    if (packet is null)
+                    {
+                        // The client closed the SFTP channel — complete the close handshake so the peer can exit.
+                        try { await Channel.CloseAsync(CancellationToken).ConfigureAwait(false); } catch { }
+                        return;
+                    }
 
-                try
-                {
-                    if (Profile is not null && !Profile.AllowsSftp(RequiredPermission(request)))
-                        response = BuildStatus(request.RequestId, SftpStatusCode.PermissionDenied, "Operation not permitted by the access profile.");
-                    else
-                        response = await DispatchAsync(FileSystem, session, request, CancellationToken).ConfigureAwait(false);
-                }
-                catch (SftpQuotaExceededException e)
-                {
-                    // Mid-write overrun: discard the partial upload and keep the session healthy.
-                    await CleanupPartialAsync(FileSystem, request.WriteHandle, e.PathToCleanup, CancellationToken).ConfigureAwait(false);
-                    response = BuildStatus(request.RequestId, e.Code, e.Message);
-                }
-                catch (SftpException e)
-                {
-                    response = BuildStatus(request.RequestId, e.Code, e.Message);
-                }
-                catch (Exception e)
-                {
-                    response = BuildStatus(request.RequestId, SftpStatusCode.Failure, e.Message);
-                }
+                    var request = ParseRequest(packet);
+                    Byte[] response;
 
-                await SendAsync(Channel, response, CancellationToken).ConfigureAwait(false);
+                    try
+                    {
+                        if (Profile is not null && !Profile.AllowsSftp(RequiredPermission(request)))
+                            response = BuildStatus(request.RequestId, SftpStatusCode.PermissionDenied, "Operation not permitted by the access profile.");
+                        else
+                            response = await DispatchAsync(FileSystem, session, request, CancellationToken).ConfigureAwait(false);
+                    }
+                    catch (SftpQuotaExceededException e)
+                    {
+                        // Mid-write overrun: discard the partial upload and keep the session healthy.
+                        if (request.WriteHandle.Length > 0)
+                        {
+                            session.Quota?.OnClose(request.WriteHandle);
+                            session.HandlePaths.Remove(request.WriteHandle);
+                        }
+                        await CleanupPartialAsync(FileSystem, request.WriteHandle, e.PathToCleanup, CancellationToken).ConfigureAwait(false);
+                        response = BuildStatus(request.RequestId, e.Code, e.Message);
+                    }
+                    catch (SftpException e)
+                    {
+                        response = BuildStatus(request.RequestId, e.Code, e.Message);
+                    }
+                    catch (Exception e)
+                    {
+                        response = BuildStatus(request.RequestId, SftpStatusCode.Failure, e.Message);
+                    }
 
+                    await SendAsync(Channel, response, CancellationToken).ConfigureAwait(false);
+
+                }
+            }
+            finally
+            {
+                if (session.HandlePaths.Count > 0)
+                {
+                    foreach (var handle in session.HandlePaths.Keys.ToArray())
+                    {
+                        session.Quota?.OnClose(handle);
+                        session.HandlePaths.Remove(handle);
+                        try { await FileSystem.CloseAsync(handle, CancellationToken.None).ConfigureAwait(false); } catch { }
+                    }
+                }
             }
 
         }
@@ -172,6 +199,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
                 case SftpPacketType.Open:
                 {
+                    var maxOpenHandles = Session.Limits?.MaxOpenHandles ?? DefaultMaxOpenHandles;
+                    if (maxOpenHandles > 0 && Session.HandlePaths.Count >= maxOpenHandles)
+                        throw new SftpException(SftpStatusCode.Failure, $"Maximum number of open handles ({maxOpenHandles}) reached.");
+
                     var writable = (Request.OpenFlags & (SftpOpenFlags.Write | SftpOpenFlags.Append | SftpOpenFlags.Create | SftpOpenFlags.Truncate)) != 0;
                     var creating = Request.OpenFlags.HasFlag(SftpOpenFlags.Create);
 
@@ -190,6 +221,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
                 case SftpPacketType.OpenDir:
                 {
+                    var maxOpenHandles = Session.Limits?.MaxOpenHandles ?? DefaultMaxOpenHandles;
+                    if (maxOpenHandles > 0 && Session.HandlePaths.Count >= maxOpenHandles)
+                        throw new SftpException(SftpStatusCode.Failure, $"Maximum number of open handles ({maxOpenHandles}) reached.");
+
                     var handle = await FileSystem.OpenDirectoryAsync(Request.Path, CancellationToken).ConfigureAwait(false);
                     Session.HandlePaths[handle] = Request.Path;
                     return BuildHandle(Request.RequestId, handle);
@@ -447,7 +482,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
             w.WriteUInt64(34_000);                    // max-packet-length
             w.WriteUInt64(32_768);                    // max-read-length
             w.WriteUInt64(32_768);                    // max-write-length
-            w.WriteUInt64(Session.Limits?.MaxFileCount is { } fc ? (UInt64) fc : 0);   // max-open-handles (0 = no limit)
+            w.WriteUInt64((UInt64) (Session.Limits?.MaxOpenHandles ?? Session.Limits?.MaxFileCount ?? DefaultMaxOpenHandles));   // max-open-handles
             return abw.WrittenSpan.ToArray();
 
         }

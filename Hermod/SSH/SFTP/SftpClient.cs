@@ -824,7 +824,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
             var reader = new SshPacketReader(response); reader.ReadByte(); reader.ReadUInt32();
             var count  = reader.ReadUInt32();
-            var result = new List<SftpDirectoryEntry>((Int32) count);
+            var result = new List<SftpDirectoryEntry>((Int32) Math.Min(count, 1024u));
             for (var i = 0U; i < count; i++)
             {
                 var name = reader.ReadString();

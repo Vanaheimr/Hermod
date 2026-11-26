@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Buffers;
 using System.Text;
 using System.Security.Cryptography;
 
@@ -225,6 +226,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             clientPipe.Output.Complete();
             try { await serverRun; } catch { }
+
+        }
+
+        #endregion
+
+        #region TwoFactor_UsernameSwitchBetweenFactors_IsRejected
+
+        /// <summary>
+        /// RFC 4252 §5: once the first factor of a multi-factor exchange has succeeded for <c>alice</c>,
+        /// switching the username to <c>bob</c> on the second factor must be rejected immediately rather
+        /// than combining <c>alice</c>'s first factor with <c>bob</c>'s second factor.
+        /// </summary>
+        [Test]
+        [CancelAfter(15000)]
+        public async Task TwoFactor_UsernameSwitchBetweenFactors_IsRejected(CancellationToken CancellationToken)
+        {
+
+            var (clientPipe, serverPipe) = DuplexPipe.CreateConnectedPair();
+            var hostKey  = Ed25519KeyPair.Generate();
+            var aliceKey = SshHostKey.GenerateEd25519();
+
+            var secret     = RandomNumberGenerator.GetBytes(20);
+            var clock      = new FixedTimeProvider(DateTimeOffset.FromUnixTimeSeconds(1_700_000_500));
+            var serverTotp = new Totp(secret, TimeProvider: clock);
+            var clientTotp = new Totp(secret, TimeProvider: clock);
+
+            var authenticator = new SshAuthenticationPolicy()
+                                    .WithPublicKey((req, _) => ValueTask.FromResult(req.Username == User_Id.Parse("alice") &&
+                                                                                    req.PublicKeyBlob.AsSpan().SequenceEqual(aliceKey.PublicKeyBlob)))
+                                    .WithSecondFactor(_ => new TotpKeyboardInteractive(serverTotp));
+
+            var serverRun = Task.Run(async () =>
+            {
+                using var t = await SshTransport.ServerHandshakeAsync(serverPipe, hostKey, CancellationToken: CancellationToken);
+                return await UserAuthentication.ServerAuthenticateAsync(t, authenticator, CancellationToken: CancellationToken);
+            }, CancellationToken);
+
+            using var client = await SshTransport.ClientHandshakeAsync(clientPipe, VerifyHostKey: SshHostKeyVerification.AcceptAnyUnsafe, CancellationToken: CancellationToken);
+
+            // 1. Request ssh-userauth service.
+            var svcReq = new ArrayBufferWriter<Byte>();
+            var w1     = new SshPacketWriter(svcReq);
+            w1.WriteByte((Byte) SshMessageNumber.ServiceRequest);
+            w1.WriteString("ssh-userauth");
+            await client.SendPacketAsync(svcReq.WrittenSpan.ToArray(), CancellationToken);
+
+            Byte[] reply;
+            do { reply = await client.ReceivePacketAsync(CancellationToken); }
+            while ((SshMessageNumber) reply[0] == SshMessageNumber.ExtInfo);
+            Assert.That((SshMessageNumber) reply[0], Is.EqualTo(SshMessageNumber.ServiceAccept));
+
+            // 2. Complete factor 1 (publickey) as "alice" → expect PARTIAL SUCCESS.
+            var alg = aliceKey.AlgorithmNames[0];
+            var toSign = new ArrayBufferWriter<Byte>();
+            var ws     = new SshPacketWriter(toSign);
+            ws.WriteBinaryString(client.SessionId);
+            ws.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
+            ws.WriteString("alice");
+            ws.WriteString("ssh-connection");
+            ws.WriteString("publickey");
+            ws.WriteBoolean(true);
+            ws.WriteString(alg);
+            ws.WriteBinaryString(aliceKey.PublicKeyBlob);
+            var signature = aliceKey.Sign(alg, toSign.WrittenSpan);
+
+            var pkReq = new ArrayBufferWriter<Byte>();
+            var w2    = new SshPacketWriter(pkReq);
+            w2.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
+            w2.WriteString("alice");
+            w2.WriteString("ssh-connection");
+            w2.WriteString("publickey");
+            w2.WriteBoolean(true);
+            w2.WriteString(alg);
+            w2.WriteBinaryString(aliceKey.PublicKeyBlob);
+            w2.WriteBinaryString(signature);
+            await client.SendPacketAsync(pkReq.WrittenSpan.ToArray(), CancellationToken);
+
+            var partial = await client.ReceivePacketAsync(CancellationToken);
+            Assert.That((SshMessageNumber) partial[0], Is.EqualTo(SshMessageNumber.UserAuthFailure));
+            var pr = new SshPacketReader(partial); pr.ReadByte(); pr.ReadString();
+            Assert.That(pr.ReadBoolean(), Is.True, "factor 1 for alice must yield partial success");
+
+            // 3. Attempt factor 2 (keyboard-interactive) while switching username to "bob".
+            var kiReq = new ArrayBufferWriter<Byte>();
+            var w3    = new SshPacketWriter(kiReq);
+            w3.WriteByte((Byte) SshMessageNumber.UserAuthRequest);
+            w3.WriteString("bob");
+            w3.WriteString("ssh-connection");
+            w3.WriteString("keyboard-interactive");
+            w3.WriteString("");
+            w3.WriteString("");
+            await client.SendPacketAsync(kiReq.WrittenSpan.ToArray(), CancellationToken);
+
+            // Server must reject the username switch immediately with SshAuthenticationException.
+            await Assert.ThrowsAsync<SshAuthenticationException>(async () => await serverRun);
+
+            // Keep compiler happy about unused clientTotp if needed — verify we never even reached the TOTP prompt.
+            Assert.That(clientTotp.ComputeNow(), Has.Length.EqualTo(6));
 
         }
 
