@@ -22,8 +22,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
-    /// Content codings (RFC 9110, Section 8.4.1): gzip, deflate and br, in both
-    /// directions.
+    /// Content codings (RFC 9110, Section 8.4.1): gzip, deflate, br and zstd
+    /// (RFC 8878, held to RFC 9659 for HTTP), in both directions.
     ///
     /// The encode direction is what a server applies to a response it is about to
     /// send (<see cref="HTTPResourceSemantics"/>); the decode direction is what a client
@@ -44,15 +44,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         /// <summary>
         /// The codings this stack can produce and consume, best first. Also the
-        /// preference order a server uses when several are acceptable.
+        /// preference order a server uses when several are acceptable: br before
+        /// zstd, so that a client that was answered with br before zstd was
+        /// offered still is.
         /// </summary>
-        public static readonly String[] Supported = ["br", "gzip", "deflate"];
+        public static readonly String[] Supported = ["br", "zstd", "gzip", "deflate"];
 
         /// <summary>
         /// A ready-made <c>accept-encoding</c> field value advertising exactly
         /// <see cref="Supported"/>, in that order.
         /// </summary>
-        public const String AcceptEncoding = "br, gzip, deflate";
+        public const String AcceptEncoding = "br, zstd, gzip, deflate";
+
+        /// <summary>
+        /// The largest window a zstd frame may need, as a power of two: 8 MB.
+        /// RFC 9659, Section 3: an encoder MUST NOT use a larger window for HTTP,
+        /// and a decoder is not obliged to take one. The decoder here takes none,
+        /// so a frame cannot make it hold more than 8 MB of history per message.
+        /// </summary>
+        public const Int32 ZstandardMaxWindowLog2 = 23;
+
+        /// <summary>
+        /// The name of the assembly the BCL's decoders live in: an IOException
+        /// thrown from there is a decoder's own, not one of the stream it reads.
+        /// </summary>
+        private static readonly String? CompressionAssembly = typeof(ZstandardStream).Assembly.GetName().Name;
 
         #endregion
 
@@ -85,6 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             using (Stream compressor = Coding switch
             {
                 "br"      => new BrotliStream (output, CompressionLevel.Optimal, leaveOpen: true),
+                "zstd"    => ZstandardEncoder(output, Data.LongLength),
                 "gzip"    => new GZipStream   (output, CompressionLevel.Optimal, leaveOpen: true),
                 "deflate" => new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true),
                 _         => throw new InvalidOperationException($"Unsupported content coding '{Coding}'")
@@ -118,6 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             using Stream decompressor = Coding switch
             {
                 "br"      => new BrotliStream (input, CompressionMode.Decompress),
+                "zstd"    => ZstandardDecoder(input),
                 "gzip"    => new GZipStream   (input, CompressionMode.Decompress),
                 "deflate" => OpenDeflate(input, Data),
                 _         => throw new InvalidOperationException($"Unsupported content coding '{Coding}'")
@@ -128,17 +146,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var buffer = new Byte[81920];
             int read;
 
-            // Copy manually rather than CopyTo: the cap has to bite *during*
-            // decompression, or the bomb has already gone off by the time we look.
-            while ((read = decompressor.Read(buffer, 0, buffer.Length)) > 0)
+            try
             {
 
-                if (output.Length + read > MaxDecodedSize)
-                    throw new InvalidDataException(
-                        $"Decoded '{Coding}' content exceeds the {MaxDecodedSize}-byte limit");
+                // Copy manually rather than CopyTo: the cap has to bite *during*
+                // decompression, or the bomb has already gone off by the time we look.
+                while ((read = decompressor.Read(buffer, 0, buffer.Length)) > 0)
+                {
 
-                output.Write(buffer, 0, read);
+                    if (output.Length + read > MaxDecodedSize)
+                        throw new InvalidDataException(
+                            $"Decoded '{Coding}' content exceeds the {MaxDecodedSize}-byte limit");
 
+                    output.Write(buffer, 0, read);
+
+                }
+
+            }
+            catch (IOException e) when (IsDecoderFailure(e))
+            {
+                throw new InvalidDataException($"The '{Coding}' content cannot be decoded: {e.Message}", e);
             }
 
             return output.ToArray();
@@ -165,6 +192,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        : new DeflateStream(Input, CompressionMode.Decompress);
 
         }
+
+        #endregion
+
+        #region (internal) ZstandardEncoder(Output, SourceLength)
+
+        /// <summary>
+        /// A zstd encoder (RFC 8878) of zstd's own default quality, 3, writing a
+        /// frame that declares its content size: a decoder then knows a frame of
+        /// a small body needs no window beyond that body.
+        ///
+        /// The quality is set, not taken from a <see cref="CompressionLevel"/>: the
+        /// window follows from it, and RFC 9659 holds HTTP to 8 MB. Quality 3 uses
+        /// 2 MB; <see cref="CompressionLevel.SmallestSize"/> would use 128 MB, which
+        /// a decoder that keeps to RFC 9659 refuses.
+        /// </summary>
+        internal static ZstandardStream ZstandardEncoder(Stream  Output,
+                                                         Int64   SourceLength)
+        {
+
+            var encoder = new ZstandardStream(
+                              Output,
+                              new ZstandardCompressionOptions {
+                                  Quality = ZstandardCompressionOptions.DefaultQuality
+                              },
+                              leaveOpen: true
+                          );
+
+            encoder.SetSourceLength(SourceLength);
+
+            return encoder;
+
+        }
+
+        #endregion
+
+        #region (internal) ZstandardDecoder(Input)
+
+        /// <summary>
+        /// A zstd decoder that takes no frame needing a window above 8 MB
+        /// (<see cref="ZstandardMaxWindowLog2"/>), and disposes its input with it.
+        /// </summary>
+        internal static ZstandardStream ZstandardDecoder(Stream Input)
+
+            => new (Input,
+                    new ZstandardDecompressionOptions {
+                        MaxWindowLog2 = ZstandardMaxWindowLog2
+                    },
+                    leaveOpen: false);
+
+        #endregion
+
+        #region (internal) IsDecoderFailure(Exception)
+
+        /// <summary>
+        /// Whether an IOException is a decoder's verdict on the octets rather than
+        /// a failure of the stream they are read from. ZstandardStream answers a
+        /// frame whose window is over its limit with an IOException, which a
+        /// caller would take for the connection failing; one the source throws
+        /// goes through a decoder as it is, and keeps its own Source.
+        /// </summary>
+        internal static Boolean IsDecoderFailure(IOException Exception)
+
+            => Exception.Source is not null &&
+               Exception.Source == CompressionAssembly;
 
         #endregion
 

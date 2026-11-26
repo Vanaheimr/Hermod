@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean        UseHTTPPipelining    { get; set; }
 
         /// <summary>
-        /// Advertise "Accept-Encoding: br, gzip, deflate" on requests that do not
+        /// Advertise "Accept-Encoding: br, zstd, gzip, deflate" on requests that do not
         /// already carry one, and undo the content coding of the responses that
         /// come back (RFC 9110, Section 8.4), so that the caller reads the
         /// representation rather than the octets that carried it.

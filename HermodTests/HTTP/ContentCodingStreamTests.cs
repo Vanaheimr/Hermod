@@ -550,6 +550,185 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+
+        #region (private) FailingStream
+
+        /// <summary>
+        /// A source that gives its first <paramref name="Good"/> bytes, and then
+        /// fails as a connection does that goes away.
+        /// </summary>
+        private sealed class FailingStream(Byte[] Data, Int32 Good) : Stream
+        {
+
+            private Int32 position;
+
+            public const String Failure = "the connection went away";
+
+            public override Boolean  CanRead  => true;
+            public override Boolean  CanSeek  => false;
+            public override Boolean  CanWrite => false;
+            public override Int64    Length   => throw new NotSupportedException();
+
+            public override Int64 Position
+            {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+
+            public override Int32 Read(Byte[] Buffer, Int32 Offset, Int32 Count)
+            {
+
+                if (position >= Good)
+                    throw new IOException(Failure);
+
+                var read = Math.Min(Count, Good - position);
+
+                Array.Copy(Data, position, Buffer, Offset, read);
+                position += read;
+
+                return read;
+
+            }
+
+            public override ValueTask<Int32> ReadAsync(Memory<Byte> Buffer, CancellationToken CancellationToken = default)
+            {
+
+                if (position >= Good)
+                    return ValueTask.FromException<Int32>(new IOException(Failure));
+
+                var read = Math.Min(Buffer.Length, Good - position);
+
+                Data.AsMemory(position, read).CopyTo(Buffer);
+                position += read;
+
+                return ValueTask.FromResult(read);
+
+            }
+
+            public override void  Flush()                                    { }
+            public override void  Write(Byte[] B, Int32 O, Int32 C)          => throw new NotSupportedException();
+            public override Int64 Seek (Int64  O, SeekOrigin Origin)         => throw new NotSupportedException();
+            public override void  SetLength(Int64 Value)                     => throw new NotSupportedException();
+
+        }
+
+        #endregion
+
+        #region (private) ReadToEnd(Stream, Async)
+
+        private static async Task<Byte[]> ReadToEnd(Stream Stream, Boolean Async)
+        {
+
+            var output = new MemoryStream();
+            var buffer = new Byte[4096];
+
+            while (true)
+            {
+
+                var read = Async
+                               ? await Stream.ReadAsync(buffer.AsMemory())
+                               : Stream.Read(buffer, 0, buffer.Length);
+
+                if (read == 0)
+                    return output.ToArray();
+
+                output.Write(buffer, 0, read);
+
+            }
+
+        }
+
+        #endregion
+
+
+        #region AZstdStreamDecodesToTheRepresentation()
+
+        [Test]
+        public void AZstdStreamDecodesToTheRepresentation()
+        {
+
+            var text      = "Hello from a body that travelled as zstd!";
+            var response  = Response("zstd", Encode(text, "zstd"));
+
+            Assert.That(response.TryDecodeBodyStream(out var error), Is.True, error);
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPBodyAsUTF8String,    Is.EqualTo(text));
+                Assert.That(response.ContentEncoding,         Is.Empty);
+                Assert.That(response.DecodedContentEncoding,  Is.EqualTo("zstd"));
+            });
+
+        }
+
+        #endregion
+
+        #region Zstd_Stream_TakesAWindowOfUpTo8MiB(WindowDescriptor, Taken, Async)
+
+        /// <summary>
+        /// As the array-shaped decoder: a frame needing a window of 8 MiB is
+        /// read, one needing more is refused with an InvalidDataException, read
+        /// or read asynchronously.
+        /// </summary>
+        [TestCase(0x68, true,  false)]
+        [TestCase(0x68, true,  true)]
+        [TestCase(0x69, false, false)]
+        [TestCase(0x69, false, true)]
+        [TestCase(0x70, false, false)]
+        [TestCase(0x70, false, true)]
+        public async Task Zstd_Stream_TakesAWindowOfUpTo8MiB(Int32 WindowDescriptor, Boolean Taken, Boolean Async)
+        {
+
+            var frame    = ZstandardFrames.WithWindowDescriptor((Byte) WindowDescriptor, "hello"u8.ToArray());
+
+            using var decoded = HTTPContentCoding.DecodeStream(new MemoryStream(frame), [ "zstd" ], 1024);
+
+            if (Taken)
+                Assert.That(await ReadToEnd(decoded, Async), Is.EqualTo("hello"u8.ToArray()));
+
+            else
+            {
+
+                var refused = await Assert.CatchAsync(() => ReadToEnd(decoded, Async));
+
+                Assert.That(refused?.GetType(), Is.EqualTo(typeof(InvalidDataException)), refused?.ToString());
+
+            }
+
+        }
+
+        #endregion
+
+        #region ASourceThatFailsStaysAnIOException(Coding, Async)
+
+        /// <summary>
+        /// What the source throws is the source's: a connection that goes away
+        /// halfway through a body is an IOException after the decoder as before
+        /// it, and not taken for a body that is not valid zstd — the translation
+        /// of the decoder's own IOException must not reach it. gzip for contrast.
+        /// </summary>
+        [TestCase("zstd", false)]
+        [TestCase("zstd", true)]
+        [TestCase("gzip", false)]
+        [TestCase("gzip", true)]
+        public async Task ASourceThatFailsStaysAnIOException(String Coding, Boolean Async)
+        {
+
+            var noise = new Byte[256 * 1024];
+            new Random(1).NextBytes(noise);
+
+            using var decoded = HTTPContentCoding.DecodeStream(new FailingStream(Encode(noise, Coding), 1000), [ Coding ], 1 << 20);
+
+            var failure = await Assert.CatchAsync(() => ReadToEnd(decoded, Async));
+
+            Assert.Multiple(() => {
+                Assert.That(failure?.GetType(),  Is.EqualTo(typeof(IOException)),  failure?.ToString());
+                Assert.That(failure?.Message,    Is.EqualTo(FailingStream.Failure));
+            });
+
+        }
+
+        #endregion
+
     }
 
 }

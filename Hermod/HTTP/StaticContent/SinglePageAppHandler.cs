@@ -426,7 +426,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (private) Encoded(File, Coding)
 
         /// <summary>
-        /// The Brotli or gzip representation of a file, computed once per
+        /// The Brotli, zstd or gzip representation of a file, computed once per
         /// content: the cache key is the entity tag, so a changed file on
         /// disk in development mode gets a fresh entry.
         /// </summary>

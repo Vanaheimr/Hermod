@@ -781,7 +781,7 @@ The server has carried the RFC 9110 semantics from the start; the client is
 catching up. What it has so far:
 
 - **Content coding, decode direction** (§8.4) — with `AutomaticDecompression`
-  the client advertises `accept-encoding: br, gzip, deflate` and hands the
+  the client advertises `accept-encoding: br, zstd, gzip, deflate` and hands the
   caller the identity representation, reporting what it undid in
   `HTTP2Response.DecodedContentEncoding`. A caller's own `accept-encoding` is
   never widened behind their back (`identity` switches compression off for one

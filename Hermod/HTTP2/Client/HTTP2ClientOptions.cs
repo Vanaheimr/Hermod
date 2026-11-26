@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         public Func<TlsCipherSuite, Boolean>? IsBlocklistedCipherSuite { get; init; }
 
         /// <summary>
-        /// Advertise <c>accept-encoding: br, gzip, deflate</c> on requests that do
+        /// Advertise <c>accept-encoding: br, zstd, gzip, deflate</c> on requests that do
         /// not already carry one, and transparently decode the
         /// <c>content-encoding</c> of the responses that come back (RFC 9110,
         /// Section 8.4). Off by default: it changes what goes out on the wire and

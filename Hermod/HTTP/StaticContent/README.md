@@ -77,7 +77,7 @@ server's request-target validation.
 | Content type | `HTTPContentType.ForFileName` from the file extension; `application/octet-stream` for unknown ones |
 | Entity tags | strong `ETag` from the content (SHA-256); `If-None-Match` answered with `304 Not Modified` (weak comparison, lists, `*`) |
 | Cache-Control | stub `no-cache`; file names with a content hash `public, max-age=31536000, immutable`; other files one hour; everything `no-cache` for a mutable source; all three configurable |
-| Content coding | text-like content of `MinimumCompressionSize` (1 KiB) or more as Brotli or gzip according to `Accept-Encoding` (quality values, `*`); encoded representations get their own `ETag` (`"…-br"`) and `Vary: Accept-Encoding`; fonts and images stay as they are; encodings are cached per entity tag |
+| Content coding | text-like content of `MinimumCompressionSize` (1 KiB) or more as Brotli, zstd or gzip according to `Accept-Encoding` (quality values, `*`); encoded representations get their own `ETag` (`"…-br"`) and `Vary: Accept-Encoding`; fonts and images stay as they are; encodings are cached per entity tag |
 | Security | `X-Content-Type-Options: nosniff` on every response; HTML documents additionally get `Content-Security-Policy`, `Referrer-Policy`, `Permissions-Policy` and `X-Frame-Options`; `Strict-Transport-Security` only when set, i.e. over TLS |
 
 `ContentNegotiation` and `SecurityHeaderExtensions` are public, so other

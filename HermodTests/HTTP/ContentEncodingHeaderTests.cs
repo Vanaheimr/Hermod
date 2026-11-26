@@ -158,7 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         #region EverySupportedCodingRoundTrips()
 
         /// <summary>
-        /// br, gzip and deflate, through the same seam a received message uses.
+        /// br, zstd, gzip and deflate, through the same seam a received message uses.
         /// </summary>
         [Test]
         public void EverySupportedCodingRoundTrips()
@@ -408,6 +408,109 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 Assert.That(request. DecodeBody(),              Is.EqualTo(identity));
                 Assert.That(request. DecodedBodyAsUTF8String(), Is.EqualTo(payload));
             });
+
+        }
+
+        #endregion
+
+
+        #region Zstd_Encode_NeedsAWindowOfNoMoreThan8MiB()
+
+        /// <summary>
+        /// RFC 9659, Section 3: zstd for HTTP uses a window of 8 MB at most. 24 MiB
+        /// that a window of more than 12 MiB would compress to half are written in
+        /// a frame that needs one of 2 MiB, which every decoder that keeps to the
+        /// RFC takes: they do not compress, and they round-trip.
+        /// CompressionLevel.SmallestSize would have taken a window of 128 MiB.
+        /// </summary>
+        [Test]
+        public void Zstd_Encode_NeedsAWindowOfNoMoreThan8MiB()
+        {
+
+            var identity  = ZstandardFrames.RepeatedAfter12MiB();
+            var encoded   = HTTPContentCoding.Encode(identity, "zstd");
+
+            Assert.Multiple(() => {
+                Assert.That(ZstandardFrames.WindowOf(encoded),                                Is.LessThanOrEqualTo(8UL << 20),  "the window the frame needs");
+                Assert.That(encoded.Length,                                                   Is.GreaterThan(identity.Length / 4 * 3),
+                                                                                                                                "a window under 12 MiB does not reach the repeat, which one over it would halve");
+                Assert.That(HTTPContentCoding.Decode(encoded, "zstd", identity.Length).AsSpan().SequenceEqual(identity),
+                                                                                              Is.True,                          "it round-trips");
+            });
+
+        }
+
+        #endregion
+
+        #region Zstd_Encode_ASmallBodyIsASegmentOfItsOwnSize()
+
+        /// <summary>
+        /// The encoder is told the size of what it encodes, so the frame of a
+        /// small body states it, and needs no window beyond it: a decoder holds
+        /// the body's bytes for it, not the 2 MiB of the encoder's window.
+        /// </summary>
+        [Test]
+        public void Zstd_Encode_ASmallBodyIsASegmentOfItsOwnSize()
+        {
+
+            var encoded = HTTPContentCoding.Encode(Encoding.UTF8.GetBytes(payload), "zstd");
+
+            Assert.Multiple(() => {
+                Assert.That(ZstandardFrames.IsSingleSegment(encoded),  Is.True,                                        "a single segment");
+                Assert.That(ZstandardFrames.WindowOf(encoded),         Is.EqualTo((UInt64) Encoding.UTF8.GetByteCount(payload)),  "the window it needs");
+            });
+
+        }
+
+        #endregion
+
+        #region Zstd_Decode_TakesAWindowOfUpTo8MiB(WindowDescriptor, Taken)
+
+        /// <summary>
+        /// A frame that needs a window of 8 MiB is decoded; one that needs more,
+        /// by an eighth or by twice as much, is refused as content that cannot be
+        /// decoded — an InvalidDataException, as for any other coding, not the
+        /// IOException the BCL's decoder raises, which a caller would read as the
+        /// connection failing. Whatever the frame carries: here five bytes.
+        /// </summary>
+        [TestCase(0x50, true)]      // 1 MiB
+        [TestCase(0x68, true)]      // 8 MiB
+        [TestCase(0x69, false)]     // 9 MiB
+        [TestCase(0x70, false)]     // 16 MiB
+        [TestCase(0xA8, false)]     // 2 GiB
+        public void Zstd_Decode_TakesAWindowOfUpTo8MiB(Int32 WindowDescriptor, Boolean Taken)
+        {
+
+            var frame = ZstandardFrames.WithWindowDescriptor((Byte) WindowDescriptor, "hello"u8.ToArray());
+
+            if (Taken)
+                Assert.That(HTTPContentCoding.Decode(frame, "zstd", 1024), Is.EqualTo("hello"u8.ToArray()));
+
+            else
+            {
+
+                var refused = Assert.Catch(() => HTTPContentCoding.Decode(frame, "zstd", 1024));
+
+                Assert.That(refused?.GetType(), Is.EqualTo(typeof(InvalidDataException)), refused?.ToString());
+
+            }
+
+        }
+
+        #endregion
+
+        #region Zstd_Decode_OctetsThatAreNoFrameAreInvalidData()
+
+        /// <summary>
+        /// The magic number and then nothing a decoder can read.
+        /// </summary>
+        [Test]
+        public void Zstd_Decode_OctetsThatAreNoFrameAreInvalidData()
+        {
+
+            var refused = Assert.Catch(() => HTTPContentCoding.Decode([ 0x28, 0xB5, 0x2F, 0xFD, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], "zstd", 1024));
+
+            Assert.That(refused?.GetType(), Is.EqualTo(typeof(InvalidDataException)), refused?.ToString());
 
         }
 
