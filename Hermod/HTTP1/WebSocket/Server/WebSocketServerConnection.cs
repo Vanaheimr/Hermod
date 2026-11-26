@@ -686,22 +686,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 {
 
                     if (SlowNetworkSimulationDelay.HasValue)
-                    {
-                        foreach (var singleByte in Data)
-                        {
-
-                            await networkStream.WriteAsync(new[] {
-                                                               singleByte
-                                                           },
-                                                           CancellationToken);
-
-                            await networkStream.FlushAsync(CancellationToken);
-
-                            await Task.Delay(SlowNetworkSimulationDelay.Value,
-                                             CancellationToken);
-
-                        }
-                    }
+                        await SlowNetworkSimulation.WriteAsync(networkStream,
+                                                               Data,
+                                                               SlowNetworkSimulationDelay.Value,
+                                                               CancellationToken);
 
                     else
                     {
