@@ -1275,7 +1275,9 @@ added three to each: **974**, and H-45 three to each again: **980**. H-48
 added five to `HTTPClientProtocolRegressionTests`: **985**. H-49 added
 five more to it, one to `HTTPStatusCodeTests` and one to `HTTPCacheTests`:
 **992**. H-50 added nine more to `HTTPClientProtocolRegressionTests`:
-**1001**.
+**1001**. zstd as a content coding added eight to `ContentEncodingHeaderTests`,
+eleven to `ContentCodingStreamTests`, two to `ClientContentDecodingTests` and
+four to `ServerContentCompressionTests`: **1026**.
 
 Run it with:
 
