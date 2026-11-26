@@ -1220,7 +1220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RawPDU                                     = HTTPPDU.RawPDU;
             this.httpBody                                   = HTTPPDU.HTTPBody;
             this.HTTPBodyStream                             = HTTPPDU.HTTPBodyStream;
-            this.HTTPBodyReceiveBufferSize                  = DefaultHTTPBodyReceiveBufferSize;
+            this.HTTPBodyReceiveBufferSize                  = HTTPPDU.HTTPBodyReceiveBufferSize;
             this.MaxHTTPBodySize                             = HTTPPDU.MaxHTTPBodySize;
             this.ConsumeChunkedTransferEncodingImmediately  = HTTPPDU.ConsumeChunkedTransferEncodingImmediately;
             this.CancellationToken                          = HTTPPDU.CancellationToken;

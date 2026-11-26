@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
         /// <summary>
         ///  ECDSA secp256k1/SHA-256 [RFC8812] [RFC9053]
         /// </summary>
-        ES256K  =   -36,
+        ES256K  =   -47,
 
 
         /// <summary>

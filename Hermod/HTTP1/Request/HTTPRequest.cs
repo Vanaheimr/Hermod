@@ -1591,14 +1591,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            ProtocolName            = Request.ProtocolName;
+            HTTPServer              = Request.HTTPServer;
+            ServerCertificate       = Request.ServerCertificate;
+            ClientCertificate       = Request.ClientCertificate;
+            FakeURLPrefix           = Request.FakeURLPrefix;
+            BestMatchingAcceptType  = Request.BestMatchingAcceptType;
+            SubprotocolRequest      = Request.SubprotocolRequest;
+
+            HTTPMethod              = Request.HTTPMethod;
             RequestTarget           = Request.RequestTarget;
             TargetScheme            = Request.TargetScheme;
             originFormTarget        = Request.originFormTarget;
+            Path                    = Request.Path;
             ParsedURLParameters     = Request.ParsedURLParameters;
+            ParsedURLParametersX    = Request.ParsedURLParametersX;
             QueryString             = Request.QueryString;
-            BestMatchingAcceptType  = Request.BestMatchingAcceptType;
+            ProtocolName            = Request.ProtocolName;
+            ProtocolVersion         = Request.ProtocolVersion;
+
+            NetworkStream           = Request.NetworkStream;
+            TCPConnection           = Request.TCPConnection;
             InformationalResponses  = Request.InformationalResponses;
+            ChunkWorker             = Request.ChunkWorker;
+            UseChunkWorker          = Request.UseChunkWorker;
+            User                    = Request.User;
 
             this.Cookies = GetHeaderField(HTTPRequestHeaderField.Cookie) ?? new HTTPCookies();
 

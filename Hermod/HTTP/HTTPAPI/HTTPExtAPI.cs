@@ -24827,10 +24827,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Determines whether the notification message can safely be removed from the API.
         /// </summary>
         /// <param name="NotificationMessage">The notification message to be removed.</param>
-        protected virtual I18NString CanDeleteNotificationMessage(NotificationMessage NotificationMessage)
-        {
-            return new I18NString(Languages.en, "Currently not possible!");
-        }
+        /// <returns>None where it can be removed - nothing else refers to a notification message - or why not.</returns>
+        protected virtual I18NString? CanDeleteNotificationMessage(NotificationMessage NotificationMessage)
+
+            => null;
 
         #endregion
 
