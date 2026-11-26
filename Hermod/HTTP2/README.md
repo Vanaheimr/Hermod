@@ -382,8 +382,9 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
 - GOAWAY (graceful + error), with a bounded inbound drain so the peer actually
   receives it.
 - Request validation (§8): pseudo-header ordering/uniqueness, lowercase field
-  names, connection-specific header rejection, `te: trailers` only — malformed
-  requests are stream errors, not connection errors.
+  names, connection-specific header rejection, `te: trailers` only (read in
+  any case, as nghttp2 and RFC 9110's ABNF read it; `te: Trailers` used to be
+  refused) — malformed requests are stream errors, not connection errors.
 - The **characters** of every field, in a request's header block and its
   trailers (§8.2.1): a name carries no octet from 0x00 to 0x20, none from 0x7F
   to 0xFF, and no colon but the one that opens a pseudo-header field's name; a
@@ -438,8 +439,8 @@ var r = await pool.SendRequestAsync("GET", "https", "localhost:8443", "/");   //
   connection-specific field (`connection`, `keep-alive`, `proxy-connection`,
   `transfer-encoding`, `upgrade`) is carried, and `te` carries `trailers` and
   nothing else. These are the rules the server holds a request's fields to,
-  and nghttp2 a response's; the client reads `trailers` in any case, as
-  nghttp2 and RFC 9110's ABNF do, where the server takes it in lowercase only.
+  and nghttp2 a response's; `trailers` is read in any case, as nghttp2 and
+  RFC 9110's ABNF read it.
   A response that breaks one fails at the header block that does, as above.
   The client used to hand all of these over.
 - And the **characters** of every field to §8.2.1, as the server holds a

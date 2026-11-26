@@ -3354,7 +3354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP2
         /// the server holds a request's fields to (HTTP2Connection's
         /// ValidateRegularHeaderField), and nghttp2's, which curl uses, a
         /// response's — with nghttp2's te, which reads "trailers" in any case, as
-        /// RFC 9110's ABNF does; the server takes it in lowercase only.
+        /// RFC 9110's ABNF does, and as the server does.
         /// Pseudo-header fields are TryReadStatus's.
         /// </summary>
         private static Boolean TryFindMalformedField(List<(String Name, String Value)>  Headers,
