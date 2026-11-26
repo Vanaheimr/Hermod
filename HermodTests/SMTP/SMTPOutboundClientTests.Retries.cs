@@ -289,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(first.Status,                                         Is.EqualTo(QueueItemStatus.Deferred));
                 Assert.That(old.Status,                                           Is.EqualTo(QueueItemStatus.Failed));
                 Assert.That(old.RetryCount,                                       Is.Zero, "not tried - its bounce goes through the same host");
-                Assert.That(relay.Bounces.Select(bounce => bounce.MessageContent), Has.One.Matches<String>(content => content.Contains("old@next.example")));
+                Assert.That(relay.Bounces.Select(bounce => bounce.MessageContent), Has.One.Matches<String?>(content => content?.Contains("old@next.example") == true));
             });
 
         }
