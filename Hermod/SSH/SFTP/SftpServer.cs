@@ -56,16 +56,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
         /// so that the client is not left waiting for answers that will not come, and the
         /// <see cref="SshWireException"/> is thrown for the caller to log.
         /// </remarks>
-        public static async ValueTask ServeAsync(ISftpDuplex        Channel,
-                                                 ISftpFileSystem    FileSystem,
-                                                 SshAccessProfile?  Profile            = null,
-                                                 SftpLimits?        Limits             = null,
-                                                 CancellationToken  CancellationToken  = default)
+        /// <param name="ClientIdentification">
+        /// What the client said it is in its identification string, where it is known. It decides one
+        /// thing: in which order the client sends the two paths of SSH_FXP_SYMLINK - see
+        /// <see cref="SendsSymlinkInDraftOrder"/>. Last, after the cancellation token, so that every
+        /// caller that passed that token by position still compiles.
+        /// </param>
+        public static async ValueTask ServeAsync(ISftpDuplex               Channel,
+                                                 ISftpFileSystem           FileSystem,
+                                                 SshAccessProfile?         Profile               = null,
+                                                 SftpLimits?               Limits                = null,
+                                                 CancellationToken         CancellationToken     = default,
+                                                 SshIdentificationString?  ClientIdentification  = null)
         {
 
             try
             {
-                await ServeRequestsAsync(Channel, FileSystem, Profile, Limits, CancellationToken).ConfigureAwait(false);
+                await ServeRequestsAsync(Channel, FileSystem, Profile, Limits, SendsSymlinkInDraftOrder(ClientIdentification), CancellationToken).ConfigureAwait(false);
             }
             catch (SshWireException)
             {
@@ -83,10 +90,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         }
 
+        #region SendsSymlinkInDraftOrder(ClientIdentification)
+
+        /// <summary>
+        /// Whether a client sends the two paths of SSH_FXP_SYMLINK in the order of
+        /// draft-ietf-secsh-filexfer-02 - the link first, then its target - rather than in OpenSSH's.
+        ///
+        /// <para>
+        /// OpenSSH swapped the two against the draft long ago, and most clients followed it: the
+        /// OpenSSH sftp client, pkg/sftp, Paramiko, libssh2. libssh did not. It sends OpenSSH's order
+        /// only to a server whose identification string says OpenSSH, and the draft's to every other -
+        /// so to this one, whose answer was a link at the target's path, pointing at where the link was
+        /// meant to be. Nothing in the protocol tells the two orders apart, so the client's name has to.
+        /// </para>
+        ///
+        /// <para>
+        /// "libssh_" and not "libssh": libssh2 calls itself "libssh2_" and sends OpenSSH's order.
+        /// </para>
+        /// </summary>
+        /// <param name="ClientIdentification">What the client said it is, where that is known.</param>
+        public static Boolean SendsSymlinkInDraftOrder(SshIdentificationString? ClientIdentification)
+
+            => ClientIdentification?.SoftwareVersion.StartsWith("libssh_", StringComparison.Ordinal) == true;
+
+        #endregion
+
+
         private static async ValueTask ServeRequestsAsync(ISftpDuplex        Channel,
                                                           ISftpFileSystem    FileSystem,
                                                           SshAccessProfile?  Profile,
                                                           SftpLimits?        Limits,
+                                                          Boolean            SymlinkInDraftOrder,
                                                           CancellationToken  CancellationToken)
         {
 
@@ -120,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                         return;
                     }
 
-                    var request = ParseRequest(packet);
+                    var request = ParseRequest(packet, SymlinkInDraftOrder);
                     Byte[] response;
 
                     try
@@ -511,7 +545,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
 
         }
 
-        private static SftpRequest ParseRequest(Byte[] Packet)
+        private static SftpRequest ParseRequest(Byte[] Packet, Boolean SymlinkInDraftOrder)
         {
 
             var reader     = new SshPacketReader(Packet);
@@ -569,10 +603,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.SFTP
                     break;
 
                 // The target comes first and the link second: OpenSSH swapped the two against the draft
-                // (draft-ietf-secsh-filexfer-02) long ago, and every client since speaks OpenSSH's order.
+                // (draft-ietf-secsh-filexfer-02) long ago, and nearly every client speaks OpenSSH's order.
+                // libssh speaks the draft's to every server that is not OpenSSH - SendsSymlinkInDraftOrder.
                 case SftpPacketType.Symlink:
-                    target = reader.ReadString();
-                    path   = reader.ReadString();
+                    if (SymlinkInDraftOrder)
+                    {
+                        path   = reader.ReadString();
+                        target = reader.ReadString();
+                    }
+                    else
+                    {
+                        target = reader.ReadString();
+                        path   = reader.ReadString();
+                    }
                     break;
 
                 case SftpPacketType.SetStat:
