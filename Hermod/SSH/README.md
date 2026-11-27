@@ -36,6 +36,7 @@ the interesting mistakes live. The ChaCha20 core is ours too, and vectorised
 | `Forwarding/` | `NetworkAcl` and the `ForwardingPolicy` presets for `direct-tcpip` and `tcpip-forward` |
 | `Recording/` | Session recording: asciicast v2 and an SFTP transcript |
 | `Messaging/` | Whole messages over a subsystem channel: `SshMessageServer`, `SshMessageClient`, the frames - see its README |
+| `OverWebSocket/` | SSH over WebSocket: `WebSocketSshBridge`, `SshWebSocketEndpoint`, `SshWebSocketClient` |
 | `Client/` | The high-level `SSHClient` façade |
 | `Server/` | The high-level `SshServer` façade |
 
@@ -203,6 +204,44 @@ what a WebSocket does over HTTP. `SshMessageServer` and `SshMessageClient` are t
 `SshMessageConnection` is an `IMessageConnection` just as a WebSocket connection is. The protocol is
 written down in [`Messaging/README.md`](Messaging/README.md).
 
+### Over a WebSocket
+
+Where nothing but HTTPS gets out - a charging station behind a firewall or a carrier-grade NAT -
+the byte stream of SSH goes in the binary messages of a WebSocket of its own, with the subprotocol
+`ssh.open.charging.cloud`. SSH is not changed by it: key exchange, host key and authentication are
+SSH's, end to end, and TLS is the envelope for whatever is in between. One protocol a connection:
+OCPP keeps its WebSocket, and a large SFTP transfer holds none of its messages up.
+
+Whoever opens the WebSocket need not be the SSH client - all four ways round:
+
+| | Opens the WebSocket | Accepts it |
+|---|---|---|
+| SSH client | `SSHClient.Connect(SshWebSocketClient, …)` | `SSHClient.ConnectOver(connection.Pipe, …)` |
+| SSH server | `SshServer.ConnectOut(SshWebSocketClient)` | `SshServer.ServeAsync(connection.Pipe, …)` |
+
+`SshWebSocketEndpoint` goes on an HTTP path with `WebSocketUpgrade.For()` and hands every connection
+to its `OnConnection`, with who the HTTP authentication of the upgrade said it is. A station that
+may only connect out is the SSH server (`ConnectOut`), and its back end the SSH client
+(`ConnectOver`):
+
+```csharp
+var endpoint = new SshWebSocketEndpoint(async (connection, ct) => {
+                   // connection.Login: who the HTTP authentication said it is
+                   await using var station = await SSHClient.ConnectOver(connection.Pipe, options, ct);
+                   var result = await station.Execute("uptime", ct);
+               });
+
+httpAPI.AddHandler(HTTPMethod.GET, HTTPPath.Parse("/ssh"), HTTPDelegate: WebSocketUpgrade.For(endpoint));
+```
+
+Who may reach SSH at all is said by the HTTP authentication of the upgrade, as at every WebSocket
+endpoint: HTTP Basic, one-time passwords - bound to the TLS connection or not -, client
+certificates. A client that does not offer `ssh.open.charging.cloud` is answered 400, a text message
+closes the connection with 1003, and nothing is compressed. Where the messages are cut has no
+meaning; one carries at most 32 KiB, and one received may be 1 MiB at most. Both ways are bounded:
+a received message is given to SSH before the next is read - 1 MiB may lie unread -, and a send is
+waited for before the next.
+
 ## Algorithms
 
 | | Offered, in preference order |
@@ -334,6 +373,8 @@ Three things about them are worth knowing:
 ## Not here yet
 
 - **No compression.** `zlib@openssh.com` is not implemented; `none` is what we offer.
+- **SSH over WebSocket through a forward proxy.** `SshWebSocketClient` connects to the endpoint
+  itself; an HTTP `CONNECT` through a proxy, with its `Proxy-Authorization`, is not there yet.
 - **SFTP v3 only** — versions 4–6 are not negotiated. Of the OpenSSH extensions, `hardlink@openssh.com`
   is deliberately omitted because hard links would quietly defeat the per-session byte quota — that is a
   decision, not a gap. `home-directory` and `users-groups-by-id@openssh.com` are deliberately not

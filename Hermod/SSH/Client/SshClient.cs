@@ -353,11 +353,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         // One hop: over TCP, or - with Through - over a direct-tcpip tunnel of the hop before, which the
         // new client then owns.
-        private static async ValueTask<SSHClient> Connect(String             host,
-                                                          IPPort             port,
-                                                          SSHClientOptions   Options,
-                                                          SSHClient?         Through,
-                                                          CancellationToken  CancellationToken)
+        private static ValueTask<SSHClient> Connect(String             host,
+                                                    IPPort             port,
+                                                    SSHClientOptions   Options,
+                                                    SSHClient?         Through,
+                                                    CancellationToken  CancellationToken)
+
+            => Connect(async connecting => Through is null
+
+                                               ? await SshTcp.ConnectAsync(
+                                                           host,
+                                                           port,
+                                                           Options.DNSClient,
+                                                           connecting
+                                                       ).ConfigureAwait(false)
+
+                                               : DuplexPipe.FromStream(
+                                                     await Through.OpenTCPStream(
+                                                               host,
+                                                               port,
+                                                               connecting
+                                                           ).ConfigureAwait(false)
+                                                 ),
+                       $"{host}:{port}",
+                       Options,
+                       Through,
+                       CancellationToken);
+
+        #endregion
+
+        #region (static) ConnectOver (Pipe, Options, CancellationToken)
+
+        /// <summary>
+        /// Run an SSH client on a connection that is there already - one that this end
+        /// accepted, say, as a back end does that a charging station connected to over a
+        /// WebSocket (<see cref="SshWebSocketEndpoint"/>), the station being the SSH
+        /// server: verify the host key, authenticate with the first working credential and
+        /// start multiplexing, as <see cref="Connect(String, IPPort, SSHClientOptions, CancellationToken)"/> does.
+        /// </summary>
+        /// <param name="Pipe">The connection.</param>
+        /// <param name="Options">The options; jump hosts cannot be gone through on a connection that is there already.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        /// <exception cref="SshAuthenticationException">None of the credentials was accepted.</exception>
+        public static ValueTask<SSHClient> ConnectOver(IDuplexPipe        Pipe,
+                                                       SSHClientOptions   Options,
+                                                       CancellationToken  CancellationToken = default)
+        {
+
+            if (Options.ProxyJump.Count > 0)
+                throw new ArgumentException("A connection that is there already goes through no jump host.", nameof(Options));
+
+            return Connect(_ => ValueTask.FromResult(Pipe),
+                           (Pipe as DuplexPipe)?.RemoteSocket?.ToString() ?? "the connection given",
+                           Options,
+                           null,
+                           CancellationToken);
+
+        }
+
+        #endregion
+
+        #region (static) Connect     (WebSocket, Options, CancellationToken)
+
+        /// <summary>
+        /// Connect over a WebSocket, as SSH over WebSocket (<see cref="SshOverWebSocket"/>):
+        /// through a firewall or a proxy that lets nothing out but HTTPS. The client is
+        /// connected once, and stays its caller's to dispose of.
+        /// </summary>
+        /// <param name="WebSocket">The WebSocket client, not connected yet.</param>
+        /// <param name="Options">The options; jump hosts are not gone through over a WebSocket.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        /// <exception cref="SshWebSocketException">The server did not take the upgrade to SSH over WebSocket.</exception>
+        /// <exception cref="SshAuthenticationException">None of the credentials was accepted.</exception>
+        public static ValueTask<SSHClient> Connect(SshWebSocketClient  WebSocket,
+                                                   SSHClientOptions    Options,
+                                                   CancellationToken   CancellationToken = default)
+        {
+
+            if (Options.ProxyJump.Count > 0)
+                throw new ArgumentException("SSH over WebSocket goes through no jump host.", nameof(Options));
+
+            return Connect(async connecting => await WebSocket.ConnectAsync(connecting).ConfigureAwait(false),
+                           WebSocket.RemoteURL.ToString(),
+                           Options,
+                           null,
+                           CancellationToken);
+
+        }
+
+        #endregion
+
+        #region (private static) Connect (Open, Destination, Options, Through, CancellationToken)
+
+        // Whichever way the connection is opened: the handshake, the authentication and the multiplexer.
+        private static async ValueTask<SSHClient> Connect(Func<CancellationToken, ValueTask<IDuplexPipe>>  Open,
+                                                          String                                           Destination,
+                                                          SSHClientOptions                                 Options,
+                                                          SSHClient?                                       Through,
+                                                          CancellationToken                                CancellationToken)
         {
 
             IDuplexPipe?  pipe = null;
@@ -372,22 +465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                 try
                 {
 
-                    pipe      = Through is null
-
-                                    ? await SshTcp.ConnectAsync(
-                                                host,
-                                                port,
-                                                Options.DNSClient,
-                                                connecting.Token
-                                            ).ConfigureAwait(false)
-
-                                    : DuplexPipe.FromStream(
-                                          await Through.OpenTCPStream(
-                                                    host,
-                                                    port,
-                                                    connecting.Token
-                                                ).ConfigureAwait(false)
-                                      );
+                    pipe      = await Open(connecting.Token).ConfigureAwait(false);
 
                     transport = await SshTransport.ClientHandshakeAsync(
                                           pipe,
@@ -406,7 +484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
                         await AbandonAsync(pipe).ConfigureAwait(false);
 
                     if (exception is OperationCanceledException && connecting.IsCancellationRequested && !CancellationToken.IsCancellationRequested)
-                        throw new TimeoutException(FormattableString.Invariant($"Could not connect to {host}:{port} within {Options.ConnectTimeout!.Value.TotalSeconds:0.###} s."), exception);
+                        throw new TimeoutException(FormattableString.Invariant($"Could not connect to {Destination} within {Options.ConnectTimeout!.Value.TotalSeconds:0.###} s."), exception);
 
                     throw;
 

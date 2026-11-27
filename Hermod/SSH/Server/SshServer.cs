@@ -393,57 +393,143 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                 }
 
-                var address  = AddressOf(peer);
-
-                // Before anything is sent, and before the connection counts against the limits: a client
-                // turned away by where it comes from learns nothing of this server, not even that it is one.
-                if (options.AuthorizeConnection is SshConnectionAuthorizer authorizeConnection)
-                {
-
-                    String? refusal;
-
-                    try
-                    {
-                        refusal = authorizeConnection(peer, local);
-                    }
-                    catch (Exception exception)
-                    {
-                        refusal = $"the server could not decide: {exception.Message}";
-                    }
-
-                    if (refusal is not null)
-                    {
-                        await EmitAsync(Audit(null, peer), new PolicyDeniedEvent(DateTimeOffset.UtcNow, "connection", address, refusal)).ConfigureAwait(false);
-                        await CloseAsync(pipe).ConfigureAwait(false);
-                        continue;
-                    }
-
-                }
-
-                var refused  = Admit(address);
-
-                if (refused is not null)
-                {
-                    await EmitAsync(Audit(null, peer), new LimitExceededEvent(DateTimeOffset.UtcNow, "connections", refused)).ConfigureAwait(false);
-                    await CloseAsync(pipe).ConfigureAwait(false);
-                    continue;
-                }
-
-                var id          = Interlocked.Increment(ref nextConnectionId);
-                var connection  = new Connection(id, peer, local, address, Audit(id.ToString(), peer), CancellationToken);
-
-                // Registered before it runs, so that a connection that ends at once is removed after it
-                // was added and not before.
-                var registered  = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                var running     = Task.Run(async () => {
-                                      await registered.Task.ConfigureAwait(false);
-                                      await HandleConnectionAsync(connection, pipe).ConfigureAwait(false);
-                                  });
-
-                connections[id] = running;
-                registered.SetResult();
+                await TakeAsync(pipe, peer, local, CancellationToken).ConfigureAwait(false);
 
             }
+        }
+
+        #endregion
+
+        #region (private) TakeAsync(Pipe, Peer, Local, ServerToken)
+
+        /// <summary>
+        /// Take a connection, however it came - accepted on the port, or handed in -: ask whether it may
+        /// come, count it against the limits, and run it. The running connection, or null where it was
+        /// turned away and closed.
+        /// </summary>
+        private async Task<Task?> TakeAsync(IDuplexPipe        pipe,
+                                            IPSocket?          peer,
+                                            IPSocket?          local,
+                                            CancellationToken  ServerToken)
+        {
+
+            var address  = AddressOf(peer);
+
+            // Before anything is sent, and before the connection counts against the limits: a client
+            // turned away by where it comes from learns nothing of this server, not even that it is one.
+            if (options.AuthorizeConnection is SshConnectionAuthorizer authorizeConnection)
+            {
+
+                String? refusal;
+
+                try
+                {
+                    refusal = authorizeConnection(peer, local);
+                }
+                catch (Exception exception)
+                {
+                    refusal = $"the server could not decide: {exception.Message}";
+                }
+
+                if (refusal is not null)
+                {
+                    await EmitAsync(Audit(null, peer), new PolicyDeniedEvent(DateTimeOffset.UtcNow, "connection", address, refusal)).ConfigureAwait(false);
+                    await CloseAsync(pipe).ConfigureAwait(false);
+                    return null;
+                }
+
+            }
+
+            var refused  = Admit(address);
+
+            if (refused is not null)
+            {
+                await EmitAsync(Audit(null, peer), new LimitExceededEvent(DateTimeOffset.UtcNow, "connections", refused)).ConfigureAwait(false);
+                await CloseAsync(pipe).ConfigureAwait(false);
+                return null;
+            }
+
+            var id          = Interlocked.Increment(ref nextConnectionId);
+            var connection  = new Connection(id, peer, local, address, Audit(id.ToString(), peer), ServerToken);
+
+            // Registered before it runs, so that a connection that ends at once is removed after it
+            // was added and not before.
+            var registered  = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var running     = Task.Run(async () => {
+                                  await registered.Task.ConfigureAwait(false);
+                                  await HandleConnectionAsync(connection, pipe).ConfigureAwait(false);
+                              });
+
+            connections[id] = running;
+            registered.SetResult();
+
+            return running;
+
+        }
+
+        #endregion
+
+        #region ServeAsync(Pipe, Peer = null, Local = null, CancellationToken = default)
+
+        /// <summary>
+        /// Serve one connection that is there already - one handed in by a WebSocket endpoint
+        /// (<see cref="SshWebSocketEndpoint"/>), or one this end opened itself
+        /// (<see cref="ConnectOut"/>) - as though it had been accepted on the port: the same
+        /// authorization of where it comes from, the same limits, the same audit. A server
+        /// that serves connections only this way need not be started.
+        /// </summary>
+        /// <param name="Pipe">The connection.</param>
+        /// <param name="Peer">Where the other end is, as far as it is known - for the authorization, the limits per address and the audit.</param>
+        /// <param name="Local">Where this end is.</param>
+        /// <param name="CancellationToken">Ends the connection where it is cancelled.</param>
+        /// <returns>Done once the connection has ended - at once where it was turned away.</returns>
+        public async Task ServeAsync(IDuplexPipe        Pipe,
+                                     IPSocket?          Peer               = null,
+                                     IPSocket?          Local              = null,
+                                     CancellationToken  CancellationToken  = default)
+        {
+
+            if (Volatile.Read(ref disposed) != 0)
+            {
+                await CloseAsync(Pipe).ConfigureAwait(false);
+                throw new ObjectDisposedException(nameof(SshServer));
+            }
+
+            Peer  ??= (Pipe as DuplexPipe)?.RemoteSocket;
+            Local ??= (Pipe as DuplexPipe)?.LocalSocket;
+
+            using var serving = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken,
+                                                                                cts?.Token ?? CancellationToken.None);
+
+            var running = await TakeAsync(Pipe, Peer, Local, serving.Token).ConfigureAwait(false);
+
+            if (running is not null)
+                await running.ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region ConnectOut(WebSocket, CancellationToken = default)
+
+        /// <summary>
+        /// Be an SSH server over a WebSocket this end opens itself - as a charging station
+        /// is that may only connect out, through a firewall or a proxy that lets nothing out but
+        /// HTTPS, and is reached by its back end that way (<see cref="SshOverWebSocket"/>).
+        /// The WebSocket client stays its caller's to dispose of.
+        /// </summary>
+        /// <param name="WebSocket">The WebSocket client, not connected yet.</param>
+        /// <param name="CancellationToken">Ends the connection where it is cancelled.</param>
+        /// <returns>Done once the connection has ended.</returns>
+        /// <exception cref="SshWebSocketException">The server did not take the upgrade to SSH over WebSocket.</exception>
+        public async Task ConnectOut(SshWebSocketClient  WebSocket,
+                                     CancellationToken   CancellationToken = default)
+        {
+
+            var pipe = await WebSocket.ConnectAsync(CancellationToken).ConfigureAwait(false);
+
+            await ServeAsync(pipe, pipe.RemoteSocket, pipe.LocalSocket, CancellationToken).ConfigureAwait(false);
+
         }
 
         #endregion

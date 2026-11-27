@@ -372,6 +372,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                !networkingCancellationTokenSource.IsCancellationRequested;
 
         /// <summary>
+        /// The networking loop of this client: done once its connection has ended
+        /// and no reconnect follows - however it ended, with a close frame, by a
+        /// lost TCP connection or by Close(). Null before Connect().
+        /// </summary>
+        /// <remarks>
+        /// What a caller that carries a byte stream of its own over the connection
+        /// waits for to learn that nothing will arrive any more: a lost connection
+        /// does not always leave a close frame to be told of.
+        /// </remarks>
+        public Task?                                Networking
+            => networkingTask;
+
+        /// <summary>
         /// The maximum number of outgoing bytes that may be queued and in-flight
         /// (the send backpressure) before <see cref="BackpressureBehaviour"/> is
         /// applied. Zero (the default) disables the check.
