@@ -122,6 +122,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                       .Where(h => h.Length > 0 && !arcHeaderFields.Contains(h) && fields.Any(f => f.Name.Equals(h, StringComparison.OrdinalIgnoreCase)))
                                       .ToList();
 
+                // The AMS "is syntactically and semantically identical to a DKIM-Signature
+                // header field" (RFC 8617 §4.1.2), and "The From header field MUST be signed"
+                // (RFC 6376 §5.4) - whatever the configuration names. A message without From
+                // has its absence signed.
+                if (!signedNames.Contains("from", StringComparer.OrdinalIgnoreCase))
+                    signedNames.Insert(0, "from");
+
                 var amsValue = $"i={instance}; a=rsa-sha256; c=relaxed/relaxed; d={_config.Domain}; s={_config.Selector}; " +
                                $"t={timestamp}; h={string.Join(":", signedNames)}; bh={bodyHash}; b=";
                 var amsField = Field("ARC-Message-Signature", amsValue);

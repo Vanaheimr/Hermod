@@ -128,12 +128,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var canonBody    = DkimCanonicalization.CanonicalizeBody(body, bodyCanon);
                 var bodyHash     = Convert.ToBase64String(SHA256.HashData(octets.GetBytes(canonBody)));
 
-                // Only advertise/sign headers that are actually present.
+                // Of the fields configured, those the message has - and From whatever the
+                // configuration names: "The From header field MUST be signed" (RFC 6376 §5.4),
+                // and a signature without it is one every verifier ignores (§6.1.1). A message
+                // without From has its absence signed.
                 var signedNames  = config.SignedHeaders.Split(':').
                                        Select(h => h.Trim()).
                                        Where (h => h.Length > 0 &&
                                                    fields.Any(f => f.Name.Equals(h, StringComparison.OrdinalIgnoreCase))).
                                        ToList();
+
+                if (!signedNames.Contains("from", StringComparer.OrdinalIgnoreCase))
+                    signedNames.Insert(0, "from");
 
                 var timestamp    = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 var dkimValue    = BuildDkimHeaderValue(config, key.Ed25519 is not null ? "ed25519-sha256" : "rsa-sha256", bodyHash, timestamp, string.Join(":", signedNames));
