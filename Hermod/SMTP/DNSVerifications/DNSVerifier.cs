@@ -1052,8 +1052,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // if a tag name does occur more than once, the entire tag-list is invalid" - taken,
             // the last d= would be verified while a reader of the first takes it for the
             // signature's.
+            //
+            // A signature that cannot be evaluated - a tag-list that is invalid, a required tag
+            // missing, another version, no key or a key record that is invalid - is "permerror"
+            // (RFC 8601 §2.7.1: "The message could not be verified due to some error that is
+            // unrecoverable"), not "fail", which says it was verified and did not hold.
             if (duplicateTag is not null)
-                return (DkimResult.Fail, $"The DKIM-Signature names {duplicateTag}= more than once (RFC 6376 §3.2)");
+                return (DkimResult.PermError, $"The DKIM-Signature names {duplicateTag}= more than once (RFC 6376 §3.2)");
 
             // RFC 6376 §6.1.1: "If any tag listed as "required" in Section 3.5 is omitted from the
             // DKIM-Signature header field, the Verifier MUST ignore the DKIM-Signature header field
@@ -1066,14 +1071,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 !dkimParams.TryGetValue("h",  out var headerList) ||
                 !dkimParams.TryGetValue("s",  out var selector))
             {
-                return (DkimResult.Fail, "Missing required DKIM parameters (RFC 6376 §3.5: v=, a=, b=, bh=, d=, h=, s=)");
+                return (DkimResult.PermError, "Missing required DKIM parameters (RFC 6376 §3.5: v=, a=, b=, bh=, d=, h=, s=)");
             }
 
             // §6.1.1: "Verifiers MUST return PERMFAIL (incompatible version) when presented a
             // DKIM-Signature header field with a "v=" tag that is inconsistent with this
             // specification"; §3.5, v=: "It MUST have the value "1"".
             if (version != "1")
-                return (DkimResult.Fail, $"A DKIM-Signature of version {version} (RFC 6376 §6.1.1)");
+                return (DkimResult.PermError, $"A DKIM-Signature of version {version} (RFC 6376 §6.1.1)");
 
             // §6.1.1: "If the "h=" tag does not include the From header field, the Verifier MUST
             // ignore the DKIM-Signature header field and return PERMFAIL (From field not signed)" -
@@ -1105,10 +1110,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // message; §3: "When a domain name found in a mail header field ... includes U-labels,
             // those labels MUST be translated to A-labels before being looked up in the DNS".
             var dkimDomain = Idna.ToAscii($"{selector}._domainkey.{domain}");
-            var dkimRecord = await GetDkimKeyRecordAsync(dkimDomain, ct);
+            var (keyLookupFailed, dkimRecord) = await GetDkimKeyRecordAsync(dkimDomain, ct);
+
+            // §6.1.2: "If the query for the public key fails to respond, the Verifier MAY seek a
+            // later verification attempt by returning TEMPFAIL (key unavailable)" - RFC 8601
+            // §2.7.1, temperror: "a temporary inability to retrieve a public key"; DMARC then
+            // cannot apply the policy (RFC 7489 §6.6.2). "If the query for the public key fails
+            // because the corresponding key record does not exist, the Verifier MUST immediately
+            // return PERMFAIL (no key for signature)."
+            if (keyLookupFailed)
+                return (DkimResult.TempError, $"The lookup of the DKIM key at {dkimDomain} failed (RFC 6376 §6.1.2)");
 
             if (dkimRecord is null)
-                return (DkimResult.Fail, $"No DKIM record found at {dkimDomain}");
+                return (DkimResult.PermError, $"No DKIM record found at {dkimDomain}");
 
             var dkimRecordParams = ParseDkimRecord(dkimRecord, out var duplicateKeyTag);
 
@@ -1117,13 +1131,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // (key syntax error)" - a tag named twice (§3.2), or a v= that is not the first tag
             // (§3.6.1: "This tag MUST be the first tag in the record").
             if (duplicateKeyTag is not null)
-                return (DkimResult.Fail, $"The DKIM key record names {duplicateKeyTag}= more than once (RFC 6376 §3.2)");
+                return (DkimResult.PermError, $"The DKIM key record names {duplicateKeyTag}= more than once (RFC 6376 §3.2)");
 
             if (dkimRecordParams.ContainsKey("v") && FirstTagName(dkimRecord) != "v")
-                return (DkimResult.Fail, "The v= tag of the DKIM key record is not its first (RFC 6376 §3.6.1)");
+                return (DkimResult.PermError, "The v= tag of the DKIM key record is not its first (RFC 6376 §3.6.1)");
 
             if (!dkimRecordParams.TryGetValue("p", out var publicKeyBase64))
-                return (DkimResult.Fail, "No public key in DKIM record");
+                return (DkimResult.PermError, "No public key in DKIM record");
+
+            // §6.1.2: "If the "p=" tag is empty, the key has been revoked; the Verifier MUST treat
+            // this as a failed signature check and return PERMFAIL (key revoked)".
+            if (String.IsNullOrWhiteSpace(publicKeyBase64))
+                return (DkimResult.Fail, "The DKIM key has been revoked (RFC 6376 §6.1.2: p= is empty)");
 
             // RFC 6376 §6.1.2: "If the public-key data is not suitable for use with the algorithm
             // and key types defined by the "a=" and "k=" tags in the DKIM-Signature header field,
@@ -1679,32 +1698,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// The DKIM key record at selector._domainkey.domain (RFC 6376 §3.6.1): its v= tag is
         /// "RECOMMENDED, default is "DKIM1"", so a record without one is a key record too; one
         /// that begins with v= and another value "MUST be discarded". Of several records, the
-        /// first with a p= tag (§6.1.2 lets the verifier choose).
+        /// first with a p= tag (§6.1.2 lets the verifier choose). Failed when the lookup failed -
+        /// a DNS error other than NXDOMAIN, a timeout, no answer at all: §6.1.2 sets a query that
+        /// "fails to respond" apart from one that finds "the corresponding key record does not
+        /// exist".
         /// </summary>
-        private async Task<String?> GetDkimKeyRecordAsync(String domain, CancellationToken ct)
+        /// <returns>Whether the lookup failed, and the key record - null when there is none.</returns>
+        private async Task<(Boolean Failed, String? Record)> GetDkimKeyRecordAsync(String domain, CancellationToken ct)
         {
+
+            DNSInfo response;
+
             try
             {
-                var response = await DNSClient.Query(
-                                         DNSServiceName.Parse(domain),
-                                         [ DNSResourceRecordTypes.TXT ],
-                                         CancellationToken: ct
-                                     );
-
-                var records  = response.Answers.
-                                   OfType<TXT>().
-                                   Select(txt => txt.Text).
-                                   Where (IsDkimKeyRecord).
-                                   ToArray();
-
-                return records.FirstOrDefault(record => ParseDkimRecord(record).ContainsKey("p")) ??
-                       records.FirstOrDefault();
+                response = await DNSClient.Query(
+                                     DNSServiceName.Parse(domain),
+                                     [ DNSResourceRecordTypes.TXT ],
+                                     CancellationToken: ct
+                                 );
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
                 Logger.Log(LogLevel.Debug, $"TXT lookup failed for {domain}: {ex.Message}");
-                return null;
+                return (true, null);
             }
+
+            if (response.IsTimeout)
+                return (true, null);
+
+            if (response.ResponseCode == DNSResponseCodes.NameError)
+                return (false, null);
+
+            if (response.ResponseCode != DNSResponseCodes.NoError)
+                return (true, null);
+
+            var records = response.Answers.
+                              OfType<TXT>().
+                              Select(txt => txt.Text).
+                              Where (IsDkimKeyRecord).
+                              ToArray();
+
+            return (false,
+                    records.FirstOrDefault(record => ParseDkimRecord(record).ContainsKey("p")) ??
+                    records.FirstOrDefault());
+
         }
 
         /// <summary>
