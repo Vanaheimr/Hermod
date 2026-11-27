@@ -112,15 +112,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
         }
 
-        private static IPPort FreePort()
-        {
-            var listener = new TcpListener(System.Net.IPAddress.Any, 0);
-            listener.Start();
-            var port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
-            listener.Stop();
-            return port;
-        }
-
         #endregion
 
         #region A raw SMTP client that can do STARTTLS
@@ -192,11 +183,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             }
 
             var queue  = new RecordingQueue();
-            var port   = FreePort();
             var server = new SMTPServer(new SMTPServerConfig {
                                             Hostname             = "mx.hermod.test",
-                                            Port                 = port,
-                                            SubmissionPort       = FreePort(),
+                                            ListenAddresses      = [ System.Net.IPAddress.Loopback ],
+                                            Port                 = IPPort.Zero,
+                                            SubmissionPort       = IPPort.Zero,
                                             EnableImplicitTls    = false,
                                             MailStoragePath      = directory,
                                             CertificatePath      = pfx,
@@ -210,6 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                         mailStorage: new NullStorage());
 
             var running = server.Start();
+            var port    = IPPort.Parse(server.MtaEndPoints[0].Port);
 
             try
             {
@@ -282,11 +274,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             }
 
             var queue  = new RecordingQueue();
-            var port   = FreePort();
             var server = new SMTPServer(new SMTPServerConfig {
                                             Hostname             = "mx.hermod.test",
-                                            Port                 = port,
-                                            SubmissionPort       = FreePort(),
+                                            ListenAddresses      = [ System.Net.IPAddress.Loopback ],
+                                            Port                 = IPPort.Zero,
+                                            SubmissionPort       = IPPort.Zero,
                                             EnableImplicitTls    = false,
                                             MailStoragePath      = directory,
                                             CertificatePath      = pfx,
@@ -300,6 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                         mailStorage: new NullStorage());
 
             var running = server.Start();
+            var port    = IPPort.Parse(server.MtaEndPoints[0].Port);
 
             // ISO-8859-1, not UTF-8: as UTF-8, every umlaut is invalid.
             var message = Encoding.Latin1.GetBytes("From: sender@client.example\r\n" +

@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             /// <param name="Silent">Accept the connection and say nothing at all.</param>
             /// <param name="Certificate">Offer STARTTLS with this certificate.</param>
             /// <param name="RequireTls">Inside TLS, offer REQUIRETLS (RFC 8689).</param>
-            /// <param name="Chain">The certificates to send along with the certificate - its issuers.</param>
+            /// <param name="Chain">The certificates to send along with the certificate - its issuers. On Windows they are not sent: SChannel sends no partial chain, and a peer in this process finds them in the intermediate CA store instead, where the context put them.</param>
             /// <param name="Octets">Read the lines one character per octet (Latin-1), not as UTF-8: what arrived, exactly.</param>
             /// <param name="Address">The address to listen on: the loopback, or another of 127/8 - a second host.</param>
             /// <param name="Port">The port to listen on: any free one, or that of another next hop.</param>

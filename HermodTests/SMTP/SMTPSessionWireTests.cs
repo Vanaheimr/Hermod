@@ -142,13 +142,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
                 directory       = Directory.CreateTempSubdirectory("hermod-smtp-").FullName;
 
-                Port            = FreePort();
-                SubmissionPort  = FreePort();
-
+                // The ports are the ones the system chooses at the bind, on the address the tests
+                // connect to. Choosing a free one first and binding it later left a window for
+                // another socket to take it, and a server on the wildcard address does not even
+                // notice when it has: Windows lets another listener hold 127.0.0.1 on the same
+                // port, and a connection to 127.0.0.1 then reaches that one - whosever it is, in
+                // this process or another test run on the same machine. Bound to 127.0.0.1 itself,
+                // the port is the server's alone, or the bind fails where it can be seen.
                 var config      = new SMTPServerConfig {
                                       Hostname               = "mx.hermod.test",
-                                      Port                   = Port,
-                                      SubmissionPort         = SubmissionPort,
+                                      ListenAddresses        = [ System.Net.IPAddress.Loopback ],
+                                      Port                   = IPPort.Zero,
+                                      SubmissionPort         = IPPort.Zero,
                                       EnableImplicitTls      = false,
                                       MailStoragePath        = directory,
                                       LocalDomains           = [ "hermod.test" ],
@@ -168,18 +173,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                                  recipientValidator:  RecipientValidator,
                                                  mailSubmission:      Submission);
 
-                // Start() runs the accept loops for the server's lifetime.
-                running    = server.Start();
+                // Start() runs the accept loops for the server's lifetime; it binds before its
+                // first await, so the end points are known when it returns.
+                running         = server.Start();
 
-            }
+                Port            = IPPort.Parse(server.MtaEndPoints[0].Port);
+                SubmissionPort  = IPPort.Parse(server.SubmissionEndPoints[0].Port);
 
-            private static IPPort FreePort()
-            {
-                var listener = new TcpListener(System.Net.IPAddress.Any, 0);
-                listener.Start();
-                var port = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
-                listener.Stop();
-                return port;
             }
 
             public async Task<Wire> ConnectAsync(IPPort? Port = null)
