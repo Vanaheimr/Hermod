@@ -381,6 +381,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         /// Only the outcome is asserted, not how long it took: the client no longer downloads, but
         /// on some Windows images the server side (SChannel in NextHop) still builds its chain with
         /// AIA retrieval and waits on its own.
+        ///
+        /// On Windows the anchor does not cross the wire at all: SChannel sends the certificate
+        /// alone, as it sends no partial chain (openssl s_client against a NextHop, 2026-11-27), and
+        /// the client finds the anchor in the intermediate CA store, where the NextHop's context put
+        /// it. So the DANE-TA tests check what the server presents only where the chain is sent,
+        /// as OpenSSL sends it on Linux; on Windows they check the client's matching against the
+        /// anchor it finds.
+        /// Which is why the next hop waits until the platform sees that chain before it takes a
+        /// connection (NextHop.WaitUntilThePlatformSeesTheChain).
         /// </remarks>
         [Test(Description = "RFC 7672 §3.1.2: DANE-TA authenticates against the chain the server presents - it does not depend on the platform downloading issuers from the network")]
         public async Task DANE_TA_does_not_depend_on_certificate_downloads()
