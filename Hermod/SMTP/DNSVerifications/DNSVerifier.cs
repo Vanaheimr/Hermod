@@ -1080,6 +1080,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (version != "1")
                 return (DkimResult.PermError, $"A DKIM-Signature of version {version} (RFC 6376 §6.1.1)");
 
+            // §6.1.1: "Implementers MUST meticulously validate the format and values in the
+            // DKIM-Signature header field; any inconsistency or unexpected values MUST cause the
+            // header field to be completely ignored and the Verifier to return PERMFAIL
+            // (signature syntax error)" - t=, x=, l= and q= among them.
+            if (OptionalTagError(dkimParams, out var bodyLength) is { } syntaxError)
+                return (DkimResult.PermError, syntaxError);
+
             // §6.1.1: "If the "h=" tag does not include the From header field, the Verifier MUST
             // ignore the DKIM-Signature header field and return PERMFAIL (From field not signed)" -
             // a signature that holds whatever the From says says nothing about the author.
@@ -1178,11 +1185,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             // Body hash over the wire octets, via the shared canonicalizer.
             var canonicalizedBody = DkimCanonicalization.CanonicalizeBody(body, bodyCanon);
             var bodyBytes         = MessageOctets.ToOctets(canonicalizedBody);
-            var computedBodyHash  = Convert.ToBase64String(SHA256.HashData(bodyBytes));
+
+            // §3.5, l=: "This value MUST NOT be larger than the actual number of octets in the
+            // canonicalized message body" - and §3.7: the body is hashed "canonicalized using the
+            // body canonicalization algorithm specified in the "c=" tag and then truncated to the
+            // length specified in the "l=" tag".
+            if (bodyLength > bodyBytes.Length)
+                return (DkimResult.PermError, $"l={bodyLength} is larger than the body of {bodyBytes.Length} octets (RFC 6376 §3.5)");
+
+            var hashedLength      = (Int32) (bodyLength ?? bodyBytes.Length);
+            var computedBodyHash  = Convert.ToBase64String(SHA256.HashData(bodyBytes.AsSpan(0, hashedLength)));
 
             // §3.5, bh=: "Whitespace is ignored in this value".
             if (!DkimCanonicalization.SameBase64(computedBodyHash, bodyHash))
                 return (DkimResult.Fail, $"Body hash mismatch: expected {bodyHash}, got {computedBodyHash}");
+
+            // §6.1.3: "All data beyond that limit is not validated by DKIM. Hence, Verifiers might
+            // treat a message that contains bytes beyond the indicated body length with suspicion
+            // and can choose to treat the signature as if it were invalid (e.g., by returning
+            // PERMFAIL (unsigned content))" - what follows l= could be anyone's (§8.2).
+            if (hashedLength < bodyBytes.Length)
+                return (DkimResult.Fail, $"The signature covers {hashedLength} of the {bodyBytes.Length} octets of the body, l={bodyLength} (RFC 6376 §6.1.3: unsigned content)");
 
             try
             {
@@ -1244,6 +1267,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         private static Dictionary<string, string> ParseDkimHeader(string header)
             => ParseDkimHeader(header, out _);
+
+        /// <summary>
+        /// What is wrong with the t=, x=, l= and q= of a DKIM-Signature (RFC 6376 §3.5), or null;
+        /// and the body length its l= gives, or null for the whole body.
+        /// </summary>
+        private static String? OptionalTagError(Dictionary<String, String> Tags, out Int64? BodyLength)
+        {
+
+            BodyLength = null;
+
+            // sig-t-tag = %x74 [FWS] "=" [FWS] 1*12DIGIT, and sig-x-tag the same; "implementations
+            // MAY consider any value longer than 12 digits to be infinite".
+            Int64? timestamp  = null;
+            Int64? expiration = null;
+
+            if (Tags.TryGetValue("t", out var t))
+            {
+                if (!IsDigits(t))
+                    return $"t={t} is no timestamp (RFC 6376 §3.5)";
+                timestamp = SecondsOf(t);
+            }
+
+            if (Tags.TryGetValue("x", out var x))
+            {
+                if (!IsDigits(x))
+                    return $"x={x} is no expiration (RFC 6376 §3.5)";
+                expiration = SecondsOf(x);
+            }
+
+            // "The value of the "x=" tag MUST be greater than the value of the "t=" tag if both
+            // are present."
+            if (expiration <= timestamp)
+                return $"x={x} is not after t={t} (RFC 6376 §3.5)";
+
+            // sig-l-tag = %x6c [FWS] "=" [FWS] 1*76DIGIT - more than 18 digits are more octets
+            // than any body has.
+            if (Tags.TryGetValue("l", out var l))
+            {
+                if (!IsDigits(l) || l.Length > 76)
+                    return $"l={l} is no body length (RFC 6376 §3.5)";
+                BodyLength = l.Length > 18 ? Int64.MaxValue : Int64.Parse(l, System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            // sig-q-tag = %x71 [FWS] "=" [FWS] sig-q-tag-method *([FWS] ":" [FWS] sig-q-tag-method);
+            // "Currently, the only valid value is "dns/txt""; "The only option defined for the
+            // "dns" query type is "txt", which MUST be included"; "Unrecognized query mechanisms
+            // MUST be ignored" - and with none left there is no way to the key.
+            if (Tags.TryGetValue("q", out var q))
+            {
+
+                var methods = q.Split(':').Select(method => method.Trim()).ToList();
+
+                if (methods.Any(method => method.Length == 0))
+                    return $"q={q} is no list of query methods (RFC 6376 §3.5)";
+
+                if (methods.Any(method => method.Split('/')[0].Equals("dns", StringComparison.OrdinalIgnoreCase) &&
+                                          !method.Equals("dns/txt", StringComparison.OrdinalIgnoreCase)))
+                    return $"q={q}: the option \"txt\" of the query type \"dns\" MUST be included (RFC 6376 §3.5)";
+
+                if (!methods.Any(method => method.Equals("dns/txt", StringComparison.OrdinalIgnoreCase)))
+                    return $"q={q} names no query method the verifier knows (RFC 6376 §3.5: dns/txt)";
+
+            }
+
+            return null;
+
+        }
+
+        private static Boolean IsDigits(String Value)
+            => Value.Length > 0 && Value.All(Char.IsAsciiDigit);
+
+        private static Int64 SecondsOf(String Digits)
+            => Digits.Length > 12 ? Int64.MaxValue : Int64.Parse(Digits, System.Globalization.CultureInfo.InvariantCulture);
 
         /// <param name="DuplicateTag">The name of a tag the tag-list names more than once, or null.</param>
         private static Dictionary<string, string> ParseDkimHeader(string header, out String? DuplicateTag)
