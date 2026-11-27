@@ -45,67 +45,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// A stable identifier for this recording (also the base file name).
         /// </summary>
-        public String           RecordingId      { get; init; } = Guid.NewGuid().ToString("N");
+        public String           RecordingId         { get; init; } = Guid.NewGuid().ToString("N");
+
+        /// <summary>
+        /// The id of the first part, shared by every part of a rotated recording (see
+        /// <see cref="RecordingRotation"/>); <c>null</c> for a recording that is not rotated.
+        /// </summary>
+        public String?          SeriesId            { get; init; }
+
+        /// <summary>
+        /// The number of this part within its series, from 1; <c>null</c> for a recording that is not rotated.
+        /// </summary>
+        public Int32?           Part                { get; init; }
+
+        /// <summary>
+        /// The id of the part before this one, so the parts of a series can be followed back to its first.
+        /// </summary>
+        public String?          PreviousRecordingId { get; init; }
 
         /// <summary>
         /// The session id of the SSH transport (hex), correlating with the audit stream.
         /// </summary>
-        public String?          SessionId        { get; init; }
+        public String?          SessionId           { get; init; }
 
         /// <summary>
         /// The authenticated user name.
         /// </summary>
-        public String?          Username         { get; init; }
+        public String?          Username            { get; init; }
 
         /// <summary>
         /// The public-key fingerprint the user authenticated with (SHA256:…), if any.
         /// </summary>
-        public String?          KeyFingerprint   { get; init; }
+        public String?          KeyFingerprint      { get; init; }
 
         /// <summary>
         /// The certificate key-id, if the user authenticated with a certificate.
         /// </summary>
-        public String?          CertificateKeyId { get; init; }
+        public String?          CertificateKeyId    { get; init; }
 
         /// <summary>
         /// The certificate principal that matched, if any.
         /// </summary>
-        public String?          Principal        { get; init; }
+        public String?          Principal           { get; init; }
 
         /// <summary>
         /// The peer endpoint (host:port) the session came from.
         /// </summary>
-        public String?          PeerEndpoint     { get; init; }
+        public String?          PeerEndpoint        { get; init; }
 
         /// <summary>
         /// The name of the access profile in force.
         /// </summary>
-        public String?          AccessProfile    { get; init; }
+        public String?          AccessProfile       { get; init; }
 
         /// <summary>
         /// The command that was run (for an <c>exec</c> session).
         /// </summary>
-        public String?          Command          { get; init; }
+        public String?          Command             { get; init; }
 
         /// <summary>
         /// When the session started.
         /// </summary>
-        public DateTimeOffset   StartedAt        { get; init; }
+        public DateTimeOffset   StartedAt           { get; init; }
 
         /// <summary>
         /// When the session ended (set on completion).
         /// </summary>
-        public DateTimeOffset?  EndedAt          { get; init; }
+        public DateTimeOffset?  EndedAt             { get; init; }
 
         /// <summary>
         /// The command's exit status, once known.
         /// </summary>
-        public Int32?           ExitStatus       { get; init; }
+        public Int32?           ExitStatus          { get; init; }
 
         /// <summary>
-        /// Why the session ended (normal, idle timeout, dead peer, size cap, …).
+        /// Why the session or this part ended (normal, idle timeout, dead peer, size cap, <c>rotated</c>
+        /// for a part closed by its <see cref="RecordingRotation"/>, …).
         /// </summary>
-        public String?          DisconnectReason { get; init; }
+        public String?          DisconnectReason    { get; init; }
 
     }
 
