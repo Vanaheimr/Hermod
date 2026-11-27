@@ -244,6 +244,7 @@ follow) and `ext-info-c`/`-s` for RFC 8308.
 | **8308** | Extension negotiation (`ext-info`, `server-sig-algs`) | ✅ |
 | **9142** | Key exchange method updates | ✅ Recommended set offered, SHA-1 methods absent |
 | **4226 / 6238** | HOTP / TOTP | ✅ Second factor in the authentication chain |
+| Hermod `TOTPGenerator` (TOTP.ts format) | Hermod's own one-time password over keyboard-interactive, unbound (`HermodTotpKeyboardInteractive`) | ✅ Server factor and client answer; an unmodified OpenSSH takes part through [SSHTOTPTool](https://github.com/Vanaheimr/SSHTOTPTool) (`pam_exec`, `SSH_ASKPASS`). Bound to the session: `totp@open.charging.cloud` |
 | **9941** | `sntrup761x25519-sha512` | ✅ Bare IANA name and the `@openssh.com` name |
 | **draft-ietf-sshm-mlkem-hybrid-kex** | `mlkem768x25519-sha256` | ✅ Draft-10, in the RFC Editor queue; names and encoding stable |
 | **draft-ietf-secsh-filexfer-02** | SFTP version 3 | ✅ Client + server |
