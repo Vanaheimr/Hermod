@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         [TestCase("ا1",    Description = "RFC 4013 §3: violates bidirectional rules")]
         [TestCase("aא",         Description = "RFC 3454 §6: left-to-right and right-to-left characters together")]
         [TestCase("",          Description = "C.3: private use")]
-        [TestCase("￾",          Description = "C.4: non-character")]
+        [TestCase("￾",          Description = "C.4: non-character", TestName = "{m}(U+FFFE)")]
         [TestCase("�",          Description = "C.6: inappropriate for plain text")]
         [TestCase("‎",          Description = "C.8: change display properties")]
         [TestCase("\u0085",          Description = "C.2.2: a non-ASCII control character")]
