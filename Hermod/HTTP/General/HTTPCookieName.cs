@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Indicates whether this identification is NOT null or empty.
         /// </summary>
         public Boolean IsNotNullOrEmpty
-            => InternalName.IsNullOrEmpty();
+            => InternalName.IsNotNullOrEmpty();
 
         /// <summary>
         /// The length of the HTTP cookie name.

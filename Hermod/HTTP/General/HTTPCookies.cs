@@ -18,7 +18,6 @@
 #region Usings
 
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -39,7 +38,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly ConcurrentDictionary<HTTPCookieName, HTTPCookie> cookies = [];
+        /// <summary>
+        /// The cookies, in their order: a Cookie header field lists them as
+        /// the user agent sorted them (RFC 6265, Section 5.4), and a
+        /// collection is not changed once it is made.
+        /// </summary>
+        private readonly OrderedDictionary<HTTPCookieName, HTTPCookie> cookies = [];
 
         private static readonly Char[] multipleCookiesSplitter = [ ';' ];
 
@@ -182,21 +186,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    [NotNullWhen(true)] out HTTPCookies?  HTTPCookies)
         {
 
-            Text = Text?.Trim() ?? "";
+            HTTPCookies = null;
 
-            if (Text.IsNullOrEmpty())
-            {
-                HTTPCookies = null;
+            if (Text is null)
                 return false;
+
+            // RFC 6265, Section 5.4 and draft-ietf-httpbis-rfc6265bis-22,
+            // Section 5.8.3: the user agent sorts the cookies of a name with
+            // the longest path first and, among equal paths, the oldest first.
+            // So the first of a name is the one set for this resource and not
+            // for a parent path or by a sibling host later: it is the one kept.
+            // Section 4.2.2 warns against relying on that order, and it is no
+            // more than the best guess there is.
+            var parsedCookies = new Dictionary<HTTPCookieName, HTTPCookie>();
+
+            foreach (var cookiePair in Text.Split(multipleCookiesSplitter))
+            {
+
+                // A cookie-pair without a name, a nameless cookie or a control
+                // character is skipped, not the whole header field.
+                if (HTTPCookie.TryParseCookiePair(cookiePair, out var cookie))
+                    parsedCookies.TryAdd(cookie.Name, cookie);
+
             }
 
-            return TryParse(
-                       Text.Split(
-                           multipleCookiesSplitter,
-                           StringSplitOptions.RemoveEmptyEntries
-                       ).Select(cookieText => cookieText.Trim()),
-                       out HTTPCookies
-                   );
+            if (parsedCookies.Count == 0)
+                return false;
+
+            HTTPCookies = new HTTPCookies(parsedCookies.Values);
+            return true;
+
+        }
+
+        #endregion
+
+        #region TryParseCookieHeaderLines / TryParseSetCookieLines(Lines, out HTTPCookies)
+
+        /// <summary>
+        /// Try to parse the lines of a "Cookie" header field: one cookie-string,
+        /// which a user agent may split across lines (draft-ietf-httpbis-rfc6265bis-22,
+        /// Section 5.8.1; RFC 9113, Section 8.2.3), so they are read joined by "; ".
+        /// </summary>
+        /// <param name="Lines">The values of all "Cookie" header lines.</param>
+        /// <param name="HTTPCookies">The parsed cookies.</param>
+        public static Boolean TryParseCookieHeaderLines(IEnumerable<String>                   Lines,
+                                                        [NotNullWhen(true)] out HTTPCookies?  HTTPCookies)
+
+            => TryParseCookieHeader(String.Join("; ", Lines), out HTTPCookies);
+
+
+        /// <summary>
+        /// Try to parse the lines of the "Set-Cookie" header field: one cookie
+        /// each. Set-Cookie is the one field whose lines may not be joined by
+        /// commas (RFC 9110, Section 5.3), because a date has one. A line that
+        /// is no cookie is skipped; a second cookie of a name replaces the first,
+        /// as it does in a user agent's store.
+        /// </summary>
+        /// <param name="Lines">The values of all "Set-Cookie" header lines.</param>
+        /// <param name="HTTPCookies">The parsed cookies.</param>
+        public static Boolean TryParseSetCookieLines(IEnumerable<String>                   Lines,
+                                                     [NotNullWhen(true)] out HTTPCookies?  HTTPCookies)
+        {
+
+            var parsedCookies = new Dictionary<HTTPCookieName, HTTPCookie>();
+
+            foreach (var line in Lines)
+                if (HTTPCookie.TryParse(line, out var cookie))
+                    parsedCookies[cookie.Name] = cookie;
+
+            HTTPCookies = parsedCookies.Count > 0
+                              ? new HTTPCookies(parsedCookies.Values)
+                              : null;
+
+            return HTTPCookies is not null;
 
         }
 
@@ -239,27 +301,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var parsedCookies = new Dictionary<HTTPCookieName, HTTPCookie>();
 
+            // A second cookie of a name replaces the first, as it does in a
+            // user agent's store; a text that is no cookie is skipped.
             foreach (var singleCookie in Texts)
-            {
-
-                try
-                {
-
-                    if (HTTPCookie.TryParse(singleCookie, out var parsedCookie))
-                    {
-
-                        // There is no guarantee, that cookie.Name is unique within a HTTP request!
-                        // Therefore use the latest cookie having this id/name!
-                        if (!parsedCookies.TryAdd(parsedCookie.Name, parsedCookie))
-                            parsedCookies[parsedCookie.Name] = parsedCookie;
-
-                    }
-
-                }
-                catch
-                { }
-
-            }
+                if (HTTPCookie.TryParse(singleCookie, out var parsedCookie))
+                    parsedCookies[parsedCookie.Name] = parsedCookie;
 
             HTTPCookies = new HTTPCookies(parsedCookies.Values);
             return true;
@@ -318,11 +364,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) ToString()
 
         /// <summary>
-        /// Return a text representation of this object.
+        /// The cookies as the value of a "Cookie" header field: their names
+        /// and values joined by "; ", and none of their attributes. A
+        /// "Set-Cookie" header field carries one cookie per line, each as
+        /// <see cref="HTTPCookie.ToString"/> writes it.
         /// </summary>
         public override String ToString()
 
-            => cookies.Values.AggregateWith("; ");
+            => cookies.Values.Select(cookie => cookie.ToCookiePair()).AggregateWith("; ");
 
         #endregion
 

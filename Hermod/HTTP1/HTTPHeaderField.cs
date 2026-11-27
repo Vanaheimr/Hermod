@@ -1229,6 +1229,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public delegate String?  ValueSerializerDelegate<T2>(T2 arg1);
 
+        /// <summary>
+        /// A delegate definition to parse the value of a header field sent on several lines.
+        /// </summary>
+        public delegate Boolean  FieldLinesParserDelegate(IEnumerable<String> Lines, [NotNullWhen(true)] out T? Value);
+
         #endregion
 
         #region Properties
@@ -1247,6 +1252,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// A delegate to serialize the value of the header field to a string.
         /// </summary>
         public ValueSerializerDelegate<T>  ValueSerializer    { get; }
+
+        /// <summary>
+        /// A delegate to parse the value of the header field when it came on
+        /// more than one line. Without one, such a field reads as absent: the
+        /// lines are kept as they came, and only the field knows whether they
+        /// join by commas (RFC 9110, Section 5.3), by "; " (Cookie) or not at
+        /// all (Set-Cookie).
+        /// </summary>
+        public FieldLinesParserDelegate?   FieldLinesParser   { get; init; }
 
         #endregion
 

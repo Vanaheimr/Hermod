@@ -1488,14 +1488,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Cookie
 
         /// <summary>
-        /// Send a HTTP cookie.
-        /// In fact this can be a collection of cookies separated by "; ".
+        /// The cookies a user agent sends: their names and values separated
+        /// by "; ", and no attributes (RFC 6265, Section 4.2). A user agent
+        /// may split them across lines, which are read as one.
         /// </summary>
-        /// <example>Cookie: UserID=JohnDoe; Max-Age=3600; Version=1</example>
-        /// <seealso cref="http://en.wikipedia.org/wiki/HTTP_cookie"/>
+        /// <example>Cookie: UserID=JohnDoe; theme=dark</example>
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc6265#section-4.2"/>
         public static readonly HTTPRequestHeaderField<HTTPCookies> Cookie = new ("Cookie",
                                                                                  RequestPathSemantic.EndToEnd,
-                                                                                 StringParser: HTTPCookies.TryParseCookieHeader);
+                                                                                 StringParser: HTTPCookies.TryParseCookieHeader) {
+                                                                                     FieldLinesParser = HTTPCookies.TryParseCookieHeaderLines
+                                                                                 };
 
         #endregion
 

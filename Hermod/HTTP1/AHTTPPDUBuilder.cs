@@ -135,10 +135,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (headerField.Value is not null)
                     {
 
+                        // A Cookie header field is one line of names and values, and
+                        // no attributes (RFC 6265, Section 5.4); Set-Cookie is one line
+                        // per cookie, each with its attributes (Section 3).
                         if (headerField.Value is HTTPCookies httpCookies)
                         {
-                            foreach (var cookie in httpCookies)
-                                sb.Append($"{headerField.Key}: {cookie}\r\n");
+
+                            if (headerField.Key.Equals(HTTPRequestHeaderField.Cookie.Name, StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (httpCookies.Any())
+                                    sb.Append($"{headerField.Key}: {httpCookies}\r\n");
+                            }
+
+                            else
+                                foreach (var cookie in httpCookies)
+                                    sb.Append($"{headerField.Key}: {cookie}\r\n");
+
+                            continue;
+
+                        }
+
+                        // The lines of a Cookie header field of a message this builder was made from.
+                        if (headerField.Value is String[] cookieLines &&
+                            headerField.Key.Equals(HTTPRequestHeaderField.Cookie.Name, StringComparison.OrdinalIgnoreCase))
+                        {
+                            sb.Append($"{headerField.Key}: {String.Join("; ", cookieLines)}\r\n");
                             continue;
                         }
 
@@ -1114,6 +1135,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HeaderField.StringParser(value?.ToString() ?? String.Empty, out var valueT2, out _))
                 {
                     return valueT2;
+                }
+
+                // The field came on more than one line, as in a builder made from a parsed message.
+                if (value is String[] lines &&
+                    HeaderField.FieldLinesParser is not null &&
+                    HeaderField.FieldLinesParser(lines, out var valueT3))
+                {
+                    return valueT3;
                 }
 
             }
