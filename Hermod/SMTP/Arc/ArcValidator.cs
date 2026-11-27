@@ -122,13 +122,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (publicKey is null)
                 return false;
 
-            var canon     = p.GetValueOrDefault("c", "relaxed/relaxed").Split('/');
-            var bodyCanon = canon.Length > 1 ? canon[1].ToLowerInvariant() : canon[0].ToLowerInvariant();
-            var hdrCanon  = canon[0].ToLowerInvariant();
+            // RFC 8617 §4.1.2: the AMS "is syntactically and semantically identical to a
+            // DKIM-Signature header field" - its c= is read as RFC 6376 §3.5 reads it: none is
+            // simple/simple, one name is that name for the header and simple for the body; and
+            // white space in its bh= is ignored.
+            var (hdrCanon, bodyCanon) = DkimCanonicalization.ParseMethods(p.GetValueOrDefault("c"));
 
             var canonBody = DkimCanonicalization.CanonicalizeBody(body, bodyCanon);
             var computed  = Convert.ToBase64String(SHA256.HashData(octets.GetBytes(canonBody)));
-            if (computed != bodyHash)
+            if (!DkimCanonicalization.SameBase64(computed, bodyHash))
                 return false;
 
             var signingInput = DkimCanonicalization.BuildHeaderHashInput(

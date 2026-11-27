@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// validated by <see cref="ArcValidator"/> with the key of the test.
     /// </summary>
     [TestFixture]
-    public class ArcTests
+    public partial class ArcTests
     {
 
         #region Data
@@ -119,14 +119,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         /// One more set sealed by hand after RFC 8617 §4.1 and §5.1.1 - without Hermod's sealer,
         /// and without its removal of the b= value, so that it can carry what a sealer must
         /// not write: any instance and cv= as given, another algorithm, more tags in the AS,
-        /// b= as the first tag.
+        /// b= as the first tag; the AMS with c= as given or none, canonicalized as RFC 6376 §3.5
+        /// reads it, and its tags as a test changes them.
         /// </summary>
-        private String HandSeal(String   Message,
-                                Int32    Instance,
-                                String   Cv,
-                                String   Algorithm       = "rsa-sha256",
-                                String?  ExtraSealTags   = null,
-                                Boolean  SignatureFirst  = false)
+        private String HandSeal(String                 Message,
+                                Int32                  Instance,
+                                String                 Cv,
+                                String                 Algorithm            = "rsa-sha256",
+                                String?                ExtraSealTags        = null,
+                                Boolean                SignatureFirst       = false,
+                                String?                AmsCanonicalization  = "relaxed/relaxed",
+                                Func<String, String>?  AmsTags              = null)
         {
 
             var (head, body) = DkimCanonicalization.Split(Message);
@@ -137,16 +140,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             // §4.1.1
             var aar          = $"i={Instance}; forwarder.example; spf=pass smtp.mailfrom=origin.example";
 
-            // §4.1.2: a DKIM signature over From, To and Subject.
-            var bodyOctets   = Encoding.UTF8.GetBytes(DkimCanonicalization.CanonicalizeBody(body, "relaxed"));
+            // §4.1.2: a DKIM signature over From, To and Subject - no c= is simple/simple, one
+            // name is that name for the header and simple for the body (RFC 6376 §3.5).
+            var methods      = (AmsCanonicalization ?? "simple/simple").Split('/');
+            var headerMethod = methods[0];
+            var bodyMethod   = methods.Length > 1 ? methods[1] : "simple";
+
+            var bodyOctets   = Encoding.UTF8.GetBytes(DkimCanonicalization.CanonicalizeBody(body, bodyMethod));
             var bh           = Convert.ToBase64String(hash == HashAlgorithmName.SHA1 ? SHA1.HashData(bodyOctets) : SHA256.HashData(bodyOctets));
-            var amsTags      = $"i={Instance}; a={Algorithm}; c=relaxed/relaxed; d=forwarder.example; s=arc; t=1763546400; h=from:to:subject; bh={bh}";
+            var amsTags      = (AmsTags ?? (tags => tags))($"i={Instance}; a={Algorithm}; " +
+                                                           (AmsCanonicalization is null ? "" : $"c={AmsCanonicalization}; ") +
+                                                           $"d=forwarder.example; s=arc; t=1763546400; h=from:to:subject; bh={bh}");
             var amsInput     = new StringBuilder();
 
             foreach (var name in new[] { "from", "to", "subject" })
-                amsInput.Append(DkimCanonicalization.CanonicalizeHeader(fields.Last(field => field.Name.Equals(name, StringComparison.OrdinalIgnoreCase)), "relaxed")).Append("\r\n");
+                amsInput.Append(DkimCanonicalization.CanonicalizeHeader(fields.Last(field => field.Name.Equals(name, StringComparison.OrdinalIgnoreCase)), headerMethod)).Append("\r\n");
 
-            amsInput.Append(Relaxed(AMS, Place(amsTags, "", SignatureFirst)));
+            amsInput.Append(headerMethod == "relaxed"
+                                ? Relaxed(AMS, Place(amsTags, "", SignatureFirst))
+                                : $"{AMS}: {Place(amsTags, "", SignatureFirst)}");
             var ams          = Place(amsTags, Sign(amsInput.ToString(), hash), SignatureFirst);
 
             // §4.1.3, §5.1.1: the sets 1..i, each AAR, AMS, AS - the new AS with b= empty and
