@@ -631,7 +631,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="http://en.wikipedia.org/wiki/HTTP_cookie"/>
         public static readonly HTTPResponseHeaderField<HTTPCookies?> SetCookie = new ("Set-Cookie",
                                                                                       RequestPathSemantic.EndToEnd,
-                                                                                      StringParser: HTTPCookies.TryParseSetCookie);
+                                                                                      StringParser: HTTPCookies.TryParseSetCookie) {
+                                                                                          FieldLinesParser = HTTPCookies.TryParseSetCookieLines
+                                                                                      };
 
         #endregion
 

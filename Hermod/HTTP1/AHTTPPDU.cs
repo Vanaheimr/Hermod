@@ -1914,6 +1914,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
+                // The field came on more than one line.
+                if (value is String[] lines                                        &&
+                    HeaderField.FieldLinesParser is not null                       &&
+                    HeaderField.FieldLinesParser(lines, out var linesValueT)       &&
+                    linesValueT is not null)
+                {
+                    headerFieldsParsed.TryRemove(HeaderField.Name, out _);
+                    headerFieldsParsed.TryAdd   (HeaderField.Name, linesValueT);
+                    return linesValueT;
+                }
+
             }
 
             return default;

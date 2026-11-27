@@ -32,6 +32,7 @@ Last verified: **2026-11-25**
 | [RFC 9530](https://www.rfc-editor.org/rfc/rfc9530.html), Digest Fields | `Content-Digest`, `Repr-Digest`, `Want-Content-Digest` and `Want-Repr-Digest` are typed on both directions, in `sha-256` and `sha-512`, with the grammar shared with HTTP/2. Opt-in on either role: the server's `AutomaticContentDigests` digests what it sends, after its compression; the client's `VerifyDigests` asks for a digest and checks it before it decodes. A handler's own digest is computed again when the server compresses. The obsolete `Content-MD5` stays readable. See [Digest fields](#digest-fields-rfc-9530). |
 | [RFC 7239](https://www.rfc-editor.org/rfc/rfc7239.html), Forwarded | The field is parsed into typed elements - `for`, `by`, `host`, `proto` and any extension parameters - and can be built to be sent onwards when a request is proxied. Node identifiers cover addresses, `unknown` and obfuscated identifiers; the last two are kept opaque rather than resolved into an address that was never given. Where a request carries both, `Forwarded` is preferred over the `X-Forwarded-For` family (Section 7.4). Either way the addresses are recorded *beside* the peer socket and never instead of it: everything in these fields is hearsay from whoever wrote them (Section 8.1), and forgeable by the client when no proxy strips them. |
 | [RFC 9440](https://www.rfc-editor.org/rfc/rfc9440.html), Client-Cert | `Client-Cert` and `Client-Cert-Chain` are typed on requests, for both ends of a TLS-terminating reverse proxy. The proxy calls `ForwardClientCertificate(request.ClientCertificate, chain)` on the builder of the request it passes on: that removes whatever the client sent of either field, in any case and on any number of lines, and then declares the certificate the client authenticated with, and the chain if one is given, without the client's own certificate, which `X509Chain` puts first. With no certificate it only removes, which Section 2.4 asks of a connection without one. The server behind the proxy reads `ForwardedClientCertificate` and `ForwardedClientCertificateChain`. A certificate is read only from a single byte sequence holding exactly one DER-encoded certificate. A chain is read only when every link is one, and only when the certificate is there too; its field lines are joined in order, which the parser refused until then. A repeated `Client-Cert` is refused with the request, as any field the parser does not know to be a list. The stack reads neither field itself. Both are a claim of whoever wrote them, to be believed only from a proxy the application trusts (Section 4), and the connection's own certificate stays `ClientCertificate`. A chain of large RSA certificates can pass the server's 8 KiB field line limit, which `MaxHTTPHeaderLineLength` raises (Section 3.2). HTTP/2 and HTTP/3 build no `HTTPRequest`; their handlers have the codec, `HTTPClientCertificateFields`. |
+| [RFC 6265](https://www.rfc-editor.org/rfc/rfc6265.html) and [draft-ietf-httpbis-rfc6265bis-22](https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-rfc6265bis-22), Cookies | `Set-Cookie` and `Cookie` are typed: `HTTPCookie` and `HTTPCookies`, read as Section 5.6 of 6265bis has a user agent read them, with the cookie-date algorithm, `Max-Age`, `Domain`, `Path`, `SameSite` and the size limits. A cookie every user agent ignores - one with `SameSite=None` without `Secure`, or a `__Secure-` or `__Host-` cookie without what its prefix needs - is no cookie here either. A request carries one `Cookie` line without attributes, and both fields are read when they arrive on more than one line. Hermod keeps no cookie store. Since 2026-11-27; see below. |
 | [RFC 6266](https://www.rfc-editor.org/rfc/rfc6266.html), Content-Disposition | `Content-Disposition` is typed: `HTTPContentDisposition`, with the disposition type, the file name and extension parameters. Parsing follows Section 4.1, and `filename*` wins over `filename` (Section 4.3). A sender writes what Appendix D advises: `filename` alone where ASCII is enough, and otherwise an ASCII `filename` first and `filename*` in UTF-8 after it. `SafeFileName` is the name made fit to store under. Since 2026-10-29; see [Content-Disposition](#content-disposition-rfc-6266). |
 | [RFC 7578](https://www.rfc-editor.org/rfc/rfc7578.html), multipart/form-data | `HTTPMultipartFormData` reads a form body and builds one: its parts in order, each a field or a file under the name of its form field, framed as RFC 2046, Section 5.1.1 has it. A handler calls `request.TryParseMultipartFormDataRequestBody(out var form, out var response)` and sends the response it gets when there is no form. Limits on the number of parts and on a part's header section bound what a peer can make it hold. Since 2026-11-27; see [multipart/form-data](#multipartform-data-rfc-7578). |
 | [RFC 7838](https://www.rfc-editor.org/rfc/rfc7838.html), HTTP Alternative Services | `Alt-Svc` is typed for responses and `Alt-Used` for requests, sent by handlers and read by the client, with the field's grammar shared with HTTP/2's ALTSVC frame. The client records alternatives and does not act on them. Announcing one is the application's decision. |
@@ -664,6 +665,30 @@ The parser was checked against what real senders sent on 2026-11-27, copied
 into `MultipartFormDataTests` octet for octet: Chromium 153 and Firefox 155,
 curl 8.23, and Python's requests 2.32 and urllib3 2.3.
 
+## Cookies (RFC 6265, draft-ietf-httpbis-rfc6265bis-22)
+
+`HTTPCookie` is one cookie and `HTTPCookies` the cookies of one header field.
+Since 2026-11-27 they are read the way a user agent reads them. 6265bis is in
+the RFC Editor's queue, and its draft -22 is the text followed here. Hermod
+keeps no cookie store: its client sends the cookies it is given, and its
+server reads the cookies it is sent.
+
+| | |
+|---|---|
+| Set-Cookie | Section 5.6. A control character other than HTAB anywhere, and it is no cookie. The name is everything up to the first `=` and the value everything after it, each without the spaces and tabs around it. More than 4096 octets of the two together, and it is no cookie. An attribute value of more than 1024 octets is ignored, and only that attribute. `Expires` is a cookie-date (Section 5.1.1): every form servers have written, two-digit years included, always in UTC. An `Expires` that is no date is ignored and the cookie kept. `Max-Age` is digits, with an optional `-`. `Domain` loses a leading dot and is lower case. A `Path` that does not begin with `/` is the default-path, which only the request knows, so `Path` is null. `SameSite` is `Strict`, `Lax` or `None`, and `Default` for any other value. The last of each attribute counts. Attributes the model does not know are kept, in their order. |
+| refused | What every user agent ignores whatever the request was (Section 5.7, steps 8 and 19 to 21): a `Domain` outside US-ASCII, `SameSite=None` without `Secure`, a `__Secure-` cookie without `Secure`, and a `__Host-` cookie without `Secure`, with a `Domain` or without `Path=/`. The prefixes are compared case-insensitively. A nameless cookie is no cookie here either: a server must not send one (Section 4.1.1), and the collections are keyed by name. |
+| Cookie | Sections 4.2 and 5.8.3. Every pair is a cookie, `Path=/` included, and a prefixed one is whatever the user agent sent. A pair without a name, or with a control character, is skipped, and the rest of the field is still read. Of two cookies of a name the first is kept. That is the one a user agent sorts first: the longest path, then the oldest. |
+| lines | A user agent may split its cookie-string across `Cookie` lines (Section 5.8.1), and they are read as one. `Set-Cookie` lines are one cookie each. Both read as no cookies at all before, because a field that arrives on more than one line is kept as its lines and nothing read them. A field's `FieldLinesParser` reads them now. The fields that have none still read as absent on more than one line. |
+| writing | `ToString()` writes a cookie as `Set-Cookie` carries it: the name and value as they came, each attribute once and in the spelling of Section 4.1.1, and `Expires` as an IMF-fixdate. A request carries one `Cookie` line, with the names and values in their order and no attributes. It used to carry one line per cookie, each with its attributes. `HTTPCookie.Create(...)` makes a cookie held to what Section 4.1 asks of a server — a token as the name and cookie-octets as the value — and to the rules above. It throws for a cookie a server must not send. |
+| crumbs | The enumerator, the indexer, `Get` and `TryGet` read the value the way Hermod's HTTP API writes it: crumbs separated by `:`, each a name with an optional `=` and a value. That is Hermod's own convention, not an RFC's. `Value` is the value as it was sent. It used to be the name of the first crumb, so `abc==` read as `abc`. |
+
+The parser it replaces read `Expires` with `DateTimeOffset.Parse`. It threw on
+an `Expires` that is no date, out of `TryParse` and out of reading a
+response's `Set-Cookie`, and it read a date without `GMT` in the local time zone
+of the machine. It rejected asctime's order. It wrote `a=b:b` back as `a=b`.
+`Max-Age`, `Domain`, the prefixes and `SameSite=None` were not modeled.
+`HTTPCookieName.IsNotNullOrEmpty` returned the opposite.
+
 ## Links (RFC 8288)
 
 `HTTPResponse.Builder.Link` sends links and `HTTPResponse.Link` reads them,
@@ -1205,7 +1230,8 @@ The presence of a typed field does not imply an automatic policy engine:
   and an ordinary `OPTIONS` still goes to the router. The pipeline deliberately
   does not decorate ordinary responses: that is per-resource, and the handler
   already sets it.
-- Cookies are modeled; application code owns session and persistence policy.
+- Cookies are read and written as RFC 6265 and its successor have them, but
+  there is no cookie store: application code owns sessions and what to keep.
 - `Accept-Query` can be emitted as an extension field, but RFC 10008 content
   negotiation is not automatically enforced.
 
@@ -1328,7 +1354,8 @@ eleven to `ContentCodingStreamTests`, two to `ClientContentDecodingTests` and
 four to `ServerContentCompressionTests`: **1026**. `ClientCertificateFieldsTests`
 came with RFC 9440 and joined with it, which makes forty-eight: **1061**. `ContentTypeFieldTests` came with H-51,
 which makes forty-nine: **1099**. `MultipartFormDataTests` came with
-RFC 7578 and joined with it, which makes fifty: **1147**.
+RFC 7578 and joined with it, which makes fifty: **1147**. The cookies of
+6265bis added 121 cases to `HTTPCookiesTests`: **1268**.
 
 Run it with:
 
