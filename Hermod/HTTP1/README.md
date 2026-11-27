@@ -23,7 +23,7 @@ Last verified: **2026-11-27**
 |---|---|
 | [RFC 1945](https://www.rfc-editor.org/rfc/rfc1945.html), HTTP/1.0 | Implemented and regression-tested for requests, responses, `Content-Length`, close-delimited responses, default connection closing, optional negotiated keep-alive, and HTTP/1.0-specific rejection/fallback behavior. |
 | [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), HTTP semantics | Core message semantics are implemented: methods and status codes, `Host` and the §7.4 refusal of a request for an origin the TLS certificate does not cover (since 2026-10-29), connection handling, `Expect: 100-continue`, bodyless responses, representation metadata, and extensible header fields. Every status code in the IANA registry is defined with its registered reason phrase. Six carried pre-RFC-9110 phrases until 2026-10-03; five now match the registry (413 `Content Too Large`, 414 `URI Too Long`, 416 `Range Not Satisfiable`, 422 `Unprocessable Content` and 306 `(Unused)`) without any field being renamed, since the wire carries the phrase and downstream code refers to the field. 418 keeps `I'm a teapot`, which RFC 9110 does not mention and RFC 2324 does. `HTTPStatusCodeTests` pins that one remaining divergence. Resource semantics remain application-defined, unless a resource is registered with `AddResource`: then negotiation, preconditions and ranges (§12–14) come from the library, the same code HTTP/2 uses, since 2026-11-20 — see "Resources: negotiation, preconditions and ranges". The client sends a request that went out and was not answered again only if its method is idempotent or it carries an `Idempotency-Key`, and only once (§9.2.2, since 2026-11-25) — see "The client: retries". |
-| [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html), HTTP/1.1 message syntax and routing | Implemented and regression-tested for start lines, all four forms of request-target (absolute-form accepted since 2026-11-20), header parsing, message framing, persistent connections, pipelining, chunked transfer coding, trailers, and malformed-message rejection. |
+| [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html), HTTP/1.1 message syntax and routing | Implemented and regression-tested for start lines, all four forms of request-target (absolute-form accepted since 2026-11-20), header parsing, message framing, persistent connections, pipelining, chunked transfer coding, trailers, the gzip and deflate transfer codings in both roles (since 2026-11-27), and malformed-message rejection. |
 | [RFC 10008](https://www.rfc-editor.org/rfc/rfc10008.html), HTTP `QUERY` method | The method is modeled as safe and idempotent and is end-to-end tested with fixed-length and chunked request content, trailers, and chunk extensions. Media-type policy, `Accept-Query`, caching, conditional requests, and query-result URI policy are handler responsibilities, except for a resource registered with `AddResource` and a query handler: its `QUERY` runs through the `GET` pipeline, conditional requests and negotiation included, content without a `Content-Type` is a `400` (RFC 10008, Section 4), and the result can name its own URI in `Content-Location`. |
 | [RFC 4918](https://www.rfc-editor.org/rfc/rfc4918.html), WebDAV | Method tokens are modeled (`COPY`, `LOCK`, `MKCOL`, `MOVE`, `PROPFIND`, `PROPPATCH`, and `UNLOCK`). Hermod does not provide a complete WebDAV resource implementation. |
 | [RFC 7617](https://www.rfc-editor.org/rfc/rfc7617.html), Basic authentication | Typed parsing/serialization and end-to-end server authorization tests, including challenge, malformed credentials, invalid credentials, and forbidden users. Authentication policy is configured by the application. The client answers a challenge when it is given `Credentials`, since 2026-11-20; see [The client: challenges and redirects](#the-client-challenges-and-redirects). |
@@ -213,7 +213,7 @@ Hermod rejects ambiguous or invalid framing, including:
 - simultaneous `Content-Length` and `Transfer-Encoding`;
 - invalid, negative, signed, overflowing, or non-decimal content lengths;
 - transfer codings where `chunked` is not the final coding;
-- unsupported transfer codings;
+- a transfer coding the server cannot undo, with `501` (see below);
 - truncated fixed-length or chunked bodies;
 - malformed chunk-size lines and invalid chunk delimiters;
 - response framing that would make a client connection unsafe to reuse.
@@ -517,6 +517,28 @@ The following trailer fields are rejected for incoming and outgoing trailers:
 | Total chunk metadata | 64 KiB |
 
 All limits are configurable on the HTTP server.
+
+### Other transfer codings (RFC 9112, Section 7)
+
+`Transfer-Encoding: gzip, chunked` means the content was gzipped and the
+result chunked. A transfer coding belongs to the message, not to the
+representation, so it is undone below everything else: before a content
+coding, and before a digest is checked. `HTTPTransferCoding` does that for
+both roles, with the decoders of the content codings.
+
+| | |
+|---|---|
+| undone | `gzip`, `x-gzip` (Section 7.2 has it as gzip) and `deflate` (the zlib format, RFC 9110 §8.4.1.2, with raw deflate taken too), in any number and in reverse order of application. Every step is held to the body limit, so a few hundred octets that expand past it are `413` on the server. |
+| the server | A request with a coding it cannot undo is answered `501 Not Implemented` with `Connection: close`, as Section 6.1 says it should: `compress` and `x-compress`, which are LZW and have no BCL decoder, `identity`, which the registry no longer has, `br` and `zstd`, which are content codings only, and any other name. Octets that are not what their coding says are `400`, whether the handler reads them or the server does after it. |
+| the client | A response whose codings it can undo is read as its content. One whose final coding is not `chunked` ends where the server closes the connection (Section 6.3, item 4), with or without `Connection: close`, and the connection is not used again. A coding it cannot undo, `chunked` twice, or `chunked` not last, is refused, and the connection dropped with the body unread. |
+| sending | Neither role applies a transfer coding other than `chunked`. Section 6.1 makes that the sender's choice, and `TE: gzip` is rare enough that a response compressed for it would be a code path no client exercises. |
+
+Until 2026-11-27 the server took any coding before `chunked`, a made-up one
+included, removed the chunks and handed on what was left as the content: the
+demo's `/echo` answered `gzip, chunked`, `deflate, chunked` and `bogus, chunked`
+alike with `200` and the gzip octets (H-53 in HTTP1ConformanceTests). The client
+refused every `Transfer-Encoding` but a single `chunked`, which was safe, and
+read none.
 
 ## Content codings
 
@@ -1297,6 +1319,7 @@ and `DotNetHTTPClientTests_MinimalAPI`.
   `HTTPClientTests`, `HTTPServerSocketRegressionTests`,
   `HTTPClientProtocolRegressionTests`, `HTTP11AuditRegressionTests`,
   `HTTP_TCPClientTests`, `ChunkedFramingTests`, `TransferCodingTests`,
+  `TransferCodingDecodingTests`,
   `BodilessResponseTests`, `HTTPLineEndingTests`, `HTTPClientPoolTests`,
   `NagleTests`, `HTTPClientDownloadTests`, `AbsoluteFormTests`
 - **Caching, the client's (RFC 9111):** `HTTPCacheTests`, `HTTPClientCacheTests`
@@ -1379,12 +1402,13 @@ a `TestName`, and `FilterSafeTestNamesTests` fails for a `[TestCase]` that
 needs one: **1271**. `RepeatedFieldLinesTests` came with the second half of
 finding H-52, a list on more than one line, and joined with it, which makes
 fifty-one, and the same change put one case into `ClientContentDecodingTests`:
-**1313**.
+**1313**. `TransferCodingDecodingTests` came with finding H-53, the transfer
+codings other than chunked, and joined with it, which makes fifty-two: **1341**.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~ClientCertificateFieldsTests|FullyQualifiedName~ContentTypeFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests|FullyQualifiedName~StaticFileValidatorsTests|FullyQualifiedName~HTTPCacheTests|FullyQualifiedName~HTTPClientCacheTests|FullyQualifiedName~MultipartFormDataTests|FullyQualifiedName~RepeatedFieldLinesTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~ClientCertificateFieldsTests|FullyQualifiedName~ContentTypeFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests|FullyQualifiedName~StaticFileValidatorsTests|FullyQualifiedName~HTTPCacheTests|FullyQualifiedName~HTTPClientCacheTests|FullyQualifiedName~MultipartFormDataTests|FullyQualifiedName~RepeatedFieldLinesTests|FullyQualifiedName~TransferCodingDecodingTests"
 ```
 
 ## Deliberate exclusions and qualification

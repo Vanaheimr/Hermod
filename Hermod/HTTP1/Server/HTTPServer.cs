@@ -1497,6 +1497,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               {
                                   httpResponse = CreateInvalidChunkResponse(Request);
                               }
+                              catch (HTTPInvalidTransferCodingException)
+                              {
+                                  httpResponse = CreateInvalidTransferCodingResponse(Request);
+                              }
                               catch (HTTPReadTimeoutException)
                              {
                                  httpResponse = CreateRequestTimeoutResponse(Request);
@@ -1727,6 +1731,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (e is HTTPInvalidChunkException)
                     return CreateInvalidChunkResponse(Request);
+
+                if (e is HTTPInvalidTransferCodingException)
+                    return CreateInvalidTransferCodingResponse(Request);
 
                 if (e is HTTPReadTimeoutException)
                     return CreateRequestTimeoutResponse(Request);

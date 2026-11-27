@@ -1012,6 +1012,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
                     throw;
                 }
+                catch (HTTPInvalidTransferCodingException)
+                {
+                    throw;
+                }
                 catch (HTTPReadTimeoutException)
                 {
                     throw;
@@ -1068,6 +1072,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
                     throw;
                 }
+                catch (HTTPInvalidTransferCodingException)
+                {
+                    throw;
+                }
                 catch (HTTPReadTimeoutException)
                 {
                     throw;
@@ -1121,6 +1129,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw;
                 }
                 catch (HTTPInvalidChunkException)
+                {
+                    throw;
+                }
+                catch (HTTPInvalidTransferCodingException)
                 {
                     throw;
                 }
@@ -2271,6 +2283,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw;
                 }
                 catch (HTTPInvalidChunkException)
+                {
+                    throw;
+                }
+                catch (HTTPInvalidTransferCodingException)
                 {
                     throw;
                 }

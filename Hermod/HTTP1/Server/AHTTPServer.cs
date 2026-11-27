@@ -895,6 +895,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  LeaveInnerStreamOpen: false
                                              );
 
+                            // RFC 9112, Section 7: "Transfer-Encoding: gzip, chunked"
+                            // is gzipped content, chunked. The parse answered 501 to
+                            // a coding that cannot be undone, so what is left here
+                            // can, and each step is held to the body limit as well.
+                            if (request.IsChunkedTransferEncoding && bodyStream is not null &&
+                                HTTPTransferCoding.TryGetCodingsToUndo(request.TransferCodings, out var transferCodings, out _) &&
+                                transferCodings.Length > 0)
+                            {
+                                bodyStream = HTTPTransferCoding.DecodeStream(
+                                                 bodyStream,
+                                                 transferCodings,
+                                                 MaxHTTPBodySize,
+                                                 LeaveSourceOpen: false
+                                             );
+                            }
+
                             if (bodyStream is not null)
                             {
                                 bodyReadTimeoutCancellation = CreateReadTimeoutCancellationSource(
@@ -971,6 +987,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
                                 bodyStream.Dispose();
                                 httpResponse = CreateInvalidChunkResponse(request);
+                            }
+                            catch (HTTPInvalidTransferCodingException)
+                            {
+                                bodyStream.Dispose();
+                                httpResponse = CreateInvalidTransferCodingResponse(request);
                             }
                             catch (HTTPReadTimeoutException)
                             {
@@ -1532,6 +1553,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    },
                    JSONObject.Create(
                        new JProperty("description", "The request contains invalid chunked transfer-coding syntax.")
+                   )
+               ).AsImmutable;
+
+        protected HTTPResponse CreateInvalidTransferCodingResponse(HTTPRequest Request)
+            => WithErrorContent(
+                   new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode = HTTPStatusCode.BadRequest,
+                       Server         = HTTPServerName,
+                       Date           = Timestamp.Now,
+                       Connection     = ConnectionType.Close
+                   },
+                   JSONObject.Create(
+                       new JProperty("description", "The request body does not decode as its transfer codings say.")
                    )
                ).AsImmutable;
 

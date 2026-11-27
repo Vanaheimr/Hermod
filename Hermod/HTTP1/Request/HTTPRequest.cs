@@ -2667,6 +2667,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return false;
                 }
 
+                // RFC 9112, Section 6.1: "A server that receives a request
+                // message with a transfer coding it does not understand SHOULD
+                // respond with 501 (Not Implemented)." The framing is sound -
+                // chunked is final - but the octets under it are not the
+                // content until the other codings are undone, and until
+                // 2026-11-27 they were handed on as the content, whatever the
+                // coding was called.
+                if (transferEncodingValue is String transferCodingsText &&
+                    !HTTPTransferCoding.TryGetCodingsToUndo(transferCodingsText.Split(",", StringSplitOptions.TrimEntries),
+                                                            out _,
+                                                            out var unsupportedTransferCoding))
+                {
+
+                    HTTPResponse = new HTTPResponse.Builder(
+
+                                       Illias.Timestamp.Now,
+                                       eventTrackingId,
+                                       TimeSpan.Zero,
+
+                                       HTTPSource,
+                                       LocalSocket,
+                                       RemoteSocket,
+                                       ConnectionType.Close,
+
+                                       HTTPStatusCode.NotImplemented,
+                                       $"The transfer coding '{unsupportedTransferCoding}' is not implemented.",
+                                       CancellationToken
+
+                                   );
+
+                    return false;
+
+                }
+
                 #endregion
 
 

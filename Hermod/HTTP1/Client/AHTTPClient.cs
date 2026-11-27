@@ -2039,10 +2039,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                           response.ContentLength.GetValueOrDefault() > 0)));
 
                                 var prefix = buffer[..dataLength];
+
+                                // RFC 9112, Section 6.3, item 4: a Transfer-Encoding
+                                // whose final coding is not chunked delimits the
+                                // body by the server closing the connection, whether
+                                // the response says "Connection: close" or not. The
+                                // connection is not used again either way.
+                                var closeDelimitedByTransferCoding = !responseHasNoBody &&
+                                                                     response.TransferCodings.Length > 0 &&
+                                                                     !response.IsChunkedTransferEncoding;
+
                                 var isCloseDelimitedBody = !responseHasNoBody &&
                                                            !response.IsChunkedTransferEncoding &&
                                                            !response.ContentLength.HasValue &&
-                                                           response.IsConnectionClose;
+                                                           (response.IsConnectionClose || closeDelimitedByTransferCoding);
+
+                                // RFC 9112, Section 7: the codings under the framing,
+                                // gzip and deflate, undone before anything above it
+                                // sees the octets - a digest and a content coding
+                                // included. The framing check let through no coding
+                                // that cannot be undone.
+                                HTTPTransferCoding.TryGetCodingsToUndo(response.TransferCodings, out var transferCodings, out _);
 
                                 if (!responseHasNoBody &&
                                     (response.IsChunkedTransferEncoding ||
@@ -2078,7 +2095,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                             response.SetTrailingHeaders(trailers);
                                             response.ChunkExtensions = chunkedStream.ChunkExtensions;
-                                            response.HTTPBody  = chunks.ToArray();
+                                            response.HTTPBody  = transferCodings.Length > 0
+                                                                     ? HTTPTransferCoding.Decode(chunks.ToArray(), transferCodings, MaxDecodedBodySize)
+                                                                     : chunks.ToArray();
                                             bodyAlreadyConsumed = true;
 
                                          }
@@ -2094,6 +2113,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     else if (isCloseDelimitedBody)
                                         bodyStream = bodyDataStream;
+
+                                    if (!bodyAlreadyConsumed && bodyStream is not null && transferCodings.Length > 0)
+                                        bodyStream = HTTPTransferCoding.DecodeStream(
+                                                         bodyStream,
+                                                         transferCodings,
+                                                         MaxDecodedBodySize,
+                                                         LeaveSourceOpen: ReferenceEquals(bodyStream, bodyDataStream)
+                                                     );
 
                                 }
 
@@ -2286,7 +2313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 }
 
-                                if (response.IsConnectionClose || hasUnexpectedBodyBytes)
+                                if (response.IsConnectionClose || hasUnexpectedBodyBytes || closeDelimitedByTransferCoding)
                                 {
 
                                     IsHTTPConnected = false;
@@ -2610,10 +2637,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var transferCodings = transferEncodings.SelectMany(value => value.Split(',', StringSplitOptions.TrimEntries))
                                                        .ToArray();
 
-                if (transferCodings.Length != 1 ||
-                    !transferCodings[0].Equals("chunked", StringComparison.OrdinalIgnoreCase))
+                // RFC 9112, Section 6.1: chunked at most once, and only last.
+                // Section 6.3, item 4: a response whose final coding is not
+                // chunked is delimited by the server closing the connection.
+                // Section 7: whatever else was applied, gzip or deflate, is
+                // undone below the framing; a coding this client cannot undo
+                // leaves it nothing to hand on, so the response is refused as
+                // before.
+                var chunkedCount = transferCodings.Count(coding => coding.Equals("chunked", StringComparison.OrdinalIgnoreCase));
+
+                if (chunkedCount > 1 ||
+                    (chunkedCount == 1 && !transferCodings[^1].Equals("chunked", StringComparison.OrdinalIgnoreCase)))
                 {
-                    ErrorDescription = "Only a single final chunked Transfer-Encoding is supported in an HTTP response.";
+                    ErrorDescription = "The Transfer-Encoding of an HTTP response may apply chunked once at most, and only last.";
+                    return false;
+                }
+
+                if (!HTTPTransferCoding.TryGetCodingsToUndo(transferCodings, out _, out var unsupported))
+                {
+                    ErrorDescription = $"The transfer coding '{unsupported}' is not supported in an HTTP response.";
                     return false;
                 }
 
