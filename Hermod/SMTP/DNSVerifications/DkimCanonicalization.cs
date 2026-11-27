@@ -122,8 +122,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             if (method == "relaxed")
             {
+                // §3.4.2: "Delete all WSP characters at the end of each unfolded header field
+                // value", and "Delete any WSP characters remaining before and after the colon"
+                // - WSP, a space or a tab (§2.8), not every character .NET takes for white space.
                 var name  = field.Name.ToLowerInvariant();
-                var value = WhitespaceRegex().Replace(Unfold(field.RawValue), " ").Trim();
+                var value = WhitespaceRegex().Replace(Unfold(field.RawValue), " ").Trim(Wsp);
                 return $"{name}:{value}";
             }
 
@@ -145,8 +148,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (method == "relaxed")
             {
 
+                // §3.4.4: "Ignore all whitespace at the end of lines" - WSP, a space or a tab
+                // (§2.8). Not TrimEnd(): it takes U+00A0 and U+0085 for white space, and read one
+                // character per octet these are the last octets of à (C3 A0), ą (C4 85), х (D1 85)
+                // and of the NO-BREAK SPACE (C2 A0); it takes a form feed, too.
                 var lines = body.Replace("\r\n", "\n").Split('\n').
-                                 Select(line => WhitespaceRegex().Replace(line, " ").TrimEnd()).
+                                 Select(line => WhitespaceRegex().Replace(line, " ").TrimEnd(Wsp)).
                                  ToList();
 
                 // Ignore all empty lines at the end of the body.
@@ -246,8 +253,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
+        #region ParseMethods(c)
+
+        /// <summary>
+        /// The header and the body canonicalization of a c= tag, of a DKIM-Signature or of an
+        /// ARC-Message-Signature (RFC 8617 §4.1.2: "syntactically and semantically identical to a
+        /// DKIM-Signature header field"), or of a signer's configuration. RFC 6376 §3.5: "If only
+        /// one algorithm is named, that algorithm is used for the header and "simple" is used for
+        /// the body. For example, "c=relaxed" is treated the same as "c=relaxed/simple"" - and
+        /// "If no canonicalization algorithm is specified, the Signer MUST use "simple/simple"".
+        /// </summary>
+        /// <param name="c">The value of the c= tag; null or empty if there is none.</param>
+        public static (String Header, String Body) ParseMethods(String? c)
+        {
+
+            if (String.IsNullOrWhiteSpace(c))
+                return ("simple", "simple");
+
+            var parts = c.Split('/');
+
+            return (parts[0].Trim().ToLowerInvariant(),
+                    parts.Length > 1 ? parts[1].Trim().ToLowerInvariant() : "simple");
+
+        }
+
+        #endregion
+
+        #region SameBase64(a, b)
+
+        /// <summary>
+        /// Whether two values of a base64string - a bh= as a signature has it and a body hash as
+        /// computed - are the same. RFC 6376 §3.5, bh=: "Whitespace is ignored in this value and
+        /// MUST be ignored when reassembling the original signature"; base64string is
+        /// ALPHADIGITPS *([FWS] ALPHADIGITPS) (§2.4), and a signer may fold it.
+        /// </summary>
+        public static Boolean SameBase64(String a, String b)
+            => String.Equals(FwsRegex().Replace(a, ""), FwsRegex().Replace(b, ""), StringComparison.Ordinal);
+
+        #endregion
+
+
+        /// <summary>
+        /// WSP: "SP / HTAB" (RFC 6376 §2.8, RFC 5234 Appendix B.1).
+        /// </summary>
+        private static readonly Char[] Wsp = [ ' ', '\t' ];
+
         private static String Unfold(String value)
             => value.Replace("\r\n", "").Replace("\n", "");
+
+        [GeneratedRegex(@"[ \t\r\n]+")]
+        private static partial Regex FwsRegex();
 
         [GeneratedRegex(@"[ \t]+")]
         private static partial Regex WhitespaceRegex();

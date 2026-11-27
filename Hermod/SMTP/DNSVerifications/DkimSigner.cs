@@ -121,9 +121,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var (headerBlock, body) = DkimCanonicalization.Split(message);
                 var fields              = DkimCanonicalization.ParseFields(headerBlock);
 
-                var slash        = config.Canonicalization.Split('/');
-                var headerCanon  = slash[0].ToLowerInvariant();
-                var bodyCanon    = slash.Length > 1 ? slash[1].ToLowerInvariant() : headerCanon;
+                // c= as every verifier reads it (RFC 6376 §3.5): "c=relaxed" is relaxed/simple.
+                var (headerCanon, bodyCanon) = DkimCanonicalization.ParseMethods(config.Canonicalization);
 
                 // Body hash over the original wire octets (UTF-8), not ASCII.
                 var canonBody    = DkimCanonicalization.CanonicalizeBody(body, bodyCanon);

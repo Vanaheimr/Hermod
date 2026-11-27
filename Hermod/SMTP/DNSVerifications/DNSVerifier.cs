@@ -1154,14 +1154,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 !sameDomain)
                 return (DkimResult.Fail, $"The key has t=s, and i={identity} is in a subdomain of d={domain} (RFC 6376 §3.6.1)");
 
-            var (headerCanon, bodyCanon) = ParseCanonicalization(dkimParams.GetValueOrDefault("c", "simple/simple"));
+            var (headerCanon, bodyCanon) = DkimCanonicalization.ParseMethods(dkimParams.GetValueOrDefault("c"));
 
             // Body hash over the wire octets, via the shared canonicalizer.
             var canonicalizedBody = DkimCanonicalization.CanonicalizeBody(body, bodyCanon);
             var bodyBytes         = MessageOctets.ToOctets(canonicalizedBody);
             var computedBodyHash  = Convert.ToBase64String(SHA256.HashData(bodyBytes));
 
-            if (computedBodyHash != bodyHash)
+            // §3.5, bh=: "Whitespace is ignored in this value".
+            if (!DkimCanonicalization.SameBase64(computedBodyHash, bodyHash))
                 return (DkimResult.Fail, $"Body hash mismatch: expected {bodyHash}, got {computedBodyHash}");
 
             try
@@ -1306,17 +1307,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         private static Dictionary<string, string> ParseDkimRecord(string record, out String? DuplicateTag)
             => ParseTagList(record, out DuplicateTag);
-
-        /// <summary>
-        /// The header and the body canonicalization of a c= tag. RFC 6376 §3.5: "If only one
-        /// algorithm is named, that algorithm is used for the header and "simple" is used for the
-        /// body. For example, "c=relaxed" is treated the same as "c=relaxed/simple"".
-        /// </summary>
-        private static (string Header, string Body) ParseCanonicalization(string c)
-        {
-            var parts = c.Split('/');
-            return (parts[0].Trim().ToLowerInvariant(), parts.Length > 1 ? parts[1].Trim().ToLowerInvariant() : "simple");
-        }
 
         #endregion
 
