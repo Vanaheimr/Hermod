@@ -2039,26 +2039,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                         throwOnInvalidBytes:             true
                                                                     );
 
-        private static readonly HashSet<String> commaJoinableRequestHeaderFields = new (StringComparer.OrdinalIgnoreCase) {
-                                                                                       "Accept",
-                                                                                       "Accept-Charset",
-                                                                                       "Accept-Encoding",
-                                                                                       "Accept-Language",
-                                                                                       "Cache-Control",
-                                                                                       "Client-Cert-Chain",
-                                                                                       "Connection",
-                                                                                       "Expect",
-                                                                                       "Forwarded",
-                                                                                       "If-Match",
-                                                                                       "If-None-Match",
-                                                                                       "TE",
-                                                                                       "Trailer",
-                                                                                       "Upgrade",
-                                                                                       "Via",
-                                                                                       "Warning",
-                                                                                       "X-Forwarded-For"
-                                                                                   };
-
         private static Boolean IsTokenCharacter(Char Character)
             => Character is >= 'a' and <= 'z' or
                             >= 'A' and <= 'Z' or
@@ -2586,7 +2566,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 else if (key.Equals("Cookie", StringComparison.OrdinalIgnoreCase))
                                     headerFields[key] = $"{headerFields[key]}; {value}";
 
-                                else if (commaJoinableRequestHeaderFields.Contains(key))
+                                // A list on more than one line is one list (RFC 9110, Section 5.3).
+                                // Any other field may not come twice: what its two values
+                                // would mean, no definition says.
+                                else if (HTTPHeaderField.IsListBasedField(key))
                                     headerFields[key] = $"{headerFields[key]}, {value}";
 
                                 else

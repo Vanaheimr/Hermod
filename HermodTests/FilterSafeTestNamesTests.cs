@@ -34,10 +34,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
     /// (\0, \a, \b, \t, \n, \v, \f, \r) as "\uXXXX": U+0001 to U+0006,
     /// U+000E to U+001F, U+FFFE, U+FFFF and a surrogate on its own. A case
     /// named that way runs in a run without a filter, and in one whose filter
-    /// matches every test, but not under a narrower FullyQualifiedName filter
-    /// - measured 2026-11-27 with NUnit 5.0.0 and NUnit3TestAdapter 6.3.1:
+    /// matches every test, but not under every FullyQualifiedName filter -
+    /// measured 2026-11-27 with NUnit 5.0.0 and NUnit3TestAdapter 6.3.1:
     /// "FullyQualifiedName~Tests.HTTP." ran 1957 of the 1960 tests
-    /// "--list-tests" names, and "FullyQualifiedName~SaslPrepTests" 29 of 30.
+    /// "--list-tests" names, and "FullyQualifiedName~SaslPrepTests" 29 of 30,
+    /// while a filter of eight terms that the SaslPrep case also matched ran
+    /// it. Which filters lose such a case and which do not was not worked out.
     /// The three were regression tests for control characters in header
     /// values and chunk extensions, and HTTP1ConformanceTests' CI and the
     /// HTTP/1.x regression selection are filters of that kind: neither had
@@ -110,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 
             Assert.That(unsafeCases,
                         Is.Empty,
-                        "These test cases pass a character NUnit writes as \\uXXXX in the test's name, and a FullyQualifiedName filter does not select them. Give each a TestName.");
+                        "These test cases pass a character NUnit writes as \\uXXXX in the test's name, and a FullyQualifiedName filter may not select them. Give each a TestName.");
 
         }
 
