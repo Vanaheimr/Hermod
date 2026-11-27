@@ -1105,7 +1105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (headerFields.TryGetValue(HeaderField.Name, out var value))
-                return value?.ToString();
+                return HTTPHeaderField.JoinFieldLines(HeaderField.Name, value);
 
             return null;
 
@@ -1143,6 +1143,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HeaderField.FieldLinesParser(lines, out var valueT3))
                 {
                     return valueT3;
+                }
+
+                // A list on more than one line is one list (RFC 9110, Section 5.3).
+                if (value is String[] listLines &&
+                    HeaderField.FieldLinesParser is null &&
+                    HeaderField.IsListBased)
+                {
+
+                    var joined = String.Join(", ", listLines);
+
+                    if (HeaderField.StringParser is not null &&
+                        HeaderField.StringParser(joined, out var valueT4, out _))
+                    {
+                        return valueT4;
+                    }
+
                 }
 
             }
@@ -1213,6 +1229,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (values is T listOfValues)
                     return listOfValues;
 
+                // A list on more than one line is one list (RFC 9110, Section 5.3).
+                if (values is String[] lines &&
+                    HeaderField.IsListBased &&
+                    HeaderField.StringParser is not null &&
+                    HeaderField.StringParser(String.Join(", ", lines), out var joinedT, out _) &&
+                    joinedT is not null)
+                {
+                    return joinedT;
+                }
+
             }
 
             return default;
@@ -1247,6 +1273,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (values is T listOfValues)
                     return listOfValues;
+
+                // A list on more than one line is one list (RFC 9110, Section 5.3).
+                if (values is String[] lines &&
+                    HeaderField.IsListBased &&
+                    HeaderField.StringParser is not null &&
+                    HeaderField.StringParser(String.Join(", ", lines), out var joinedT, out _) &&
+                    joinedT is not null)
+                {
+                    return joinedT;
+                }
 
             }
 

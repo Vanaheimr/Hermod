@@ -332,6 +332,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region CodingsOnTwoLinesAreUndoneToo()
+
+        /// <summary>
+        /// "Content-Encoding: br" and "Content-Encoding: gzip" on two lines say
+        /// what "Content-Encoding: br, gzip" says (RFC 9110, Section 5.3): Brotli
+        /// first, and gzip on top of it.
+        /// </summary>
+        /// <remarks>
+        /// Before H-52 was fixed, the client read the two lines as no
+        /// Content-Encoding at all, and handed the caller the compressed octets
+        /// as the representation.
+        /// </remarks>
+        [Test]
+        public async Task CodingsOnTwoLinesAreUndoneToo()
+        {
+
+            var text     = "Brotli first, and gzip on top of it, said on two lines.";
+            var encoded  = HTTPContentCoding.Encode(HTTPContentCoding.Encode(Encoding.UTF8.GetBytes(text), "br"), "gzip");
+
+            using var server = new RawServer(
+                                   CloseWhenDone: true,
+                                   Raw("HTTP/1.1 200 OK\r\n" +
+                                       "Content-Type: text/plain\r\n" +
+                                       "Content-Encoding: br\r\n" +
+                                       "Content-Encoding: gzip\r\n" +
+                                      $"Content-Length: {encoded.Length}\r\n" +
+                                       "Connection: close\r\n\r\n",
+                                       encoded)
+                               );
+
+            using var client = new HTTPClient(server.URL) { AutomaticDecompression = true };
+
+            var response = await client.GET(HTTPPath.Root, RequestTimeout: TimeSpan.FromSeconds(5));
+
+            Assert.Multiple(() => {
+                Assert.That(response.HTTPBodyAsUTF8String,    Is.EqualTo(text));
+                Assert.That(response.DecodedContentEncoding,  Is.EqualTo("br, gzip"));
+                Assert.That(response.ContentEncoding,         Is.Empty);
+            });
+
+        }
+
+        #endregion
+
         #region AChunkedGzippedResponseArrivesDecoded()
 
         /// <summary>

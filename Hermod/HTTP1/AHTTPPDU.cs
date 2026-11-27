@@ -455,11 +455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected String? JoinedFieldLines(String FieldName)
 
             => TryGetHeaderField(FieldName, out var value)
-                   ? value switch {
-                         String   line   => line,
-                         String[] lines  => String.Join(", ", lines),
-                         _               => value.ToString()
-                     }
+                   ? HTTPHeaderField.JoinFieldLines(FieldName, value)
                    : null;
 
         #endregion
@@ -1698,7 +1694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String? GetHeaderField(String FieldName)
 
             => headerFields.TryGetValue(FieldName, out var httpValue)
-                   ? httpValue?.ToString()
+                   ? HTTPHeaderField.JoinFieldLines(FieldName, httpValue)
                    : null;
 
         #endregion
@@ -1859,7 +1855,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String? GetHeaderField(HTTPHeaderField HeaderField)
 
             => headerFields.TryGetValue(HeaderField.Name, out var httpValue)
-                   ? httpValue?.ToString()
+                   ? HTTPHeaderField.JoinFieldLines(HeaderField.Name, httpValue)
                    : null;
 
         #endregion
@@ -1925,6 +1921,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return linesValueT;
                 }
 
+                // A list on more than one line is one list (RFC 9110, Section 5.3).
+                if (value is String[]                                              &&
+                    HeaderField.FieldLinesParser is null                           &&
+                    HeaderField.IsListBased)
+                {
+
+                    var joined = String.Join(", ", (String[]) value);
+
+                    if (HeaderField.StringParser is not null                       &&
+                        HeaderField.StringParser(joined, out var joinedValueT, out _) &&
+                        joinedValueT is not null)
+                    {
+                        headerFieldsParsed.TryRemove(HeaderField.Name, out _);
+                        headerFieldsParsed.TryAdd   (HeaderField.Name, joinedValueT);
+                        return joinedValueT;
+                    }
+
+                }
+
             }
 
             return default;
@@ -1952,6 +1967,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (headerFields.TryGetValue(HeaderField.Name, out var value) &&
                 value is not null)
             {
+
+                // A list on more than one line is one list (RFC 9110, Section 5.3).
+                if (value is String[] lines &&
+                    HeaderField.IsListBased)
+                {
+                    value = String.Join(", ", lines);
+                }
 
                 if (value is String text &&
                     HeaderField.StringParser is not null)

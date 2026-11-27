@@ -321,6 +321,108 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private static readonly Dictionary<String, HTTPHeaderField> definedHTTPHeaderFields = new();
 
+        /// <summary>
+        /// The fields whose definition makes them a list: an ABNF list
+        /// (RFC 9110, Section 5.6.1), or a List or a Dictionary of Structured
+        /// Field Values (RFC 9651, Sections 3.1 and 3.2). A recipient may
+        /// combine field lines of such a field into one by joining them with
+        /// commas, in order (RFC 9110, Section 5.3; RFC 9651, Section 4.2), and
+        /// a field not listed here has no such meaning on more than one line.
+        /// Cookie and Set-Cookie are not here: Cookie joins by "; " (RFC 6265,
+        /// Section 5.4), and Set-Cookie not at all (RFC 9110, Section 5.3).
+        /// </summary>
+        private static readonly HashSet<String> listBasedFieldNames = new (StringComparer.OrdinalIgnoreCase) {
+
+            // RFC 9110
+            "Accept",
+            "Accept-Charset",
+            "Accept-Encoding",
+            "Accept-Language",
+            "Accept-Ranges",
+            "Allow",
+            "Authentication-Info",
+            "Connection",
+            "Content-Encoding",
+            "Content-Language",
+            "Expect",
+            "If-Match",
+            "If-None-Match",
+            "Proxy-Authenticate",
+            "Proxy-Authentication-Info",
+            "TE",
+            "Trailer",
+            "Upgrade",
+            "Vary",
+            "Via",
+            "WWW-Authenticate",
+
+            // RFC 9111, and Warning of RFC 7234, obsoleted by RFC 9111
+            "Cache-Control",
+            "Pragma",
+            "Warning",
+
+            // RFC 9112
+            "Transfer-Encoding",
+
+            // RFC 2068, Section 19.7.1.1
+            "Keep-Alive",
+
+            // RFC 4918, Section 10.1
+            "DAV",
+
+            // RFC 5789, Section 3.1
+            "Accept-Patch",
+
+            // RFC 6455, Sections 11.3.2 and 11.3.4
+            "Sec-WebSocket-Extensions",
+            "Sec-WebSocket-Protocol",
+
+            // RFC 7239, and the field it standardizes
+            "Forwarded",
+            "X-Forwarded-For",
+
+            // RFC 7240
+            "Prefer",
+            "Preference-Applied",
+
+            // RFC 7838, Section 3
+            "Alt-Svc",
+
+            // RFC 8288, Section 3
+            "Link",
+
+            // RFC 8942, Section 3.1
+            "Accept-CH",
+
+            // RFC 9209, RFC 9211
+            "Proxy-Status",
+            "Cache-Status",
+
+            // RFC 9218, Section 5
+            "Priority",
+
+            // RFC 9421
+            "Signature",
+            "Signature-Input",
+            "Accept-Signature",
+
+            // RFC 9440, Section 2.2 - Client-Cert is an Item, not a List
+            "Client-Cert-Chain",
+
+            // RFC 9530
+            "Content-Digest",
+            "Repr-Digest",
+            "Want-Content-Digest",
+            "Want-Repr-Digest",
+
+            // Fetch, "HTTP extensions" (CORS)
+            "Access-Control-Request-Headers",
+            "Access-Control-Allow-Methods",
+            "Access-Control-Allow-Headers",
+            "Access-Control-Expose-Headers"
+
+        };
+
         #endregion
 
         #region Properties
@@ -347,6 +449,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// as multiple lines.
         /// </summary>
         public Boolean?             MultipleValuesAsList    { get; }
+
+        /// <summary>
+        /// Whether this field is a list, whose field lines combine into one
+        /// value by commas (RFC 9110, Section 5.3).
+        /// </summary>
+        public Boolean              IsListBased
+            => listBasedFieldNames.Contains(Name);
 
         #endregion
 
@@ -393,6 +502,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return null;
 
         }
+
+        #endregion
+
+        #region IsListBasedField(FieldName)
+
+        /// <summary>
+        /// Whether the field of the given name is a list, whose field lines
+        /// combine into one value by commas (RFC 9110, Section 5.3).
+        /// </summary>
+        /// <param name="FieldName">The name of a header field.</param>
+        public static Boolean IsListBasedField(String FieldName)
+
+            => listBasedFieldNames.Contains(FieldName);
+
+        #endregion
+
+        #region JoinFieldLines(FieldName, Value)
+
+        /// <summary>
+        /// The value of a header field as one text: as it is when it came on
+        /// one line, joined by commas when it came on several and is a list
+        /// (RFC 9110, Section 5.3), and null when it came on several and is
+        /// not, because such a field has no one value then.
+        /// </summary>
+        /// <param name="FieldName">The name of the header field.</param>
+        /// <param name="Value">The value as the header section keeps it.</param>
+        public static String? JoinFieldLines(String   FieldName,
+                                             Object?  Value)
+
+            => Value switch {
+                   null             => null,
+                   String   line    => line,
+                   String[] lines   => IsListBasedField(FieldName)
+                                           ? String.Join(", ", lines)
+                                           : null,
+                   _                => Value.ToString()
+               };
 
         #endregion
 

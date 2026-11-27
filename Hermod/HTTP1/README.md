@@ -6,7 +6,7 @@ Hermod validates and processes HTTP messages, while resource-specific behavior
 such as caching, range selection, authorization policy, or WebDAV operations is
 implemented by the application handler.
 
-Last verified: **2026-11-25**
+Last verified: **2026-11-27**
 
 ## Support levels
 
@@ -181,6 +181,21 @@ The server validates the request line and header section before routing:
 - Fragments, malformed percent escapes, encoded path separators, dot segments,
   repeated path separators, and double-encoded separators are rejected by the
   server's request-target validation.
+- A field that is a list may come on more than one line, and its lines are one
+  list, joined by commas as RFC 9110 §5.3 allows. Which fields are lists,
+  `HTTPHeaderField.IsListBasedField` says, from one set: the lists of RFC 9110
+  and 9111, `Keep-Alive`, `DAV`, `Accept-Patch`, `Sec-WebSocket-Extensions`
+  and `Sec-WebSocket-Protocol` (RFC 6455 §11.3.2 and §11.3.4 say outright
+  that a request may repeat them), `Forwarded` and `X-Forwarded-For`, `Prefer`,
+  `Alt-Svc`, `Link`, `Accept-CH`, `Proxy-Status`, `Cache-Status`, `Priority`,
+  the fields of RFC 9421 and 9530, `Client-Cert-Chain`, and the CORS lists.
+  `Cookie` joins by `; ` and `Set-Cookie` not at all. Any other field that
+  comes twice is refused with `400`: what its two values would mean, no
+  definition says. Until 2026-11-27 the server joined seventeen fields by a
+  list of its own and refused every other, so a WebSocket handshake that
+  offered its extensions on two lines, and a request body with two
+  `Content-Encoding` lines, were answered `400` (H-52 in
+  HTTP1ConformanceTests).
 
 ### Message framing
 
@@ -678,7 +693,7 @@ server reads the cookies it is sent.
 | Set-Cookie | Section 5.6. A control character other than HTAB anywhere, and it is no cookie. The name is everything up to the first `=` and the value everything after it, each without the spaces and tabs around it. More than 4096 octets of the two together, and it is no cookie. An attribute value of more than 1024 octets is ignored, and only that attribute. `Expires` is a cookie-date (Section 5.1.1): every form servers have written, two-digit years included, always in UTC. An `Expires` that is no date is ignored and the cookie kept. `Max-Age` is digits, with an optional `-`. `Domain` loses a leading dot and is lower case. A `Path` that does not begin with `/` is the default-path, which only the request knows, so `Path` is null. `SameSite` is `Strict`, `Lax` or `None`, and `Default` for any other value. The last of each attribute counts. Attributes the model does not know are kept, in their order. |
 | refused | What every user agent ignores whatever the request was (Section 5.7, steps 8 and 19 to 21): a `Domain` outside US-ASCII, `SameSite=None` without `Secure`, a `__Secure-` cookie without `Secure`, and a `__Host-` cookie without `Secure`, with a `Domain` or without `Path=/`. The prefixes are compared case-insensitively. A nameless cookie is no cookie here either: a server must not send one (Section 4.1.1), and the collections are keyed by name. |
 | Cookie | Sections 4.2 and 5.8.3. Every pair is a cookie, `Path=/` included, and a prefixed one is whatever the user agent sent. A pair without a name, or with a control character, is skipped, and the rest of the field is still read. Of two cookies of a name the first is kept. That is the one a user agent sorts first: the longest path, then the oldest. |
-| lines | A user agent may split its cookie-string across `Cookie` lines (Section 5.8.1), and they are read as one. `Set-Cookie` lines are one cookie each. Both read as no cookies at all before, because a field that arrives on more than one line is kept as its lines and nothing read them. A field's `FieldLinesParser` reads them now. The fields that have none still read as absent on more than one line. |
+| lines | A user agent may split its cookie-string across `Cookie` lines (Section 5.8.1), and they are read as one. `Set-Cookie` lines are one cookie each. Both read as no cookies at all before, because a field that arrives on more than one line is kept as its lines and nothing read them. A field's `FieldLinesParser` reads them now. A field that has none and is a list reads as its lines joined by commas (RFC 9110 §5.3), since 2026-11-27, and so does reading it by name. Any other reads as absent on more than one line, by name too, where it read as the text `System.String[]` before. |
 | writing | `ToString()` writes a cookie as `Set-Cookie` carries it: the name and value as they came, each attribute once and in the spelling of Section 4.1.1, and `Expires` as an IMF-fixdate. A request carries one `Cookie` line, with the names and values in their order and no attributes. It used to carry one line per cookie, each with its attributes. `HTTPCookie.Create(...)` makes a cookie held to what Section 4.1 asks of a server — a token as the name and cookie-octets as the value — and to the rules above. It throws for a cookie a server must not send. |
 | crumbs | The enumerator, the indexer, `Get` and `TryGet` read the value the way Hermod's HTTP API writes it: crumbs separated by `:`, each a name with an optional `=` and a value. That is Hermod's own convention, not an RFC's. `Value` is the value as it was sent. It used to be the name of the first crumb, so `abc==` read as `abc`. |
 
@@ -1303,7 +1318,8 @@ and `DotNetHTTPClientTests_MinimalAPI`.
   `HTTPDateTests`, `HTTPCookiesTests`, `ForwardedFieldTests`,
   `ClientCertificateFieldsTests`, `ContentTypeFieldTests`,
   `AlternativeServicesTests`, `DigestFieldsTests`, `LinkFieldTests`,
-  `ContentDispositionTests`, `StrictTransportSecurityTests`
+  `ContentDispositionTests`, `StrictTransportSecurityTests`,
+  `RepeatedFieldLinesTests`
 - **Authentication:** `HTTPDigestAuthenticationTests`, `HTTPClientChallengeTests`
 - **Form bodies:** `MultipartFormDataTests`
 
@@ -1360,12 +1376,15 @@ in the selection all along and never ran in it: NUnit names a case after its
 arguments, writes U+0001 as `\u0001`, and a `FullyQualifiedName` filter does not
 select a case named that way, although a run without a filter does. Each now has
 a `TestName`, and `FilterSafeTestNamesTests` fails for a `[TestCase]` that
-needs one: **1271**.
+needs one: **1271**. `RepeatedFieldLinesTests` came with the second half of
+finding H-52, a list on more than one line, and joined with it, which makes
+fifty-one, and the same change put one case into `ClientContentDecodingTests`:
+**1313**.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~ClientCertificateFieldsTests|FullyQualifiedName~ContentTypeFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests|FullyQualifiedName~StaticFileValidatorsTests|FullyQualifiedName~HTTPCacheTests|FullyQualifiedName~HTTPClientCacheTests|FullyQualifiedName~MultipartFormDataTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~ClientCertificateFieldsTests|FullyQualifiedName~ContentTypeFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests|FullyQualifiedName~StaticFileValidatorsTests|FullyQualifiedName~HTTPCacheTests|FullyQualifiedName~HTTPClientCacheTests|FullyQualifiedName~MultipartFormDataTests|FullyQualifiedName~RepeatedFieldLinesTests"
 ```
 
 ## Deliberate exclusions and qualification
