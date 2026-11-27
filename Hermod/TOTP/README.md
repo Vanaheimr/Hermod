@@ -98,6 +98,18 @@ TOTP.ts implements the same binding (`tlsExporterMaterial`, `tlsExporterMaterial
 and the conformance vectors hold both sides to it. It does not apply where the token travels
 via a third party (as in the QR code flow).
 
+### Over SSH
+
+The SSH stack carries the same token over keyboard-interactive (RFC 4256), unbound:
+`HermodTotpKeyboardInteractive` is the server factor and the client's answer
+([SSH/README.md](../SSH/README.md)); bound to the session, it is the method
+`totp@open.charging.cloud`. An unmodified OpenSSH takes part through
+[SSHTOTPTool](https://github.com/Vanaheimr/SSHTOTPTool), a NativeAOT binary
+(`hermod-ssh-totp`) built on `TOTPGenerator` and `TOTPConfig`: `sshd` hands the answer to it
+through `pam_exec`, `ssh` asks it for the token as its `SSH_ASKPASS`. It reads the JSON of
+`TOTPConfig` per user, takes every parameter but `tlsChannelBinding`, and remembers no token
+it has checked — within the previous/current/next window a token is good more than once.
+
 ## Input validation
 
 Shared secret: at least 16 characters after trimming, no whitespace, keyed as raw UTF-8
