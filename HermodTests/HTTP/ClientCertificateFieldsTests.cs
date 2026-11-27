@@ -316,7 +316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             using (certificate)
             {
-                Assert.That(certificate.RawData,  Is.EqualTo(leaf.RawData));
+                Assert.That(certificate!.RawData, Is.EqualTo(leaf.RawData));
                 Assert.That(certificate.Subject,  Is.EqualTo("CN=BC"));
                 Assert.That(certificate.Issuer,   Does.Contain("CN=LA Intermediate CA"));
             }

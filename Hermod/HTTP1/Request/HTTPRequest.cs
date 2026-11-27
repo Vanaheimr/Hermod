@@ -28,7 +28,6 @@ using Newtonsoft.Json.Linq;
 using System.Globalization;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.MIME;
 using org.GraphDefined.Vanaheimr.Hermod.TCP;
 
 #endregion
@@ -631,36 +630,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region TryParseMultipartFormDataRequestBody(this Request, MimeMultipart, Response)
+        #region TryParseMultipartFormDataRequestBody(this Request, out FormData, out Response, MaxParts = ..., MaxPartHeaderSize = ...)
 
-        public static Boolean TryParseMultipartFormDataRequestBody(this HTTPRequest                        Request,
-                                                                   [NotNullWhen(true)]  out Multipart?     MimeMultipart,
-                                                                   [NotNullWhen(false)] out HTTPResponse?  Response)
+        /// <summary>
+        /// Read the request's content as multipart/form-data (RFC 7578), the
+        /// boundary taken from its Content-Type, and with any content coding it
+        /// declares undone first (RFC 9110, Section 8.4). A request of another
+        /// media type, or in a content coding this stack cannot undo, is
+        /// answered 415 (RFC 9110, Section 15.5.16); one without a boundary, one
+        /// whose coded content does not decode, and one whose content is not a
+        /// well-formed body, 400.
+        /// </summary>
+        /// <param name="Request">The request.</param>
+        /// <param name="FormData">The form data.</param>
+        /// <param name="Response">The response to send instead, when there is none.</param>
+        /// <param name="MaxParts">The number of parts read before the content is refused.</param>
+        /// <param name="MaxPartHeaderSize">The size of a part's header section, in octets, before the content is refused.</param>
+        public static Boolean TryParseMultipartFormDataRequestBody(this HTTPRequest                                Request,
+                                                                   [NotNullWhen(true)]  out HTTPMultipartFormData?  FormData,
+                                                                   [NotNullWhen(false)] out HTTPResponse?           Response,
+                                                                   Int32                                           MaxParts            = HTTPMultipartFormData.DefaultMaxParts,
+                                                                   Int32                                           MaxPartHeaderSize   = HTTPMultipartFormData.DefaultMaxPartHeaderSize)
         {
 
-            #region Initial checks
+            FormData = null;
 
-            if (Request.ContentType     != HTTPContentType.Multipart.FORMDATA ||
-                Request.ContentLength   == 0                                  ||
-               !Request.TryReadHTTPBodyStream()                               ||
-                Request.HTTPBody        is null                               ||
-                Request.HTTPBody.Length == 0                                  ||
-                Request.ContentType.MIMEBoundary is null)
+            if (Request.ContentType != HTTPContentType.Multipart.FORMDATA)
             {
-
-                MimeMultipart  = null;
-                Response       = HTTPResponse.BadRequest(Request);
-
+                Response = new HTTPResponse.Builder(Request) {
+                               HTTPStatusCode  = HTTPStatusCode.UnsupportedMediaType
+                           }.AsImmutable;
                 return false;
-
             }
 
-            #endregion
+            Byte[] body;
 
-            Response       = null;
-            MimeMultipart  = Multipart.Parse(Request.HTTPBody,
-                                             Request.ContentType.MIMEBoundary);
+            try
+            {
+                body = Request.DecodeBody();
+            }
+            catch (NotSupportedException e)
+            {
+                Response = new HTTPResponse.Builder(Request) {
+                               HTTPStatusCode  = HTTPStatusCode.UnsupportedMediaType,
+                               ContentType     = HTTPContentType.Text.PLAIN,
+                               Content         = e.Message.ToUTF8Bytes()
+                           }.AsImmutable;
+                return false;
+            }
+            catch (InvalidDataException e)
+            {
+                Response = HTTPResponse.BadRequest(Request,
+                                                   builder => {
+                                                       builder.ContentType  = HTTPContentType.Text.PLAIN;
+                                                       builder.Content      = e.Message.ToUTF8Bytes();
+                                                   });
+                return false;
+            }
 
+            if (!HTTPMultipartFormData.TryParse(body,
+                                                Request.ContentType.MIMEBoundary,
+                                                out FormData,
+                                                out var error,
+                                                MaxParts,
+                                                MaxPartHeaderSize))
+            {
+                Response = HTTPResponse.BadRequest(Request,
+                                                   builder => {
+                                                       builder.ContentType  = HTTPContentType.Text.PLAIN;
+                                                       builder.Content      = error.ToUTF8Bytes();
+                                                   });
+                return false;
+            }
+
+            Response = null;
             return true;
 
         }
