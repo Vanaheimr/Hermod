@@ -1042,8 +1042,8 @@ the three handler delegates, and `HTTP2.HTTPSemantics.Wrap` kept its
 signatures. `HTTPResourceHandlers` adapts it to HTTP/1.x. The header fields go
 in under their lower-case names, and the target goes in as sent, in origin
 form with its query. The answer comes back with each field under its usual
-spelling, and `Content-Type` verbatim: the typed field keeps a charset and
-nothing else.
+spelling, and `Content-Type` verbatim: the typed field keeps a charset, a
+boundary and SOAP's action, and nothing else.
 
 Two things stay the server's:
 
@@ -1096,6 +1096,23 @@ Hermod has typed models for many common request and response fields and also
 allows extension fields. This includes content negotiation, representation
 metadata, authorization, CORS fields, cookies, conditional request fields,
 ETags, range-related fields, and WebDAV fields.
+
+`Content-Type` is read as RFC 9110 §8.3 defines it since H-51 (2026-11-27):
+a type and subtype in any case, and parameters whose values are a token or a
+quoted string, a quoted one unquoted. `HTTPContentType` keeps the charset, the
+boundary of a multipart type and SOAP 1.2's action, as the field gives them,
+and drops other parameters. A value that does not fit the grammar, or names a
+parameter twice, is no media type. A type that is registered comes back as the
+registered instance when the field adds nothing to it, and as a copy with the
+field's parameters otherwise; equality, hashing and ordering ignore case, for
+a type an application builds itself too. Before, the field was split on every
+`;`, so a quoted boundary kept its quotes and one holding a `;` was cut, and
+the boundary was read from its first `----` on, so one without four dashes in
+a row — RFC 7578's own `AaB03x`, or the hex of Python's clients — made the
+whole field unreadable. A registered type lost the charset the field gave it,
+`Text/Plain` was another type than `text/plain`, and every type a peer named
+was registered in a static table, without bound and without a lock, from every
+connection at once.
 
 `Strict-Transport-Security` is typed since 2026-10-04: `StrictTransportSecurity`
 carries `max-age`, `includeSubDomains` and the non-standard `preload`, parses
@@ -1231,9 +1248,9 @@ and `DotNetHTTPClientTests_MinimalAPI`.
   `ServerContentCompressionTests`
 - **Typed fields:** `ResponseHeaderFieldTests`, `StructuredFieldsTests`,
   `HTTPDateTests`, `HTTPCookiesTests`, `ForwardedFieldTests`,
-  `ClientCertificateFieldsTests`, `AlternativeServicesTests`,
-  `DigestFieldsTests`, `LinkFieldTests`, `ContentDispositionTests`,
-  `StrictTransportSecurityTests`
+  `ClientCertificateFieldsTests`, `ContentTypeFieldTests`,
+  `AlternativeServicesTests`, `DigestFieldsTests`, `LinkFieldTests`,
+  `ContentDispositionTests`, `StrictTransportSecurityTests`
 - **Authentication:** `HTTPDigestAuthenticationTests`, `HTTPClientChallengeTests`
 
 Under `Tests.HTTP` and deliberately not in it: the version-neutral models of
@@ -1281,12 +1298,13 @@ five more to it, one to `HTTPStatusCodeTests` and one to `HTTPCacheTests`:
 **1001**. zstd as a content coding added eight to `ContentEncodingHeaderTests`,
 eleven to `ContentCodingStreamTests`, two to `ClientContentDecodingTests` and
 four to `ServerContentCompressionTests`: **1026**. `ClientCertificateFieldsTests`
-came with RFC 9440 and joined with it, which makes forty-eight: **1061**.
+came with RFC 9440 and joined with it, which makes forty-eight: **1061**. `ContentTypeFieldTests` came with H-51,
+which makes forty-nine: **1099**.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~ClientCertificateFieldsTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests|FullyQualifiedName~StaticFileValidatorsTests|FullyQualifiedName~HTTPCacheTests|FullyQualifiedName~HTTPClientCacheTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~ClientCertificateFieldsTests|FullyQualifiedName~ContentTypeFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests|FullyQualifiedName~StaticFileValidatorsTests|FullyQualifiedName~HTTPCacheTests|FullyQualifiedName~HTTPClientCacheTests"
 ```
 
 ## Deliberate exclusions and qualification
