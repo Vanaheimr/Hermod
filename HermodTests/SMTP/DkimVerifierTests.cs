@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// findings V-13 to V-17 of SMTPConformanceTests.
     /// </summary>
     [TestFixture]
-    public class DkimVerifierTests
+    public partial class DkimVerifierTests
     {
 
         #region Setup

@@ -1046,7 +1046,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             string                 body,
             CancellationToken      ct)
         {
-            var dkimParams = ParseDkimHeader(dkimField.RawValue);
+            var dkimParams = ParseDkimHeader(dkimField.RawValue, out var duplicateTag);
+
+            // RFC 6376 §3.2: "Tags with duplicate names MUST NOT occur within a single tag-list;
+            // if a tag name does occur more than once, the entire tag-list is invalid" - taken,
+            // the last d= would be verified while a reader of the first takes it for the
+            // signature's.
+            if (duplicateTag is not null)
+                return (DkimResult.Fail, $"The DKIM-Signature names {duplicateTag}= more than once (RFC 6376 §3.2)");
 
             // RFC 6376 §6.1.1: "If any tag listed as "required" in Section 3.5 is omitted from the
             // DKIM-Signature header field, the Verifier MUST ignore the DKIM-Signature header field
@@ -1103,7 +1110,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (dkimRecord is null)
                 return (DkimResult.Fail, $"No DKIM record found at {dkimDomain}");
 
-            var dkimRecordParams = ParseDkimRecord(dkimRecord);
+            var dkimRecordParams = ParseDkimRecord(dkimRecord, out var duplicateKeyTag);
+
+            // §6.1.2: "If the result returned from the query does not adhere to the format defined
+            // in this specification, the Verifier MUST ignore the key record and return PERMFAIL
+            // (key syntax error)" - a tag named twice (§3.2), or a v= that is not the first tag
+            // (§3.6.1: "This tag MUST be the first tag in the record").
+            if (duplicateKeyTag is not null)
+                return (DkimResult.Fail, $"The DKIM key record names {duplicateKeyTag}= more than once (RFC 6376 §3.2)");
+
+            if (dkimRecordParams.ContainsKey("v") && FirstTagName(dkimRecord) != "v")
+                return (DkimResult.Fail, "The v= tag of the DKIM key record is not its first (RFC 6376 §3.6.1)");
 
             if (!dkimRecordParams.TryGetValue("p", out var publicKeyBase64))
                 return (DkimResult.Fail, "No public key in DKIM record");
@@ -1206,22 +1223,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// an EAI message may be in U-labels - and "sig.bücher.test" is not "sig.bã¼cher.test".
         /// </summary>
         private static Dictionary<string, string> ParseDkimHeader(string header)
+            => ParseDkimHeader(header, out _);
+
+        /// <param name="DuplicateTag">The name of a tag the tag-list names more than once, or null.</param>
+        private static Dictionary<string, string> ParseDkimHeader(string header, out String? DuplicateTag)
+            => ParseTagList(Utf8OfOctets(header).Replace("\r\n", "").Replace("\n", "").Replace("\t", " "), out DuplicateTag);
+
+        /// <summary>
+        /// A tag-list (RFC 6376 §3.2): tag-spec *( ";" tag-spec ) [ ";" ], tag-spec = [FWS]
+        /// tag-name [FWS] "=" [FWS] tag-value [FWS]. "Tags MUST be interpreted in a case-sensitive
+        /// manner" - "D=" is no "d=" - and "Tags with duplicate names MUST NOT occur within a single
+        /// tag-list; if a tag name does occur more than once, the entire tag-list is invalid": the
+        /// first such name is given back, for the caller to refuse the tag-list.
+        /// </summary>
+        private static Dictionary<string, string> ParseTagList(String TagList, out String? DuplicateTag)
         {
-            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            var normalized = Utf8OfOctets(header).Replace("\r\n", "").Replace("\n", "").Replace("\t", " ");
-        
-            foreach (var part in normalized.Split(';', StringSplitOptions.RemoveEmptyEntries))
+
+            var result   = new Dictionary<string, string>(StringComparer.Ordinal);
+            DuplicateTag = null;
+
+            foreach (var part in TagList.Split(';', StringSplitOptions.RemoveEmptyEntries))
             {
                 var trimmed = part.Trim();
                 var eqIndex = trimmed.IndexOf('=');
                 if (eqIndex > 0)
                 {
-                    var key = trimmed[..eqIndex].Trim();
+                    var key   = trimmed[..eqIndex].Trim();
                     var value = trimmed[(eqIndex + 1)..].Trim();
-                    result[key] = value;
+                    if (!result.TryAdd(key, value))
+                        DuplicateTag ??= key;
                 }
             }
+
             return result;
+
+        }
+
+        /// <summary>
+        /// The name of the first tag of a tag-list, or null.
+        /// </summary>
+        private static String? FirstTagName(String TagList)
+        {
+
+            var first = TagList.Split(';', StringSplitOptions.RemoveEmptyEntries).
+                                Select(tag => tag.Trim()).
+                                FirstOrDefault(tag => tag.Length > 0);
+
+            if (first is null)
+                return null;
+
+            var equals = first.IndexOf('=');
+
+            return equals > 0 ? first[..equals].Trim() : null;
+
         }
 
         private static readonly UTF8Encoding StrictUtf8 = new (encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
@@ -1248,26 +1302,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         }
 
         private static Dictionary<string, string> ParseDkimRecord(string record)
-        {
-            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var part in record.Split(';', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var trimmed = part.Trim();
-                var eqIndex = trimmed.IndexOf('=');
-                if (eqIndex > 0)
-                {
-                    var key = trimmed[..eqIndex].Trim();
-                    var value = trimmed[(eqIndex + 1)..].Trim();
-                    result[key] = value;
-                }
-            }
-            return result;
-        }
+            => ParseTagList(record, out _);
 
+        private static Dictionary<string, string> ParseDkimRecord(string record, out String? DuplicateTag)
+            => ParseTagList(record, out DuplicateTag);
+
+        /// <summary>
+        /// The header and the body canonicalization of a c= tag. RFC 6376 §3.5: "If only one
+        /// algorithm is named, that algorithm is used for the header and "simple" is used for the
+        /// body. For example, "c=relaxed" is treated the same as "c=relaxed/simple"".
+        /// </summary>
         private static (string Header, string Body) ParseCanonicalization(string c)
         {
             var parts = c.Split('/');
-            return (parts[0].ToLowerInvariant(), parts.Length > 1 ? parts[1].ToLowerInvariant() : parts[0].ToLowerInvariant());
+            return (parts[0].Trim().ToLowerInvariant(), parts.Length > 1 ? parts[1].Trim().ToLowerInvariant() : "simple");
         }
 
         #endregion
