@@ -20,6 +20,7 @@
 using System.Reflection;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -53,9 +54,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private static readonly  Char[]                                 splitter              = [';'];
-
-        private static readonly  Dictionary<String, HTTPContentType>    lookup                = [];
+        // Media types are case-insensitive (RFC 9110, Section 8.3.1).
+        private static readonly  Dictionary<String, HTTPContentType>    lookup                = new (StringComparer.OrdinalIgnoreCase);
         private static readonly  Dictionary<String, HTTPContentType[]>  fileExtensionLookup   = [];
 
         private        readonly  IEnumerable<String>                    fileExtensions        = FileExtensions ?? [];
@@ -182,60 +182,197 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryParse(Text, out HTTPContentType)
 
-        public static Boolean TryParse(String Text, [NotNullWhen(true)] out HTTPContentType? HTTPContentType)
+        /// <summary>
+        /// Parse a Content-Type field value (RFC 9110, Section 8.3):
+        ///
+        ///    media-type = type "/" subtype parameters
+        ///    parameters = *( OWS ";" OWS [ parameter ] )
+        ///    parameter  = parameter-name "=" parameter-value
+        ///    parameter-value = ( token / quoted-string )
+        ///
+        /// Type, subtype and parameter names are case-insensitive (Section 8.3.1,
+        /// 5.6.6); the type is kept in lower case. The charset, the boundary of a
+        /// multipart type and the action of SOAP 1.2 are kept as the field gives
+        /// them, a quoted value unquoted, and other parameters are dropped. A value
+        /// that does not fit the grammar, or names a parameter twice, is no media
+        /// type: a boundary given twice is two different readings of one body.
+        ///
+        /// The registry of known types is only read here, never written: a type
+        /// that was registered comes back as that very instance when the field
+        /// adds nothing to it, and as a copy carrying the field's parameters and
+        /// the registered file extensions otherwise; a type that was not comes
+        /// back as a new instance. Registering every type a peer named would let
+        /// any peer grow a static table without bound, from every connection at
+        /// once.
+        /// </summary>
+        /// <param name="Text">The field value.</param>
+        /// <param name="HTTPContentType">The parsed media type.</param>
+        public static Boolean TryParse(String?                                   Text,
+                                       [NotNullWhen(true)] out HTTPContentType?  HTTPContentType)
         {
 
-            try
-            {
+            HTTPContentType = null;
 
-                var parts       = Text.Split  (splitter, StringSplitOptions.RemoveEmptyEntries).
-                                       Select (part => part.Trim()).
-                                       ToArray();
-
-                var mediaTypes  = parts[0].Split('/');
-                var charset     = Array.Find(parts, part => part.StartsWith("charset",  StringComparison.OrdinalIgnoreCase));
-                var boundary    = Array.Find(parts, part => part.StartsWith("boundary", StringComparison.OrdinalIgnoreCase));
-
-                    charset     = charset is not null && charset.IsNeitherNullNorEmpty()
-                                      ? charset[(charset.IndexOf('=') + 1)..].Trim()
-                                      : null;
-
-                if (boundary is not null)
-                {
-
-                    HTTPContentType = new HTTPContentType(
-                                          mediaTypes[0],
-                                          mediaTypes[1],
-                                          charset,
-                                          null,
-                                          boundary[boundary.IndexOf("----")..]
-                                      );
-                    return true;
-
-                }
-
-                else
-                {
-
-                    if (!lookup.TryGetValue(parts[0], out HTTPContentType))
-                        HTTPContentType = Register(
-                                              mediaTypes[0],
-                                              mediaTypes[1],
-                                              charset,
-                                              null,
-                                              null
-                                          );
-
-                    return true;
-
-                }
-
-            }
-            catch
-            {
-                HTTPContentType = null;
+            if (Text is null)
                 return false;
+
+            var position = 0;
+
+            SkipWhitespace(Text, ref position);
+
+            var type = ReadToken(Text, ref position);
+
+            if (type is null || position == Text.Length || Text[position] != '/')
+                return false;
+
+            position++;
+
+            var subType = ReadToken(Text, ref position);
+
+            if (subType is null)
+                return false;
+
+            String? charset   = null;
+            String? boundary  = null;
+            String? action    = null;
+            var     names     = new HashSet<String>(StringComparer.OrdinalIgnoreCase);
+
+            while (true)
+            {
+
+                SkipWhitespace(Text, ref position);
+
+                if (position == Text.Length)
+                    break;
+
+                if (Text[position] != ';')
+                    return false;
+
+                position++;
+                SkipWhitespace(Text, ref position);
+
+                // An empty parameter: "text/plain;" and "text/plain;;charset=x".
+                if (position == Text.Length || Text[position] == ';')
+                    continue;
+
+                var name = ReadToken(Text, ref position);
+
+                if (name is null || position == Text.Length || Text[position] != '=')
+                    return false;
+
+                position++;
+
+                var value = position < Text.Length && Text[position] == '"'
+                                ? ReadQuotedString(Text, ref position)
+                                : ReadToken       (Text, ref position);
+
+                if (value is null || !names.Add(name))
+                    return false;
+
+                if      (name.Equals("charset",  StringComparison.OrdinalIgnoreCase))
+                    charset   = value;
+                else if (name.Equals("boundary", StringComparison.OrdinalIgnoreCase))
+                    boundary  = value;
+                else if (name.Equals("action",   StringComparison.OrdinalIgnoreCase))
+                    action    = value;
+
             }
+
+            var mediaType = $"{type}/{subType}".ToLowerInvariant();
+
+            lookup.TryGetValue(mediaType, out var registered);
+
+            var asRegistered = registered is not null &&
+                               String.Equals(charset, registered.CharSet, StringComparison.OrdinalIgnoreCase) &&
+                               boundary is null &&
+                               action   is null;
+
+            HTTPContentType = asRegistered
+                                  ? registered!
+                                  : new HTTPContentType(
+                                        registered?.MediaMainType ?? type.   ToLowerInvariant(),
+                                        registered?.MediaSubType  ?? subType.ToLowerInvariant(),
+                                        charset,
+                                        action,
+                                        boundary,
+                                        registered?.FileExtensions ?? []
+                                    );
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region (private static) SkipWhitespace / ReadToken / ReadQuotedString
+
+        // OWS (RFC 9110, Section 5.6.3).
+        private static void SkipWhitespace(String Text, ref Int32 Position)
+        {
+            while (Position < Text.Length && Text[Position] is ' ' or '\t')
+                Position++;
+        }
+
+        // token = 1*tchar (RFC 9110, Section 5.6.2).
+        private static String? ReadToken(String Text, ref Int32 Position)
+        {
+
+            var start = Position;
+
+            while (Position < Text.Length && IsTokenCharacter(Text[Position]))
+                Position++;
+
+            return Position > start
+                       ? Text[start..Position]
+                       : null;
+
+        }
+
+        private static Boolean IsTokenCharacter(Char Character)
+
+            => Character is >= 'a' and <= 'z'
+                         or >= 'A' and <= 'Z'
+                         or >= '0' and <= '9'
+                         or '!' or '#' or '$' or '%' or '&' or '\'' or '*' or '+'
+                         or '-' or '.' or '^' or '_' or '`' or '|' or '~';
+
+        // quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE (RFC 9110,
+        // Section 5.6.4), returned without its quotes and with each quoted-pair
+        // reduced to the character it quotes. Null when it is not closed, or holds
+        // a control character.
+        private static String? ReadQuotedString(String Text, ref Int32 Position)
+        {
+
+            var value = new StringBuilder();
+
+            Position++;
+
+            while (Position < Text.Length)
+            {
+
+                var character = Text[Position++];
+
+                if (character == '"')
+                    return value.ToString();
+
+                if (character == '\\')
+                {
+
+                    if (Position == Text.Length)
+                        return null;
+
+                    character = Text[Position++];
+
+                }
+
+                if (character is < ' ' and not '\t' or '\x7F')
+                    return null;
+
+                value.Append(character);
+
+            }
+
+            return null;
 
         }
 
@@ -658,10 +795,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(HTTPContentType),
                                                 "The given HTTP content type must not be null!");
 
-            var c = MediaMainType.CompareTo(HTTPContentType.MediaMainType);
+            var c = String.Compare(MediaMainType, HTTPContentType.MediaMainType, StringComparison.OrdinalIgnoreCase);
 
             if (c == 0)
-                c = MediaSubType.CompareTo(HTTPContentType.MediaSubType);
+                c = String.Compare(MediaSubType,  HTTPContentType.MediaSubType,  StringComparison.OrdinalIgnoreCase);
 
             return c;
 
@@ -696,8 +833,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => HTTPContentType is not null &&
 
-               MediaMainType.Equals(HTTPContentType.MediaMainType) &&
-               MediaSubType. Equals(HTTPContentType.MediaSubType);
+               MediaMainType.Equals(HTTPContentType.MediaMainType, StringComparison.OrdinalIgnoreCase) &&
+               MediaSubType. Equals(HTTPContentType.MediaSubType,  StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -713,8 +850,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             unchecked
             {
 
-                return MediaMainType.GetHashCode() * 3 ^
-                       MediaSubType. GetHashCode();
+                return StringComparer.OrdinalIgnoreCase.GetHashCode(MediaMainType) * 3 ^
+                       StringComparer.OrdinalIgnoreCase.GetHashCode(MediaSubType);
 
             }
         }
