@@ -50,6 +50,10 @@ Hermod is a .NET library for simplified advanced networking tasks...
   `SelfSignUpAPI`
 - HTTP Passkeys
 - HTTP TOTP Authentication
+- SSH TOTP Authentication: Hermod's one-time password over keyboard-interactive,
+  also for an unmodified OpenSSH through
+  [SSHTOTPTool](https://github.com/Vanaheimr/SSHTOTPTool) (`hermod-ssh-totp`:
+  `pam_exec` on the server, `SSH_ASKPASS` on the client)
 - Argus
 - Warden
 
