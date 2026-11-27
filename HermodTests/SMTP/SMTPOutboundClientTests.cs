@@ -90,6 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             private readonly Boolean                  silent;
             private readonly X509Certificate2?        certificate;
             private readonly X509Certificate2[]       chain;
+            private readonly SslStreamCertificateContext? context;
             private readonly Boolean                  requireTls;
             private readonly Encoding                 encoding;
             private          Boolean                  inTls;
@@ -132,6 +133,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 certificate  = Certificate;
                 chain        = Chain ?? [];
                 requireTls   = RequireTls;
+                context      = certificate is not null
+                                   ? SslStreamCertificateContext.Create(certificate, [.. chain], offline: true)
+                                   : null;
+                WaitUntilThePlatformSeesTheChain();
                 listener.Start();
                 _ = Task.Run(AcceptAsync);
             }
@@ -227,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                             await Write("220 2.0.0 Ready to start TLS");
                             var tls  = new SslStream(stream, false);
                             await tls.AuthenticateAsServerAsync(new SslServerAuthenticationOptions {
-                                      ServerCertificateContext = SslStreamCertificateContext.Create(certificate, [.. chain], offline: true)
+                                      ServerCertificateContext = context
                                   });
                             stream   = tls;
                             reader   = new StreamReader(tls, encoding);
@@ -249,6 +254,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 {
                     // the client hung up
                 }
+            }
+
+            /// <summary>
+            /// On Windows, SslStreamCertificateContext puts issuers the platform cannot find into
+            /// the intermediate CA store (InstalledAuthorities), and the platform's chain engine
+            /// sees them there only a little later: a handshake right after it built the chains of
+            /// both ends without them - the client's chain of the server certificate ended at the
+            /// certificate, PartialChain, while the trust anchor was in CurrentUser\CA already and
+            /// a chain built a moment later had it. A DANE-TA test then found no anchor and
+            /// deferred, now and then. So the next hop takes connections only once a chain of its
+            /// certificate reaches the last of the issuers it sends along - without downloads, so
+            /// that an issuer URL nobody answers keeps nobody waiting - or after five seconds.
+            /// </summary>
+            private void WaitUntilThePlatformSeesTheChain()
+            {
+
+                if (!OperatingSystem.IsWindows() || certificate is null || chain.Length == 0)
+                    return;
+
+                var anchor   = chain[^1].Thumbprint;
+                var deadline = Stopwatch.StartNew();
+
+                while (deadline.Elapsed < TimeSpan.FromSeconds(5))
+                {
+
+                    using var platform = new X509Chain();
+                    platform.ChainPolicy.RevocationMode               = X509RevocationMode.NoCheck;
+                    platform.ChainPolicy.DisableCertificateDownloads  = true;
+                    platform.Build(certificate);
+
+                    if (platform.ChainElements.Any(element => String.Equals(element.Certificate.Thumbprint, anchor, StringComparison.OrdinalIgnoreCase)))
+                        return;
+
+                    Thread.Sleep(20);
+
+                }
+
             }
 
             /// <summary>
