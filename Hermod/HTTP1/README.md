@@ -1355,7 +1355,12 @@ four to `ServerContentCompressionTests`: **1026**. `ClientCertificateFieldsTests
 came with RFC 9440 and joined with it, which makes forty-eight: **1061**. `ContentTypeFieldTests` came with H-51,
 which makes forty-nine: **1099**. `MultipartFormDataTests` came with
 RFC 7578 and joined with it, which makes fifty: **1147**. The cookies of
-6265bis added 121 cases to `HTTPCookiesTests`: **1268**.
+6265bis added 121 cases to `HTTPCookiesTests`: **1268**. Three cases had been
+in the selection all along and never ran in it: NUnit names a case after its
+arguments, writes U+0001 as `\u0001`, and a `FullyQualifiedName` filter does not
+select a case named that way, although a run without a filter does. Each now has
+a `TestName`, and `FilterSafeTestNamesTests` fails for a `[TestCase]` that
+needs one: **1271**.
 
 Run it with:
 

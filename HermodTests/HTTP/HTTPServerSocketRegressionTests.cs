@@ -758,8 +758,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [TestCase("GET / HTTP/1.1\r\nHost: \r\nConnection: close\r\n\r\n")]
         [TestCase("GET / HTTP/1.1\r\nHost : localhost\r\nConnection: close\r\n\r\n")]
         [TestCase("GET / HTTP/1.1\r\nHost: localhost\r\nMalformedHeader\r\nConnection: close\r\n\r\n")]
-        [TestCase("GET / HTTP/1.1\r\nHost: localhost\r\nX-Test: value\u0001injected\r\nConnection: close\r\n\r\n")]
-        [TestCase("GET / HTTP/1.1\r\nHost: localhost\r\nX-Test: value\u007Finjected\r\nConnection: close\r\n\r\n")]
+        [TestCase("GET / HTTP/1.1\r\nHost: localhost\r\nX-Test: value\u0001injected\r\nConnection: close\r\n\r\n", TestName = "{m}(X-Test: value U+0001)")]
+        [TestCase("GET / HTTP/1.1\r\nHost: localhost\r\nX-Test: value\u007Finjected\r\nConnection: close\r\n\r\n", TestName = "{m}(X-Test: value U+007F)")]
         [TestCase("GET / HTTP/1.1\r\nHost: localhost\r\nX-Test: value\r\n continued\r\nConnection: close\r\n\r\n")]
         public async Task Invalid_Host_And_Header_Syntax_Are_Rejected(String Request)
         {
@@ -1761,7 +1761,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [TestCase("5;")]
         [TestCase("5;=invalid")]
         [TestCase("5;name@value")]
-        [TestCase("5;name=\u0001")]
+        [TestCase("5;name=\u0001", TestName = "{m}(5;name=U+0001)")]
         public async Task Invalid_Chunk_Extensions_Are_Rejected(String ChunkSizeLine)
         {
 

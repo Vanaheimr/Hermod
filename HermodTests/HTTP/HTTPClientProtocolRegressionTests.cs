@@ -423,8 +423,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         }
 
-        [TestCase("X-Test: value\u0001injected\r\n")]
-        [TestCase("X-Test: value\u007Finjected\r\n")]
+        [TestCase("X-Test: value\u0001injected\r\n", TestName = "{m}(U+0001)")]
+        [TestCase("X-Test: value\u007Finjected\r\n", TestName = "{m}(U+007F)")]
         public async Task GET_Rejects_Response_Header_Values_With_Control_Characters(String responseHeader)
         {
 
