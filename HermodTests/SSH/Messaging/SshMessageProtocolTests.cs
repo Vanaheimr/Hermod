@@ -394,9 +394,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #region Hello_NotFirst_IsRefused
 
+        /// <summary>
+        /// "Anything but HELLO first is answered with REFUSED hello-expected" - a TEXT or BINARY as much
+        /// as a PING, although the first read takes no payload of a message at all. (A TEXT first was
+        /// refused as an invalid-hello, its length being more than that read takes; AsyncSSH's client,
+        /// written from the README, found it.)
+        /// </summary>
         [Test]
         [CancelAfter(30000)]
-        public async Task Hello_NotFirst_IsRefused(CancellationToken CancellationToken)
+        [TestCase(SshMessageFrameType.Ping)]
+        [TestCase(SshMessageFrameType.Text)]
+        [TestCase(SshMessageFrameType.Binary)]
+        [TestCase(SshMessageFrameType.Close)]
+        public async Task Hello_NotFirst_IsRefused(SshMessageFrameType First, CancellationToken CancellationToken)
         {
 
             await using var running = await StartAsync(CancellationToken);
@@ -404,13 +414,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
             var (ssh, channel) = await RawAsync(running, CancellationToken);
             await using var _  = ssh;
 
-            await SendAsync(channel, SshMessageFrameType.Ping, [ 1 ]);
+            await SendAsync(channel, First, "not a HELLO"u8.ToArray());
 
             var frames = await FramesToTheEndAsync(channel);
 
             Assert.Multiple(() => {
                 Assert.That(frames.Select(f => f.Type),                         Is.EqualTo(new[] { SshMessageFrameType.Refused }));
                 Assert.That(SshMessageRefusal.Decode(frames[0].Payload).Code,   Is.EqualTo(SshMessageRefusal.HelloExpected));
+            });
+
+        }
+
+        #endregion
+
+        #region Hello_TooLong_IsRefused_AsInvalid_WithoutItsPayloadBeingRead
+
+        /// <summary>
+        /// A HELLO longer than a control frame may be is an invalid HELLO, told from its header alone: only
+        /// the header is sent, so a server that waited for the payload would never answer.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task Hello_TooLong_IsRefused_AsInvalid_WithoutItsPayloadBeingRead(CancellationToken CancellationToken)
+        {
+
+            await using var running = await StartAsync(CancellationToken);
+
+            var (ssh, channel) = await RawAsync(running, CancellationToken);
+            await using var _  = ssh;
+
+            var header = new Byte[5];
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(header, 1 + 64 * 1024 + 1);
+            header[4] = (Byte) SshMessageFrameType.Hello;
+
+            await channel.SendDataAsync(header, CancellationToken);
+
+            var frames = await FramesToTheEndAsync(channel);
+
+            Assert.Multiple(() => {
+                Assert.That(frames.Select(f => f.Type),                         Is.EqualTo(new[] { SshMessageFrameType.Refused }));
+                Assert.That(SshMessageRefusal.Decode(frames[0].Payload).Code,   Is.EqualTo(SshMessageRefusal.InvalidHello));
             });
 
         }

@@ -97,8 +97,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <summary>
     /// The other side broke the message protocol: the connection is closed with <see cref="Code"/>.
     /// </summary>
-    public sealed class SshMessageProtocolException(MessageCloseCode  Code,
-                                                    String            Message)
+    /// <param name="Code">The close code the connection ends with.</param>
+    /// <param name="Message">What was wrong.</param>
+    /// <param name="FrameType">The kind of the frame that was wrong, where its header could be read.</param>
+    public sealed class SshMessageProtocolException(MessageCloseCode      Code,
+                                                    String                Message,
+                                                    SshMessageFrameType?  FrameType   = null)
 
         : SshWireException(Message)
 
@@ -107,7 +111,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The close code the connection ends with.
         /// </summary>
-        public MessageCloseCode Code { get; } = Code;
+        public MessageCloseCode      Code       { get; } = Code;
+
+        /// <summary>
+        /// The kind of the frame that was wrong, where its header could be read - so that a server told a
+        /// first frame too long for it can still tell a HELLO too long from something else instead.
+        /// </summary>
+        public SshMessageFrameType?  FrameType  { get; } = FrameType;
 
     }
 
@@ -214,7 +224,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 throw new SshMessageProtocolException(type is SshMessageFrameType.Text or SshMessageFrameType.Binary
                                                           ? MessageCloseCode.MessageTooBig
                                                           : MessageCloseCode.ProtocolError,
-                                                      $"A frame of kind 0x{(Byte) type:x2} with {payloadLength} bytes, more than the {limit} taken.");
+                                                      $"A frame of kind 0x{(Byte) type:x2} with {payloadLength} bytes, more than the {limit} taken.",
+                                                      type);
 
             var payload = payloadLength == 0
                               ? []
